@@ -21,6 +21,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -61,7 +62,7 @@ class AccountRepositoryTest extends RepositoryTestBase {
         var account = accountRepo.findById(accountId).orElseThrow();
         var found = accountRepo.findByUid(account.uid()).orElseThrow();
         assertEquals(accountId, found.id());
-        assertTrue(accountRepo.findByUid(java.util.UUID.randomUUID()).isEmpty());
+        assertTrue(accountRepo.findByUid(UUID.randomUUID()).isEmpty());
 
         assertEquals(account.uid(), accountRepo.resolveUid(accountId));
         assertNull(accountRepo.resolveUid(99999));
@@ -124,7 +125,7 @@ class AccountRepositoryTest extends RepositoryTestBase {
         var picker = accountRepo.findPickerByUid(account.uid()).orElseThrow();
         assertEquals(account.id(), picker.id());
         assertEquals(account.email(), picker.email());
-        assertTrue(accountRepo.findPickerByUid(java.util.UUID.randomUUID()).isEmpty());
+        assertTrue(accountRepo.findPickerByUid(UUID.randomUUID()).isEmpty());
     }
 
     @Test

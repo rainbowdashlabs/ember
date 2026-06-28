@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.backend.ObjectMetadata;
 import dev.chojo.ember.feature.storage.backend.StorageBackend;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
+import dev.chojo.ember.feature.storage.backend.StorageException;
 import dev.chojo.ember.feature.storage.backend.StoredStream;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
@@ -25,6 +26,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Optional;
@@ -172,8 +174,7 @@ public class StorageService {
         try (StoredStream stream = opt.get()) {
             return Optional.of(stream.body().readAllBytes());
         } catch (IOException e) {
-            throw new dev.chojo.ember.feature.storage.backend.StorageException(
-                    "Reading bytes failed for " + category + " key=" + key, e);
+            throw new StorageException("Reading bytes failed for " + category + " key=" + key, e);
         }
     }
 
@@ -272,7 +273,7 @@ public class StorageService {
     /**
      * Reads the last-access timestamp for {@code (scope, category, key)}, when supported.
      */
-    public Optional<java.time.Instant> lastAccessed(StorageScope scope, StorageCategory category, String key) {
+    public Optional<Instant> lastAccessed(StorageScope scope, StorageCategory category, String key) {
         StorageBackend backend = resolver.forScope(scope, category);
         return backend.lastAccessed(fullKey(scope, category, key, Variant.ORIGINAL));
     }

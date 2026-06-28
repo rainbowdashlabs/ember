@@ -228,15 +228,22 @@ public class DemoWaitingListSeeder {
 
                 switch (kid.status) {
                     case TESTING -> {
+                        // Match WaitingListService.inviteEntry: members carried over from the
+                        // waiting list during their trial period live under the TRIAL user type,
+                        // not the schema default of MEMBER, so they show up correctly on the
+                        // members overview and in the testing-group section.
+                        stationMemberRepository.setUserType(member.id(), StationUserType.TRIAL);
                         memberGroupRepository.addMember(gaesteGroup.id(), member.id());
                         waitingListRepository.updateEntryStatusWithTimestamp(
                                 entry.id(), WaitingListEntryStatus.TESTING, "testing_at");
                         testingMemberIds.add(member.id());
                     }
                     case JOINED -> {
+                        // The applicant first goes through the TRIAL phase like a real waiting-list
+                        // transition does, then graduates to a full MEMBER once joined.
+                        stationMemberRepository.setUserType(member.id(), StationUserType.TRIAL);
                         waitingListRepository.updateEntryStatusWithTimestamp(
                                 entry.id(), WaitingListEntryStatus.TESTING, "testing_at");
-                        // Remove TRIAL, assign MEMBER user type, move to join group
                         stationMemberRepository
                                 .findPermissionByName(StationPermission.USER)
                                 .ifPresent(role -> stationMemberRepository.revokePermission(member.id(), role.id()));

@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.station.service;
 
+import de.chojo.sadu.queries.api.call.Call;
+import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -29,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -230,18 +233,18 @@ class SetupServiceTest extends RepositoryTestBase {
     }
 
     private static Map<String, Boolean> byId(List<StepState> steps) {
-        return steps.stream().collect(java.util.stream.Collectors.toMap(StepState::id, StepState::complete));
+        return steps.stream().collect(Collectors.toMap(StepState::id, StepState::complete));
     }
 
     private static void insertInvite(int stationId, int memberId) {
-        de.chojo.sadu.queries.api.query.Query.query("""
+        Query.query("""
                 INSERT INTO station_member_invite(
                     station_id, token, email, first_name, last_name, user_type,
                     invited_by_member_id, expires_at)
                 VALUES (
                     :station_id, :token, 'new@example.com', 'New', 'User', 'MEMBER',
                     :member_id, now() + interval '14 days');""")
-                .single(de.chojo.sadu.queries.api.call.Call.call()
+                .single(Call.call()
                         .bind("station_id", stationId)
                         .bind("token", "tok-" + System.nanoTime())
                         .bind("member_id", memberId))

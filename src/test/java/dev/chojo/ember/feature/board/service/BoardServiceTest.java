@@ -26,6 +26,9 @@ import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
+import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
+import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -64,9 +67,9 @@ class BoardServiceTest extends RepositoryTestBase {
         tagService = mock(UserTagService.class);
 
         boardService = new BoardService(boardRepo, memberService, groupService, tagService);
-        var btBackend = new dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend();
-        var btResolver = new dev.chojo.ember.feature.storage.backend.StorageBackendResolver(btBackend);
-        var btStorage = new dev.chojo.ember.feature.storage.service.StorageService(btResolver, btBackend);
+        var btBackend = new LocalStorageBackend();
+        var btResolver = new StorageBackendResolver(btBackend);
+        var btStorage = new StorageService(btResolver, btBackend);
         var attachmentSvc = new BoardAttachmentService(btStorage, stationRepo, btBackend);
         ticketService = new BoardTicketService(
                 boardTicketRepo,

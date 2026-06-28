@@ -29,6 +29,7 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.FileTime;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Instant;
@@ -239,7 +240,7 @@ public class LocalStorageBackend implements StorageBackend {
     public void touch(String fullKey) {
         Path target = resolve(fullKey);
         try {
-            Files.setLastModifiedTime(target, java.nio.file.attribute.FileTime.from(Instant.now()));
+            Files.setLastModifiedTime(target, FileTime.from(Instant.now()));
         } catch (NoSuchFileException ignored) {
         } catch (IOException e) {
             throw new StorageException("Local touch failed for " + fullKey, e);

@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService.AcceptException;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService.GuardianRequest;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService.InviteRequest;
+import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -30,6 +31,7 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -138,7 +140,7 @@ public class StationMemberInviteRoutes implements Routes {
         var invite = service.findByToken(token).orElseThrow(NotFoundResponse::new);
         String stationName = stationRepository
                 .findById(invite.stationId())
-                .map(s -> s.name())
+                .map(Station::name)
                 .orElse("");
         ctx.json(PublicStationMemberInviteResponse.from(invite, stationName));
     }
@@ -223,9 +225,9 @@ public class StationMemberInviteRoutes implements Routes {
             Integer groupId,
             Integer guardianOfInviteId,
             int invitedByMemberId,
-            java.time.Instant expiresAt,
-            java.time.Instant acceptedAt,
-            java.time.Instant createdAt) {
+            Instant expiresAt,
+            Instant acceptedAt,
+            Instant createdAt) {
         public static StationMemberInviteResponse from(StationMemberInvite invite) {
             return new StationMemberInviteResponse(
                     invite.id(),

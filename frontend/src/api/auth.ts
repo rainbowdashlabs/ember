@@ -49,6 +49,21 @@ export async function login(data: LoginRequest): Promise<LoginResponse> {
     return res.data
 }
 
+export async function demoLogin(email: string): Promise<LoginResponse> {
+    if (isStorageDenied()) {
+        throw new StorageDeniedError()
+    }
+    const res = await client.post<LoginResponse>('/demo/login', {email})
+    if (res.data.token) {
+        setItem('session_token', res.data.token)
+        if (res.data.expiresAt) {
+            setItem('session_expires_at', res.data.expiresAt)
+            scheduleTokenRefresh(res.data.expiresAt)
+        }
+    }
+    return res.data
+}
+
 export async function logout(data: TokenRequest): Promise<MessageResponse> {
     cancelTokenRefresh()
     const res = await client.post<MessageResponse>('/auth/logout', data)

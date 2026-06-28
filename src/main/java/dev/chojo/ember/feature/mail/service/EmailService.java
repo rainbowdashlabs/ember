@@ -18,6 +18,7 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
@@ -271,7 +272,7 @@ public class EmailService {
      * fresh on next login. {@code actorLabel} is the admin's email (or a generic
      * "administrator" fallback when unknown).
      */
-    public void sendTwoFactorResetNotice(String email, String name, String actorLabel, java.time.Instant resetAt) {
+    public void sendTwoFactorResetNotice(String email, String name, String actorLabel, Instant resetAt) {
         var vars = baseVars(name, null);
         vars.put("loginUrl", api.baseUrl() + "/login");
         vars.put("actor", actorLabel != null && !actorLabel.isBlank() ? actorLabel : "an administrator");

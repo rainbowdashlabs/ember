@@ -25,6 +25,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
@@ -112,7 +113,7 @@ public class StationMemberInviteService {
      * after its parent so the {@code guardian_of_invite_id} pointer is valid.
      */
     public List<StationMemberInvite> createBatch(int stationId, int invitedByMemberId, List<InviteRequest> requests) {
-        var created = new java.util.ArrayList<StationMemberInvite>();
+        var created = new ArrayList<StationMemberInvite>();
         for (InviteRequest req : requests) {
             var parent = invite(
                     stationId,
@@ -176,7 +177,7 @@ public class StationMemberInviteService {
      *                         weak, or the recipient's email already belongs to another account
      */
     public AcceptResult accept(String token, String password) {
-        var invite = inviteRepository.findByToken(token).orElseThrow(() -> AcceptException.notFound());
+        var invite = inviteRepository.findByToken(token).orElseThrow(AcceptException::notFound);
         if (invite.isAccepted()) throw AcceptException.alreadyAccepted();
         if (invite.isExpired()) throw AcceptException.expired();
         if (PasswordPolicy.validate(password) != PasswordPolicy.Result.OK) {

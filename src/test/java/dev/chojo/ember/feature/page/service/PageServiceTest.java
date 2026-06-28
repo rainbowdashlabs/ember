@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -201,7 +202,7 @@ class PageServiceTest extends RepositoryTestBase {
 
         // Page not published — user-facing BadRequestResponse so the message is preserved
         service.setPublished(pageId, false);
-        assertThrows(io.javalin.http.BadRequestResponse.class, () -> service.setLandingPage(station.id(), pageId));
+        assertThrows(BadRequestResponse.class, () -> service.setLandingPage(station.id(), pageId));
         service.setPublished(pageId, true);
     }
 
@@ -239,7 +240,7 @@ class PageServiceTest extends RepositoryTestBase {
 
         // Depth 3 would be exceeded — user-facing BadRequestResponse
         assertThrows(
-                io.javalin.http.BadRequestResponse.class,
+                BadRequestResponse.class,
                 () -> service.create(station.id(), "GreatGrandchild", grandchild.id(), member.id()));
 
         service.deletePage(grandchild.id());

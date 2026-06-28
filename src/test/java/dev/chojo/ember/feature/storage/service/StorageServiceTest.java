@@ -206,7 +206,7 @@ class StorageServiceTest {
                 StorageCategory.PAGE_FILES,
                 "single",
                 Variant.ORIGINAL,
-                new java.io.ByteArrayInputStream(data) {
+                new ByteArrayInputStream(data) {
                     @Override
                     public int read(byte[] b, int off, int len) {
                         if (available() == 0) return -1;

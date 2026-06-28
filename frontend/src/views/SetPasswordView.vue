@@ -15,7 +15,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
 
-const {t} = useI18n()
+const {t, te} = useI18n()
 const route = useRoute()
 const router = useRouter()
 
@@ -46,7 +46,8 @@ async function handleSetPassword() {
   } catch (e) {
     if (e instanceof Error && 'response' in e) {
       const axiosErr = e as any
-      error.value = axiosErr.response?.data?.message || t('common.error')
+      const raw = axiosErr.response?.data?.message as string | undefined
+      error.value = raw ? (te(raw) ? t(raw) : raw) : t('common.error')
     } else {
       error.value = t('common.error')
     }

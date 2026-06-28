@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.storage.backend;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
@@ -54,7 +55,7 @@ public class StorageBackendResolver {
      * factory or the override repository.
      */
     public StorageBackendResolver(LocalStorageBackend localBackend) {
-        this.factory = new StorageBackendFactory(new dev.chojo.ember.conf.file.elements.Storage(), localBackend, null);
+        this.factory = new StorageBackendFactory(new Storage(), localBackend, null);
         this.overrideRepository = null;
         this.overrideCache =
                 Caffeine.newBuilder().maximumSize(MAX_CACHED_OVERRIDES).build();

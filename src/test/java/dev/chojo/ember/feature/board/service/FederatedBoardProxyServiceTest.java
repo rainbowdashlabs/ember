@@ -36,6 +36,9 @@ import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
+import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
+import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.AfterAll;
@@ -112,9 +115,9 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 stationRepo,
                 groupService,
                 tagService);
-        var fbpBackend = new dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend();
-        var fbpResolver = new dev.chojo.ember.feature.storage.backend.StorageBackendResolver(fbpBackend);
-        var fbpStorage = new dev.chojo.ember.feature.storage.service.StorageService(fbpResolver, fbpBackend);
+        var fbpBackend = new LocalStorageBackend();
+        var fbpResolver = new StorageBackendResolver(fbpBackend);
+        var fbpStorage = new StorageService(fbpResolver, fbpBackend);
         var attachmentSvc = new BoardAttachmentService(fbpStorage, stationRepo, fbpBackend);
         ticketService = new BoardTicketService(
                 boardTicketRepo,

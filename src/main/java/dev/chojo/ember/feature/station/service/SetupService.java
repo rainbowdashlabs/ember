@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberInviteRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationMailConfig;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationMailConfigRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -187,7 +188,7 @@ public class SetupService {
     private boolean isMailComplete(int stationId) {
         return mailConfigRepository
                 .findByStation(stationId)
-                .map(c -> c.isConfigured())
+                .map(StationMailConfig::isConfigured)
                 .orElse(false);
     }
 

@@ -29,6 +29,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
+import java.security.KeyPair;
 import java.security.PublicKey;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -111,7 +112,7 @@ public class SftpStorageBackend implements StorageBackend, AutoCloseable {
         return trimmed;
     }
 
-    private static java.security.KeyPair parsePrivateKey(String pem) {
+    private static KeyPair parsePrivateKey(String pem) {
         try {
             var loader = SecurityUtils.getKeyPairResourceParser();
             var keys = loader.loadKeyPairs(

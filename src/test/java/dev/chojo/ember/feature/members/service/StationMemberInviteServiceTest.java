@@ -10,6 +10,7 @@ import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.entity.StationMemberInvite;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService.AcceptException;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService.GuardianRequest;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService.InviteRequest;
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -232,7 +234,7 @@ class StationMemberInviteServiceTest extends RepositoryTestBase {
                 null,
                 null,
                 inviter.id(),
-                java.time.Instant.now().minus(Duration.ofDays(1)));
+                Instant.now().minus(Duration.ofDays(1)));
         var e = assertThrows(AcceptException.class, () -> service.accept(invite.token(), "Strong-Password123!"));
         assertEquals(AcceptException.Reason.EXPIRED, e.reason());
     }
@@ -327,7 +329,7 @@ class StationMemberInviteServiceTest extends RepositoryTestBase {
         assertFalse(service.revoke(other.id(), invite.id()));
         assertNull(stationMemberInviteRepo
                 .findById(invite.id())
-                .map(i -> i.acceptedAt())
+                .map(StationMemberInvite::acceptedAt)
                 .orElse(null));
     }
 }

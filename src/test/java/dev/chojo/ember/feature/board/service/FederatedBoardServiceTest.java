@@ -21,6 +21,9 @@ import dev.chojo.ember.feature.federation.service.FederationWebhookService.Webho
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
+import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
+import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -73,9 +76,9 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
         service = new FederatedBoardService(federatedBoardRepo);
         webhookService = mock(FederationWebhookService.class);
         notificationService = new FederatedBoardNotificationService(webhookService, service);
-        var fbBackend = new dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend();
-        var fbResolver = new dev.chojo.ember.feature.storage.backend.StorageBackendResolver(fbBackend);
-        var fbStorage = new dev.chojo.ember.feature.storage.service.StorageService(fbResolver, fbBackend);
+        var fbBackend = new LocalStorageBackend();
+        var fbResolver = new StorageBackendResolver(fbBackend);
+        var fbStorage = new StorageService(fbResolver, fbBackend);
         var attachmentSvc = new BoardAttachmentService(fbStorage, stationRepo, fbBackend);
         ticketService = new BoardTicketService(
                 boardTicketRepo,

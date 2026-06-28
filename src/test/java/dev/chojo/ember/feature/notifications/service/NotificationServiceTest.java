@@ -32,6 +32,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -714,7 +715,7 @@ class NotificationServiceTest extends RepositoryTestBase {
 
         // With a station UUID, every station-scoped link gains ?station=<uid> so the recipient
         // lands on the right station context after login when they belong to several stations.
-        var stationUid = java.util.UUID.fromString("00000000-0000-0000-0000-000000000042");
+        var stationUid = UUID.fromString("00000000-0000-0000-0000-000000000042");
         assertEquals(
                 "https://ember.example.com/station/events/42?station=" + stationUid,
                 service.resolveNotificationUrl("https://ember.example.com", stationUid, known));

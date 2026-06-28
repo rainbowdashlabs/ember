@@ -7,9 +7,12 @@ package dev.chojo.ember.feature.twofactor.service;
 
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
+import dev.samstevens.totp.code.DefaultCodeGenerator;
+import dev.samstevens.totp.code.HashingAlgorithm;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
+import java.time.Instant;
 import java.util.Base64;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -108,10 +111,8 @@ class TotpServiceTest {
     void verifyAcceptsLiveCode() throws Exception {
         var service = new TotpService(settingsWithKey(true, validKey()), demoMode(false, false));
         String secret = service.generateSecret();
-        long timeBucket = java.time.Instant.now().getEpochSecond() / 30;
-        String code = new dev.samstevens.totp.code.DefaultCodeGenerator(
-                        dev.samstevens.totp.code.HashingAlgorithm.SHA1, 6)
-                .generate(secret, timeBucket);
+        long timeBucket = Instant.now().getEpochSecond() / 30;
+        String code = new DefaultCodeGenerator(HashingAlgorithm.SHA1, 6).generate(secret, timeBucket);
         assertTrue(service.verifyCode(secret, code));
     }
 

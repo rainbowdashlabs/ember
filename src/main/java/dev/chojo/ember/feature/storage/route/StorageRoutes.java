@@ -42,10 +42,12 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.lang.reflect.Field;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @Singleton
@@ -366,7 +368,7 @@ public class StorageRoutes implements Routes {
         InstanceBackendRequest req = ctx.bodyAsClass(InstanceBackendRequest.class);
         boolean healthy;
         String errorOrNull;
-        java.time.Instant checkedAt;
+        Instant checkedAt;
         try (StorageBackend probe = backendFactory.buildForInstance(buildSettings(req, credentialCipher))) {
             HealthStatus status = probe.probe();
             healthy = status.healthy();
@@ -375,7 +377,7 @@ public class StorageRoutes implements Routes {
         } catch (Exception e) {
             healthy = false;
             errorOrNull = e.getMessage();
-            checkedAt = java.time.Instant.now();
+            checkedAt = Instant.now();
         }
         ctx.status(HttpStatus.OK).json(new ProbeResult(healthy, errorOrNull, checkedAt.toString()));
     }
@@ -673,10 +675,10 @@ public class StorageRoutes implements Routes {
 
     private void listAudit(Context ctx) {
         var before = ctx.queryParam("before") != null
-                ? java.util.Optional.of(java.time.Instant.parse(ctx.queryParam("before")))
-                : java.util.Optional.<java.time.Instant>empty();
+                ? Optional.of(Instant.parse(ctx.queryParam("before")))
+                : Optional.<Instant>empty();
         var stationId = ctx.queryParam("stationUid") == null
-                ? java.util.Optional.<Integer>empty()
+                ? Optional.<Integer>empty()
                 : stationRepository.resolveId(UUID.fromString(ctx.queryParam("stationUid")));
         int limit = Math.clamp(ctx.queryParamAsClass("limit", Integer.class).getOrDefault(50), 1, 200);
         var entries = auditRepository.findAll(before, stationId, limit).stream()

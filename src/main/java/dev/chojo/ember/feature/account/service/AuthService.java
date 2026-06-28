@@ -24,6 +24,8 @@ import dev.chojo.ember.feature.members.entity.RegistrationCode;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.RegistrationCodeRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
+import dev.chojo.ember.feature.twofactor.service.TrustedDeviceService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -56,8 +58,8 @@ public class AuthService {
     private final Demo demo;
     private final HibpClient hibpClient;
     private final BreachCheckWorker breachCheckWorker;
-    private final dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository twoFactorRepository;
-    private final dev.chojo.ember.feature.twofactor.service.TrustedDeviceService trustedDeviceService;
+    private final TwoFactorRepository twoFactorRepository;
+    private final TrustedDeviceService trustedDeviceService;
     /**
      * Lazily-computed hash of a random throwaway password, used by {@link #login} when the
      * supplied email does not resolve to an account or has no stored credential. Running the
@@ -79,8 +81,8 @@ public class AuthService {
             Demo demo,
             HibpClient hibpClient,
             BreachCheckWorker breachCheckWorker,
-            dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository twoFactorRepository,
-            dev.chojo.ember.feature.twofactor.service.TrustedDeviceService trustedDeviceService) {
+            TwoFactorRepository twoFactorRepository,
+            TrustedDeviceService trustedDeviceService) {
         this.accountRepository = accountRepository;
         this.registrationCodeRepository = registrationCodeRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -249,13 +251,20 @@ public class AuthService {
      * @param password the new plaintext password
      * @return {@code true} if the password was successfully set
      */
-    public boolean setPassword(String token, String password) {
-        if (validateNewPassword(password) != PasswordPolicy.Result.OK) {
-            return false;
+    public SetPasswordOutcome setPassword(String token, String password) {
+        PasswordPolicy.Result policy = validateNewPassword(password);
+        if (policy == PasswordPolicy.Result.TOO_SHORT) {
+            log.info("[set-password] rejected: password too short");
+            return SetPasswordOutcome.PASSWORD_TOO_SHORT;
+        }
+        if (policy == PasswordPolicy.Result.BREACHED) {
+            log.info("[set-password] rejected: password found in breach corpus");
+            return SetPasswordOutcome.PASSWORD_BREACHED;
         }
         Optional<AccountToken> tokenOpt = accountRepository.findToken(token);
         if (tokenOpt.isEmpty()) {
-            return false;
+            log.info("[set-password] rejected: token not found");
+            return SetPasswordOutcome.TOKEN_INVALID;
         }
 
         AccountToken accountToken = tokenOpt.get();
@@ -264,14 +273,20 @@ public class AuthService {
                 || (type != TokenType.SET_PASSWORD
                         && type != TokenType.RESET_PASSWORD
                         && type != TokenType.FORCE_PASSWORD_CHANGE)) {
+            log.info(
+                    "[set-password] rejected: token type {} expired={} account={}",
+                    type,
+                    accountToken.isExpired(),
+                    accountToken.accountId());
             accountRepository.deleteToken(token);
-            return false;
+            return SetPasswordOutcome.TOKEN_INVALID;
         }
 
         String hash = passwordHasher.hash(password);
         Optional<Account> account = accountRepository.findById(accountToken.accountId());
         if (account.isEmpty()) {
-            return false;
+            log.warn("[set-password] rejected: account {} for valid token is gone", accountToken.accountId());
+            return SetPasswordOutcome.TOKEN_INVALID;
         }
 
         if (accountRepository.findCredential(accountToken.accountId()).isPresent()) {
@@ -287,7 +302,23 @@ public class AuthService {
         // Logging which one triggered the rotation lets operators correlate the
         // flow without a dedicated audit table.
         log.info("Password set via {} for account {}", type, accountToken.accountId());
-        return true;
+        return SetPasswordOutcome.OK;
+    }
+
+    /**
+     * Outcome of {@link #setPassword(String, String)}. Surfaces distinct rejection reasons so
+     * the route can return a precise error message instead of the same opaque "Invalid or
+     * expired token" string for every failure mode.
+     */
+    public enum SetPasswordOutcome {
+        /** Password was accepted and the credential was rotated. */
+        OK,
+        /** Submitted password is shorter than {@link PasswordPolicy#MIN_LENGTH}. */
+        PASSWORD_TOO_SHORT,
+        /** Submitted password is on the Have-I-Been-Pwned breach corpus. */
+        PASSWORD_BREACHED,
+        /** Token does not exist, has expired, has the wrong type, or its account is gone. */
+        TOKEN_INVALID
     }
 
     /**
@@ -388,6 +419,32 @@ public class AuthService {
      */
     public LoginResult login(String email, String password, String userAgent, String location) {
         return login(email, password, userAgent, location, null);
+    }
+
+    /**
+     * Logs in a demo / dev account by email only. Used by the one-click quick-login UI so the
+     * dev or demo operator can keep clicking a seeded user even after their password has been
+     * rotated. Bypasses password verification, the {@code force_password_change} branch, and
+     * the 2FA challenge — none of those make sense for a click-to-impersonate flow whose only
+     * caller is the dev/demo login page.
+     *
+     * <p>Refuses (with a failure result, never a partial session) when neither
+     * {@code demo.dev()} nor {@code demo.enabled()} is set. This is a defence-in-depth check on
+     * top of the route-level gate so the path stays inert if a future code change ever exposes
+     * it outside the dev / demo origin.
+     */
+    public LoginResult loginAsDemo(String email, String userAgent, String location) {
+        if (!demo.dev() && !demo.enabled()) {
+            return LoginResult.failure("Quick login is only available in dev or demo mode");
+        }
+        Optional<Account> accountOpt = accountRepository.findByEmail(email);
+        if (accountOpt.isEmpty()) {
+            return LoginResult.failure("Invalid email or password");
+        }
+        Account account = accountOpt.get();
+        log.info(
+                "[demo] quick login: signing in as account {} ({}) without password verification", account.id(), email);
+        return createSession(account.id(), userAgent, location);
     }
 
     /**
@@ -731,6 +788,12 @@ public class AuthService {
      * does not block legitimate password changes.
      */
     private PasswordPolicy.Result validateNewPassword(String plaintext) {
+        // Dev / demo runs skip the minimum-length + breach check so seeded test accounts can
+        // rotate to short, well-known passwords like "test". The route still rejects an empty
+        // value before reaching this method, so the bypass cannot create a credential with no
+        // password at all. Production deployments (demo.enabled() == false && demo.dev() == false)
+        // always enforce both checks.
+        if (demo.dev() || demo.enabled()) return PasswordPolicy.Result.OK;
         var policy = PasswordPolicy.validate(plaintext);
         if (policy != PasswordPolicy.Result.OK) return policy;
         if (hibpClient.isPwned(plaintext)) return PasswordPolicy.Result.BREACHED;

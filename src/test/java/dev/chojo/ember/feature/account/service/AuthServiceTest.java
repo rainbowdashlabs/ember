@@ -9,10 +9,15 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.auth.BreachCheckWorker;
 import dev.chojo.ember.auth.HibpClient;
 import dev.chojo.ember.auth.PasswordHasher;
+import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Demo;
+import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
 import dev.chojo.ember.feature.account.entity.TokenType;
 import dev.chojo.ember.feature.mail.service.EmailService;
+import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
+import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
+import dev.chojo.ember.feature.twofactor.service.TrustedDeviceService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -37,8 +42,8 @@ class AuthServiceTest extends RepositoryTestBase {
     private static String verifyToken;
     private static String sessionToken;
 
-    private static dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository twoFactorRepoLocal;
-    private static dev.chojo.ember.feature.twofactor.service.TrustedDeviceService trustedDeviceService;
+    private static TwoFactorRepository twoFactorRepoLocal;
+    private static TrustedDeviceService trustedDeviceService;
 
     @BeforeAll
     static void setup() {
@@ -50,11 +55,9 @@ class AuthServiceTest extends RepositoryTestBase {
         when(hibpClient.isPwned(anyString())).thenReturn(false);
         var breachCheckWorker = mock(BreachCheckWorker.class);
 
-        twoFactorRepoLocal = new dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository();
-        trustedDeviceService = new dev.chojo.ember.feature.twofactor.service.TrustedDeviceService(
-                twoFactorRepoLocal,
-                dev.chojo.ember.auth.TokenHasher.forTesting("test-pepper"),
-                new dev.chojo.ember.conf.file.elements.TwoFactorSettings());
+        twoFactorRepoLocal = new TwoFactorRepository();
+        trustedDeviceService = new TrustedDeviceService(
+                twoFactorRepoLocal, TokenHasher.forTesting("test-pepper"), new TwoFactorSettings());
         service = new AuthService(
                 accountRepo,
                 registrationCodeRepo,
@@ -144,6 +147,12 @@ class AuthServiceTest extends RepositoryTestBase {
             assertNotNull(result.token());
             sessionToken = result.token();
 
+            // Anchor accountId in a separate station that survives the rest of the class so the
+            // orphan-account sweep on station-delete (StationRepository.delete) does not destroy
+            // it when the test station below gets removed.
+            var keepalive = stationRepo.create("AuthSvc Keepalive");
+            stationMemberRepo.create(keepalive.id(), accountId);
+
             stationRepo.delete(station.id());
         }
     }
@@ -165,13 +174,15 @@ class AuthServiceTest extends RepositoryTestBase {
     @Test
     @Order(10)
     void createInvitedAccountSuccess() {
+        // No stationRepo.delete here: the orphan-account sweep on station delete would also
+        // remove the freshly-invited account, breaking the duplicate-email assertion in
+        // createInvitedAccountDuplicate that follows.
         var station = stationRepo.create("Invited Station");
         var result = service.createInvitedAccount(EMAIL_INVITED, "Invited", "User", station.id());
         assertTrue(result.success());
         assertNotNull(result.account());
         assertEquals(EMAIL_INVITED, result.account().email());
         assertTrue(result.account().emailVerified());
-        stationRepo.delete(station.id());
     }
 
     @Test
@@ -181,7 +192,8 @@ class AuthServiceTest extends RepositoryTestBase {
         var result = service.createInvitedAccount(EMAIL_INVITED, "Invited", "User2", station.id());
         assertFalse(result.success());
         assertEquals("Email already in use", result.message());
-        stationRepo.delete(station.id());
+        // Likewise no station delete — keep the duplicate-account state stable for any test
+        // further down the @Order chain that depends on it.
     }
 
     @Test
@@ -221,7 +233,11 @@ class AuthServiceTest extends RepositoryTestBase {
     @Test
     @Order(15)
     void setPasswordInvalidToken() {
-        assertFalse(service.setPassword("nonexistent-token", "newpass"));
+        // Password is long enough so the failure is unambiguously a token problem rather than a
+        // password-policy rejection.
+        assertEquals(
+                AuthService.SetPasswordOutcome.TOKEN_INVALID,
+                service.setPassword("nonexistent-token", "LongEnoughPassword!"));
     }
 
     @Test
@@ -233,7 +249,7 @@ class AuthServiceTest extends RepositoryTestBase {
                 "set-pass-token",
                 TokenType.SET_PASSWORD,
                 Instant.now().plus(24, ChronoUnit.HOURS));
-        assertTrue(service.setPassword("set-pass-token", "NewSecurePass123!"));
+        assertEquals(AuthService.SetPasswordOutcome.OK, service.setPassword("set-pass-token", "NewSecurePass123!"));
         assertTrue(accountRepo.findCredential(account2.id()).isPresent());
         accountRepo.delete(account2.id());
     }
@@ -248,8 +264,14 @@ class AuthServiceTest extends RepositoryTestBase {
                 "set-pass-token-2",
                 TokenType.SET_PASSWORD,
                 Instant.now().plus(24, ChronoUnit.HOURS));
-        assertTrue(service.setPassword("set-pass-token-2", "NewPassword456!"));
+        assertEquals(AuthService.SetPasswordOutcome.OK, service.setPassword("set-pass-token-2", "NewPassword456!"));
         accountRepo.delete(account2.id());
+    }
+
+    @Test
+    @Order(17)
+    void setPasswordRejectsTooShort() {
+        assertEquals(AuthService.SetPasswordOutcome.PASSWORD_TOO_SHORT, service.setPassword("any-token", "short"));
     }
 
     @Test
@@ -478,7 +500,9 @@ class AuthServiceTest extends RepositoryTestBase {
                 "expired-setpass-token",
                 TokenType.SET_PASSWORD,
                 Instant.now().minus(1, ChronoUnit.HOURS));
-        assertFalse(service.setPassword("expired-setpass-token", "NewPassword123!"));
+        assertEquals(
+                AuthService.SetPasswordOutcome.TOKEN_INVALID,
+                service.setPassword("expired-setpass-token", "NewPassword123!"));
         accountRepo.delete(account2.id());
     }
 
@@ -491,7 +515,9 @@ class AuthServiceTest extends RepositoryTestBase {
                 "wrong-type-token",
                 TokenType.VERIFY_EMAIL,
                 Instant.now().plus(24, ChronoUnit.HOURS));
-        assertFalse(service.setPassword("wrong-type-token", "NewPassword123!"));
+        assertEquals(
+                AuthService.SetPasswordOutcome.TOKEN_INVALID,
+                service.setPassword("wrong-type-token", "NewPassword123!"));
         accountRepo.delete(account2.id());
     }
 
@@ -666,8 +692,7 @@ class AuthServiceTest extends RepositoryTestBase {
     @Order(80)
     void loginWithTwoFactorRequiresPreAuth() {
         var fixture = createLoginCapableAccount("tf-required");
-        twoFactorRepoLocal.createFactor(
-                fixture.accountId(), dev.chojo.ember.feature.twofactor.entity.TwoFactorKind.TOTP, "TestTOTP");
+        twoFactorRepoLocal.createFactor(fixture.accountId(), TwoFactorKind.TOTP, "TestTOTP");
 
         var result = service.login(fixture.email(), PASSWORD, "agent", "DE", null);
         assertTrue(result.success(), result.message());
@@ -682,8 +707,7 @@ class AuthServiceTest extends RepositoryTestBase {
     @Order(81)
     void loginWithTrustedDeviceCookieBypassesTwoFactor() {
         var fixture = createLoginCapableAccount("tf-trust");
-        twoFactorRepoLocal.createFactor(
-                fixture.accountId(), dev.chojo.ember.feature.twofactor.entity.TwoFactorKind.TOTP, "TestTOTP");
+        twoFactorRepoLocal.createFactor(fixture.accountId(), TwoFactorKind.TOTP, "TestTOTP");
 
         var issued = trustedDeviceService.issue(fixture.accountId(), 7, "agent");
         var result = service.login(fixture.email(), PASSWORD, "agent", "DE", issued.token());
@@ -699,8 +723,7 @@ class AuthServiceTest extends RepositoryTestBase {
     @Order(82)
     void loginWithTrustedDeviceForDifferentAccountStillRequires2FA() {
         var fixture = createLoginCapableAccount("tf-stranger");
-        twoFactorRepoLocal.createFactor(
-                fixture.accountId(), dev.chojo.ember.feature.twofactor.entity.TwoFactorKind.TOTP, "TestTOTP");
+        twoFactorRepoLocal.createFactor(fixture.accountId(), TwoFactorKind.TOTP, "TestTOTP");
 
         var other = accountRepo.create("other-trust-" + UUID.randomUUID() + "@test.com", "O", "T", true);
         var stranger = trustedDeviceService.issue(other.id(), 1, "ua");
@@ -718,8 +741,7 @@ class AuthServiceTest extends RepositoryTestBase {
     @Order(83)
     void loginWithGarbageCookieIgnored() {
         var fixture = createLoginCapableAccount("tf-garbage");
-        twoFactorRepoLocal.createFactor(
-                fixture.accountId(), dev.chojo.ember.feature.twofactor.entity.TwoFactorKind.TOTP, "TestTOTP");
+        twoFactorRepoLocal.createFactor(fixture.accountId(), TwoFactorKind.TOTP, "TestTOTP");
 
         var result = service.login(fixture.email(), PASSWORD, "agent", "DE", "not-a-real-cookie-value");
         assertTrue(result.success(), result.message());

@@ -11,6 +11,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
+import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.account.service.AuthRateLimiter;
 import dev.chojo.ember.feature.account.service.AuthService;
@@ -43,12 +44,14 @@ public class AuthRoutes implements Routes {
     private final AuthService authService;
     private final AuthRateLimiter rateLimiter;
     private final Network network;
+    private final Demo demo;
 
     @Inject
-    public AuthRoutes(AuthService authService, AuthRateLimiter rateLimiter, Network network) {
+    public AuthRoutes(AuthService authService, AuthRateLimiter rateLimiter, Network network, Demo demo) {
         this.authService = authService;
         this.rateLimiter = rateLimiter;
         this.network = network;
+        this.demo = demo;
     }
 
     private static boolean isBlank(String s) {
@@ -82,6 +85,9 @@ public class AuthRoutes implements Routes {
         routes.post(prefix + "/auth/set-password", this::setPassword);
         routes.post(prefix + "/auth/forgot-password", this::forgotPassword);
         routes.post(prefix + "/auth/login", this::login);
+        if (demo.dev() || demo.enabled()) {
+            routes.post(prefix + "/demo/login", this::demoLogin);
+        }
         routes.post(prefix + "/auth/refresh", this::refresh);
         routes.post(prefix + "/auth/logout", this::logout);
         routes.post(
@@ -205,10 +211,15 @@ public class AuthRoutes implements Routes {
             throw new BadRequestResponse("token and password are required");
         }
 
-        if (authService.setPassword(request.token(), request.password())) {
-            ctx.status(HttpStatus.OK).json(new MessageResponse("Password set successfully"));
-        } else {
-            throw new BadRequestResponse("Invalid or expired token");
+        var outcome = authService.setPassword(request.token(), request.password());
+        // The body of each failure carries a stable i18n key (e.g. "setPassword.passwordTooShort"),
+        // not an English sentence. The frontend localises it via vue-i18n. Translations live in
+        // src/i18n/<locale>.ts under the same key path.
+        switch (outcome) {
+            case OK -> ctx.status(HttpStatus.OK).json(new MessageResponse("Password set successfully"));
+            case PASSWORD_TOO_SHORT -> throw new BadRequestResponse("setPassword.passwordTooShort");
+            case PASSWORD_BREACHED -> throw new BadRequestResponse("setPassword.passwordBreached");
+            case TOKEN_INVALID -> throw new BadRequestResponse("setPassword.tokenInvalid");
         }
     }
 
@@ -281,6 +292,31 @@ public class AuthRoutes implements Routes {
             ctx.status(HttpStatus.OK)
                     .json(new LoginResponse(result.token(), result.expiresAt(), false, null, null, false, null, null));
         }
+    }
+
+    @OpenApi(
+            path = "/api/v1/demo/login",
+            methods = HttpMethod.POST,
+            summary = "Quick login (dev / demo only) — sign in by email, no password check",
+            description =
+                    "Issues a session for the account behind the given email without verifying any password. Registered only when the backend runs with demo.dev or demo.enabled set; absent in production. Used by the dev / demo login UI so the click-to-impersonate buttons keep working after a seeded user has rotated their password.",
+            tags = {"Auth"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DemoLoginRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = LoginResponse.class)),
+                @OpenApiResponse(status = "401", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void demoLogin(Context ctx) {
+        var request = ctx.bodyAsClass(DemoLoginRequest.class);
+        if (isBlank(request.email())) {
+            throw new BadRequestResponse("email is required");
+        }
+        var result = authService.loginAsDemo(request.email(), ctx.userAgent(), ctx.header("CF-IPCountry"));
+        if (!result.success()) {
+            throw new UnauthorizedResponse(result.message());
+        }
+        ctx.status(HttpStatus.OK)
+                .json(new LoginResponse(result.token(), result.expiresAt(), false, null, null, false, null, null));
     }
 
     @OpenApi(
@@ -380,6 +416,14 @@ public class AuthRoutes implements Routes {
      * Request body for login with email and password.
      */
     public record LoginRequest(String email, String password) {}
+
+    /**
+     * Request body for the dev / demo {@code POST /demo/login} quick-login endpoint. Only an
+     * email is needed — the password field is intentionally absent because the backend skips
+     * password verification on this path. Refer to {@link AuthService#loginAsDemo} for the
+     * gating rules.
+     */
+    public record DemoLoginRequest(String email) {}
 
     /**
      * Request body containing a one-time token for verification, password set, refresh, or logout.

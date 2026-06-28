@@ -77,6 +77,7 @@ import dev.chojo.ember.feature.storage.repository.StorageUsageRepository;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import dev.chojo.ember.feature.system.repository.ProblemReportRepository;
 import dev.chojo.ember.feature.traffic.repository.StationTrafficRepository;
+import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -156,7 +157,7 @@ public abstract class RepositoryTestBase {
     protected static DiscoveryBlocklistRepository discoveryBlocklistRepo;
     protected static StationTrafficRepository stationTrafficRepo;
     protected static PageHitRepository pageHitRepo;
-    protected static dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository twoFactorRepo;
+    protected static TwoFactorRepository twoFactorRepo;
     protected static MemberIdentityFactory memberIdentityFactory;
     protected static MemberNameResolver memberNameResolver;
     protected static DataSource dataSource;
@@ -267,7 +268,7 @@ public abstract class RepositoryTestBase {
         discoveryBlocklistRepo = new DiscoveryBlocklistRepository();
         stationTrafficRepo = new StationTrafficRepository();
         pageHitRepo = new PageHitRepository();
-        twoFactorRepo = new dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository();
+        twoFactorRepo = new TwoFactorRepository();
         var eventFedRepo = new EventFederationRepository();
         var fedRepo = new FederationRepository();
         var memberSvc = new StationMemberService(stationMemberRepo, stationRepo, accountRepo, null);

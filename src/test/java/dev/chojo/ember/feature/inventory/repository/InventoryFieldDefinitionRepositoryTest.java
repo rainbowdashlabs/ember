@@ -20,6 +20,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.List;
 
@@ -49,7 +50,7 @@ class InventoryFieldDefinitionRepositoryTest extends RepositoryTestBase {
     @Test
     void crudAndValuePresenceProbe() {
         FieldConfig.NumberConfig numberConfig =
-                new FieldConfig.NumberConfig(java.math.BigDecimal.ZERO, java.math.BigDecimal.valueOf(100), null, "kg");
+                new FieldConfig.NumberConfig(BigDecimal.ZERO, BigDecimal.valueOf(100), null, "kg");
         InventoryFieldDefinition created = fieldDefinitionRepo.create(
                 inventory.id(), "weight", "Weight", FieldType.NUMBER, true, 10, numberConfig.toJson());
         assertEquals("weight", created.key());
@@ -76,7 +77,7 @@ class InventoryFieldDefinitionRepositoryTest extends RepositoryTestBase {
 
         assertFalse(fieldDefinitionRepo.fieldHasAnyValue(inventory.id(), "weight"));
         LinkedHashMap<String, ItemFieldValues.FieldValue> values = new LinkedHashMap<>();
-        values.put("weight", new ItemFieldValues.NumberValue(java.math.BigDecimal.valueOf(12)));
+        values.put("weight", new ItemFieldValues.NumberValue(BigDecimal.valueOf(12)));
         InventoryItemMetadata metadata = new InventoryItemMetadata(false, new ItemFieldValues(values));
         InventoryItem item = inventoryRepo.createItem(inventory.id(), "WI-1", "Weighted", null, metadata);
         assertTrue(fieldDefinitionRepo.fieldHasAnyValue(inventory.id(), "weight"));

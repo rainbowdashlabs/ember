@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
 import dev.chojo.ember.feature.inventory.entity.FieldConfig;
 import dev.chojo.ember.feature.inventory.entity.FieldType;
+import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryContainer;
 import dev.chojo.ember.feature.inventory.entity.InventoryContainerKind;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
@@ -26,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -33,6 +35,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Random;
+import java.util.function.Function;
 
 /**
  * Seeder for demo inventory items, assignments, history, and inventory checks.
@@ -307,16 +310,16 @@ public class DemoInventorySeeder {
     private void seedStorageContainers(
             int stationId,
             Random rng,
-            dev.chojo.ember.feature.inventory.entity.Inventory helm,
-            dev.chojo.ember.feature.inventory.entity.Inventory stiefel,
-            dev.chojo.ember.feature.inventory.entity.Inventory sporttasche,
-            dev.chojo.ember.feature.inventory.entity.Inventory blouson,
-            dev.chojo.ember.feature.inventory.entity.Inventory parka,
-            dev.chojo.ember.feature.inventory.entity.Inventory latzhose) {
+            Inventory helm,
+            Inventory stiefel,
+            Inventory sporttasche,
+            Inventory blouson,
+            Inventory parka,
+            Inventory latzhose) {
         containerService.seedDefaultKinds(stationId);
 
         var kinds = containerService.listKinds(stationId);
-        java.util.function.Function<String, Integer> kindIdOf = key -> kinds.stream()
+        Function<String, Integer> kindIdOf = key -> kinds.stream()
                 .filter(k -> k.key().equals(key))
                 .findFirst()
                 .map(InventoryContainerKind::id)
@@ -456,7 +459,7 @@ public class DemoInventorySeeder {
             values.put(
                     "weight_kg",
                     new ItemFieldValues.NumberValue(
-                            BigDecimal.valueOf(1.2 + 0.1 * (idx % 5)).setScale(1, java.math.RoundingMode.HALF_UP)));
+                            BigDecimal.valueOf(1.2 + 0.1 * (idx % 5)).setScale(1, RoundingMode.HALF_UP)));
             if (idx % 3 == 0) {
                 values.put("notes", new ItemFieldValues.TextValue("Aus letzter Inventur"));
             }

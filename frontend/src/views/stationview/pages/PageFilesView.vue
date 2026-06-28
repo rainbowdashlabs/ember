@@ -198,24 +198,36 @@ function toggleMultiSelect() {
     if (!multiSelect.value) clearSelection()
 }
 
+const UPLOAD_CONCURRENCY = 2
+
 async function uploadMany(files: File[]) {
     uploading.value = true
     uploadError.value = null
     let failed = 0
-    for (const f of files) {
-        try {
-            const stored = await uploadStationPageFile(f)
-            const placed = activeFolder.value != null
-                ? (await moveFileToFolder(stored.id, activeFolder.value), {...stored, folderId: activeFolder.value})
-                : stored
-            entries.value = [
-                {file: placed, inUse: false, tagIds: []},
-                ...entries.value.filter(e => e.file.id !== placed.id),
-            ]
-        } catch {
-            failed++
+    let cursor = 0
+    const targetFolder = activeFolder.value
+
+    async function worker() {
+        while (cursor < files.length) {
+            const f = files[cursor++]
+            try {
+                const stored = await uploadStationPageFile(f)
+                const placed = targetFolder != null
+                    ? (await moveFileToFolder(stored.id, targetFolder), {...stored, folderId: targetFolder})
+                    : stored
+                entries.value = [
+                    {file: placed, inUse: false, tagIds: []},
+                    ...entries.value.filter(e => e.file.id !== placed.id),
+                ]
+            } catch {
+                failed++
+            }
         }
     }
+
+    const workerCount = Math.min(UPLOAD_CONCURRENCY, files.length)
+    await Promise.all(Array.from({length: workerCount}, () => worker()))
+
     if (failed > 0) uploadError.value = t('fileUpload.uploadFailed')
     uploading.value = false
 }

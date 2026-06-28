@@ -15,7 +15,10 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -98,7 +101,11 @@ public class StorageReconciliationService {
             }
             var scope = new StorageScope.Station(stationId, stationUid);
             for (StorageCategory category : STATION_CATEGORIES) {
-                reconcileCategory(stationId, scope, category);
+                try {
+                    reconcileCategory(stationId, scope, category);
+                } catch (Exception e) {
+                    log.error("Error reconciling category {} for station {}", category, stationId, e);
+                }
             }
             reconcileAvatars(stationId);
         } catch (Exception e) {
@@ -107,9 +114,89 @@ public class StorageReconciliationService {
     }
 
     private void reconcileCategory(int stationId, StorageScope.Station scope, StorageCategory category) {
+        deleteOrphans(stationId, scope, category);
         long totalBytes = storage.sumSize(scope, category);
         int fileCount = storage.listKeys(scope, category, "").size();
         usageRepository.setUsage(stationId, category, totalBytes, fileCount);
+    }
+
+    /**
+     * Removes files whose owning database row no longer exists. Skips silently for categories
+     * whose objects are not tracked in their own table (KB inline images, for example, are only
+     * referenced from free-form markdown). The alive set is queried once per category; on a
+     * query failure the exception propagates, so a transient database hiccup never sweeps live
+     * files away.
+     */
+    private void deleteOrphans(int stationId, StorageScope.Station scope, StorageCategory category) {
+        Optional<Set<String>> aliveOpt = aliveIdentitiesFor(stationId, category);
+        if (aliveOpt.isEmpty()) return;
+        Set<String> alive = aliveOpt.get();
+        List<String> onDisk = storage.listKeys(scope, category, "");
+        if (onDisk.isEmpty()) return;
+        Set<String> orphanIdentities = new LinkedHashSet<>();
+        for (String key : onDisk) {
+            int slash = key.indexOf('/');
+            String identity = slash < 0 ? key : key.substring(0, slash);
+            if (!alive.contains(identity)) orphanIdentities.add(identity);
+        }
+        if (orphanIdentities.isEmpty()) return;
+        log.info(
+                "Reconciliation removing {} orphan identity prefix(es) under station {} / {}",
+                orphanIdentities.size(),
+                stationId,
+                category);
+        for (String identity : orphanIdentities) {
+            try {
+                storage.deletePrefix(scope, category, identity);
+            } catch (Exception e) {
+                log.warn(
+                        "Failed to delete orphan storage under station {} / {} / {}", stationId, category, identity, e);
+            }
+        }
+    }
+
+    /**
+     * Returns the set of identity-prefix strings that match a live database row for the given
+     * station + category. Identity is the leading path segment on disk: for {@code PAGE_FILES}
+     * it is the content hash, for {@code IMAGE_KB_ICON} the {@code folder-<id>} key, and for
+     * the other IMAGE_* / KB_FILES tables the bare entity id. Returns {@link Optional#empty()}
+     * for categories that are not safely cleanable from this central place.
+     */
+    private Optional<Set<String>> aliveIdentitiesFor(int stationId, StorageCategory category) {
+        return switch (category) {
+            case PAGE_FILES ->
+                Optional.of(queryIdentitySet(
+                        "SELECT DISTINCT content_hash FROM page_file WHERE station_id = :station_id;",
+                        stationId,
+                        "content_hash"));
+            case KB_FILES ->
+                Optional.of(queryIdentitySet(
+                        "SELECT id::text AS identity FROM kb_file WHERE station_id = :station_id;",
+                        stationId,
+                        "identity"));
+            case IMAGE_LOST_AND_FOUND -> Optional.of(queryIdentitySet("""
+                    SELECT id::text AS identity
+                      FROM lost_and_found_item
+                     WHERE station_id = :station_id;""", stationId, "identity"));
+            case IMAGE_QUIZ_QUESTION -> Optional.of(queryIdentitySet("""
+                    SELECT q.id::text AS identity
+                      FROM quiz_question q
+                      JOIN quiz_catalog c ON c.id = q.catalog_id
+                     WHERE c.station_id = :station_id;""", stationId, "identity"));
+            case IMAGE_KB_ICON -> Optional.of(queryIdentitySet("""
+                    SELECT 'folder-' || id::text AS identity
+                      FROM kb_folder
+                     WHERE station_id = :station_id;""", stationId, "identity"));
+            default -> Optional.empty();
+        };
+    }
+
+    private Set<String> queryIdentitySet(String sql, int stationId, String column) {
+        var values = query(sql)
+                .single(call().bind("station_id", stationId))
+                .map(row -> row.getString(column))
+                .all();
+        return new LinkedHashSet<>(values);
     }
 
     /**

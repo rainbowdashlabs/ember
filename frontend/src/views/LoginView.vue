@@ -305,21 +305,11 @@ async function loginAsDemo(account: DemoAccount) {
   loading.value = true
   error.value = ''
   try {
-    const result = await auth.login({email: account.email, password: 'demo'})
-    if (result.passwordChangeRequired && result.passwordChangeToken) {
-      await navigateTo({
-        path: '/set-password',
-        query: {token: result.passwordChangeToken},
-      })
-      return
-    }
-    if (result.twoFactorRequired && result.preAuthToken) {
-      const query: Record<string, string> = {token: result.preAuthToken}
-      const redirect = route.query.redirect as string | undefined
-      if (redirect) query.redirect = redirect
-      await navigateTo({path: '/2fa-verify', query})
-      return
-    }
+    // Quick login skips password verification entirely on the backend (dev / demo only) so the
+    // click-to-impersonate flow keeps working after a seeded user has rotated their password.
+    // No password-change or 2FA branch here — the backend short-circuits to a fully-verified
+    // session.
+    await auth.demoLogin(account.email)
     await resolveStationAndRedirect()
   } catch {
     error.value = t('common.error')

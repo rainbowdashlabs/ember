@@ -9,6 +9,7 @@ import de.chojo.sadu.postgresql.databases.PostgreSql;
 import de.chojo.sadu.updater.QueryReplacement;
 import de.chojo.sadu.updater.SqlUpdater;
 import dev.chojo.ember.api.auth.InstanceUserType;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.conf.file.elements.Database;
@@ -612,7 +613,7 @@ public class DemoService {
         var freshAdminMember = stationMemberRepository.create(freshStation.id(), freshAdminAccount.id());
         stationMemberRepository.setUserType(freshAdminMember.id(), StationUserType.MANAGER);
         var adminPerm = stationMemberRepository
-                .findPermissionByName(dev.chojo.ember.api.auth.StationPermission.STATION_ADMINISTRATOR)
+                .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
                 .orElseThrow();
         stationMemberRepository.grantPermission(freshAdminMember.id(), adminPerm.id());
         stationRepository.setOwner(freshStation.id(), freshAdminMember.id());

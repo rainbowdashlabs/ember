@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -681,7 +682,7 @@ public class NotificationService {
      * @param data       the notification's link metadata
      * @return the resolved URL or {@code null} when the notification has no link
      */
-    public String resolveNotificationUrl(String baseUrl, java.util.UUID stationUid, NotificationData data) {
+    public String resolveNotificationUrl(String baseUrl, UUID stationUid, NotificationData data) {
         if (data.link() == null) return null;
         String route = data.link().route();
         String pathTemplate = ROUTE_PATHS.get(route);
@@ -702,7 +703,7 @@ public class NotificationService {
      * is non-null and the URL points at a station-scoped path. Leaves non-station paths untouched
      * so help-center or admin URLs don't accidentally carry station context.
      */
-    private static String appendStation(String url, java.util.UUID stationUid) {
+    private static String appendStation(String url, UUID stationUid) {
         if (stationUid == null) return url;
         int pathStart = url.indexOf("/", url.indexOf("://") + 3);
         if (pathStart < 0 || !url.substring(pathStart).startsWith("/station/")) return url;

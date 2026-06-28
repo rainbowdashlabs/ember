@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.inventory.entity.CheckResult;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryCheck;
 import dev.chojo.ember.feature.inventory.entity.InventoryCheckItem;
+import dev.chojo.ember.feature.inventory.entity.InventoryCheckScope;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -23,6 +24,8 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -190,7 +193,7 @@ class InventoryCheckRepositoryTest extends RepositoryTestBase {
         var container = containerRepo.create(station.id(), null, null, "CheckRoom", null, "", null);
         InventoryCheck created =
                 inventoryCheckRepo.createContainerCheck(station.id(), container.id(), member2.id(), true);
-        assertEquals(dev.chojo.ember.feature.inventory.entity.InventoryCheckScope.CONTAINER, created.scope());
+        assertEquals(InventoryCheckScope.CONTAINER, created.scope());
         assertEquals(Integer.valueOf(container.id()), created.containerId());
         assertTrue(created.deep());
         assertEquals(member2.id(), created.checkedBy());
@@ -225,13 +228,13 @@ class InventoryCheckRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(60)
     void latestCheckPerItemEmpty() {
-        assertTrue(inventoryCheckRepo.latestCheckPerItem(java.util.List.of()).isEmpty());
+        assertTrue(inventoryCheckRepo.latestCheckPerItem(List.of()).isEmpty());
     }
 
     @Test
     @Order(61)
     void latestCheckPerItem() {
-        var results = inventoryCheckRepo.latestCheckPerItem(java.util.List.of(item.id()));
+        var results = inventoryCheckRepo.latestCheckPerItem(List.of(item.id()));
         assertEquals(1, results.size());
         assertEquals(item.id(), results.getFirst().itemId());
         assertEquals(CheckResult.CONFIRMED, results.getFirst().result());
