@@ -2,6 +2,10 @@
 
 ## v26.10.2
 
+### Fixes
+
+- **Traffic recorder no longer log-floods after a station is removed.** Per-station traffic deltas whose station id no longer exists in the database are folded into the instance-global bucket on the next flush and the id is remembered for the rest of the process so subsequent hits skip the failing insert directly. The traffic worker previously logged the same foreign-key violation every flush interval forever.
+
 ### Changes
 
 - **Member list flags accounts pending setup.** Members whose account has not yet been signed into for the first time show an hourglass icon next to their name in the member list, and managers see a paper-plane button to resend the password-setup email without having to step through the user themselves.
