@@ -187,7 +187,8 @@ public class StationMemberInviteService {
             throw AcceptException.emailInUse();
         }
 
-        var account = accountRepository.create(invite.email(), invite.firstName(), invite.lastName(), true);
+        var account = accountRepository.create(
+                invite.email(), invite.firstName(), invite.lastName(), true, invite.stationId());
         accountRepository.createCredential(account.id(), passwordHasher.hash(password));
 
         var newMember = stationMemberRepository.create(invite.stationId(), account.id());

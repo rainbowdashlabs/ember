@@ -1,12 +1,12 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:43f748ef5e6381731e828d083a59288cdd12dc8dd80c0ae2ebc7d9e7addd3dd1",
-  "generatedAt" : "2026-06-28T23:17:11Z",
+  "schemaHash" : "sha256:2877416b06bb99475e723e774dc896fa27d32dc769c83be6d08c733787e24671",
+  "generatedAt" : "2026-06-29T13:51:25Z",
   "tables" : {
     "account" : {
       "feature" : "account",
       "scope" : "USER",
-      "tableHash" : "sha256:4b0288a003c4b52c5e3e5a949f4dfc498a9bf1d14ae75eb0ad25692b1095aaf3",
+      "tableHash" : "sha256:043dec17a7b705c7fad1330b0a45c9026fc0b8e380a9a712979dc126b3b970c9",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -53,8 +53,19 @@
         "nullable" : false,
         "verified" : true,
         "description" : "Stable per-account UUID, used as the public key for account-scoped resources (avatars, federated identity)."
+      }, {
+        "name" : "creating_station_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Station that initiated the account creation (invite, application acceptance, waitlist registration, member import, cross-instance import). Used to pick the language for system mails to the account. NULL for accounts created via self-signup or the admin bootstrap."
       } ],
-      "foreignKeys" : [ ],
+      "foreignKeys" : [ {
+        "column" : "creating_station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      } ],
       "customScope" : {
         "viaTable" : "station_member",
         "viaColumn" : "account_id",

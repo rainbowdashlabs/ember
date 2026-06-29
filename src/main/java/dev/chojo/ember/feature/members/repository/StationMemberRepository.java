@@ -191,6 +191,7 @@ public class StationMemberRepository {
                 SELECT sm.id, sm.station_id, sm.uid, sm.account_id, sm.former, sm.user_type, sm.join_date,
                        coalesce(a.full_name, sm.display_name, '') AS name,
                        coalesce(a.email, '') AS email,
+                       (a.id IS NOT NULL AND a.setup_completed_at IS NULL) AS account_setup_pending,
                        coalesce((SELECT json_agg(sp.name) FROM station_member_permission smp JOIN station_permission sp ON sp.id = smp.permission_id WHERE smp.member_id = sm.id), '[]'::JSON)::TEXT AS roles,
                        coalesce((SELECT json_agg(json_build_object('id', mg.id, 'name', mg.name)) FROM member_group_entry mge JOIN member_group mg ON mg.id = mge.group_id WHERE mge.member_id = sm.id), '[]'::JSON)::TEXT AS groups,
                        coalesce((SELECT json_agg(json_build_object('id', ut.id, 'name', ut.name)) FROM user_tag_entry ute JOIN user_tag ut ON ut.id = ute.tag_id WHERE ute.member_id = sm.id), '[]'::JSON)::TEXT AS tags,

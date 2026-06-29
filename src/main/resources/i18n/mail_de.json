@@ -1,0 +1,27 @@
+{
+  "subject": {
+    "verify-email": "Bestätige deine E-Mail-Adresse",
+    "set-password": "Richte dein Passwort ein",
+    "duplicate-registration": "Konto existiert bereits",
+    "password-changed": "Dein Passwort wurde geändert",
+    "two-factor-reset": "Deine Zwei-Faktor-Authentifizierung wurde zurückgesetzt",
+    "email-change-release": "E-Mail-Änderung bestätigen",
+    "email-change-claim": "Bestätige deine neue E-Mail-Adresse",
+    "email-changed": "Deine E-Mail-Adresse wurde geändert",
+    "reset-password": "Passwort zurücksetzen",
+    "email-change": "Bestätige deine neue E-Mail-Adresse",
+    "station-delete": "Wachen-Löschung bestätigen",
+    "station-member-invite": "Du wurdest zu {stationName} eingeladen",
+    "application-verify": "Bestätige deinen Antrag für {stationName}",
+    "application-accepted": "Dein Antrag für {stationName} wurde angenommen",
+    "application-denied": "Dein Antrag für {stationName}",
+    "application-received": "Antrag für {stationName} eingegangen",
+    "waitlist-verify": "Wartelisten-Anmeldung bestätigen{stationSuffix}",
+    "waitlist-registered": "Wartelisten-Anmeldung{stationSuffix}",
+    "waitlist-confirm-reminder": "Bitte bestätige dein Interesse{stationSuffix}",
+    "waitlist-removal-warning": "Wartelisten-Entfernung in 2 Wochen{stationSuffix}"
+  },
+  "body": {
+    "twoFactorReset.defaultActor": "einem Administrator"
+  }
+}

@@ -407,8 +407,7 @@ public class WaitingListService {
         }
         var list = repository.findById(entry.listId()).orElseThrow();
 
-        // Create a non-login account (no email, no credentials) and station member with TRIAL type
-        var account = accountRepository.create(null, entry.firstname(), entry.lastname());
+        var account = accountRepository.create(null, entry.firstname(), entry.lastname(), list.stationId());
         var member = stationMemberRepository.create(list.stationId(), account.id());
         stationMemberRepository.setUserType(member.id(), StationUserType.TRIAL);
         stationMemberRepository
@@ -830,8 +829,8 @@ public class WaitingListService {
                 }
             }
 
-            var account = existingAccount.orElseGet(
-                    () -> accountRepository.create(guardian.email(), guardian.firstname(), guardian.lastname(), true));
+            var account = existingAccount.orElseGet(() -> accountRepository.create(
+                    guardian.email(), guardian.firstname(), guardian.lastname(), true, stationId));
             if (existingAccount.isEmpty()) {
                 String password = generatePassword();
                 accountRepository.createCredential(account.id(), passwordHasher.hash(password));

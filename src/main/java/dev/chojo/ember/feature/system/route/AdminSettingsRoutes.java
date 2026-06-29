@@ -17,6 +17,7 @@ import dev.chojo.ember.conf.file.elements.Theming;
 import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
 import dev.chojo.ember.feature.legal.entity.LegalDocumentType;
 import dev.chojo.ember.feature.legal.service.LegalDocumentService;
+import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.media.service.LogoFragmentService;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
@@ -79,14 +80,19 @@ public class AdminSettingsRoutes implements Routes {
     private final ApplicationSettingRepository settingRepository;
     private final LogoFragmentService logoFragmentService;
     private final Conf conf;
+    private final EmailService emailService;
     private final LegalDocumentService documentService;
 
     @Inject
     public AdminSettingsRoutes(
-            ApplicationSettingRepository settingRepository, LogoFragmentService logoFragmentService, Conf conf) {
+            ApplicationSettingRepository settingRepository,
+            LogoFragmentService logoFragmentService,
+            Conf conf,
+            EmailService emailService) {
         this.settingRepository = settingRepository;
         this.logoFragmentService = logoFragmentService;
         this.conf = conf;
+        this.emailService = emailService;
         this.documentService = new LegalDocumentService();
         initializeLogoFragments();
     }
@@ -210,6 +216,11 @@ public class AdminSettingsRoutes implements Routes {
         routes.put(
                 prefix + "/admin/config/mailing",
                 this::updateMailingConfig,
+                InstancePermission.ADMINISTRATOR,
+                StepUpCategory.INSTANCE_CONFIG);
+        routes.delete(
+                prefix + "/admin/config/mailing",
+                this::clearMailingConfig,
                 InstancePermission.ADMINISTRATOR,
                 StepUpCategory.INSTANCE_CONFIG);
         routes.get(prefix + "/admin/legal/{type}", this::getLegalDocument, InstancePermission.ADMINISTRATOR);
@@ -644,15 +655,34 @@ public class AdminSettingsRoutes implements Routes {
         var request = ctx.bodyAsClass(MailingConfigRequest.class);
         var mailing = conf.main().mailing();
         var smtp = mailing.smtp();
+
+        String effectivePassword = mailing.password();
+        if (request.password() != null && !"********".equals(request.password())) {
+            effectivePassword = request.password();
+        }
+
+        if (request.provider() != null && request.provider() != MailProviderType.NONE) {
+            String error = emailService.testMailConnection(
+                    request.provider(),
+                    request.smtpHost(),
+                    request.smtpPort(),
+                    request.smtpSsl(),
+                    request.user(),
+                    effectivePassword,
+                    request.apiKey(),
+                    request.senderAddress(),
+                    request.senderName());
+            if (error != null) {
+                throw new BadRequestResponse("Mail configuration test failed: " + error);
+            }
+        }
+
         try {
             setField(Mailing.class, mailing, "provider", request.provider());
             setField(Mailing.class, mailing, "senderAddress", request.senderAddress());
             setField(Mailing.class, mailing, "senderName", request.senderName());
             setField(Mailing.class, mailing, "user", request.user());
-            // Only update password if not the masked placeholder
-            if (request.password() != null && !"********".equals(request.password())) {
-                setField(Mailing.class, mailing, "password", request.password());
-            }
+            setField(Mailing.class, mailing, "password", effectivePassword);
             setField(Mailing.class, mailing, "apiKey", request.apiKey());
             setField(MailSettings.class, smtp, "host", request.smtpHost());
             setField(MailSettings.class, smtp, "port", request.smtpPort());
@@ -665,7 +695,6 @@ public class AdminSettingsRoutes implements Routes {
                     request.notificationDigestIntervalMinutes());
             conf.save();
 
-            // Return response with masked password
             ctx.json(new MailingConfigResponse(
                     mailing.provider(),
                     mailing.senderAddress(),
@@ -680,6 +709,24 @@ public class AdminSettingsRoutes implements Routes {
                     mailing.notificationDigestIntervalMinutes()));
         } catch (Exception e) {
             log.error("Failed to update mailing config", e);
+            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private void clearMailingConfig(Context ctx) {
+        var mailing = conf.main().mailing();
+        var smtp = mailing.smtp();
+        try {
+            setField(Mailing.class, mailing, "provider", MailProviderType.NONE);
+            setField(Mailing.class, mailing, "senderAddress", "");
+            setField(Mailing.class, mailing, "user", "");
+            setField(Mailing.class, mailing, "password", "");
+            setField(Mailing.class, mailing, "apiKey", "");
+            setField(MailSettings.class, smtp, "host", "");
+            conf.save();
+            ctx.status(HttpStatus.NO_CONTENT);
+        } catch (Exception e) {
+            log.error("Failed to clear mailing config", e);
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }

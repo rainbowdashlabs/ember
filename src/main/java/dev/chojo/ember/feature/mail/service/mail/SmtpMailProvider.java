@@ -5,17 +5,21 @@
  */
 package dev.chojo.ember.feature.mail.service.mail;
 
+import jakarta.mail.AuthenticationFailedException;
 import jakarta.mail.Authenticator;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
 import jakarta.mail.PasswordAuthentication;
+import jakarta.mail.SendFailedException;
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
+import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
 import java.util.Properties;
@@ -58,7 +62,7 @@ public class SmtpMailProvider implements MailProvider {
     }
 
     @Override
-    public boolean send(String to, String subject, String htmlBody) {
+    public SendResult send(String to, String subject, String htmlBody) {
         Session session = createSession();
         try {
             MimeMessage message = new MimeMessage(session);
@@ -69,10 +73,20 @@ public class SmtpMailProvider implements MailProvider {
             message.setSentDate(new Date());
             Transport.send(message, user, password);
             log.info("SMTP email sent to {}: {}", to, subject);
-            return true;
-        } catch (MessagingException | UnsupportedEncodingException e) {
-            log.error("Failed to send SMTP email to {}", to, e);
-            return false;
+            return SendResult.SENT;
+        } catch (AuthenticationFailedException | AddressException | UnsupportedEncodingException e) {
+            log.error("Permanent SMTP failure delivering to {}: {}", to, e.getMessage());
+            return SendResult.PERMANENT_FAILURE;
+        } catch (SendFailedException e) {
+            log.error("Recipient {} rejected by SMTP server: {}", to, e.getMessage());
+            return SendResult.PERMANENT_FAILURE;
+        } catch (MessagingException e) {
+            if (e.getCause() instanceof IOException) {
+                log.warn("Transient SMTP failure delivering to {} (will retry): {}", to, e.getMessage());
+                return SendResult.TRANSIENT_FAILURE;
+            }
+            log.warn("SMTP failure delivering to {} (treating as transient, will retry): {}", to, e.getMessage());
+            return SendResult.TRANSIENT_FAILURE;
         }
     }
 

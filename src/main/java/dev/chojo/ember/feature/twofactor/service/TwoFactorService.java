@@ -80,7 +80,11 @@ public class TwoFactorService {
         String displayName = (account.firstName() + " " + account.lastName()).trim();
         try {
             emailService.sendTwoFactorResetNotice(
-                    account.email(), displayName.isBlank() ? account.email() : displayName, actorLabel, Instant.now());
+                    account.email(),
+                    displayName.isBlank() ? account.email() : displayName,
+                    actorLabel,
+                    Instant.now(),
+                    accountRepository.findMailLocale(account.id()));
         } catch (Exception e) {
             log.warn("Failed to send 2FA reset notification to account {}", targetAccountId, e);
         }

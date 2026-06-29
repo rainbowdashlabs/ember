@@ -129,7 +129,9 @@ public class AuthService {
         var existing = accountRepository.findByEmail(email);
         if (existing.isPresent()) {
             emailService.sendDuplicateRegistrationNotice(
-                    existing.get().email(), existing.get().firstName());
+                    existing.get().email(),
+                    existing.get().firstName(),
+                    accountRepository.findMailLocale(existing.get().id()));
             return RegistrationResult.maskedSuccess(email, firstName, lastName);
         }
 
@@ -161,7 +163,7 @@ public class AuthService {
                 token,
                 TokenType.VERIFY_EMAIL,
                 Instant.now().plus(authConfig.verifyTokenHours(), ChronoUnit.HOURS));
-        emailService.sendVerificationEmail(email, firstName, token);
+        emailService.sendVerificationEmail(email, firstName, token, accountRepository.findMailLocale(accountId));
 
         log.info("Account registered via self-registration: account {} ({})", accountId, email);
         return RegistrationResult.success(accountRepository.findById(accountId).orElseThrow());
@@ -182,10 +184,9 @@ public class AuthService {
             return RegistrationResult.failure("Email already in use");
         }
 
-        var account = accountRepository.create(email, firstName, lastName, true);
+        var account = accountRepository.create(email, firstName, lastName, true, stationId);
         int accountId = account.id();
 
-        // Create station membership for the invited user
         stationMemberRepository.create(stationId, accountId);
 
         String token = generateToken();
@@ -194,7 +195,7 @@ public class AuthService {
                 token,
                 TokenType.SET_PASSWORD,
                 Instant.now().plus(authConfig.passwordTokenHours(), ChronoUnit.HOURS));
-        emailService.sendPasswordSetupEmail(email, firstName, token);
+        emailService.sendPasswordSetupEmail(email, firstName, token, accountRepository.findMailLocale(accountId));
 
         log.info("Invited account created: account {} ({}) for station {}", accountId, email, stationId);
         return RegistrationResult.success(accountRepository.findById(accountId).orElseThrow());
@@ -216,7 +217,7 @@ public class AuthService {
                 token,
                 TokenType.SET_PASSWORD,
                 Instant.now().plus(authConfig.passwordTokenHours(), ChronoUnit.HOURS));
-        emailService.sendPasswordSetupEmail(email, firstName, token);
+        emailService.sendPasswordSetupEmail(email, firstName, token, accountRepository.findMailLocale(accountId));
     }
 
     /**
@@ -341,7 +342,8 @@ public class AuthService {
                 token,
                 TokenType.RESET_PASSWORD,
                 Instant.now().plus(authConfig.verifyTokenHours(), ChronoUnit.HOURS));
-        emailService.sendPasswordResetEmail(account.email(), account.firstName(), token);
+        emailService.sendPasswordResetEmail(
+                account.email(), account.firstName(), token, accountRepository.findMailLocale(account.id()));
         log.info("Password reset requested for account {} ({})", account.id(), email);
     }
 
@@ -377,7 +379,8 @@ public class AuthService {
                 token,
                 TokenType.RESET_PASSWORD,
                 Instant.now().plus(authConfig.passwordTokenHours(), ChronoUnit.HOURS));
-        emailService.sendPasswordResetEmail(account.email(), account.firstName(), token);
+        emailService.sendPasswordResetEmail(
+                account.email(), account.firstName(), token, accountRepository.findMailLocale(account.id()));
         return true;
     }
 
@@ -402,7 +405,8 @@ public class AuthService {
                 token,
                 TokenType.VERIFY_EMAIL,
                 Instant.now().plus(authConfig.verifyTokenHours(), ChronoUnit.HOURS));
-        emailService.sendVerificationEmail(account.email(), account.firstName(), token);
+        emailService.sendVerificationEmail(
+                account.email(), account.firstName(), token, accountRepository.findMailLocale(account.id()));
         return true;
     }
 
@@ -642,8 +646,11 @@ public class AuthService {
         accountRepository.createToken(accountId, releaseToken, TokenType.EMAIL_CHANGE_RELEASE, metadata, expiresAt);
         accountRepository.createToken(accountId, claimToken, TokenType.EMAIL_CHANGE_CLAIM, metadata, expiresAt);
 
-        emailService.sendEmailChangeReleaseRequest(account.email(), account.firstName(), newEmail, releaseToken);
-        emailService.sendEmailChangeClaimRequest(newEmail, account.firstName(), account.email(), claimToken);
+        String mailLocale = accountRepository.findMailLocale(accountId);
+        emailService.sendEmailChangeReleaseRequest(
+                account.email(), account.firstName(), newEmail, releaseToken, mailLocale);
+        emailService.sendEmailChangeClaimRequest(
+                newEmail, account.firstName(), account.email(), claimToken, mailLocale);
         log.info("Email change requested for account {}: {} -> {}", accountId, account.email(), newEmail);
     }
 
@@ -699,8 +706,9 @@ public class AuthService {
         String oldEmail = account.email();
         accountRepository.updateEmail(account.id(), newEmail);
         invalidateAfterPasswordRotation(account.id(), null);
-        emailService.sendEmailChangedNotice(oldEmail, account.firstName(), oldEmail, newEmail);
-        emailService.sendEmailChangedNotice(newEmail, account.firstName(), oldEmail, newEmail);
+        String mailLocale = accountRepository.findMailLocale(account.id());
+        emailService.sendEmailChangedNotice(oldEmail, account.firstName(), oldEmail, newEmail, mailLocale);
+        emailService.sendEmailChangedNotice(newEmail, account.firstName(), oldEmail, newEmail, mailLocale);
         log.info("Email changed for account {}: {} -> {}", account.id(), oldEmail, newEmail);
         return EmailChangeResult.COMMITTED;
     }
@@ -723,8 +731,8 @@ public class AuthService {
                 Instant.now().plus(1, ChronoUnit.HOURS));
         accountRepository
                 .findById(accountId)
-                .ifPresent(account ->
-                        emailService.sendStationDeletionConfirmation(account.email(), account.firstName(), token));
+                .ifPresent(account -> emailService.sendStationDeletionConfirmation(
+                        account.email(), account.firstName(), token, accountRepository.findMailLocale(account.id())));
         log.info("Station deletion requested by account {} for station {}", accountId, stationId);
     }
 
@@ -825,7 +833,8 @@ public class AuthService {
 
     private void notifyPasswordChanged(Account account) {
         try {
-            emailService.sendPasswordChangedNotice(account.email(), account.firstName());
+            emailService.sendPasswordChangedNotice(
+                    account.email(), account.firstName(), accountRepository.findMailLocale(account.id()));
         } catch (Exception e) {
             log.warn("Failed to enqueue password-changed notice for account {}", account.id(), e);
         }
@@ -876,6 +885,7 @@ public class AuthService {
         }
         accountRepository.createSession(
                 accountId, token, expiresAt, userAgent, location, twoFactorVerifiedAt, deviceTrustId);
+        accountRepository.markSetupCompleted(accountId);
         log.info("Session created for account {}", accountId);
         return LoginResult.success(token, expiresAt);
     }
