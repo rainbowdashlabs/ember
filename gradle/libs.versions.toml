@@ -1,7 +1,7 @@
 [versions]
 logback = "1.5.34"
 sadu = "2.3.9"
-jackson = "3.1.4"
+jackson = "3.2.0"
 junit = "6.1.0"
 javalin = "7.2.2"
 testcontainers = "2.0.5"
@@ -14,7 +14,7 @@ pitest = { id = "info.solidsoft.pitest", version = "1.19.0" }
 
 [libraries]
 # Database
-hikari = { group = "com.zaxxer", name = "HikariCP", version = "7.0.2" }
+hikari = { group = "com.zaxxer", name = "HikariCP", version = "7.1.0" }
 postgres = { group = "org.postgresql", name = "postgresql", version = "42.7.11" }
 sadu-postgresql = { group = "de.chojo.sadu", name = "sadu-postgresql", version.ref = "sadu" }
 sadu-datasource = { group = "de.chojo.sadu", name = "sadu-datasource", version.ref = "sadu" }
@@ -79,8 +79,8 @@ imageio-webp = { group = "com.twelvemonkeys.imageio", name = "imageio-webp", ver
 
 # Storage backends
 smbj = { group = "com.hierynomus", name = "smbj", version = "0.14.0" }
-sshd-core = { group = "org.apache.sshd", name = "sshd-core", version = "2.15.0" }
-sshd-sftp = { group = "org.apache.sshd", name = "sshd-sftp", version = "2.15.0" }
+sshd-core = { group = "org.apache.sshd", name = "sshd-core", version = "2.18.0" }
+sshd-sftp = { group = "org.apache.sshd", name = "sshd-sftp", version = "2.18.0" }
 aws-s3 = { group = "software.amazon.awssdk", name = "s3", version = "2.46.17" }
 
 # HTML sanitization
@@ -88,8 +88,8 @@ jsoup = { group = "org.jsoup", name = "jsoup", version = "1.22.2" }
 
 # AI SDKs
 openai = { group = "com.openai", name = "openai-java", version = "4.39.1" }
-anthropic = { group = "com.anthropic", name = "anthropic-java", version = "2.38.0" }
-google-genai = { group = "com.google.genai", name = "google-genai", version = "1.57.0" }
+anthropic = { group = "com.anthropic", name = "anthropic-java", version = "2.40.1" }
+google-genai = { group = "com.google.genai", name = "google-genai", version = "1.58.0" }
 
 # CSV
 commons-csv = { group = "org.apache.commons", name = "commons-csv", version = "1.14.1" }
