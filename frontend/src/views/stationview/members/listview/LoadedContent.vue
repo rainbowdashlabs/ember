@@ -65,6 +65,7 @@ defineEmits<{
   (e: 'toggle-expand', id: number): void
   (e: 'navigate-detail', member: StationMember, event: Event): void
   (e: 'navigate-edit', member: StationMember, event: Event): void
+  (e: 'resend-setup', member: StationMember, event: Event): void
   (e: 'toggle-select', id: number): void
   (e: 'toggle-select-all'): void
 }>()
@@ -124,6 +125,7 @@ defineEmits<{
     @toggle-expand="$emit('toggle-expand', $event)"
     @navigate-detail="(m, e) => $emit('navigate-detail', m, e)"
     @navigate-edit="(m, e) => $emit('navigate-edit', m, e)"
+    @resend-setup="(m, e) => $emit('resend-setup', m, e)"
     @toggle-select="$emit('toggle-select', $event)"
     @toggle-select-all="$emit('toggle-select-all')"
   />

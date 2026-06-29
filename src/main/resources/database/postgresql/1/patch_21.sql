@@ -229,3 +229,38 @@ SET partner_station_name = s.name
 FROM ember_schema.station s
 WHERE s.uid = fp.partner_station_id
   AND fp.partner_station_name IS NULL;
+
+-- Track the station an account was created from (station invite, application acceptance, waitlist
+-- registration, member import, cross-instance import). Used to pick the language of system mails
+-- sent to the account, so accounts that originated from a German-language station receive German
+-- mails even before they sign in for the first time. NULL for self-signup and admin bootstrap.
+
+ALTER TABLE ember_schema.account
+    ADD COLUMN creating_station_id INTEGER NULL REFERENCES ember_schema.station (id) ON DELETE SET NULL;
+
+COMMENT ON COLUMN ember_schema.account.creating_station_id IS
+    'Station that initiated the account creation (invite, application acceptance, waitlist registration, member import, cross-instance import). Used to pick the language for system mails to the account. NULL for accounts created via self-signup or the admin bootstrap.';
+
+CREATE INDEX idx_account_creating_station
+    ON ember_schema.account (creating_station_id)
+    WHERE creating_station_id IS NOT NULL;
+
+-- Setup completion timestamp. Stamped on the first successful login: the moment we have
+-- evidence that the recipient of the setup mail actually reached the application. Until then
+-- the account is "pending setup" and managers see it flagged in the member list with the option
+-- to resend the password-setup mail. Existing accounts at migration time are backfilled to now()
+-- because they have all already logged in at least once.
+
+ALTER TABLE ember_schema.account
+    ADD COLUMN setup_completed_at TIMESTAMPTZ NULL;
+
+UPDATE ember_schema.account
+SET setup_completed_at = now()
+WHERE setup_completed_at IS NULL;
+
+COMMENT ON COLUMN ember_schema.account.setup_completed_at IS
+    'Timestamp of the first successful login. NULL means the account has been created but the recipient has not yet completed setup (clicked the link, set a password, signed in). Managers see pending accounts flagged in the member list.';
+
+CREATE INDEX idx_account_setup_pending
+    ON ember_schema.account (id)
+    WHERE setup_completed_at IS NULL;

@@ -1,5 +1,18 @@
 # Changelog
 
+## v26.10.2
+
+### Fixes
+
+- **Traffic recorder no longer log-floods after a station is removed.** Per-station traffic deltas whose station id no longer exists in the database are folded into the instance-global bucket on the next flush and the id is remembered for the rest of the process so subsequent hits skip the failing insert directly. The traffic worker previously logged the same foreign-key violation every flush interval forever.
+
+### Changes
+
+- **Member list flags accounts pending setup.** Members whose account has not yet been signed into for the first time show an hourglass icon next to their name in the member list, and managers see a paper-plane button to resend the password-setup email without having to step through the user themselves.
+- **Mail relay failures retry indefinitely.** Emails that fail because the relay was unreachable, timed out, or returned a transient error are no longer marked failed on the first attempt — they stay queued and the email worker keeps retrying every ten seconds until the relay accepts them again. Permanent failures (rejected recipient, bad credentials) still mark the row failed so an operator notices.
+- **System mails follow the station's language.** Accounts that were created from a station — through an invite, application acceptance, waiting-list registration, member import, or cross-instance import — receive verification, password-setup, password-reset, two-factor-reset, and email-change notifications in the language configured for that station. Accounts from self-signup still default to English.
+- **Mail settings validated and clearable.** Saving the instance-wide or per-station mail configuration now runs a live connection test against the configured provider before persisting; the save is rejected with the actual server error if the test fails. A new clear action wipes either configuration back to the unset state.
+
 ## v26.10.1
 
 ### New Features

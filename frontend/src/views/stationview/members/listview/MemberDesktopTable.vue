@@ -37,6 +37,7 @@ const emit = defineEmits<{
   toggleSelect: [memberId: number]
   navigateDetail: [member: StationMember, event: Event]
   navigateEdit: [member: StationMember, event: Event]
+  resendSetup: [member: StationMember, event: Event]
 }>()
 </script>
 
@@ -71,6 +72,7 @@ const emit = defineEmits<{
           @toggle-select="(id) => emit('toggleSelect', id)"
           @navigate-detail="(m, e) => emit('navigateDetail', m, e)"
           @navigate-edit="(m, e) => emit('navigateEdit', m, e)"
+          @resend-setup="(m, e) => emit('resendSetup', m, e)"
       />
     </table>
   </div>

@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.traffic.entity.TrafficBucket;
 import dev.chojo.ember.feature.traffic.repository.StationTrafficRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.postgresql.util.PSQLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,6 +21,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -43,8 +45,21 @@ import java.util.concurrent.atomic.AtomicLong;
 public class StationTrafficRecorder {
     private static final Logger log = LoggerFactory.getLogger(StationTrafficRecorder.class);
     private static final long PRUNE_INTERVAL_HOURS = 6;
+    /** PostgreSQL SQLSTATE for {@code foreign_key_violation}. */
+    private static final String SQLSTATE_FOREIGN_KEY_VIOLATION = "23503";
 
     private final ConcurrentHashMap<BucketKey, TrafficAccumulator> buckets = new ConcurrentHashMap<>();
+    /**
+     * Station ids whose {@code INSERT} into {@code station_traffic_hourly} has been rejected by the
+     * foreign-key check at least once during this JVM run — the row no longer exists in
+     * {@code station} so further attempts to charge that id would just re-trigger the same FK
+     * violation. {@link #record} routes hits for these ids straight to the instance-global bucket.
+     * The set is intentionally not bounded: a deleted station never reappears with the same internal
+     * id (a fresh insert receives a new {@code SERIAL}), so the membership cost is one entry per
+     * historical deletion.
+     */
+    private final Set<Integer> knownMissingStations = ConcurrentHashMap.newKeySet();
+
     private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(r -> {
         var t = new Thread(r, "station-traffic-recorder");
         t.setDaemon(true);
@@ -84,7 +99,8 @@ public class StationTrafficRecorder {
      */
     public void record(Integer stationId, AuthBucket auth, long ingressBytes, long egressBytes) {
         if (!metrics.trafficEnabled()) return;
-        var key = new BucketKey(currentHour(), stationId, auth);
+        Integer chargeStation = stationId != null && knownMissingStations.contains(stationId) ? null : stationId;
+        var key = new BucketKey(currentHour(), chargeStation, auth);
         var acc = buckets.computeIfAbsent(key, k -> new TrafficAccumulator());
         acc.ingress.addAndGet(Math.max(0, ingressBytes));
         acc.egress.addAndGet(Math.max(0, egressBytes));
@@ -128,9 +144,34 @@ public class StationTrafficRecorder {
                 acc.lastFlushedRequests = requests;
                 if (pastHour) buckets.remove(key, acc);
             } catch (Exception e) {
-                log.warn("Failed to flush traffic bucket {} — will retry on next tick", key, e);
+                if (isMissingStationFk(e)) {
+                    log.warn(
+                            "Dropping traffic bucket {} — referenced station no longer exists; folding delta into the instance-global bucket",
+                            key);
+                    knownMissingStations.add(key.stationId);
+                    buckets.remove(key, acc);
+                    try {
+                        repository.upsert(
+                                new TrafficBucket(key.hour, null, key.auth, deltaIngress, deltaEgress, deltaRequests));
+                    } catch (Exception inner) {
+                        log.warn("Failed to fold dropped bucket {} into the global bucket", key, inner);
+                    }
+                } else {
+                    log.warn("Failed to flush traffic bucket {} — will retry on next tick", key, e);
+                }
             }
         }
+    }
+
+    private static boolean isMissingStationFk(Throwable e) {
+        Throwable cause = e;
+        while (cause != null) {
+            if (cause instanceof PSQLException psql && SQLSTATE_FOREIGN_KEY_VIOLATION.equals(psql.getSQLState())) {
+                return true;
+            }
+            cause = cause.getCause();
+        }
+        return false;
     }
 
     /**

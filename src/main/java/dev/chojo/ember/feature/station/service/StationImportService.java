@@ -817,7 +817,7 @@ public class StationImportService {
     private int importTable(int stationId, String table, Object payload, IdRemapper idMap) {
         return switch (table) {
             case "station" -> 0;
-            case "account" -> importAccounts((List<Map<String, Object>>) payload, idMap);
+            case "account" -> importAccounts(stationId, (List<Map<String, Object>>) payload, idMap);
             case "account_credential" -> importAccountCredentials((List<Map<String, Object>>) payload);
             case "station_disabled_module" -> importDisabledModules(stationId, (List<Object>) payload);
             default -> engine.importRows(stationId, table, (List<Map<String, Object>>) payload, idMap);
@@ -843,7 +843,7 @@ public class StationImportService {
      * (e.g. {@code author_account_uid} on comments) round-trip without remap. A unique-constraint
      * collision on UID is rare; when it happens we accept the auto-generated UID and move on.
      */
-    private int importAccounts(List<Map<String, Object>> rows, IdRemapper idMap) {
+    private int importAccounts(int stationId, List<Map<String, Object>> rows, IdRemapper idMap) {
         int created = 0;
         var session = activeRemoteSession;
         for (var row : rows) {
@@ -858,7 +858,7 @@ public class StationImportService {
             } else {
                 String first = asString(row.get("first_name"), "");
                 String last = asString(row.get("last_name"), "");
-                var newAccount = accountRepository.create(storedEmail, first, last, true);
+                var newAccount = accountRepository.create(storedEmail, first, last, true, stationId);
                 targetId = newAccount.id();
                 UUID sourceUid = parseUuidOrNull(row.get("uid"));
                 UUID destinationUid = newAccount.uid();

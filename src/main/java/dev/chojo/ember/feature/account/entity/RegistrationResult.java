@@ -42,6 +42,16 @@ public record RegistrationResult(boolean success, String message, Account accoun
         return new RegistrationResult(
                 true,
                 null,
-                new Account(0, UUID.randomUUID(), email, firstName, lastName, false, InstanceUserType.USER, ""));
+                new Account(
+                        0,
+                        UUID.randomUUID(),
+                        email,
+                        firstName,
+                        lastName,
+                        false,
+                        InstanceUserType.USER,
+                        "",
+                        null,
+                        null));
     }
 }

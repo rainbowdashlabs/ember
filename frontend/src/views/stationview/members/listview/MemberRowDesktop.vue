@@ -36,6 +36,7 @@ const emit = defineEmits<{
   toggleSelect: []
   navigateDetail: [event: Event]
   navigateEdit: [event: Event]
+  resendSetup: [event: Event]
 }>()
 </script>
 
@@ -61,6 +62,20 @@ const emit = defineEmits<{
       <div class="flex items-center gap-2">
         <MemberName :identity="member.identity" size="sm" class="font-medium"/>
         <ErrorBadge v-if="member.profileComplete === false" class="ml-1.5 text-[10px]">{{ t('membersList.incomplete') }}</ErrorBadge>
+        <IconButton
+            v-if="member.accountSetupPending && canEdit"
+            :icon="['fas', 'paper-plane']"
+            :title="t('membersList.accountPendingResend')"
+            :label="t('membersList.accountPendingResend')"
+            class="text-warning hover:bg-warning/15"
+            @click.stop="emit('resendSetup', $event)"
+        />
+        <font-awesome-icon
+            v-else-if="member.accountSetupPending"
+            :icon="['fas', 'hourglass-half']"
+            :title="t('membersList.accountPending')"
+            class="text-warning w-3.5 h-3.5"
+        />
       </div>
     </Td>
     <Td>

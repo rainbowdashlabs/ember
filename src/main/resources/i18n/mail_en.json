@@ -1,0 +1,27 @@
+{
+  "subject": {
+    "verify-email": "Verify your email address",
+    "set-password": "Set up your password",
+    "duplicate-registration": "Account already exists",
+    "password-changed": "Your password was changed",
+    "two-factor-reset": "Your two-factor authentication was reset",
+    "email-change-release": "Confirm email change",
+    "email-change-claim": "Confirm your new email",
+    "email-changed": "Your email address was changed",
+    "reset-password": "Reset your password",
+    "email-change": "Confirm your new email address",
+    "station-delete": "Confirm station deletion",
+    "station-member-invite": "You have been invited to {stationName}",
+    "application-verify": "Confirm your application for {stationName}",
+    "application-accepted": "Your application for {stationName} has been accepted",
+    "application-denied": "Your application for {stationName}",
+    "application-received": "Application for {stationName} received",
+    "waitlist-verify": "Confirm waiting list registration{stationSuffix}",
+    "waitlist-registered": "Waiting list registration{stationSuffix}",
+    "waitlist-confirm-reminder": "Please confirm your interest{stationSuffix}",
+    "waitlist-removal-warning": "Waiting list removal in 2 weeks{stationSuffix}"
+  },
+  "body": {
+    "twoFactorReset.defaultActor": "an administrator"
+  }
+}

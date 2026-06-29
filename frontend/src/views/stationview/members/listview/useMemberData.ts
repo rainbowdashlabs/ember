@@ -123,6 +123,7 @@ export function useMemberData() {
         email: rm.email,
         userType: rm.userType,
         identity: rm.identity,
+        accountSetupPending: rm.accountSetupPending,
       })
 
       rolesMap.set(rm.id, rm.roles)

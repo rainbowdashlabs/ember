@@ -92,7 +92,16 @@ class SidebarCountServiceTest {
 
     private UserSession sessionWithPermissions(Set<StationPermission> permissions) {
         var account = new Account(
-                1, UUID.randomUUID(), "test@test.com", "Test", "User", true, InstanceUserType.USER, "Test User");
+                1,
+                UUID.randomUUID(),
+                "test@test.com",
+                "Test",
+                "User",
+                true,
+                InstanceUserType.USER,
+                "Test User",
+                null,
+                null);
         var member = new StationMember(
                 MEMBER_ID, STATION_ID, UUID.randomUUID(), 1, false, null, "Test User", StationUserType.MEMBER, null);
         var expanded = StationPermission.expand(EnumSet.copyOf(permissions));

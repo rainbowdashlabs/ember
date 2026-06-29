@@ -53,7 +53,16 @@ class MemberNameResolverTest {
     void resolveLocal_withAccount_returnsFullName() {
         var member = new StationMember(1, 1, UUID.randomUUID(), 10, false, null, null, StationUserType.MEMBER, null);
         var account = new Account(
-                10, UUID.randomUUID(), "test@test.com", "Max", "Meier", true, InstanceUserType.USER, "Max Meier");
+                10,
+                UUID.randomUUID(),
+                "test@test.com",
+                "Max",
+                "Meier",
+                true,
+                InstanceUserType.USER,
+                "Max Meier",
+                null,
+                null);
         when(memberService.findById(1)).thenReturn(Optional.of(member));
         when(accountRepository.findById(10)).thenReturn(Optional.of(account));
 
@@ -81,7 +90,16 @@ class MemberNameResolverTest {
         var member =
                 new StationMember(3, 1, UUID.randomUUID(), 20, false, null, "Old Name", StationUserType.MEMBER, null);
         var account = new Account(
-                20, UUID.randomUUID(), "test@test.com", "New", "Name", true, InstanceUserType.USER, "New Name");
+                20,
+                UUID.randomUUID(),
+                "test@test.com",
+                "New",
+                "Name",
+                true,
+                InstanceUserType.USER,
+                "New Name",
+                null,
+                null);
         when(memberService.findById(3)).thenReturn(Optional.of(member));
         when(accountRepository.findById(20)).thenReturn(Optional.of(account));
 
@@ -124,7 +142,16 @@ class MemberNameResolverTest {
     void resolve_localTakesPriority() {
         var member = new StationMember(1, 1, UUID.randomUUID(), 10, false, null, null, StationUserType.MEMBER, null);
         var account = new Account(
-                10, UUID.randomUUID(), "test@test.com", "Max", "Meier", true, InstanceUserType.USER, "Max Meier");
+                10,
+                UUID.randomUUID(),
+                "test@test.com",
+                "Max",
+                "Meier",
+                true,
+                InstanceUserType.USER,
+                "Max Meier",
+                null,
+                null);
         when(memberService.findById(1)).thenReturn(Optional.of(member));
         when(accountRepository.findById(10)).thenReturn(Optional.of(account));
 

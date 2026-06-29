@@ -89,6 +89,10 @@ export async function testMailConfig(): Promise<MailTestResponse> {
     return res.data
 }
 
+export async function clearMailConfig(): Promise<void> {
+    await client.delete('/station/manage/mail')
+}
+
 // -- Modules --
 
 export interface ModulesResponse {

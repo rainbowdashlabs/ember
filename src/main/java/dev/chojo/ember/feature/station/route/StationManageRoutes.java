@@ -106,6 +106,7 @@ public class StationManageRoutes implements Routes {
         routes.delete(prefix + "/station/manage/logo", this::deleteLogo, StationPermission.STATION_LOOK_AND_FEEL);
         routes.get(prefix + "/station/manage/mail", this::getMailConfig, StationPermission.STATION_MAIL);
         routes.put(prefix + "/station/manage/mail", this::updateMailConfig, StationPermission.STATION_MAIL);
+        routes.delete(prefix + "/station/manage/mail", this::clearMailConfig, StationPermission.STATION_MAIL);
         routes.post(prefix + "/station/manage/mail/test", this::testMailConfig, StationPermission.STATION_MAIL);
         routes.get(prefix + "/station/manage/modules", this::getDisabledModules, StationPermission.STATION_MODULES);
         routes.put(prefix + "/station/manage/modules", this::setDisabledModules, StationPermission.STATION_MODULES);
@@ -438,8 +439,27 @@ public class StationManageRoutes implements Routes {
                 body.dailyLimit() != null ? body.dailyLimit() : 100,
                 body.monthlyLimit() != null ? body.monthlyLimit() : 2000);
 
+        if (provider != MailProviderType.NONE) {
+            String error = emailService.testMailConnection(config);
+            if (error != null) {
+                throw new BadRequestResponse("Mail configuration test failed: " + error);
+            }
+        }
+
         mailConfigRepository.upsert(config);
         ctx.json(buildMailConfigResponse(session.stationId()));
+    }
+
+    @OpenApi(
+            path = "/api/v1/station/manage/mail",
+            methods = HttpMethod.DELETE,
+            summary = "Clear station mail configuration",
+            tags = {"Station Manage"},
+            responses = @OpenApiResponse(status = "204"))
+    private void clearMailConfig(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        mailConfigRepository.delete(session.stationId());
+        throw new NoContentResponse();
     }
 
     @OpenApi(

@@ -12,11 +12,14 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
+import ErrorButton from '@/components/button/ErrorButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import Modal from '@/components/feedback/Modal.vue'
 import {stationManage} from '@/api'
 
 const emit = defineEmits<{
@@ -49,6 +52,8 @@ interface MailTestResult {
 }
 
 const mailTestResult = ref<MailTestResult | null>(null)
+const showClearModal = ref(false)
+const clearing = ref(false)
 
 async function loadMailConfig() {
   try {
@@ -109,8 +114,36 @@ async function saveMailConfig() {
     mailApiKey.value = ''
     emit('success', t('stationManage.mailSaved'))
   } catch (e) {
-    emit('error', t('common.error'))
+    const backendMessage = (e as {response?: {data?: {title?: string; message?: string}}})?.response?.data?.title
+        ?? (e as {response?: {data?: {message?: string}}})?.response?.data?.message
+    emit('error', backendMessage ? t('stationManage.mailSaveFailed', {error: backendMessage}) : t('common.error'))
     throw e
+  }
+}
+
+async function clearMailConfig() {
+  clearing.value = true
+  try {
+    await stationManage.clearMailConfig()
+    mailProvider.value = 'NONE'
+    mailSmtpHost.value = ''
+    mailSmtpPort.value = 587
+    mailSmtpSsl.value = false
+    mailSmtpUser.value = ''
+    mailSmtpPassword.value = ''
+    mailSenderAddress.value = ''
+    mailSenderName.value = ''
+    mailApiKey.value = ''
+    mailHasApiKey.value = false
+    mailProviderName.value = ''
+    mailProviderUrl.value = ''
+    mailTestResult.value = null
+    showClearModal.value = false
+    emit('success', t('stationManage.mailCleared'))
+  } catch {
+    emit('error', t('common.error'))
+  } finally {
+    clearing.value = false
   }
 }
 
@@ -274,16 +307,31 @@ onMounted(loadMailConfig)
       </div>
     </template>
 
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-2 flex-wrap">
       <SaveButton :action="saveMailConfig"/>
       <SuccessButton :icon="['fas', 'plug']" v-if="mailProvider !== 'NONE'" :disabled="mailTesting" @click="testMail">
         {{ mailTesting ? t('common.loading') : t('stationManage.mailTest') }}
       </SuccessButton>
+      <ErrorButton :icon="['fas', 'trash']" :disabled="clearing" @click="showClearModal = true">
+        {{ t('stationManage.mailClear') }}
+      </ErrorButton>
     </div>
 
     <Alert v-if="mailTestResult?.success" variant="success">{{ t('stationManage.mailTestSuccess') }}</Alert>
     <Alert v-if="mailTestResult && !mailTestResult.success" variant="error">
       {{ t('stationManage.mailTestFailed') }}: {{ mailTestResult.error }}
     </Alert>
+
+    <Modal v-model="showClearModal">
+      <div class="space-y-4">
+        <p>{{ t('stationManage.mailClearConfirm') }}</p>
+        <div class="flex justify-end gap-3">
+          <SecondaryButton :disabled="clearing" @click="showClearModal = false">{{ t('common.cancel') }}</SecondaryButton>
+          <ErrorButton :icon="['fas', 'trash']" :disabled="clearing" @click="clearMailConfig">
+            {{ t('stationManage.mailClear') }}
+          </ErrorButton>
+        </div>
+      </div>
+    </Modal>
   </NeutralContainer>
 </template>

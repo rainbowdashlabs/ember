@@ -25,18 +25,20 @@ import static org.slf4j.LoggerFactory.getLogger;
  * A station member with all associated data (roles, groups, tags, profile values) aggregated
  * from a single SQL query. Used by the rich member list endpoint to avoid N+1 queries.
  *
- * @param id            the station member identifier
- * @param stationId     the station this member belongs to
- * @param uid           the stable UUID for federation identity
- * @param accountId     the linked account identifier, or null for decoupled former members
- * @param name          the display name (from account first/last name or display_name fallback)
- * @param email         the account email address
- * @param former        whether this member has been marked as a former member
- * @param userType      the station user type (e.g. MEMBER, TEAM, MANAGER)
- * @param roles         the list of role names assigned to this member
- * @param groups        the list of groups this member belongs to
- * @param tags          the list of tags assigned to this member
- * @param profileValues a map of field ID to field value for profile fields
+ * @param id                   the station member identifier
+ * @param stationId            the station this member belongs to
+ * @param uid                  the stable UUID for federation identity
+ * @param accountId            the linked account identifier, or null for decoupled former members
+ * @param name                 the display name (from account first/last name or display_name fallback)
+ * @param email                the account email address
+ * @param accountSetupPending  {@code true} when the linked account has never been logged into; flagged in the
+ *                             member list so managers can chase the recipient or resend the setup mail
+ * @param former               whether this member has been marked as a former member
+ * @param userType             the station user type (e.g. MEMBER, TEAM, MANAGER)
+ * @param roles                the list of role names assigned to this member
+ * @param groups               the list of groups this member belongs to
+ * @param tags                 the list of tags assigned to this member
+ * @param profileValues        a map of field ID to field value for profile fields
  */
 public record RichMember(
         int id,
@@ -45,6 +47,7 @@ public record RichMember(
         Integer accountId,
         String name,
         String email,
+        boolean accountSetupPending,
         boolean former,
         StationUserType userType,
         LocalDate joinDate,
@@ -72,6 +75,7 @@ public record RichMember(
                 row.getObject("account_id", Integer.class),
                 row.getString("name"),
                 row.getString("email"),
+                row.getBoolean("account_setup_pending"),
                 row.getBoolean("former"),
                 row.getEnum("user_type", StationUserType.class),
                 row.getDate("join_date") != null ? row.getDate("join_date").toLocalDate() : null,
@@ -103,6 +107,7 @@ public record RichMember(
                 accountId,
                 name,
                 email,
+                accountSetupPending,
                 former,
                 userType,
                 joinDate,

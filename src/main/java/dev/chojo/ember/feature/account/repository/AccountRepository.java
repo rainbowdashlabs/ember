@@ -37,7 +37,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING
 public class AccountRepository {
 
     private static final String ACCOUNT_COLUMNS =
-            "id, uid, email, first_name, last_name, email_verified, instance_user_type, full_name";
+            "id, uid, email, first_name, last_name, email_verified, instance_user_type, full_name, creating_station_id, setup_completed_at";
     private static final String CONSENT_COLUMNS =
             "id, account_id, consent_version, privacy_version, tos_version, ip_address, country, user_agent, consented_at";
 
@@ -179,16 +179,30 @@ public class AccountRepository {
      * @return the created account
      */
     public Account create(String email, String firstName, String lastName) {
+        return create(email, firstName, lastName, null);
+    }
+
+    /**
+     * Creates a new account, optionally remembering the station it was created from.
+     *
+     * @param email              the email address
+     * @param firstName          the first name
+     * @param lastName           the last name
+     * @param creatingStationId  the station that initiated the creation, or {@code null}
+     * @return the created account
+     */
+    public Account create(String email, String firstName, String lastName, Integer creatingStationId) {
         return query("""
                 INSERT
-                        INTO
-                            account(email, first_name, last_name)
-                        VALUES
-                            (:email, :first_name, :last_name)
-                        RETURNING %s;""", ACCOUNT_COLUMNS)
+                INTO
+                    account(email, first_name, last_name, creating_station_id)
+                VALUES
+                    (:email, :first_name, :last_name, :creating_station_id)
+                RETURNING %s;""", ACCOUNT_COLUMNS)
                 .single(call().bind("email", email)
                         .bind("first_name", firstName)
-                        .bind("last_name", lastName))
+                        .bind("last_name", lastName)
+                        .bind("creating_station_id", creatingStationId))
                 .map(Account.map())
                 .first()
                 .orElseThrow();
@@ -204,20 +218,68 @@ public class AccountRepository {
      * @return the created account
      */
     public Account create(String email, String firstName, String lastName, boolean emailVerified) {
+        return create(email, firstName, lastName, emailVerified, null);
+    }
+
+    /**
+     * Creates a new account with an explicit email verification status and originating station.
+     *
+     * @param email              the email address
+     * @param firstName          the first name
+     * @param lastName           the last name
+     * @param emailVerified      whether the email should be marked as already verified
+     * @param creatingStationId  the station that initiated the creation, or {@code null}
+     * @return the created account
+     */
+    public Account create(
+            String email, String firstName, String lastName, boolean emailVerified, Integer creatingStationId) {
         return query("""
                 INSERT
                 INTO
-                    account(email, first_name, last_name, email_verified)
+                    account(email, first_name, last_name, email_verified, creating_station_id)
                 VALUES
-                    (:email, :first_name, :last_name, :verified)
+                    (:email, :first_name, :last_name, :verified, :creating_station_id)
                 RETURNING %s;""", ACCOUNT_COLUMNS)
                 .single(call().bind("email", email)
                         .bind("first_name", firstName)
                         .bind("last_name", lastName)
-                        .bind("verified", emailVerified))
+                        .bind("verified", emailVerified)
+                        .bind("creating_station_id", creatingStationId))
                 .map(Account.map())
                 .first()
                 .orElseThrow();
+    }
+
+    /**
+     * Stamps the account as setup-completed if it is not stamped yet. No-op once the timestamp is set.
+     * Called on the first successful login.
+     */
+    public void markSetupCompleted(int accountId) {
+        query("UPDATE account SET setup_completed_at = now() WHERE id = :id AND setup_completed_at IS NULL;")
+                .single(call().bind("id", accountId))
+                .update();
+    }
+
+    /**
+     * Resolves the language code to use for system mails sent to {@code accountId}. Picks the
+     * language of the station the account was created from (falling back to {@code "en"} for
+     * self-signup, admin bootstrap, or any account without a known origin). The returned value
+     * is the short ISO 639 code (e.g. {@code "de"}, {@code "en"}), suitable for mail template
+     * lookup.
+     */
+    public String findMailLocale(int accountId) {
+        return query("""
+                SELECT s.locale
+                FROM account a
+                JOIN station s ON s.id = a.creating_station_id
+                WHERE a.id = :id;""")
+                .single(call().bind("id", accountId))
+                .map(row -> row.getString("locale"))
+                .first()
+                .map(java.util.Locale::forLanguageTag)
+                .map(java.util.Locale::getLanguage)
+                .filter(s -> !s.isBlank())
+                .orElse("en");
     }
 
     /**

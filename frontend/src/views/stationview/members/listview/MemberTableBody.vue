@@ -29,6 +29,7 @@ const emit = defineEmits<{
   toggleSelect: [memberId: number]
   navigateDetail: [member: StationMember, event: Event]
   navigateEdit: [member: StationMember, event: Event]
+  resendSetup: [member: StationMember, event: Event]
 }>()
 </script>
 
@@ -50,6 +51,7 @@ const emit = defineEmits<{
           @toggle-select="emit('toggleSelect', member.id)"
           @navigate-detail="(e) => emit('navigateDetail', member, e)"
           @navigate-edit="(e) => emit('navigateEdit', member, e)"
+          @resend-setup="(e) => emit('resendSetup', member, e)"
       />
       <MemberExpansion
           v-if="!exportMode && expandedId === member.id"

@@ -37,6 +37,7 @@ export interface RichMember {
     accountId: number | null
     name: string
     email: string
+    accountSetupPending: boolean
     former: boolean
     userType: string
     roles: string[]
@@ -51,6 +52,10 @@ export async function listRichMembers(includeFormer = false): Promise<RichMember
     if (includeFormer) params.includeFormer = true
     const res = await client.get<RichMember[]>('/station-members/rich', { params })
     return res.data
+}
+
+export async function resendSetupMail(memberId: number): Promise<void> {
+    await client.post(`/station-members/${memberId}/resend-setup-mail`)
 }
 
 export async function listMembers(includeFormer = false): Promise<StationMember[]> {

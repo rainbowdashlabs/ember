@@ -11,6 +11,8 @@ import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
 import dev.chojo.ember.feature.mail.service.mail.MailProvider;
 import dev.chojo.ember.feature.mail.service.mail.SmtpMailProvider;
+import dev.chojo.ember.feature.station.entity.MailProviderType;
+import dev.chojo.ember.feature.station.entity.StationMailConfig;
 import dev.chojo.ember.feature.station.repository.StationMailConfigRepository;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
 import jakarta.inject.Inject;
@@ -43,7 +45,6 @@ public class EmailService {
     private final EmailQueueRepository queueRepository;
     private final StationMailConfigRepository mailConfigRepository;
     private final MailTemplateRenderer templateRenderer;
-    private final MailProvider globalProvider;
     private final StationReadOnlyGuard readOnlyGuard;
 
     @Inject
@@ -62,21 +63,33 @@ public class EmailService {
         this.mailConfigRepository = mailConfigRepository;
         this.templateRenderer = templateRenderer;
         this.readOnlyGuard = readOnlyGuard;
-        this.globalProvider = createGlobalProvider();
+        if (currentGlobalProvider() == null) {
+            log.warn(
+                    "Mail service starting without a global mail provider; transactional emails will not be delivered until one is configured");
+        } else {
+            log.info(
+                    "Mail service initialized: provider={} sender={} dailyLimit={}",
+                    mailing.provider(),
+                    mailing.senderAddress(),
+                    mailing.dailySendLimit());
+        }
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             var t = new Thread(r, "email-worker");
             t.setDaemon(true);
             return t;
         });
         scheduler.scheduleWithFixedDelay(this::processQueue, 10, 10, TimeUnit.SECONDS);
-        scheduler.scheduleAtFixedRate(
-                () -> {
-                    queueRepository.cleanupOldEntries(30);
-                    mailConfigRepository.cleanupOldCounts(60);
-                },
-                1,
-                24,
-                TimeUnit.HOURS);
+        scheduler.scheduleAtFixedRate(this::runCleanup, 1, 24, TimeUnit.HOURS);
+    }
+
+    private void runCleanup() {
+        try {
+            queueRepository.cleanupOldEntries(30);
+            mailConfigRepository.cleanupOldCounts(60);
+            log.debug("Email queue cleanup completed");
+        } catch (Exception e) {
+            log.error("Email queue cleanup failed", e);
+        }
     }
 
     // -- Provider resolution --
@@ -91,59 +104,84 @@ public class EmailService {
     public Optional<MailProvider> resolveStationProvider(Integer stationId) {
         if (stationId == null) return Optional.empty();
         var config = mailConfigRepository.findByStation(stationId);
-        if (config.isPresent() && config.get().isConfigured()) {
-            var c = config.get();
-            return Optional.of(
-                    switch (c.provider()) {
-                        case SMTP ->
-                            new SmtpMailProvider(
-                                    c.smtpHost(),
-                                    c.smtpPort(),
-                                    c.smtpSsl(),
-                                    c.smtpUser(),
-                                    c.smtpPassword(),
-                                    c.senderAddress(),
-                                    c.senderName());
-                        case RAPIDMAIL ->
-                            new SmtpMailProvider(
-                                    "smtp.rapidmail.de",
-                                    587,
-                                    false,
-                                    c.smtpUser(),
-                                    c.apiKey(),
-                                    c.senderAddress(),
-                                    c.senderName());
-                        case TWILIO ->
-                            new SmtpMailProvider(
-                                    "smtp.sendgrid.net",
-                                    587,
-                                    false,
-                                    "apikey",
-                                    c.apiKey(),
-                                    c.senderAddress(),
-                                    c.senderName());
-                        case SWEEGO ->
-                            new SmtpMailProvider(
-                                    "smtp.sweego.io",
-                                    587,
-                                    false,
-                                    c.smtpUser(),
-                                    c.apiKey(),
-                                    c.senderAddress(),
-                                    c.senderName());
-                        case BREVO ->
-                            new SmtpMailProvider(
-                                    "smtp-relay.brevo.com",
-                                    587,
-                                    false,
-                                    c.smtpUser(),
-                                    c.apiKey(),
-                                    c.senderAddress(),
-                                    c.senderName());
-                        case NONE -> throw new IllegalStateException("NONE should not reach here");
-                    });
-        }
-        return Optional.empty();
+        if (config.isEmpty() || !config.get().isConfigured()) return Optional.empty();
+        var c = config.get();
+        return Optional.ofNullable(buildProvider(
+                c.provider(),
+                c.smtpHost(),
+                c.smtpPort(),
+                c.smtpSsl(),
+                c.smtpUser(),
+                c.smtpPassword(),
+                c.apiKey(),
+                c.senderAddress(),
+                c.senderName()));
+    }
+
+    /**
+     * Builds a {@link MailProvider} from raw config values without persisting anything. Returns
+     * {@code null} when the provider is {@link MailProviderType#NONE}.
+     */
+    private static MailProvider buildProvider(
+            MailProviderType provider,
+            String smtpHost,
+            int smtpPort,
+            boolean smtpSsl,
+            String user,
+            String password,
+            String apiKey,
+            String senderAddress,
+            String senderName) {
+        return switch (provider) {
+            case SMTP -> new SmtpMailProvider(smtpHost, smtpPort, smtpSsl, user, password, senderAddress, senderName);
+            case RAPIDMAIL ->
+                new SmtpMailProvider("smtp.rapidmail.de", 587, false, user, apiKey, senderAddress, senderName);
+            case TWILIO ->
+                new SmtpMailProvider("smtp.sendgrid.net", 587, false, "apikey", apiKey, senderAddress, senderName);
+            case SWEEGO -> new SmtpMailProvider("smtp.sweego.io", 587, false, user, apiKey, senderAddress, senderName);
+            case BREVO ->
+                new SmtpMailProvider("smtp-relay.brevo.com", 587, false, user, apiKey, senderAddress, senderName);
+            case NONE -> null;
+        };
+    }
+
+    /**
+     * Attempts a real connection against the given mail config without persisting anything.
+     *
+     * @return {@code null} on success, or the underlying error message on failure
+     */
+    public String testMailConnection(
+            MailProviderType provider,
+            String smtpHost,
+            int smtpPort,
+            boolean smtpSsl,
+            String user,
+            String password,
+            String apiKey,
+            String senderAddress,
+            String senderName) {
+        MailProvider mailProvider =
+                buildProvider(provider, smtpHost, smtpPort, smtpSsl, user, password, apiKey, senderAddress, senderName);
+        if (mailProvider == null) return "No mail provider configured";
+        return mailProvider.testConnection();
+    }
+
+    /**
+     * Attempts a real connection against a {@link StationMailConfig} without persisting anything.
+     *
+     * @return {@code null} on success, or the underlying error message on failure
+     */
+    public String testMailConnection(StationMailConfig config) {
+        return testMailConnection(
+                config.provider(),
+                config.smtpHost(),
+                config.smtpPort(),
+                config.smtpSsl(),
+                config.smtpUser(),
+                config.smtpPassword(),
+                config.apiKey(),
+                config.senderAddress(),
+                config.senderName());
     }
 
     /**
@@ -199,18 +237,18 @@ public class EmailService {
      * @param name  the recipient's display name
      * @param token the verification token
      */
-    public void sendVerificationEmail(String email, String name, String token) {
+    public void sendVerificationEmail(String email, String name, String token, String locale) {
         String url = api.baseUrl() + "/verify-email?token=" + token;
         var vars = baseVars(name, null);
         vars.put("url", url);
-        enqueueGlobal(email, "Verify your email address", loadTemplate("verify-email.html", "en", vars));
+        enqueueGlobal(email, subject("verify-email", locale, null), loadTemplate("verify-email.html", locale, vars));
     }
 
-    public void sendPasswordSetupEmail(String email, String name, String token) {
+    public void sendPasswordSetupEmail(String email, String name, String token, String locale) {
         String url = api.baseUrl() + "/set-password?token=" + token;
         var vars = baseVars(name, null);
         vars.put("url", url);
-        enqueueGlobal(email, "Set up your password", loadTemplate("set-password.html", "en", vars));
+        enqueueGlobal(email, subject("set-password", locale, null), loadTemplate("set-password.html", locale, vars));
     }
 
     /**
@@ -238,7 +276,7 @@ public class EmailService {
         }
         enqueueGlobal(
                 email,
-                resolveSubject(locale, "station-member-invite", stationName),
+                subject("station-member-invite", locale, Map.of("stationName", stationName != null ? stationName : "")),
                 loadTemplate("station-member-invite.html", locale, vars));
     }
 
@@ -248,10 +286,13 @@ public class EmailService {
      * registration caller, so the public registration endpoint cannot be used to enumerate
      * existing addresses.
      */
-    public void sendDuplicateRegistrationNotice(String email, String name) {
+    public void sendDuplicateRegistrationNotice(String email, String name, String locale) {
         var vars = baseVars(name, null);
         vars.put("loginUrl", api.baseUrl() + "/login");
-        enqueueGlobal(email, "Account already exists", loadTemplate("duplicate-registration.html", "en", vars));
+        enqueueGlobal(
+                email,
+                subject("duplicate-registration", locale, null),
+                loadTemplate("duplicate-registration.html", locale, vars));
     }
 
     /**
@@ -260,10 +301,11 @@ public class EmailService {
      * admin-triggered reset). Includes a hint that the user should contact support if
      * they did not initiate the change.
      */
-    public void sendPasswordChangedNotice(String email, String name) {
+    public void sendPasswordChangedNotice(String email, String name, String locale) {
         var vars = baseVars(name, null);
         vars.put("loginUrl", api.baseUrl() + "/login");
-        enqueueGlobal(email, "Your password was changed", loadTemplate("password-changed.html", "en", vars));
+        enqueueGlobal(
+                email, subject("password-changed", locale, null), loadTemplate("password-changed.html", locale, vars));
     }
 
     /**
@@ -272,13 +314,14 @@ public class EmailService {
      * fresh on next login. {@code actorLabel} is the admin's email (or a generic
      * "administrator" fallback when unknown).
      */
-    public void sendTwoFactorResetNotice(String email, String name, String actorLabel, Instant resetAt) {
+    public void sendTwoFactorResetNotice(String email, String name, String actorLabel, Instant resetAt, String locale) {
         var vars = baseVars(name, null);
         vars.put("loginUrl", api.baseUrl() + "/login");
-        vars.put("actor", actorLabel != null && !actorLabel.isBlank() ? actorLabel : "an administrator");
+        String defaultActor = templateRenderer.body("twoFactorReset.defaultActor", locale);
+        vars.put("actor", actorLabel != null && !actorLabel.isBlank() ? actorLabel : defaultActor);
         vars.put("resetAt", resetAt.toString());
         enqueueGlobal(
-                email, "Your two-factor authentication was reset", loadTemplate("two-factor-reset.html", "en", vars));
+                email, subject("two-factor-reset", locale, null), loadTemplate("two-factor-reset.html", locale, vars));
     }
 
     /**
@@ -286,12 +329,16 @@ public class EmailService {
      * Clicking the link authorises releasing the address; the change only commits
      * once the new address also confirms via {@link #sendEmailChangeClaimRequest}.
      */
-    public void sendEmailChangeReleaseRequest(String oldEmail, String name, String newEmail, String token) {
+    public void sendEmailChangeReleaseRequest(
+            String oldEmail, String name, String newEmail, String token, String locale) {
         String url = api.baseUrl() + "/confirm-email-change?token=" + token;
         var vars = baseVars(name, null);
         vars.put("url", url);
         vars.put("newEmail", newEmail);
-        enqueueGlobal(oldEmail, "Confirm email change", loadTemplate("email-change-release.html", "en", vars));
+        enqueueGlobal(
+                oldEmail,
+                subject("email-change-release", locale, null),
+                loadTemplate("email-change-release.html", locale, vars));
     }
 
     /**
@@ -299,12 +346,16 @@ public class EmailService {
      * the link confirms receipt; the change only commits once the existing address
      * also authorises via {@link #sendEmailChangeReleaseRequest}.
      */
-    public void sendEmailChangeClaimRequest(String newEmail, String name, String oldEmail, String token) {
+    public void sendEmailChangeClaimRequest(
+            String newEmail, String name, String oldEmail, String token, String locale) {
         String url = api.baseUrl() + "/confirm-email-change?token=" + token;
         var vars = baseVars(name, null);
         vars.put("url", url);
         vars.put("oldEmail", oldEmail);
-        enqueueGlobal(newEmail, "Confirm your new email", loadTemplate("email-change-claim.html", "en", vars));
+        enqueueGlobal(
+                newEmail,
+                subject("email-change-claim", locale, null),
+                loadTemplate("email-change-claim.html", locale, vars));
     }
 
     /**
@@ -313,35 +364,38 @@ public class EmailService {
      * the {@code oldEmail} and {@code newEmail} values are shown in the body for
      * transparency.
      */
-    public void sendEmailChangedNotice(String recipient, String name, String oldEmail, String newEmail) {
+    public void sendEmailChangedNotice(String recipient, String name, String oldEmail, String newEmail, String locale) {
         var vars = baseVars(name, null);
         vars.put("oldEmail", oldEmail);
         vars.put("newEmail", newEmail);
-        enqueueGlobal(recipient, "Your email address was changed", loadTemplate("email-changed.html", "en", vars));
+        enqueueGlobal(
+                recipient, subject("email-changed", locale, null), loadTemplate("email-changed.html", locale, vars));
     }
 
     // -- Public send methods (system, via global provider queue) --
 
-    public void sendPasswordResetEmail(String email, String name, String token) {
+    public void sendPasswordResetEmail(String email, String name, String token, String locale) {
         String url = api.baseUrl() + "/reset-password?token=" + token;
         var vars = baseVars(name, null);
         vars.put("url", url);
-        enqueueGlobal(email, "Reset your password", loadTemplate("reset-password.html", "en", vars));
+        enqueueGlobal(
+                email, subject("reset-password", locale, null), loadTemplate("reset-password.html", locale, vars));
     }
 
-    public void sendEmailChangeConfirmation(String newEmail, String name, String token) {
+    public void sendEmailChangeConfirmation(String newEmail, String name, String token, String locale) {
         String url = api.baseUrl() + "/confirm-email-change?token=" + token;
         var vars = baseVars(name, null);
         vars.put("url", url);
         vars.put("newEmail", newEmail);
-        enqueueGlobal(newEmail, "Confirm your new email address", loadTemplate("email-change.html", "en", vars));
+        enqueueGlobal(newEmail, subject("email-change", locale, null), loadTemplate("email-change.html", locale, vars));
     }
 
-    public void sendStationDeletionConfirmation(String email, String name, String token) {
+    public void sendStationDeletionConfirmation(String email, String name, String token, String locale) {
         String url = api.baseUrl() + "/api/v1/public/confirm-station-delete?token=" + token;
         var vars = baseVars(name, null);
         vars.put("url", url);
-        enqueueGlobal(email, "Confirm station deletion", loadTemplate("station-delete.html", "en", vars));
+        enqueueGlobal(
+                email, subject("station-delete", locale, null), loadTemplate("station-delete.html", locale, vars));
     }
 
     public void sendApplicationVerifyEmail(
@@ -352,7 +406,7 @@ public class EmailService {
         vars.put("url", url);
         enqueueGlobal(
                 email,
-                resolveSubject(locale, "application-verify", stationName),
+                subject("application-verify", locale, applicationPlaceholders(stationName)),
                 loadTemplate("application-verify.html", locale, vars));
     }
 
@@ -367,7 +421,7 @@ public class EmailService {
         }
         enqueueGlobal(
                 email,
-                resolveSubject(locale, "application-accepted", stationName),
+                subject("application-accepted", locale, applicationPlaceholders(stationName)),
                 loadTemplate("application-accepted.html", locale, vars));
     }
 
@@ -378,7 +432,7 @@ public class EmailService {
         vars.put("reason", reason != null ? reason : "");
         enqueueGlobal(
                 email,
-                resolveSubject(locale, "application-denied", stationName),
+                subject("application-denied", locale, applicationPlaceholders(stationName)),
                 loadTemplate("application-denied.html", locale, vars));
     }
 
@@ -388,7 +442,7 @@ public class EmailService {
         vars.put("stationName", stationName);
         enqueueGlobal(
                 email,
-                resolveSubject(locale, "application-received", stationName),
+                subject("application-received", locale, applicationPlaceholders(stationName)),
                 loadTemplate("application-received.html", locale, vars));
     }
 
@@ -408,7 +462,7 @@ public class EmailService {
         }
         enqueueGlobal(
                 email,
-                resolveSubject(locale, "waitlist-registered", stationName),
+                subject("waitlist-registered", locale, waitlistPlaceholders(stationName)),
                 loadTemplate("waitlist-registered.html", locale, vars));
     }
 
@@ -427,7 +481,7 @@ public class EmailService {
         }
         enqueueGlobal(
                 email,
-                resolveSubject(locale, "waitlist-confirm-reminder", stationName),
+                subject("waitlist-confirm-reminder", locale, waitlistPlaceholders(stationName)),
                 loadTemplate("waitlist-confirm-reminder.html", locale, vars));
     }
 
@@ -446,7 +500,7 @@ public class EmailService {
         }
         enqueueGlobal(
                 email,
-                resolveSubject(locale, "waitlist-removal-warning", stationName),
+                subject("waitlist-removal-warning", locale, waitlistPlaceholders(stationName)),
                 loadTemplate("waitlist-removal-warning.html", locale, vars));
     }
 
@@ -465,7 +519,7 @@ public class EmailService {
         }
         enqueueGlobal(
                 email,
-                resolveSubject(locale, "waitlist-verify", stationName),
+                subject("waitlist-verify", locale, waitlistPlaceholders(stationName)),
                 loadTemplate("waitlist-verify.html", locale, vars));
     }
 
@@ -519,59 +573,28 @@ public class EmailService {
         return templateRenderer.render(name, locale, variables);
     }
 
-    private MailProvider createGlobalProvider() {
+    private String subject(String key, String locale, Map<String, String> placeholders) {
+        return templateRenderer.subject(key, locale, placeholders);
+    }
+
+    /**
+     * Builds a {@link MailProvider} from the live instance-wide mail settings. Re-evaluated on every
+     * call so runtime updates to the mailing config take effect without a restart.
+     */
+    private MailProvider currentGlobalProvider() {
         if (mailing.senderAddress().isBlank()) {
             return null;
         }
-
-        return switch (mailing.provider()) {
-            case SMTP ->
-                new SmtpMailProvider(
-                        mailing.smtp().host(),
-                        mailing.smtp().port(),
-                        mailing.smtp().ssl(),
-                        mailing.user(),
-                        mailing.password(),
-                        mailing.senderAddress(),
-                        mailing.senderName());
-            case RAPIDMAIL ->
-                new SmtpMailProvider(
-                        "smtp.rapidmail.de",
-                        587,
-                        false,
-                        mailing.user(),
-                        mailing.apiKey(),
-                        mailing.senderAddress(),
-                        mailing.senderName());
-            case TWILIO ->
-                new SmtpMailProvider(
-                        "smtp.sendgrid.net",
-                        587,
-                        false,
-                        "apikey",
-                        mailing.apiKey(),
-                        mailing.senderAddress(),
-                        mailing.senderName());
-            case SWEEGO ->
-                new SmtpMailProvider(
-                        "smtp.sweego.io",
-                        587,
-                        false,
-                        mailing.user(),
-                        mailing.apiKey(),
-                        mailing.senderAddress(),
-                        mailing.senderName());
-            case BREVO ->
-                new SmtpMailProvider(
-                        "smtp-relay.brevo.com",
-                        587,
-                        false,
-                        mailing.user(),
-                        mailing.apiKey(),
-                        mailing.senderAddress(),
-                        mailing.senderName());
-            case NONE -> null;
-        };
+        return buildProvider(
+                mailing.provider(),
+                mailing.smtp().host(),
+                mailing.smtp().port(),
+                mailing.smtp().ssl(),
+                mailing.user(),
+                mailing.password(),
+                mailing.apiKey(),
+                mailing.senderAddress(),
+                mailing.senderName());
     }
 
     // -- Queue --
@@ -597,7 +620,7 @@ public class EmailService {
             log.info("Demo mode: Suppressed email to={} subject={}", to, subject);
             return;
         }
-        if (globalProvider == null) {
+        if (currentGlobalProvider() == null) {
             log.warn("Mail not configured. Would send to={} subject={}", to, subject);
             return;
         }
@@ -612,50 +635,95 @@ public class EmailService {
             var batch = queueRepository.fetchPending(20);
             if (batch.isEmpty()) return;
 
+            log.debug("Processing batch of {} pending emails", batch.size());
+
             int sent = 0;
+            int failed = 0;
+            int requeued = 0;
             for (var email : batch) {
                 MailProvider provider;
                 if (email.stationId() != null) {
                     if (!readOnlyGuard.isWritable(email.stationId())) {
+                        log.debug("Email {} requeued: station {} is read-only", email.id(), email.stationId());
                         queueRepository.requeue(email.id());
+                        requeued++;
                         continue;
                     }
                     if (!canStationSend(email.stationId())) {
+                        log.warn(
+                                "Email {} failed: station {} has reached its daily or monthly send limit",
+                                email.id(),
+                                email.stationId());
                         queueRepository.markFailed(email.id());
+                        failed++;
                         continue;
                     }
                     var stationProvider = resolveStationProvider(email.stationId());
                     if (stationProvider.isEmpty()) {
+                        log.warn(
+                                "Email {} failed: station {} has no mail provider configured",
+                                email.id(),
+                                email.stationId());
                         queueRepository.markFailed(email.id());
+                        failed++;
                         continue;
                     }
                     provider = stationProvider.get();
                 } else {
-                    // Global system email
-                    if (globalProvider == null) {
+                    MailProvider current = currentGlobalProvider();
+                    if (current == null) {
+                        log.warn("Email {} failed: global mail provider not configured", email.id());
                         queueRepository.markFailed(email.id());
+                        failed++;
                         continue;
                     }
                     int remaining = remainingToday();
-                    if (remaining <= 0) break;
-                    provider = globalProvider;
+                    if (remaining <= 0) {
+                        log.debug(
+                                "Global daily send limit ({}) reached; deferring remaining emails",
+                                mailing.dailySendLimit());
+                        break;
+                    }
+                    provider = current;
                 }
 
-                if (provider.send(email.recipient(), email.subject(), email.body())) {
-                    queueRepository.markSent(email.id());
-                    if (email.stationId() != null) {
-                        mailConfigRepository.incrementDailyCount(email.stationId(), LocalDate.now());
-                    } else {
-                        queueRepository.incrementDailyCount(LocalDate.now());
+                var result = provider.send(email.recipient(), email.subject(), email.body());
+                switch (result) {
+                    case SENT -> {
+                        queueRepository.markSent(email.id());
+                        if (email.stationId() != null) {
+                            mailConfigRepository.incrementDailyCount(email.stationId(), LocalDate.now());
+                        } else {
+                            queueRepository.incrementDailyCount(LocalDate.now());
+                        }
+                        sent++;
                     }
-                    sent++;
-                } else {
-                    queueRepository.markFailed(email.id());
+                    case TRANSIENT_FAILURE -> {
+                        log.warn(
+                                "Email {} delivery to {} failed transiently; requeueing for retry",
+                                email.id(),
+                                email.recipient());
+                        queueRepository.requeue(email.id());
+                        requeued++;
+                    }
+                    case PERMANENT_FAILURE -> {
+                        log.warn(
+                                "Email {} delivery to {} failed permanently; marking failed",
+                                email.id(),
+                                email.recipient());
+                        queueRepository.markFailed(email.id());
+                        failed++;
+                    }
                 }
             }
 
-            if (sent > 0) {
-                log.info("Sent {} emails ({} pending)", sent, queueRepository.pendingCount());
+            if (sent > 0 || failed > 0 || requeued > 0) {
+                log.info(
+                        "Email batch processed: sent={} failed={} requeued={} pending={}",
+                        sent,
+                        failed,
+                        requeued,
+                        queueRepository.pendingCount());
             }
         } catch (Exception e) {
             log.error("Error processing email queue", e);
@@ -670,42 +738,12 @@ public class EmailService {
         return vars;
     }
 
-    private String resolveSubject(String locale, String template, String stationName) {
-        final String string = stationName != null && !stationName.isEmpty() ? " — " + stationName : "";
-        return switch (template) {
-            case "application-verify" ->
-                "de".equals(locale)
-                        ? "Bestätige deinen Antrag für " + stationName
-                        : "Confirm your application for " + stationName;
-            case "application-accepted" ->
-                "de".equals(locale)
-                        ? "Dein Antrag für " + stationName + " wurde angenommen"
-                        : "Your application for " + stationName + " has been accepted";
-            case "application-denied" ->
-                "de".equals(locale) ? "Dein Antrag für " + stationName : "Your application for " + stationName;
-            case "application-received" ->
-                "de".equals(locale)
-                        ? "Antrag für " + stationName + " eingegangen"
-                        : "Application for " + stationName + " received";
-            case "waitlist-verify" ->
-                "de".equals(locale)
-                        ? "Wartelisten-Anmeldung bestätigen" + string
-                        : "Confirm waiting list registration" + string;
-            case "waitlist-registered" ->
-                "de".equals(locale) ? "Wartelisten-Anmeldung" + string : "Waiting list registration" + string;
-            case "waitlist-confirm-reminder" ->
-                "de".equals(locale)
-                        ? "Bitte bestätige dein Interesse" + string
-                        : "Please confirm your interest" + string;
-            case "waitlist-removal-warning" ->
-                "de".equals(locale)
-                        ? "Wartelisten-Entfernung in 2 Wochen" + string
-                        : "Waiting list removal in 2 weeks" + string;
-            case "station-member-invite" ->
-                "de".equals(locale)
-                        ? "Du wurdest zu " + stationName + " eingeladen"
-                        : "You have been invited to " + stationName;
-            default -> template;
-        };
+    private static Map<String, String> applicationPlaceholders(String stationName) {
+        return Map.of("stationName", stationName != null ? stationName : "");
+    }
+
+    private static Map<String, String> waitlistPlaceholders(String stationName) {
+        String suffix = stationName != null && !stationName.isEmpty() ? " — " + stationName : "";
+        return Map.of("stationName", stationName != null ? stationName : "", "stationSuffix", suffix);
     }
 }

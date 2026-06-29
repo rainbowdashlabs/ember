@@ -130,12 +130,10 @@ public class StationApplicationService {
 
         applicationRepository.accept(id);
 
-        // Create the station
         var station = stationRepository.create(application.stationName());
 
-        // Create account (pre-verified since admin approved)
-        var account =
-                accountRepository.create(application.email(), application.firstName(), application.lastName(), true);
+        var account = accountRepository.create(
+                application.email(), application.firstName(), application.lastName(), true, station.id());
 
         // Create station member
         var member = stationMemberRepository.create(station.id(), account.id());

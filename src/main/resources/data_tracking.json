@@ -1,12 +1,12 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:43f748ef5e6381731e828d083a59288cdd12dc8dd80c0ae2ebc7d9e7addd3dd1",
-  "generatedAt" : "2026-06-28T23:17:11Z",
+  "schemaHash" : "sha256:c68984d2ff21390e5df68b609c0481ebb6febbf37c23108ac4e2be9053fb3bbb",
+  "generatedAt" : "2026-06-29T14:43:28Z",
   "tables" : {
     "account" : {
       "feature" : "account",
       "scope" : "USER",
-      "tableHash" : "sha256:4b0288a003c4b52c5e3e5a949f4dfc498a9bf1d14ae75eb0ad25692b1095aaf3",
+      "tableHash" : "sha256:fd6be129b09c7d16197209fc2e4f8d2e0701dfe41e4a95b76d3bca3e4503144e",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -53,8 +53,25 @@
         "nullable" : false,
         "verified" : true,
         "description" : "Stable per-account UUID, used as the public key for account-scoped resources (avatars, federated identity)."
+      }, {
+        "name" : "creating_station_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Station that initiated the account creation (invite, application acceptance, waitlist registration, member import, cross-instance import). Used to pick the language for system mails to the account. NULL for accounts created via self-signup or the admin bootstrap."
+      }, {
+        "name" : "setup_completed_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Timestamp of the first successful login. NULL means the account has been created but the recipient has not yet completed setup (clicked the link, set a password, signed in). Managers see pending accounts flagged in the member list."
       } ],
-      "foreignKeys" : [ ],
+      "foreignKeys" : [ {
+        "column" : "creating_station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      } ],
       "customScope" : {
         "viaTable" : "station_member",
         "viaColumn" : "account_id",

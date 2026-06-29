@@ -66,6 +66,7 @@ public class StationMemberRoutes implements Routes {
     private final RestrictionRepository restrictionRepository;
     private final StationRepository stationRepository;
     private final AvatarService avatarService;
+    private final dev.chojo.ember.feature.account.service.AuthService authService;
 
     @Inject
     public StationMemberRoutes(
@@ -78,7 +79,8 @@ public class StationMemberRoutes implements Routes {
             MemberIdentityFactory memberIdentityFactory,
             RestrictionRepository restrictionRepository,
             StationRepository stationRepository,
-            AvatarService avatarService) {
+            AvatarService avatarService,
+            dev.chojo.ember.feature.account.service.AuthService authService) {
         this.memberService = memberService;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -89,6 +91,7 @@ public class StationMemberRoutes implements Routes {
         this.restrictionRepository = restrictionRepository;
         this.stationRepository = stationRepository;
         this.avatarService = avatarService;
+        this.authService = authService;
     }
 
     @Override
@@ -151,6 +154,10 @@ public class StationMemberRoutes implements Routes {
         routes.put(prefix + "/station-members/{id}/join-date", this::setJoinDate, StationPermission.MEMBER_EDIT);
         routes.post(prefix + "/station-members/{id}/mark-former", this::markFormer, StationPermission.MEMBER_EDIT);
         routes.post(prefix + "/station-members/{id}/reactivate", this::reactivate, StationPermission.MEMBER_EDIT);
+        routes.post(
+                prefix + "/station-members/{id}/resend-setup-mail",
+                this::resendSetupMail,
+                StationPermission.MEMBER_EDIT);
 
         routes.get(
                 prefix + "/user-type-permissions/{userType}",
@@ -495,6 +502,37 @@ public class StationMemberRoutes implements Routes {
         int memberId = ctx.pathParamAsClass("id", Integer.class).get();
         formerMemberService.reactivate(memberId);
         ctx.json(new FormerCheckResponse(true, null));
+    }
+
+    @OpenApi(
+            path = "/api/v1/station-members/{id}/resend-setup-mail",
+            methods = HttpMethod.POST,
+            summary = "Resend the password-setup mail to a member whose account has not been setup yet",
+            tags = {"Station Members"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class),
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "404")
+            })
+    private void resendSetupMail(Context ctx) {
+        int memberId = ctx.pathParamAsClass("id", Integer.class).get();
+        var member =
+                stationMemberRepository.findById(memberId).orElseThrow(() -> new BadRequestResponse("Unknown member"));
+        if (member.accountId() == null) {
+            throw new BadRequestResponse("Member has no linked account");
+        }
+        var account = accountRepository
+                .findById(member.accountId())
+                .orElseThrow(() -> new BadRequestResponse("Account not found"));
+        if (account.setupCompletedAt() != null) {
+            throw new BadRequestResponse("Account is already set up");
+        }
+        if (account.email() == null || account.email().isBlank()) {
+            throw new BadRequestResponse("Account has no email address");
+        }
+        authService.sendPasswordSetup(account.id(), account.email(), account.firstName());
+        ctx.status(HttpStatus.NO_CONTENT);
     }
 
     @OpenApi(

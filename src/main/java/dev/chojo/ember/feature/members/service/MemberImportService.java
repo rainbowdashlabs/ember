@@ -158,7 +158,7 @@ public class MemberImportService {
                 continue;
             }
 
-            var account = accountRepository.create(email, mapped.firstName(), mapped.lastName(), true);
+            var account = accountRepository.create(email, mapped.firstName(), mapped.lastName(), true, stationId);
             accountRepository.createCredential(account.id(), passwordHasher.hash(generatePassword()));
             var member = stationMemberRepository.create(stationId, account.id());
             stationMemberRepository.setUserType(member.id(), StationUserType.MEMBER);
@@ -215,7 +215,7 @@ public class MemberImportService {
                     }
 
                     if (manager == null) {
-                        var mgrAccount = accountRepository.create(mgrEmail, mgrFirst, mgrLast, true);
+                        var mgrAccount = accountRepository.create(mgrEmail, mgrFirst, mgrLast, true, stationId);
                         accountRepository.createCredential(mgrAccount.id(), passwordHasher.hash(generatePassword()));
                         manager = stationMemberRepository.create(stationId, mgrAccount.id());
                         stationMemberRepository.setUserType(manager.id(), StationUserType.GUARDIAN);
@@ -277,7 +277,7 @@ public class MemberImportService {
                 continue;
             }
 
-            var account = accountRepository.create(email, mapped.firstName(), mapped.lastName(), true);
+            var account = accountRepository.create(email, mapped.firstName(), mapped.lastName(), true, stationId);
             accountRepository.createCredential(account.id(), passwordHasher.hash(generatePassword()));
             var member = stationMemberRepository.create(stationId, account.id());
             stationMemberRepository.setUserType(member.id(), StationUserType.TEAM);

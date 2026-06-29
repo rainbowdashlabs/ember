@@ -786,6 +786,7 @@ export interface StationMember {
     profileComplete?: boolean
     formerAt?: string | null
     identity?: MemberIdentity | null
+    accountSetupPending?: boolean
     /** ISO yyyy-MM-dd date when the member joined the station. */
     joinDate?: string | null
 }
