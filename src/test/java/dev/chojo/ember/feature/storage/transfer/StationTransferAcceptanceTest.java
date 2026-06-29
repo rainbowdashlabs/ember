@@ -117,10 +117,15 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
                 imageVariantService,
                 pageFileStorageService,
                 pageImageVariantService,
-                new FederationPartnerTransferFixupService());
+                new FederationPartnerTransferFixupService(
+                        new dev.chojo.ember.feature.federation.repository.FederationRepository(), null, stationRepo));
 
         var transferRoutes = new TransferRoutes(
-                exportService, importService, stationRepo, new FederationPartnerTransferFixupService());
+                exportService,
+                importService,
+                stationRepo,
+                new FederationPartnerTransferFixupService(
+                        new dev.chojo.ember.feature.federation.repository.FederationRepository(), null, stationRepo));
         var assetRoutes = new StationTransferAssetRoutes(
                 exportService, descriptorService, stationRepo, storageService, avatarService);
 

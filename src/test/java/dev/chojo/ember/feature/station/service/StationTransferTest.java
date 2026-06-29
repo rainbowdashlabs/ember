@@ -100,7 +100,8 @@ class StationTransferTest extends RepositoryTestBase {
                 null,
                 null,
                 null,
-                new FederationPartnerTransferFixupService());
+                new FederationPartnerTransferFixupService(
+                        new dev.chojo.ember.feature.federation.repository.FederationRepository(), null, stationRepo));
 
         // Create station with full settings
         var station = stationRepo.create("Jugendfeuerwehr Musterstadt");

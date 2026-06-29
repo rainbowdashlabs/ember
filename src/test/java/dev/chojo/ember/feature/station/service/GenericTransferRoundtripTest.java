@@ -52,7 +52,8 @@ class GenericTransferRoundtripTest extends RepositoryTestBase {
                 null,
                 null,
                 null,
-                new FederationPartnerTransferFixupService());
+                new FederationPartnerTransferFixupService(
+                        new dev.chojo.ember.feature.federation.repository.FederationRepository(), null, stationRepo));
     }
 
     @Test

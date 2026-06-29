@@ -29,8 +29,11 @@ public class TransferTimeoutWatchdog {
     private static final int IDLE_TIMEOUT_MINUTES = 5;
     private static final int SCAN_INTERVAL_SECONDS = 60;
 
+    private final StationExportService exportService;
+
     @Inject
     public TransferTimeoutWatchdog(StationExportService exportService, StationRepository stationRepository) {
+        this.exportService = exportService;
         try {
             exportService.abortAllInFlightTransfers();
         } catch (Exception e) {
@@ -47,18 +50,22 @@ public class TransferTimeoutWatchdog {
             return t;
         });
         scheduler.scheduleWithFixedDelay(
-                () -> {
-                    try {
-                        int cleared = exportService.expireStaleTransfers(IDLE_TIMEOUT_MINUTES);
-                        if (cleared > 0) {
-                            log.info("Transfer timeout sweep: cleared read-only flag on {} station(s)", cleared);
-                        }
-                    } catch (Exception e) {
-                        log.warn("Transfer timeout sweep failed: {}", e.getMessage());
-                    }
-                },
-                SCAN_INTERVAL_SECONDS,
-                SCAN_INTERVAL_SECONDS,
-                TimeUnit.SECONDS);
+                this::sweepStaleTransfers, SCAN_INTERVAL_SECONDS, SCAN_INTERVAL_SECONDS, TimeUnit.SECONDS);
+    }
+
+    /**
+     * Body of the scheduled sweep — extracted so tests can drive it directly without waiting for
+     * the executor's 60-second cadence. Logs and continues on any failure; the safety net is the
+     * 24-hour token expiry on the source side.
+     */
+    void sweepStaleTransfers() {
+        try {
+            int cleared = exportService.expireStaleTransfers(IDLE_TIMEOUT_MINUTES);
+            if (cleared > 0) {
+                log.info("Transfer timeout sweep: cleared read-only flag on {} station(s)", cleared);
+            }
+        } catch (Exception e) {
+            log.warn("Transfer timeout sweep failed: {}", e.getMessage());
+        }
     }
 }

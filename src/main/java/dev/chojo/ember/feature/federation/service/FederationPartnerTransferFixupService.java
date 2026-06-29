@@ -6,6 +6,10 @@
 package dev.chojo.ember.feature.federation.service;
 
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import dev.chojo.ember.feature.federation.entity.FederationPartner;
+import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.station.repository.StationRepository;
+import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +43,20 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 public class FederationPartnerTransferFixupService {
 
     private static final Logger log = LoggerFactory.getLogger(FederationPartnerTransferFixupService.class);
+
+    private final FederationRepository federationRepository;
+    private final FederationHttpClient federationHttpClient;
+    private final StationRepository stationRepository;
+
+    @Inject
+    public FederationPartnerTransferFixupService(
+            FederationRepository federationRepository,
+            FederationHttpClient federationHttpClient,
+            StationRepository stationRepository) {
+        this.federationRepository = federationRepository;
+        this.federationHttpClient = federationHttpClient;
+        this.stationRepository = stationRepository;
+    }
 
     /**
      * Destination-side fixup. Runs once after the moved station's {@code federation_partner}
@@ -90,6 +108,68 @@ public class FederationPartnerTransferFixupService {
     }
 
     /**
+     * Announces the moved station's new instance URL to every remote federation partner so the
+     * partner can flip its own {@code federation_partner.remote_host} entry without waiting for
+     * the next protocol ping. Runs immediately after {@link #rewriteAfterImport(int, String)}
+     * has settled the local rows. Each call is a signed {@code POST /remote/announce} sent under
+     * the moved station's identity; receivers verify the signature, look up the partnership by
+     * the moved station's UID, and update their stored host. Failures are swallowed — the
+     * version-ping fallback will eventually carry the change anyway.
+     */
+    public void announceNewHostToRemotePartners(int stationId, String newInstanceUrl) {
+        String url = newInstanceUrl == null ? null : newInstanceUrl.trim();
+        if (url == null || url.isEmpty()) {
+            log.warn("skip new-host announce for station {}: destination instance URL not configured", stationId);
+            return;
+        }
+        var station = stationRepository.findById(stationId).orElse(null);
+        if (station == null || station.federationPrivateKey() == null) {
+            log.warn(
+                    "skip new-host announce for station {}: no federation private key on the imported station",
+                    stationId);
+            return;
+        }
+        var partners = federationRepository.findPartners(stationId);
+        var payload = new AnnounceBody(url);
+        int sent = 0;
+        int skipped = 0;
+        for (FederationPartner partner : partners) {
+            if (partner.status() != FederationPartner.FederationStatus.ACTIVE
+                    || partner.remoteHost() == null
+                    || partner.remoteHost().isBlank()) {
+                skipped++;
+                continue;
+            }
+            try {
+                boolean ok = federationHttpClient.post(
+                        partner.remoteHost(),
+                        "/remote/announce",
+                        payload,
+                        partner.partnerStationId(),
+                        stationId,
+                        station.federationPrivateKey());
+                if (ok) {
+                    sent++;
+                } else {
+                    log.warn("new-host announce to partner {} at {} failed", partner.id(), partner.remoteHost());
+                }
+            } catch (Exception e) {
+                log.warn(
+                        "new-host announce to partner {} at {} threw: {}",
+                        partner.id(),
+                        partner.remoteHost(),
+                        e.getMessage());
+            }
+        }
+        log.info(
+                "announced new host {} to {} remote partner(s) for station {} (skipped {} local/inactive)",
+                url,
+                sent,
+                stationId,
+                skipped);
+    }
+
+    /**
      * Source-side mirror. Runs once when the destination signals {@code /complete}. Every
      * {@code federation_partner} row on this instance that points at the departed station's
      * UID and was previously intra-instance is flipped to point at the destination URL.
@@ -119,4 +199,6 @@ public class FederationPartnerTransferFixupService {
                 flipped,
                 url);
     }
+
+    private record AnnounceBody(String newHost) {}
 }

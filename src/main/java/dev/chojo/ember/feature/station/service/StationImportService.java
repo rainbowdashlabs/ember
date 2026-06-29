@@ -472,6 +472,7 @@ public class StationImportService {
             copyNewAccountAvatars(session, baseUrl, token, httpClient, p);
             p.completePhase();
             federationFixup.rewriteAfterImport(stationId, baseUrl);
+            federationFixup.announceNewHostToRemotePartners(stationId, api.baseUrl());
             notifySourceOfComplete(baseUrl, token, httpClient);
             p.complete();
             log.info("completed for station '{}' (id={})", p.stationName(), stationId);

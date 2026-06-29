@@ -72,4 +72,42 @@ class WebAuthnRelyingPartyFactoryTest {
                 AttestationConveyancePreference.DIRECT,
                 rp.getAttestationConveyancePreference().orElseThrow());
     }
+
+    @Test
+    void unknownAttestationFallsBackToNone() throws Exception {
+        var rp = WebAuthnRelyingPartyFactory.build(
+                settings("", "", "garbage"),
+                apiWithBaseUrl("https://x.test"),
+                Mockito.mock(WebAuthnCredentialStore.class));
+        assertEquals(
+                AttestationConveyancePreference.NONE,
+                rp.getAttestationConveyancePreference().orElseThrow());
+    }
+
+    @Test
+    void nullAttestationFallsBackToNone() throws Exception {
+        var rp = WebAuthnRelyingPartyFactory.build(
+                settings("", "", null), apiWithBaseUrl("https://x.test"), Mockito.mock(WebAuthnCredentialStore.class));
+        assertEquals(
+                AttestationConveyancePreference.NONE,
+                rp.getAttestationConveyancePreference().orElseThrow());
+    }
+
+    @Test
+    void rpIdFallsBackToLocalhostWhenBaseUrlBlank() throws Exception {
+        var rp = WebAuthnRelyingPartyFactory.build(
+                settings("", "", "none"), apiWithBaseUrl(""), Mockito.mock(WebAuthnCredentialStore.class));
+        assertEquals("localhost", rp.getIdentity().getId());
+    }
+
+    @Test
+    void rpIdFallsBackToLocalhostWhenBaseUrlInvalid() throws Exception {
+        // Docker service names with underscores are RFC 3986 invalid as hosts. The factory
+        // catches IllegalArgumentException from URI parsing and falls back to localhost.
+        var rp = WebAuthnRelyingPartyFactory.build(
+                settings("", "", "none"),
+                apiWithBaseUrl("http://ember_target_backend:8080"),
+                Mockito.mock(WebAuthnCredentialStore.class));
+        assertEquals("localhost", rp.getIdentity().getId());
+    }
 }
