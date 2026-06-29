@@ -205,6 +205,10 @@ export async function updateMailingConfig(data: MailingConfig): Promise<MailingC
     return res.data
 }
 
+export async function clearMailingConfig(): Promise<void> {
+    await client.delete('/admin/config/mailing')
+}
+
 export async function getLegalDocument(type: string, locale?: string): Promise<LegalDocument> {
     const path = locale ? `/admin/legal/${type}/${locale}` : `/admin/legal/${type}`
     const res = await client.get<LegalDocument>(path)

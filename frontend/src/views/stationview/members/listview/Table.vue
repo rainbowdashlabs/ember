@@ -43,6 +43,7 @@ const emit = defineEmits<{
   toggleExpand: [member: StationMember]
   navigateDetail: [member: StationMember, event: Event]
   navigateEdit: [member: StationMember, event: Event]
+  resendSetup: [member: StationMember, event: Event]
   toggleSelect: [memberId: number]
   toggleSelectAll: []
 }>()
@@ -196,6 +197,7 @@ function onRowClick(member: StationMember) {
         @toggle-select="(id) => emit('toggleSelect', id)"
         @navigate-detail="(m, e) => emit('navigateDetail', m, e)"
         @navigate-edit="(m, e) => emit('navigateEdit', m, e)"
+        @resend-setup="(m, e) => emit('resendSetup', m, e)"
     />
     <EmptyState v-if="members.length === 0">{{ t('membersList.empty') }}</EmptyState>
   </template>

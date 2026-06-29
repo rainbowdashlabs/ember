@@ -9,6 +9,10 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import ListViewBody from './listview/ListViewBody.vue'
+import Modal from '@/components/feedback/Modal.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import Alert from '@/components/feedback/Alert.vue'
 import type { StationMember } from '@/api/types'
 import { StationPermission, StationUserType, parseFieldConfig } from '@/api/types'
 import { useMemberData, memberDisplayName } from './listview/useMemberData'
@@ -16,6 +20,7 @@ import { useSavedFilters, emptyTabState, type TabFilterState } from './listview/
 import { useExport } from './listview/useExport'
 import { useMemberFilter } from '@/composables/useMemberFilter'
 import { useSession } from '@/composables/useSession'
+import { stationMembers } from '@/api'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -191,6 +196,33 @@ function navigateToEdit(member: StationMember, event: Event) {
   router.push({ name: 'members-edit', params: { id: member.id } })
 }
 
+const resendTarget = ref<StationMember | null>(null)
+const resending = ref(false)
+const resendError = ref('')
+const resendSuccess = ref('')
+
+function openResendSetup(member: StationMember, event: Event) {
+  event.stopPropagation()
+  resendTarget.value = member
+  resendError.value = ''
+}
+
+async function confirmResendSetup() {
+  if (!resendTarget.value) return
+  resending.value = true
+  resendError.value = ''
+  try {
+    await stationMembers.resendSetupMail(resendTarget.value.id)
+    resendSuccess.value = t('membersList.resendSuccess')
+    resendTarget.value = null
+  } catch (e) {
+    const data = (e as {response?: {data?: {title?: string; message?: string}}})?.response?.data
+    resendError.value = data?.title ?? data?.message ?? t('common.error')
+  } finally {
+    resending.value = false
+  }
+}
+
 onMounted(() => {
   loadSavedFilters()
 })
@@ -244,9 +276,28 @@ onMounted(() => {
       @toggle-expand="toggleExpand"
       @navigate-detail="navigateToDetail"
       @navigate-edit="navigateToEdit"
+      @resend-setup="openResendSetup"
       @toggle-select="toggleSelect"
       @toggle-select-all="toggleSelectAll"
       @export="performExport"
     />
+
+    <Modal v-if="resendTarget" model-value @update:model-value="(v) => { if (!v) resendTarget = null }">
+      <div class="space-y-4">
+        <p>{{ t('membersList.resendConfirm', {name: resendTarget?.name ?? ''}) }}</p>
+        <Alert v-if="resendError" variant="error">{{ resendError }}</Alert>
+        <div class="flex justify-end gap-3">
+          <SecondaryButton :disabled="resending" @click="resendTarget = null">{{ t('common.cancel') }}</SecondaryButton>
+          <PrimaryButton :icon="['fas', 'paper-plane']" :disabled="resending" @click="confirmResendSetup">
+            {{ t('membersList.resendAction') }}
+          </PrimaryButton>
+        </div>
+      </div>
+    </Modal>
+
+    <Alert v-if="resendSuccess" variant="success" class="mt-4">
+      {{ resendSuccess }}
+      <a class="ml-2 underline cursor-pointer" @click="resendSuccess = ''">{{ t('common.close') }}</a>
+    </Alert>
   </ViewContent>
 </template>
