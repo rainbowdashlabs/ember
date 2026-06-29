@@ -16,6 +16,7 @@ import NotificationsPanel from './overviewview/NotificationsPanel.vue'
 import ExchangesPanel from './overviewview/ExchangesPanel.vue'
 import RegistrationsPanel from './overviewview/RegistrationsPanel.vue'
 import UpcomingEventsPanel from './overviewview/UpcomingEventsPanel.vue'
+import SetupChecklist from './overviewview/SetupChecklist.vue'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -27,6 +28,7 @@ const profileIncomplete = computed(() => sessionInfo.value?.profileComplete === 
 <template>
   <ViewContent>
     <div class="space-y-6">
+      <SetupChecklist/>
       <!-- Onboarding banner -->
       <ErrorContainer v-if="profileIncomplete" class="flex items-center justify-between gap-4">
         <div>

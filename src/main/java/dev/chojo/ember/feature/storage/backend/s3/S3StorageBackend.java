@@ -31,6 +31,7 @@ import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -254,7 +255,7 @@ public class S3StorageBackend implements StorageBackend, AutoCloseable {
         try {
             store(
                     probeKey,
-                    new java.io.ByteArrayInputStream(payload),
+                    new ByteArrayInputStream(payload),
                     payload.length,
                     ObjectMetadata.of("application/octet-stream"));
             try (var stream = read(probeKey).orElseThrow()) {

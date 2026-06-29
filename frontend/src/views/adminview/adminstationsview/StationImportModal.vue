@@ -20,7 +20,6 @@ const emit = defineEmits<{
 }>()
 
 const open = defineModel<boolean>({required: true})
-const sourceUrl = defineModel<string>('sourceUrl', {required: true})
 const token = defineModel<string>('token', {required: true})
 
 const {t} = useI18n()
@@ -31,16 +30,12 @@ const {t} = useI18n()
     <div class="space-y-4">
       <p class="text-sm text-(--text-muted)">{{ t('adminStations.importHint') }}</p>
       <div class="space-y-1">
-        <FieldLabel>{{ t('adminStations.importSourceUrl') }}</FieldLabel>
-        <TextInput v-model="sourceUrl" :placeholder="t('adminStations.importSourceUrlPlaceholder')"/>
-      </div>
-      <div class="space-y-1">
         <FieldLabel>{{ t('adminStations.importToken') }}</FieldLabel>
         <TextInput v-model="token" :placeholder="t('adminStations.importTokenPlaceholder')"/>
       </div>
       <div class="flex justify-end gap-3">
         <SecondaryButton @click="open = false">{{ t('adminStations.cancel') }}</SecondaryButton>
-        <PrimaryButton :disabled="importing || !sourceUrl || !token" @click="emit('start')">
+        <PrimaryButton :disabled="importing || !token" @click="emit('start')">
           {{ importing ? t('adminStations.importStarting') : t('adminStations.importStart') }}
         </PrimaryButton>
       </div>

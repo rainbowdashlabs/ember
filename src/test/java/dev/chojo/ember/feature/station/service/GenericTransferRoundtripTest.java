@@ -5,7 +5,9 @@
  */
 package dev.chojo.ember.feature.station.service;
 
+import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
@@ -38,15 +40,20 @@ class GenericTransferRoundtripTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        exportService = new StationExportService(stationRepo);
+        exportService = new StationExportService(stationRepo, new Api());
         importService = new StationImportService(
                 stationRepo,
                 accountRepo,
                 exportService,
-                new dev.chojo.ember.conf.file.elements.Api(),
+                new Api(),
                 null,
                 null,
-                null);
+                null,
+                null,
+                null,
+                null,
+                new FederationPartnerTransferFixupService(
+                        new dev.chojo.ember.feature.federation.repository.FederationRepository(), null, stationRepo));
     }
 
     @Test
@@ -140,6 +147,69 @@ class GenericTransferRoundtripTest extends RepositoryTestBase {
         // The first name on the existing account must also be untouched.
         var targetAccount = accountRepo.findByEmail(email).orElseThrow();
         assertEquals("Bea", targetAccount.firstName());
+    }
+
+    @Test
+    void blankEmailApplicantTransfersWithMemberAndWaitlistEntry() {
+        // Use the same first name as another already-imported account (Tim Berger lives on the
+        // shared test database from prior test data). The importer must still resolve the right
+        // account because the FK-flattened lookup now matches by UID first — first-name / last-
+        // name fallback was the production bug that mis-linked to the wrong same-named account
+        // and lost the row to the UNIQUE(station_id, account_id) constraint.
+        var sourceStation = stationRepo.create("Blank-Email Source");
+        Account blankAccount = accountRepo.create(null, "Tim", "Bauer", true);
+        var sourceMember = stationMemberRepo.create(sourceStation.id(), blankAccount.id());
+
+        Map<String, Object> bundle = collectBundle(sourceStation.id());
+
+        stationRepo.delete(sourceStation.id());
+        accountRepo.delete(blankAccount.id());
+
+        var result = importService.importStation(bundle);
+
+        var targetMembers = stationMemberRepo.findByStation(result.stationId());
+        assertEquals(1, targetMembers.size(), "blank-email source member must arrive on destination");
+        var targetMember = targetMembers.getFirst();
+        assertTrue(targetMember.accountId() > 0, "destination station_member must point at a destination account");
+        var targetAccount =
+                accountRepo.findById(targetMember.accountId()).orElseThrow(() -> new AssertionError("account missing"));
+        assertNull(targetAccount.email(), "blank email round-trips as NULL, not empty string");
+        assertEquals("Tim", targetAccount.firstName());
+        assertEquals(
+                blankAccount.uid(),
+                targetAccount.uid(),
+                "source UID preserved on the destination account so the FK-flattened lookup resolves it uniquely");
+        assertNotEquals(
+                sourceMember.id(),
+                targetMember.id(),
+                "destination member must have a remapped integer id (uid stays stable)");
+        assertEquals(
+                sourceMember.uid(),
+                targetMember.uid(),
+                "station_member uid must round-trip across transfer so author_member_uid columns on comments resolve");
+    }
+
+    @Test
+    void multipleBlankEmailApplicantsTransferWithoutUniqueConstraintCollision() {
+        var sourceStation = stationRepo.create("Multi-Blank Source");
+        Account first = accountRepo.create(null, "Tim", "Bauer", true);
+        Account second = accountRepo.create(null, "Anna", "Klein", true);
+        stationMemberRepo.create(sourceStation.id(), first.id());
+        stationMemberRepo.create(sourceStation.id(), second.id());
+
+        Map<String, Object> bundle = collectBundle(sourceStation.id());
+
+        stationRepo.delete(sourceStation.id());
+        accountRepo.delete(first.id());
+        accountRepo.delete(second.id());
+
+        var result = importService.importStation(bundle);
+
+        var targetMembers = stationMemberRepo.findByStation(result.stationId());
+        assertEquals(
+                2,
+                targetMembers.size(),
+                "both blank-email applicants must arrive — null emails do not collide on the partial unique index");
     }
 
     /** Collects every wire entry produced by the exporter into a single Map. */

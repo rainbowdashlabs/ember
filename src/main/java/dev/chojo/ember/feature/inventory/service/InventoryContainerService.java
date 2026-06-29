@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -76,10 +77,7 @@ public class InventoryContainerService {
 
     private static String detailJson(Map<String, ?> fields) {
         try {
-            LinkedHashMap<String, Object> normalized = new LinkedHashMap<>();
-            for (Map.Entry<String, ?> entry : fields.entrySet()) {
-                normalized.put(entry.getKey(), entry.getValue());
-            }
+            LinkedHashMap<String, Object> normalized = new LinkedHashMap<>(fields);
             return DETAIL_MAPPER.writeValueAsString(normalized);
         } catch (Exception e) {
             throw new IllegalStateException("Failed to serialize container history details", e);
@@ -332,7 +330,7 @@ public class InventoryContainerService {
             containerRepository.appendHistory(
                     id, existing.stationId(), ContainerEventKind.RENAMED, actorId, detailJson(details));
         }
-        boolean parentChanged = !java.util.Objects.equals(existing.parentId(), parentId);
+        boolean parentChanged = !Objects.equals(existing.parentId(), parentId);
         if (parentChanged) {
             LinkedHashMap<String, Object> details = new LinkedHashMap<>();
             details.put("from", existing.parentId());

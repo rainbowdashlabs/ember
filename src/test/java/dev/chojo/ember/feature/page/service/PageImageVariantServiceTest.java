@@ -61,21 +61,7 @@ class PageImageVariantServiceTest {
     }
 
     @Test
-    void generatesResizedVariantsForLargePng() throws IOException {
-        byte[] png = pngBytes(800, 600);
-        String hash = PageFileStorageService.hash(png);
-        storage.store(STATION_ID, hash, png, "image/png");
-
-        variants.generateVariants(STATION_ID, hash, png, "image/png");
-
-        Path dir = storage.hashDir(STATION_ID, hash);
-        assertTrue(Files.exists(dir.resolve("w128.png")));
-        assertTrue(Files.exists(dir.resolve("w256.png")));
-        assertTrue(Files.exists(dir.resolve("w512.png")));
-    }
-
-    @Test
-    void generatesWebpVariantsWhenCwebpAvailable() throws IOException {
+    void generatesWebpVariantsForLargePng() throws IOException {
         Assumptions.assumeTrue(WebpEncoder.isAvailable(), "cwebp not available — skipping WebP assertions");
         byte[] png = pngBytes(800, 600);
         String hash = PageFileStorageService.hash(png);
@@ -87,11 +73,27 @@ class PageImageVariantServiceTest {
         assertTrue(Files.exists(dir.resolve("w128.webp")));
         assertTrue(Files.exists(dir.resolve("w256.webp")));
         assertTrue(Files.exists(dir.resolve("w512.webp")));
-        assertTrue(Files.exists(dir.resolve("orig.webp")));
     }
 
     @Test
-    void skipsVariantsLargerThanSource() throws IOException {
+    void doesNotEmitOriginalFormatResizedVariants() throws IOException {
+        Assumptions.assumeTrue(WebpEncoder.isAvailable(), "cwebp not available — skipping check");
+        byte[] png = pngBytes(800, 600);
+        String hash = PageFileStorageService.hash(png);
+        storage.store(STATION_ID, hash, png, "image/png");
+
+        variants.generateVariants(STATION_ID, hash, png, "image/png");
+
+        Path dir = storage.hashDir(STATION_ID, hash);
+        assertFalse(Files.exists(dir.resolve("w128.png")));
+        assertFalse(Files.exists(dir.resolve("w256.png")));
+        assertFalse(Files.exists(dir.resolve("w512.png")));
+        assertFalse(Files.exists(dir.resolve("orig.webp")));
+    }
+
+    @Test
+    void skipsWidthsLargerOrEqualToSource() throws IOException {
+        Assumptions.assumeTrue(WebpEncoder.isAvailable(), "cwebp not available — skipping width-cap check");
         byte[] png = pngBytes(200, 100);
         String hash = PageFileStorageService.hash(png);
         storage.store(STATION_ID, hash, png, "image/png");
@@ -99,9 +101,9 @@ class PageImageVariantServiceTest {
         variants.generateVariants(STATION_ID, hash, png, "image/png");
 
         Path dir = storage.hashDir(STATION_ID, hash);
-        assertTrue(Files.exists(dir.resolve("w128.png")));
-        assertFalse(Files.exists(dir.resolve("w256.png")));
-        assertFalse(Files.exists(dir.resolve("w512.png")));
+        assertTrue(Files.exists(dir.resolve("w128.webp")));
+        assertFalse(Files.exists(dir.resolve("w256.webp")));
+        assertFalse(Files.exists(dir.resolve("w512.webp")));
     }
 
     @Test
@@ -166,20 +168,6 @@ class PageImageVariantServiceTest {
     }
 
     @Test
-    void readBestPicksSmallestVariantAboveRequestedWidth() throws IOException {
-        byte[] png = pngBytes(800, 600);
-        String hash = PageFileStorageService.hash(png);
-        storage.store(STATION_ID, hash, png, "image/png");
-        variants.generateVariants(STATION_ID, hash, png, "image/png");
-
-        var result = variants.readBest(STATION_ID, hash, 200, "*/*");
-        assertTrue(result.isPresent());
-        assertEquals("image/png", result.orElseThrow().contentType());
-        long size256 = Files.size(storage.hashDir(STATION_ID, hash).resolve("w256.png"));
-        assertEquals(size256, result.orElseThrow().data().length);
-    }
-
-    @Test
     void readBestPrefersWebpWhenAcceptIncludesIt() throws IOException {
         Assumptions.assumeTrue(WebpEncoder.isAvailable(), "cwebp not available — skipping WebP-preferred path");
         byte[] png = pngBytes(800, 600);
@@ -193,23 +181,22 @@ class PageImageVariantServiceTest {
     }
 
     @Test
-    void readBestFallsBackToOriginalFormatWhenWebpUnavailable() throws IOException {
+    void readBestFallsBackToOriginalWhenClientRejectsWebp() throws IOException {
+        Assumptions.assumeTrue(WebpEncoder.isAvailable(), "cwebp not available — skipping fallback check");
         byte[] png = pngBytes(800, 600);
         String hash = PageFileStorageService.hash(png);
         storage.store(STATION_ID, hash, png, "image/png");
         variants.generateVariants(STATION_ID, hash, png, "image/png");
 
-        Path webpAt256 = storage.hashDir(STATION_ID, hash).resolve("w256.webp");
-        Files.deleteIfExists(webpAt256);
-        Files.deleteIfExists(storage.hashDir(STATION_ID, hash).resolve("orig.webp"));
-
-        var result = variants.readBest(STATION_ID, hash, 200, "image/webp,*/*");
+        var result = variants.readBest(STATION_ID, hash, 200, "image/png,*/*;q=0.8");
         assertTrue(result.isPresent());
         assertEquals("image/png", result.orElseThrow().contentType());
+        assertEquals(png.length, result.orElseThrow().data().length);
     }
 
     @Test
     void readBestSkipsWebpWhenWebpDisabledInConfig() throws IOException {
+        Assumptions.assumeTrue(WebpEncoder.isAvailable(), "cwebp not available — skipping config check");
         byte[] png = pngBytes(800, 600);
         String hash = PageFileStorageService.hash(png);
         storage.store(STATION_ID, hash, png, "image/png");
@@ -240,7 +227,8 @@ class PageImageVariantServiceTest {
     }
 
     @Test
-    void generatesResizedJpegVariants() throws IOException {
+    void generatesWebpVariantsForJpegSource() throws IOException {
+        Assumptions.assumeTrue(WebpEncoder.isAvailable(), "cwebp not available — skipping JPEG-source check");
         byte[] jpg = jpegBytes(800, 600);
         String hash = PageFileStorageService.hash(jpg);
         storage.store(STATION_ID, hash, jpg, "image/jpeg");
@@ -248,12 +236,14 @@ class PageImageVariantServiceTest {
         variants.generateVariants(STATION_ID, hash, jpg, "image/jpeg");
 
         Path dir = storage.hashDir(STATION_ID, hash);
-        assertTrue(Files.exists(dir.resolve("w128.jpg")));
-        assertTrue(Files.exists(dir.resolve("w256.jpg")));
+        assertTrue(Files.exists(dir.resolve("w128.webp")));
+        assertTrue(Files.exists(dir.resolve("w256.webp")));
+        assertFalse(Files.exists(dir.resolve("w128.jpg")));
+        assertFalse(Files.exists(dir.resolve("w256.jpg")));
     }
 
     @Test
-    void webpSourceDoesNotEmitDoubleEncodedWebp() throws IOException {
+    void webpSourceLeavesOriginalAloneAndProducesNoCopies() throws IOException {
         Assumptions.assumeTrue(WebpEncoder.isAvailable(), "cwebp not available — skipping webp-source test");
         byte[] png = pngBytes(800, 600);
         BufferedImage decoded = ImageIO.read(new ByteArrayInputStream(png));

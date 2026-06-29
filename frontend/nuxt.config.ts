@@ -64,6 +64,12 @@ export default defineNuxtConfig({
       ],
     },
     server: {
+      // Accept requests from any Host header. Vite 8 otherwise restricts the dev server to
+      // localhost and silently holds the socket open without responding when a request arrives
+      // with a Host like `frontend:3000` — the compose service name another container in the
+      // dev stack uses to reach this Nuxt server (cross-instance station transfer in the
+      // `transfer` compose profile).
+      allowedHosts: true,
       proxy: {
         '/sitemap.xml': process.env.NUXT_BACKEND_URL || 'http://localhost:8080',
         '/sitemap-station-': process.env.NUXT_BACKEND_URL || 'http://localhost:8080',

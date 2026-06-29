@@ -10,7 +10,9 @@ import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.ForeignKey;
 import dev.chojo.ember.tracking.Status;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -50,7 +52,13 @@ public final class TableOrder {
         }
 
         Map<String, Set<String>> dependsOn = new TreeMap<>();
-        for (String name : tracked) dependsOn.put(name, new HashSet<>());
+        // softEdges[A] contains every B for which the A→B FK is SET NULL (so the edge can be
+        // dropped if it participates in a true cycle).
+        Map<String, Set<String>> softEdges = new TreeMap<>();
+        for (String name : tracked) {
+            dependsOn.put(name, new HashSet<>());
+            softEdges.put(name, new HashSet<>());
+        }
 
         for (String name : tracked) {
             var entry = tracking.tables().get(name);
@@ -58,11 +66,14 @@ public final class TableOrder {
             for (ForeignKey fk : entry.foreignKeys()) {
                 String ref = fk.refTable();
                 if (ref == null || ref.equals(name)) continue; // skip self-FK
-                // SET NULL FKs are soft dependencies — the importer can leave the column null
-                // and patch it in a second pass. Skipping them breaks dependency cycles like
-                // station.owner_member_id ↔ station_member.station_id.
-                if ("SET NULL".equalsIgnoreCase(fk.onDelete())) continue;
-                if (tracked.contains(ref)) dependsOn.get(name).add(ref);
+                if (!tracked.contains(ref)) continue;
+                // All FKs participate in the dep graph so the importer resolves remaps in idMap on
+                // the first pass. SET NULL FKs are noted as soft so we can drop them only if they
+                // are part of an SCC.
+                dependsOn.get(name).add(ref);
+                if ("SET NULL".equalsIgnoreCase(fk.onDelete())) {
+                    softEdges.get(name).add(ref);
+                }
             }
             // customScope is an EXPORT-side concept (it filters which rows belong to a station via
             // a detour through another table). It is NOT an INSERT-order dependency — the referenced
@@ -70,7 +81,51 @@ public final class TableOrder {
             // such as account ←customScope→ station_member.
         }
 
-        return kahnSort(dependsOn);
+        // For every soft (SET NULL) edge A → B, drop it if there is a path B ⇒ A in the full
+        // dep graph — that proves the edge participates in a cycle and is therefore the cheapest
+        // place to break it. Non-cyclic SET NULL edges stay in place so the natural dep order is
+        // preserved (e.g. inventory_item.size_id keeps inventory_size sorted earlier).
+        for (var entry : new TreeMap<>(softEdges).entrySet()) {
+            String from = entry.getKey();
+            for (String to : new TreeSet<>(entry.getValue())) {
+                if (canReach(to, from, dependsOn)) {
+                    dependsOn.get(from).remove(to);
+                }
+            }
+        }
+
+        List<String> ordered = kahnSort(dependsOn);
+        // Anything still missing (truly unbreakable cycle — should not exist on a healthy schema)
+        // gets appended in alphabetical order so the output remains stable.
+        if (ordered.size() < tracked.size()) {
+            var combined = new ArrayList<>(ordered);
+            for (String name : new TreeSet<>(tracked)) {
+                if (!combined.contains(name)) combined.add(name);
+            }
+            return List.copyOf(combined);
+        }
+        return ordered;
+    }
+
+    /**
+     * Whether {@code start} can reach {@code goal} by following the directed edges in
+     * {@code graph}. Used to detect SCCs containing a specific edge: if {@code start} can reach
+     * the predecessor of an edge that points back to it, the edge participates in a cycle.
+     */
+    private static boolean canReach(String start, String goal, Map<String, Set<String>> graph) {
+        if (start.equals(goal)) return true;
+        Set<String> visited = new HashSet<>();
+        Deque<String> stack = new ArrayDeque<>();
+        stack.push(start);
+        while (!stack.isEmpty()) {
+            String node = stack.pop();
+            if (!visited.add(node)) continue;
+            for (String next : graph.getOrDefault(node, Set.of())) {
+                if (next.equals(goal)) return true;
+                if (!visited.contains(next)) stack.push(next);
+            }
+        }
+        return false;
     }
 
     private static List<String> kahnSort(Map<String, Set<String>> dependsOn) {

@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationShare;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.service.FederationDisplayNames;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessRestriction;
 import dev.chojo.ember.feature.knowledgebase.entity.KbComment;
@@ -39,7 +40,6 @@ import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberService;
-import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.PandocConverter;
 import dev.chojo.ember.util.SafeContentDisposition;
@@ -1068,10 +1068,9 @@ public class KnowledgeBaseRoutes implements Routes {
         var items = service.browseSharedKb(session.stationId());
         ctx.json(items.stream()
                 .map(i -> {
-                    String name = stationRepository
-                            .findById(i.sourceStationId())
-                            .map(Station::name)
-                            .orElse("Unknown");
+                    var partner =
+                            federationRepository.findPartnerById(i.partnerId()).orElse(null);
+                    String name = FederationDisplayNames.partnerName(stationRepository, partner, "Unknown");
                     return new FederatedKbItem(
                             i.file().id(),
                             i.file().name(),

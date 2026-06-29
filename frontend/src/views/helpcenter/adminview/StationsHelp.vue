@@ -74,10 +74,6 @@ const {t} = useI18n()
       <NeutralContainer class="mt-4 space-y-4">
         <p class="text-sm text-(--text-muted)">{{ t('adminStations.importHint') }}</p>
         <div class="space-y-1">
-          <FieldLabel>{{ t('adminStations.importSourceUrl') }}</FieldLabel>
-          <TextInput :model-value="''" :placeholder="t('adminStations.importSourceUrlPlaceholder')" />
-        </div>
-        <div class="space-y-1">
           <FieldLabel>{{ t('adminStations.importToken') }}</FieldLabel>
           <TextInput :model-value="''" :placeholder="t('adminStations.importTokenPlaceholder')" />
         </div>

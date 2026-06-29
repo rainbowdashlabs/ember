@@ -51,14 +51,28 @@ public final class GenericTableImporter {
     }
 
     /**
-     * Looks up an id in {@code table} where {@code column = value}. Returns null when no row matches.
+     * Looks up an id in {@code table} where {@code column = value}. Returns null when no row
+     * matches. Adds a {@code ::uuid} cast to the bound value whenever the target column type is
+     * declared as {@code uuid} in the tracking config — Postgres rejects a {@code uuid = text}
+     * comparison without the cast.
      */
-    private static Integer resolveByColumn(String table, String column, Object value) {
-        return query("SELECT id FROM " + table + " WHERE " + column + " = :v LIMIT 1;")
+    private Integer resolveByColumn(String table, String column, Object value) {
+        String columnType = lookupColumnType(table, column);
+        String cast = "uuid".equalsIgnoreCase(columnType) ? "::uuid" : "";
+        return query("SELECT id FROM " + table + " WHERE " + column + " = :v" + cast + " LIMIT 1;")
                 .single(call().bind("v", value == null ? null : value.toString()))
                 .map(row -> row.getInt("id"))
                 .first()
                 .orElse(null);
+    }
+
+    private String lookupColumnType(String tableName, String columnName) {
+        var t = tracking.tables() == null ? null : tracking.tables().get(tableName);
+        if (t == null || t.columns() == null) return null;
+        for (ColumnEntry col : t.columns()) {
+            if (col.name().equals(columnName)) return col.type();
+        }
+        return null;
     }
 
     private static ForeignKey findFk(TableEntry table, String column) {
@@ -115,7 +129,7 @@ public final class GenericTableImporter {
         }
         var sql = new StringBuilder("INSERT INTO ").append(tableName);
         sql.append('(').append(cols).append(") VALUES(").append(vals).append(')');
-        if (!hasIdPk) sql.append(" ON CONFLICT DO NOTHING");
+        sql.append(" ON CONFLICT DO NOTHING");
         if (hasIdPk) sql.append(" RETURNING id");
         sql.append(';');
         return sql.toString();
@@ -163,9 +177,26 @@ public final class GenericTableImporter {
                 Integer i = toInteger(val);
                 yield i == null ? c.bind(name, (Integer) null) : c.bind(name, i);
             }
+            case "numeric", "float4", "float8" -> {
+                Double d = toDouble(val);
+                yield d == null ? c.bind(name, (Double) null) : c.bind(name, d);
+            }
             case "bool" -> c.bind(name, asBool(val));
             default -> c.bind(name, val.toString());
         };
+    }
+
+    private static Double toDouble(Object val) {
+        if (val == null) return null;
+        if (val instanceof Number n) return n.doubleValue();
+        if (val instanceof String s && !s.isBlank()) {
+            try {
+                return Double.parseDouble(s);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
     }
 
     private static Instant asInstant(Object val) {

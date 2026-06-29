@@ -13,9 +13,12 @@ import com.yubico.webauthn.RegistrationResult;
 import com.yubico.webauthn.RelyingParty;
 import com.yubico.webauthn.StartAssertionOptions;
 import com.yubico.webauthn.StartRegistrationOptions;
+import com.yubico.webauthn.data.AuthenticatorAssertionResponse;
 import com.yubico.webauthn.data.AuthenticatorAttestationResponse;
 import com.yubico.webauthn.data.AuthenticatorSelectionCriteria;
+import com.yubico.webauthn.data.AuthenticatorTransport;
 import com.yubico.webauthn.data.ByteArray;
+import com.yubico.webauthn.data.ClientAssertionExtensionOutputs;
 import com.yubico.webauthn.data.ClientRegistrationExtensionOutputs;
 import com.yubico.webauthn.data.PublicKeyCredential;
 import com.yubico.webauthn.data.PublicKeyCredentialCreationOptions;
@@ -39,6 +42,7 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
@@ -103,7 +107,7 @@ public class WebAuthnService {
         if (aaguid == null) return null;
         byte[] bytes = aaguid.getBytes();
         if (bytes.length != 16) return null;
-        var buf = java.nio.ByteBuffer.wrap(bytes);
+        var buf = ByteBuffer.wrap(bytes);
         long msb = buf.getLong();
         long lsb = buf.getLong();
         if (msb == 0L && lsb == 0L) return null;
@@ -197,7 +201,7 @@ public class WebAuthnService {
         TwoFactorFactor factor = repository.createFactor(accountId, TwoFactorKind.WEBAUTHN, factorLabel);
         UUID aaguid = aaguidToUuid(result.getAaguid());
         List<String> transports = response.getResponse().getTransports().stream()
-                .map(com.yubico.webauthn.data.AuthenticatorTransport::getId)
+                .map(AuthenticatorTransport::getId)
                 .toList();
         String attestationFormat = result.getAttestationType() == null
                 ? null
@@ -255,10 +259,7 @@ public class WebAuthnService {
             return false;
         }
 
-        PublicKeyCredential<
-                        com.yubico.webauthn.data.AuthenticatorAssertionResponse,
-                        com.yubico.webauthn.data.ClientAssertionExtensionOutputs>
-                response;
+        PublicKeyCredential<AuthenticatorAssertionResponse, ClientAssertionExtensionOutputs> response;
         try {
             response = PublicKeyCredential.parseAssertionResponseJson(credentialJson);
         } catch (Exception e) {

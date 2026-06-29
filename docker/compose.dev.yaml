@@ -1,3 +1,11 @@
+# Rename the implicit default network to a stable, project-independent name so
+# that re-running compose from a different working directory (or with -p)
+# doesn't orphan containers against the previous network ID. The "network not
+# found" failure that arises after a `down -v` + rename was caused by that.
+networks:
+  default:
+    name: ember_dev
+
 services:
   postgres:
     image: postgres:17-alpine
@@ -13,6 +21,7 @@ services:
     profiles:
       - storage
       - full
+      - transfer
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ember"]
       interval: 5s
@@ -125,6 +134,12 @@ services:
       DB_DATABASE: ember
       DB_SCHEMA: ember_schema
       DEMO_DEV: "true"
+      # Embedded in cross-instance transfer tokens AND used in email links. The compose
+      # service name `frontend` resolves to the source's Nuxt container on the shared
+      # docker network, so a target container can fetch the source via this URL. Browsers
+      # on the host cannot resolve `frontend` — dev-mode email links are accordingly
+      # broken in the browser (dev mode does not deliver real mail anyway).
+      API_BASEURL: http://frontend:3000
     volumes:
       - ..:/home/gradle/project
       - ember-dev-gradle-cache:/home/gradle/.gradle
@@ -140,6 +155,7 @@ services:
         condition: service_healthy
     profiles:
       - full
+      - transfer
 
   # Dev frontend: Nuxt dev server with HMR. Bind-mounts the source, isolates
   # node_modules in a named volume so the host's install does not shadow it.
@@ -162,6 +178,102 @@ services:
       - ember
     profiles:
       - full
+      - transfer
+
+  # ----- Target stack for cross-instance station transfer testing -----
+  #
+  # The "transfer" profile spins up a second, isolated Ember stack (its own
+  # postgres + backend + frontend) alongside the main one so the cross-instance
+  # transfer flow can be exercised end to end. Both backends share the default
+  # compose network, so the target's import flow can reach the source over
+  # container DNS via the `frontend` service name (which Nuxt SSR proxies to
+  # the source backend at `ember:8080`).
+  #
+  # Run with:
+  #   docker compose -f docker/compose.dev.yaml --profile transfer up
+  #
+  # Source (existing) stack:
+  #   UI  http://localhost:3000   API  http://localhost:8888
+  # Target (new) stack:
+  #   UI  http://localhost:3001   API  http://localhost:8889
+  #
+  # The source URL is embedded in the transfer token (from each backend's
+  # API_BASE_URL, set above to the compose service name), so the operator just
+  # pastes the token in the target's admin import screen — no separate URL
+  # field. The destination resolves the embedded URL on the docker network.
+  #
+  # Wipe both stacks (including volumes) with:
+  #   docker compose -f docker/compose.dev.yaml --profile transfer down -v
+
+  ember_target_db:
+    image: postgres:17-alpine
+    container_name: ember_dev_target_db
+    environment:
+      POSTGRES_DB: ember
+      POSTGRES_USER: ember
+      POSTGRES_PASSWORD: ember
+    volumes:
+      - ember-dev-target-data:/var/lib/postgresql/data
+    ports:
+      - 5433:5432
+    profiles:
+      - transfer
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ember"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  ember_target:
+    container_name: ember_dev_target
+    build:
+      context: ..
+      dockerfile: docker/backend.dev.Dockerfile
+    ports:
+      - "8889:8080"
+    environment:
+      DB_HOST: ember_target_db
+      DB_PORT: "5432"
+      DB_USER: ember
+      DB_PASSWORD: ember
+      DB_DATABASE: ember
+      DB_SCHEMA: ember_schema
+      DEMO_DEV: "true"
+      # Same reasoning as the source backend: compose service name so the OTHER
+      # stack can fetch this one over the shared docker network. Hyphenated (not
+      # `ember_target_frontend`) because Java's URI parser returns null host for
+      # names with underscores, which downstream consumers like the WebAuthn
+      # relying-party derive rpId from.
+      API_BASEURL: http://ember-target-frontend:3000
+    volumes:
+      - ..:/home/gradle/project
+      - ember-dev-target-gradle-cache:/home/gradle/.gradle
+      - ember-dev-target-gradle-build:/home/gradle/project/build
+      - ember-dev-target-project-gradle:/home/gradle/project/.gradle
+      - ./config:/home/gradle/project/config
+      - ember-dev-target-app-data:/home/gradle/project/data
+    depends_on:
+      ember_target_db:
+        condition: service_healthy
+    profiles:
+      - transfer
+
+  ember-target-frontend:
+    container_name: ember_dev_target_frontend
+    build:
+      context: ..
+      dockerfile: docker/frontend.dev.Dockerfile
+    ports:
+      - "3001:3000"
+    environment:
+      NUXT_BACKEND_URL: http://ember_target:8080
+    volumes:
+      - ../frontend:/build
+      - ember-dev-target-node-modules:/build/node_modules
+    depends_on:
+      - ember_target
+    profiles:
+      - transfer
 
 volumes:
   ember-dev-data:
@@ -172,3 +284,9 @@ volumes:
   ember-dev-gradle-build:
   ember-dev-project-gradle:
   ember-dev-node-modules:
+  ember-dev-target-data:
+  ember-dev-target-app-data:
+  ember-dev-target-gradle-cache:
+  ember-dev-target-gradle-build:
+  ember-dev-target-project-gradle:
+  ember-dev-target-node-modules:

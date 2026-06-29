@@ -93,8 +93,34 @@ public class ApiServer {
     public static final String ATTR_SESSION = "session";
     private static final Logger log = LoggerFactory.getLogger(ApiServer.class);
     private static final String API_PREFIX = "/api/v1";
-    private static final Set<String> DEMO_BLOCKED_PATHS =
-            Set.of("/api/v1/auth/change-password", "/api/v1/auth/set-password");
+    // Note on the transfer endpoints: /station/transfer/create-token and
+    // /station/transfer/abort are NOT blocked here on purpose. They are mandatory for the
+    // cross-instance transfer test harness (the compose.dev.yaml "transfer" profile), and the
+    // import-side counterpart /admin/transfer/import is already gated by
+    // InstancePermission.ADMINISTRATOR which demo accounts do not hold — so the source can
+    // mint a token but a stranger on the demo cannot pull a station off of it.
+    private static final Set<String> DEMO_BLOCKED_PATHS = Set.of(
+            "/api/v1/auth/change-password",
+            "/api/v1/auth/set-password",
+            "/api/v1/session/account",
+            "/api/v1/session/gdpr-export",
+            "/api/v1/session/avatar",
+            "/api/v1/station/manage/mail/test",
+            "/api/v1/station/manage/request-delete",
+            "/api/v1/station/manage/import",
+            "/api/v1/station/manage/logo",
+            "/api/v1/station-applications",
+            "/api/v1/pages/files",
+            "/api/v1/kb/files/upload",
+            "/api/v1/kb/files/import-document",
+            "/api/v1/station/storage/backend/probe",
+            "/api/v1/station/storage/backend/probe-config",
+            "/api/v1/station/storage/backend/apply",
+            "/api/v1/admin/storage/backend/probe",
+            "/api/v1/admin/storage/backend/probe-config",
+            "/api/v1/admin/storage/backend/apply",
+            "/api/v1/ai/generate",
+            "/api/v1/ai/generate-questions");
 
     private final Set<Routes> routes;
     private final Api apiConfig;
@@ -273,11 +299,19 @@ public class ApiServer {
             config.registerPlugin(new OpenApiPlugin(this::configureOpenApi));
             config.registerPlugin(new SwaggerPlugin(this::configureSwagger));
 
-            config.bundledPlugins.enableCors(cors -> {
+            if (demoConfig.dev()) {
+                // config.bundledPlugins.enableDevLogging();
+            }
+
+            config.bundledPlugins.enableCors(cors -> cors.addRule(rule -> {
                 for (String origin : apiConfig.allowedOrigins()) {
-                    cors.addRule(rule -> rule.allowHost(origin));
+                    rule.allowHost(origin);
                 }
-            });
+                if (demoConfig.dev()) {
+                    rule.allowHost("http://localhost:3000");
+                    rule.allowHost("http://localhost:3001");
+                }
+            }));
 
             config.routes.before(ctx -> {
                 if (ctx.method() == HandlerType.OPTIONS) return;
@@ -371,6 +405,15 @@ public class ApiServer {
                 pageHitRecorder.record(pageId, country, referer, isBot);
             });
 
+            // demoConfig.enabled() vs demoConfig.dev():
+            //   - enabled(): public demo mode — the instance is reset on an idle timer and
+            //     handed to anonymous visitors. handleDemoGuard runs to block destructive
+            //     and externally-effecting endpoints (account deletion, external probes,
+            //     real-mail tests, file uploads, AI calls, …). See DEMO_BLOCKED_PATHS.
+            //   - dev(): local-development flag. Enables /api/v1/dev/errors, relaxes secure-
+            //     cookie requirements over plain HTTP, and skips the eager admin bootstrap.
+            //     NO endpoints are blocked in dev mode — the demo guard is intentionally
+            //     not attached so transfer, uploads, probes and everything else are usable.
             if (demoConfig.enabled()) {
                 config.routes.before(this::handleDemoGuard);
             }
@@ -410,34 +453,70 @@ public class ApiServer {
     }
 
     /**
-     * Before-handler that blocks destructive operations in demo mode,
-     * such as password changes, station creation/deletion, and role modifications.
+     * Before-handler that blocks destructive or externally-effecting operations in demo mode.
+     *
+     * <p>Three layers of protection are layered here:
+     * <ol>
+     *   <li>Exact-match path blocks via {@link #DEMO_BLOCKED_PATHS} — password changes, account
+     *       deletion, GDPR export, mail-relay test (sends real SMTP), station-deletion request,
+     *       station data import, public station-application submission, page-editor and
+     *       knowledge-base file uploads.</li>
+     *   <li>Method + prefix blocks for the admin-station create/delete and role-change PUTs.</li>
+     *   <li>Method + regex blocks for parameterised paths — public invite acceptance (avoids a
+     *       leaked token turning the demo into a real account), public waitlist registration
+     *       (spam), parameterised page/knowledge-base file uploads (disk pressure), and the
+     *       WebAuthn enrolment routes (would lock a demo session out behind a key that cannot
+     *       be reproduced after the demo resets).</li>
+     * </ol>
      */
     private void handleDemoGuard(@NotNull Context ctx) {
         String path = ctx.path();
         var method = ctx.method();
 
-        // Block password changes
         if (DEMO_BLOCKED_PATHS.contains(path)) {
             throw new BadRequestResponse("This action is disabled in demo mode");
         }
 
-        // Block station create/delete (but allow GET and PUT for manage)
         if (path.startsWith("/api/v1/admin/stations") && (method == HandlerType.POST || method == HandlerType.DELETE)) {
             throw new BadRequestResponse("Station management is disabled in demo mode");
         }
 
-        // Block role changes on members and groups
         if (method == HandlerType.PUT
                 && (path.matches("/api/v1/station-members/\\d+/roles") || path.matches("/api/v1/groups/\\d+/roles"))) {
             throw new BadRequestResponse("Role changes are disabled in demo mode");
         }
 
-        // Demo accounts have no real authenticator hardware to enroll. Block WebAuthn
-        // registration endpoints so the UI can't lock a demo session out behind a key
-        // it can never produce again.
         if (path.startsWith("/api/v1/account/2fa/webauthn/register/")) {
             throw new BadRequestResponse("Security-key setup is disabled in demo mode");
+        }
+
+        if (method == HandlerType.POST && path.matches("/api/v1/public/station-invite/[^/]+/accept")) {
+            throw new BadRequestResponse("Accepting invites is disabled in demo mode");
+        }
+
+        if (method == HandlerType.POST && path.matches("/api/v1/public/station/[^/]+/waitlists/[^/]+/register")) {
+            throw new BadRequestResponse("Public waiting-list registration is disabled in demo mode");
+        }
+
+        if (method == HandlerType.POST && path.matches("/api/v1/pages/\\d+/files")) {
+            throw new BadRequestResponse("File uploads are disabled in demo mode");
+        }
+
+        if (method == HandlerType.POST
+                && (path.matches("/api/v1/kb/folders/\\d+/icon") || path.matches("/api/v1/kb/files/\\d+/images"))) {
+            throw new BadRequestResponse("File uploads are disabled in demo mode");
+        }
+
+        if (method == HandlerType.POST && path.matches("/api/v1/admin/discovery/peers/probe")) {
+            throw new BadRequestResponse("External probes are disabled in demo mode");
+        }
+
+        if (method == HandlerType.POST && path.matches("/api/v1/lending/requests")) {
+            throw new BadRequestResponse("Cross-station lending is disabled in demo mode");
+        }
+
+        if (method == HandlerType.POST && path.matches("/api/v1/ai/providers/[^/]+/models")) {
+            throw new BadRequestResponse("External AI calls are disabled in demo mode");
         }
     }
 

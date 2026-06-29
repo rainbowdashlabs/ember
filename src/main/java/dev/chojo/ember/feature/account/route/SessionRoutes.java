@@ -269,6 +269,10 @@ public class SessionRoutes implements Routes {
                     null);
         }
 
+        Station currentStation = session.stationId() != null
+                ? stationService.findById(session.stationId()).orElse(null)
+                : null;
+
         ctx.json(new SessionInfo(
                 new AccountInfo(
                         session.account().id(),
@@ -292,12 +296,8 @@ public class SessionRoutes implements Routes {
                 profileComplete,
                 disabledModules,
                 themeInfo,
-                session.stationId() != null
-                        ? stationService
-                                .findById(session.stationId())
-                                .map(Station::publicKbMode)
-                                .orElse(PublicKbMode.OFF)
-                        : null));
+                currentStation != null ? currentStation.publicKbMode() : null,
+                currentStation != null ? currentStation.setupCompletedAt() : null));
     }
 
     @OpenApi(
@@ -687,14 +687,17 @@ public class SessionRoutes implements Routes {
     /**
      * Aggregated session information returned to the authenticated user.
      *
-     * @param account         the account details
-     * @param stationId       the currently selected station, or {@code null} if none
-     * @param member          the station membership info, or {@code null} if not a member
-     * @param permissions     sorted list of permission names for the current station
-     * @param managedMembers  list of members managed by this account
-     * @param groups          groups the current member belongs to
-     * @param profileComplete whether all required profile fields are filled
-     * @param disabledModules set of modules disabled for the current station
+     * @param account           the account details
+     * @param stationId         the currently selected station, or {@code null} if none
+     * @param member            the station membership info, or {@code null} if not a member
+     * @param permissions       sorted list of permission names for the current station
+     * @param managedMembers    list of members managed by this account
+     * @param groups            groups the current member belongs to
+     * @param profileComplete   whether all required profile fields are filled
+     * @param disabledModules   set of modules disabled for the current station
+     * @param setupCompletedAt  timestamp at which the station setup wizard was finished, or
+     *                          {@code null} while the wizard still applies. Drives the first-login
+     *                          redirect to {@code /station/setup} for administrators
      */
     public record SessionInfo(
             AccountInfo account,
@@ -712,7 +715,8 @@ public class SessionRoutes implements Routes {
             boolean profileComplete,
             Set<StationModule> disabledModules,
             ThemeInfo theme,
-            PublicKbMode publicKbMode) {}
+            PublicKbMode publicKbMode,
+            Instant setupCompletedAt) {}
 
     public record ThemeInfo(
             String instanceDefaultTheme,

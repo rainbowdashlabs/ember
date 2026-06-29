@@ -36,6 +36,9 @@ import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
+import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
+import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.AfterAll;
@@ -112,9 +115,9 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 stationRepo,
                 groupService,
                 tagService);
-        var fbpBackend = new dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend();
-        var fbpResolver = new dev.chojo.ember.feature.storage.backend.StorageBackendResolver(fbpBackend);
-        var fbpStorage = new dev.chojo.ember.feature.storage.service.StorageService(fbpResolver, fbpBackend);
+        var fbpBackend = new LocalStorageBackend();
+        var fbpResolver = new StorageBackendResolver(fbpBackend);
+        var fbpStorage = new StorageService(fbpResolver, fbpBackend);
         var attachmentSvc = new BoardAttachmentService(fbpStorage, stationRepo, fbpBackend);
         ticketService = new BoardTicketService(
                 boardTicketRepo,
@@ -196,6 +199,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 "1",
                 Instant.now(),
                 Instant.now(),
+                null,
                 null);
         when(federationService.findPartners(station1.id())).thenReturn(List.of(partner));
         when(federationService.hasCapability(partnerId, CapabilityType.BOARD_SHARE, Direction.IMPORT))
@@ -222,6 +226,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 "1",
                 Instant.now(),
                 Instant.now(),
+                null,
                 null);
         when(federationService.findPartners(station1.id())).thenReturn(List.of(partner));
 
@@ -243,6 +248,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 "1",
                 Instant.now(),
                 Instant.now(),
+                null,
                 null);
         when(federationService.findPartners(station1.id())).thenReturn(List.of(partner));
         when(federationService.hasCapability(partnerId, CapabilityType.BOARD_SHARE, Direction.IMPORT))
@@ -587,7 +593,8 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 "1",
                 Instant.now(),
                 Instant.now(),
-                "https://remote.example.com");
+                "https://remote.example.com",
+                null);
         when(federationService.findPartners(station1.id())).thenReturn(List.of(partner));
         when(federationService.hasCapability(partnerId, CapabilityType.BOARD_SHARE, Direction.IMPORT))
                 .thenReturn(true);
@@ -622,7 +629,8 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 "1",
                 Instant.now(),
                 Instant.now(),
-                "https://remote.example.com");
+                "https://remote.example.com",
+                null);
         when(federationService.findPartners(station1.id())).thenReturn(List.of(partner));
         when(federationService.hasCapability(partnerId, CapabilityType.BOARD_SHARE, Direction.IMPORT))
                 .thenReturn(true);
@@ -677,6 +685,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 "1",
                 Instant.now(),
                 Instant.now(),
+                null,
                 null);
     }
 
@@ -692,7 +701,8 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 "1",
                 Instant.now(),
                 Instant.now(),
-                "https://remote.example.com");
+                "https://remote.example.com",
+                null);
     }
 
     // -- Local proxy read tests --
@@ -1106,6 +1116,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 "1",
                 Instant.now(),
                 Instant.now(),
+                null,
                 null);
         when(federationRepository.findPartnerById(partner2Id)).thenReturn(Optional.of(partner2));
         // Reverse lookup: board is on station1, partner2 is on station2.

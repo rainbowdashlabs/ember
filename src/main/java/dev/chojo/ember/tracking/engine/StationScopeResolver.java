@@ -107,7 +107,11 @@ public final class StationScopeResolver {
                 predecessors.put(ref, new Step(current, fk));
 
                 var refEntry = tracking.tables().get(ref);
-                if (refEntry != null && hasStationIdColumn(refEntry)) {
+                // The station table is itself a terminal — the FK that landed us here already
+                // identifies the owning station. Required for cross-station tables that carry
+                // FKs like {owning,requesting}_station_id straight to station(id) instead of
+                // routing through a station_id-bearing intermediate (e.g. federation_lending_*).
+                if (STATION_TABLE.equals(ref) || (refEntry != null && hasStationIdColumn(refEntry))) {
                     return Optional.of(reconstructPath(tableName, ref, predecessors));
                 }
                 queue.add(ref);

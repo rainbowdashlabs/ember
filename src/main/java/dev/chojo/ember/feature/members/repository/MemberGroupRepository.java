@@ -44,6 +44,19 @@ public class MemberGroupRepository {
     }
 
     /**
+     * Returns {@code true} if the station has at least one member group. Used by the setup
+     * wizard's status endpoint to mark the "Member groups" step complete without materialising
+     * the full list.
+     */
+    public boolean existsForStation(int stationId) {
+        return query("SELECT 1 FROM member_group WHERE station_id = :station_id LIMIT 1;")
+                .single(call().bind("station_id", stationId))
+                .map(row -> true)
+                .first()
+                .orElse(false);
+    }
+
+    /**
      * Creates a new member group for a station.
      */
     public MemberGroup create(int stationId, String name) {

@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:f0514cf8bfe2bb5d075643b7c889dea00ebf359834a4a6c68c74803009c4b4ec",
-  "generatedAt" : "2026-06-25T13:45:05Z",
+  "schemaHash" : "sha256:43f748ef5e6381731e828d083a59288cdd12dc8dd80c0ae2ebc7d9e7addd3dd1",
+  "generatedAt" : "2026-06-28T23:17:11Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -5067,7 +5067,7 @@
     "federation_lending_message" : {
       "feature" : "federation",
       "scope" : "STATION",
-      "tableHash" : "sha256:b0a0f02e87401494883c26a8202fc69f37971c29c5f3e0c50bded83fa63712a9",
+      "tableHash" : "sha256:c08c96322ae0b0e17aa90bf7e83441989d3254ba402a8d0f82c5d97b7e2035cb",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -5080,12 +5080,6 @@
         "nullable" : false,
         "verified" : true,
         "description" : "References the lending request."
-      }, {
-        "name" : "sender_station_id",
-        "type" : "int4",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Station that sent the message."
       }, {
         "name" : "sender_member_id",
         "type" : "int4",
@@ -5110,6 +5104,11 @@
         "nullable" : false,
         "verified" : true,
         "description" : "When the message was sent."
+      }, {
+        "name" : "sender_station_uid",
+        "type" : "uuid",
+        "nullable" : false,
+        "verified" : true
       } ],
       "foreignKeys" : [ {
         "column" : "request_id",
@@ -5120,16 +5119,17 @@
         "column" : "sender_member_id",
         "refTable" : "station_member",
         "refColumn" : "id",
-        "onDelete" : "NO ACTION"
-      }, {
-        "column" : "sender_station_id",
-        "refTable" : "station",
-        "refColumn" : "id",
-        "onDelete" : "CASCADE"
+        "onDelete" : "SET NULL"
       } ],
+      "customScope" : {
+        "viaTable" : "federation_lending_request",
+        "viaColumn" : "id",
+        "refColumn" : "request_id",
+        "distinct" : false
+      },
       "stationTransfer" : {
         "status" : "TRACKED",
-        "rationale" : "Federated lending conversation; scoped through the creator's station_member. Cross-station FK ids resolve via the seeded station id-remap on import."
+        "rationale" : "Messages inherit their request's scope so the full conversation moves with the request."
       },
       "gdprExport" : {
         "status" : "TRACKED",
@@ -5147,25 +5147,13 @@
     "federation_lending_request" : {
       "feature" : "federation",
       "scope" : "STATION",
-      "tableHash" : "sha256:ff54e075169497111cd324cb60408dbf0e84363711efeb88930b8057c4942d24",
+      "tableHash" : "sha256:ffe2c449e99ecb97491dd33a12928d1d99d4b43dff4d20081972051e48088570",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
         "nullable" : false,
         "verified" : true,
         "description" : "Auto-generated primary key."
-      }, {
-        "name" : "requesting_station_id",
-        "type" : "int4",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Station requesting to borrow."
-      }, {
-        "name" : "owning_station_id",
-        "type" : "int4",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Station that owns the items."
       }, {
         "name" : "status",
         "type" : "text",
@@ -5187,7 +5175,7 @@
       }, {
         "name" : "created_by",
         "type" : "int4",
-        "nullable" : false,
+        "nullable" : true,
         "verified" : true,
         "description" : "Member who created the request."
       }, {
@@ -5202,26 +5190,32 @@
         "nullable" : false,
         "verified" : true,
         "description" : "When the request was last updated."
+      }, {
+        "name" : "requesting_station_uid",
+        "type" : "uuid",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "owning_station_uid",
+        "type" : "uuid",
+        "nullable" : false,
+        "verified" : true
       } ],
       "foreignKeys" : [ {
         "column" : "created_by",
         "refTable" : "station_member",
         "refColumn" : "id",
-        "onDelete" : "NO ACTION"
-      }, {
-        "column" : "owning_station_id",
-        "refTable" : "station",
-        "refColumn" : "id",
-        "onDelete" : "CASCADE"
-      }, {
-        "column" : "requesting_station_id",
-        "refTable" : "station",
-        "refColumn" : "id",
-        "onDelete" : "CASCADE"
+        "onDelete" : "SET NULL"
       } ],
+      "customScope" : {
+        "viaTable" : "station",
+        "viaColumn" : "uid",
+        "refColumn" : "requesting_station_uid",
+        "distinct" : false
+      },
       "stationTransfer" : {
         "status" : "TRACKED",
-        "rationale" : "Federated lending conversation; scoped through the creator's station_member. Cross-station FK ids resolve via the seeded station id-remap on import."
+        "rationale" : "Cross-instance lending rows live with the requesting station; scoped via requesting_station_uid against the local station's UID."
       },
       "gdprExport" : {
         "status" : "TRACKED",
@@ -5298,9 +5292,15 @@
         "refColumn" : "id",
         "onDelete" : "CASCADE"
       } ],
+      "customScope" : {
+        "viaTable" : "federation_lending_request",
+        "viaColumn" : "id",
+        "refColumn" : "request_id",
+        "distinct" : false
+      },
       "stationTransfer" : {
         "status" : "TRACKED",
-        "rationale" : "Federated lending conversation; scoped through the creator's station_member. Cross-station FK ids resolve via the seeded station id-remap on import."
+        "rationale" : "Request items inherit the request's scope so the full request payload moves together."
       },
       "gdprExport" : {
         "status" : "IGNORED",
@@ -5437,7 +5437,7 @@
     "federation_partner" : {
       "feature" : "federation",
       "scope" : "STATION",
-      "tableHash" : "sha256:78101f9f711b2d9d46fb5d707d982f342ea7e76551ac166f0dc9b8afd089ef15",
+      "tableHash" : "sha256:2c70d3b838dd150f1e11e963f424f5d4bb487be92f38cd4fee3fdf18d30011b5",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -5516,6 +5516,11 @@
         "nullable" : true,
         "verified" : true,
         "description" : "When the last sync with this partner occurred."
+      }, {
+        "name" : "partner_station_name",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true
       } ],
       "foreignKeys" : [ {
         "column" : "station_id",
@@ -7013,7 +7018,7 @@
         "type" : "int4",
         "nullable" : true,
         "verified" : true,
-        "description" : "Optional reference to the container that physically holds this item. NULL means unlocated. ON DELETE SET NULL keeps the item even if the container is deleted."
+        "description" : "Optional reference to the container that physically holds this item. NULL means unlocated. An item with a container is not assigned to a member; the two states are mutually exclusive via the inventory_item_assigned_xor_in_container CHECK. ON DELETE SET NULL keeps the item even if the container is deleted."
       } ],
       "foreignKeys" : [ {
         "column" : "assigned_to",
@@ -7466,7 +7471,7 @@
     "kb_file" : {
       "feature" : "knowledgebase",
       "scope" : "STATION",
-      "tableHash" : "sha256:c7d8b27dde40f9b45e26930d11d17cdd16db9edbe6ad3a1895f6915ad2009811",
+      "tableHash" : "sha256:b03f289837c04af7f88061c97d7b2a1252dc74ab0312408311f4e703d2885a75",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -7542,7 +7547,7 @@
       }, {
         "name" : "created_by",
         "type" : "int4",
-        "nullable" : false,
+        "nullable" : true,
         "verified" : true,
         "description" : "Member who created the file."
       }, {
@@ -7591,7 +7596,7 @@
         "column" : "created_by",
         "refTable" : "station_member",
         "refColumn" : "id",
-        "onDelete" : "NO ACTION"
+        "onDelete" : "SET NULL"
       }, {
         "column" : "folder_id",
         "refTable" : "kb_folder",
@@ -7703,7 +7708,7 @@
     "kb_file_version" : {
       "feature" : "knowledgebase",
       "scope" : "STATION",
-      "tableHash" : "sha256:bbaf18417c3a42c0429bcc75a723db2ae9a502dab569c0078cb4a8552b3d136d",
+      "tableHash" : "sha256:37e84c84c4f98f29f9eeeb0dea999ef7ff2ddbcb25030c614e4d234e3569ba6d",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -7737,7 +7742,7 @@
       }, {
         "name" : "created_by",
         "type" : "int4",
-        "nullable" : false,
+        "nullable" : true,
         "verified" : true,
         "description" : "Member who created this version."
       }, {
@@ -7751,7 +7756,7 @@
         "column" : "created_by",
         "refTable" : "station_member",
         "refColumn" : "id",
-        "onDelete" : "NO ACTION"
+        "onDelete" : "SET NULL"
       }, {
         "column" : "file_id",
         "refTable" : "kb_file",
@@ -7782,7 +7787,7 @@
     "kb_folder" : {
       "feature" : "knowledgebase",
       "scope" : "STATION",
-      "tableHash" : "sha256:10e0984de3f63632b408c2bb9ba161110c143b9a358c8f109fcfce39bb0039ff",
+      "tableHash" : "sha256:9da904dc4d38017e9c38fdbab5d6b2c58e790b16131130144ae6b719b66a9619",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -7828,7 +7833,7 @@
       }, {
         "name" : "created_by",
         "type" : "int4",
-        "nullable" : false,
+        "nullable" : true,
         "verified" : true,
         "description" : "Member who created the folder."
       }, {
@@ -7854,7 +7859,7 @@
         "column" : "created_by",
         "refTable" : "station_member",
         "refColumn" : "id",
-        "onDelete" : "NO ACTION"
+        "onDelete" : "SET NULL"
       }, {
         "column" : "parent_id",
         "refTable" : "kb_folder",
@@ -8109,7 +8114,7 @@
     "lost_and_found_item" : {
       "feature" : "lostandfound",
       "scope" : "STATION",
-      "tableHash" : "sha256:134212fa0fcbc3135bf5680d25318a66cbc1b9dbd01f76f9b22a7ec0c42bbd43",
+      "tableHash" : "sha256:83e5ef3dec41e1a7a3e3ccf2eac79b5c1de0b9459ffb7cd1f55e3a3fa60b8f01",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -8149,7 +8154,7 @@
       }, {
         "name" : "created_by",
         "type" : "int4",
-        "nullable" : false,
+        "nullable" : true,
         "verified" : true,
         "description" : "Member who registered the found item."
       }, {
@@ -8168,7 +8173,7 @@
         "column" : "created_by",
         "refTable" : "station_member",
         "refColumn" : "id",
-        "onDelete" : "NO ACTION"
+        "onDelete" : "SET NULL"
       }, {
         "column" : "station_id",
         "refTable" : "station",
@@ -11274,7 +11279,7 @@
     "station" : {
       "feature" : "station",
       "scope" : "STATION",
-      "tableHash" : "sha256:b3364ad7f745ad2cb926337f8617edaa2f83cec29c497347b3a73c3760a8b136",
+      "tableHash" : "sha256:d679343f780505317b7e8a4c30ca3cbc180c1f66a7bf98f9c2dddc585f7c155d",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -11513,6 +11518,12 @@
         "nullable" : false,
         "verified" : true,
         "description" : "Set by the source operator when a station export-transfer token is created. While the flag is on, StorageService.store refuses uploads with 503 so the destination instance does not race with new writes on the source mid-transfer. The flag clears when the source operator deletes the station (existing cascade) or calls POST /station/transfer/abort."
+      }, {
+        "name" : "setup_completed_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Timestamp when an administrator first marked the station setup wizard as complete. NULL means the wizard still runs for administrators logging in, and the dashboard setup checklist is shown."
       } ],
       "foreignKeys" : [ {
         "column" : "landing_page_id",
@@ -11533,7 +11544,7 @@
       "outputShape" : "SINGLE",
       "stationTransfer" : {
         "status" : "TRACKED",
-        "ignoredColumns" : [ "owner_member_id", "landing_page_id", "public_slug", "storage_quota_bytes", "storage_quota_kb_bytes", "storage_quota_board_bytes", "storage_quota_images_bytes", "storage_quota_pages_bytes", "storage_per_file_bytes", "storage_per_image_bytes", "storage_warning_sent", "storage_preset_id" ],
+        "ignoredColumns" : [ "owner_member_id", "landing_page_id", "public_slug", "storage_quota_bytes", "storage_quota_kb_bytes", "storage_quota_board_bytes", "storage_quota_images_bytes", "storage_quota_pages_bytes", "storage_per_file_bytes", "storage_per_image_bytes", "storage_warning_sent", "storage_preset_id", "read_only_for_transfer", "setup_completed_at" ],
         "rationale" : "Single-row table; exported as an object via outputShape=SINGLE"
       },
       "gdprExport" : {
@@ -12207,6 +12218,10 @@
         "emitAs" : "account_email"
       }, {
         "via" : "account_id",
+        "pick" : "uid",
+        "emitAs" : "account_uid"
+      }, {
+        "via" : "account_id",
         "pick" : "first_name",
         "emitAs" : "account_first_name"
       }, {
@@ -12216,7 +12231,7 @@
       } ],
       "stationTransfer" : {
         "status" : "TRACKED",
-        "ignoredColumns" : [ "station_id", "account_id", "uid", "former_at" ]
+        "ignoredColumns" : [ "station_id", "account_id", "former_at" ]
       },
       "gdprExport" : {
         "status" : "TRACKED",
@@ -12234,6 +12249,141 @@
         } ]
       },
       "description" : "Membership of an account in a station. An account can be a member of multiple stations."
+    },
+    "station_member_invite" : {
+      "feature" : "members",
+      "scope" : "STATION",
+      "tableHash" : "sha256:2d19f424efc8368a15afde57ca13394a7ba29ea97339f298868d9d3621a84013",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "token",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "URL-safe Base64-encoded random token used in the public invite link. Plain (not hashed) — short-lived and single-use, matching the existing public registration token model."
+      }, {
+        "name" : "email",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "first_name",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "last_name",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "user_type",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Target StationUserType (MEMBER, GUARDIAN, TEAM, MANAGER) the new station_member row will be assigned on acceptance."
+      }, {
+        "name" : "group_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Optional member group the new station_member row will be added to on acceptance. ON DELETE SET NULL so deleting a group does not invalidate pending invites."
+      }, {
+        "name" : "guardian_of_invite_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "When non-null, this invite is for a guardian whose managed member is the account that accepts the referenced invite. The guardian-of relation is wired on whichever side accepts last."
+      }, {
+        "name" : "invited_by_member_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "expires_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true
+      }, {
+        "name" : "accepted_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true
+      }, {
+        "name" : "accepted_account_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Account row created (or chosen) at acceptance time. NULL while pending."
+      }, {
+        "name" : "created_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true
+      } ],
+      "foreignKeys" : [ {
+        "column" : "accepted_account_id",
+        "refTable" : "account",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "group_id",
+        "refTable" : "member_group",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "guardian_of_invite_id",
+        "refTable" : "station_member_invite",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "invited_by_member_id",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Pending invites are short-lived operational state tied to a specific instance's mail relay and registration URLs. Admins re-invite on the new instance after migration."
+      },
+      "gdprExport" : {
+        "status" : "TRACKED",
+        "identityColumns" : [ {
+          "type" : "ACCOUNT_ID",
+          "column" : "accepted_account_id"
+        } ]
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED",
+        "strategies" : [ {
+          "column" : "email",
+          "strategy" : "ANONYMIZE",
+          "reason" : "Recipient email is the personal identifier; replace with a tombstone on account deletion while keeping the audit trail of who invited whom."
+        }, {
+          "column" : "first_name",
+          "strategy" : "ANONYMIZE",
+          "reason" : "Replace with empty string on deletion."
+        }, {
+          "column" : "last_name",
+          "strategy" : "ANONYMIZE",
+          "reason" : "Replace with empty string on deletion."
+        } ]
+      },
+      "description" : "Single-use email invite a station administrator sends to bring a new member onto the station. The invitee follows the tokenised link, sets a password, and is created as an account + station_member in one step. Distinct from the public waiting-list invite, which is a shared link without a designated recipient."
     },
     "station_member_permission" : {
       "feature" : "station",
@@ -12934,7 +13084,7 @@
     "test_protocol_run" : {
       "feature" : "protocol",
       "scope" : "STATION",
-      "tableHash" : "sha256:c0fc42e6130326f63e8306a41d897296e8baf9a457e2ca15b25784b2c65de995",
+      "tableHash" : "sha256:ad66fb72c1b5651f7a3c35a5cd698c7f23a4468299a7f347bd452687a7f7fd5a",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -12974,7 +13124,7 @@
       }, {
         "name" : "created_by",
         "type" : "int4",
-        "nullable" : false,
+        "nullable" : true,
         "verified" : true,
         "description" : "Member who created the run."
       }, {
@@ -12988,7 +13138,7 @@
         "column" : "created_by",
         "refTable" : "station_member",
         "refColumn" : "id",
-        "onDelete" : "NO ACTION"
+        "onDelete" : "SET NULL"
       }, {
         "column" : "protocol_id",
         "refTable" : "test_protocol",
@@ -13020,7 +13170,7 @@
     "test_protocol_run_check" : {
       "feature" : "protocol",
       "scope" : "STATION",
-      "tableHash" : "sha256:c009832498a108e59c9dc59f78bed994b5a69f56306b51febff3e7187c8e1cfb",
+      "tableHash" : "sha256:6fd4f6e8b6941fd321cc62a3a65238acc5564d2bcea99c5451703f4a34ebffa8",
       "columns" : [ {
         "name" : "run_member_id",
         "type" : "int4",
@@ -13056,7 +13206,7 @@
         "column" : "checked_by",
         "refTable" : "station_member",
         "refColumn" : "id",
-        "onDelete" : "NO ACTION"
+        "onDelete" : "SET NULL"
       }, {
         "column" : "item_id",
         "refTable" : "test_protocol_item",
@@ -13088,7 +13238,7 @@
     "test_protocol_run_member" : {
       "feature" : "protocol",
       "scope" : "STATION",
-      "tableHash" : "sha256:aefefbca05337aaea1990cebd160c9cb72dcbb3464bf9e2656c10b238ba33bef",
+      "tableHash" : "sha256:7c29951662132bc405af816d0e49398b20b9a8d16d61aa45337a177ecb9c910e",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -13136,7 +13286,7 @@
         "column" : "locked_by",
         "refTable" : "station_member",
         "refColumn" : "id",
-        "onDelete" : "NO ACTION"
+        "onDelete" : "SET NULL"
       }, {
         "column" : "member_id",
         "refTable" : "station_member",
@@ -13171,7 +13321,7 @@
     "test_protocol_run_section_done" : {
       "feature" : "protocol",
       "scope" : "STATION",
-      "tableHash" : "sha256:1049436f1d4407ab9f4c1a78c461f1df64576944bde50319f934a30232a775d9",
+      "tableHash" : "sha256:8e839c2d10bfe5818cd3b172077e55d05a69cb26a0ba32e87d76183b6af4d406",
       "columns" : [ {
         "name" : "run_member_id",
         "type" : "int4",
@@ -13201,7 +13351,7 @@
         "column" : "done_by",
         "refTable" : "station_member",
         "refColumn" : "id",
-        "onDelete" : "NO ACTION"
+        "onDelete" : "SET NULL"
       }, {
         "column" : "run_member_id",
         "refTable" : "test_protocol_run_member",
@@ -13311,7 +13461,7 @@
     "transfer_token" : {
       "feature" : "station",
       "scope" : "INSTANCE",
-      "tableHash" : "sha256:7f6d0f2d7cd815702a07cb3e291ddba2b71c20e70973817aec2507f12d8bb227",
+      "tableHash" : "sha256:6f8e150d8ce7344ceb1c5893689289b38a5f1015096c0020d72e05c1d5d3a61a",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -13360,6 +13510,12 @@
         "nullable" : true,
         "verified" : true,
         "description" : "Stamped on the first successful /public/transfer/{token}/backend call. The endpoint hands plaintext storage credentials to the destination, so subsequent calls with the same token are rejected with 429 — the destination only needs the descriptor once."
+      }, {
+        "name" : "last_activity_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Timestamp of the most recent token-authenticated request from the destination. Refreshed on every successful validateToken(). The TransferTimeoutWatchdog marks tokens stale after 5 minutes of inactivity, invalidating them and clearing the source station's read-only-for-transfer flag."
       } ],
       "foreignKeys" : [ {
         "column" : "station_id",

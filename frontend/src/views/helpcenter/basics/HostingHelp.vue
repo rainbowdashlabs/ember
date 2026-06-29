@@ -11,7 +11,6 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import BulletList from '@/components/typography/BulletList.vue'
-import EnvVarsList from './hostinghelp/EnvVarsList.vue'
 
 const {t} = useI18n()
 </script>
@@ -58,30 +57,32 @@ const {t} = useI18n()
       <p class="mt-3">{{ t('helpCenter.basics.hosting.dockerText2') }}</p>
     </HelpSection>
 
-    <HelpSection :title="t('helpCenter.basics.hosting.config')">
-      <p>{{ t('helpCenter.basics.hosting.configText') }}</p>
-      <BulletList>
-        <li><strong>{{ t('helpCenter.basics.hosting.configDb') }}:</strong> {{ t('helpCenter.basics.hosting.configDbText') }}</li>
-        <li><strong>{{ t('helpCenter.basics.hosting.configMail') }}:</strong> {{ t('helpCenter.basics.hosting.configMailText') }}</li>
-        <li><strong>{{ t('helpCenter.basics.hosting.configUrl') }}:</strong> {{ t('helpCenter.basics.hosting.configUrlText') }}</li>
-        <li><strong>{{ t('helpCenter.basics.hosting.configAuth') }}:</strong> {{ t('helpCenter.basics.hosting.configAuthText') }}</li>
-      </BulletList>
-    </HelpSection>
-
-    <HelpSection :title="t('helpCenter.basics.hosting.envVars')">
-      <p>{{ t('helpCenter.basics.hosting.envVarsText') }}</p>
-      <EnvVarsList />
-      <HelpTip>{{ t('helpCenter.basics.hosting.envTip') }}</HelpTip>
+    <HelpSection :title="t('helpCenter.basics.hosting.configLinkTitle')">
+      <p>{{ t('helpCenter.basics.hosting.configLinkText') }}</p>
+      <router-link :to="{name: 'help-basics-hosting-configuration'}">
+        <NeutralContainer class="flex items-center gap-3 p-4 mt-3 cursor-pointer hover:bg-(--bg-accent) transition-colors">
+          <font-awesome-icon :icon="['fas', 'sliders']" class="h-5 w-5 text-primary shrink-0"/>
+          <div class="flex-1">
+            <p class="font-semibold text-sm">{{ t('helpCenter.basics.configuration.title') }}</p>
+            <p class="text-xs text-(--text-muted)">{{ t('helpCenter.basics.configuration.subtitle') }}</p>
+          </div>
+          <font-awesome-icon :icon="['fas', 'chevron-right']" class="h-3 w-3 text-(--text-muted)"/>
+        </NeutralContainer>
+      </router-link>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.basics.hosting.dataDir')">
       <p>{{ t('helpCenter.basics.hosting.dataDirText') }}</p>
       <BulletList>
-        <li>{{ t('helpCenter.basics.hosting.dataLegal') }}</li>
-        <li>{{ t('helpCenter.basics.hosting.dataImages') }}</li>
-        <li>{{ t('helpCenter.basics.hosting.dataKbFiles') }}</li>
+        <li><code>data/documents/</code> — {{ t('helpCenter.basics.hosting.dataLegal') }}</li>
+        <li><code>data/station/&lt;id&gt;/</code> — {{ t('helpCenter.basics.hosting.dataStation') }}</li>
+        <li><code>data/account/&lt;id&gt;/</code> — {{ t('helpCenter.basics.hosting.dataAccount') }}</li>
+        <li><code>data/inst/</code> — {{ t('helpCenter.basics.hosting.dataInst') }}</li>
+        <li><code>data/discovery/</code> — {{ t('helpCenter.basics.hosting.dataDiscovery') }}</li>
+        <li><code>data/maps/</code> — {{ t('helpCenter.basics.hosting.dataMaps') }}</li>
       </BulletList>
       <p class="mt-2 text-sm">{{ t('helpCenter.basics.hosting.dataDirText2') }}</p>
+      <p class="mt-2 text-sm">{{ t('helpCenter.basics.hosting.dataDirText3') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.basics.hosting.reverseProxy')">
@@ -106,9 +107,12 @@ const {t} = useI18n()
     <HelpSection :title="t('helpCenter.basics.hosting.backups')">
       <p>{{ t('helpCenter.basics.hosting.backupsText') }}</p>
       <BulletList>
-        <li>{{ t('helpCenter.basics.hosting.backup1') }}</li>
-        <li>{{ t('helpCenter.basics.hosting.backup2') }}</li>
+        <li><strong>{{ t('helpCenter.basics.hosting.backupDbTitle') }}:</strong> {{ t('helpCenter.basics.hosting.backupDb') }}</li>
+        <li><strong>{{ t('helpCenter.basics.hosting.backupConfigTitle') }}:</strong> {{ t('helpCenter.basics.hosting.backupConfig') }}</li>
+        <li><strong>{{ t('helpCenter.basics.hosting.backupDataTitle') }}:</strong> {{ t('helpCenter.basics.hosting.backupData') }}</li>
+        <li><strong>{{ t('helpCenter.basics.hosting.backupSecretsTitle') }}:</strong> {{ t('helpCenter.basics.hosting.backupSecrets') }}</li>
       </BulletList>
+      <p class="mt-2 text-sm">{{ t('helpCenter.basics.hosting.backupsRemoteText') }}</p>
     </HelpSection>
 
     <HelpTip>{{ t('helpCenter.basics.hosting.tip') }}</HelpTip>

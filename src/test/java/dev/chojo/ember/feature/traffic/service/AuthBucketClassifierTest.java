@@ -80,7 +80,8 @@ class AuthBucketClassifierTest {
                 "1.0",
                 Instant.now(),
                 Instant.now(),
-                "https://example");
+                "https://example",
+                null);
         return new FederationSession(partner, UUID.randomUUID());
     }
 }

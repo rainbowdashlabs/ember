@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.storage.backend.sftp.SftpStorageBackend;
 import dev.chojo.ember.feature.storage.backend.smb.SmbBackendConfig;
 import dev.chojo.ember.feature.storage.backend.smb.SmbStorageBackend;
 import dev.chojo.ember.feature.storage.credential.CredentialCipher;
+import dev.chojo.ember.feature.storage.credential.EncryptedBlob;
 import dev.chojo.ember.feature.storage.credential.StoredCredentials;
 import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
 import jakarta.inject.Inject;
@@ -100,7 +101,7 @@ public class StorageBackendFactory {
      * back to the plain-text value otherwise so existing deployments that hand-wrote the legacy
      * fields continue to work unchanged.
      */
-    private String resolveCredential(dev.chojo.ember.feature.storage.credential.EncryptedBlob encrypted, String plain) {
+    private String resolveCredential(EncryptedBlob encrypted, String plain) {
         if (encrypted != null) {
             return credentialCipher.decryptToString(encrypted);
         }

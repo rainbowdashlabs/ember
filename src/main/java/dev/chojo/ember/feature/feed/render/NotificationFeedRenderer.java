@@ -51,6 +51,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Builds {@link SyndEntry} entries for the personal RSS/Atom notification feeds.
@@ -892,10 +893,5 @@ public class NotificationFeedRenderer {
      *                   context after login even when they belong to several stations
      */
     public record RenderContext(
-            String locale,
-            String baseUrl,
-            String feedToken,
-            boolean verbose,
-            boolean images,
-            java.util.UUID stationUid) {}
+            String locale, String baseUrl, String feedToken, boolean verbose, boolean images, UUID stationUid) {}
 }

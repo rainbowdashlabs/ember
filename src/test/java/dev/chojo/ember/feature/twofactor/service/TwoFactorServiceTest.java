@@ -11,10 +11,13 @@ import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.samstevens.totp.code.DefaultCodeGenerator;
+import dev.samstevens.totp.code.HashingAlgorithm;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.UUID;
 
@@ -122,8 +125,7 @@ class TwoFactorServiceTest extends RepositoryTestBase {
     @Test
     void markSessionVerifiedTouchesRow() {
         int accountId = newAccount();
-        accountRepo.createSession(
-                accountId, "tfs-bearer", java.time.Instant.now().plusSeconds(60), "ua", null);
+        accountRepo.createSession(accountId, "tfs-bearer", Instant.now().plusSeconds(60), "ua", null);
         var session = accountRepo.findSession("tfs-bearer").orElseThrow();
         service.markSessionTwoFactorVerified(session.id());
         assertNotNull(accountRepo.findSession("tfs-bearer").orElseThrow().twoFactorVerifiedAt());
@@ -188,10 +190,9 @@ class TwoFactorServiceTest extends RepositoryTestBase {
                 enrollment.recoveryCodes(),
                 "ua",
                 null);
-        accountRepo.createSession(
-                accountId, "reset-bearer", java.time.Instant.now().plusSeconds(60), "ua", null);
+        accountRepo.createSession(accountId, "reset-bearer", Instant.now().plusSeconds(60), "ua", null);
         twoFactorRepo.createTrustedDevice(
-                accountId, "reset-trust-hash", "ua", java.time.Instant.now().plusSeconds(3600));
+                accountId, "reset-trust-hash", "ua", Instant.now().plusSeconds(3600));
 
         assertTrue(service.resetAccount2FA(accountId, null, "ua", "DE"));
         assertFalse(service.isEnrolled(accountId));
@@ -211,9 +212,9 @@ class TwoFactorServiceTest extends RepositoryTestBase {
      */
     private String generateCurrentTotp(String secret) {
         try {
-            var algorithm = dev.samstevens.totp.code.HashingAlgorithm.SHA1;
-            var codeGenerator = new dev.samstevens.totp.code.DefaultCodeGenerator(algorithm, 6);
-            long timeBucket = java.time.Instant.now().getEpochSecond() / 30;
+            var algorithm = HashingAlgorithm.SHA1;
+            var codeGenerator = new DefaultCodeGenerator(algorithm, 6);
+            long timeBucket = Instant.now().getEpochSecond() / 30;
             return codeGenerator.generate(secret, timeBucket);
         } catch (Exception e) {
             throw new RuntimeException(e);

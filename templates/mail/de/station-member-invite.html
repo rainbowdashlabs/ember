@@ -1,0 +1,8 @@
+{% extends '_layout.html' %}
+{% block body %}
+      <h2>Hallo {{ name }},</h2>
+      <p><strong>{{ inviterName }}</strong> hat dich eingeladen, der Wache <strong>{{ stationName }}</strong> beizutreten.</p>
+      <p>Um die Einladung anzunehmen, richte dein Konto und Passwort ein:</p>
+      <div class="btn-wrap"><a class="btn-green" href="{{ url }}">Einladung annehmen</a></div>
+      <p class="hint">Der Link ist gültig bis {{ expiresAt }}.</p>
+{% endblock %}

@@ -32,15 +32,9 @@ const {t} = useI18n()
     <NeutralContainer class="space-y-4">
       <SectionHeader>{{ t('stationManage.importTitle') }}</SectionHeader>
       <p class="text-sm text-(--text-muted)">{{ t('stationManage.importHint') }}</p>
-      <div class="grid gap-4 sm:grid-cols-2">
-        <div class="space-y-1">
-          <FieldLabel>{{ t('stationManage.importSourceUrl') }}</FieldLabel>
-          <TextInput model-value="" :placeholder="t('stationManage.importSourceUrlPlaceholder')" disabled/>
-        </div>
-        <div class="space-y-1">
-          <FieldLabel>{{ t('stationManage.importToken') }}</FieldLabel>
-          <TextInput model-value="" :placeholder="t('stationManage.importTokenPlaceholder')" disabled/>
-        </div>
+      <div class="space-y-1">
+        <FieldLabel>{{ t('stationManage.importToken') }}</FieldLabel>
+        <TextInput model-value="" :placeholder="t('stationManage.importTokenPlaceholder')" disabled/>
       </div>
       <PrimaryButton disabled>{{ t('stationManage.importStart') }}</PrimaryButton>
     </NeutralContainer>

@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -74,7 +75,7 @@ public class WebAuthnCredentialStore implements CredentialRepository {
     public Optional<RegisteredCredential> lookup(ByteArray credentialId, ByteArray userHandle) {
         return repository
                 .findWebAuthnByCredentialId(credentialId.getBytes())
-                .filter(c -> java.util.Arrays.equals(c.userHandle(), userHandle.getBytes()))
+                .filter(c -> Arrays.equals(c.userHandle(), userHandle.getBytes()))
                 .map(WebAuthnCredentialStore::toRegistered);
     }
 

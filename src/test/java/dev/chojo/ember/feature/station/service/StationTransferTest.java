@@ -7,9 +7,11 @@ package dev.chojo.ember.feature.station.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
@@ -86,15 +88,20 @@ class StationTransferTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        exportService = new StationExportService(stationRepo);
+        exportService = new StationExportService(stationRepo, new Api());
         importService = new StationImportService(
                 stationRepo,
                 accountRepo,
                 exportService,
-                new dev.chojo.ember.conf.file.elements.Api(),
+                new Api(),
                 null,
                 null,
-                null);
+                null,
+                null,
+                null,
+                null,
+                new FederationPartnerTransferFixupService(
+                        new dev.chojo.ember.feature.federation.repository.FederationRepository(), null, stationRepo));
 
         // Create station with full settings
         var station = stationRepo.create("Jugendfeuerwehr Musterstadt");
@@ -392,8 +399,10 @@ class StationTransferTest extends RepositoryTestBase {
                 .filter(m -> "manager@jf-musterstadt.de".equals(m.get("account_email")))
                 .findFirst();
         assertTrue(manager.isPresent());
-        assertEquals("Thomas", manager.get().get("account_first_name"));
-        assertEquals("Müller", manager.get().get("account_last_name"));
+        // The exporter emits account_uid alongside account_email so the importer can match by the
+        // stable cross-instance identity; first_name / last_name lookups were removed because
+        // matching humans by name is never unique.
+        assertNotNull(manager.get().get("account_uid"));
         // user_type comes inline on the station_member row now (the legacy memberUserTypes wire is gone)
         assertEquals("MANAGER", manager.get().get("user_type"));
     }

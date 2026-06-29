@@ -13,7 +13,6 @@ import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.UserTag;
-import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -89,8 +88,8 @@ public class MemberNameResolver {
         }
         return federationRepository
                 .findPartnerById(partnerId)
-                .flatMap(p -> stationRepository.findByUid(p.partnerStationId()))
-                .map(Station::name)
+                .map(p -> dev.chojo.ember.feature.federation.service.FederationDisplayNames.partnerName(
+                        stationRepository, p, null))
                 .orElse(null);
     }
 

@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -26,6 +26,16 @@ import { useSession } from '@/composables/useSession'
 
 const { t } = useI18n()
 const router = useRouter()
+const route = useRoute()
+
+function leaveImport() {
+  const returnTo = typeof route.query.returnTo === 'string' ? route.query.returnTo : null
+  if (returnTo && returnTo.startsWith('/')) {
+    router.push(returnTo)
+  } else {
+    router.push({ name: 'members-list' })
+  }
+}
 const { loaded } = useSession()
 
 type Step = 'upload' | 'mapping' | 'preview' | 'done'
@@ -235,7 +245,7 @@ watch(loaded, async (isLoaded) => {
         v-if="step === 'done' && result"
         :result="result"
         @start-over="startOver"
-        @to-list="router.push({ name: 'members-list' })"
+        @to-list="leaveImport()"
       />
     </div>
   </ViewContent>

@@ -35,13 +35,21 @@ class InventoryContainerServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        account = accountRepo.create("svc@test.example", "Svc", "User");
         service = new InventoryContainerService(containerRepo, containerKindRepo, inventoryRepo);
+    }
+
+    @org.junit.jupiter.api.BeforeEach
+    void ensureAccount() {
+        if (account == null || accountRepo.findById(account.id()).isEmpty()) {
+            account = accountRepo.create("svc@test.example", "Svc", "User");
+        }
     }
 
     @AfterAll
     static void cleanup() {
-        accountRepo.delete(account.id());
+        if (account != null && accountRepo.findById(account.id()).isPresent()) {
+            accountRepo.delete(account.id());
+        }
     }
 
     @Test

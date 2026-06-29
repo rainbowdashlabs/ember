@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.station.service;
 
+import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -51,15 +53,20 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        exportService = new StationExportService(stationRepo);
+        exportService = new StationExportService(stationRepo, new Api());
         importService = new StationImportService(
                 stationRepo,
                 accountRepo,
                 exportService,
-                new dev.chojo.ember.conf.file.elements.Api(),
+                new Api(),
                 null,
                 null,
-                null);
+                null,
+                null,
+                null,
+                null,
+                new FederationPartnerTransferFixupService(
+                        new dev.chojo.ember.feature.federation.repository.FederationRepository(), null, stationRepo));
     }
 
     @Test

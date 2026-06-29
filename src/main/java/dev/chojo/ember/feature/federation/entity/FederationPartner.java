@@ -24,7 +24,8 @@ public record FederationPartner(
         String federationVersion,
         Instant createdAt,
         Instant updatedAt,
-        String remoteHost) {
+        String remoteHost,
+        String partnerStationName) {
 
     public static RowMapping<FederationPartner> map() {
         return row -> new FederationPartner(
@@ -38,7 +39,8 @@ public record FederationPartner(
                 row.getString("federation_version"),
                 row.get("created_at", INSTANT_TIMESTAMP),
                 row.get("updated_at", INSTANT_TIMESTAMP),
-                row.getString("remote_host"));
+                row.getString("remote_host"),
+                row.getString("partner_station_name"));
     }
 
     /**

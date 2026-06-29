@@ -31,6 +31,7 @@ const HELP_PAGE_MAP: { route: string; path: string; i18nPrefix: string; section:
     {route: 'help-basics-permissions', path: '/helpcenter/station/basics/permissions', i18nPrefix: 'helpCenter.basics.permissions', section: 'Grundlagen > Berechtigungen'},
     {route: 'help-basics-modules', path: '/helpcenter/station/basics/modules', i18nPrefix: 'helpCenter.basics.modules', section: 'Grundlagen > Module'},
     {route: 'help-basics-hosting', path: '/helpcenter/station/basics/hosting', i18nPrefix: 'helpCenter.basics.hosting', section: 'Grundlagen > Selbst betreiben'},
+    {route: 'help-basics-hosting-configuration', path: '/helpcenter/station/basics/hosting/configuration', i18nPrefix: 'helpCenter.basics.configuration', section: 'Grundlagen > Selbst betreiben > Konfiguration'},
     {route: 'help-basics-federation', path: '/helpcenter/station/basics/federation', i18nPrefix: 'helpCenter.basics.federation', section: 'Grundlagen > Föderation'},
     // Dashboard
     {route: 'help-dashboard-module-overview', path: '/helpcenter/station/dashboard', i18nPrefix: 'helpCenter.dashboardOverview', section: 'Dashboard'},

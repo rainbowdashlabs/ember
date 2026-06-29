@@ -361,8 +361,8 @@ class NotificationFeedRendererTest {
         when(lendingService.findRequest(42))
                 .thenReturn(Optional.of(new LendingRequest(
                         42,
-                        1,
-                        2,
+                        UUID.fromString("00000000-0000-0000-0000-000000000001"),
+                        UUID.fromString("00000000-0000-0000-0000-000000000002"),
                         LendingStatus.REQUESTED,
                         LocalDate.of(2026, 10, 5),
                         LocalDate.of(2026, 10, 7),

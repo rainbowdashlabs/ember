@@ -9,6 +9,7 @@ import de.chojo.sadu.postgresql.databases.PostgreSql;
 import de.chojo.sadu.updater.QueryReplacement;
 import de.chojo.sadu.updater.SqlUpdater;
 import dev.chojo.ember.api.auth.InstanceUserType;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.conf.file.elements.Database;
@@ -73,7 +74,30 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 public class DemoService {
     private static final Logger log = LoggerFactory.getLogger(DemoService.class);
     private static final String PASSWORD = "demo";
-    private static final Path SCHEMA_HASH_FILE = Path.of(".demo-schema-hash");
+    /**
+     * Location of the schema-fingerprint sentinel used to decide whether the demo seeder can
+     * skip re-running. Suffixed with the {@code DB_HOST} env var so two backends running off
+     * the same source tree (e.g. the {@code transfer} compose profile, which bind-mounts the
+     * project root into both containers) keep separate fingerprints instead of racing on a
+     * single shared file. {@code DB_HOST} is preferred over {@code HOSTNAME} because the
+     * container hostname defaults to a random per-run docker container id and would orphan a
+     * fresh sentinel on every {@code compose up}; the configured database host is stable
+     * across restarts and unique per stack by construction.
+     */
+    private static final Path SCHEMA_HASH_FILE = resolveSchemaHashFile();
+
+    private static Path resolveSchemaHashFile() {
+        String key = System.getenv("DB_HOST");
+        if (key == null || key.isBlank()) {
+            return Path.of(".demo-schema-hash");
+        }
+        return Path.of(".demo-schema-hash." + sanitizeForFilename(key));
+    }
+
+    private static String sanitizeForFilename(String value) {
+        return value.replaceAll("[^A-Za-z0-9._-]", "_");
+    }
+
     private final Demo demoConfig;
     private final Database databaseConfig;
     private final DataSource dataSource;
@@ -567,8 +591,36 @@ public class DemoService {
         //    changes. Live-loaded body enrichment fires because the ids are real. --
         seedNotificationShowcase(station.id(), adminMember, members, news, events, lostAndFoundItem);
 
+        stationRepository.markSetupComplete(station.id());
+        log.info("Demo: Marked Musterstadt station setup complete");
+
+        seedUnSetupStation(hash);
+
         log.info("Demo: Created all user accounts (password: '{}')", PASSWORD);
         log.info("Demo: Admin login: admin@ember.local / {}", PASSWORD);
+    }
+
+    private void seedUnSetupStation(String passwordHash) {
+        var freshStation = stationRepository.create(
+                "Wache Neuhausen (Einrichtung)", UUID.fromString("00000000-0000-4000-a000-000000000002"));
+        stationRepository.updateTimezone(freshStation.id(), "Europe/Berlin");
+        stationRepository.updateLocale(freshStation.id(), "de-DE");
+
+        var freshAdminAccount = accountRepository.create("setup-admin@ember.local", "Setup", "Admin", true);
+        accountRepository.setUid(freshAdminAccount.id(), DemoUids.account("setup-admin@ember.local"));
+        accountRepository.createCredential(freshAdminAccount.id(), passwordHash);
+
+        var freshAdminMember = stationMemberRepository.create(freshStation.id(), freshAdminAccount.id());
+        stationMemberRepository.setUserType(freshAdminMember.id(), StationUserType.MANAGER);
+        var adminPerm = stationMemberRepository
+                .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
+                .orElseThrow();
+        stationMemberRepository.grantPermission(freshAdminMember.id(), adminPerm.id());
+        stationRepository.setOwner(freshStation.id(), freshAdminMember.id());
+
+        log.info(
+                "Demo: Created un-setup demo station — login: setup-admin@ember.local / {} (will land on /station/setup)",
+                PASSWORD);
     }
 
     private void seedNotificationShowcase(

@@ -93,7 +93,7 @@ public class SidebarCountService {
         int lendingRequests = 0;
         if (roles.contains(StationPermission.INVENTORY_MANAGER)
                 && roles.contains(StationPermission.STATION_FEDERATION)) {
-            lendingRequests = lendingRepository.countActionableRequests(stationId);
+            lendingRequests = lendingRepository.countActionableRequests(stationRepository.resolveUid(stationId));
         }
 
         int federationRequests = 0;

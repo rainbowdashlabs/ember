@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.storage.service.StorageService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
+import io.javalin.http.HttpResponseException;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
@@ -26,11 +27,15 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -43,6 +48,7 @@ import java.util.UUID;
 @Singleton
 public class StationTransferAssetRoutes implements Routes {
 
+    private static final Logger log = LoggerFactory.getLogger(StationTransferAssetRoutes.class);
     private static final int DEFAULT_LIST_LIMIT = 500;
     private static final int MAX_LIST_LIMIT = 2000;
 
@@ -91,12 +97,14 @@ public class StationTransferAssetRoutes implements Routes {
         String token = ctx.pathParam("token");
         exportService.validateToken(token).orElseThrow(() -> new ForbiddenResponse("Invalid or expired token"));
         int stationId = exportService.claimBackendDescriptor(token).orElseThrow(() -> {
+            log.info("[export] backend descriptor already claimed — responding 429");
             ctx.status(HttpStatus.TOO_MANY_REQUESTS);
-            return new io.javalin.http.HttpResponseException(
+            return new HttpResponseException(
                     HttpStatus.TOO_MANY_REQUESTS.getCode(),
                     "Backend descriptor has already been fetched for this transfer token",
-                    java.util.Map.of());
+                    Map.of());
         });
+        log.info("[export] serving backend descriptor for station {}", stationId);
         ctx.json(descriptorService.describe(stationId));
     }
 
@@ -134,7 +142,7 @@ public class StationTransferAssetRoutes implements Routes {
         if (limit <= 0) limit = DEFAULT_LIST_LIMIT;
         if (limit > MAX_LIST_LIMIT) limit = MAX_LIST_LIMIT;
 
-        List<String> sorted = new ArrayList<>(storageService.listKeys(scope, category, ""));
+        List<String> sorted = new ArrayList<>(originalsOnly(category, storageService.listKeys(scope, category, "")));
         Collections.sort(sorted);
 
         int startIndex = 0;
@@ -145,7 +153,15 @@ public class StationTransferAssetRoutes implements Routes {
         int endIndex = Math.min(startIndex + limit, sorted.size());
         List<String> page = sorted.subList(startIndex, endIndex);
         String next = endIndex < sorted.size() ? page.getLast() : null;
-        ctx.json(new ListKeysResponse(List.copyOf(page), next));
+        log.info(
+                "[export] listing files: station {} category {} after='{}' limit={} → {} key(s), next={}",
+                stationId,
+                category,
+                after == null ? "" : after,
+                limit,
+                page.size(),
+                next == null ? "none" : "present");
+        ctx.json(new ListKeysResponse(List.copyOf(page), next, sorted.size()));
     }
 
     @OpenApi(
@@ -184,6 +200,12 @@ public class StationTransferAssetRoutes implements Routes {
         var stream = storageService
                 .readRelative(scope, category, key)
                 .orElseThrow(() -> new NotFoundResponse("Key not found: " + key));
+        log.info(
+                "[export] streaming file: station {} category {} key '{}' ({} bytes)",
+                stationId,
+                category,
+                key,
+                stream.contentLength());
         ctx.contentType(stream.metadata().contentType());
         ctx.header("Content-Length", String.valueOf(stream.contentLength()));
         try {
@@ -225,8 +247,68 @@ public class StationTransferAssetRoutes implements Routes {
             throw new BadRequestResponse("Invalid accountUid");
         }
         var avatar = avatarService.read(accountUid, 0).orElseThrow(() -> new NotFoundResponse("Avatar not found"));
+        log.info("[export] streaming avatar for account {} ({} bytes)", accountUid, avatar.data().length);
         ctx.contentType(avatar.contentType());
         ctx.result(avatar.data());
+    }
+
+    /**
+     * Strips derived image variants (smaller-width resizes and re-encoded WebP copies) from a
+     * raw category listing so the destination only pulls the bytes it cannot regenerate locally.
+     * For categories that never have variants the input is returned unchanged. Package-private
+     * for direct unit tests.
+     */
+    static List<String> originalsOnly(StorageCategory category, List<String> keys) {
+        String origBase = originalBaseName(category);
+        if (origBase == null) return keys;
+
+        Map<String, List<String>> byDir = new LinkedHashMap<>();
+        for (String key : keys) {
+            int slash = key.lastIndexOf('/');
+            String dir = slash < 0 ? "" : key.substring(0, slash);
+            byDir.computeIfAbsent(dir, k -> new ArrayList<>()).add(key);
+        }
+
+        var out = new ArrayList<String>(byDir.size());
+        for (var entry : byDir.entrySet()) {
+            String chosen = pickOriginal(entry.getValue(), origBase);
+            if (chosen != null) out.add(chosen);
+        }
+        return out;
+    }
+
+    /**
+     * Returns the variant base name that identifies the uploaded original for the given
+     * category, or {@code null} when the category never produces derived variants.
+     */
+    private static String originalBaseName(StorageCategory category) {
+        return switch (category) {
+            case PAGE_FILES -> "orig";
+            case PAGE_IMAGES, IMAGE_LOST_AND_FOUND, IMAGE_QUIZ_QUESTION, IMAGE_KB_ICON, IMAGE_KB_IMAGE -> "original";
+            default -> null;
+        };
+    }
+
+    /**
+     * Picks the canonical original from the files in a single hash / image-id directory.
+     * Prefers a non-WebP {@code <base>.<ext>} when present (the uploaded source-of-truth) so
+     * stations carrying a legacy {@code orig.webp} alongside an uploaded {@code orig.png} ship
+     * the PNG. Falls back to a WebP copy only when no other format exists (the uploaded-WebP
+     * case).
+     */
+    private static String pickOriginal(List<String> dirKeys, String origBase) {
+        String webpFallback = null;
+        for (String key : dirKeys) {
+            int slash = key.lastIndexOf('/');
+            String filename = slash < 0 ? key : key.substring(slash + 1);
+            int dot = filename.lastIndexOf('.');
+            String base = dot < 0 ? filename : filename.substring(0, dot);
+            if (!base.equals(origBase)) continue;
+            String ext = dot < 0 ? "" : filename.substring(dot + 1).toLowerCase(Locale.ROOT);
+            if (!ext.equals("webp")) return key;
+            webpFallback = key;
+        }
+        return webpFallback;
     }
 
     private StorageCategory parseStationFileCategory(String raw) {
@@ -248,5 +330,10 @@ public class StationTransferAssetRoutes implements Routes {
         return category;
     }
 
-    public record ListKeysResponse(List<String> keys, String next) {}
+    /**
+     * Wire shape of {@code GET /files/{category}}. {@code total} is the count of original keys
+     * for the whole category, repeated identically on every page so the destination can pin its
+     * progress denominator on the first response and never see it grow as later pages arrive.
+     */
+    public record ListKeysResponse(List<String> keys, String next, int total) {}
 }

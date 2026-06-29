@@ -92,10 +92,15 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
                      to="/helpcenter/station/basics/modules" @navigate="close">
           {{ t('helpCenter.basics.sidebarModules') }}
         </SidebarLink>
-        <SidebarLink :icon="['fas', 'server']" name="help-basics-hosting"
-                     to="/helpcenter/station/basics/hosting" @navigate="close">
-          {{ t('helpCenter.basics.sidebarHosting') }}
-        </SidebarLink>
+        <SidebarExpandableLink :icon="['fas', 'server']" name="help-basics-hosting"
+                               to="/helpcenter/station/basics/hosting"
+                               prefix="/helpcenter/station/basics/hosting" @navigate="close">
+          <template #label>{{ t('helpCenter.basics.sidebarHosting') }}</template>
+          <SidebarLink :icon="['fas', 'sliders']" name="help-basics-hosting-configuration"
+                       to="/helpcenter/station/basics/hosting/configuration" @navigate="close">
+            {{ t('helpCenter.basics.sidebarHostingConfiguration') }}
+          </SidebarLink>
+        </SidebarExpandableLink>
         <SidebarLink :icon="['fas', 'arrow-right-arrow-left']" name="help-basics-federation"
                      to="/helpcenter/station/basics/federation" @navigate="close">
           {{ t('helpCenter.basics.sidebarFederation') }}

@@ -546,6 +546,19 @@ public class StationMemberRepository {
                 .all();
     }
 
+    /**
+     * Returns {@code true} if the station has at least one configured user-type permission row.
+     * Used by the setup wizard's status endpoint to mark the "Member types" required step complete
+     * once the administrator has actively populated the permission matrix.
+     */
+    public boolean hasAnyUserTypePermission(int stationId) {
+        return query("SELECT 1 FROM station_user_type_permission WHERE station_id = :station_id LIMIT 1;")
+                .single(call().bind("station_id", stationId))
+                .map(row -> true)
+                .first()
+                .orElse(false);
+    }
+
     // -- Join Date --
 
     public void setUserTypePermissions(int stationId, StationUserType userType, List<Integer> permissionIds) {

@@ -9,6 +9,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.TypeLiteral;
 import com.google.inject.multibindings.Multibinder;
+import com.yubico.webauthn.RelyingParty;
 import de.chojo.sadu.datasource.DataSourceCreator;
 import de.chojo.sadu.mapper.RowMapperRegistry;
 import de.chojo.sadu.postgresql.databases.PostgreSql;
@@ -108,6 +109,7 @@ import dev.chojo.ember.feature.members.route.ProfileFieldChangeRoutes;
 import dev.chojo.ember.feature.members.route.ProfileFieldRoutes;
 import dev.chojo.ember.feature.members.route.RegistrationCodeRoutes;
 import dev.chojo.ember.feature.members.route.SavedFilterRoutes;
+import dev.chojo.ember.feature.members.route.StationMemberInviteRoutes;
 import dev.chojo.ember.feature.members.route.StationMemberRoutes;
 import dev.chojo.ember.feature.members.route.TransferRoutes;
 import dev.chojo.ember.feature.members.route.UserSettingsRoutes;
@@ -123,9 +125,11 @@ import dev.chojo.ember.feature.quiz.route.PublicQuizRoutes;
 import dev.chojo.ember.feature.quiz.route.QuizRoutes;
 import dev.chojo.ember.feature.station.route.DiscoveryRoutes;
 import dev.chojo.ember.feature.station.route.PublicStationRoutes;
+import dev.chojo.ember.feature.station.route.SetupRoutes;
 import dev.chojo.ember.feature.station.route.StationApplicationRoutes;
 import dev.chojo.ember.feature.station.route.StationManageRoutes;
 import dev.chojo.ember.feature.station.route.StationRoutes;
+import dev.chojo.ember.feature.station.service.TransferTimeoutWatchdog;
 import dev.chojo.ember.feature.statistics.route.StatisticsRoutes;
 import dev.chojo.ember.feature.storage.route.StationStorageBackendRoutes;
 import dev.chojo.ember.feature.storage.route.StorageRoutes;
@@ -145,6 +149,8 @@ import dev.chojo.ember.feature.traffic.route.AdminTrafficRoutes;
 import dev.chojo.ember.feature.traffic.route.StationTrafficRoutes;
 import dev.chojo.ember.feature.twofactor.route.TwoFactorAdminRoutes;
 import dev.chojo.ember.feature.twofactor.route.TwoFactorRoutes;
+import dev.chojo.ember.feature.twofactor.service.WebAuthnCredentialStore;
+import dev.chojo.ember.feature.twofactor.service.WebAuthnRelyingPartyFactory;
 import dev.chojo.ember.feature.waitinglist.route.WaitingListRoutes;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -181,6 +187,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(SessionRoutes.class);
         routesBinder.addBinding().to(StationRoutes.class);
         routesBinder.addBinding().to(StationMemberRoutes.class);
+        routesBinder.addBinding().to(StationMemberInviteRoutes.class);
         routesBinder.addBinding().to(AttendanceRoutes.class);
         routesBinder.addBinding().to(InventoryRoutes.class);
         routesBinder.addBinding().to(ProfileFieldRoutes.class);
@@ -188,6 +195,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(MemberGroupRoutes.class);
         routesBinder.addBinding().to(RegistrationCodeRoutes.class);
         routesBinder.addBinding().to(StationManageRoutes.class);
+        routesBinder.addBinding().to(SetupRoutes.class);
         routesBinder.addBinding().to(EventRoutes.class);
         routesBinder.addBinding().to(EventTemplateRoutes.class);
         routesBinder.addBinding().to(SavedFilterRoutes.class);
@@ -293,6 +301,7 @@ public class EmberModule extends AbstractModule {
         bind(StorageReconciliationService.class).asEagerSingleton();
         bind(FederationVersionBroadcaster.class).asEagerSingleton();
         bind(FeedMetricsService.class).asEagerSingleton();
+        bind(TransferTimeoutWatchdog.class).asEagerSingleton();
         // Discovery chain
         bind(FederationPartnerSeeder.class).asEagerSingleton();
         bind(DiscoveryPingScheduler.class).asEagerSingleton();
@@ -347,11 +356,8 @@ public class EmberModule extends AbstractModule {
 
     @Provides
     @Singleton
-    com.yubico.webauthn.RelyingParty webAuthnRelyingParty(
-            TwoFactorSettings twoFactor,
-            Api api,
-            dev.chojo.ember.feature.twofactor.service.WebAuthnCredentialStore store) {
-        return dev.chojo.ember.feature.twofactor.service.WebAuthnRelyingPartyFactory.build(twoFactor, api, store);
+    RelyingParty webAuthnRelyingParty(TwoFactorSettings twoFactor, Api api, WebAuthnCredentialStore store) {
+        return WebAuthnRelyingPartyFactory.build(twoFactor, api, store);
     }
 
     @Provides
@@ -401,7 +407,13 @@ public class EmberModule extends AbstractModule {
     @Singleton
     QueryConfiguration queryConfiguration(DataSource dataSource, Database database, Demo demo)
             throws SQLException, IOException {
-        if (!demo.dev() && !demo.enabled()) {
+        // Skip the up-front migration only in full demo mode, where DemoService.resetAndSeed()
+        // drops the schema and re-runs the migration on every start. In every other mode —
+        // production, plain dev (DEMO_DEV=true without DEMO_ENABLED), and a fresh database under
+        // either — the schema must be in place before Guice provisions services whose
+        // constructors already query it (FederationService.backfillPartnerVersions is the first
+        // to hit the wire and was the canary that flagged this).
+        if (!demo.enabled()) {
             SqlUpdater.builder(dataSource, PostgreSql.get())
                     .setReplacements(new QueryReplacement("ember_schema", database.schema()))
                     .setSchemas(database.schema())

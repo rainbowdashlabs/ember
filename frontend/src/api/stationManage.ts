@@ -112,8 +112,8 @@ export async function requestStationDeletion(): Promise<{message: string}> {
     return res.data
 }
 
-export async function importStation(sourceUrl: string, token: string): Promise<{message: string}> {
-    const res = await client.post<{message: string}>('/station/manage/import', {sourceUrl, token})
+export async function importStation(token: string): Promise<{message: string}> {
+    const res = await client.post<{message: string}>('/station/manage/import', {token})
     return res.data
 }
 
@@ -121,9 +121,11 @@ export interface StationImportProgress {
     stationId: string
     stationName: string
     status: 'IN_PROGRESS' | 'COMPLETED' | 'FAILED'
-    totalTables: number
-    completedTables: number
-    currentTable: string | null
+    phases: string[]
+    completedPhases: number
+    currentPhase: string | null
+    subTotal: number
+    subCompleted: number
     error: string | null
 }
 

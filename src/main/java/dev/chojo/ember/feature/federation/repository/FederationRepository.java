@@ -110,8 +110,9 @@ public class FederationRepository {
     public FederationPartner createPartner(
             int stationId, UUID partnerStationUid, String inviteCode, String publicKey, String remoteHost) {
         return query("""
-                INSERT INTO federation_partner(station_id, partner_station_id, invite_code, public_key, status, remote_host, federation_version)
-                VALUES (:station_id, :partner_station_id::UUID, :invite_code, :public_key, 'PENDING', :remote_host, :federation_version)
+                INSERT INTO federation_partner(station_id, partner_station_id, invite_code, public_key, status, remote_host, federation_version, partner_station_name)
+                VALUES (:station_id, :partner_station_id::UUID, :invite_code, :public_key, 'PENDING', :remote_host, :federation_version,
+                        (SELECT name FROM station WHERE uid = :partner_station_id::UUID))
                 RETURNING *;""")
                 .single(call().bind("station_id", stationId)
                         .bind("partner_station_id", partnerStationUid, UUID_STRING)
@@ -335,6 +336,28 @@ public class FederationRepository {
         return query(
                         "SELECT * FROM federation_partner WHERE partner_station_id = :partner_station_id::UUID AND status = 'ACTIVE' LIMIT 1;")
                 .single(call().bind("partner_station_id", remoteStationUid, UUID_STRING))
+                .map(FederationPartner.map())
+                .first();
+    }
+
+    /**
+     * Looks up the federation partner row for a specific (local, remote) station pair. Used by
+     * the request authenticator to disambiguate when more than one local station partners with
+     * the same remote station — a situation that arises after a cross-instance transfer turns
+     * several previously-local partnerships of the moved station into cross-instance ones.
+     */
+    public Optional<FederationPartner> findPartnerByLocalAndRemoteStationUid(
+            UUID localStationUid, UUID remoteStationUid) {
+        return query("""
+                        SELECT fp.* FROM federation_partner fp
+                        JOIN station s ON s.id = fp.station_id
+                        WHERE s.uid = :local_station_uid::UUID
+                          AND fp.partner_station_id = :remote_station_uid::UUID
+                          AND fp.status = 'ACTIVE'
+                        LIMIT 1;
+                        """)
+                .single(call().bind("local_station_uid", localStationUid, UUID_STRING)
+                        .bind("remote_station_uid", remoteStationUid, UUID_STRING))
                 .map(FederationPartner.map())
                 .first();
     }

@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.twofactor.service;
 import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.feature.twofactor.entity.TwoFactorPolicy;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -77,13 +78,7 @@ class TwoFactorPolicyServiceTest extends RepositoryTestBase {
         var station = stationRepo.create("policy-wildcard-" + UUID.randomUUID());
         var account = accountRepo.create("w-" + UUID.randomUUID() + "@test.com", "Wild", "Card", true);
         stationMemberRepo.create(station.id(), account.id());
-        var wildcard = twoFactorRepo.upsertPolicy(
-                dev.chojo.ember.feature.twofactor.entity.TwoFactorPolicy.Scope.INSTANCE,
-                null,
-                null,
-                true,
-                (short) 7,
-                null);
+        var wildcard = twoFactorRepo.upsertPolicy(TwoFactorPolicy.Scope.INSTANCE, null, null, true, (short) 7, null);
 
         var status = service.listStationMemberStatus(station.id());
         assertTrue(status.getFirst().mandated(), "wildcard policy applies to every user type");

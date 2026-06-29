@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.StorageBackendType;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.credential.CredentialCipher;
+import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
@@ -31,6 +32,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Base64;
 import java.util.Comparator;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -199,12 +201,12 @@ class InstanceStorageMigrationServiceTest extends RepositoryTestBase {
         var cipher = new CredentialCipher(Base64.getEncoder().encodeToString(new byte[32]));
         storageConfigRepo.upsert(
                 overridden.id(),
-                new dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig.S3Variant(
+                new StationStorageBackendConfig.S3Variant(
                         "https://s3.example.invalid",
                         "us-east-1",
                         "bucket",
                         true,
-                        java.util.Optional.empty(),
+                        Optional.empty(),
                         "/",
                         cipher.encrypt("{\"accessKey\":\"a\",\"secretKey\":\"b\"}")));
 

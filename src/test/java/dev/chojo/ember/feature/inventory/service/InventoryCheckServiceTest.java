@@ -10,6 +10,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.CheckItemRequest;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
+import dev.chojo.ember.feature.inventory.entity.InventoryCheckScope;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -39,8 +40,7 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        var containerService = new dev.chojo.ember.feature.inventory.service.InventoryContainerService(
-                containerRepo, containerKindRepo, inventoryRepo);
+        var containerService = new InventoryContainerService(containerRepo, containerKindRepo, inventoryRepo);
         service = new InventoryCheckService(
                 inventoryCheckRepo,
                 inventoryRepo,
@@ -317,16 +317,11 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
         var deep = service.expectedContainerItems(container.id(), true);
         assertEquals(2, deep.size());
 
-        var results = java.util.List.of(
-                new dev.chojo.ember.feature.inventory.entity.CheckItemRequest(
-                        loose.id(), inventoryId, dev.chojo.ember.feature.inventory.entity.CheckResult.CONFIRMED, ""),
-                new dev.chojo.ember.feature.inventory.entity.CheckItemRequest(
-                        deepItem.id(),
-                        inventoryId,
-                        dev.chojo.ember.feature.inventory.entity.CheckResult.LOST,
-                        "fehlt"));
+        var results = List.of(
+                new CheckItemRequest(loose.id(), inventoryId, CheckResult.CONFIRMED, ""),
+                new CheckItemRequest(deepItem.id(), inventoryId, CheckResult.LOST, "fehlt"));
         var completed = service.completeContainerCheck(station.id(), container.id(), checker.id(), true, results);
-        assertEquals(dev.chojo.ember.feature.inventory.entity.InventoryCheckScope.CONTAINER, completed.scope());
+        assertEquals(InventoryCheckScope.CONTAINER, completed.scope());
         assertTrue(completed.deep());
 
         assertTrue(inventoryRepo.findItemById(deepItem.id()).orElseThrow().lostAt() != null);

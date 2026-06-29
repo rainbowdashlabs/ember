@@ -37,6 +37,7 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -161,7 +162,7 @@ public class StationStorageBackendRoutes implements Routes {
                 .orElseThrow(() -> new BadRequestResponse("No backend override configured for this station"));
         boolean healthy;
         String errorOrNull;
-        java.time.Instant checkedAt;
+        Instant checkedAt;
         try (StorageBackend backend = factory.buildForStation(row.config())) {
             HealthStatus status = backend.probe();
             healthy = status.healthy();
@@ -170,7 +171,7 @@ public class StationStorageBackendRoutes implements Routes {
         } catch (Exception e) {
             healthy = false;
             errorOrNull = e.getMessage();
-            checkedAt = java.time.Instant.now();
+            checkedAt = Instant.now();
         }
         auditService.recordProbe(
                 actor, stationId, healthy ? StorageAuditOutcome.OK : StorageAuditOutcome.FAILED, errorOrNull);
@@ -189,7 +190,7 @@ public class StationStorageBackendRoutes implements Routes {
         StationStorageBackendConfig config = toEntity(request);
         boolean healthy;
         String errorOrNull;
-        java.time.Instant checkedAt;
+        Instant checkedAt;
         try (StorageBackend backend = factory.buildForStation(config)) {
             HealthStatus status = backend.probe();
             healthy = status.healthy();
@@ -198,15 +199,14 @@ public class StationStorageBackendRoutes implements Routes {
         } catch (Exception e) {
             healthy = false;
             errorOrNull = e.getMessage();
-            checkedAt = java.time.Instant.now();
+            checkedAt = Instant.now();
         }
         ctx.status(HttpStatus.OK).json(new ProbeResult(healthy, errorOrNull, checkedAt.toString()));
     }
 
     private void listAudit(Context ctx) {
         int stationId = sessionStationId(ctx);
-        Optional<java.time.Instant> before =
-                Optional.ofNullable(ctx.queryParam("before")).map(java.time.Instant::parse);
+        Optional<Instant> before = Optional.ofNullable(ctx.queryParam("before")).map(Instant::parse);
         int limit = Math.clamp(ctx.queryParamAsClass("limit", Integer.class).getOrDefault(50), 1, 200);
         List<AuditEntryResponse> entries = auditRepository.findByStation(stationId, before, limit).stream()
                 .map(StationStorageBackendRoutes::toResponse)

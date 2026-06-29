@@ -72,11 +72,11 @@ class LendingRepositoryTest extends RepositoryTestBase {
     void createRequest() {
         var dateFrom = LocalDate.now();
         var dateTo = LocalDate.now().plusDays(7);
-        var request = lendingRepo.createRequest(stationB.id(), stationA.id(), dateFrom, dateTo, memberB.id());
+        var request = lendingRepo.createRequest(stationB.uid(), stationA.uid(), dateFrom, dateTo, memberB.id());
         assertNotNull(request);
         assertTrue(request.id() > 0);
-        assertEquals(stationB.id(), request.requestingStationId());
-        assertEquals(stationA.id(), request.owningStationId());
+        assertEquals(stationB.uid(), request.requestingStationUid());
+        assertEquals(stationA.uid(), request.owningStationUid());
         assertEquals(LendingStatus.REQUESTED, request.status());
         assertEquals(dateFrom, request.requestedDateFrom());
         assertEquals(dateTo, request.requestedDateTo());
@@ -96,11 +96,11 @@ class LendingRepositoryTest extends RepositoryTestBase {
     @Order(3)
     void findRequestsByStation() {
         // Should find the request from stationB's perspective (requesting)
-        var fromB = lendingRepo.findRequestsByStation(stationB.id());
+        var fromB = lendingRepo.findRequestsByStation(stationB.uid());
         assertTrue(fromB.stream().anyMatch(r -> r.id() == requestId));
 
         // Should also find it from stationA's perspective (owning)
-        var fromA = lendingRepo.findRequestsByStation(stationA.id());
+        var fromA = lendingRepo.findRequestsByStation(stationA.uid());
         assertTrue(fromA.stream().anyMatch(r -> r.id() == requestId));
     }
 
@@ -165,11 +165,11 @@ class LendingRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(30)
     void createMessage() {
-        var msg = lendingRepo.createMessage(requestId, stationA.id(), memberA.id(), "Hello from A", false);
+        var msg = lendingRepo.createMessage(requestId, stationA.uid(), memberA.id(), "Hello from A", false);
         assertNotNull(msg);
         assertTrue(msg.id() > 0);
         assertEquals(requestId, msg.requestId());
-        assertEquals(stationA.id(), msg.senderStationId());
+        assertEquals(stationA.uid(), msg.senderStationUid());
         assertEquals(memberA.id(), msg.senderMemberId());
         assertEquals("Hello from A", msg.message());
         assertFalse(msg.isSystem());
@@ -178,7 +178,7 @@ class LendingRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(31)
     void createSystemMessage() {
-        var msg = lendingRepo.createMessage(requestId, stationB.id(), null, "System event", true);
+        var msg = lendingRepo.createMessage(requestId, stationB.uid(), null, "System event", true);
         assertNotNull(msg);
         assertTrue(msg.isSystem());
         assertNull(msg.senderMemberId());
@@ -195,15 +195,15 @@ class LendingRepositoryTest extends RepositoryTestBase {
     @Order(33)
     void findLocalMessages() {
         // Add another message from A
-        lendingRepo.createMessage(requestId, stationA.id(), memberA.id(), "Another from A", false);
+        lendingRepo.createMessage(requestId, stationA.uid(), memberA.id(), "Another from A", false);
 
-        var localA = lendingRepo.findLocalMessages(requestId, stationA.id());
+        var localA = lendingRepo.findLocalMessages(requestId, stationA.uid());
         assertTrue(localA.size() >= 2);
-        assertTrue(localA.stream().allMatch(m -> m.senderStationId() == stationA.id()));
+        assertTrue(localA.stream().allMatch(m -> stationA.uid().equals(m.senderStationUid())));
 
-        var localB = lendingRepo.findLocalMessages(requestId, stationB.id());
+        var localB = lendingRepo.findLocalMessages(requestId, stationB.uid());
         assertFalse(localB.isEmpty());
-        assertTrue(localB.stream().allMatch(m -> m.senderStationId() == stationB.id()));
+        assertTrue(localB.stream().allMatch(m -> stationB.uid().equals(m.senderStationUid())));
     }
 
     // -- Blocks --
@@ -320,12 +320,12 @@ class LendingRepositoryTest extends RepositoryTestBase {
         // Create a new request with LENT status
         var dateFrom = LocalDate.now();
         var dateTo = LocalDate.now().plusDays(7);
-        var request = lendingRepo.createRequest(stationB.id(), stationA.id(), dateFrom, dateTo, memberB.id());
+        var request = lendingRepo.createRequest(stationB.uid(), stationA.uid(), dateFrom, dateTo, memberB.id());
         lendingRepo.addRequestItem(request.id(), inventoryIdA, itemIdA, 1);
         lendingRepo.updateRequestStatus(request.id(), LendingStatus.APPROVED);
         lendingRepo.updateRequestStatus(request.id(), LendingStatus.LENT);
 
-        var lentOut = lendingRepo.findLentOutByInventory(inventoryIdA, stationA.id());
+        var lentOut = lendingRepo.findLentOutByInventory(inventoryIdA, stationA.uid());
         assertFalse(lentOut.isEmpty());
         assertTrue(lentOut.stream().anyMatch(l -> l.requestId() == request.id()));
     }
@@ -333,7 +333,7 @@ class LendingRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(51)
     void countActionableRequests() {
-        int count = lendingRepo.countActionableRequests(stationA.id());
+        int count = lendingRepo.countActionableRequests(stationA.uid());
         // Returns count of REQUESTED/APPROVED-but-pending requests for this station; at least 0
         assertTrue(count >= 0);
     }

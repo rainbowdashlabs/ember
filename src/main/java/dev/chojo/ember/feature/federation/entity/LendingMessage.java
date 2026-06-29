@@ -6,18 +6,22 @@
 package dev.chojo.ember.feature.federation.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import de.chojo.sadu.queries.converter.StandardValueConverter;
 
 import java.time.Instant;
+import java.util.UUID;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 /**
- * A chat message in a lending request thread (text or system status message).
+ * A chat message in a lending request thread (text or system status message). The sender's
+ * station is identified by its stable UUID so the message stays attributable after the sender
+ * station has moved to a different Ember instance.
  */
 public record LendingMessage(
         int id,
         int requestId,
-        int senderStationId,
+        UUID senderStationUid,
         Integer senderMemberId,
         String message,
         boolean isSystem,
@@ -27,7 +31,7 @@ public record LendingMessage(
         return row -> new LendingMessage(
                 row.getInt("id"),
                 row.getInt("request_id"),
-                row.getInt("sender_station_id"),
+                row.get("sender_station_uid", StandardValueConverter.UUID_STRING),
                 row.getObject("sender_member_id", Integer.class),
                 row.getString("message"),
                 row.getBoolean("is_system"),

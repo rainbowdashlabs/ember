@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationPartner.FederationStatus;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.service.FederationDisplayNames;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
@@ -629,10 +630,7 @@ public class EventFederationService {
     }
 
     private String partnerStationName(FederationPartner partner) {
-        return stationRepository
-                .findByUid(partner.partnerStationId())
-                .map(Station::name)
-                .orElse("?");
+        return FederationDisplayNames.partnerName(stationRepository, partner, "?");
     }
 
     private RemoteEventSummary toEventMap(StationEvent e) {

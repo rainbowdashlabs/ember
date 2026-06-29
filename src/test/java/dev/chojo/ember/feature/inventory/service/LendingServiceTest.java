@@ -200,8 +200,8 @@ class LendingServiceTest extends RepositoryTestBase {
         var messages = service.getMessages(requestId, stationA.id());
         assertFalse(messages.isEmpty());
         // Should contain messages from both stations
-        assertTrue(messages.stream().anyMatch(m -> m.senderStationId() == stationA.id()));
-        assertTrue(messages.stream().anyMatch(m -> m.senderStationId() == stationB.id()));
+        assertTrue(messages.stream().anyMatch(m -> stationA.uid().equals(m.senderStationUid())));
+        assertTrue(messages.stream().anyMatch(m -> stationB.uid().equals(m.senderStationUid())));
 
         // Verify HTTP client was never called (local partner)
         verify(httpClient, never()).getList(anyString(), anyString(), any(), anyInt(), anyString(), any());
@@ -229,7 +229,7 @@ class LendingServiceTest extends RepositoryTestBase {
 
         // Mock remote messages from C
         var remoteMsg = new LendingMessage(
-                9999, req.id(), stationC.id(), memberC.id(), "Remote msg from C", false, Instant.now());
+                9999, req.id(), stationC.uid(), memberC.id(), "Remote msg from C", false, Instant.now());
         when(httpClient.getList(
                         eq("https://remote.example.com"),
                         eq("/remote/lending/messages/" + req.id()),
@@ -245,7 +245,7 @@ class LendingServiceTest extends RepositoryTestBase {
         var messages = service.getMessages(req.id(), stationA.id());
         assertFalse(messages.isEmpty());
         // Should have both local and remote messages
-        assertTrue(messages.stream().anyMatch(m -> m.senderStationId() == stationA.id()));
+        assertTrue(messages.stream().anyMatch(m -> stationA.uid().equals(m.senderStationUid())));
         assertTrue(messages.stream().anyMatch(m -> m.message().equals("Remote msg from C")));
 
         // Verify HTTP client was called for the remote partner
@@ -336,7 +336,7 @@ class LendingServiceTest extends RepositoryTestBase {
         var msgs = service.getLocalMessages(requestId, stationA.id());
         assertNotNull(msgs);
         // We sent at least one message from stationA in order 20/21
-        assertTrue(msgs.stream().anyMatch(m -> m.senderStationId() == stationA.id()));
+        assertTrue(msgs.stream().anyMatch(m -> stationA.uid().equals(m.senderStationUid())));
     }
 
     @Test
@@ -408,8 +408,8 @@ class LendingServiceTest extends RepositoryTestBase {
         // Get messages from stationB's perspective (the requesting station)
         var messages = service.getMessages(req.id(), stationB.id());
         assertFalse(messages.isEmpty());
-        assertTrue(messages.stream().anyMatch(m -> m.senderStationId() == stationA.id()));
-        assertTrue(messages.stream().anyMatch(m -> m.senderStationId() == stationB.id()));
+        assertTrue(messages.stream().anyMatch(m -> stationA.uid().equals(m.senderStationUid())));
+        assertTrue(messages.stream().anyMatch(m -> stationB.uid().equals(m.senderStationUid())));
     }
 
     @Test
@@ -488,8 +488,8 @@ class LendingServiceTest extends RepositoryTestBase {
                 stationB.id(), stationA.id(), LocalDate.now(), LocalDate.now().plusDays(5), memberB.id());
 
         // Add messages from both sides using the repo directly
-        lendingRepo.createMessage(req.id(), stationA.id(), memberA.id(), "Msg from A side", false);
-        lendingRepo.createMessage(req.id(), stationB.id(), memberB.id(), "Msg from B side", false);
+        lendingRepo.createMessage(req.id(), stationA.uid(), memberA.id(), "Msg from A side", false);
+        lendingRepo.createMessage(req.id(), stationB.uid(), memberB.id(), "Msg from B side", false);
 
         // getMessages from stationA's perspective should return both local and partner messages
         var messages = service.getMessages(req.id(), stationA.id());
@@ -572,9 +572,9 @@ class LendingServiceTest extends RepositoryTestBase {
         // Mock remote messages with specific timestamps
         var now = Instant.now();
         var earlyMsg = new LendingMessage(
-                8001, req.id(), stationR.id(), memberR.id(), "Remote early", false, now.minusSeconds(60));
+                8001, req.id(), stationR.uid(), memberR.id(), "Remote early", false, now.minusSeconds(60));
         var lateMsg = new LendingMessage(
-                8002, req.id(), stationR.id(), memberR.id(), "Remote late", false, now.plusSeconds(60));
+                8002, req.id(), stationR.uid(), memberR.id(), "Remote late", false, now.plusSeconds(60));
         when(httpClient.getList(
                         eq("https://remote-sort.example.com"),
                         eq("/remote/lending/messages/" + req.id()),
@@ -664,12 +664,12 @@ class LendingServiceTest extends RepositoryTestBase {
 
         // Create a request where stationNoPk needs to fetch remote messages
         var req = lendingRepo.createRequest(
-                stationNoPk.id(),
-                stationA.id(),
+                stationNoPk.uid(),
+                stationA.uid(),
                 LocalDate.now(),
                 LocalDate.now().plusDays(1),
                 memberNoPk.id());
-        lendingRepo.createMessage(req.id(), stationNoPk.id(), memberNoPk.id(), "local only", false);
+        lendingRepo.createMessage(req.id(), stationNoPk.uid(), memberNoPk.id(), "local only", false);
 
         // getMessages should still work — remote messages skipped due to no private key
         var messages = service.getMessages(req.id(), stationNoPk.id());
@@ -691,8 +691,8 @@ class LendingServiceTest extends RepositoryTestBase {
 
         // Directly create a lending request via the repository (bypassing federation check)
         var req = lendingRepo.createRequest(
-                stationE.id(), stationF.id(), LocalDate.now(), LocalDate.now().plusDays(2), memberE.id());
-        lendingRepo.createMessage(req.id(), stationE.id(), memberE.id(), "hello", false);
+                stationE.uid(), stationF.uid(), LocalDate.now(), LocalDate.now().plusDays(2), memberE.id());
+        lendingRepo.createMessage(req.id(), stationE.uid(), memberE.id(), "hello", false);
 
         // getMessages — no federation partner exists, so findPartnerForStation returns null
         var messages = service.getMessages(req.id(), stationE.id());

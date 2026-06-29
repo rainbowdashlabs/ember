@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted} from 'vue'
+import {computed, onBeforeUnmount, onMounted} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute} from 'vue-router'
 import SidebarLayout from '@/components/layout/SidebarLayout.vue'
@@ -12,8 +12,12 @@ import SidebarGroup from '@/components/navigation/SidebarGroup.vue'
 import SidebarLink from '@/components/navigation/SidebarLink.vue'
 import AccountMenuButton from '@/components/layout/AccountMenuButton.vue'
 import SmartStationButton from '@/components/layout/SmartStationButton.vue'
+import IconButton from '@/components/button/IconButton.vue'
 import {useSession} from '@/composables/useSession'
 import HelpCenterLink from '@/components/navigation/HelpCenterLink.vue'
+import QuickSearchPalette from '@/components/quicksearch/QuickSearchPalette.vue'
+import QuickSearchTrigger from '@/components/quicksearch/QuickSearchTrigger.vue'
+import {useQuickSearch} from '@/composables/useQuickSearch'
 
 const {t, te} = useI18n()
 const route = useRoute()
@@ -23,10 +27,28 @@ const {loaded, load} = useSession()
 // (production bundles tree-shake the branch out via Vite's import.meta.env).
 const isDev = import.meta.env.DEV
 
+const {open: openQuickSearch, close: closeQuickSearch, isOpen: quickSearchOpen} = useQuickSearch()
+
+function onGlobalKeydown(event: KeyboardEvent) {
+  const isCtrlK = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k'
+  if (!isCtrlK) return
+  event.preventDefault()
+  if (quickSearchOpen.value) {
+    closeQuickSearch()
+  } else {
+    openQuickSearch('admin')
+  }
+}
+
 onMounted(() => {
   if (!loaded.value) {
     load()
   }
+  window.addEventListener('keydown', onGlobalKeydown)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onGlobalKeydown)
 })
 
 const pageTitle = computed(() => {
@@ -143,11 +165,13 @@ const pageSubtitle = computed(() => {
     </template>
 
     <template #header>
+      <QuickSearchTrigger scope="admin" @open="openQuickSearch"/>
       <HelpCenterLink/>
       <SmartStationButton/>
       <AccountMenuButton/>
     </template>
 
     <slot><RouterView/></slot>
+    <QuickSearchPalette/>
   </SidebarLayout>
 </template>

@@ -37,7 +37,7 @@ import java.util.UUID;
  * All public methods accept and return typed objects. JSON serialization/deserialization
  * is handled internally — callers never deal with raw JSON strings.
  * <p>
- * The embedded {@link tools.jackson.databind.json.JsonMapper} intentionally disables
+ * The embedded {@link JsonMapper} intentionally disables
  * {@code FAIL_ON_UNKNOWN_PROPERTIES} so a federation peer running a newer protocol
  * version can add fields to a response without breaking older peers. The main API
  * mapper in {@code ApiServer.jacksonMapper()} keeps the strict default for
@@ -47,7 +47,8 @@ import java.util.UUID;
 public class FederationHttpClient {
     private static final Logger log = LoggerFactory.getLogger(FederationHttpClient.class);
 
-    private final HttpClient httpClient;
+    private final HttpClient httpsClient;
+    private final HttpClient httpClient1;
     private final FederationSigningService signingService;
     private final StationRepository stationRepository;
     private final RemoteUrlValidator urlValidator;
@@ -61,11 +62,28 @@ public class FederationHttpClient {
         this.signingService = signingService;
         this.stationRepository = stationRepository;
         this.urlValidator = urlValidator;
-        this.httpClient = HttpClient.newHttpClient();
+        this.httpsClient = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_2)
+                .connectTimeout(java.time.Duration.ofSeconds(10))
+                .build();
+        this.httpClient1 = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
+                .connectTimeout(java.time.Duration.ofSeconds(10))
+                .build();
         this.mapper = JsonMapper.builder()
                 .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
                 .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
                 .build();
+    }
+
+    /**
+     * Picks the HTTP client to use for a given remote URL. HTTPS gets the HTTP/2-capable
+     * client; plain HTTP gets the HTTP/1.1 client so that Node-based dev fronts (e.g. a
+     * Nuxt dev server proxying the backend) don't hang on the JDK client's {@code Upgrade: h2c}
+     * preamble.
+     */
+    private HttpClient clientFor(String url) {
+        return url != null && url.startsWith("https://") ? httpsClient : httpClient1;
     }
 
     /**
@@ -361,6 +379,7 @@ public class FederationHttpClient {
                 .uri(uri)
                 .header("X-Federation-Station-Id", stationUid)
                 .header("X-Federation-Station-Name", resolveStationName(localStationId))
+                .header("X-Federation-Target-Station-Id", partnerStationUid.toString())
                 .header("X-Federation-Signature", signature)
                 .header("X-Federation-Timestamp", timestampStr)
                 .header("X-Federation-Nonce", nonce)
@@ -372,6 +391,6 @@ public class FederationHttpClient {
         }
         builder.method(method, publisher);
 
-        return httpClient.send(builder.build(), HttpResponse.BodyHandlers.ofString());
+        return clientFor(url).send(builder.build(), HttpResponse.BodyHandlers.ofString());
     }
 }

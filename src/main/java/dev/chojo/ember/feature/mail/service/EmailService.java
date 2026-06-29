@@ -18,6 +18,7 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
@@ -155,7 +156,18 @@ public class EmailService {
     }
 
     /**
-     * Queue a station notification email. Limit checks happen at send time.
+     * Routes a per-station notification email through the station's own outbound mailbox.
+     *
+     * <p><strong>Use only for high-volume aggregate notifications</strong> (event reminders,
+     * digests, attendance summaries) — anything where missing one is acceptable and where the
+     * station's daily/monthly send caps should apply. Per-station relays may be unconfigured or
+     * temporarily over their cap, in which case nothing is delivered.
+     *
+     * <p><strong>Do not use for mandatory transactional mail</strong> (account verification,
+     * password reset, invites, application status, waitlist confirmations, security notices).
+     * Route those through {@link #enqueueGlobal} via one of the {@code send*} helpers so the
+     * instance-wide mail relay carries them — guaranteeing delivery even when the station has not
+     * configured its own outbound relay.
      */
     public void queueStationEmail(int stationId, String to, String subject, String htmlBody) {
         if (demoConfig.enabled()) {
@@ -202,6 +214,35 @@ public class EmailService {
     }
 
     /**
+     * Sends a station-member invite email to a freshly invited recipient. Routed through the
+     * instance-wide mail relay because it is mandatory transactional mail and must work even
+     * when the station has not configured its own outbound notification relay yet.
+     */
+    public void sendStationMemberInviteEmail(
+            String email,
+            String name,
+            String inviterName,
+            String stationName,
+            String token,
+            String expiresAt,
+            String locale,
+            Integer stationId) {
+        String url = api.baseUrl() + "/invite/" + token;
+        var vars = baseVars(name, stationId);
+        vars.put("url", url);
+        vars.put("inviterName", inviterName != null ? inviterName : "");
+        vars.put("stationName", stationName != null ? stationName : "");
+        vars.put("expiresAt", expiresAt != null ? expiresAt : "");
+        if (stationId != null) {
+            vars.put("logoUrl", api.baseUrl() + "/api/v1/stations/" + stationId + "/logo");
+        }
+        enqueueGlobal(
+                email,
+                resolveSubject(locale, "station-member-invite", stationName),
+                loadTemplate("station-member-invite.html", locale, vars));
+    }
+
+    /**
      * Notifies an existing account holder that someone attempted to register a new account
      * using their email address. Sent in lieu of returning a duplicate-email error to the
      * registration caller, so the public registration endpoint cannot be used to enumerate
@@ -231,7 +272,7 @@ public class EmailService {
      * fresh on next login. {@code actorLabel} is the admin's email (or a generic
      * "administrator" fallback when unknown).
      */
-    public void sendTwoFactorResetNotice(String email, String name, String actorLabel, java.time.Instant resetAt) {
+    public void sendTwoFactorResetNotice(String email, String name, String actorLabel, Instant resetAt) {
         var vars = baseVars(name, null);
         vars.put("loginUrl", api.baseUrl() + "/login");
         vars.put("actor", actorLabel != null && !actorLabel.isBlank() ? actorLabel : "an administrator");
@@ -351,6 +392,11 @@ public class EmailService {
                 loadTemplate("application-received.html", locale, vars));
     }
 
+    /**
+     * Sends the transactional confirmation that a public waiting-list registration has been
+     * recorded. Routed through the instance-wide mail relay rather than the station relay
+     * because it is mandatory transactional mail, not aggregate notification traffic.
+     */
     public void sendWaitlistRegistrationEmail(
             String email, String name, String accessToken, String stationName, String locale, Integer stationId) {
         String url = api.baseUrl() + "/waiting-list/status?token=" + accessToken;
@@ -359,19 +405,17 @@ public class EmailService {
         vars.put("stationName", stationName != null ? stationName : "");
         if (stationId != null) {
             vars.put("logoUrl", api.baseUrl() + "/api/v1/stations/" + stationId + "/logo");
-            queueStationEmail(
-                    stationId,
-                    email,
-                    resolveSubject(locale, "waitlist-registered", stationName),
-                    loadTemplate("waitlist-registered.html", locale, vars));
-        } else {
-            enqueueGlobal(
-                    email,
-                    resolveSubject(locale, "waitlist-registered", stationName),
-                    loadTemplate("waitlist-registered.html", locale, vars));
         }
+        enqueueGlobal(
+                email,
+                resolveSubject(locale, "waitlist-registered", stationName),
+                loadTemplate("waitlist-registered.html", locale, vars));
     }
 
+    /**
+     * Sends the transactional reminder to confirm an outstanding waiting-list spot. Routed
+     * through the instance-wide mail relay because it is mandatory transactional mail.
+     */
     public void sendWaitlistConfirmReminderEmail(
             String email, String name, String accessToken, String stationName, String locale, Integer stationId) {
         String url = api.baseUrl() + "/waiting-list/status?token=" + accessToken;
@@ -380,19 +424,17 @@ public class EmailService {
         vars.put("stationName", stationName != null ? stationName : "");
         if (stationId != null) {
             vars.put("logoUrl", api.baseUrl() + "/api/v1/stations/" + stationId + "/logo");
-            queueStationEmail(
-                    stationId,
-                    email,
-                    resolveSubject(locale, "waitlist-confirm-reminder", stationName),
-                    loadTemplate("waitlist-confirm-reminder.html", locale, vars));
-        } else {
-            enqueueGlobal(
-                    email,
-                    resolveSubject(locale, "waitlist-confirm-reminder", stationName),
-                    loadTemplate("waitlist-confirm-reminder.html", locale, vars));
         }
+        enqueueGlobal(
+                email,
+                resolveSubject(locale, "waitlist-confirm-reminder", stationName),
+                loadTemplate("waitlist-confirm-reminder.html", locale, vars));
     }
 
+    /**
+     * Sends the transactional warning that a waiting-list entry will be removed shortly.
+     * Routed through the instance-wide mail relay because it is mandatory transactional mail.
+     */
     public void sendWaitlistRemovalWarningEmail(
             String email, String name, String accessToken, String stationName, String locale, Integer stationId) {
         String url = api.baseUrl() + "/waiting-list/status?token=" + accessToken;
@@ -401,19 +443,17 @@ public class EmailService {
         vars.put("stationName", stationName != null ? stationName : "");
         if (stationId != null) {
             vars.put("logoUrl", api.baseUrl() + "/api/v1/stations/" + stationId + "/logo");
-            queueStationEmail(
-                    stationId,
-                    email,
-                    resolveSubject(locale, "waitlist-removal-warning", stationName),
-                    loadTemplate("waitlist-removal-warning.html", locale, vars));
-        } else {
-            enqueueGlobal(
-                    email,
-                    resolveSubject(locale, "waitlist-removal-warning", stationName),
-                    loadTemplate("waitlist-removal-warning.html", locale, vars));
         }
+        enqueueGlobal(
+                email,
+                resolveSubject(locale, "waitlist-removal-warning", stationName),
+                loadTemplate("waitlist-removal-warning.html", locale, vars));
     }
 
+    /**
+     * Sends the transactional verification email for a public waiting-list registration.
+     * Routed through the instance-wide mail relay because it is mandatory transactional mail.
+     */
     public void sendWaitlistVerifyEmail(
             String email, String name, String stationName, String token, String locale, Integer stationId) {
         String url = api.baseUrl() + "/public/waitlist/verify?token=" + token;
@@ -422,17 +462,11 @@ public class EmailService {
         vars.put("stationName", stationName != null ? stationName : "");
         if (stationId != null) {
             vars.put("logoUrl", api.baseUrl() + "/api/v1/stations/" + stationId + "/logo");
-            queueStationEmail(
-                    stationId,
-                    email,
-                    resolveSubject(locale, "waitlist-verify", stationName),
-                    loadTemplate("waitlist-verify.html", locale, vars));
-        } else {
-            enqueueGlobal(
-                    email,
-                    resolveSubject(locale, "waitlist-verify", stationName),
-                    loadTemplate("waitlist-verify.html", locale, vars));
         }
+        enqueueGlobal(
+                email,
+                resolveSubject(locale, "waitlist-verify", stationName),
+                loadTemplate("waitlist-verify.html", locale, vars));
     }
 
     /**
@@ -550,6 +584,14 @@ public class EmailService {
         return mailing.senderName();
     }
 
+    /**
+     * Routes a mandatory transactional email through the instance-wide mail relay.
+     *
+     * <p>Every {@code send*} helper on this service for account-, station-, application-, invite-,
+     * waitlist-, and security-related mail delegates here. The instance relay carries these
+     * regardless of whether the originating station has configured its own outbound mailbox, and
+     * the per-station daily/monthly send caps do not apply.
+     */
     private void enqueueGlobal(String to, String subject, String htmlBody) {
         if (demoConfig.enabled()) {
             log.info("Demo mode: Suppressed email to={} subject={}", to, subject);
@@ -659,6 +701,10 @@ public class EmailService {
                 "de".equals(locale)
                         ? "Wartelisten-Entfernung in 2 Wochen" + string
                         : "Waiting list removal in 2 weeks" + string;
+            case "station-member-invite" ->
+                "de".equals(locale)
+                        ? "Du wurdest zu " + stationName + " eingeladen"
+                        : "You have been invited to " + stationName;
             default -> template;
         };
     }

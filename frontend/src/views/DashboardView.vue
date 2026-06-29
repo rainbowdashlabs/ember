@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref, watch} from 'vue'
+import {computed, onBeforeUnmount, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import SidebarLayout from '@/components/layout/SidebarLayout.vue'
@@ -12,6 +12,7 @@ import SidebarGroup from '@/components/navigation/SidebarGroup.vue'
 import SidebarLink from '@/components/navigation/SidebarLink.vue'
 import StationSwitcher from '@/components/navigation/StationSwitcher.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import IconButton from '@/components/button/IconButton.vue'
 import AccountMenuButton from '@/components/layout/AccountMenuButton.vue'
 import {boards} from '@/api'
 import type {Board} from '@/api/boards'
@@ -28,6 +29,11 @@ import ReportProblemButton from '@/components/feedback/ReportProblemButton.vue'
 import DevToolsButton from '@/components/feedback/DevToolsButton.vue'
 import {useOnboardingTour} from '@/composables/useOnboardingTour'
 import InventorySidebarGroup from '@/views/dashboardview/InventorySidebarGroup.vue'
+import SetupSidebarGroup from '@/views/dashboardview/SetupSidebarGroup.vue'
+import QuickSearchPalette from '@/components/quicksearch/QuickSearchPalette.vue'
+import QuickSearchTrigger from '@/components/quicksearch/QuickSearchTrigger.vue'
+import {useQuickSearch} from '@/composables/useQuickSearch'
+import {useStationTransferStatus} from '@/composables/useStationTransferStatus'
 
 const {t, te} = useI18n()
 const route = useRoute()
@@ -52,16 +58,40 @@ const {
 const {activeStation, activeLogoUrl} = useStations()
 const {counts, refresh: refreshSidebarCounts} = useSidebarCounts()
 const {bookmarks: bookmarkedBoards, refresh: refreshBookmarkedBoards} = useFederatedBoardBookmarks()
+const {
+  status: transferStatus,
+  hasMoved: stationMoved,
+  load: loadTransferStatus,
+  reset: resetTransferStatus,
+} = useStationTransferStatus()
 
 const isDemo = ref(false)
 const visibleBoards = ref<Board[]>([])
 const openGroup = ref<string | null>(null)
 const isDesktop = ref(window.matchMedia('(min-width: 1024px)').matches)
 
+const {open: openQuickSearch, close: closeQuickSearch, isOpen: quickSearchOpen} = useQuickSearch()
+
+function onGlobalKeydown(event: KeyboardEvent) {
+  const isCtrlK = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k'
+  if (!isCtrlK) return
+  event.preventDefault()
+  if (quickSearchOpen.value) {
+    closeQuickSearch()
+  } else {
+    openQuickSearch('station')
+  }
+}
+
 onMounted(() => {
   const mq = window.matchMedia('(min-width: 1024px)')
   const handler = (e: MediaQueryListEvent) => { isDesktop.value = e.matches }
   mq.addEventListener('change', handler)
+  window.addEventListener('keydown', onGlobalKeydown)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onGlobalKeydown)
 })
 
 const {checkFirstLogin} = useOnboardingTour()
@@ -78,6 +108,8 @@ onMounted(async () => {
   if (!loaded.value) {
     load()
   }
+  resetTransferStatus()
+  loadTransferStatus()
   try {
     const res = await client.get<{ demo: boolean }>('/demo/status')
     isDemo.value = res.data.demo
@@ -85,6 +117,26 @@ onMounted(async () => {
     isDemo.value = false
   }
 })
+
+watch(
+    () => activeStation.value?.stationId,
+    () => {
+      resetTransferStatus()
+      loadTransferStatus()
+    },
+)
+
+watch(
+    [stationMoved, () => route.name],
+    ([moved, currentName]) => {
+      if (!moved) return
+      const allowed = new Set(['station-moved', 'station-moved-delete'])
+      if (typeof currentName === 'string' && !allowed.has(currentName)) {
+        router.replace({name: 'station-moved'})
+      }
+    },
+    {immediate: true},
+)
 
 watch(loaded, (isLoaded) => {
   if (!isLoaded) return
@@ -101,6 +153,14 @@ watch(loaded, (isLoaded) => {
         query: {redirect: route.fullPath},
       })
     }
+    return
+  }
+  if (
+      hasPermission(StationPermission.STATION_ADMINISTRATOR)
+      && sessionInfo.value?.setupCompletedAt == null
+      && !route.path.startsWith('/station/setup')
+  ) {
+    router.replace({name: 'station-setup'})
     return
   }
   refreshSidebarCounts()
@@ -144,6 +204,32 @@ const manageDefaultRoute = computed(() => {
   <SidebarLayout :station-logo-url="activeLogoUrl" :station-name="activeStation?.stationName" :subtitle="pageSubtitle"
                  :title="pageTitle">
     <template #sidebar="{ close }">
+      <SidebarGroup v-if="stationMoved"
+                    :open-group="isDesktop ? undefined : openGroup"
+                    @update:open-group="v => openGroup = v"
+                    :icon="['fas', 'map-location-dot']"
+                    :label="t('sidebar.stationMoved')"
+                    to="/station/moved"
+                    name="station-moved"
+                    @navigate="close"/>
+
+      <SidebarGroup v-if="stationMoved && hasPermission(StationPermission.STATION_ADMINISTRATOR)"
+                    :open-group="isDesktop ? undefined : openGroup"
+                    @update:open-group="v => openGroup = v"
+                    :icon="['fas', 'trash']"
+                    :label="t('pages.station-moved.tabDelete')"
+                    to="/station/moved/delete"
+                    name="station-moved-delete"
+                    @navigate="close"/>
+
+      <template v-else>
+      <SetupSidebarGroup
+          v-if="hasPermission(StationPermission.STATION_ADMINISTRATOR) && sessionInfo?.setupCompletedAt == null"
+          :is-desktop="isDesktop"
+          :open-group="openGroup"
+          @update:open-group="v => openGroup = v"
+          @navigate="close"/>
+
       <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" :badge="counts.notifications" :icon="['fas', 'gauge']" :label="t('sidebar.dashboard')" prefix="/station/dashboard" to="/station/dashboard/overview" name="dashboard-overview" @navigate="close">
         <SidebarLink v-if="hasPermission(StationPermission.STATION_STATISTICS)" :icon="['fas', 'chart-line']" name="dashboard-statistics"
                      to="/station/dashboard/statistics" @navigate="close">
@@ -346,11 +432,13 @@ const manageDefaultRoute = computed(() => {
           {{ t('sidebar.discovery') }}
         </SidebarLink>
       </SidebarGroup>
+      </template>
 
     </template>
 
     <template #header>
       <div class="hidden lg:flex"><StationSwitcher/></div>
+      <QuickSearchTrigger scope="station" @open="openQuickSearch"/>
       <HelpCenterLink/>
 
       <router-link v-if="isAdmin()" to="/admin/dashboard/overview">
@@ -370,9 +458,10 @@ const manageDefaultRoute = computed(() => {
     <Alert v-if="isDemo" class="mb-4" variant="info">
       {{ t('demo.banner') }}
     </Alert>
-    <slot><RouterView/></slot>
+    <slot v-if="loaded && sessionInfo?.member"><RouterView/></slot>
     <OnboardingTour/>
     <ReportProblemButton/>
     <DevToolsButton/>
+    <QuickSearchPalette/>
   </SidebarLayout>
 </template>

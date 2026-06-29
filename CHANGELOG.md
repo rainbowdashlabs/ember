@@ -1,5 +1,30 @@
 # Changelog
 
+## v26.10.1
+
+### New Features
+
+#### Station setup walkthrough
+
+- **Setup wizard at /station/setup.** Administrators of a freshly-created station land on a guided walkthrough that covers the address and pin on the map, module selection, member-type permissions, optional member groups, the station's own outbound mail relay, branding, federation visibility (public by default), a first event, an initial knowledge-base page, and member invites. The standard sidebar shows the steps with check marks for what is already done.
+- **Pinned setup checklist on the dashboard.** While any step is still open, the dashboard shows a checklist with direct links into the wizard. It disappears once an administrator clicks the finish page to mark setup complete.
+- **Member invites by email.** Administrators can invite people by email from the wizard or from the regular members screen. Each recipient gets a single-use link, lands on /invite/<token>, sets a password, and joins the station without the administrator having to create an account first. Invites carry the recipient's name, member type, optional group, and optional guardians; pending invites can be revoked.
+- **Roster CSV import in the invite step.** The invite step hands off to the existing member-import screen with full column-mapping (name, email, groups, guardians, profile fields) and preview, then lands back in the wizard once the import is done.
+
+### Changes
+
+- **Waitlist emails go through the instance mail relay.** Verification, registration confirmation, confirm-reminder, and removal-warning emails for the public waiting list now route over the instance-wide mailbox just like account verification and password-reset emails. Stations no longer need their own mail relay set up for these to arrive, and the per-station daily and monthly send caps no longer apply to them.
+- **Cross-instance transfer ships less data.** Transferring a station no longer copies the smaller resized renders of every page image. Only the uploaded original travels and the destination rebuilds the resized set locally, so image-heavy stations move in a fraction of the previous bandwidth.
+- **Page image storage roughly halved for new uploads.** Each page image now keeps the uploaded original plus a WebP rendition at each configured width. The redundant original-format resizes are no longer generated; existing stations keep their old files until those images are re-uploaded.
+- **Transfer progress shows a stable file total.** The per-category file count on the transfer progress page now reflects the full number of files up front instead of climbing as new pages of work are discovered.
+- **Two uploads at a time in the page files browser.** Dropping a batch of files into the page files browser uploads two in parallel instead of strictly one after the other, roughly halving the wall-clock time for typical batches.
+- **Storage reconciliation also removes orphan files.** The daily reconciliation now deletes files on disk whose owning record is gone (page files, knowledge-base files, lost-and-found, quiz question, and knowledge-base folder icons), so deleted content no longer keeps consuming disk space until the station is rebuilt. Knowledge-base inline images and board attachments are intentionally left alone for now.
+- **Deleting a station also removes accounts that have nothing else to belong to.** When a station is deleted, accounts that were only connected to that station and are not instance administrators are removed alongside it. The same cleanup runs when a cross-instance transfer fails part-way, so half-imported accounts are no longer left as ghost rows.
+
+### Fixes
+
+- **Cross-instance transfer carries members without email.** Applicants too young to have an email address (for example youth registered by a guardian through the waiting list) now arrive on the destination station along with the trial-membership and waiting-list entries that pointed at them. Previously every member without an email was silently dropped together with the trial entry that referenced them.
+
 ## v26.10.0
 
 ### New Features

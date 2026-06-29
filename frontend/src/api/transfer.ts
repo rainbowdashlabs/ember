@@ -19,9 +19,11 @@ export interface ImportProgress {
     stationId: string
     stationName: string
     status: 'IN_PROGRESS' | 'COMPLETED' | 'FAILED'
-    totalTables: number
-    completedTables: number
-    currentTable: string | null
+    phases: string[]
+    completedPhases: number
+    currentPhase: string | null
+    subTotal: number
+    subCompleted: number
     error: string | null
 }
 
@@ -30,12 +32,27 @@ export async function createTransferToken(): Promise<TransferToken> {
     return res.data
 }
 
-export async function startImport(sourceUrl: string, token: string): Promise<ImportStartResult> {
-    const res = await client.post<ImportStartResult>('/admin/transfer/import', {sourceUrl, token})
+export async function startImport(token: string): Promise<ImportStartResult> {
+    const res = await client.post<ImportStartResult>('/admin/transfer/import', {token})
     return res.data
 }
 
 export async function getImportProgress(stationId: string): Promise<ImportProgress> {
     const res = await client.get<ImportProgress>(`/admin/transfer/import/${stationId}/progress`)
+    return res.data
+}
+
+export interface TransferStatus {
+    readOnly: boolean
+    targetInstanceUrl: string | null
+}
+
+export async function getTransferStatus(): Promise<TransferStatus> {
+    const res = await client.get<TransferStatus>('/station/transfer/status')
+    return res.data
+}
+
+export async function deleteMovedStation(): Promise<{message: string}> {
+    const res = await client.post<{message: string}>('/station/manage/delete-moved')
     return res.data
 }

@@ -12,9 +12,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import type {Station} from '@/api/types'
 import {stations, transfer} from '@/api'
-import type {ImportProgress} from '@/api/transfer'
 import StationsGrid from './adminstationsview/StationsGrid.vue'
-import StationImportProgress from './adminstationsview/StationImportProgress.vue'
 import StationImportModal from './adminstationsview/StationImportModal.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
@@ -47,48 +45,23 @@ function navigateToEdit(id: string) {
   router.push({name: 'admin-station-edit', params: {id}})
 }
 
-const importSourceUrl = ref('')
 const importToken = ref('')
-const importProgress = ref<ImportProgress | null>(null)
 const importing = ref(false)
 const showImportModal = ref(false)
-let pollTimer: ReturnType<typeof setInterval> | null = null
 
 async function handleStartImport() {
-  if (!importSourceUrl.value || !importToken.value) return
+  if (!importToken.value) return
   importing.value = true
-  importProgress.value = null
-  showImportModal.value = false
   error.value = ''
   try {
-    const result = await transfer.startImport(importSourceUrl.value, importToken.value)
-    await pollProgress(result.stationId)
+    const result = await transfer.startImport(importToken.value)
+    showImportModal.value = false
+    router.push({name: 'admin-station-import', params: {stationUid: result.stationId}})
   } catch {
     error.value = t('common.error')
+  } finally {
     importing.value = false
   }
-}
-
-async function pollProgress(stationId: string) {
-  pollTimer = setInterval(async () => {
-    try {
-      const progress = await transfer.getImportProgress(stationId)
-      importProgress.value = progress
-      if (progress.status === 'COMPLETED' || progress.status === 'FAILED') {
-        if (pollTimer) clearInterval(pollTimer)
-        pollTimer = null
-        importing.value = false
-        if (progress.status === 'COMPLETED') {
-          await loadStations()
-        }
-      }
-    } catch {
-      if (pollTimer) clearInterval(pollTimer)
-      pollTimer = null
-      importing.value = false
-      error.value = t('common.error')
-    }
-  }, 1000)
 }
 
 </script>
@@ -107,11 +80,8 @@ async function pollProgress(stationId: string) {
           @edit="navigateToEdit"
           @delete="requestDelete"/>
 
-      <StationImportProgress v-if="importProgress" :progress="importProgress"/>
-
       <StationImportModal
           v-model="showImportModal"
-          v-model:source-url="importSourceUrl"
           v-model:token="importToken"
           :importing="importing"
           @start="handleStartImport"/>

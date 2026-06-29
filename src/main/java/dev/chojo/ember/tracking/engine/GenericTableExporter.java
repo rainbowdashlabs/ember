@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.tracking.engine;
 
+import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.tracking.CustomScope;
 import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.ForeignKey;
@@ -13,6 +14,7 @@ import dev.chojo.ember.tracking.OutputShape;
 import dev.chojo.ember.tracking.Status;
 import dev.chojo.ember.tracking.TableEntry;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -192,30 +194,53 @@ public final class GenericTableExporter {
 
     private String buildCustomScopeSql(
             TableEntry table, String tableName, List<String> columns, List<Lookup> lookups, CustomScope customScope) {
-        // The viaTable must itself resolve to a station-scoped path.
-        var viaScope = scopeResolver
-                .resolve(customScope.viaTable())
-                .orElseThrow(() -> new IllegalStateException(
-                        "customScope.viaTable " + customScope.viaTable() + " is not station-scoped"));
-
         var sb = new StringBuilder("SELECT ");
         appendSelect(sb, columns, lookups);
         sb.append(" FROM ").append(tableName).append(" t");
         appendLookupJoins(sb, table, lookups);
+        sb.append(" WHERE ").append(buildCustomScopeFilter(customScope, "t", 0));
+        appendOrderAndPagination(sb, columns);
+        return sb.toString();
+    }
 
-        // Filter: t.<refColumn> IN (SELECT [DISTINCT] vt.<viaColumn> FROM viaTable vt
-        //                          [JOIN viaScope chain] WHERE viaScope.col = :stationId AND vt.viaColumn IS NOT NULL)
-        sb.append(" WHERE t.").append(customScope.refColumn()).append(" IN (SELECT ");
+    /**
+     * Renders the {@code IN (SELECT …)} filter that scopes {@code parentAlias.<refColumn>} via
+     * the {@code customScope}'s viaTable. Recursive: when {@code viaTable} itself has a custom
+     * scope (e.g. {@code federation_lending_message} → {@code federation_lending_request} →
+     * {@code station}), the inner query nests through the chain. Otherwise the inner query
+     * joins through the viaTable's FK-resolved scope path.
+     *
+     * @param depth nesting depth, used to generate non-colliding aliases for the recursive case
+     */
+    private String buildCustomScopeFilter(CustomScope customScope, String parentAlias, int depth) {
+        String vt = "vt" + depth;
+        var sb = new StringBuilder();
+        sb.append(parentAlias).append('.').append(customScope.refColumn()).append(" IN (SELECT ");
         if (customScope.distinct()) sb.append("DISTINCT ");
-        sb.append("vt.").append(customScope.viaColumn()).append(" FROM ");
-        sb.append(customScope.viaTable()).append(" vt");
+        sb.append(vt).append('.').append(customScope.viaColumn());
+        sb.append(" FROM ").append(customScope.viaTable()).append(' ').append(vt);
 
+        var via = tracking.tables() == null ? null : tracking.tables().get(customScope.viaTable());
+        if (via != null && via.customScope() != null) {
+            sb.append(" WHERE ").append(buildCustomScopeFilter(via.customScope(), vt, depth + 1));
+            sb.append(" AND ")
+                    .append(vt)
+                    .append('.')
+                    .append(customScope.viaColumn())
+                    .append(" IS NOT NULL)");
+            return sb.toString();
+        }
+
+        var viaScope = scopeResolver
+                .resolve(customScope.viaTable())
+                .orElseThrow(() -> new IllegalStateException(
+                        "customScope.viaTable " + customScope.viaTable() + " is not station-scoped"));
         Map<String, String> vAlias = new LinkedHashMap<>();
-        vAlias.put(customScope.viaTable(), "vt");
+        vAlias.put(customScope.viaTable(), vt);
         int aliasIdx = 0;
         for (var join : viaScope.joins()) {
             String fromAlias = vAlias.get(join.from());
-            String newAlias = "vs" + aliasIdx++;
+            String newAlias = "vs" + depth + "_" + aliasIdx++;
             vAlias.put(join.fk().refTable(), newAlias);
             sb.append(" JOIN ")
                     .append(join.fk().refTable())
@@ -234,11 +259,11 @@ public final class GenericTableExporter {
                 .append(vAlias.get(viaScope.terminalTable()))
                 .append('.')
                 .append(viaScope.scopeColumn())
-                .append(" = :stationId AND vt.")
+                .append(" = :stationId AND ")
+                .append(vt)
+                .append('.')
                 .append(customScope.viaColumn())
                 .append(" IS NOT NULL)");
-
-        appendOrderAndPagination(sb, columns);
         return sb.toString();
     }
 
@@ -253,10 +278,24 @@ public final class GenericTableExporter {
                     var out = new LinkedHashMap<String, Object>();
                     for (int i = 1; i <= meta.getColumnCount(); i++) {
                         String typeName = meta.getColumnTypeName(i);
+                        String label = meta.getColumnLabel(i);
                         if ("jsonb".equals(typeName) || "json".equals(typeName)) {
-                            out.put(meta.getColumnLabel(i), row.getString(i));
+                            out.put(label, row.getString(i));
+                        } else if ("timestamptz".equals(typeName)
+                                || "timestamp".equals(typeName)
+                                || "timestamp with time zone".equals(typeName)
+                                || "timestamp without time zone".equals(typeName)) {
+                            // Wire format for timestamps is epoch milliseconds (long). Matches
+                            // GenericTableImporter.asInstant which already treats Number values as
+                            // epoch millis, and dodges JSON / locale / PG-version parsing edge
+                            // cases that a string ISO-8601 format runs into on the import side.
+                            // Routes through the SADU value converter rather than getObject(Instant)
+                            // because the JDBC driver's java.time mapping is not guaranteed across
+                            // every PG / driver version we ship against.
+                            Instant instant = row.get(i, StandardValueConverter.INSTANT_TIMESTAMP);
+                            out.put(label, instant == null ? null : instant.toEpochMilli());
                         } else {
-                            out.put(meta.getColumnLabel(i), row.getObject(i));
+                            out.put(label, row.getObject(i));
                         }
                     }
                     return out;

@@ -145,16 +145,20 @@ public class FederationRoutes implements Routes {
     private void listPartners(Context ctx) {
         var session = UserSession.from(ctx);
         var partners = service.findPartners(session.stationId());
-        // Enrich with station names
         ctx.json(partners.stream()
-                .map(p -> {
-                    String partnerName = stationRepository
-                            .findByUid(p.partnerStationId())
-                            .map(Station::name)
-                            .orElse("Unknown");
-                    return new PartnerResponse(p, partnerName);
-                })
+                .map(p -> new PartnerResponse(p, resolvePartnerName(p)))
                 .toList());
+    }
+
+    /**
+     * Resolves the displayed name of a federation partner. Prefers the local station name when
+     * the partner row points at a station that lives on this instance; falls back to the cached
+     * {@code partner_station_name} (captured at partnership creation time) when the partner is
+     * remote; ultimately returns "Unknown" only when neither is known.
+     */
+    private String resolvePartnerName(FederationPartner partner) {
+        return dev.chojo.ember.feature.federation.service.FederationDisplayNames.partnerName(
+                stationRepository, partner, "Unknown");
     }
 
     private void createInvite(Context ctx) {
@@ -269,11 +273,7 @@ public class FederationRoutes implements Routes {
     private void getPartner(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var partner = service.findPartner(id).orElseThrow(NotFoundResponse::new);
-        String partnerName = stationRepository
-                .findByUid(partner.partnerStationId())
-                .map(Station::name)
-                .orElse("Unknown");
-        ctx.json(new PartnerResponse(partner, partnerName));
+        ctx.json(new PartnerResponse(partner, resolvePartnerName(partner)));
     }
 
     private void suspendPartner(Context ctx) {

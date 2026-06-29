@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.account.entity;
 
 import dev.chojo.ember.api.auth.InstanceUserType;
 
+import java.util.UUID;
+
 /**
  * Result of a registration attempt.
  *
@@ -40,7 +42,6 @@ public record RegistrationResult(boolean success, String message, Account accoun
         return new RegistrationResult(
                 true,
                 null,
-                new Account(
-                        0, java.util.UUID.randomUUID(), email, firstName, lastName, false, InstanceUserType.USER, ""));
+                new Account(0, UUID.randomUUID(), email, firstName, lastName, false, InstanceUserType.USER, ""));
     }
 }

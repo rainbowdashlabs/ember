@@ -94,17 +94,17 @@ public class AdminSettingsRoutes implements Routes {
     /**
      * Parses the {@code locale} path parameter, validates it against
      * {@link #SAFE_LOCALE}, and checks that the resolved directory stays inside
-     * {@code base}. Throws {@link io.javalin.http.BadRequestResponse} on any
+     * {@code base}. Throws {@link BadRequestResponse} on any
      * mismatch so the route returns 400 with a static, user-safe message.
      */
     private static String safeLocale(Context ctx, Path base) {
         String locale = ctx.pathParam("locale");
         if (locale == null || !SAFE_LOCALE.matcher(locale).matches()) {
-            throw new io.javalin.http.BadRequestResponse("Invalid locale");
+            throw new BadRequestResponse("Invalid locale");
         }
         Path resolved = base.resolve(locale).normalize();
         if (!resolved.startsWith(base.normalize())) {
-            throw new io.javalin.http.BadRequestResponse("Invalid locale");
+            throw new BadRequestResponse("Invalid locale");
         }
         return locale;
     }
@@ -115,7 +115,7 @@ public class AdminSettingsRoutes implements Routes {
         // caught here rather than escaping the legal directory.
         Path resolved = base.resolve(locale).normalize();
         if (!resolved.startsWith(base.normalize())) {
-            throw new io.javalin.http.BadRequestResponse("Invalid locale");
+            throw new BadRequestResponse("Invalid locale");
         }
         return resolved;
     }

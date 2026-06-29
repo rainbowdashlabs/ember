@@ -1210,6 +1210,18 @@ public class EventRepository {
     }
 
     /**
+     * Returns {@code true} if the station has at least one event. Used by the setup wizard's
+     * status endpoint to mark the "first event" optional step complete.
+     */
+    public boolean existsForStation(int stationId) {
+        return query("SELECT 1 FROM station_event WHERE station_id = :station_id LIMIT 1;")
+                .single(call().bind("station_id", stationId))
+                .map(row -> true)
+                .first()
+                .orElse(false);
+    }
+
+    /**
      * Time-window filter for the event picker.
      */
     public enum PickerMode {

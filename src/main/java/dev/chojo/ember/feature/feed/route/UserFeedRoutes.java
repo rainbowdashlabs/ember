@@ -59,6 +59,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("DefaultAnnotationParam")
@@ -464,7 +465,7 @@ public class UserFeedRoutes implements Routes {
             String feedToken,
             boolean verbose,
             boolean images,
-            java.util.UUID stationUid) {
+            UUID stationUid) {
         var ctx = new NotificationFeedRenderer.RenderContext(locale, baseUrl, feedToken, verbose, images, stationUid);
         var entries = new ArrayList<SyndEntry>(notifications.size());
         for (var n : notifications) {
