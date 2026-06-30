@@ -752,10 +752,11 @@ class EventServiceTest extends RepositoryTestBase {
     @Test
     @Order(121)
     void findUpcomingOccurrencesRecurring() {
-        // Create a RECURRING event for a specific day of week
+        // Match today's day-of-week so the first occurrence lands on d=0, before any
+        // break created by earlier tests (e.g. the Summer break 2026-07-01 to 2026-08-31).
         var start = Instant.now().plus(1, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        int dow = LocalDate.now(ZoneOffset.UTC).plusDays(1).getDayOfWeek().getValue();
+        int dow = LocalDate.now(ZoneOffset.UTC).getDayOfWeek().getValue();
 
         var event = service.create(
                 station.id(),
