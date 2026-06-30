@@ -593,6 +593,7 @@ export interface Form {
     restricted?: boolean
     purpose: FormPurposeName
     publicUid: string
+    responseCount: number
 }
 
 export interface FormListEntry {
@@ -662,7 +663,7 @@ export interface FormQuestionRequest {
     description?: string
     required?: boolean
     shuffle?: boolean
-    config?: string
+    config?: unknown
 }
 
 export interface FormRestrictions {
@@ -686,6 +687,7 @@ export interface FormAnalytics {
     formId: number
     totalResponses: number
     questions: FormQuestionAnalytics[]
+    missingResponses: MemberIdentity[]
 }
 
 export interface FormQuestionAnalytics {

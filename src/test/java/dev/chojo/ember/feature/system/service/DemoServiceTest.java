@@ -18,6 +18,8 @@ import dev.chojo.ember.feature.board.service.BoardAttachmentService;
 import dev.chojo.ember.feature.board.service.BoardService;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
 import dev.chojo.ember.feature.board.service.FederatedBoardService;
+import dev.chojo.ember.feature.checklist.repository.ChecklistRepository;
+import dev.chojo.ember.feature.checklist.service.ChecklistService;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
@@ -269,6 +271,9 @@ class DemoServiceTest extends RepositoryTestBase {
                 quizCatalogRepo);
         var newsSeeder = new DemoNewsSeeder(newsService, stationMemberRepo);
         var lostAndFoundSeederLocal = new DemoLostAndFoundSeeder(lostAndFoundService);
+        var checklistService =
+                new ChecklistService(new ChecklistRepository(), stationMemberRepo, memberGroupRepo, userTagRepo);
+        var checklistSeederLocal = new DemoChecklistSeeder(checklistService);
 
         // -- DemoService --
         demoService = new DemoService(
@@ -299,6 +304,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 pageSeeder,
                 newsSeeder,
                 lostAndFoundSeederLocal,
+                checklistSeederLocal,
                 applicationSettingRepo,
                 exchangeService,
                 procurementService,

@@ -14,25 +14,27 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import Modal from '@/components/feedback/Modal.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useToast} from '@/composables/useToast'
 import {checklists, memberGroups, stationMembers, userTags} from '@/api'
 import type {
   ChecklistAddMembersResult,
+  ChecklistCellDto,
   ChecklistDetail,
   ChecklistRefreshResult,
   MemberGroup,
   StationMember,
   UserTag,
 } from '@/api/types'
+import EditButton from '@/components/button/EditButton.vue'
 import ChecklistMatrix from './checklistdetailview/ChecklistMatrix.vue'
 import ChecklistFilterBar from './checklistdetailview/ChecklistFilterBar.vue'
 import ChecklistRefreshButton from './checklistdetailview/ChecklistRefreshButton.vue'
 import ChecklistExportMenu from './checklistdetailview/ChecklistExportMenu.vue'
 import ChecklistAddMembersButton from './checklistdetailview/ChecklistAddMembersButton.vue'
 import ChecklistAddMembersModal from './ChecklistAddMembersModal.vue'
+import ChecklistEditModal from './ChecklistEditModal.vue'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -52,6 +54,8 @@ const showAddMembers = ref(false)
 const addingMembers = ref(false)
 const showDeleteConfirm = ref(false)
 const deleting = ref(false)
+const showEditMeta = ref(false)
+const savingMeta = ref(false)
 
 const checklistId = computed(() => Number(route.params.id))
 
@@ -70,10 +74,15 @@ const {loading, error, reload} = useAsyncLoader(async () => {
 
 watch(checklistId, () => reload())
 
-const aliveEntries = computed(() => detail.value?.entries.filter(e => !e.deletedAt) ?? [])
+const sortedEntries = computed(() =>
+    [...(detail.value?.entries ?? [])].sort((a, b) =>
+        a.memberName.localeCompare(b.memberName, 'de', {sensitivity: 'base'}),
+    ),
+)
+const aliveEntries = computed(() => sortedEntries.value.filter(e => !e.deletedAt))
 const allEntriesForFilter = computed(() => {
   if (!detail.value) return []
-  return showRemoved.value ? detail.value.entries : aliveEntries.value
+  return showRemoved.value ? sortedEntries.value : aliveEntries.value
 })
 
 function isChecked(entryId: number, columnId: number): boolean {
@@ -99,7 +108,14 @@ const visibleEntries = computed(() => {
 })
 
 const aliveMemberIds = computed(() => new Set(aliveEntries.value.map(e => e.memberId)))
-const removedEntries = computed(() => detail.value?.entries.filter(e => e.deletedAt != null) ?? [])
+const removedEntries = computed(() => sortedEntries.value.filter(e => e.deletedAt != null))
+
+function applyCell(cell: ChecklistCellDto) {
+  if (!detail.value) return
+  const idx = detail.value.cells.findIndex(c => c.entryId === cell.entryId && c.columnId === cell.columnId)
+  if (idx >= 0) detail.value.cells.splice(idx, 1, cell)
+  else detail.value.cells.push(cell)
+}
 
 async function onRefresh(): Promise<ChecklistRefreshResult> {
   if (!detail.value) throw new Error('Not loaded')
@@ -142,6 +158,38 @@ async function onBulkSet(columnId: number, entryIds: number[], checked: boolean)
   toast.show(t('checklist.bulkDone', {count: result.updated}), 'success')
 }
 
+async function onSaveMeta(payload: {name: string; description: string; orderedColumnIds: number[]}) {
+  if (!detail.value) return
+  savingMeta.value = true
+  try {
+    const updated = await checklists.updateChecklist(detail.value.id, {
+      name: payload.name,
+      description: payload.description,
+    })
+    detail.value.name = updated.name
+    detail.value.description = updated.description
+
+    const currentOrder = detail.value.columns.map(c => c.id).join(',')
+    if (payload.orderedColumnIds.join(',') !== currentOrder) {
+      const byId = new Map(detail.value.columns.map(c => [c.id, c]))
+      for (let i = 0; i < payload.orderedColumnIds.length; i++) {
+        const col = byId.get(payload.orderedColumnIds[i])
+        if (!col || col.position === i) continue
+        await checklists.updateColumn(detail.value.id, col.id, {
+          label: col.label,
+          description: col.description,
+          position: i,
+        })
+      }
+      await reload()
+    }
+    showEditMeta.value = false
+  } catch {
+    error.value = t('checklist.savingError')
+  }
+  savingMeta.value = false
+}
+
 async function confirmDeleteChecklist() {
   if (!detail.value) return
   deleting.value = true
@@ -175,6 +223,9 @@ async function confirmDeleteChecklist() {
           <p v-if="detail.description" class="text-sm text-(--text-muted)">{{ detail.description }}</p>
         </div>
         <div class="flex flex-wrap gap-2 items-center">
+          <EditButton @click="showEditMeta = true">
+            {{ t('checklist.editChecklist') }}
+          </EditButton>
           <ChecklistRefreshButton :last-refreshed-at="detail.lastRefreshedAt" :on-refresh="onRefresh"/>
           <ChecklistAddMembersButton @click="showAddMembers = true"/>
           <ChecklistExportMenu :checklist-id="detail.id"/>
@@ -200,7 +251,7 @@ async function confirmDeleteChecklist() {
             :detail="detail"
             :visible-entries="visibleEntries"
             v-model:column-filters="columnFilters"
-            @cell-change="reload"
+            @cell-change="applyCell"
             @delete-entry="onDeleteEntry"
             @bulk-set="onBulkSet"
             @columns-changed="reload"
@@ -216,18 +267,20 @@ async function confirmDeleteChecklist() {
           @submit="onAddMembers"
       />
 
-      <Modal v-model="showDeleteConfirm" size="md">
-        <div class="space-y-4">
-          <div class="font-semibold">{{ t('checklist.deleteChecklistTitle') }}</div>
-          <p>{{ t('checklist.deleteChecklistMessage', {name: detail.name}) }}</p>
-          <div class="flex justify-end gap-2">
-            <SecondaryButton @click="showDeleteConfirm = false">{{ t('checklist.cancel') }}</SecondaryButton>
-            <DeleteButton :disabled="deleting" @click="confirmDeleteChecklist">
-              {{ t('checklist.deleteChecklist') }}
-            </DeleteButton>
-          </div>
-        </div>
-      </Modal>
+      <ChecklistEditModal
+          v-model="showEditMeta"
+          :initial-name="detail.name"
+          :initial-description="detail.description"
+          :initial-columns="detail.columns"
+          :saving="savingMeta"
+          @submit="onSaveMeta"
+      />
+
+      <ConfirmDeleteModal
+          v-model="showDeleteConfirm"
+          :message="t('checklist.deleteChecklistMessage', {name: detail.name})"
+          @confirm="confirmDeleteChecklist"
+      />
     </template>
   </ViewContent>
 </template>

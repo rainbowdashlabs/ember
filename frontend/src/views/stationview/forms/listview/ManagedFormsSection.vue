@@ -8,7 +8,7 @@ import { useI18n } from 'vue-i18n'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import ManagedFormRow from './ManagedFormRow.vue'
+import ManagedFormTile from './ManagedFormTile.vue'
 import type { Form } from '@/api/types'
 
 defineProps<{
@@ -20,6 +20,7 @@ defineProps<{
 
 const emit = defineEmits<{
   (e: 'create'): void
+  (e: 'open', form: Form): void
   (e: 'publish', form: Form): void
   (e: 'close', form: Form): void
   (e: 'edit', form: Form): void
@@ -41,18 +42,14 @@ const { t } = useI18n()
 
     <EmptyState compact v-if="forms.length === 0">{{ t('forms.noForms') }}</EmptyState>
 
-    <div class="space-y-2">
-      <ManagedFormRow
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <ManagedFormTile
         v-for="form in forms"
         :key="form.id"
         :form="form"
         :can-create-polls="canCreatePolls"
         :status-label="statusLabel"
-        :publish-label="t('forms.publish')"
-        :close-label="t('forms.close')"
-        :edit-label="t('forms.edit')"
-        :analytics-label="t('forms.viewAnalytics')"
-        :delete-label="t('forms.delete')"
+        @open="emit('open', $event)"
         @publish="emit('publish', $event)"
         @close="emit('close', $event)"
         @edit="emit('edit', $event)"

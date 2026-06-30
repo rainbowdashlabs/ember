@@ -67,6 +67,7 @@ async function save() {
       await checklists.addColumn(props.checklistId, {
         label: label.value.trim(),
         description: description.value.trim(),
+        position: position.value,
       })
     }
     emit('changed')
@@ -115,9 +116,13 @@ async function applyDelete() {
         <FieldLabel>{{ t('checklist.columnDescription') }}</FieldLabel>
         <TextAreaInput v-model="description" :placeholder="t('checklist.columnDescriptionPlaceholder')" rows="2"/>
       </div>
-      <div v-if="column">
-        <FieldLabel>{{ t('checklist.editColumnHint') }}</FieldLabel>
-        <NumberInput v-model="position" :min="0" :max="totalColumns - 1"/>
+      <div>
+        <FieldLabel>{{ t('checklist.columnPosition') }}</FieldLabel>
+        <NumberInput
+            v-model="position"
+            :min="0"
+            :max="column ? totalColumns - 1 : totalColumns"
+        />
       </div>
       <div class="flex justify-between gap-2 pt-2">
         <DeleteButton v-if="column" @click="askDelete">

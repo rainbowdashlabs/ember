@@ -4,7 +4,14 @@
 
 ### New Features
 
-- **Checklists for member follow-up.** Managers can build a list of yes/no questions, pick a member set by user type, group, tag or by hand, and tick each member off as they finish each step. Each cell takes an optional note with full history of every change. The list can be refreshed later to pull in newly-matching members, individual members can be added or removed by hand at any time, and the matrix exports to CSV for spreadsheet work or to PDF for printable sign-off.
+- **Form list redesigned as tiles.** The station's form list now shows each form as a tile with its status, response count, title and description. Clicking a tile opens the form — the editor for drafts, analytics for everything else. Publish, close, edit, analytics and delete actions live in a context menu in the tile's upper-right corner.
+- **Outstanding members on required-form analytics.** When a form is marked as required, its analytics page lists the eligible members who have not submitted a response yet, so chasing the missing ones is a glance away.
+- **Checklists for member follow-up.** Managers can build a list of yes/no questions, pick a member set by user type, group, tag or by hand, and tick each member off as they finish each step. Member rows are listed alphabetically by name, and the search bar at the top of the matrix jumps straight to a member as you type. Each cell takes an optional note with full history of every change, and the note text shows directly in the matrix next to its toggle. The list's name and description stay editable after creation, columns can be reordered by drag-and-drop in the edit dialog, and a new column lands at the position the manager picks. The list can be refreshed later to pull in newly-matching members, individual members can be added or removed by hand at any time, and the matrix exports to CSV for spreadsheet work or to PDF for printable sign-off.
+
+### Fixes
+
+- **Landing page no longer kicks signed-out visitors to the login form.** Arriving at the home page with a stale or expired session in the browser silently clears the dead session and stays on the public landing page instead of redirecting to login.
+- **Saving form questions with type-specific settings works again.** Rating, choice, ranking, and Likert questions that carry their own configuration now save without the request being rejected.
 
 ## v26.10.2
 

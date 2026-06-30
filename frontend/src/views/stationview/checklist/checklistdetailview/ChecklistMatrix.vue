@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import {checklists} from '@/api'
-import type {ChecklistColumnDto, ChecklistDetail, ChecklistEntryDto} from '@/api/types'
+import type {ChecklistCellDto, ChecklistColumnDto, ChecklistDetail, ChecklistEntryDto} from '@/api/types'
 import ChecklistColumnHeader from './ChecklistColumnHeader.vue'
 import ChecklistMatrixRow from './ChecklistMatrixRow.vue'
 import ChecklistColumnEditor from './ChecklistColumnEditor.vue'
@@ -22,7 +22,7 @@ const props = defineProps<{
 const columnFilters = defineModel<Record<number, 'any' | 'checked' | 'unchecked'>>('columnFilters', {required: true})
 
 const emit = defineEmits<{
-  (e: 'cell-change'): void
+  (e: 'cell-change', cell: ChecklistCellDto): void
   (e: 'delete-entry', entryId: number): void
   (e: 'bulk-set', columnId: number, entryIds: number[], checked: boolean): void
   (e: 'columns-changed'): void
@@ -85,7 +85,7 @@ function isChecked(entryId: number, columnId: number): boolean {
       <table class="border-collapse min-w-full text-sm">
         <thead>
         <tr>
-          <th class="sticky left-0 z-10 bg-bg-light dark:bg-bg-dark text-left p-2 border-b border-bg-light-accent dark:border-bg-dark-accent">
+          <th class="sticky left-0 z-10 bg-bg-light dark:bg-bg-dark text-left px-2 py-1 border-b border-bg-light-accent dark:border-bg-dark-accent">
             <div class="flex items-center justify-between gap-2">
               <span class="font-semibold">{{ t('checklist.memberSet') }}</span>
               <PrimaryButton class="text-xs" @click="showAddColumn = true">
@@ -116,7 +116,7 @@ function isChecked(entryId: number, columnId: number): boolean {
             :columns="detail.columns"
             :is-checked-fn="isChecked"
             :note-fn="cellNote"
-            @cell-changed="emit('cell-change')"
+            @cell-changed="(cell) => emit('cell-change', cell)"
             @delete="emit('delete-entry', entry.id)"
         />
         </tbody>

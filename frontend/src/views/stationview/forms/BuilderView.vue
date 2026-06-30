@@ -173,7 +173,7 @@ async function save() {
       description: q.description,
       required: q.required,
       shuffle: q.shuffle,
-      config: JSON.stringify(q.config),
+      config: {...(q.config as object), questionType: q.questionType},
     }))
     await forms.setQuestions(id!, questionRequests)
 

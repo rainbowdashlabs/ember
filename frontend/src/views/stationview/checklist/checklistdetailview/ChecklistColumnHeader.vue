@@ -71,32 +71,32 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
 
 <template>
   <th
-      class="p-2 border-b border-bg-light-accent dark:border-bg-dark-accent min-w-[140px] text-center align-top"
+      class="px-2 py-1 border-b border-bg-light-accent dark:border-bg-dark-accent min-w-[180px] text-left align-top"
       :data-col-menu="column.id"
   >
-    <div class="flex items-start justify-between gap-1">
-      <div class="flex-1 text-left">
-        <div class="font-semibold">{{ column.label }}</div>
-        <div v-if="column.description" class="text-xs text-(--text-muted) mt-1">{{ column.description }}</div>
-        <div class="text-xs text-(--text-muted) mt-1">
-          <span v-if="filter === 'checked'">{{ t('checklist.filterChecked') }}</span>
-          <span v-else-if="filter === 'unchecked'">{{ t('checklist.filterUnchecked') }}</span>
-          <span v-else>{{ t('checklist.filterAny') }}</span>
+    <div class="text-left">
+      <div class="flex items-center gap-1">
+        <span class="font-semibold truncate">{{ column.label }}</span>
+        <div class="relative">
+          <IconButton :icon="['fas', 'ellipsis']" :label="t('checklist.editColumn')" @click="toggleMenu"/>
+          <div
+              v-if="menuOpen"
+              class="absolute left-0 mt-1 z-10 min-w-[200px] rounded-theme border border-bg-light-accent bg-bg-light shadow dark:border-bg-dark-accent dark:bg-bg-dark"
+          >
+            <DropdownMenuItem :icon="['fas', 'filter']" @click="pickFilter('any')">{{ t('checklist.filterAny') }}</DropdownMenuItem>
+            <DropdownMenuItem :icon="['fas', 'square-check']" @click="pickFilter('checked')">{{ t('checklist.filterChecked') }}</DropdownMenuItem>
+            <DropdownMenuItem :icon="['fas', 'square']" @click="pickFilter('unchecked')">{{ t('checklist.filterUnchecked') }}</DropdownMenuItem>
+            <DropdownMenuItem :icon="['fas', 'check-double']" @click="askBulkTick">{{ t('checklist.bulkTickShown') }}</DropdownMenuItem>
+            <DropdownMenuItem :icon="['fas', 'xmark']" @click="askBulkClear">{{ t('checklist.bulkClearShown') }}</DropdownMenuItem>
+            <DropdownMenuItem :icon="['fas', 'pen']" @click="emit('edit'); menuOpen = false">{{ t('checklist.editColumn') }}</DropdownMenuItem>
+          </div>
         </div>
       </div>
-      <div class="relative">
-        <IconButton :icon="['fas', 'ellipsis']" :label="t('checklist.editColumn')" @click="toggleMenu"/>
-        <div
-            v-if="menuOpen"
-            class="absolute right-0 mt-1 z-10 min-w-[200px] rounded-theme border border-bg-light-accent bg-bg-light shadow dark:border-bg-dark-accent dark:bg-bg-dark"
-        >
-          <DropdownMenuItem :icon="['fas', 'filter']" @click="pickFilter('any')">{{ t('checklist.filterAny') }}</DropdownMenuItem>
-          <DropdownMenuItem :icon="['fas', 'square-check']" @click="pickFilter('checked')">{{ t('checklist.filterChecked') }}</DropdownMenuItem>
-          <DropdownMenuItem :icon="['fas', 'square']" @click="pickFilter('unchecked')">{{ t('checklist.filterUnchecked') }}</DropdownMenuItem>
-          <DropdownMenuItem :icon="['fas', 'check-double']" @click="askBulkTick">{{ t('checklist.bulkTickShown') }}</DropdownMenuItem>
-          <DropdownMenuItem :icon="['fas', 'xmark']" @click="askBulkClear">{{ t('checklist.bulkClearShown') }}</DropdownMenuItem>
-          <DropdownMenuItem :icon="['fas', 'pen']" @click="emit('edit'); menuOpen = false">{{ t('checklist.editColumn') }}</DropdownMenuItem>
-        </div>
+      <div v-if="column.description" class="text-xs text-(--text-muted) mt-0.5">{{ column.description }}</div>
+      <div class="text-xs text-(--text-muted) mt-0.5">
+        <span v-if="filter === 'checked'">{{ t('checklist.filterChecked') }}</span>
+        <span v-else-if="filter === 'unchecked'">{{ t('checklist.filterUnchecked') }}</span>
+        <span v-else>{{ t('checklist.filterAny') }}</span>
       </div>
     </div>
 

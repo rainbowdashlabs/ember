@@ -17,6 +17,7 @@ import AnalyticsHeader from '@/views/stationview/forms/analyticsview/AnalyticsHe
 import ChartsTab from '@/views/stationview/forms/analyticsview/ChartsTab.vue'
 import IndividualResponseTab from '@/views/stationview/forms/analyticsview/IndividualResponseTab.vue'
 import ExportModal from '@/views/stationview/forms/analyticsview/ExportModal.vue'
+import MissingResponsesPanel from '@/views/stationview/forms/analyticsview/MissingResponsesPanel.vue'
 import type { Form, FormAnalytics, FormResponse, FormAnswer, ProfileField } from '@/api/types'
 import { QuestionTypes } from '@/api/types'
 import { forms, profileFields, stationMembers } from '@/api'
@@ -266,6 +267,11 @@ const { loading, error } = useAsyncLoader(async () => {
           :total-responses="analytics.totalResponses"
           @export="openExportModal"
           @back="router.push({ name: 'forms-list' })"
+        />
+
+        <MissingResponsesPanel
+          v-if="form.forced && analytics.missingResponses.length > 0"
+          :members="analytics.missingResponses"
         />
 
         <EmptyState v-if="analytics.totalResponses === 0">{{ t('forms.analytics.noResponses') }}</EmptyState>

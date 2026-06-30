@@ -122,11 +122,15 @@ client.interceptors.response.use(
             if (token && !refreshing && !isStepUp) {
                 removeItem('session_token')
                 removeItem('station_id')
-                const currentPath = window.location.pathname + window.location.search
-                const redirect = currentPath && currentPath !== '/' && currentPath !== '/login'
-                    ? `?redirect=${encodeURIComponent(currentPath)}`
-                    : ''
-                window.location.href = '/login' + redirect
+                const currentPath = window.location.pathname
+                const isPublicPath = currentPath === '/'
+                    || currentPath === '/login'
+                    || currentPath === '/2fa-verify'
+                    || currentPath.startsWith('/helpcenter')
+                if (!isPublicPath) {
+                    const fullPath = currentPath + window.location.search
+                    window.location.href = '/login?redirect=' + encodeURIComponent(fullPath)
+                }
             }
         }
         if (error.response?.status === 403) {

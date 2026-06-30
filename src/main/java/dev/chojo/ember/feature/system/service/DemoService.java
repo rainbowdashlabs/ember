@@ -125,6 +125,7 @@ public class DemoService {
     private final DemoPageSeeder pageSeeder;
     private final DemoNewsSeeder newsSeeder;
     private final DemoLostAndFoundSeeder lostAndFoundSeeder;
+    private final DemoChecklistSeeder checklistSeeder;
     // Services used to look up one representative entity of each notification-relevant type
     // when building the notification showcase, so the renderer's per-type live enrichment
     // (board lookup, procedure progress, lending date range, inventory ownership) all fire.
@@ -171,6 +172,7 @@ public class DemoService {
             DemoPageSeeder pageSeeder,
             DemoNewsSeeder newsSeeder,
             DemoLostAndFoundSeeder lostAndFoundSeeder,
+            DemoChecklistSeeder checklistSeeder,
             ApplicationSettingRepository applicationSettingRepository,
             ExchangeService exchangeService,
             ProcurementService procurementService,
@@ -206,6 +208,7 @@ public class DemoService {
         this.pageSeeder = pageSeeder;
         this.newsSeeder = newsSeeder;
         this.lostAndFoundSeeder = lostAndFoundSeeder;
+        this.checklistSeeder = checklistSeeder;
         this.boardService = boardService;
         this.boardTicketService = boardTicketService;
         this.procedureService = procedureService;
@@ -579,6 +582,10 @@ public class DemoService {
                         applicationSettingRepository.setBoolean("station_registration_enabled", false);
                     },
                     executor));
+
+            // Checklist (Freizeit)
+            tasks.add(CompletableFuture.runAsync(
+                    () -> checklistSeeder.seed(station.id(), adminMember.id(), new Random(42_030)), executor));
 
             CompletableFuture.allOf(tasks.toArray(CompletableFuture[]::new)).join();
         }

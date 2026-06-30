@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.form.entity;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import org.slf4j.Logger;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.ObjectMapper;
@@ -24,6 +26,15 @@ import static org.slf4j.LoggerFactory.getLogger;
  * Typed question config records for form questions, parsed per {@link FormQuestionType}.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "questionType")
+@JsonSubTypes({
+    @JsonSubTypes.Type(value = FormQuestionConfig.Choice.class, name = "CHOICE"),
+    @JsonSubTypes.Type(value = FormQuestionConfig.Text.class, name = "TEXT"),
+    @JsonSubTypes.Type(value = FormQuestionConfig.Rating.class, name = "RATING"),
+    @JsonSubTypes.Type(value = FormQuestionConfig.Date.class, name = "DATE"),
+    @JsonSubTypes.Type(value = FormQuestionConfig.Ranking.class, name = "RANKING"),
+    @JsonSubTypes.Type(value = FormQuestionConfig.Likert.class, name = "LIKERT"),
+})
 public sealed interface FormQuestionConfig {
     Logger log = getLogger(FormQuestionConfig.class);
     ObjectMapper MAPPER = JsonMapper.builder()

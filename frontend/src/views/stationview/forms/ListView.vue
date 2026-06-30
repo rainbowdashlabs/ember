@@ -113,6 +113,11 @@ function goAnalytics(form: Form) {
   router.push({ name: props.analyticsRouteName ?? 'forms-analytics', params: { id: form.id } })
 }
 
+function openForm(form: Form) {
+  if (form.status === FormStatus.DRAFT) goEdit(form)
+  else goAnalytics(form)
+}
+
 function goFill(form: FormListEntry) {
   router.push({ name: 'forms-fill', params: { id: form.id } })
 }
@@ -140,6 +145,7 @@ watch(loaded, (isLoaded) => {
           :title-key="props.titleKey"
           :status-label="statusLabel"
           @create="goCreate"
+          @open="openForm"
           @publish="publishForm"
           @close="closeForm"
           @edit="goEdit"

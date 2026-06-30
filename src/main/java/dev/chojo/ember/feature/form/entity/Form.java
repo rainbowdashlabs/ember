@@ -32,7 +32,8 @@ public record Form(
         RestrictionMode restrictionMode,
         boolean restricted,
         FormPurpose purpose,
-        UUID publicUid) {
+        UUID publicUid,
+        int responseCount) {
 
     public static RowMapping<Form> map() {
         return row -> new Form(
@@ -53,7 +54,8 @@ public record Form(
                 row.getEnum("restriction_mode", RestrictionMode.class),
                 row.getBoolean("restricted"),
                 row.getEnum("purpose", FormPurpose.class),
-                row.get("public_uid", StandardValueConverter.UUID_STRING));
+                row.get("public_uid", StandardValueConverter.UUID_STRING),
+                row.getInt("response_count"));
     }
 
     public boolean isAcceptingResponses() {

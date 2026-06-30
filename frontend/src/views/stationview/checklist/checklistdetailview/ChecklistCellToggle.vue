@@ -7,13 +7,13 @@
 import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import IconButton from '@/components/button/IconButton.vue'
+import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import {checklists} from '@/api'
-import type {ChecklistNoteHistoryEntry} from '@/api/types'
+import type {ChecklistCellDto, ChecklistNoteHistoryEntry} from '@/api/types'
 import {formatDateTime} from '@/util/format'
 
 const props = defineProps<{
@@ -26,7 +26,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'changed'): void
+  (e: 'changed', cell: ChecklistCellDto): void
 }>()
 
 const {t} = useI18n()
@@ -49,11 +49,11 @@ async function pushBoolean(value: boolean) {
   if (props.disabled || saving.value) return
   saving.value = true
   try {
-    await checklists.writeCell(props.checklistId, props.entryId, props.columnId, {
+    const cell = await checklists.writeCell(props.checklistId, props.entryId, props.columnId, {
       checked: value,
       note: props.note ?? null,
     })
-    emit('changed')
+    emit('changed', cell)
   } catch {
     localChecked.value = props.checked
   }
@@ -84,12 +84,12 @@ async function saveNote() {
   saving.value = true
   try {
     const note = noteDraft.value.trim() === '' ? null : noteDraft.value
-    await checklists.writeCell(props.checklistId, props.entryId, props.columnId, {
+    const cell = await checklists.writeCell(props.checklistId, props.entryId, props.columnId, {
       checked: localChecked.value,
       note,
     })
     showNote.value = false
-    emit('changed')
+    emit('changed', cell)
   } finally {
     saving.value = false
   }
@@ -103,15 +103,18 @@ function describeHistory(entry: ChecklistNoteHistoryEntry): string {
 </script>
 
 <template>
-  <div class="flex items-center justify-center gap-2">
+  <div class="flex items-center gap-1.5">
     <ToggleInput :model-value="localChecked" :disabled="disabled || saving" @update:model-value="onToggle"/>
-    <IconButton
+    <MutedIconButton
         :icon="['fas', 'comment']"
         :label="t('checklist.noteSave')"
-        :class="note ? 'text-(--primary)' : 'text-(--text-muted)'"
         :disabled="disabled"
         @click="openNote"
     />
+    <p
+        v-if="note"
+        class="flex-1 min-w-0 text-xs leading-snug whitespace-pre-wrap break-words line-clamp-2 text-(--text)"
+    >{{ note }}</p>
 
     <Modal v-model="showNote" size="md">
       <div class="space-y-3">
