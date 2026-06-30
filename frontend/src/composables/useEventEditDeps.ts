@@ -8,7 +8,6 @@ import {attendance, events, memberGroups as memberGroupsApi, stationMembers, use
 import type {
     AttendanceTemplate,
     EventCategory,
-    EventLayout,
     MemberGroup,
     StationMember,
     UserTag,
@@ -26,7 +25,6 @@ export interface UseEventEditDepsOptions {
 }
 
 export interface EventEditDeps {
-    layouts: Ref<EventLayout[]>
     categories: Ref<EventCategory[]>
     templates: Ref<AttendanceTemplate[]>
     groups: Ref<MemberGroup[]>
@@ -41,13 +39,13 @@ export interface EventEditDeps {
 }
 
 /**
- * Loads the common bundle of resources every event-edit / event-list view depends on (layouts,
- * categories, templates, member groups, user tags) in a single {@link Promise.all}. Opt-in flags
- * extend the bundle with the member roster and registration counts so views that need them can
- * share the same loader lifecycle instead of stacking their own.
+ * Loads the common bundle of resources every event-edit / event-list view depends on
+ * (categories, attendance templates, member groups, user tags) in a single
+ * {@link Promise.all}. Opt-in flags extend the bundle with the member roster and
+ * registration counts so views that need them can share the same loader lifecycle
+ * instead of stacking their own.
  */
 export function useEventEditDeps(options: UseEventEditDepsOptions = {}): EventEditDeps {
-    const layouts = ref<EventLayout[]>([])
     const categories = ref<EventCategory[]>([])
     const templates = ref<AttendanceTemplate[]>([])
     const groups = ref<MemberGroup[]>([])
@@ -57,22 +55,20 @@ export function useEventEditDeps(options: UseEventEditDepsOptions = {}): EventEd
 
     const {loading, error, reload} = useAsyncLoader(async () => {
         const core = [
-            events.listLayouts(),
-            events.listCategories(),
-            attendance.listTemplates(),
-            memberGroupsApi.listGroups(),
-            userTagsApi.listTags(),
+            events.listCategories().catch(() => [] as EventCategory[]),
+            attendance.listTemplates().catch(() => [] as AttendanceTemplate[]),
+            memberGroupsApi.listGroups().catch(() => [] as MemberGroup[]),
+            userTagsApi.listTags().catch(() => [] as UserTag[]),
         ] as const
         const tasks: Promise<unknown>[] = [...core]
-        if (options.withMembers) tasks.push(stationMembers.listMembers())
-        if (options.withCounts) tasks.push(events.listRegistrationCounts())
+        if (options.withMembers) tasks.push(stationMembers.listMembers().catch(() => [] as StationMember[]))
+        if (options.withCounts) tasks.push(events.listRegistrationCounts().catch(() => [] as RegistrationCount[]))
         const results = await Promise.all(tasks)
-        layouts.value = results[0] as EventLayout[]
-        categories.value = results[1] as EventCategory[]
-        templates.value = results[2] as AttendanceTemplate[]
-        groups.value = results[3] as MemberGroup[]
-        tags.value = results[4] as UserTag[]
-        let idx = 5
+        categories.value = results[0] as EventCategory[]
+        templates.value = results[1] as AttendanceTemplate[]
+        groups.value = results[2] as MemberGroup[]
+        tags.value = results[3] as UserTag[]
+        let idx = 4
         if (options.withMembers) {
             members.value = results[idx++] as StationMember[]
         }
@@ -81,5 +77,5 @@ export function useEventEditDeps(options: UseEventEditDepsOptions = {}): EventEd
         }
     }, {autoLoad: options.autoLoad})
 
-    return {layouts, categories, templates, groups, tags, members, registrationCounts, loading, error, reload}
+    return {categories, templates, groups, tags, members, registrationCounts, loading, error, reload}
 }

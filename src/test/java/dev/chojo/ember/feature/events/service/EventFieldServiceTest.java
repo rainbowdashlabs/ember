@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
+import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -34,7 +35,8 @@ class EventFieldServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new EventFieldService(eventFieldRepo);
+        service = new EventFieldService(
+                eventFieldRepo, stationMemberRepo, memberGroupRepo, new UserTagService(userTagRepo, memberGroupRepo));
         station = stationRepo.create("EventFieldServiceStation");
 
         Instant start = Instant.now().plus(1, ChronoUnit.DAYS);

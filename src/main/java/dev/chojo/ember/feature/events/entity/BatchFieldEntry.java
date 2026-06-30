@@ -5,5 +5,9 @@
  */
 package dev.chojo.ember.feature.events.entity;
 
-public record LayoutFieldEntry(
+/**
+ * Field definition copied onto every event created in a batch. Either supplied
+ * inline on the batch request, or derived from the picked event template.
+ */
+public record BatchFieldEntry(
         String name, EventFieldType fieldType, EventFieldConfig config, boolean overview, Integer attendanceFieldId) {}

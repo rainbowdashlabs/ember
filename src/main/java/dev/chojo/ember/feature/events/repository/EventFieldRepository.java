@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.events.entity.EventFieldType;
 import jakarta.inject.Singleton;
 
 import java.util.List;
+import java.util.Optional;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -21,6 +22,23 @@ public class EventFieldRepository {
 
     private static final String ALL_COLUMNS =
             "id, event_id, name, field_type, config, value, position, overview, attendance_field_id, \"public\"";
+
+    public Optional<EventField> findById(int fieldId) {
+        return query("""
+                SELECT %s
+                FROM event_field
+                WHERE id = :id;""", ALL_COLUMNS)
+                .single(call().bind("id", fieldId))
+                .map(EventField.map())
+                .first();
+    }
+
+    public void updateValue(int fieldId, String value) {
+        query("""
+                UPDATE event_field
+                SET value = :value
+                WHERE id = :id;""").single(call().bind("value", value).bind("id", fieldId)).update();
+    }
 
     public List<EventField> findByEvent(int eventId) {
         return query("""

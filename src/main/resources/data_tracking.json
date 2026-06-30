@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:c68984d2ff21390e5df68b609c0481ebb6febbf37c23108ac4e2be9053fb3bbb",
-  "generatedAt" : "2026-06-29T14:43:28Z",
+  "schemaHash" : "sha256:36be48768ccf7c257dbcedf0032e683a3810c46217ffe36ca7a7f251cc352b38",
+  "generatedAt" : "2026-06-29T22:43:24Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -3657,126 +3657,6 @@
         "reason" : "Event structure/template data, not per-member"
       },
       "description" : "Default values for attendance session fields when created from an event."
-    },
-    "event_layout" : {
-      "feature" : "events",
-      "scope" : "STATION",
-      "tableHash" : "sha256:6c35399eb2b973693c735b696b4c66ad485cbe27d14a7cc98df51ec81cf21bf4",
-      "columns" : [ {
-        "name" : "id",
-        "type" : "int4",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Auto-generated primary key."
-      }, {
-        "name" : "station_id",
-        "type" : "int4",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "References the station."
-      }, {
-        "name" : "name",
-        "type" : "text",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Layout name, unique within the station."
-      } ],
-      "foreignKeys" : [ {
-        "column" : "station_id",
-        "refTable" : "station",
-        "refColumn" : "id",
-        "onDelete" : "CASCADE"
-      } ],
-      "stationTransfer" : {
-        "status" : "TRACKED",
-        "ignoredColumns" : [ "station_id" ]
-      },
-      "gdprExport" : {
-        "status" : "IGNORED",
-        "reason" : "Event structure/template data, not per-member"
-      },
-      "gdprDeletion" : {
-        "status" : "IGNORED",
-        "reason" : "Event structure/template data, not per-member"
-      },
-      "description" : "Reusable event field layouts for batch event creation."
-    },
-    "event_layout_field" : {
-      "feature" : "events",
-      "scope" : "STATION",
-      "tableHash" : "sha256:d0ae7030e00ee4684b55fe6b20b3748f739fefd072cdf35f5e738083c9ece5cd",
-      "columns" : [ {
-        "name" : "id",
-        "type" : "int4",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Auto-generated primary key."
-      }, {
-        "name" : "layout_id",
-        "type" : "int4",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "References the event layout."
-      }, {
-        "name" : "name",
-        "type" : "text",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Field name/label."
-      }, {
-        "name" : "field_type",
-        "type" : "text",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Data type of the field."
-      }, {
-        "name" : "config",
-        "type" : "jsonb",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Type-specific configuration as JSONB."
-      }, {
-        "name" : "position",
-        "type" : "int4",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Display order position."
-      }, {
-        "name" : "overview",
-        "type" : "bool",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Whether to show this field in the event overview."
-      }, {
-        "name" : "attendance_field_id",
-        "type" : "int4",
-        "nullable" : true,
-        "verified" : true,
-        "description" : "References an attendance template field to auto-populate from."
-      } ],
-      "foreignKeys" : [ {
-        "column" : "attendance_field_id",
-        "refTable" : "attendance_template_field",
-        "refColumn" : "id",
-        "onDelete" : "SET NULL"
-      }, {
-        "column" : "layout_id",
-        "refTable" : "event_layout",
-        "refColumn" : "id",
-        "onDelete" : "CASCADE"
-      } ],
-      "stationTransfer" : {
-        "status" : "TRACKED"
-      },
-      "gdprExport" : {
-        "status" : "IGNORED",
-        "reason" : "Event structure/template data, not per-member"
-      },
-      "gdprDeletion" : {
-        "status" : "IGNORED",
-        "reason" : "Event structure/template data, not per-member"
-      },
-      "description" : "Fields within an event layout template."
     },
     "event_registration" : {
       "feature" : "events",

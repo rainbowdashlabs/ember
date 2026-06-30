@@ -6,19 +6,17 @@
 import client from './client'
 import type {
     AllEventRestrictions,
+    BatchFieldEntry,
     BreakRequest,
     CategoryRequest,
     EventBreak,
     EventCategory,
     EventField,
-    EventLayout,
-    EventLayoutField,
     EventRequest,
     EventRestrictions,
     EventTemplate,
     EventTemplateDetail,
     EventTemplateFieldEntry,
-    LayoutFieldEntry,
     MemberIdentity,
     SetEventFieldsRequest,
     StationEvent
@@ -287,46 +285,15 @@ export async function setEventFields(eventId: number, data: SetEventFieldsReques
     return res.data
 }
 
+export async function toggleFieldSelfRegistration(eventId: number, fieldId: number): Promise<EventField> {
+    const res = await client.post<EventField>(`/events/${eventId}/fields/${fieldId}/self-register`)
+    return res.data
+}
+
 // -- Overview Fields --
 
 export async function getOverviewFields(): Promise<Record<number, EventField[]>> {
     const res = await client.get<Record<number, EventField[]>>('/events/overview-fields')
-    return res.data
-}
-
-// -- Layouts --
-
-export async function listLayouts(): Promise<EventLayout[]> {
-    const res = await client.get<EventLayout[]>('/events/layouts')
-    return res.data
-}
-
-export async function createLayout(data: { name: string }): Promise<EventLayout> {
-    const res = await client.post<EventLayout>('/events/layouts', data)
-    return res.data
-}
-
-export async function getLayout(id: number): Promise<EventLayout> {
-    const res = await client.get<EventLayout>(`/events/layouts/${id}`)
-    return res.data
-}
-
-export async function updateLayout(id: number, data: { name: string }): Promise<EventLayout> {
-    const res = await client.put<EventLayout>(`/events/layouts/${id}`, data)
-    return res.data
-}
-
-export async function deleteLayout(id: number): Promise<void> {
-    await client.delete(`/events/layouts/${id}`)
-}
-
-export async function getLayoutFields(layoutId: number): Promise<EventLayoutField[]> {
-    const res = await client.get<EventLayoutField[]>(`/events/layouts/${layoutId}/fields`)
-    return res.data
-}
-
-export async function setLayoutFields(layoutId: number, data: { fields: LayoutFieldEntry[] }): Promise<EventLayoutField[]> {
-    const res = await client.put<EventLayoutField[]>(`/events/layouts/${layoutId}/fields`, data)
     return res.data
 }
 
@@ -397,8 +364,7 @@ export interface BatchCreateRequest {
     description?: string
     templateId?: number | null
     categoryId?: number | null
-    layoutId?: number | null
-    inlineFields?: LayoutFieldEntry[]
+    inlineFields?: BatchFieldEntry[]
     rows: BatchRow[]
     requiresRegistration?: boolean
     requiresConfirmation?: boolean

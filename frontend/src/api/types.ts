@@ -421,6 +421,10 @@ export const EventFieldTypes = {
     MEMBER_LIST: 'MEMBER_LIST',
     MEMBER_OF_GROUP: 'MEMBER_OF_GROUP',
     MEMBER_LIST_OF_GROUP: 'MEMBER_LIST_OF_GROUP',
+    MEMBER_OF_TYPE: 'MEMBER_OF_TYPE',
+    MEMBER_LIST_OF_TYPE: 'MEMBER_LIST_OF_TYPE',
+    MEMBER_OF_TAG: 'MEMBER_OF_TAG',
+    MEMBER_LIST_OF_TAG: 'MEMBER_LIST_OF_TAG',
 } as const
 
 export type EventFieldTypeName = (typeof EventFieldTypes)[keyof typeof EventFieldTypes]
@@ -454,26 +458,9 @@ export interface SetEventFieldsRequest {
     fields: EventFieldEntry[]
 }
 
-// -- Event Layouts --
+// -- Batch Field Entries --
 
-export interface EventLayout {
-    id: number
-    stationId: string
-    name: string
-}
-
-export interface EventLayoutField {
-    id: number
-    layoutId: number
-    name: string
-    fieldType: string
-    config: string
-    position: number
-    overview: boolean
-    attendanceFieldId?: number | null
-}
-
-export interface LayoutFieldEntry {
+export interface BatchFieldEntry {
     name: string
     fieldType?: string
     config?: Record<string, unknown>

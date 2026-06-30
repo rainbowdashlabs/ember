@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceTemplate;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository.TemplateGroup;
+import dev.chojo.ember.feature.events.entity.MemberFieldValue;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -227,28 +228,9 @@ public class AttendanceExportService {
     }
 
     private String resolveMemberFieldValue(String rawValue) {
-        var ids = parseMemberIds(rawValue);
+        var ids = MemberFieldValue.parseIds(rawValue);
         if (ids.isEmpty()) return "";
         return ids.stream().map(this::resolveMemberName).collect(Collectors.joining(", "));
-    }
-
-    private List<Integer> parseMemberIds(String value) {
-        var ids = new ArrayList<Integer>();
-        if (value == null || value.isBlank()) return ids;
-        String cleaned = value.trim();
-        try {
-            if (cleaned.startsWith("[")) {
-                cleaned = cleaned.replaceAll("[\\[\\]\"\\s]", "");
-                for (String part : cleaned.split(",")) {
-                    if (!part.isBlank()) ids.add(Integer.parseInt(part.trim()));
-                }
-            } else {
-                cleaned = cleaned.replace("\"", "").trim();
-                if (!cleaned.isBlank()) ids.add(Integer.parseInt(cleaned));
-            }
-        } catch (NumberFormatException ignored) {
-        }
-        return ids;
     }
 
     private String formatFieldValue(String rawValue) {

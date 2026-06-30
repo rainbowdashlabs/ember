@@ -16,6 +16,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.comment.route.EventCommentRoutes;
+import dev.chojo.ember.feature.events.entity.BatchFieldEntry;
 import dev.chojo.ember.feature.events.entity.BatchRequest;
 import dev.chojo.ember.feature.events.entity.BatchRow;
 import dev.chojo.ember.feature.events.entity.EventBreak;
@@ -25,7 +26,6 @@ import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
-import dev.chojo.ember.feature.events.entity.EventLayoutField;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.EventSummary;
 import dev.chojo.ember.feature.events.entity.IntervalConfig;
@@ -216,6 +216,10 @@ public class EventRoutes implements Routes {
 
         routes.get(prefix + "/events/{id}/fields", this::getFields, StationPermission.USER);
         routes.put(prefix + "/events/{id}/fields", this::setFields, StationPermission.EVENT_EDIT);
+        routes.post(
+                prefix + "/events/{eventId}/fields/{fieldId}/self-register",
+                this::selfRegisterField,
+                StationPermission.USER);
 
         routes.get(
                 prefix + "/events/{id}/absences",
@@ -1248,6 +1252,28 @@ public class EventRoutes implements Routes {
         ctx.json(eventFieldService.findByEvent(id));
     }
 
+    @OpenApi(
+            path = "/api/v1/events/{eventId}/fields/{fieldId}/self-register",
+            methods = HttpMethod.POST,
+            summary = "Toggle the caller's presence on a self-registration member field",
+            tags = {"Events"},
+            pathParams = {
+                @OpenApiParam(name = "eventId", type = Integer.class, required = true),
+                @OpenApiParam(name = "fieldId", type = Integer.class, required = true)
+            },
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventField.class)))
+    private void selfRegisterField(Context ctx) {
+        var session = UserSession.from(ctx);
+        int eventId = ctx.pathParamAsClass("eventId", Integer.class).get();
+        int fieldId = ctx.pathParamAsClass("fieldId", Integer.class).get();
+        var event = eventService.findById(eventId).orElseThrow(NotFoundResponse::new);
+        if (event.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
+        ctx.json(eventFieldService.toggleSelfRegistration(
+                eventId, fieldId, session.member().id()));
+    }
+
     // -- Overview Fields --
 
     private void getOverviewFields(Context ctx) {
@@ -1281,15 +1307,12 @@ public class EventRoutes implements Routes {
         if (req.rows() == null || req.rows().isEmpty()) {
             throw new BadRequestResponse("rows are required");
         }
-        List<EventLayoutField> inlineFields = req.inlineFields() != null
+        List<BatchFieldEntry> inlineFields = req.inlineFields() != null
                 ? req.inlineFields().stream()
-                        .map(f -> new EventLayoutField(
-                                0,
-                                0,
+                        .map(f -> new BatchFieldEntry(
                                 f.name(),
                                 f.fieldType() != null ? f.fieldType() : EventFieldType.STRING,
-                                f.config(),
-                                0,
+                                f.config() != null ? f.config() : EventFieldConfig.parse("{}"),
                                 f.overview() != null && f.overview(),
                                 f.attendanceFieldId()))
                         .toList()
@@ -1303,7 +1326,6 @@ public class EventRoutes implements Routes {
                 req.description(),
                 req.templateId(),
                 req.categoryId(),
-                req.layoutId(),
                 inlineFields,
                 batchRows,
                 req.requiresRegistration(),
@@ -1909,17 +1931,6 @@ public class EventRoutes implements Routes {
             Integer attendanceFieldId,
             Boolean isPublic) {}
 
-    public record LayoutRequest(String name) {}
-
-    public record LayoutFieldEntry(
-            String name,
-            EventFieldType fieldType,
-            EventFieldConfig config,
-            Boolean overview,
-            Integer attendanceFieldId) {}
-
-    public record SetLayoutFieldsRequest(List<LayoutFieldEntry> fields) {}
-
     public record GenerateDatesRequest(
             IntervalType intervalType,
             Integer dayOfWeek,
@@ -1934,8 +1945,7 @@ public class EventRoutes implements Routes {
             String description,
             Integer templateId,
             Integer categoryId,
-            Integer layoutId,
-            List<LayoutFieldEntry> inlineFields,
+            List<BatchFieldEntryDto> inlineFields,
             List<BatchRowEntry> rows,
             Boolean requiresRegistration,
             Boolean requiresConfirmation,
@@ -1943,6 +1953,13 @@ public class EventRoutes implements Routes {
             List<StationUserType> restrictedUserTypes,
             List<Integer> restrictedGroupIds,
             List<Integer> restrictedTagIds) {}
+
+    public record BatchFieldEntryDto(
+            String name,
+            EventFieldType fieldType,
+            EventFieldConfig config,
+            Boolean overview,
+            Integer attendanceFieldId) {}
 
     public record BatchRowEntry(String name, Instant startTime, Instant endTime, Map<String, String> fieldValues) {}
 

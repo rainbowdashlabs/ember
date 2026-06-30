@@ -163,6 +163,37 @@ class EventFieldRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(10)
+    void findByIdAndUpdateValue() {
+        var created = eventFieldRepo.create(
+                eventId,
+                "Toggle",
+                EventFieldType.MEMBER,
+                EventFieldConfig.parse("{\"selfRegistration\":true}"),
+                "",
+                5,
+                false,
+                null,
+                false);
+
+        var loaded = eventFieldRepo.findById(created.id());
+        assertTrue(loaded.isPresent());
+        assertEquals("Toggle", loaded.get().name());
+        assertTrue(loaded.get().config().selfRegistration());
+
+        eventFieldRepo.updateValue(created.id(), "42");
+        var reloaded = eventFieldRepo.findById(created.id());
+        assertTrue(reloaded.isPresent());
+        assertEquals("42", reloaded.get().value());
+    }
+
+    @Test
+    @Order(10)
+    void findByIdMissingReturnsEmpty() {
+        assertTrue(eventFieldRepo.findById(987654).isEmpty());
+    }
+
+    @Test
     @Order(11)
     void deleteByEvent() {
         eventFieldRepo.deleteByEvent(eventId);

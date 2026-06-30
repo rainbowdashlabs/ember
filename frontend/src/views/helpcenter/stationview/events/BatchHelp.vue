@@ -31,7 +31,7 @@ const {t} = useI18n()
       <StepProgressBar
           class="mb-4"
           :steps="[
-            { label: t('batchCreate.stepLayout') },
+            { label: t('batchCreate.stepFields') },
             { label: t('batchCreate.stepSchedule'), disabled: true },
             { label: t('batchCreate.stepTable'), disabled: true },
           ]"

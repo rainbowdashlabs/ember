@@ -14,7 +14,7 @@ import EventCancelModal from './EventCancelModal.vue'
 import EventRegistrationsTab from './EventRegistrationsTab.vue'
 import EventDetailHeader from './EventDetailHeader.vue'
 import EventInfoTab from './EventInfoTab.vue'
-import type {EventField, StationEvent} from '@/api/types'
+import type {EventField, StationEvent, StationMember} from '@/api/types'
 import type {AbsentMember} from '@/api/events'
 import {formatDateTime} from '@/util/format'
 
@@ -22,6 +22,7 @@ const props = defineProps<{
   event: StationEvent
   eventId: number
   fields: EventField[]
+  allMembers: StationMember[]
   reminders: number[]
   absentMembers: AbsentMember[]
   focusedDate: string | null
@@ -40,6 +41,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'cancelled'): void
+  (e: 'field-updated', field: EventField): void
 }>()
 
 const {t} = useI18n()
@@ -95,6 +97,8 @@ defineExpose({loadRegistrations})
         :event="event"
         :event-id="eventId"
         :fields="fields"
+        :all-members="allMembers"
+        :current-member-id="currentMemberId"
         :absent-members="absentMembers"
         :focused-date="focusedDate"
         :start-formatted="startFormatted"
@@ -104,6 +108,7 @@ defineExpose({loadRegistrations})
         :can-manage-events="canManageEvents"
         :can-manage-attendance="canManageAttendance"
         :has-permission="hasPermission"
+        @field-updated="(f) => emit('field-updated', f)"
     />
 
     <EventRegistrationsTab

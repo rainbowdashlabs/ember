@@ -10,7 +10,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import EventFieldEditor from '@/components/input/EventFieldEditor.vue'
-import type {AttendanceTemplateField, EventFieldEntry, MemberGroup, StationMember} from '@/api/types'
+import type {AttendanceTemplateField, EventFieldEntry, MemberGroup, StationMember, UserTag} from '@/api/types'
 
 const fields = defineModel<EventFieldEntry[]>('fields', {required: true})
 
@@ -20,6 +20,8 @@ defineProps<{
   allMembers?: StationMember[]
   groups?: MemberGroup[]
   groupMembers?: Map<number, StationMember[]>
+  tags?: UserTag[]
+  tagMembers?: Map<number, StationMember[]>
 }>()
 
 const {t} = useI18n()
@@ -85,6 +87,8 @@ function updateField(index: number, field: EventFieldEntry) {
       :all-members="allMembers"
       :groups="groups"
       :group-members="groupMembers"
+      :tags="tags"
+      :tag-members="tagMembers"
       @update:model-value="updateField(index, $event)"
       @remove="removeField(index)"
   />
