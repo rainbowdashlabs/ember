@@ -79,6 +79,8 @@ export const StationPermission = {
     LOST_AND_FOUND_CREATE: 'LOST_AND_FOUND_CREATE',
     LOST_AND_FOUND_MANAGE: 'LOST_AND_FOUND_MANAGE',
     LOST_AND_FOUND_MANAGER: 'LOST_AND_FOUND_MANAGER',
+    CHECKLIST_MANAGE: 'CHECKLIST_MANAGE',
+    CHECKLIST_MANAGER: 'CHECKLIST_MANAGER',
     TEST_CATALOG_VIEW: 'TEST_CATALOG_VIEW',
     TEST_CATALOG_EDIT: 'TEST_CATALOG_EDIT',
     TEST_CONFIGURE: 'TEST_CONFIGURE',
@@ -1924,4 +1926,101 @@ export interface NoteVersion {
     diffPatch: string
     authorId: number
     createdAt: string
+}
+
+// -- Checklist --
+
+export interface ChecklistSummary {
+    id: number
+    name: string
+    description: string
+    memberCount: number
+    columnCount: number
+    lastRefreshedAt?: string | null
+    createdAt: string
+}
+
+export interface ChecklistColumnDto {
+    id: number
+    position: number
+    label: string
+    description: string
+}
+
+export interface ChecklistEntryDto {
+    id: number
+    memberId: number
+    memberName: string
+    addedAt: string
+    deletedAt?: string | null
+    inFilter: boolean
+}
+
+export interface ChecklistCellDto {
+    id: number
+    entryId: number
+    columnId: number
+    checked: boolean
+    note?: string | null
+    updatedAt: string
+    updatedBy?: number | null
+}
+
+export interface ChecklistRestrictionDto {
+    userTypes: string[]
+    groupIds: number[]
+    tagIds: number[]
+    memberIds: number[]
+    mode: 'AND' | 'OR'
+}
+
+export interface ChecklistDetail {
+    id: number
+    name: string
+    description: string
+    mode: 'AND' | 'OR'
+    createdAt: string
+    createdBy?: number | null
+    lastRefreshedAt?: string | null
+    columns: ChecklistColumnDto[]
+    entries: ChecklistEntryDto[]
+    cells: ChecklistCellDto[]
+    restriction: ChecklistRestrictionDto
+}
+
+export interface ChecklistNoteHistoryEntry {
+    id: number
+    oldNote?: string | null
+    newNote?: string | null
+    changedBy?: number | null
+    changedByName?: string | null
+    changedAt: string
+}
+
+export interface ChecklistRefreshResult {
+    added: number
+    alreadyPresent: number
+}
+
+export interface ChecklistAddMembersResult {
+    added: number
+    restored: number
+    skipped: number
+}
+
+export interface ChecklistBulkSetResult {
+    updated: number
+}
+
+export interface ChecklistCreateRequest {
+    name: string
+    description?: string
+    columns: { label: string; description?: string }[]
+    restriction: ChecklistRestrictionDto
+}
+
+export interface ChecklistUpdateRequest {
+    name?: string
+    description?: string
+    restriction?: ChecklistRestrictionDto
 }

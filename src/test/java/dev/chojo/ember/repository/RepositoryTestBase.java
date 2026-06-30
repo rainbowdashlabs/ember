@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.board.repository.BoardRepository;
 import dev.chojo.ember.feature.board.repository.BoardTicketRepository;
 import dev.chojo.ember.feature.board.repository.FederatedBoardRepository;
+import dev.chojo.ember.feature.checklist.repository.ChecklistRepository;
 import dev.chojo.ember.feature.comment.repository.EventCommentRepository;
 import dev.chojo.ember.feature.comment.repository.NoteRepository;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryBlocklistRepository;
@@ -146,6 +147,7 @@ public abstract class RepositoryTestBase {
     protected static BoardRepository boardRepo;
     protected static BoardTicketRepository boardTicketRepo;
     protected static FederatedBoardRepository federatedBoardRepo;
+    protected static ChecklistRepository checklistRepo;
     protected static ProcedureRepository procedureRepo;
     protected static PageRepository pageRepo;
     protected static StorageUsageRepository storageUsageRepo;
@@ -257,6 +259,7 @@ public abstract class RepositoryTestBase {
         boardRepo = new BoardRepository();
         boardTicketRepo = new BoardTicketRepository(stationMemberRepo, stationRepo);
         federatedBoardRepo = new FederatedBoardRepository();
+        checklistRepo = new ChecklistRepository();
         procedureRepo = new ProcedureRepository();
         pageRepo = new PageRepository();
         storageUsageRepo = new StorageUsageRepository();

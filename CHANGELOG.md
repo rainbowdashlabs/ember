@@ -1,5 +1,11 @@
 # Changelog
 
+## v26.11.0
+
+### New Features
+
+- **Checklists for member follow-up.** Managers can build a list of yes/no questions, pick a member set by user type, group, tag or by hand, and tick each member off as they finish each step. Each cell takes an optional note with full history of every change. The list can be refreshed later to pull in newly-matching members, individual members can be added or removed by hand at any time, and the matrix exports to CSV for spreadsheet work or to PDF for printable sign-off.
+
 ## v26.10.2
 
 ### New Features

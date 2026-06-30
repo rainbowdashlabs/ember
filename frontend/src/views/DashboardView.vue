@@ -339,6 +339,8 @@ const manageDefaultRoute = computed(() => {
 
       <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.LOST_AND_FOUND)" :badge="counts.lostAndFoundPending" :icon="['fas', 'box-open']" :label="t('sidebar.lostAndFound')" prefix="/station/lost-and-found" to="/station/lost-and-found" name="lost-and-found" @navigate="close"/>
 
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="hasPermission(StationPermission.CHECKLIST_MANAGE)" :icon="['fas', 'list-check']" :label="t('sidebar.checklists')" prefix="/station/checklist" to="/station/checklist" name="checklist-list" @navigate="close"/>
+
       <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.QUIZ) || isModuleEnabled(StationModules.TEST_PROTOCOL)" :icon="['fas', 'graduation-cap']" :label="t('sidebar.quiz')" prefix="/station/quiz" group-key="quiz-protocols">
         <SidebarLink v-if="hasPermission(StationPermission.TEST_CATALOG_VIEW)" :icon="['fas', 'book']" name="quiz-catalogs" to="/station/quiz/catalogs" @navigate="close">
           {{ t('sidebar.quizCatalogs') }}

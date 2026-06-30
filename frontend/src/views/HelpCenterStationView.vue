@@ -268,6 +268,13 @@ const pageSubtitle = computed(() => t('helpCenter.title'))
                     to="/helpcenter/station/lost-and-found" name="help-lost-and-found" @navigate="close">
       </SidebarGroup>
 
+      <SidebarGroup :icon="['fas', 'list-check']" :label="t('sidebar.checklists')" prefix="/helpcenter/station/checklist"
+                    to="/helpcenter/station/checklist" name="help-checklist-list" @navigate="close">
+        <SidebarLink :icon="['fas', 'table-columns']" name="help-checklist-detail" to="/helpcenter/station/checklist/1" @navigate="close">
+          {{ t('helpCenter.checklist.detailSidebarLabel') }}
+        </SidebarLink>
+      </SidebarGroup>
+
       <QuizSidebarGroup :close="close"/>
 
       <SidebarGroup :icon="['fas', 'table-columns']" :label="t('sidebar.boards')" prefix="/helpcenter/station/boards"

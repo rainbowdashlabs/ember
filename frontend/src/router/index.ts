@@ -677,6 +677,16 @@ const router = createRouter({
                     component: () => import('@/views/stationview/lostandfound/ListView.vue'),
                 },
                 {
+                    path: 'checklist',
+                    name: 'checklist-list',
+                    component: () => import('@/views/stationview/checklist/ChecklistIndexView.vue'),
+                },
+                {
+                    path: 'checklist/:id',
+                    name: 'checklist-detail',
+                    component: () => import('@/views/stationview/checklist/ChecklistDetailView.vue'),
+                },
+                {
                     path: 'profile',
                     name: 'profile',
                     component: ProfileView,
@@ -1787,6 +1797,17 @@ const router = createRouter({
                     path: 'lost-and-found',
                     name: 'help-lost-and-found',
                     component: () => import('@/views/helpcenter/stationview/lostandfound/ListHelp.vue')
+                },
+                // Checklists
+                {
+                    path: 'checklist',
+                    name: 'help-checklist-list',
+                    component: () => import('@/views/helpcenter/stationview/checklist/IndexHelp.vue')
+                },
+                {
+                    path: 'checklist/:id',
+                    name: 'help-checklist-detail',
+                    component: () => import('@/views/helpcenter/stationview/checklist/DetailHelp.vue')
                 },
                 // Quiz
                 {

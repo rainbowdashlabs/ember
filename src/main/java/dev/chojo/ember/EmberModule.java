@@ -65,6 +65,7 @@ import dev.chojo.ember.feature.account.route.SessionRoutes;
 import dev.chojo.ember.feature.attendance.route.AttendanceRoutes;
 import dev.chojo.ember.feature.board.route.BoardRoutes;
 import dev.chojo.ember.feature.board.route.BoardTicketRoutes;
+import dev.chojo.ember.feature.checklist.route.ChecklistRoutes;
 import dev.chojo.ember.feature.comment.route.EventCommentRoutes;
 import dev.chojo.ember.feature.comment.route.NoteRoutes;
 import dev.chojo.ember.feature.discovery.route.AdminDiscoveryRoutes;
@@ -250,6 +251,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(NoteRoutes.class);
         routesBinder.addBinding().to(BoardRoutes.class);
         routesBinder.addBinding().to(BoardTicketRoutes.class);
+        routesBinder.addBinding().to(ChecklistRoutes.class);
         routesBinder.addBinding().to(RequirementsRoutes.class);
         routesBinder.addBinding().to(SidebarCountRoutes.class);
         routesBinder.addBinding().to(DataRoutes.class);
