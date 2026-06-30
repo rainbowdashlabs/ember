@@ -2,12 +2,17 @@
 
 ## v26.10.2
 
+### New Features
+
+- **Self-registration for member fields on an event.** Member fields on an event can be marked so any eligible station member can put themselves into the slot without the event-edit permission. Single-value fields stay with whoever claims the slot first and only that person can free it again; list fields let members add or remove themselves. Member fields can also be restricted by user type or tag in addition to groups.
+
 ### Fixes
 
 - **Traffic recorder no longer log-floods after a station is removed.** Per-station traffic deltas whose station id no longer exists in the database are folded into the instance-global bucket on the next flush and the id is remembered for the rest of the process so subsequent hits skip the failing insert directly. The traffic worker previously logged the same foreign-key violation every flush interval forever.
 
 ### Changes
 
+- **Batch event creation loads from an event template.** Picking an event template in the batch creator copies the template's title, description, category, registration toggles, and field set into the form so every event in the batch starts from the same preset. The separate "field layout" feature it replaces has been removed.
 - **Member list flags accounts pending setup.** Members whose account has not yet been signed into for the first time show an hourglass icon next to their name in the member list, and managers see a paper-plane button to resend the password-setup email without having to step through the user themselves.
 - **Mail relay failures retry indefinitely.** Emails that fail because the relay was unreachable, timed out, or returned a transient error are no longer marked failed on the first attempt — they stay queued and the email worker keeps retrying every ten seconds until the relay accepts them again. Permanent failures (rejected recipient, bad credentials) still mark the row failed so an operator notices.
 - **System mails follow the station's language.** Accounts that were created from a station — through an invite, application acceptance, waiting-list registration, member import, or cross-instance import — receive verification, password-setup, password-reset, two-factor-reset, and email-change notifications in the language configured for that station. Accounts from self-signup still default to English.

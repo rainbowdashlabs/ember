@@ -20,7 +20,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import EventFormPanel from './eventshared/EventFormPanel.vue'
 import BatchScheduleStep from './batchcreateview/BatchScheduleStep.vue'
 import BatchEditTable from './batchcreateview/BatchEditTable.vue'
-import type {AttendanceTemplateField, EventFieldEntry, LayoutFieldEntry} from '@/api/types'
+import type {AttendanceTemplateField, BatchFieldEntry, EventFieldEntry, EventTemplate} from '@/api/types'
 import type {BatchRow} from '@/api/events'
 import {attendance, events} from '@/api'
 import {useSession} from '@/composables/useSession'
@@ -35,11 +35,11 @@ const step = ref(1)
 const saving = ref(false)
 const success = ref('')
 
-const {layouts, categories, templates, groups, tags, reload: reloadDeps} = useEventEditDeps({autoLoad: false})
+const {categories, templates, groups, tags, reload: reloadDeps} = useEventEditDeps({autoLoad: false})
 const attendanceFields = ref<AttendanceTemplateField[]>([])
+const eventTemplates = ref<EventTemplate[]>([])
 
-// Step 1: Layout
-const selectedLayoutId = ref<number | null>(null)
+const selectedSourceTemplateId = ref<number | null>(null)
 const fieldDefs = ref<EventFieldEntry[]>([])
 const eventName = ref('')
 const eventDescription = ref('')
@@ -53,34 +53,44 @@ const selectedUserTypes = ref<string[]>([])
 const selectedGroupIds = ref<number[]>([])
 const selectedTagIds = ref<number[]>([])
 
-
-// Step 3: Table
 const rows = ref<BatchRow[]>([])
 
 const {loading, error, reload} = useAsyncLoader(async () => {
   await reloadDeps()
-  const allFields: AttendanceTemplateField[] = []
-  for (const tmpl of templates.value) {
-    const fields = await attendance.listTemplateFields(tmpl.id)
-    allFields.push(...fields)
-  }
-  attendanceFields.value = allFields
+  const [allFields, evTpls] = await Promise.all([
+    Promise.all(templates.value.map(tmpl => attendance.listTemplateFields(tmpl.id))),
+    events.listTemplates().catch(() => [] as EventTemplate[]),
+  ])
+  attendanceFields.value = allFields.flat()
+  eventTemplates.value = evTpls
 }, {autoLoad: loaded.value})
 
 watch(loaded, (isLoaded) => {
   if (isLoaded) reload()
 })
 
-async function loadLayoutFields() {
-  if (selectedLayoutId.value == null) return
-  const fields = await events.getLayoutFields(selectedLayoutId.value)
-  fieldDefs.value = fields.map(f => ({
-    name: f.name,
-    fieldType: f.fieldType,
-    config: f.config ? JSON.parse(f.config) : {},
-    overview: f.overview,
-    attendanceFieldId: f.attendanceFieldId ?? null,
-  }))
+async function applyTemplate() {
+  if (selectedSourceTemplateId.value == null) return
+  try {
+    const detail = await events.getTemplate(selectedSourceTemplateId.value)
+    const tpl = detail.template
+    if (tpl.title) eventName.value = tpl.title
+    if (tpl.description) eventDescription.value = tpl.description
+    if (tpl.categoryId) selectedCategoryId.value = String(tpl.categoryId)
+    if (tpl.requiresRegistration != null) requiresRegistration.value = tpl.requiresRegistration
+    if (tpl.requiresConfirmation != null) requiresConfirmation.value = tpl.requiresConfirmation
+    fieldDefs.value = detail.fields.map(f => ({
+      name: f.name,
+      fieldType: f.fieldType ?? 'STRING',
+      config: typeof f.config === 'string' ? (f.config ? JSON.parse(f.config) : {}) : (f.config ?? {}),
+      value: '',
+      overview: f.overview ?? false,
+      attendanceFieldId: f.attendanceFieldId ?? null,
+      isPublic: f.isPublic ?? false,
+    }))
+  } catch {
+    error.value = t('common.error')
+  }
 }
 
 function onScheduleDone(newRows: BatchRow[]) {
@@ -92,7 +102,7 @@ async function createBatch() {
   saving.value = true
   error.value = ''
   try {
-    const inlineFields: LayoutFieldEntry[] = fieldDefs.value.filter(f => f.name.trim()).map(f => ({
+    const inlineFields: BatchFieldEntry[] = fieldDefs.value.filter(f => f.name.trim()).map(f => ({
       name: f.name,
       fieldType: f.fieldType,
       config: f.config ?? undefined,
@@ -104,8 +114,7 @@ async function createBatch() {
       description: eventDescription.value || undefined,
       categoryId: selectedCategoryId.value ? Number(selectedCategoryId.value) : undefined,
       templateId: selectedTemplateId.value ? Number(selectedTemplateId.value) : undefined,
-      layoutId: selectedLayoutId.value,
-      inlineFields: selectedLayoutId.value ? undefined : inlineFields,
+      inlineFields,
       rows: rows.value,
       requiresRegistration: requiresRegistration.value,
       requiresConfirmation: requiresConfirmation.value,
@@ -132,10 +141,9 @@ async function createBatch() {
       <Alert v-if="error" variant="error">{{ error }}</Alert>
       <Alert v-if="success" variant="success">{{ success }}</Alert>
 
-      <!-- Step indicator -->
       <StepProgressBar class="mb-4"
           :steps="[
-            { label: t('batchCreate.stepLayout') },
+            { label: t('batchCreate.stepFields') },
             { label: t('batchCreate.stepSchedule'), disabled: fieldDefs.length === 0 },
             { label: t('batchCreate.stepTable'), disabled: rows.length === 0 },
           ]"
@@ -143,7 +151,6 @@ async function createBatch() {
           @update:current-step="step = $event + 1"
       />
 
-      <!-- Step 1: Layout -->
       <NeutralContainer v-if="step === 1" class="space-y-6">
         <EventFormPanel
             v-model:name="eventName"
@@ -165,13 +172,12 @@ async function createBatch() {
             :tags="tags"
         />
 
-        <!-- Load from layout -->
-        <div v-if="layouts.length > 0" class="space-y-2">
-          <FieldLabel>{{ t('eventLayouts.loadFromLayout') }}</FieldLabel>
-          <SelectInput :model-value="String(selectedLayoutId ?? '')"
-                       @update:model-value="selectedLayoutId = $event ? Number($event) : null; loadLayoutFields()">
+        <div v-if="eventTemplates.length > 0" class="space-y-2">
+          <FieldLabel>{{ t('batchCreate.applyTemplate') }}</FieldLabel>
+          <SelectInput :model-value="String(selectedSourceTemplateId ?? '')"
+                       @update:model-value="selectedSourceTemplateId = $event ? Number($event) : null; applyTemplate()">
             <option value="">—</option>
-            <option v-for="layout in layouts" :key="layout.id" :value="String(layout.id)">{{ layout.name }}</option>
+            <option v-for="tpl in eventTemplates" :key="tpl.id" :value="String(tpl.id)">{{ tpl.name }}</option>
           </SelectInput>
         </div>
 
@@ -182,7 +188,6 @@ async function createBatch() {
         </div>
       </NeutralContainer>
 
-      <!-- Step 2: Schedule or CSV -->
       <BatchScheduleStep
           v-if="step === 2"
           :field-defs="fieldDefs"
@@ -190,7 +195,6 @@ async function createBatch() {
           @error="error = $event"
       />
 
-      <!-- Step 3: Table -->
       <template v-if="step === 3">
         <BatchEditTable v-model:rows="rows" :field-defs="fieldDefs"/>
 

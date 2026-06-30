@@ -7,9 +7,9 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.EventsBatchCreated;
+import dev.chojo.ember.feature.events.entity.BatchFieldEntry;
 import dev.chojo.ember.feature.events.entity.BatchRequest;
 import dev.chojo.ember.feature.events.entity.BatchRow;
-import dev.chojo.ember.feature.events.entity.EventLayoutField;
 import dev.chojo.ember.feature.events.entity.IntervalConfig;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
@@ -33,7 +33,6 @@ public class BatchEventService {
 
     private final EventService eventService;
     private final EventFieldService eventFieldService;
-    private final EventLayoutService eventLayoutService;
     private final EventRepository eventRepository;
     private final DomainEventBus eventBus;
 
@@ -41,12 +40,10 @@ public class BatchEventService {
     public BatchEventService(
             EventService eventService,
             EventFieldService eventFieldService,
-            EventLayoutService eventLayoutService,
             EventRepository eventRepository,
             DomainEventBus eventBus) {
         this.eventService = eventService;
         this.eventFieldService = eventFieldService;
-        this.eventLayoutService = eventLayoutService;
         this.eventRepository = eventRepository;
         this.eventBus = eventBus;
     }
@@ -134,10 +131,7 @@ public class BatchEventService {
         return rows;
     }
 
-    private List<EventLayoutField> resolveFieldDefs(BatchRequest request) {
-        if (request.layoutId() != null) {
-            return eventLayoutService.findFieldsByLayout(request.layoutId());
-        }
+    private List<BatchFieldEntry> resolveFieldDefs(BatchRequest request) {
         return request.inlineFields() != null ? request.inlineFields() : List.of();
     }
 

@@ -11,7 +11,7 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import CommentSection from '@/components/comment/CommentSection.vue'
 import NoteEditor from '@/components/comment/NoteEditor.vue'
 import EventGeneralInfoPanel from './EventGeneralInfoPanel.vue'
-import type {EventField, StationEvent} from '@/api/types'
+import type {EventField, StationEvent, StationMember} from '@/api/types'
 import {isRecurringEvent, StationPermission} from '@/api/types'
 import type {AbsentMember} from '@/api/events'
 
@@ -19,6 +19,8 @@ const props = defineProps<{
   event: StationEvent
   eventId: number
   fields: EventField[]
+  allMembers: StationMember[]
+  currentMemberId: number
   absentMembers: AbsentMember[]
   focusedDate: string | null
   startFormatted: string
@@ -30,6 +32,10 @@ const props = defineProps<{
   hasPermission: (perm: string) => boolean
 }>()
 
+const emit = defineEmits<{
+  (e: 'field-updated', field: EventField): void
+}>()
+
 const {t} = useI18n()
 </script>
 
@@ -37,12 +43,16 @@ const {t} = useI18n()
   <div class="space-y-6">
     <EventGeneralInfoPanel
         :event="event"
+        :event-id="eventId"
         :fields="fields"
+        :all-members="allMembers"
+        :current-member-id="currentMemberId"
         :start-formatted="startFormatted"
         :end-formatted="endFormatted"
         :category-name="categoryName"
         :template-name="templateName"
         :can-manage-events="canManageEvents"
+        @field-updated="(f) => emit('field-updated', f)"
     />
 
     <NeutralContainer v-if="isRecurringEvent(event.eventType) && (canManageEvents || canManageAttendance)" class="space-y-3">

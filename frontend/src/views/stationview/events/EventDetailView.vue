@@ -13,7 +13,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import type {AttendanceTemplate, EventCategory, EventField, StationEvent, StationMember} from '@/api/types'
 import {isRecurringEvent} from '@/api/types'
 import type {AbsentMember} from '@/api/events'
-import {attendance, events, managedMembers as managedMembersApi} from '@/api'
+import {attendance, events, managedMembers as managedMembersApi, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import EventDetailBody from './eventdetailview/EventDetailBody.vue'
@@ -38,6 +38,7 @@ const fields = ref<EventField[]>([])
 const reminders = ref<number[]>([])
 const absentMembers = ref<AbsentMember[]>([])
 const managedMembers = ref<StationMember[]>([])
+const allMembers = ref<StationMember[]>([])
 const eligibleMembers = ref<Record<number, number[]>>({})
 const body = ref<InstanceType<typeof EventDetailBody> | null>(null)
 
@@ -123,14 +124,21 @@ const currentTemplateName = computed(() => {
 })
 
 const {loading, error, reload} = useAsyncLoader(async () => {
-  const [ev, cats, flds] = await Promise.all([
+  const [ev, cats, flds, completions] = await Promise.all([
     events.getEvent(eventId.value),
     events.listCategories(),
     events.getEventFields(eventId.value),
+    stationMembers.listCompletions().catch(() => []),
   ])
   event.value = ev
   categories.value = cats
   fields.value = flds
+  allMembers.value = completions.map(c => ({
+    id: c.id,
+    stationId: '',
+    accountId: 0,
+    name: c.name,
+  }))
   try { reminders.value = await events.getEventReminders(eventId.value) } catch { reminders.value = [] }
   if (canManageEvents()) {
     templates.value = await attendance.listTemplates()
@@ -162,6 +170,11 @@ async function loadAbsences() {
 async function onEventCancelled() {
   await reload()
 }
+
+function onFieldUpdated(field: EventField) {
+  const i = fields.value.findIndex(f => f.id === field.id)
+  if (i >= 0) fields.value.splice(i, 1, field)
+}
 </script>
 
 <template>
@@ -174,6 +187,7 @@ async function onEventCancelled() {
         :event="event"
         :event-id="eventId"
         :fields="fields"
+        :all-members="allMembers"
         :reminders="reminders"
         :absent-members="absentMembers"
         :focused-date="focusedDate"
@@ -189,6 +203,7 @@ async function onEventCancelled() {
         :can-manage-attendance="canManageAttendance()"
         :has-permission="hasPermission"
         @cancelled="onEventCancelled"
+        @field-updated="onFieldUpdated"
     />
   </ViewContent>
 </template>

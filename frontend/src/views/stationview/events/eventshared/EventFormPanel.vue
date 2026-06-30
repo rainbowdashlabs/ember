@@ -29,6 +29,7 @@ defineProps<{
   showValue?: boolean
   allMembers?: StationMember[]
   groupMembers?: Map<number, StationMember[]>
+  tagMembers?: Map<number, StationMember[]>
 }>()
 
 const name = defineModel<string>('name', {required: true})
@@ -219,6 +220,8 @@ const {t} = useI18n()
         :all-members="allMembers"
         :groups="groups"
         :group-members="groupMembers"
+        :tags="tags"
+        :tag-members="tagMembers"
     />
   </div>
 </template>

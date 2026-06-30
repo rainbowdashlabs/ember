@@ -13,8 +13,8 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import EventFieldValueInput from '@/components/input/EventFieldValueInput.vue'
-import type {AttendanceTemplateField, EventFieldEntry, MemberGroup, StationMember} from '@/api/types'
-import {EventFieldTypes} from '@/api/types'
+import type {AttendanceTemplateField, EventFieldEntry, MemberGroup, StationMember, UserTag} from '@/api/types'
+import {EventFieldTypes, StationUserType, StationUserTypeLabels, type StationUserTypeName} from '@/api/types'
 
 const modelValue = defineModel<EventFieldEntry>({required: true})
 
@@ -24,6 +24,8 @@ const props = defineProps<{
   allMembers?: StationMember[]
   groups?: MemberGroup[]
   groupMembers?: Map<number, StationMember[]>
+  tags?: UserTag[]
+  tagMembers?: Map<number, StationMember[]>
 }>()
 
 const emit = defineEmits<{
@@ -46,6 +48,26 @@ const fieldTypeOptions = [
   {value: EventFieldTypes.MEMBER_LIST, label: t('eventFields.typeMemberList')},
   {value: EventFieldTypes.MEMBER_OF_GROUP, label: t('eventFields.typeMemberOfGroup')},
   {value: EventFieldTypes.MEMBER_LIST_OF_GROUP, label: t('eventFields.typeMemberListOfGroup')},
+  {value: EventFieldTypes.MEMBER_OF_TYPE, label: t('eventFields.typeMemberOfType')},
+  {value: EventFieldTypes.MEMBER_LIST_OF_TYPE, label: t('eventFields.typeMemberListOfType')},
+  {value: EventFieldTypes.MEMBER_OF_TAG, label: t('eventFields.typeMemberOfTag')},
+  {value: EventFieldTypes.MEMBER_LIST_OF_TAG, label: t('eventFields.typeMemberListOfTag')},
+]
+
+const userTypeOptions = Object.values(StationUserType).map(v => ({
+  value: v,
+  label: StationUserTypeLabels[v as StationUserTypeName],
+}))
+
+const memberFieldTypes: string[] = [
+  EventFieldTypes.MEMBER,
+  EventFieldTypes.MEMBER_LIST,
+  EventFieldTypes.MEMBER_OF_GROUP,
+  EventFieldTypes.MEMBER_LIST_OF_GROUP,
+  EventFieldTypes.MEMBER_OF_TYPE,
+  EventFieldTypes.MEMBER_LIST_OF_TYPE,
+  EventFieldTypes.MEMBER_OF_TAG,
+  EventFieldTypes.MEMBER_LIST_OF_TAG,
 ]
 
 const name = ref(modelValue.value.name ?? '')
@@ -56,12 +78,14 @@ const isPublic = ref(modelValue.value.isPublic ?? false)
 const attendanceFieldId = ref<number | null>(modelValue.value.attendanceFieldId ?? null)
 const enumOptions = ref('')
 const groupId = ref<string>('')
+const userType = ref<string>('')
+const tagId = ref<string>('')
+const selfRegistration = ref(false)
 
 function parseConfig(): Record<string, unknown> {
   return modelValue.value.config ?? {}
 }
 
-// Initialize from config
 const cfg = parseConfig()
 if (cfg.options && Array.isArray(cfg.options)) {
   enumOptions.value = (cfg.options as string[]).join('\n')
@@ -69,9 +93,34 @@ if (cfg.options && Array.isArray(cfg.options)) {
 if (cfg.groupId) {
   groupId.value = String(cfg.groupId)
 }
+if (cfg.userType) {
+  userType.value = String(cfg.userType)
+}
+if (cfg.tagId) {
+  tagId.value = String(cfg.tagId)
+}
+if (cfg.selfRegistration) {
+  selfRegistration.value = true
+}
 
-function isGroupField(): boolean {
-  return fieldType.value === 'MEMBER_OF_GROUP' || fieldType.value === 'MEMBER_LIST_OF_GROUP'
+function constraint(): 'group' | 'userType' | 'tag' | null {
+  switch (fieldType.value) {
+    case EventFieldTypes.MEMBER_OF_GROUP:
+    case EventFieldTypes.MEMBER_LIST_OF_GROUP:
+      return 'group'
+    case EventFieldTypes.MEMBER_OF_TYPE:
+    case EventFieldTypes.MEMBER_LIST_OF_TYPE:
+      return 'userType'
+    case EventFieldTypes.MEMBER_OF_TAG:
+    case EventFieldTypes.MEMBER_LIST_OF_TAG:
+      return 'tag'
+    default:
+      return null
+  }
+}
+
+function isMemberField(): boolean {
+  return memberFieldTypes.includes(fieldType.value)
 }
 
 function buildConfig(): Record<string, unknown> {
@@ -79,8 +128,17 @@ function buildConfig(): Record<string, unknown> {
   if (fieldType.value === 'ENUM' && enumOptions.value.trim()) {
     c.options = enumOptions.value.split('\n').map(o => o.trim()).filter(o => o)
   }
-  if (isGroupField() && groupId.value) {
+  if (constraint() === 'group' && groupId.value) {
     c.groupId = Number(groupId.value)
+  }
+  if (constraint() === 'userType' && userType.value) {
+    c.userType = userType.value
+  }
+  if (constraint() === 'tag' && tagId.value) {
+    c.tagId = Number(tagId.value)
+  }
+  if (isMemberField() && selfRegistration.value) {
+    c.selfRegistration = true
   }
   return c
 }
@@ -125,13 +183,34 @@ watch(entry, val => { modelValue.value = val }, {deep: true})
       <TextAreaInput v-model="enumOptions" :placeholder="t('eventFields.enumOptionsPlaceholder')" :rows="3"/>
     </div>
 
-    <div v-if="isGroupField() && groups && groups.length > 0" class="space-y-1">
+    <div v-if="constraint() === 'group' && groups && groups.length > 0" class="space-y-1">
       <FieldLabel>{{ t('eventFields.group') }}</FieldLabel>
       <SelectInput v-model="groupId" class="w-full sm:w-auto">
         <option value="">{{ t('eventFields.selectGroup') }}</option>
         <option v-for="g in groups" :key="g.id" :value="String(g.id)">{{ g.name }}</option>
       </SelectInput>
     </div>
+
+    <div v-if="constraint() === 'userType'" class="space-y-1">
+      <FieldLabel>{{ t('eventFields.userType') }}</FieldLabel>
+      <SelectInput v-model="userType" class="w-full sm:w-auto">
+        <option value="">{{ t('eventFields.selectUserType') }}</option>
+        <option v-for="ut in userTypeOptions" :key="ut.value" :value="ut.value">{{ ut.label }}</option>
+      </SelectInput>
+    </div>
+
+    <div v-if="constraint() === 'tag' && tags && tags.length > 0" class="space-y-1">
+      <FieldLabel>{{ t('eventFields.tag') }}</FieldLabel>
+      <SelectInput v-model="tagId" class="w-full sm:w-auto">
+        <option value="">{{ t('eventFields.selectTag') }}</option>
+        <option v-for="tg in tags" :key="tg.id" :value="String(tg.id)">{{ tg.name }}</option>
+      </SelectInput>
+    </div>
+
+    <label v-if="isMemberField()" class="flex items-center gap-2 text-sm">
+      <ToggleInput v-model="selfRegistration"/>
+      {{ t('eventFields.selfRegistration') }}
+    </label>
 
     <div class="flex items-center gap-4">
       <label class="flex items-center gap-2 text-sm">
@@ -155,7 +234,6 @@ watch(entry, val => { modelValue.value = val }, {deep: true})
       <DeleteButton :label="t('common.delete')" @click="emit('remove')"/>
     </div>
 
-    <!-- Value input -->
     <div v-if="showValue && name.trim()" class="space-y-1">
       <FieldLabel>{{ t('eventFields.value') }}</FieldLabel>
       <EventFieldValueInput
@@ -164,6 +242,7 @@ watch(entry, val => { modelValue.value = val }, {deep: true})
           :model-value="fieldValue"
           :all-members="allMembers"
           :group-members="groupMembers"
+          :tag-members="tagMembers"
           @update:model-value="fieldValue = $event"
       />
     </div>

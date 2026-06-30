@@ -9,6 +9,7 @@ import SingleSelectDropdown from '@/components/input/select/SingleSelectDropdown
 import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
 import TimeShortInput from '@/components/input/datetime/TimeShortInput.vue'
 import type {StationMember} from '@/api/types'
+import {EventFieldTypes} from '@/api/types'
 
 const modelValue = defineModel<string>({required: true})
 
@@ -18,27 +19,70 @@ const props = defineProps<{
   disabled?: boolean
   allMembers?: StationMember[]
   groupMembers?: Map<number, StationMember[]>
+  tagMembers?: Map<number, StationMember[]>
 }>()
 
-function parseConfig(): { options?: string[]; groupId?: number } {
-  return (props.config ?? {}) as { options?: string[]; groupId?: number }
+type FieldConfig = {
+  options?: string[]
+  groupId?: number
+  userType?: string
+  tagId?: number
+}
+
+const MEMBER_FIELDS: string[] = [
+  EventFieldTypes.MEMBER,
+  EventFieldTypes.MEMBER_LIST,
+  EventFieldTypes.MEMBER_OF_GROUP,
+  EventFieldTypes.MEMBER_LIST_OF_GROUP,
+  EventFieldTypes.MEMBER_OF_TYPE,
+  EventFieldTypes.MEMBER_LIST_OF_TYPE,
+  EventFieldTypes.MEMBER_OF_TAG,
+  EventFieldTypes.MEMBER_LIST_OF_TAG,
+]
+
+const LIST_FIELDS: string[] = [
+  EventFieldTypes.MEMBER_LIST,
+  EventFieldTypes.MEMBER_LIST_OF_GROUP,
+  EventFieldTypes.MEMBER_LIST_OF_TYPE,
+  EventFieldTypes.MEMBER_LIST_OF_TAG,
+]
+
+function parseConfig(): FieldConfig {
+  return (props.config ?? {}) as FieldConfig
 }
 
 function isMemberField(): boolean {
-  return ['MEMBER', 'MEMBER_LIST', 'MEMBER_OF_GROUP', 'MEMBER_LIST_OF_GROUP'].includes(props.fieldType)
+  return MEMBER_FIELDS.includes(props.fieldType)
 }
 
 function isListField(): boolean {
-  return ['MEMBER_LIST', 'MEMBER_LIST_OF_GROUP'].includes(props.fieldType)
+  return LIST_FIELDS.includes(props.fieldType)
 }
 
 function getMemberOptions(): { value: string; label: string }[] {
   const cfg = parseConfig()
   let members: StationMember[]
-  if (cfg.groupId && props.groupMembers?.has(cfg.groupId)) {
-    members = props.groupMembers.get(cfg.groupId)!
-  } else {
-    members = props.allMembers ?? []
+  switch (props.fieldType) {
+    case EventFieldTypes.MEMBER_OF_GROUP:
+    case EventFieldTypes.MEMBER_LIST_OF_GROUP:
+      members = cfg.groupId && props.groupMembers?.has(cfg.groupId)
+          ? props.groupMembers.get(cfg.groupId)!
+          : (props.allMembers ?? [])
+      break
+    case EventFieldTypes.MEMBER_OF_TYPE:
+    case EventFieldTypes.MEMBER_LIST_OF_TYPE:
+      members = cfg.userType
+          ? (props.allMembers ?? []).filter(m => m.userType === cfg.userType)
+          : (props.allMembers ?? [])
+      break
+    case EventFieldTypes.MEMBER_OF_TAG:
+    case EventFieldTypes.MEMBER_LIST_OF_TAG:
+      members = cfg.tagId && props.tagMembers?.has(cfg.tagId)
+          ? props.tagMembers.get(cfg.tagId)!
+          : (props.allMembers ?? [])
+      break
+    default:
+      members = props.allMembers ?? []
   }
   return members.map(m => ({value: String(m.id), label: m.name ?? m.email ?? `#${m.id}`}))
 }
@@ -64,13 +108,11 @@ function setSingleMember(id: string) {
 </script>
 
 <template>
-  <!-- Time -->
   <template v-if="fieldType === 'TIME'">
     <TimeShortInput :disabled="disabled" :model-value="modelValue"
                     @update:model-value="modelValue = $event ?? ''"/>
   </template>
 
-  <!-- Member list fields -->
   <template v-else-if="isMemberField() && allMembers">
     <MultiSelectDropdown
         v-if="isListField()"
@@ -92,7 +134,6 @@ function setSingleMember(id: string) {
     />
   </template>
 
-  <!-- Regular fields -->
   <template v-else>
     <ProfileFieldInput v-model="modelValue" :disabled="disabled" :field-type="fieldType"
                        :options="parseConfig().options ?? []"/>

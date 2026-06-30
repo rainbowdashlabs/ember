@@ -113,6 +113,15 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.eventEdit.fieldDefaultsText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.eventEdit.fieldsTitle')">
+      <p>{{ t('helpCenter.eventEdit.fieldsText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.eventEdit.selfRegistrationTitle')">
+      <p>{{ t('helpCenter.eventEdit.selfRegistrationText') }}</p>
+      <HelpTip>{{ t('eventFields.selfRegistration') }}</HelpTip>
+    </HelpSection>
+
     <HelpTip>{{ t('helpCenter.eventEdit.tip') }}</HelpTip>
   </HelpArticle>
 </template>
