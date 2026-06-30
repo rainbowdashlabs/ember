@@ -1768,4 +1768,133 @@ class EventServiceTest extends RepositoryTestBase {
     void withdrawRegistrationNotFound() {
         assertFalse(service.withdrawRegistration(999999));
     }
+
+    @Test
+    @Order(207)
+    void findUpcomingOccurrencesWithSearch() {
+        // Create a recognisable event so the search filter has something to match.
+        int dow = LocalDate.now(ZoneOffset.UTC).getDayOfWeek().getValue();
+        var start = Instant.now().plus(1, ChronoUnit.DAYS);
+        var end = start.plus(2, ChronoUnit.HOURS);
+        var unique = service.create(
+                station.id(),
+                "SearchableUpcoming",
+                "needle",
+                StationEvent.EventType.RECURRING,
+                dow,
+                start,
+                end,
+                null,
+                false,
+                null,
+                false,
+                categoryId,
+                null,
+                null,
+                null,
+                null);
+
+        var byName = service.findUpcomingOccurrences(station.id(), null, null, null, "searchable", 100, 0);
+        assertTrue(byName.stream().anyMatch(o -> o.event().id() == unique.id()));
+
+        var byDesc = service.findUpcomingOccurrences(station.id(), null, null, null, "needle", 100, 0);
+        assertTrue(byDesc.stream().anyMatch(o -> o.event().id() == unique.id()));
+
+        var none = service.findUpcomingOccurrences(station.id(), null, null, null, "no-such-string", 100, 0);
+        assertTrue(none.stream().noneMatch(o -> o.event().id() == unique.id()));
+    }
+
+    @Test
+    @Order(208)
+    void setAndFindReminderDays() {
+        var start = Instant.now().plus(31, ChronoUnit.DAYS);
+        var end = start.plus(2, ChronoUnit.HOURS);
+        var event = service.create(
+                station.id(),
+                "ReminderTarget",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                end,
+                null,
+                false,
+                null,
+                false,
+                categoryId,
+                null,
+                null,
+                null,
+                null);
+
+        service.setReminders(event.id(), List.of(7, 3, 1));
+        assertEquals(List.of(1, 3, 7), service.findReminderDays(event.id()));
+
+        service.setReminders(event.id(), List.of());
+        assertTrue(service.findReminderDays(event.id()).isEmpty());
+    }
+
+    @Test
+    @Order(209)
+    void registrationFeedHelpersDelegate() {
+        var start = Instant.now().plus(32, ChronoUnit.DAYS);
+        var end = start.plus(2, ChronoUnit.HOURS);
+        var event = service.create(
+                station.id(),
+                "FeedHelperEvent",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                end,
+                null,
+                true,
+                null,
+                false,
+                categoryId,
+                null,
+                null,
+                null,
+                null);
+        var eventDate = start.atZone(ZoneOffset.UTC).toLocalDate();
+        service.register(event.id(), member.id(), eventDate, true, null);
+
+        var regs = service.findRegistrationsByMembers(List.of(member.id()));
+        assertTrue(regs.stream().anyMatch(r -> r.eventId() == event.id()));
+
+        assertNotNull(service.findMaxEventUpdatedAt(station.id()));
+        assertNotNull(service.findMaxRegistrationCreatedAt(List.of(member.id())));
+    }
+
+    @Test
+    @Order(210)
+    void publicUidLookupDelegates() {
+        var start = Instant.now().plus(33, ChronoUnit.DAYS);
+        var end = start.plus(2, ChronoUnit.HOURS);
+        var event = service.create(
+                station.id(),
+                "PublicUidEvent",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                end,
+                null,
+                false,
+                null,
+                false,
+                categoryId,
+                null,
+                null,
+                null,
+                null);
+
+        var uids = service.findPublicUidsByIds(station.id(), List.of(event.id()));
+        var publicUid = uids.get(event.id());
+        assertNotNull(publicUid);
+
+        var resolved = service.findByPublicUid(station.id(), publicUid);
+        assertTrue(resolved.isPresent());
+        assertEquals(event.id(), resolved.get().id());
+    }
 }
