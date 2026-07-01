@@ -10,7 +10,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
@@ -100,7 +100,7 @@ watch(
 <template>
   <Modal v-model="modelValue">
     <div class="space-y-4">
-      <SectionHeader>{{ t('procurement.createTitle') }}</SectionHeader>
+      <SubHeader>{{ t('procurement.createTitle') }}</SubHeader>
 
       <template v-if="createSuccess">
         <Alert variant="success">{{ t('inventory.check.procurementCreated') }}</Alert>

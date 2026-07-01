@@ -11,7 +11,6 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import StepProgressBar from '@/components/display/StepProgressBar.vue'
@@ -134,8 +133,10 @@ async function createBatch() {
 </script>
 
 <template>
-  <ViewContent>
-    <SectionHeader>{{ t('batchCreate.title') }}</SectionHeader>
+  <ViewContent
+      :title="t('pages.event-batch.title')"
+      :subtitle="t('pages.event-batch.subtitle')"
+  >
     <Spinner v-if="loading"/>
     <template v-else>
       <Alert v-if="error" variant="error">{{ error }}</Alert>

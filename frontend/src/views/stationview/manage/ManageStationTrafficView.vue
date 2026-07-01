@@ -7,7 +7,6 @@
 import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import PageHeader from '@/components/typography/PageHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -45,13 +44,12 @@ watch([windowHours, authFilter], load)
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.station-traffic.title')"
+      :subtitle="t('pages.station-traffic.subtitle')"
+  >
     <div class="space-y-4">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <PageHeader>{{ t('traffic.station.title') }}</PageHeader>
-          <MutedText tag="p" size="sm">{{ t('traffic.station.subtitle') }}</MutedText>
-        </div>
+      <div class="flex flex-wrap items-center justify-end gap-3">
         <HelpCenterHint :to="{name: 'help-station-traffic'}">
           {{ t('traffic.help') }}
         </HelpCenterHint>

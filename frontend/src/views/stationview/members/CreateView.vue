@@ -190,7 +190,10 @@ function startOver() {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.members-create.title')"
+      :subtitle="t('pages.members-create.subtitle')"
+  >
     <div class="space-y-6">
       <div class="flex justify-end">
         <SecondaryButton :icon="['fas', 'upload']" @click="router.push({ name: 'members-import' })">

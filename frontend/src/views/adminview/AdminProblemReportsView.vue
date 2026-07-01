@@ -7,7 +7,6 @@
 import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -56,14 +55,9 @@ function toggle(id: number) {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.admin-problem-reports.title')" :subtitle="t('pages.admin-problem-reports.subtitle')">
     <div class="space-y-4">
       <div class="flex items-center justify-between">
-        <SectionHeader>
-          <font-awesome-icon :icon="['fas', 'flag']" class="mr-2"/>
-          {{ t('problemReport.adminTitle') }}
-          <span v-if="reports.length > 0"> ({{ reports.length }})</span>
-        </SectionHeader>
         <div class="flex items-center gap-3">
           <label class="flex items-center gap-2 text-sm">
             <ToggleInput v-model="includeAcknowledged" @update:model-value="loadData"/>

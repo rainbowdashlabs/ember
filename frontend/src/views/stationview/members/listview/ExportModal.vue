@@ -11,7 +11,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import RadioInput from '@/components/input/toggle/RadioInput.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type {ProfileField} from '@/api/types'
 
@@ -80,7 +80,7 @@ function submit() {
 <template>
   <Modal v-model="modelValue">
     <div class="space-y-4">
-      <SectionHeader>{{ t('membersList.export.title') }}</SectionHeader>
+      <SubHeader>{{ t('membersList.export.title') }}</SubHeader>
       <p class="text-sm text-(--text-muted)">{{ t('membersList.export.hint', {count: selectedCount}) }}</p>
 
       <!-- Column selection -->

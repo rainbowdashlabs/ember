@@ -207,7 +207,7 @@ async function save() {
 </script>
 
 <template>
-    <ViewContent>
+    <ViewContent :title="t('pages.page-editor.title')" :subtitle="t('pages.page-editor.subtitle')">
         <div class="space-y-4">
             <Spinner v-if="loading" size="lg"/>
 

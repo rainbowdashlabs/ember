@@ -185,7 +185,10 @@ function goBack() {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.station-attendance-config-edit.title')"
+      :subtitle="t('pages.station-attendance-config-edit.subtitle')"
+  >
     <div class="space-y-6">
       <SecondaryButton :icon="['fas', 'chevron-left']" @click="goBack">
         {{ t('attendanceConfig.back') }}

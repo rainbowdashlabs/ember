@@ -185,7 +185,10 @@ async function onUnknownScanCreated(item: InventoryItem) {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.inventory-assign.title')"
+      :subtitle="t('pages.inventory-assign.subtitle')"
+  >
     <Alert v-if="error" variant="error" class="mb-3">{{ error }}</Alert>
     <Alert v-if="success" variant="success" class="mb-3">{{ success }}</Alert>
 

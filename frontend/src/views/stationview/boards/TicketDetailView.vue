@@ -209,7 +209,10 @@ watch(ticketNumber, reload)
 </script>
 
 <template>
-    <ViewContent>
+    <ViewContent
+        :title="t('pages.ticket-detail.title')"
+        :subtitle="t('pages.ticket-detail.subtitle')"
+    >
         <Spinner v-if="loading" />
         <Alert v-else-if="error && !ticket" variant="error">{{ error }}</Alert>
         <template v-else-if="board && ticket">

@@ -45,7 +45,7 @@ async function changePassword() {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.account-security.title')" :subtitle="t('pages.account-security.subtitle')">
     <div class="max-w-2xl mx-auto space-y-8 p-4">
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 

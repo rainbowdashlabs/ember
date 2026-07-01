@@ -20,7 +20,6 @@ import { forms } from '@/api'
 import type { EligibleMembers } from '@/api/forms'
 import { useSession } from '@/composables/useSession'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MemberSelector from './fillview/MemberSelector.vue'
 import QuestionCard from './fillview/QuestionCard.vue'
 
@@ -188,14 +187,16 @@ watch(loaded, (isLoaded) => {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.forms-fill.title')"
+      :subtitle="t('pages.forms-fill.subtitle')"
+  >
     <div class="space-y-6 max-w-3xl">
       <Spinner v-if="loading" size="lg" />
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading && form">
         <div>
-          <SectionHeader>{{ form.title }}</SectionHeader>
           <p v-if="form.description" class="text-(--text-muted) mt-1">{{ form.description }}</p>
         </div>
 

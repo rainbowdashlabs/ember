@@ -18,7 +18,6 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TemplateItemCard from '@/views/stationview/procedure/proceduretemplateeditview/TemplateItemCard.vue'
@@ -173,7 +172,10 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.procedure-template-edit.title')"
+      :subtitle="t('pages.procedure-template-edit.subtitle')"
+  >
     <Spinner v-if="loading" />
     <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
 
@@ -181,7 +183,6 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
       <!-- Header -->
       <div class="flex items-start justify-between mb-4 gap-4">
         <div class="flex-1 min-w-0">
-          <SectionHeader>{{ detail.template.name }}</SectionHeader>
           <p v-if="detail.template.description" class="text-[var(--text-muted)] text-sm mt-1">{{ detail.template.description }}</p>
         </div>
         <div v-if="canManage" class="flex gap-2 shrink-0">

@@ -147,7 +147,10 @@ function goBack() {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.inventory-lending-blocks-create.title')"
+      :subtitle="t('pages.inventory-lending-blocks-create.subtitle')"
+  >
     <div class="flex items-center gap-3 mb-6">
       <SecondaryButton :icon="['fas', 'chevron-left']" @click="goBack">
         {{ t('common.back') }}

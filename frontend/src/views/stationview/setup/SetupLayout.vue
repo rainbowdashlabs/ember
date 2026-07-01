@@ -71,7 +71,7 @@ function goSkip() {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.station-setup.title')" :subtitle="t('pages.station-setup.subtitle')">
     <div class="space-y-6">
       <header class="space-y-3">
         <div class="flex items-center gap-3 flex-wrap">

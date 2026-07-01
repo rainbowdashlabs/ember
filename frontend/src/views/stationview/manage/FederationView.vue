@@ -20,7 +20,6 @@ import Modal from '@/components/feedback/Modal.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import { useSession } from '@/composables/useSession'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'
@@ -97,9 +96,11 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
 </script>
 
 <template>
-  <ViewContent>
-    <div class="flex items-center justify-between mb-4">
-      <SectionHeader>{{ t('federation.title') }}</SectionHeader>
+  <ViewContent
+      :title="t('pages.station-federation.title')"
+      :subtitle="t('pages.station-federation.subtitle')"
+  >
+    <div class="flex items-center justify-end mb-4">
       <PrimaryButton v-if="canManageFederation()" @click="showInviteModal = true">
         <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" /> {{ t('federation.addPartner') }}
       </PrimaryButton>

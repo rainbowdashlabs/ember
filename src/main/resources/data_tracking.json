@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:36be48768ccf7c257dbcedf0032e683a3810c46217ffe36ca7a7f251cc352b38",
-  "generatedAt" : "2026-06-29T22:43:24Z",
+  "schemaHash" : "sha256:0691bae540088082d670b48c74c8ee3de87968defe72cf8a95334f130a3075eb",
+  "generatedAt" : "2026-06-30T10:29:03Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -2422,6 +2422,425 @@
         "reason" : "Board structure data, not per-member"
       },
       "description" : "View access restrictions for a board (empty = visible to all station members)."
+    },
+    "checklist" : {
+      "feature" : "checklist",
+      "scope" : "STATION",
+      "tableHash" : "sha256:a5a7f750f39683c6faaa547477eac25c4496bed83fb20f3567cde9273b607a6e",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "References the owning station."
+      }, {
+        "name" : "name",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Display name of the checklist."
+      }, {
+        "name" : "description",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Optional manager-only description; never blank, may be empty."
+      }, {
+        "name" : "restriction_mode",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "AND or OR — combination semantics for the restriction filter, same wire shape as event_restriction / form_restriction / news_restriction."
+      }, {
+        "name" : "created_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the checklist was created."
+      }, {
+        "name" : "created_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Member who created the checklist; NULL after that member is deleted."
+      }, {
+        "name" : "last_refreshed_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Timestamp of the most recent additive refresh that pulled newly-matching members onto the list. NULL means never refreshed since creation."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "created_by",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED",
+        "ignoredColumns" : [ "station_id" ]
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Checklist metadata is manager-facing operational state, not personal data."
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Checklist metadata is not personal data."
+      },
+      "description" : "A station-scoped boolean follow-up matrix. Defines an ordered set of yes/no columns and a frozen member set materialised from a restriction filter at creation time. Manager-facing only in v1."
+    },
+    "checklist_cell" : {
+      "feature" : "checklist",
+      "scope" : "STATION",
+      "tableHash" : "sha256:97f2cab22dec954c7c5ea99dc48ce4694960eaf8efa9d41848464bd904f45999",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "entry_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "References the owning member row."
+      }, {
+        "name" : "column_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "References the owning column."
+      }, {
+        "name" : "checked",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Whether the cell is ticked."
+      }, {
+        "name" : "note",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Optional free-text note for this cell."
+      }, {
+        "name" : "updated_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Last-write timestamp."
+      }, {
+        "name" : "updated_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Member who last wrote this cell; NULL after that member is deleted."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "column_id",
+        "refTable" : "checklist_column",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "entry_id",
+        "refTable" : "checklist_entry",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "updated_by",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED"
+      },
+      "gdprExport" : {
+        "status" : "TRACKED",
+        "identityColumns" : [ {
+          "type" : "MEMBER_ID",
+          "column" : "updated_by"
+        } ]
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Cell state is manager-recorded operational data on a fellow member, not the member's own data."
+      },
+      "description" : "One boolean state per (entry, column). Rows are created lazily on first PUT; absence of a row means unchecked with no note."
+    },
+    "checklist_cell_note_history" : {
+      "feature" : "checklist",
+      "scope" : "STATION",
+      "tableHash" : "sha256:11494bfa9cc9a90ab07f8ea0b66e551f74e69c6d2bcfd8794fee148943c5ab2b",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "cell_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "References the cell whose note changed."
+      }, {
+        "name" : "old_note",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Previous note value, or NULL if there was none."
+      }, {
+        "name" : "new_note",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "New note value, or NULL if cleared."
+      }, {
+        "name" : "changed_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Member who made the change; NULL after that member is deleted."
+      }, {
+        "name" : "changed_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the change happened."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "cell_id",
+        "refTable" : "checklist_cell",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "changed_by",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED"
+      },
+      "gdprExport" : {
+        "status" : "TRACKED",
+        "identityColumns" : [ {
+          "type" : "MEMBER_ID",
+          "column" : "changed_by"
+        } ]
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Audit log of operational manager edits; not the member's own data."
+      },
+      "description" : "Append-only log of every change to checklist_cell.note. Boolean flips are not tracked — checklist_cell.updated_by / updated_at carry last-write metadata for the boolean."
+    },
+    "checklist_column" : {
+      "feature" : "checklist",
+      "scope" : "STATION",
+      "tableHash" : "sha256:5f5fa0d43e10c2174267f59b040a2aca5aac731354551152703c5183b3f9fd3e",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "checklist_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "References the owning checklist."
+      }, {
+        "name" : "position",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Display position, unique within a checklist."
+      }, {
+        "name" : "label",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Short column label shown in the matrix header."
+      }, {
+        "name" : "description",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Optional long-form description shown on hover or in editors."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "checklist_id",
+        "refTable" : "checklist",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Column definitions are manager-facing configuration, not personal data."
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Column definitions are not personal data."
+      },
+      "description" : "One ordered yes/no question on a checklist. Position is unique within a checklist and drives the display order."
+    },
+    "checklist_entry" : {
+      "feature" : "checklist",
+      "scope" : "STATION",
+      "tableHash" : "sha256:d2e527589eec593a7f7155528bb4b8644d6be0a9f80d9b2fda727a5bc9da17f7",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "checklist_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "References the owning checklist."
+      }, {
+        "name" : "member_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "References the member this row tracks."
+      }, {
+        "name" : "added_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the row was first placed on the list."
+      }, {
+        "name" : "deleted_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Sticky soft-delete marker; NULL while the row is alive."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "checklist_id",
+        "refTable" : "checklist",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "member_id",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED"
+      },
+      "gdprExport" : {
+        "status" : "TRACKED",
+        "identityColumns" : [ {
+          "type" : "MEMBER_ID",
+          "column" : "member_id"
+        } ]
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED",
+        "policy" : "DELETE"
+      },
+      "description" : "One row per member on a checklist. Soft-deletion via deleted_at is sticky: refresh never resurrects a deleted row; the manager must restore it explicitly through the add-members flow."
+    },
+    "checklist_member_filter" : {
+      "feature" : "checklist",
+      "scope" : "STATION",
+      "tableHash" : "sha256:dc7e8e511ae7edc0dfcd921c8ccf0ad9b28f2c6cefc55641064fa5b917353ca9",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "checklist_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "References the owning checklist."
+      }, {
+        "name" : "user_type",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Matching user type, or NULL if the row matches by group / tag / member."
+      }, {
+        "name" : "group_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Matching member group, or NULL if the row matches by user type / tag / member."
+      }, {
+        "name" : "tag_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Matching user tag, or NULL if the row matches by user type / group / member."
+      }, {
+        "name" : "member_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Explicit member match, or NULL if the row matches by user type / group / tag."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "checklist_id",
+        "refTable" : "checklist",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "group_id",
+        "refTable" : "member_group",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "member_id",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "tag_id",
+        "refTable" : "user_tag",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED"
+      },
+      "gdprExport" : {
+        "status" : "TRACKED",
+        "identityColumns" : [ {
+          "type" : "MEMBER_ID",
+          "column" : "member_id"
+        } ]
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED",
+        "policy" : "DELETE"
+      },
+      "description" : "Materialisation filter that resolved into the frozen member set at checklist creation. Exactly one of user_type, group_id, tag_id, member_id is set per row. Editing the filter does not refresh; refresh is explicit."
     },
     "discovery_blocklist" : {
       "feature" : "discovery",

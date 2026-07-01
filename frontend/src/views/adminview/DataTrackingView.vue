@@ -7,7 +7,6 @@
 import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import PageHeader from '@/components/typography/PageHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -255,12 +254,8 @@ onMounted(loadData)
 </script>
 
 <template>
-  <ViewContent v-if="isDev">
+  <ViewContent v-if="isDev" :title="t('pages.admin-data-tracking.title')" :subtitle="t('pages.admin-data-tracking.subtitle')">
     <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
-      <PageHeader class="!mb-0">
-        <font-awesome-icon :icon="['fas', 'database']" class="mr-2"/>
-        {{ t('adminDataTracking.title') }}
-      </PageHeader>
       <span class="text-sm text-(--text-muted)">{{ t('adminDataTracking.devOnlyNotice') }}</span>
     </div>
 
@@ -314,8 +309,7 @@ onMounted(loadData)
         @updated="onTableUpdated"/>
   </ViewContent>
 
-  <ViewContent v-else>
-    <PageHeader>{{ t('adminDataTracking.title') }}</PageHeader>
+  <ViewContent v-else :title="t('pages.admin-data-tracking.title')" :subtitle="t('pages.admin-data-tracking.subtitle')">
     <NeutralContainer>{{ t('adminDataTracking.devOnlyDisabled') }}</NeutralContainer>
   </ViewContent>
 </template>

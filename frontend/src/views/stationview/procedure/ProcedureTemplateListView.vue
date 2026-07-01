@@ -18,7 +18,6 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import { useSession } from '@/composables/useSession'
@@ -81,9 +80,12 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.procedure-template-list.title')"
+      :subtitle="t('pages.procedure-template-list.subtitle')"
+  >
     <div class="flex items-center justify-between mb-4">
-      <SectionHeader>{{ t('procedures.templateTitle') }}</SectionHeader>
+      <div />
       <PrimaryButton v-if="canManage" @click="showCreateModal = true">
         <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" /> {{ t('procedures.createTemplate') }}
       </PrimaryButton>

@@ -130,7 +130,7 @@ const categoryPieChart = computed(() => {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.admin-storage.title')" :subtitle="t('pages.admin-storage.subtitle')">
     <div class="mb-4 flex justify-end gap-4 text-sm">
       <RouterLink :to="{name: 'admin-storage-backend'}" class="underline">
         {{ t('adminStorageBackend.linkFromUsage') }}

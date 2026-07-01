@@ -10,7 +10,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const fieldName = defineModel<string>('fieldName', {required: true})
@@ -36,7 +36,7 @@ const { t } = useI18n()
 
 <template>
   <div class="space-y-4">
-    <SectionHeader>{{ isEdit ? t('waitingList.editField') : t('waitingList.addField') }}</SectionHeader>
+    <SubHeader>{{ isEdit ? t('waitingList.editField') : t('waitingList.addField') }}</SubHeader>
     <div class="space-y-3">
       <div class="space-y-1">
         <FieldLabel>{{ t('waitingList.fieldName') }}</FieldLabel>

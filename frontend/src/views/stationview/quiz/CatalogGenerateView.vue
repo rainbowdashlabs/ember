@@ -154,7 +154,7 @@ watch(loaded, (isLoaded) => {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.quiz-catalog-generate.title')" :subtitle="t('pages.quiz-catalog-generate.subtitle')">
     <div class="space-y-6">
       <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({ name: 'quiz-catalog-detail', params: { id: catalogId } })">
         {{ t('common.back') }}

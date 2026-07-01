@@ -10,7 +10,6 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import {stationApplications} from '@/api'
 import type {StationApplication} from '@/api/stationApplications'
 import {useBreakpoint} from '@/composables/useBreakpoint'
@@ -69,10 +68,8 @@ function formatDate(dateStr?: string | null): string {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.admin-station-applications.title')" :subtitle="t('pages.admin-station-applications.subtitle')">
     <div class="space-y-6">
-      <SectionHeader>{{ t('adminApplications.title') }}</SectionHeader>
-
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 

@@ -78,7 +78,10 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.protocol-run-detail.title')"
+      :subtitle="t('pages.protocol-run-detail.subtitle')"
+  >
     <div class="flex items-center gap-2 mb-4">
       <SecondaryButton @click="router.push({ name: 'protocol-run-list' })">
         <font-awesome-icon :icon="['fas', 'chevron-left']" />

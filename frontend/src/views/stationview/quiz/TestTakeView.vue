@@ -355,7 +355,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.quiz-test-take.title')" :subtitle="t('pages.quiz-test-take.subtitle')">
     <div class="space-y-6 max-w-3xl">
       <Spinner v-if="loading" size="lg" />
       <Alert v-if="error" variant="error">{{ error }}</Alert>

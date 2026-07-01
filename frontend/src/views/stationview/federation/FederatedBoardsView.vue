@@ -8,7 +8,6 @@ import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -104,8 +103,10 @@ watch(loaded, (v) => {
 </script>
 
 <template>
-    <ViewContent>
-        <SectionHeader class="mb-4">{{ t('boards.federatedBoards') }}</SectionHeader>
+    <ViewContent
+        :title="t('pages.federated-boards.title')"
+        :subtitle="t('pages.federated-boards.subtitle')"
+    >
         <MutedText size="sm" class="mb-4">{{ t('boards.federatedBoardsDesc') }}</MutedText>
 
         <Alert variant="info" class="mb-4">{{ t('boards.bookmarkHint') }}</Alert>

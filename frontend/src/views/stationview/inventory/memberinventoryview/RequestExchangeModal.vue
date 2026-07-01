@@ -8,7 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
@@ -46,7 +46,7 @@ const submitDisabled = computed(() =>
 <template>
   <Modal v-model="open">
     <div class="space-y-4">
-      <SectionHeader>{{ t('memberDetail.requestExchange') }}</SectionHeader>
+      <SubHeader>{{ t('memberDetail.requestExchange') }}</SubHeader>
       <template v-if="success">
         <Alert variant="success">{{ t('profile.exchangeCreated') }}</Alert>
         <div class="flex justify-end">

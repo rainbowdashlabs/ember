@@ -7,7 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import type {ColumnEntry, GdprDeletionContext, TrackingStatusName} from '@/api/dataTracking'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import StatusBadge from './StatusBadge.vue'
 import StatusReasonFields from './StatusReasonFields.vue'
 import DeletionStrategyEditor from './DeletionStrategyEditor.vue'
@@ -30,7 +30,7 @@ const {t} = useI18n()
 <template>
   <section>
     <div class="flex items-center justify-between">
-      <SectionHeader class="!text-base">{{ t('adminDataTracking.gdprDeletion') }}</SectionHeader>
+      <SubHeader class="!text-base">{{ t('adminDataTracking.gdprDeletion') }}</SubHeader>
       <StatusBadge :status="deletion.status"/>
     </div>
     <div class="space-y-2 mt-2">

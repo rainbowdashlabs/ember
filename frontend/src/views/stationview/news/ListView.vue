@@ -9,7 +9,6 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
@@ -228,10 +227,12 @@ watch(() => entries.value.length, async () => {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.news-list.title')"
+      :subtitle="t('pages.news-list.subtitle')"
+  >
     <div class="space-y-6">
       <div class="flex items-center justify-between">
-        <SectionHeader>{{ t('news.title') }}</SectionHeader>
         <PrimaryButton :icon="['fas', 'plus']" v-if="canEditNews" @click="router.push({ name: 'news-create' })">
           {{ t('news.create') }}
         </PrimaryButton>

@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
@@ -36,7 +36,7 @@ const { t } = useI18n()
 <template>
   <div class="space-y-3">
     <div class="flex items-center justify-between flex-wrap gap-2">
-      <SectionHeader>{{ t('quiz.frozenQuestions.title') }} ({{ frozenQuestions.length }})</SectionHeader>
+      <SubHeader>{{ t('quiz.frozenQuestions.title') }} ({{ frozenQuestions.length }})</SubHeader>
       <SecondaryButton v-if="test.status !== QuizTestStatus.ACTIVE" :disabled="frozenLoading" @click="emit('generate')">
         <Spinner v-if="frozenLoading" size="sm" />
         <font-awesome-icon v-else :icon="['fas', 'rotate']" class="mr-1" />

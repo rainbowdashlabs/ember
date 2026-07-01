@@ -113,6 +113,11 @@ function goAnalytics(form: Form) {
   router.push({ name: props.analyticsRouteName ?? 'forms-analytics', params: { id: form.id } })
 }
 
+function openForm(form: Form) {
+  if (form.status === FormStatus.DRAFT) goEdit(form)
+  else goAnalytics(form)
+}
+
 function goFill(form: FormListEntry) {
   router.push({ name: 'forms-fill', params: { id: form.id } })
 }
@@ -127,7 +132,10 @@ watch(loaded, (isLoaded) => {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.forms-list.title')"
+      :subtitle="t('pages.forms-list.subtitle')"
+  >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg" />
       <Alert v-if="error" variant="error">{{ error }}</Alert>
@@ -140,6 +148,7 @@ watch(loaded, (isLoaded) => {
           :title-key="props.titleKey"
           :status-label="statusLabel"
           @create="goCreate"
+          @open="openForm"
           @publish="publishForm"
           @close="closeForm"
           @edit="goEdit"

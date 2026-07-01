@@ -10,7 +10,6 @@ import {useRoute} from 'vue-router'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import WaitlistSuccessPanel from './publicwaitlistview/WaitlistSuccessPanel.vue'
 import WaitlistSelector from './publicwaitlistview/WaitlistSelector.vue'
@@ -129,11 +128,8 @@ async function submit() {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.public-waitlist.title')" :subtitle="t('pages.public-waitlist.subtitle')">
     <div class="max-w-2xl mx-auto space-y-6">
-      <SectionHeader>{{ t('waitingList.publicRegistration.title') }}</SectionHeader>
-      <p class="text-(--text-muted)">{{ t('waitingList.publicRegistration.subtitle') }}</p>
-
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 

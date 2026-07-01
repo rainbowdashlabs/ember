@@ -369,7 +369,7 @@ async function runBulkDelete() {
 </script>
 
 <template>
-    <ViewContent>
+    <ViewContent :title="t('pages.pages-files.title')" :subtitle="t('pages.pages-files.subtitle')">
         <FilesView
             v-model:search="search"
             v-model:active-folder="activeFolder"

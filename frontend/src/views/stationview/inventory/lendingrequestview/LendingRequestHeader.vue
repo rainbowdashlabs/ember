@@ -5,7 +5,7 @@
  */
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
@@ -39,9 +39,9 @@ function statusBadge(status: LendingStatusName) {
 
 <template>
   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-    <SectionHeader>
+    <SubHeader>
       {{ detail.request.isOwner ? detail.request.requestingStationName : detail.request.owningStationName }}
-    </SectionHeader>
+    </SubHeader>
     <div class="flex items-center gap-2">
       <SuccessBadge v-if="statusBadge(detail.request.request.status) === 'success'">{{ t(`lending.status.${detail.request.request.status}`) }}</SuccessBadge>
       <ErrorBadge v-else-if="statusBadge(detail.request.request.status) === 'error'">{{ t(`lending.status.${detail.request.request.status}`) }}</ErrorBadge>

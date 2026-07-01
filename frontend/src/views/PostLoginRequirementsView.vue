@@ -11,7 +11,6 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import { getRequirements } from '@/api/requirements'
@@ -38,11 +37,9 @@ function skip() { router.push(defaultRedirect.value) }
 </script>
 
 <template>
-    <ViewContent>
+    <ViewContent :title="t('requirements.title')" :subtitle="t('requirements.subtitle')">
         <Spinner v-if="loading" />
         <template v-else-if="data">
-            <SectionHeader class="mb-2">{{ t('requirements.title') }}</SectionHeader>
-            <p class="text-sm text-(--text-muted) mb-6">{{ t('requirements.subtitle') }}</p>
 
             <div class="space-y-4 max-w-xl">
                 <!-- Profile incomplete -->

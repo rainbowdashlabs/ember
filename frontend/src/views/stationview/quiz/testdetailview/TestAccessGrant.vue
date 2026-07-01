@@ -7,7 +7,7 @@
 import {ref, computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
@@ -50,7 +50,7 @@ function grantAccess() {
 
 <template>
   <div class="space-y-3">
-    <SectionHeader>{{ t('quiz.tests.accessManagement') }}</SectionHeader>
+    <SubHeader>{{ t('quiz.tests.accessManagement') }}</SubHeader>
     <NeutralContainer>
       <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
         <div class="flex-1 relative">

@@ -213,7 +213,10 @@ watch(loaded, async (isLoaded) => {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.members-import.title')"
+      :subtitle="t('pages.members-import.subtitle')"
+  >
     <div class="space-y-6">
       <ImportHeader />
       <ModeSelector v-if="step === 'upload'" />

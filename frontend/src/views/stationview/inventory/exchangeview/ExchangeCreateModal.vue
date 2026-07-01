@@ -7,7 +7,7 @@
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import type {
   ExchangeRequestEntry,
   InventorySize,
@@ -173,7 +173,7 @@ async function submitCreate() {
 <template>
   <Modal v-model="model">
     <div class="space-y-4">
-      <SectionHeader>{{ t('exchanges.createTitle') }}</SectionHeader>
+      <SubHeader>{{ t('exchanges.createTitle') }}</SubHeader>
       <p class="text-xs text-(--text-muted)">{{ t('exchanges.step') }} {{ createStep }} / {{ totalCreateSteps }}</p>
       <ExchangeCreateStepMember
         v-if="createStep === 1"

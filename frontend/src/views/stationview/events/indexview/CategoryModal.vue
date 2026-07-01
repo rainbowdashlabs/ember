@@ -10,7 +10,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type {EventCategory} from '@/api/types'
 
@@ -44,7 +44,7 @@ function submit() {
 <template>
   <Modal v-model="modelValue">
     <div class="space-y-4">
-      <SectionHeader>{{ category ? t('events.editCategory') : t('events.addCategory') }}</SectionHeader>
+      <SubHeader>{{ category ? t('events.editCategory') : t('events.addCategory') }}</SubHeader>
       <div class="space-y-1">
         <FieldLabel>{{ t('events.categoryName') }}</FieldLabel>
         <TextInput v-model="categoryName" :placeholder="t('events.categoryNamePlaceholder')"/>

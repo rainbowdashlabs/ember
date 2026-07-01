@@ -4,13 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed} from 'vue'
+import {computed, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute} from 'vue-router'
 import SidebarLayout from '@/components/layout/SidebarLayout.vue'
 import SidebarGroup from '@/components/navigation/SidebarGroup.vue'
 import SidebarLink from '@/components/navigation/SidebarLink.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import {usePageHeader} from '@/composables/usePageHeader'
 
 const {t, te} = useI18n()
 const route = useRoute()
@@ -20,6 +21,10 @@ const pageTitle = computed(() => {
   const key = `pages.${name}.title`
   return te(key) ? `${t(key)} — ${t('helpCenter.link')}` : t('helpCenter.adminHelp')
 })
+
+const {title: headerTitle, subtitle: headerSubtitle} = usePageHeader()
+watch(pageTitle, v => { headerTitle.value = v }, {immediate: true})
+watch(() => t('helpCenter.title'), v => { headerSubtitle.value = v }, {immediate: true})
 </script>
 
 <template>

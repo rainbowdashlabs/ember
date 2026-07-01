@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import type {InventoryContainerHistory} from '@/api/inventoryContainers'
 
@@ -26,7 +26,7 @@ function eventIcon(kind: string): string {
 
 <template>
   <div>
-    <SectionHeader>{{ t('inventory.storage.history') }}</SectionHeader>
+    <SubHeader>{{ t('inventory.storage.history') }}</SubHeader>
     <NeutralContainer>
       <ul v-if="props.history.length > 0" class="divide-y divide-(--bg-accent) text-sm">
         <li v-for="h in props.history" :key="h.id" class="py-2 flex items-center gap-3">

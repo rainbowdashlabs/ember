@@ -40,7 +40,10 @@ watch(() => [route.params.stationUid, route.params.newsId], () => {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.federated-news-detail.title')"
+      :subtitle="t('pages.federated-news-detail.subtitle')"
+  >
     <div class="space-y-4">
       <SecondaryButton :icon="['fas', 'arrow-left']" compact @click="router.push({ name: 'news-list' })">
         {{ t('common.back') }}

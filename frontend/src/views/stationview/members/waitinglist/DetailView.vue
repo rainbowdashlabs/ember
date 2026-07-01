@@ -299,7 +299,10 @@ function showErrorMessage(msg: string) {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.waiting-list-detail.title')"
+      :subtitle="t('pages.waiting-list-detail.subtitle')"
+  >
     <div class="space-y-6">
       <DetailHeader
         :can-manage="canManage"

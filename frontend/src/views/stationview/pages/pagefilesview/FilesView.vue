@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import FilesBrowser from './FilesBrowser.vue'
 import PageFilesModals from './PageFilesModals.vue'
 import type {PageFile, PageFileFolder, PageFileListing, PageFileTag} from '@/api/pageManage'
@@ -78,7 +78,7 @@ const {t} = useI18n()
 
 <template>
   <div class="space-y-4">
-    <SectionHeader>{{ t('stationPages.editor.filesTitle') }}</SectionHeader>
+    <SubHeader>{{ t('stationPages.editor.filesTitle') }}</SubHeader>
 
     <FilesBrowser
         v-model:search="search"

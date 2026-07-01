@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import type {EventTemplate} from '@/api/types'
 
@@ -23,7 +23,7 @@ const {t} = useI18n()
 
 <template>
   <div class="flex items-center justify-between flex-wrap gap-2">
-    <SectionHeader>{{ isEdit ? t('events.editEvent') : t('events.addEvent') }}</SectionHeader>
+    <SubHeader>{{ isEdit ? t('events.editEvent') : t('events.addEvent') }}</SubHeader>
     <div v-if="eventTemplates.length > 0" class="flex items-center gap-2">
       <SelectInput model-value="" class="w-48 text-sm" @update:model-value="emit('apply-template', $event)">
         <option value="" disabled>{{ t('eventTemplates.loadTemplate') }}</option>

@@ -13,7 +13,6 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type { CheckDetail } from '@/api/types'
 import { inventoryCheck } from '@/api'
 import { useConfigPanel } from '@/composables/useConfigPanel'
@@ -41,11 +40,13 @@ function goBack() {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.inventory-check-result.title')"
+      :subtitle="t('pages.inventory-check-result.subtitle')"
+  >
     <div class="space-y-6">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>
-          <SectionHeader>{{ memberName || t('inventory.check.lastResult') }}</SectionHeader>
           <p v-if="memberName" class="text-sm text-(--text-muted)">{{ t('inventory.check.lastResult') }}</p>
         </div>
         <SecondaryButton :icon="['fas', 'chevron-left']" @click="goBack">

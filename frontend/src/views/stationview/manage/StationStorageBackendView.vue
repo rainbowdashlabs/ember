@@ -9,7 +9,6 @@ import {useI18n} from 'vue-i18n'
 import {useRouter, RouterLink} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -253,10 +252,12 @@ function newSftp(): SftpRequest {
 </script>
 
 <template>
-    <ViewContent>
+    <ViewContent
+        :title="t('pages.station-storage-backend.title')"
+        :subtitle="t('pages.station-storage-backend.subtitle')"
+    >
         <div class="space-y-6">
-            <div class="flex items-center justify-between">
-                <SectionHeader>{{ t('stationStorageBackend.title') }}</SectionHeader>
+            <div class="flex items-center justify-end">
                 <RouterLink :to="{name: 'station-storage'}" class="text-sm underline">
                     {{ t('stationStorageBackend.backToUsage') }}
                 </RouterLink>

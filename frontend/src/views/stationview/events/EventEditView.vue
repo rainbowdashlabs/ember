@@ -419,7 +419,10 @@ const bodyHandlers = {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.event-new.title')"
+      :subtitle="t('pages.event-new.subtitle')"
+  >
     <div class="space-y-6">
       <div class="flex items-center justify-between">
         <SecondaryButton :icon="['fas', 'chevron-left']" @click="goBack">

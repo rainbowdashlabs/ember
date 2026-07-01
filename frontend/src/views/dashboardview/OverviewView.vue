@@ -26,7 +26,7 @@ const profileIncomplete = computed(() => sessionInfo.value?.profileComplete === 
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.dashboard-overview.title')" :subtitle="t('pages.dashboard-overview.subtitle')">
     <div class="space-y-6">
       <SetupChecklist/>
       <!-- Onboarding banner -->

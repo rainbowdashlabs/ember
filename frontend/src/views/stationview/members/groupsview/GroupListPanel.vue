@@ -11,7 +11,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import type {MemberGroup} from '@/api/types'
 
 const {t} = useI18n()
@@ -34,7 +34,7 @@ const emit = defineEmits<{
 <template>
   <div class="space-y-4">
     <div class="flex items-center justify-between">
-      <SectionHeader>{{ t('memberGroups.title') }}</SectionHeader>
+      <SubHeader>{{ t('memberGroups.title') }}</SubHeader>
       <PrimaryButton :icon="['fas', 'plus']" @click="emit('create')">
         {{ t('memberGroups.create') }}
       </PrimaryButton>

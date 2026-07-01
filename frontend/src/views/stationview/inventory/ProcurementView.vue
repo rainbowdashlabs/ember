@@ -11,7 +11,6 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type {
   ProcurementEntry,
   Inventory,
@@ -83,10 +82,12 @@ function onCreateError() {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.inventory-procurement.title')"
+      :subtitle="t('pages.inventory-procurement.subtitle')"
+  >
     <div class="space-y-6">
-      <div class="flex items-center justify-between">
-        <SectionHeader>{{ t('procurement.title') }}</SectionHeader>
+      <div class="flex items-center justify-end">
         <PrimaryButton v-if="canManageProcurement" :icon="['fas', 'plus']" @click="showCreateModal = true">
           {{ t('procurement.create') }}
         </PrimaryButton>

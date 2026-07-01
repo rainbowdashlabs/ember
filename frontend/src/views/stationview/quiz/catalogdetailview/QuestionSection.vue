@@ -16,7 +16,6 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
@@ -269,7 +268,7 @@ function onBatchDone() {
 <template>
   <div v-if="!readonly" class="space-y-3">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-      <SectionHeader>{{ t('quiz.questions.title') }}</SectionHeader>
+      <SubHeader>{{ t('quiz.questions.title') }}</SubHeader>
       <div class="grid grid-cols-2 sm:flex gap-2">
         <SecondaryButton :icon="['fas', 'file-import']" @click="router.push({ name: 'quiz-catalog-import', params: { id: catalogId } })">
           {{ t('quiz.csv.import') }}

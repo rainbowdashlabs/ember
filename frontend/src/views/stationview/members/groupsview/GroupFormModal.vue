@@ -10,7 +10,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import ColorInput from '@/components/input/ColorInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {useModelProxy} from '@/composables/useModelProxy'
@@ -40,7 +40,7 @@ const colorModel = useModelProxy(() => props.color, emit, 'color')
 <template>
   <Modal v-model="open">
     <div class="space-y-4">
-      <SectionHeader>{{ isEdit ? t('memberGroups.editTitle') : t('memberGroups.createTitle') }}</SectionHeader>
+      <SubHeader>{{ isEdit ? t('memberGroups.editTitle') : t('memberGroups.createTitle') }}</SubHeader>
       <div class="space-y-1">
         <FieldLabel>{{ t('memberGroups.name') }}</FieldLabel>
         <TextInput v-model="nameModel" :placeholder="t('memberGroups.namePlaceholder')"/>

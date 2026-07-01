@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import type {RouteLocationRaw} from 'vue-router'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import UpcomingEventItem from './UpcomingEventItem.vue'
 import type {EventField, StationEvent} from '@/api/types'
 import type {EventRegistrationEntry, UpcomingEventOccurrence} from '@/api/events'
@@ -42,7 +42,7 @@ const {t} = useI18n()
 
 <template>
   <div v-if="items.length > 0" class="space-y-3">
-    <SectionHeader>{{ t('eventsUpcoming.upcoming') }}</SectionHeader>
+    <SubHeader>{{ t('eventsUpcoming.upcoming') }}</SubHeader>
     <div class="space-y-2">
       <UpcomingEventItem
           v-for="item in items"

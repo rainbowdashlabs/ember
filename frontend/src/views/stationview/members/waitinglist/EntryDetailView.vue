@@ -133,7 +133,10 @@ function goBack() {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.waiting-list-entry.title')"
+      :subtitle="t('pages.waiting-list-entry.subtitle')"
+  >
     <div class="space-y-6">
       <div class="flex items-center justify-between">
         <SecondaryButton :icon="['fas', 'chevron-left']" @click="goBack">

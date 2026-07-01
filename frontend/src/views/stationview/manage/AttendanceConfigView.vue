@@ -77,7 +77,10 @@ async function duplicateTemplate(tpl: AttendanceTemplate) {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.station-attendance-config.title')"
+      :subtitle="t('pages.station-attendance-config.subtitle')"
+  >
     <div class="space-y-6">
       <div class="flex items-center justify-between">
         <PrimaryButton :icon="['fas', 'plus']" @click="navigateToCreate">

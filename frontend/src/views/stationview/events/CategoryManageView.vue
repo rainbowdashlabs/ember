@@ -114,9 +114,11 @@ async function moveDown(index: number) {
 </script>
 
 <template>
-  <ViewContent>
-    <div class="flex items-center justify-between mb-4">
-      <SectionHeader>{{ t('categoryManage.title') }}</SectionHeader>
+  <ViewContent
+      :title="t('pages.event-categories.title')"
+      :subtitle="t('pages.event-categories.subtitle')"
+  >
+    <div class="flex items-center justify-end mb-4">
       <PrimaryButton :icon="['fas', 'plus']" @click="openCreate">
         {{ t('categoryManage.create') }}
       </PrimaryButton>

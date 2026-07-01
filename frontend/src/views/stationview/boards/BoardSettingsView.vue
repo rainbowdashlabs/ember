@@ -235,7 +235,10 @@ function goBack() {
 </script>
 
 <template>
-    <ViewContent>
+    <ViewContent
+        :title="t('pages.board-settings.title')"
+        :subtitle="t('pages.board-settings.subtitle')"
+    >
         <Spinner v-if="loading" />
         <Alert v-else-if="error && !board" variant="error">{{ error }}</Alert>
         <template v-else-if="board">

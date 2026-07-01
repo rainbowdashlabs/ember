@@ -3,22 +3,18 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {useI18n} from 'vue-i18n'
-import {useRoute} from 'vue-router'
-import {computed, watch} from 'vue'
+import {watch} from 'vue'
+import {usePageHeader} from '@/composables/usePageHeader'
 
+/**
+ * Mirrors the shared page header state into the browser tab title. The header
+ * itself is populated by whichever {@code ViewContent} instance is currently
+ * mounted (via its {@code title} prop).
+ */
 export function usePageTitle() {
     if (typeof window === 'undefined') return
 
-    const route = useRoute()
-    const {t, te} = useI18n()
-
-    const title = computed(() => {
-        const name = route.name as string | undefined
-        if (!name) return ''
-        const key = `pages.${name}.title`
-        return te(key) ? t(key) : ''
-    })
+    const {title} = usePageHeader()
 
     watch(title, (val) => {
         useHead({title: val || undefined})

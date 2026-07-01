@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -39,7 +39,7 @@ function goEdit() {
 <template>
   <div class="flex items-center justify-between flex-wrap gap-3">
     <div class="flex items-center gap-3">
-      <SectionHeader>{{ event.name }}</SectionHeader>
+      <SubHeader>{{ event.name }}</SubHeader>
       <SecondaryBadge v-if="isRecurringEvent(event.eventType)">
         <font-awesome-icon :icon="['fas', 'rotate']" class="mr-1 h-3 w-3"/>{{ t('events.typeRecurring') }}
       </SecondaryBadge>

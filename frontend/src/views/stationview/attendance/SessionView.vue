@@ -246,7 +246,10 @@ watch(loaded, (isLoaded) => {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.attendance-session.title')"
+      :subtitle="t('pages.attendance-session.subtitle')"
+  >
     <SessionContent
         v-model:selected-member-id="selectedMemberId"
         :loading="loading"

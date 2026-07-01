@@ -67,15 +67,16 @@ async function syncPermissions(newIds: Set<number>) {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.members-type-permissions.title')"
+      :subtitle="t('pages.members-type-permissions.subtitle')"
+  >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <div v-if="!loading" class="grid gap-6 lg:grid-cols-2">
-        <!-- User type list -->
         <div class="space-y-4">
-          <SectionHeader>{{ t('userTypePermissions.title') }}</SectionHeader>
           <MutedText size="sm">{{ t('userTypePermissions.description') }}</MutedText>
 
           <div class="space-y-2">

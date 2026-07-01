@@ -9,7 +9,6 @@ import {useI18n} from 'vue-i18n'
 import {useRouter, RouterLink} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -59,10 +58,9 @@ async function applyFilters() {
 </script>
 
 <template>
-    <ViewContent>
+    <ViewContent :title="t('pages.admin-storage-audit.title')" :subtitle="t('pages.admin-storage-audit.subtitle')">
         <div class="space-y-6">
             <div class="flex items-center justify-between">
-                <SectionHeader>{{ t('adminStorageAudit.title') }}</SectionHeader>
                 <RouterLink :to="{name: 'admin-storage-backend'}" class="text-sm underline">
                     {{ t('adminStorageAudit.linkBackend') }}
                 </RouterLink>

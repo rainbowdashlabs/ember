@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import {pageImageUrl, type PageFile} from '@/api/pageManage'
 
@@ -46,7 +46,7 @@ function formatSize(bytes: number): string {
     <Modal v-if="file" :model-value="!!file" size="xl"
            @update:model-value="(v: boolean) => { if (!v) emit('close') }">
         <div class="space-y-3">
-            <SectionHeader>{{ file.fileName }}</SectionHeader>
+            <SubHeader>{{ file.fileName }}</SubHeader>
             <div class="flex items-center justify-center bg-(--bg-accent) rounded-theme overflow-hidden max-h-[70vh]">
                 <img v-if="previewKind === 'image'" :src="previewUrl"
                      :alt="file.defaultAltText ?? file.fileName"

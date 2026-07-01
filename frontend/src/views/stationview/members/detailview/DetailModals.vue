@@ -7,7 +7,7 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -146,7 +146,7 @@ defineExpose({
   <!-- Former confirmation modal -->
   <Modal v-model="showFormerModal">
     <div class="space-y-4">
-      <SectionHeader>{{ t('memberDetail.markFormerTitle') }}</SectionHeader>
+      <SubHeader>{{ t('memberDetail.markFormerTitle') }}</SubHeader>
       <template v-if="canMarkFormer">
         <p class="text-sm">{{ t('memberDetail.markFormerConfirm', { name: memberDisplayName }) }}</p>
         <p class="text-xs text-(--text-muted)">{{ t('memberDetail.markFormerHint') }}</p>
@@ -172,7 +172,7 @@ defineExpose({
   <!-- Delete member modal (first step) -->
   <Modal v-model="showDeleteModal">
     <div class="space-y-4">
-      <SectionHeader>{{ t('memberDetail.deleteTitle') }}</SectionHeader>
+      <SubHeader>{{ t('memberDetail.deleteTitle') }}</SubHeader>
       <p class="text-sm">{{ t('memberDetail.deleteText', { name: memberDisplayName }) }}</p>
       <p class="text-xs text-(--text-muted)">{{ t('memberDetail.deleteHint') }}</p>
       <div class="flex justify-end gap-2">
@@ -187,7 +187,7 @@ defineExpose({
   <!-- Delete member modal (second confirmation) -->
   <Modal v-model="showDeleteConfirm">
     <div class="space-y-4">
-      <SectionHeader>{{ t('memberDetail.deleteConfirmTitle') }}</SectionHeader>
+      <SubHeader>{{ t('memberDetail.deleteConfirmTitle') }}</SubHeader>
       <p class="text-sm font-semibold text-error">{{ t('memberDetail.deleteConfirmText') }}</p>
       <div class="flex justify-end gap-2">
         <SecondaryButton @click="showDeleteConfirm = false">{{ t('common.cancel') }}</SecondaryButton>
@@ -201,7 +201,7 @@ defineExpose({
   <!-- Assign item modal -->
   <Modal v-model="showAssignModal">
     <div class="space-y-4">
-      <SectionHeader>{{ t('memberDetail.assignItem') }}</SectionHeader>
+      <SubHeader>{{ t('memberDetail.assignItem') }}</SubHeader>
       <Alert v-if="assignScanError" variant="error">{{ assignScanError }}</Alert>
       <ItemSearchPicker
           v-model="pickedItemId"
@@ -218,7 +218,7 @@ defineExpose({
   <!-- Reassign item modal -->
   <Modal v-model="showReassignModal">
     <div class="space-y-4">
-      <SectionHeader>{{ t('memberDetail.reassignItem') }}</SectionHeader>
+      <SubHeader>{{ t('memberDetail.reassignItem') }}</SubHeader>
       <p v-if="reassignItemRef" class="text-sm">
         {{ reassignItemRef.inventoryName }} &mdash; {{ reassignItemRef.name }}
         <SizeBadge>{{ reassignItemRef.sizeName ?? t('common.unisize') }}</SizeBadge>
@@ -242,7 +242,7 @@ defineExpose({
   <!-- Exchange modal -->
   <Modal v-model="showExchangeModal">
     <div class="space-y-4">
-      <SectionHeader>{{ t('memberDetail.requestExchange') }}</SectionHeader>
+      <SubHeader>{{ t('memberDetail.requestExchange') }}</SubHeader>
       <template v-if="exchangeSuccess">
         <Alert variant="success">{{ t('profile.exchangeCreated') }}</Alert>
         <div class="flex justify-end">

@@ -11,7 +11,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type {EventBreak} from '@/api/types'
 
@@ -56,7 +56,7 @@ function submit() {
 <template>
   <Modal v-model="modelValue">
     <div class="space-y-4">
-      <SectionHeader>{{ eventBreak ? t('events.editBreak') : t('events.addBreak') }}</SectionHeader>
+      <SubHeader>{{ eventBreak ? t('events.editBreak') : t('events.addBreak') }}</SubHeader>
 
       <div class="space-y-1">
         <FieldLabel>{{ t('events.breakName') }}</FieldLabel>

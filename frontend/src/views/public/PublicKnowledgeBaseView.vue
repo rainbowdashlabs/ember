@@ -137,7 +137,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <ViewContent>
+    <ViewContent :title="t('pages.public-knowledge-base.title')" :subtitle="t('pages.public-knowledge-base.subtitle')">
         <div class="space-y-6">
             <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
 

@@ -10,7 +10,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const open = defineModel<boolean>({required: true})
@@ -31,7 +31,7 @@ const { t } = useI18n()
 <template>
   <Modal v-model="open">
     <div class="space-y-4">
-      <SectionHeader>{{ t('waitingList.createInvite') }}</SectionHeader>
+      <SubHeader>{{ t('waitingList.createInvite') }}</SubHeader>
       <div class="space-y-1">
         <FieldLabel>{{ t('waitingList.maxUses') }}</FieldLabel>
         <NumberInput v-model="maxUses" :placeholder="t('waitingList.maxUsesPlaceholder')" />

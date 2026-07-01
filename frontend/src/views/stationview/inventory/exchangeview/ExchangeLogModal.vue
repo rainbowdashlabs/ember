@@ -10,7 +10,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import type { ExchangeLogEntry, ExchangeStatusName } from '@/api/types'
 import { exchanges } from '@/api'
 import { formatDate } from '@/util/format'
@@ -52,7 +52,7 @@ watch(model, async (open) => {
 <template>
   <Modal v-model="model">
     <div class="space-y-4">
-      <SectionHeader>{{ t('exchanges.logTitle') }}</SectionHeader>
+      <SubHeader>{{ t('exchanges.logTitle') }}</SubHeader>
       <Spinner v-if="logLoading" size="md" />
       <div v-else-if="logEntries.length === 0" class="text-sm text-(--text-muted)">
         {{ t('exchanges.noLogs') }}

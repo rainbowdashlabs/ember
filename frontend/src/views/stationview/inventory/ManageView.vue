@@ -13,7 +13,6 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import {inventory} from '@/api'
 import type {InventorySummary} from '@/api/inventory'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
@@ -61,14 +60,16 @@ function onError() {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.inventory-manage.title')"
+      :subtitle="t('pages.inventory-manage.subtitle')"
+  >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg" />
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading">
-        <div class="flex items-center justify-between">
-          <SectionHeader>{{ t('inventory.manage.title') }}</SectionHeader>
+        <div class="flex items-center justify-end">
           <PrimaryButton :icon="['fas', 'plus']" @click="showCreateModal = true">
             {{ t('inventory.manage.create') }}
           </PrimaryButton>

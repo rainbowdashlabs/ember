@@ -10,7 +10,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import PageHeader from '@/components/typography/PageHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 
 const searchQuery = defineModel<string>('searchQuery', {required: true})
 const showFederated = defineModel<boolean>('showFederated', {required: true})
@@ -30,7 +30,7 @@ const { t } = useI18n()
 
 <template>
   <div class="flex items-center justify-between flex-wrap gap-2">
-    <PageHeader>{{ t('quiz.catalogs.title') }}</PageHeader>
+    <SubHeader>{{ t('quiz.catalogs.title') }}</SubHeader>
     <div class="flex gap-2 flex-wrap">
       <SecondaryButton :icon="['fas', 'file-import']" @click="emit('triggerImport')">
         {{ t('quiz.catalogs.import') }}

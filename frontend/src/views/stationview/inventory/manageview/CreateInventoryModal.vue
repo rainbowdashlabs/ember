@@ -7,7 +7,7 @@
 import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import CreateInventoryBasicStep from './CreateInventoryBasicStep.vue'
 import CreateInventorySizesStep from './CreateInventorySizesStep.vue'
 import {InventoryTypes, type InventoryTypeName} from '@/api/types'
@@ -75,7 +75,7 @@ async function submit() {
 <template>
   <Modal v-model="show">
     <div class="space-y-4">
-      <SectionHeader>{{ t('inventory.manage.create') }}</SectionHeader>
+      <SubHeader>{{ t('inventory.manage.create') }}</SubHeader>
 
       <CreateInventoryBasicStep
         v-if="step === 'basic'"

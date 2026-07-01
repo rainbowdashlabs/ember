@@ -7,7 +7,7 @@
 import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -40,7 +40,7 @@ function submit() {
 <template>
   <Modal v-model="show">
     <div class="space-y-4">
-      <SectionHeader>{{ t('itemDetail.assignTitle') }}</SectionHeader>
+      <SubHeader>{{ t('itemDetail.assignTitle') }}</SubHeader>
       <SelectInput v-model="memberId">
         <option value="">{{ t('itemDetail.selectMember') }}</option>
         <option v-for="m in props.members" :key="m.id" :value="String(m.id)">

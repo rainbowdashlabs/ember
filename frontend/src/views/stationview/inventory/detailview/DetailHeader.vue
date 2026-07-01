@@ -5,7 +5,7 @@
  */
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import { InventoryTypes, type InventoryTypeName } from '@/api/types'
 
@@ -25,7 +25,7 @@ const { t } = useI18n()
 <template>
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
     <div>
-      <SectionHeader>{{ name }}</SectionHeader>
+      <SubHeader>{{ name }}</SubHeader>
       <p class="text-sm text-(--text-muted)">
         {{ t('inventory.manage.type.' + (inventoryType ?? InventoryTypes.INTERNAL)) }}
         <span v-if="hasSizes"> &middot; {{ t('inventory.manage.withSizes') }}</span>

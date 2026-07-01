@@ -8,7 +8,6 @@ import {onBeforeUnmount, onMounted, ref} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import PageHeader from '@/components/typography/PageHeader.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ImportProgressChecklist from '@/components/transfer/ImportProgressChecklist.vue'
@@ -58,10 +57,9 @@ function backToStations() {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.admin-station-import.title')" :subtitle="t('pages.admin-station-import.subtitle')">
     <div class="space-y-6">
       <div class="flex items-center justify-between">
-        <PageHeader>{{ t('adminStationImport.title') }}</PageHeader>
         <SecondaryButton @click="backToStations">
           {{ t('adminStationImport.backToStations') }}
         </SecondaryButton>

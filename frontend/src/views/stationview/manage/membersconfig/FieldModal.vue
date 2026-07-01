@@ -7,7 +7,7 @@
 import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import BasicFields from './fieldmodal/BasicFields.vue'
 import EnumOptionsField from './fieldmodal/EnumOptionsField.vue'
 import AgeFields from './fieldmodal/AgeFields.vue'
@@ -144,7 +144,7 @@ function submit() {
 <template>
   <Modal v-model="modelValue">
     <div class="space-y-4">
-      <SectionHeader>{{ field ? t('membersConfig.editField') : t('membersConfig.addField') }}</SectionHeader>
+      <SubHeader>{{ field ? t('membersConfig.editField') : t('membersConfig.addField') }}</SubHeader>
       <BasicFields v-model:name="fieldName" v-model:field-type="fieldType" :scope="scope"/>
       <EnumOptionsField v-if="fieldType === 'ENUM'" v-model="fieldEnumOptions"/>
       <AgeFields v-if="fieldType === 'AGE'" v-model:source="fieldAgeSource" v-model:mode="fieldAgeMode"

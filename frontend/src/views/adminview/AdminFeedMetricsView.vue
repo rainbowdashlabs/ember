@@ -7,7 +7,6 @@
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import PageHeader from '@/components/typography/PageHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import {use} from 'echarts/core'
@@ -159,10 +158,9 @@ const volumeChartOption = computed(() => ({
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.admin-feed-metrics.title')" :subtitle="t('pages.admin-feed-metrics.subtitle')">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
-        <PageHeader>{{ t('feedMetrics.title') }}</PageHeader>
         <MutedText tag="p" size="sm">{{ t('feedMetrics.subtitle') }}</MutedText>
       </div>
       <HelpCenterHint :to="{name: 'help-admin-feed-metrics'}">

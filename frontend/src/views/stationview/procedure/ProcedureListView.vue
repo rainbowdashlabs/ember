@@ -20,7 +20,6 @@ import SearchInput from '@/components/input/text/SearchInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
@@ -131,9 +130,12 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.procedure-list.title')"
+      :subtitle="t('pages.procedure-list.subtitle')"
+  >
     <div class="flex items-center justify-between mb-4">
-      <SectionHeader>{{ t('procedures.title') }}</SectionHeader>
+      <div />
       <PrimaryButton v-if="canEdit" @click="router.push({ name: 'procedure-create' })">
         <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" /> {{ t('procedures.createProcedure') }}
       </PrimaryButton>

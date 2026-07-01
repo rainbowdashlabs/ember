@@ -16,7 +16,6 @@ import type { QuizCatalog, QuizQuestion } from '@/api/types'
 import { QuizQuestionTypes } from '@/api/types'
 import { quiz } from '@/api'
 import { useConfigPanel } from '@/composables/useConfigPanel'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 
 const { t } = useI18n()
 
@@ -175,10 +174,8 @@ function restart() {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.quiz-training.title')" :subtitle="t('pages.quiz-training.subtitle')">
     <div class="space-y-6 max-w-3xl">
-      <SectionHeader>{{ t('quiz.training.title') }}</SectionHeader>
-
       <Spinner v-if="loading" size="lg" />
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 

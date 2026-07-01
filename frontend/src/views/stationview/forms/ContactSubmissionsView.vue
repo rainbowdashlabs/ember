@@ -12,7 +12,6 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubmissionList from './contactsubmissionsview/SubmissionList.vue'
 import type {Form, FormResponse, FormAnswer, FormQuestion} from '@/api/types'
 import {QuestionTypes} from '@/api/types'
@@ -120,10 +119,11 @@ function formatTimestamp(iso: string): string {
 </script>
 
 <template>
-    <ViewContent>
+    <ViewContent
+        :title="t('pages.pages-forms-submissions.title')"
+        :subtitle="t('pages.pages-forms-submissions.subtitle')"
+    >
         <div class="space-y-6 max-w-3xl">
-            <SectionHeader>{{ form?.title ?? t('forms.contactSubmissions.title') }}</SectionHeader>
-
             <Spinner v-if="loading" size="lg"/>
             <Alert v-if="error" variant="error">{{ error }}</Alert>
 

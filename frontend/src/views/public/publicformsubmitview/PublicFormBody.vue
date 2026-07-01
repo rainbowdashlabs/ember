@@ -7,7 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import PublicConsentCheckbox from '@/components/public/PublicConsentCheckbox.vue'
 import PublicFormQuestionCard from './PublicFormQuestionCard.vue'
 import type {PublicForm, PublicFormQuestion} from '@/api/publicForms'
@@ -35,7 +35,7 @@ const tosVersion = defineModel<string>('tosVersion', {required: true})
 
 <template>
   <div>
-    <SectionHeader>{{ form.title }}</SectionHeader>
+    <SubHeader>{{ form.title }}</SubHeader>
     <p v-if="form.description" class="mt-1 text-(--text-muted)">{{ form.description }}</p>
   </div>
 

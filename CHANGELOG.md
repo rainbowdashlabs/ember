@@ -1,5 +1,24 @@
 # Changelog
 
+## v26.11.0
+
+### New Features
+
+- **Admin overview page.** Administrators land on a real "needs attention" panel at Admin → Dashboard → Übersicht with tiles for failed and stuck emails, pending station applications, stations still in setup, unverified accounts, open federation requests, unreachable discovery peers and open problem reports, plus short lists of the most recent applications and problem reports. Tiles turn green when the count is zero and jump straight to the relevant admin page on click.
+- **Admin statistics with charts.** The statistics dashboard now shows daily new-session activity for the last 30 days, a top-ten-stations-by-member bar chart, and pies for email verification and station setup progress alongside the existing tiles.
+- **Form list redesigned as tiles.** The station's form list now shows each form as a tile with its status, response count, title and description. Each tile also shows when the form was created and when it last saw activity (either an edit or a new response), and the list can be sorted by last activity, creation date, or title, in either direction. Clicking a tile opens the form — the editor for drafts, analytics for everything else. Publish, close, edit, analytics and delete actions live in a context menu in the tile's upper-right corner.
+- **Outstanding members on required-form analytics.** When a form is marked as required, its analytics page lists the eligible members who have not submitted a response yet, so chasing the missing ones is a glance away.
+- **Checklists for member follow-up.** Managers can build a list of yes/no questions, pick a member set by user type, group, tag or by hand, and tick each member off as they finish each step. The list overview shows one tile per checklist; on a phone the detail view switches from the wide matrix to a per-member card so every column is readable without horizontal scrolling. Member rows are listed alphabetically by name, and the search bar at the top of the matrix jumps straight to a member as you type. The add-members picker is also sorted alphabetically. Each cell takes an optional note with full history of every change, and the note text shows directly in the matrix next to its toggle. The list's name and description stay editable after creation, columns can be reordered by drag-and-drop or with up/down arrows in the edit dialog (the arrows also work on touch), and a new column lands at the position the manager picks. The list can be refreshed later to pull in newly-matching members, individual members can be added or removed by hand at any time, and the matrix exports to CSV for spreadsheet work or to a printable PDF that carries the station logo and name in a compact running header, uses drawn checkboxes instead of emoji, and follows the station language. Access splits into a read-only permission for staff who only need to look, and a manage permission for the rest.
+
+### Changes
+
+- **Consistent page headers across the app.** Every page now shows its title in the top header bar exactly once — duplicated in-page titles and pages missing a header title are both gone. Applies to the whole admin panel, station manage, station federate, requirements, checklists, quiz, procedures, boards, pages, protocols, lost-and-found and every other station and helpcenter view.
+
+### Fixes
+
+- **Landing page no longer kicks signed-out visitors to the login form.** Arriving at the home page with a stale or expired session in the browser silently clears the dead session and stays on the public landing page instead of redirecting to login.
+- **Saving form questions with type-specific settings works again.** Rating, choice, ranking, and Likert questions that carry their own configuration now save without the request being rejected.
+
 ## v26.10.2
 
 ### New Features

@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import type {TableEntry} from '@/api/dataTracking'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 
 defineProps<{
   entry: TableEntry
@@ -17,7 +18,7 @@ const {t} = useI18n()
 
 <template>
   <section v-if="entry.foreignKeys?.length">
-    <SectionHeader class="!text-base">{{ t('adminDataTracking.detail.foreignKeys') }}</SectionHeader>
+    <SubHeader class="!text-base">{{ t('adminDataTracking.detail.foreignKeys') }}</SubHeader>
     <ul class="text-xs font-mono space-y-1">
       <li v-for="fk in entry.foreignKeys" :key="fk.column">
         <span class="font-semibold">{{ fk.column }}</span> →

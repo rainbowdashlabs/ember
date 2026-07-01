@@ -7,7 +7,7 @@
 import { watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -49,7 +49,7 @@ function formatDate(dateStr?: string | null): string {
 <template>
   <Modal v-model="show">
     <div class="space-y-4">
-      <SectionHeader>{{ t('inventory.edit.historyTitle') }}</SectionHeader>
+      <SubHeader>{{ t('inventory.edit.historyTitle') }}</SubHeader>
       <p class="text-sm text-(--text-muted)">{{ props.item?.name }}</p>
       <Spinner v-if="loading" size="md" />
       <EmptyState v-if="!loading && entries.length === 0" compact>{{ t('inventory.edit.noHistory') }}</EmptyState>

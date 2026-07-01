@@ -9,7 +9,7 @@ import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import BasicInfoFields from './eventmodal/BasicInfoFields.vue'
 import ScheduleFields from './eventmodal/ScheduleFields.vue'
 import TemplateSection from './eventmodal/TemplateSection.vue'
@@ -178,7 +178,7 @@ function submit() {
 <template>
   <Modal v-model="modelValue">
     <div class="space-y-4">
-      <SectionHeader>{{ event ? t('events.editEvent') : t('events.addEvent') }}</SectionHeader>
+      <SubHeader>{{ event ? t('events.editEvent') : t('events.addEvent') }}</SubHeader>
       <BasicInfoFields v-model:event-name="eventName" v-model:event-description="eventDescription" v-model:event-type="eventType" v-model:event-day-of-week="eventDayOfWeek"/>
       <ScheduleFields v-model:event-start-time="eventStartTime" v-model:event-end-time="eventEndTime"/>
       <TemplateSection v-model:event-template-id="eventTemplateId" :templates="templates" :current-template-fields="currentTemplateFields" :sources="EVENT_SOURCES" :get-default="getFieldDefault" @update-source="setFieldDefaultSource" @update-value="setFieldDefaultValue"/>

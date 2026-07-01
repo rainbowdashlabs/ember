@@ -10,7 +10,6 @@ import {useRoute} from 'vue-router'
 import type {Ref} from 'vue'
 import type {PublicStationInfo} from '@/api/discovery'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PublicEventList from '@/components/display/PublicEventList.vue'
@@ -65,10 +64,9 @@ onMounted(async () => {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.public-station-calendar.title')" :subtitle="t('pages.public-station-calendar.subtitle')">
     <div class="space-y-4">
-      <div class="flex items-center justify-between flex-wrap gap-2">
-        <SectionHeader>{{ t('publicStation.upcomingEvents') }}</SectionHeader>
+      <div class="flex items-center justify-end flex-wrap gap-2">
         <a :href="getIcalSubscribeUrl(stationUid)" class="text-sm text-primary hover:underline">
           <font-awesome-icon :icon="['fas', 'calendar-plus']" class="mr-1"/>
           {{ t('publicStation.subscribeCal') }}

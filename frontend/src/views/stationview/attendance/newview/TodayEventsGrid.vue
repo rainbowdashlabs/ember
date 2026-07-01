@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
 import PrimaryContainer from '@/components/container/PrimaryContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import type {StationEvent} from '@/api/types'
 
 const props = defineProps<{
@@ -24,7 +24,7 @@ const {t} = useI18n()
 
 <template>
   <div class="space-y-3">
-    <SectionHeader>{{ t('attendanceNew.todayEvents') }}</SectionHeader>
+    <SubHeader>{{ t('attendanceNew.todayEvents') }}</SubHeader>
     <div class="grid gap-3 sm:grid-cols-2">
       <PrimaryContainer v-for="ev in props.events" :key="ev.id"
                         class="space-y-2 cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all"

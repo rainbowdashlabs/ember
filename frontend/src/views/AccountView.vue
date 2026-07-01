@@ -4,9 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted} from 'vue'
+import {onMounted} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {useRoute} from 'vue-router'
 import SidebarLayout from '@/components/layout/SidebarLayout.vue'
 import SidebarLink from '@/components/navigation/SidebarLink.vue'
 import AccountMenuButton from '@/components/layout/AccountMenuButton.vue'
@@ -14,25 +13,16 @@ import SmartStationButton from '@/components/layout/SmartStationButton.vue'
 import AdminPanelButton from '@/components/layout/AdminPanelButton.vue'
 import HelpCenterLink from '@/components/navigation/HelpCenterLink.vue'
 import {useSession} from '@/composables/useSession'
+import {usePageHeader} from '@/composables/usePageHeader'
 
-const {t, te} = useI18n()
-const route = useRoute()
+const {t} = useI18n()
 const {loaded, load} = useSession()
+const {title: pageTitle, subtitle: pageSubtitle} = usePageHeader()
 
 onMounted(() => {
   if (!loaded.value) {
     load()
   }
-})
-
-const pageTitle = computed(() => {
-  const key = `pages.${route.name as string}.title`
-  return te(key) ? t(key) : ''
-})
-
-const pageSubtitle = computed(() => {
-  const key = `pages.${route.name as string}.subtitle`
-  return te(key) ? t(key) : ''
 })
 </script>
 

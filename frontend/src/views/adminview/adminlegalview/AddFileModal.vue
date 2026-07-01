@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -24,7 +24,7 @@ const emit = defineEmits<{
 <template>
   <Modal v-model="show">
     <div class="space-y-4">
-      <SectionHeader>{{ t('adminSettings.legal.addFileTitle') }}</SectionHeader>
+      <SubHeader>{{ t('adminSettings.legal.addFileTitle') }}</SubHeader>
       <TextInput v-model="name" :placeholder="t('adminSettings.legal.fileNamePlaceholder')"/>
       <div class="flex justify-end gap-2">
         <SecondaryButton @click="show = false">{{ t('common.cancel') }}</SecondaryButton>

@@ -17,7 +17,6 @@ import { quiz } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useBreakpoint } from '@/composables/useBreakpoint'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
 import TestList from './testlistview/TestList.vue'
 import ResultsList from './testlistview/ResultsList.vue'
@@ -112,14 +111,13 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.quiz-tests.title')" :subtitle="t('pages.quiz-tests.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg" />
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading">
-        <div class="flex items-center justify-between">
-          <SectionHeader>{{ t('quiz.tests.title') }}</SectionHeader>
+        <div class="flex items-center justify-end">
           <PrimaryButton :icon="['fas', 'plus']" v-if="canConfigure()" @click="router.push({ name: 'quiz-test-create' })">
             {{ t('quiz.tests.create') }}
           </PrimaryButton>

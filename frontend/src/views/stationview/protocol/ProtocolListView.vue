@@ -23,7 +23,6 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import { useSession } from '@/composables/useSession'
@@ -135,9 +134,12 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.protocol-list.title')"
+      :subtitle="t('pages.protocol-list.subtitle')"
+  >
     <div class="flex items-center justify-between mb-4">
-      <SectionHeader>{{ t('protocol.title') }}</SectionHeader>
+      <div />
       <PrimaryButton v-if="canConfigure" @click="showCreateModal = true">
         <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" /> {{ t('protocol.create') }}
       </PrimaryButton>

@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 
 defineProps<{
   memberName: string
@@ -21,7 +21,7 @@ const { t } = useI18n()
 
 <template>
   <div class="flex items-center justify-between mb-2">
-    <SectionHeader>{{ memberName }}</SectionHeader>
+    <SubHeader>{{ memberName }}</SubHeader>
     <SecondaryButton @click="$emit('exit')">
       <font-awesome-icon :icon="['fas', 'xmark']" class="mr-1" /> {{ t('protocol.saveAndExit') }}
     </SecondaryButton>

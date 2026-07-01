@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import type { QuizTestDetail } from '@/api/types'
 
@@ -20,7 +20,7 @@ const { t } = useI18n()
 
 <template>
   <div class="space-y-3">
-    <SectionHeader>{{ t('quiz.sections.title') }} ({{ sections.length }})</SectionHeader>
+    <SubHeader>{{ t('quiz.sections.title') }} ({{ sections.length }})</SubHeader>
     <NeutralContainer v-for="(section, idx) in sections" :key="section.id">
       <div class="space-y-2">
         <div class="flex items-center gap-2">

@@ -8,7 +8,6 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -27,9 +26,10 @@ const { config: boardList, loading, error } = useConfigPanel<Board[]>({
 </script>
 
 <template>
-    <ViewContent>
-        <SectionHeader class="mb-6">{{ t('boards.title') }}</SectionHeader>
-
+    <ViewContent
+        :title="t('pages.board-overview.title')"
+        :subtitle="t('pages.board-overview.subtitle')"
+    >
         <Spinner v-if="loading" />
         <Alert v-else-if="error" variant="error">{{ error }}</Alert>
         <EmptyState v-else-if="boardList.length === 0">{{ t('boards.noBoards') }}</EmptyState>

@@ -170,7 +170,10 @@ function onTabChange(tab: string) {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.members-changes.title')"
+      :subtitle="t('pages.members-changes.subtitle')"
+  >
     <div class="space-y-6">
       <TabBar :tabs="tabs" :model-value="activeTab" @update:model-value="onTabChange"/>
 

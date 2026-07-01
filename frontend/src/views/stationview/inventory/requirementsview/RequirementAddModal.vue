@@ -8,7 +8,7 @@ import { useI18n } from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import type { Inventory, MemberGroup } from '@/api/types'
 import RequirementAddForm from './RequirementAddForm.vue'
 
@@ -35,7 +35,7 @@ const { t } = useI18n()
 <template>
   <Modal v-model="show">
     <div class="space-y-4">
-      <SectionHeader>{{ t('inventory.requirements.add') }}</SectionHeader>
+      <SubHeader>{{ t('inventory.requirements.add') }}</SubHeader>
 
       <RequirementAddForm
         v-model:target-type="targetType"

@@ -10,7 +10,6 @@ import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import PageHeader from '@/components/typography/PageHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import THead from '@/components/table/THead.vue'
@@ -113,15 +112,11 @@ const responseTimeChartOption = computed(() => {
 </script>
 
 <template>
-    <ViewContent>
+    <ViewContent :title="t('pages.admin-api-status-detail.title')" :subtitle="t('pages.admin-api-status-detail.subtitle')">
         <div class="flex items-center gap-3 mb-6">
             <SecondaryButton :icon="['fas', 'arrow-left']" @click="router.push({name: 'admin-api-status'})">
                 {{ t('common.back') }}
             </SecondaryButton>
-            <PageHeader class="!mb-0">
-                <span :class="methodColor(method)" class="font-mono">{{ method }}</span>
-                <span class="font-mono ml-2">{{ path }}</span>
-            </PageHeader>
         </div>
 
         <Spinner v-if="loading"/>

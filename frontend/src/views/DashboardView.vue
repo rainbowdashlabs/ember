@@ -34,10 +34,12 @@ import QuickSearchPalette from '@/components/quicksearch/QuickSearchPalette.vue'
 import QuickSearchTrigger from '@/components/quicksearch/QuickSearchTrigger.vue'
 import {useQuickSearch} from '@/composables/useQuickSearch'
 import {useStationTransferStatus} from '@/composables/useStationTransferStatus'
+import {usePageHeader} from '@/composables/usePageHeader'
 
-const {t, te} = useI18n()
+const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
+const {title: pageTitle, subtitle: pageSubtitle} = usePageHeader()
 const {
   sessionInfo,
   loaded,
@@ -168,16 +170,6 @@ watch(loaded, (isLoaded) => {
   if (isModuleEnabled(StationModules.BOARDS) && hasPermission(StationPermission.BOARD_USE) && canManageFederation()) refreshBookmarkedBoards()
   checkFirstLogin()
 }, {immediate: true})
-
-const pageTitle = computed(() => {
-  const key = `pages.${route.name as string}.title`
-  return te(key) ? t(key) : ''
-})
-
-const pageSubtitle = computed(() => {
-  const key = `pages.${route.name as string}.subtitle`
-  return te(key) ? t(key) : ''
-})
 
 const membersDefaultRoute = computed(() => {
   if (hasPermission(StationPermission.MEMBER_READ)) return '/station/members/list'
@@ -382,6 +374,8 @@ const manageDefaultRoute = computed(() => {
           {{ t('sidebar.procedureTemplates') }}
         </SidebarLink>
       </SidebarGroup>
+
+      <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="hasPermission(StationPermission.CHECKLIST_READ)" :icon="['fas', 'list-check']" :label="t('sidebar.checklists')" prefix="/station/checklist" to="/station/checklist" name="checklist-list" @navigate="close"/>
 
       <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => openGroup = v" v-if="isModuleEnabled(StationModules.KNOWLEDGE_BASE)" :icon="['fas', 'book-open']" :label="t('sidebar.knowledgeBase')" prefix="/station/knowledge" to="/station/knowledge" name="kb-browse" @navigate="close"/>
 

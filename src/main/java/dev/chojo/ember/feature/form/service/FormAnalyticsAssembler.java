@@ -52,7 +52,8 @@ public class FormAnalyticsAssembler {
     }
 
     /**
-     * Aggregated analytics for a form, including per-question answer data.
+     * Aggregated analytics for a form, including per-question answer data and — for forms
+     * marked as required — the list of eligible members who have not yet submitted a response.
      */
     public FormAnalyticsDto buildAnalytics(int formId) {
         var questions = formService.findQuestions(formId);
@@ -63,7 +64,18 @@ public class FormAnalyticsAssembler {
                     return new QuestionAnalyticsDto(q.id(), q.formQuestionType(), q.title(), q.config(), values);
                 })
                 .toList();
-        return new FormAnalyticsDto(formId, formService.countResponses(formId), questionAnalytics);
+        return new FormAnalyticsDto(
+                formId, formService.countResponses(formId), questionAnalytics, buildMissingResponses(formId));
+    }
+
+    private List<MemberIdentity> buildMissingResponses(int formId) {
+        var form = formService.findById(formId).orElse(null);
+        if (form == null || !form.forced()) return List.of();
+        return stationMemberRepository.findByStation(form.stationId()).stream()
+                .filter(m -> formService.canMemberAccess(formId, m.id()))
+                .filter(m -> !formService.hasResponded(formId, m.id()))
+                .map(m -> memberIdentityFactory.local(m.stationId(), m.id()))
+                .toList();
     }
 
     /**
@@ -127,7 +139,11 @@ public class FormAnalyticsAssembler {
     /**
      * Aggregated analytics payload — wire shape returned by the analytics endpoints.
      */
-    public record FormAnalyticsDto(int formId, int totalResponses, List<QuestionAnalyticsDto> questions) {}
+    public record FormAnalyticsDto(
+            int formId,
+            int totalResponses,
+            List<QuestionAnalyticsDto> questions,
+            List<MemberIdentity> missingResponses) {}
 
     /**
      * Per-question analytics row carried inside {@link FormAnalyticsDto}.

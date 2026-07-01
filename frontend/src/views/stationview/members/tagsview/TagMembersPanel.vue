@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import Spinner from '@/components/feedback/Spinner.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import IconButton from '@/components/button/IconButton.vue'
@@ -30,7 +30,7 @@ const emit = defineEmits<{
 
 <template>
   <div class="space-y-4">
-    <SectionHeader>{{ selectedTag.name }}</SectionHeader>
+    <SubHeader>{{ selectedTag.name }}</SubHeader>
 
     <Spinner v-if="tagLoading" size="md"/>
 

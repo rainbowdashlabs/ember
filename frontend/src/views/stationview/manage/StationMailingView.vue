@@ -5,6 +5,7 @@
  */
 <script setup lang="ts">
 import {ref, watch} from 'vue'
+import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -12,6 +13,7 @@ import MailConfigSection from './stationview/MailConfigSection.vue'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 
+const {t} = useI18n()
 const {hasPermission, loaded} = useSession()
 const router = useRouter()
 watch(loaded, (isLoaded) => {
@@ -28,7 +30,10 @@ function handleSuccess(msg: string) { success.value = msg; error.value = '' }
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.station-mailing.title')"
+      :subtitle="t('pages.station-mailing.subtitle')"
+  >
     <div class="space-y-6">
       <Alert v-if="error" variant="error">{{ error }}</Alert>
       <Alert v-if="success" variant="success">{{ success }}</Alert>

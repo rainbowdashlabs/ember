@@ -192,7 +192,10 @@ async function applyTemplate(template: FieldTemplate) {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.station-members-config.title')"
+      :subtitle="t('pages.station-members-config.subtitle')"
+  >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>

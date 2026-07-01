@@ -9,7 +9,6 @@ import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -147,9 +146,11 @@ function itemLabel(item: { id: number; name: string | null; internalId: string |
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.inventory-lending-blocks.title')"
+      :subtitle="t('pages.inventory-lending-blocks.subtitle')"
+  >
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-4">
-      <SectionHeader>{{ t('lending.blocksTitle') }}</SectionHeader>
       <div class="flex gap-2">
         <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({name: 'inventory-lending'})">
           {{ t('lending.backToList') }}

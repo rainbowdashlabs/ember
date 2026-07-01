@@ -84,7 +84,10 @@ function goBack() {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.waiting-list-create-entry.title')"
+      :subtitle="t('pages.waiting-list-create-entry.subtitle')"
+  >
     <div class="space-y-6">
       <SecondaryButton :icon="['fas', 'chevron-left']" @click="goBack">
         {{ t('waitingList.backToList') }}

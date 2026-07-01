@@ -11,7 +11,6 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type { Inventory, InventoryRequirement, MemberGroup } from '@/api/types'
 import { inventory, memberGroups } from '@/api'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
@@ -150,14 +149,16 @@ async function onReorder(group: RequirementGroup, fromIndex: number, toIndex: nu
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.inventory-requirements.title')"
+      :subtitle="t('pages.inventory-requirements.subtitle')"
+  >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg" />
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading">
-        <div class="flex items-center justify-between">
-          <SectionHeader>{{ t('inventory.requirements.title') }}</SectionHeader>
+        <div class="flex items-center justify-end">
           <PrimaryButton :icon="['fas', 'plus']" @click="openAdd()">
             {{ t('inventory.requirements.add') }}
           </PrimaryButton>

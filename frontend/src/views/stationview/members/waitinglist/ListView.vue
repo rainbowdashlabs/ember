@@ -11,7 +11,6 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import WaitingListsGrid from './listview/WaitingListsGrid.vue'
 import CreateListModal from './listview/CreateListModal.vue'
@@ -66,10 +65,12 @@ function navigateToDetail(id: number) {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.waiting-lists.title')"
+      :subtitle="t('pages.waiting-lists.subtitle')"
+  >
     <div class="space-y-6">
-      <div class="flex items-center justify-between">
-        <SectionHeader>{{ t('waitingList.title') }}</SectionHeader>
+      <div class="flex items-center justify-end">
         <PrimaryButton v-if="canEdit" :icon="['fas', 'plus']" @click="openCreate">
           {{ t('waitingList.create') }}
         </PrimaryButton>

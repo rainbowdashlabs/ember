@@ -84,7 +84,10 @@ const chartOption = computed(() => {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.station-storage.title')"
+      :subtitle="t('pages.station-storage.subtitle')"
+  >
     <div class="mb-4 flex justify-end">
       <RouterLink :to="{name: 'station-storage-backend'}" class="text-sm underline">
         {{ t('stationStorageBackend.linkFromUsage') }}

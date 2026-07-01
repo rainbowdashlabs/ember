@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 
 defineProps<{
   title: string
@@ -24,7 +24,7 @@ const { t } = useI18n()
 <template>
   <div class="flex items-center justify-between">
     <div>
-      <SectionHeader>{{ title }}</SectionHeader>
+      <SubHeader>{{ title }}</SubHeader>
       <p class="text-(--text-muted) text-sm">
         {{ t('forms.analytics.totalResponses') }}: {{ totalResponses }}
       </p>

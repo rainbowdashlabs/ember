@@ -341,7 +341,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.quiz-catalog-import.title')" :subtitle="t('pages.quiz-catalog-import.subtitle')">
     <div class="flex items-center gap-2 mb-4">
       <SecondaryButton @click="router.push({ name: 'quiz-catalog-detail', params: { id: catalogId } })">
         <font-awesome-icon :icon="['fas', 'chevron-left']" />

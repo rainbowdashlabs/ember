@@ -42,7 +42,10 @@ function priorityColor(p: string) { return { HIGHEST: 'text-red-500', HIGH: 'tex
 </script>
 
 <template>
-    <ViewContent>
+    <ViewContent
+        :title="t('pages.board-backlog.title')"
+        :subtitle="t('pages.board-backlog.subtitle')"
+    >
         <Spinner v-if="loading" />
         <Alert v-else-if="error" variant="error">{{ error }}</Alert>
         <template v-else-if="board">

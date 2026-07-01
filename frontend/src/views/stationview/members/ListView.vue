@@ -229,7 +229,10 @@ onMounted(() => {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.members-list.title')"
+      :subtitle="t('pages.members-list.subtitle')"
+  >
     <ListViewBody
       v-model:active-tab="activeTab"
       v-model:filter-text="filterText"

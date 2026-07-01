@@ -29,10 +29,12 @@ public record Form(
         int createdBy,
         Instant createdAt,
         Instant updatedAt,
+        Instant lastActivityAt,
         RestrictionMode restrictionMode,
         boolean restricted,
         FormPurpose purpose,
-        UUID publicUid) {
+        UUID publicUid,
+        int responseCount) {
 
     public static RowMapping<Form> map() {
         return row -> new Form(
@@ -50,10 +52,12 @@ public record Form(
                 row.getInt("created_by"),
                 row.get("created_at", INSTANT_TIMESTAMP),
                 row.get("updated_at", INSTANT_TIMESTAMP),
+                row.get("last_activity_at", INSTANT_TIMESTAMP),
                 row.getEnum("restriction_mode", RestrictionMode.class),
                 row.getBoolean("restricted"),
                 row.getEnum("purpose", FormPurpose.class),
-                row.get("public_uid", StandardValueConverter.UUID_STRING));
+                row.get("public_uid", StandardValueConverter.UUID_STRING),
+                row.getInt("response_count"));
     }
 
     public boolean isAcceptingResponses() {

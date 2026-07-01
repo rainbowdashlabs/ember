@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import PageHeader from '@/components/typography/PageHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import HelpCenterHint from '@/components/help/HelpCenterHint.vue'
 
@@ -15,7 +15,7 @@ const {t} = useI18n()
 <template>
   <div class="flex flex-wrap items-center justify-between gap-3">
     <div>
-      <PageHeader>{{ t('insights.title') }}</PageHeader>
+      <SubHeader>{{ t('insights.title') }}</SubHeader>
       <MutedText tag="p" size="sm">{{ t('insights.subtitle') }}</MutedText>
     </div>
     <HelpCenterHint :to="{name: 'help-station-insights'}">

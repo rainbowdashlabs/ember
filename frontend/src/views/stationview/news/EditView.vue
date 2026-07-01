@@ -12,7 +12,6 @@ import { marked } from 'marked'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import type { MemberGroup, UserTag } from '@/api/types'
@@ -136,10 +135,12 @@ watch(loaded, (isLoaded) => {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.news-create.title')"
+      :subtitle="t('pages.news-create.subtitle')"
+  >
     <div class="space-y-6">
       <div class="flex items-center justify-between">
-        <SectionHeader>{{ isEdit ? t('news.editTitle') : t('news.createTitle') }}</SectionHeader>
         <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({ name: 'news-list' })">
           {{ t('common.back') }}
         </SecondaryButton>

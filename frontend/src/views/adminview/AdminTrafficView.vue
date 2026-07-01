@@ -7,7 +7,6 @@
 import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import PageHeader from '@/components/typography/PageHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import HelpCenterHint from '@/components/help/HelpCenterHint.vue'
@@ -93,11 +92,10 @@ function stationLabel(stationId: string | null): string {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.admin-traffic.title')" :subtitle="t('pages.admin-traffic.subtitle')">
     <div class="space-y-4">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
-        <PageHeader>{{ t('traffic.admin.title') }}</PageHeader>
         <MutedText tag="p" size="sm">{{ t('traffic.admin.subtitle') }}</MutedText>
       </div>
       <HelpCenterHint :to="{name: 'help-admin-traffic'}">

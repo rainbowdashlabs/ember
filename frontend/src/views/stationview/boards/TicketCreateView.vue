@@ -203,7 +203,10 @@ function goBack() {
 </script>
 
 <template>
-    <ViewContent>
+    <ViewContent
+        :title="t('pages.ticket-create.title')"
+        :subtitle="t('pages.ticket-create.subtitle')"
+    >
         <Spinner v-if="loading" />
         <Alert v-else-if="error && !board" variant="error">{{ error }}</Alert>
         <template v-else-if="board">

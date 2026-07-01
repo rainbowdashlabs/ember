@@ -222,7 +222,10 @@ onMounted(load)
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.inventory-container-detail.title')"
+      :subtitle="t('pages.inventory-container-detail.subtitle')"
+  >
     <div v-if="loading" class="flex justify-center py-12">
       <Spinner size="lg" />
     </div>

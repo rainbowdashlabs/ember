@@ -130,7 +130,10 @@ async function save() {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.event-template-edit.title')"
+      :subtitle="t('pages.event-template-edit.subtitle')"
+  >
     <div class="space-y-6">
       <div class="flex items-center gap-2">
         <SecondaryButton :icon="['fas', 'arrow-left']" @click="router.push({name: 'event-templates'})"/>

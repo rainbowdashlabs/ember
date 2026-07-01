@@ -12,7 +12,6 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -80,9 +79,11 @@ async function handleCreate() {
 </script>
 
 <template>
-    <ViewContent>
-        <div class="flex items-center justify-between mb-6">
-            <SectionHeader>{{ t('boards.manageTitle') }}</SectionHeader>
+    <ViewContent
+        :title="t('pages.board-manage.title')"
+        :subtitle="t('pages.board-manage.subtitle')"
+    >
+        <div class="flex items-center justify-end mb-6">
             <PrimaryButton @click="showCreateModal = true">
                 <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
                 {{ t('boards.createBoard') }}

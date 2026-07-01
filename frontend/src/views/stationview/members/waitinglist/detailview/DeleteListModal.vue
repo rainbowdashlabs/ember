@@ -9,7 +9,7 @@ import { useI18n } from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 
 const props = defineProps<{
   modelValue: boolean
@@ -33,7 +33,7 @@ const open = computed({
 <template>
   <Modal v-model="open">
     <div class="space-y-4">
-      <SectionHeader>{{ t('waitingList.deleteListTitle') }}</SectionHeader>
+      <SubHeader>{{ t('waitingList.deleteListTitle') }}</SubHeader>
       <p class="text-sm">{{ t('waitingList.deleteListConfirm', { name: listName }) }}</p>
       <div class="flex justify-end gap-2">
         <SecondaryButton @click="open = false">{{ t('common.cancel') }}</SecondaryButton>

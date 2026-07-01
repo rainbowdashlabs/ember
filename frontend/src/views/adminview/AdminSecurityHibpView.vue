@@ -7,7 +7,6 @@
 import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
@@ -38,14 +37,13 @@ async function save() {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.admin-security-hibp.title')" :subtitle="t('pages.admin-security-hibp.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading">
         <NeutralContainer class="space-y-4">
-          <SectionHeader>{{ t('adminSecurity.hibp.title') }}</SectionHeader>
           <MutedText tag="p" size="sm">{{ t('adminSecurity.hibp.hint') }}</MutedText>
 
           <div class="flex items-center justify-between">

@@ -8,7 +8,6 @@ import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
@@ -137,10 +136,12 @@ async function handleDelete(itemId: number) {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.lost-and-found.title')"
+      :subtitle="t('pages.lost-and-found.subtitle')"
+  >
     <div class="space-y-6">
       <div class="flex items-center justify-between">
-        <SectionHeader>{{ t('lostAndFound.title') }}</SectionHeader>
         <PrimaryButton :icon="['fas', 'plus']" v-if="canCreate()" @click="showCreate = true">
           {{ t('lostAndFound.create') }}
         </PrimaryButton>

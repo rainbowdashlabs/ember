@@ -7,7 +7,7 @@
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SearchToolbar from './pagefilebrowsemodal/SearchToolbar.vue'
 import FilterBar from './pagefilebrowsemodal/FilterBar.vue'
@@ -212,7 +212,7 @@ function formatSize(bytes: number): string {
 <template>
     <Modal v-model="open" size="xl">
         <div class="space-y-3 flex flex-col h-[80vh]">
-            <SectionHeader>{{ t('stationPages.editor.browseFiles') }}</SectionHeader>
+            <SubHeader>{{ t('stationPages.editor.browseFiles') }}</SubHeader>
             <SearchToolbar
                 v-model:search="search"
                 :accept-attr="acceptAttr"

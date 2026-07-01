@@ -67,7 +67,7 @@ async function handleStartImport() {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.admin-stations.title')" :subtitle="t('pages.admin-stations.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>

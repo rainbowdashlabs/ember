@@ -178,7 +178,10 @@ function onFieldUpdated(field: EventField) {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.event-detail.title')"
+      :subtitle="t('pages.event-detail.subtitle')"
+  >
     <Spinner v-if="loading" size="lg"/>
     <Alert v-if="error" variant="error">{{ error }}</Alert>
     <EventDetailBody

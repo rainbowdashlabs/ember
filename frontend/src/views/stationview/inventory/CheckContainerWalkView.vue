@@ -274,7 +274,10 @@ onMounted(load)
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.inventory-check-container-walk.title')"
+      :subtitle="t('pages.inventory-check-container-walk.subtitle')"
+  >
     <div v-if="loading" class="flex justify-center py-12">
       <Spinner size="lg" />
     </div>

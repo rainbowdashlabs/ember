@@ -129,7 +129,10 @@ async function doMarkFound() {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.inventory-item-detail.title')"
+      :subtitle="t('pages.inventory-item-detail.subtitle')"
+  >
     <div class="space-y-6">
       <div class="flex items-center gap-2">
         <SecondaryButton :icon="['fas', 'arrow-left']" @click="router.back()"/>

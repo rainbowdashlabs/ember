@@ -7,7 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import PrimaryContainer from '@/components/container/PrimaryContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import type {StationEvent} from '@/api/types'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 import {formatTime} from '@/util/format'
@@ -26,7 +26,7 @@ const emit = defineEmits<{
 
 <template>
   <div v-if="events.length > 0" class="space-y-3">
-    <SectionHeader>{{ t('events.today') }}</SectionHeader>
+    <SubHeader>{{ t('events.today') }}</SubHeader>
     <div class="grid gap-3 sm:grid-cols-2">
       <PrimaryContainer v-for="ev in events" :key="ev.id" class="space-y-2">
         <div class="flex items-center justify-between">

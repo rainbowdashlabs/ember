@@ -8,7 +8,6 @@ import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -69,14 +68,13 @@ async function clearMailingConfig() {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.admin-mailing.title')" :subtitle="t('pages.admin-mailing.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading">
         <NeutralContainer class="space-y-4">
-          <SectionHeader>{{ t('adminSettings.mailing.title') }}</SectionHeader>
           <GeneralFieldsPanel v-model="mailingConfig"/>
           <SmtpPanel v-model="mailingConfig"/>
           <div class="flex justify-end gap-2 flex-wrap">

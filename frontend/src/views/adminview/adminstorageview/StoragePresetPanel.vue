@@ -6,7 +6,6 @@
 <script lang="ts" setup>
 import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -147,7 +146,7 @@ function toggleStation(id: string) {
 
 <template>
   <div class="mb-6">
-    <SectionHeader>{{ t('storageMonitoring.presets') }}</SectionHeader>
+    <SubHeader>{{ t('storageMonitoring.presets') }}</SubHeader>
     <div class="flex flex-wrap gap-2 mb-3">
       <PrimaryButton @click="openCreate">
         <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>

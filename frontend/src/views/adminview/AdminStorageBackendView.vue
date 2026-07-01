@@ -8,7 +8,6 @@ import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter, RouterLink} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import {useSession} from '@/composables/useSession'
@@ -228,10 +227,9 @@ function newSftp(): SftpRequest {
 </script>
 
 <template>
-    <ViewContent>
+    <ViewContent :title="t('pages.admin-storage-backend.title')" :subtitle="t('pages.admin-storage-backend.subtitle')">
         <div class="space-y-6">
             <div class="flex items-center justify-between">
-                <SectionHeader>{{ t('adminStorageBackend.title') }}</SectionHeader>
                 <div class="flex gap-3 text-sm">
                     <RouterLink :to="{name: 'admin-storage'}" class="underline">
                         {{ t('adminStorageBackend.linkUsage') }}

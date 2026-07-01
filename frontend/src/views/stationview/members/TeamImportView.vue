@@ -176,7 +176,10 @@ watch(loaded, async (isLoaded) => {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.members-import-team.title')"
+      :subtitle="t('pages.members-import-team.subtitle')"
+  >
     <div class="space-y-6">
       <TeamImportHeader />
       <Alert v-if="error" variant="error">{{ error }}</Alert>
