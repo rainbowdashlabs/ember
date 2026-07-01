@@ -8,7 +8,6 @@ import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -76,7 +75,6 @@ async function clearMailingConfig() {
 
       <template v-if="!loading">
         <NeutralContainer class="space-y-4">
-          <SectionHeader>{{ t('adminSettings.mailing.title') }}</SectionHeader>
           <GeneralFieldsPanel v-model="mailingConfig"/>
           <SmtpPanel v-model="mailingConfig"/>
           <div class="flex justify-end gap-2 flex-wrap">

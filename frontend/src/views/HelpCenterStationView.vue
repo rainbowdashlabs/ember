@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed} from 'vue'
+import {computed, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import SidebarLayout from '@/components/layout/SidebarLayout.vue'
@@ -18,6 +18,7 @@ import MembersSidebarGroup from '@/views/helpcenterstationview/MembersSidebarGro
 import InventorySidebarGroup from '@/views/helpcenterstationview/InventorySidebarGroup.vue'
 import QuizSidebarGroup from '@/views/helpcenterstationview/QuizSidebarGroup.vue'
 import {useHelpSearch} from '@/composables/useHelpSearch'
+import {usePageHeader} from '@/composables/usePageHeader'
 
 const {t, te} = useI18n()
 const route = useRoute()
@@ -51,6 +52,10 @@ const pageTitle = computed(() => {
 })
 
 const pageSubtitle = computed(() => t('helpCenter.title'))
+
+const {title: headerTitle, subtitle: headerSubtitle} = usePageHeader()
+watch(pageTitle, v => { headerTitle.value = v }, {immediate: true})
+watch(pageSubtitle, v => { headerSubtitle.value = v }, {immediate: true})
 </script>
 
 <template>

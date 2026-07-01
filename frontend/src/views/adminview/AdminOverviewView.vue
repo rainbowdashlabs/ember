@@ -7,7 +7,6 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -68,7 +67,6 @@ const totalAttention = computed(() => {
 <template>
   <ViewContent>
     <div class="space-y-6">
-      <SectionHeader>{{ t('adminOverview.title') }}</SectionHeader>
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 

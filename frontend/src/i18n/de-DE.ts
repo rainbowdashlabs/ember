@@ -721,6 +721,74 @@ export default {
             title: 'Data Tracking',
             subtitle: 'Inspiziere und bearbeite data_tracking.json (nur Dev-Modus)',
         },
+        'admin-station-import': {
+            title: 'Wache importieren',
+            subtitle: 'Wache von einer anderen Instanz übernehmen',
+        },
+        'admin-station-applications': {
+            title: 'Wachen-Anträge',
+            subtitle: 'Anträge auf neue Wachen prüfen',
+        },
+        'admin-security': {
+            title: 'Sicherheit',
+            subtitle: 'Sicherheitseinstellungen der Instanz',
+        },
+        'admin-security-tokens': {
+            title: 'Token-Peppers',
+            subtitle: 'Serverseitige Schlüssel für Token-Speicherung',
+        },
+        'admin-security-hibp': {
+            title: 'Have I Been Pwned',
+            subtitle: 'Passwortprüfung gegen bekannte Leaks',
+        },
+        'admin-security-two-factor': {
+            title: 'Zwei-Faktor-Richtlinien',
+            subtitle: 'Zwei-Faktor-Anforderungen konfigurieren',
+        },
+        'admin-two-factor': {
+            title: 'Zwei-Faktor-Reset',
+            subtitle: 'Zwei-Faktor-Authentifizierung für Konten zurücksetzen',
+        },
+        'admin-problems': {
+            title: 'System-Log',
+            subtitle: 'Warnungen und Fehler der laufenden Instanz',
+        },
+        'admin-problem-reports': {
+            title: 'Problemmeldungen',
+            subtitle: 'Von Nutzern gemeldete Probleme',
+        },
+        'admin-storage-backend': {
+            title: 'Speicher-Backend',
+            subtitle: 'Instanzweites Speicher-Backend konfigurieren',
+        },
+        'admin-storage-audit': {
+            title: 'Speicher-Audit',
+            subtitle: 'Änderungen am Speicher-Backend',
+        },
+        'admin-api-status': {
+            title: 'API-Status',
+            subtitle: 'Anfrage- und Fehlerstatistiken',
+        },
+        'admin-api-status-detail': {
+            title: 'Endpunkt-Details',
+            subtitle: 'Detaillierte Statistiken zu einem Endpunkt',
+        },
+        'admin-feed-metrics': {
+            title: 'Feed-Metriken',
+            subtitle: 'Nutzung der RSS- und iCal-Feeds',
+        },
+        'admin-traffic': {
+            title: 'Traffic',
+            subtitle: 'Anfrage- und Datenverkehr pro Wache',
+        },
+        'admin-discovery': {
+            title: 'Discovery',
+            subtitle: 'Bekannte Peer-Instanzen',
+        },
+        'admin-maps': {
+            title: 'Karten-Konfiguration',
+            subtitle: 'Tile-Provider und Kartenoptionen',
+        },
         'waiting-lists': {
             title: 'Wartelisten',
             subtitle: 'Wartelisten verwalten',

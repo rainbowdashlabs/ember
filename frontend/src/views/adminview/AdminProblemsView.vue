@@ -13,7 +13,6 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import PageHeader from '@/components/typography/PageHeader.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import ProblemEntryCard from './adminproblemsview/ProblemEntryCard.vue'
 import {problems} from '@/api'
@@ -51,10 +50,6 @@ function toggleExpand(id: number) {
 <template>
     <ViewContent>
         <div class="flex items-center justify-between mb-4">
-            <PageHeader class="!mb-0">
-                <font-awesome-icon :icon="['fas', 'triangle-exclamation']" class="mr-2"/>
-                {{ t('adminProblems.title') }}
-            </PageHeader>
             <div class="flex items-center gap-2">
                 <SelectionToggleButton :selected="showAcknowledged" @toggle="showAcknowledged = !showAcknowledged; loadData()">
                     {{ t('adminProblems.showAcknowledged') }}

@@ -12,7 +12,6 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import SuccessContainer from '@/components/container/SuccessContainer.vue'
-import PageHeader from '@/components/typography/PageHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
@@ -153,10 +152,6 @@ function openDetail(ep: EndpointStats) {
 <template>
     <ViewContent>
         <div class="flex items-center justify-between mb-4">
-            <PageHeader class="!mb-0">
-                <font-awesome-icon :icon="['fas', 'chart-line']" class="mr-2"/>
-                {{ t('apiStatus.title') }}
-            </PageHeader>
             <SecondaryButton :icon="['fas', 'rotate']" @click="reload">
                 {{ t('common.refresh') }}
             </SecondaryButton>

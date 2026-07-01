@@ -4,9 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onBeforeUnmount, onMounted} from 'vue'
+import {onBeforeUnmount, onMounted} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {useRoute} from 'vue-router'
 import SidebarLayout from '@/components/layout/SidebarLayout.vue'
 import SidebarGroup from '@/components/navigation/SidebarGroup.vue'
 import SidebarLink from '@/components/navigation/SidebarLink.vue'
@@ -18,10 +17,11 @@ import HelpCenterLink from '@/components/navigation/HelpCenterLink.vue'
 import QuickSearchPalette from '@/components/quicksearch/QuickSearchPalette.vue'
 import QuickSearchTrigger from '@/components/quicksearch/QuickSearchTrigger.vue'
 import {useQuickSearch} from '@/composables/useQuickSearch'
+import {usePageHeader} from '@/composables/usePageHeader'
 
-const {t, te} = useI18n()
-const route = useRoute()
+const {t} = useI18n()
 const {loaded, load} = useSession()
+const {title: pageTitle, subtitle: pageSubtitle} = usePageHeader()
 
 // Dev-mode-only inspector tools are only visible when the dev server is running
 // (production bundles tree-shake the branch out via Vite's import.meta.env).
@@ -49,16 +49,6 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onGlobalKeydown)
-})
-
-const pageTitle = computed(() => {
-  const key = `pages.${route.name as string}.title`
-  return te(key) ? t(key) : ''
-})
-
-const pageSubtitle = computed(() => {
-  const key = `pages.${route.name as string}.subtitle`
-  return te(key) ? t(key) : ''
 })
 
 </script>

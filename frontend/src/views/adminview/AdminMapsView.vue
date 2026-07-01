@@ -7,7 +7,6 @@
 import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
@@ -97,7 +96,6 @@ async function purgeCache() {
   <ViewContent>
     <div class="space-y-6">
       <div>
-        <SectionHeader>{{ t('adminMaps.title') }}</SectionHeader>
         <p class="text-sm text-(--text-muted)">{{ t('adminMaps.subtitle') }}</p>
       </div>
 

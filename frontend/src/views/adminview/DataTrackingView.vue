@@ -7,7 +7,6 @@
 import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import PageHeader from '@/components/typography/PageHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -257,10 +256,6 @@ onMounted(loadData)
 <template>
   <ViewContent v-if="isDev">
     <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
-      <PageHeader class="!mb-0">
-        <font-awesome-icon :icon="['fas', 'database']" class="mr-2"/>
-        {{ t('adminDataTracking.title') }}
-      </PageHeader>
       <span class="text-sm text-(--text-muted)">{{ t('adminDataTracking.devOnlyNotice') }}</span>
     </div>
 
@@ -315,7 +310,6 @@ onMounted(loadData)
   </ViewContent>
 
   <ViewContent v-else>
-    <PageHeader>{{ t('adminDataTracking.title') }}</PageHeader>
     <NeutralContainer>{{ t('adminDataTracking.devOnlyDisabled') }}</NeutralContainer>
   </ViewContent>
 </template>

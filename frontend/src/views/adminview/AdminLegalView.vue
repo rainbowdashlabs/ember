@@ -8,7 +8,6 @@ import {ref, onMounted, watch, computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import TypeTabsBar from './adminlegalview/TypeTabsBar.vue'
@@ -143,7 +142,6 @@ onMounted(async () => {
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <NeutralContainer class="space-y-4">
-        <SectionHeader>{{ t('adminSettings.legal.title') }}</SectionHeader>
         <TypeTabsBar v-model="activeLegalTab" :types="legalTypes"/>
         <LocaleTabsBar
             v-model="activeLocale"

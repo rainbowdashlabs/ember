@@ -12,7 +12,6 @@ import {BarChart, LineChart, PieChart} from 'echarts/charts'
 import {GridComponent, LegendComponent, TitleComponent, TooltipComponent} from 'echarts/components'
 import VChart from 'vue-echarts'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -217,7 +216,6 @@ const emailStatusOption = computed(() => {
 <template>
   <ViewContent>
     <div class="space-y-6">
-      <SectionHeader>{{ t('adminStats.title') }}</SectionHeader>
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
