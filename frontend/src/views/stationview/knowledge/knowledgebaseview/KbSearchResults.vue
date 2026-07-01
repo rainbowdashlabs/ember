@@ -9,7 +9,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import IconButton from '@/components/button/IconButton.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import type {KbFile} from '@/api/knowledgeBase'
 import type {SearchResult} from '@/api/knowledgeBase'
 import {fileIcon} from '@/util/kbFileIcon'
@@ -31,7 +31,7 @@ const emit = defineEmits<{
 
 <template>
     <div>
-        <SectionHeader class="mb-3">{{ t('kb.searchResults') }}</SectionHeader>
+        <SubHeader class="mb-3">{{ t('kb.searchResults') }}</SubHeader>
         <Spinner v-if="searching"/>
         <p v-else-if="totalCount === 0" class="text-[var(--text-muted)]">
             {{ t('kb.noResults') }}

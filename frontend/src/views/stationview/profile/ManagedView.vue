@@ -93,7 +93,10 @@ async function saveProfile() {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.profile-managed.title')"
+      :subtitle="t('pages.profile-managed.subtitle')"
+  >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg" />
       <Alert v-if="error" variant="error">{{ error }}</Alert>

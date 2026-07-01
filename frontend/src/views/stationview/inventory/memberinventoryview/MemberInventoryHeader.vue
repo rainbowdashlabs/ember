@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import type {StationMember} from '@/api/types'
 
@@ -26,9 +26,9 @@ function memberDisplayName(m: StationMember): string {
 
 <template>
   <div class="flex items-center justify-between flex-wrap gap-2">
-    <SectionHeader>
+    <SubHeader>
       {{ member ? `${t('profile.inventory')} — ${memberDisplayName(member)}` : t('profile.inventory') }}
-    </SectionHeader>
+    </SubHeader>
     <SecondaryButton :icon="['fas', 'chevron-left']" @click="$emit('back')">
       {{ t('common.back') }}
     </SecondaryButton>

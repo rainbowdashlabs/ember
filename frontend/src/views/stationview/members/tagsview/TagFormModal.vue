@@ -11,7 +11,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import ColorInput from '@/components/input/ColorInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {useModelProxy} from '@/composables/useModelProxy'
@@ -44,7 +44,7 @@ const visibleModel = useModelProxy(() => props.visible, emit, 'visible')
 <template>
   <Modal v-model="open">
     <div class="space-y-4">
-      <SectionHeader>{{ isEdit ? t('userTags.editTitle') : t('userTags.createTitle') }}</SectionHeader>
+      <SubHeader>{{ isEdit ? t('userTags.editTitle') : t('userTags.createTitle') }}</SubHeader>
       <div class="space-y-1">
         <FieldLabel>{{ t('userTags.name') }}</FieldLabel>
         <TextInput v-model="nameModel" :placeholder="t('userTags.namePlaceholder')"/>

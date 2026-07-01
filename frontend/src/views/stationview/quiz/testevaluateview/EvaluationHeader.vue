@@ -5,7 +5,7 @@
  */
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import type {QuizAttemptDetail} from '@/api/types'
 
@@ -21,7 +21,7 @@ const {t} = useI18n()
 <template>
   <div class="flex items-center justify-between flex-wrap gap-4">
     <div>
-      <SectionHeader>{{ t('quiz.evaluate.title') }}</SectionHeader>
+      <SubHeader>{{ t('quiz.evaluate.title') }}</SubHeader>
       <MemberName :identity="props.attempt.memberIdentity" size="md" class="mt-1" />
     </div>
     <div class="flex items-center gap-2">

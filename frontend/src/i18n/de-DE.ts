@@ -408,6 +408,10 @@ export default {
         storageAudit: 'Speicher-Audit',
     },
     pages: {
+        'station-moved-delete': {
+            title: 'Lokale Kopie löschen',
+            subtitle: 'Schreibgeschützte Kopie dieser Wache endgültig entfernen',
+        },
         'station-moved': {
             title: 'Wache verschoben',
             subtitle: 'Diese Wache ist auf eine andere Instanz umgezogen',
@@ -856,6 +860,390 @@ export default {
         'kb-versions': {
             title: 'Versionen',
             subtitle: 'Versionsverlauf',
+        },
+        'account-avatar': {
+            title: 'Profil',
+            subtitle: 'Profilbild und Kontodaten',
+        },
+        'account-theming': {
+            title: 'Erscheinungsbild',
+            subtitle: 'Design und Farbschema',
+        },
+        'account-sessions': {
+            title: 'Sitzungen',
+            subtitle: 'Aktive Anmeldungen verwalten',
+        },
+        'account-security': {
+            title: 'Sicherheit',
+            subtitle: 'Passwort und Zwei-Faktor-Authentifizierung',
+        },
+        'account-gdpr': {
+            title: 'DSGVO',
+            subtitle: 'Datenexport und Kontolöschung',
+        },
+        'reconsent': {
+            title: 'Einwilligung erneuern',
+            subtitle: 'Aktualisierte Nutzungsbedingungen zustimmen',
+        },
+        'imprint': {
+            title: 'Impressum',
+            subtitle: 'Rechtliche Angaben',
+        },
+        'privacy': {
+            title: 'Datenschutz',
+            subtitle: 'Datenschutzhinweise',
+        },
+        'terms': {
+            title: 'Nutzungsbedingungen',
+            subtitle: 'Bedingungen für die Nutzung',
+        },
+        'patch-notes': {
+            title: 'Änderungsprotokoll',
+            subtitle: 'Neuigkeiten und Änderungen',
+        },
+        'post-login-requirements': {
+            title: 'Pflichtangaben',
+            subtitle: 'Fehlende Angaben ergänzen',
+        },
+        'style': {
+            title: 'Style Guide',
+            subtitle: 'Übersicht aller Basis-Komponenten',
+        },
+        'style-badges': {
+            title: 'Badges',
+            subtitle: 'Badge-Varianten',
+        },
+        'style-buttons': {
+            title: 'Buttons',
+            subtitle: 'Button-Varianten',
+        },
+        'style-containers': {
+            title: 'Container',
+            subtitle: 'Container-Varianten',
+        },
+        'style-feedback': {
+            title: 'Feedback',
+            subtitle: 'Alerts, Spinner und Modals',
+        },
+        'style-inputs': {
+            title: 'Eingabefelder',
+            subtitle: 'Input-Varianten',
+        },
+        'style-layered-logo': {
+            title: 'Layered Logo',
+            subtitle: 'Logo-Komponente',
+        },
+        'style-pride-text': {
+            title: 'Pride Text',
+            subtitle: 'Farbverlauf-Text',
+        },
+        'style-scanner': {
+            title: 'Scanner',
+            subtitle: 'Barcode- und QR-Scanner',
+        },
+        'style-table': {
+            title: 'Tabelle',
+            subtitle: 'Tabellen-Komponenten',
+        },
+        'style-typography': {
+            title: 'Typografie',
+            subtitle: 'Überschriften und Text',
+        },
+        'waitlist-status': {
+            title: 'Status der Warteliste',
+            subtitle: 'Deinen Wartelistenstatus einsehen',
+        },
+        'waitlist-register': {
+            title: 'Warteliste beitreten',
+            subtitle: 'Für die Warteliste anmelden',
+        },
+        'not-found': {
+            title: 'Seite nicht gefunden',
+            subtitle: '',
+        },
+        'public-blog': {
+            title: 'Blog',
+            subtitle: 'Neuigkeiten der Wache',
+        },
+        'public-blog-detail': {
+            title: 'Beitrag',
+            subtitle: '',
+        },
+        'public-form-submit': {
+            title: 'Formular',
+            subtitle: 'Formular ausfüllen',
+        },
+        'public-kb-file': {
+            title: 'Datei',
+            subtitle: '',
+        },
+        'public-knowledge-base': {
+            title: 'Wissensdatenbank',
+            subtitle: 'Öffentliche Wissensdatenbank',
+        },
+        'public-station-calendar': {
+            title: 'Kalender',
+            subtitle: 'Öffentliche Veranstaltungen',
+        },
+        'public-waitlist': {
+            title: 'Warteliste',
+            subtitle: 'Auf die Warteliste setzen',
+        },
+        'public-discovery': {
+            title: 'Wachen entdecken',
+            subtitle: 'Wachen in deiner Nähe finden',
+        },
+        'station-requirements': {
+            title: 'Offene Aufgaben',
+            subtitle: 'Noch ausstehende Aufgaben erledigen',
+        },
+        'attendance-report': {
+            title: 'Anwesenheitsbericht',
+            subtitle: 'Zeiten auswerten und exportieren',
+        },
+        'ticket-create': {
+            title: 'Ticket erstellen',
+            subtitle: 'Neues Ticket anlegen',
+        },
+        'checklist-list': {
+            title: 'Checklisten',
+            subtitle: 'Nachfolge-Aufgaben verwalten',
+        },
+        'checklist-detail': {
+            title: 'Checkliste',
+            subtitle: 'Aufgaben abarbeiten',
+        },
+        'station-discovery-network': {
+            title: 'Wachen-Netzwerk',
+            subtitle: 'Andere Ember-Instanzen entdecken',
+        },
+        'event-detail': {
+            title: 'Termin',
+            subtitle: 'Details und Anmeldungen',
+        },
+        'event-detail-date': {
+            title: 'Termin',
+            subtitle: 'Details und Anmeldungen',
+        },
+        'event-new': {
+            title: 'Neuer Termin',
+            subtitle: 'Termin anlegen',
+        },
+        'event-edit': {
+            title: 'Termin bearbeiten',
+            subtitle: 'Termin anpassen',
+        },
+        'event-categories': {
+            title: 'Termin-Kategorien',
+            subtitle: 'Kategorien verwalten',
+        },
+        'event-templates': {
+            title: 'Termin-Vorlagen',
+            subtitle: 'Vorlagen verwalten',
+        },
+        'event-template-edit': {
+            title: 'Termin-Vorlage bearbeiten',
+            subtitle: 'Vorlage anpassen',
+        },
+        'event-batch': {
+            title: 'Termine im Stapel anlegen',
+            subtitle: 'Mehrere Termine auf einmal erstellen',
+        },
+        'federated-event-detail': {
+            title: 'Termin einer Partnerwache',
+            subtitle: 'Details ansehen',
+        },
+        'federated-boards': {
+            title: 'Föderierte Boards',
+            subtitle: 'Boards von Partnerwachen',
+        },
+        'federated-board-view': {
+            title: 'Föderiertes Board',
+            subtitle: 'Tickets einer Partnerwache',
+        },
+        'federated-ticket-detail': {
+            title: 'Ticket einer Partnerwache',
+            subtitle: 'Details ansehen',
+        },
+        'federated-news-detail': {
+            title: 'Neuigkeit einer Partnerwache',
+            subtitle: 'Details ansehen',
+        },
+        'pages-forms-submissions': {
+            title: 'Einreichungen',
+            subtitle: 'Kontakt-Einreichungen ansehen',
+        },
+        'inventory-edit': {
+            title: 'Inventar bearbeiten',
+            subtitle: 'Bestand anpassen',
+        },
+        'inventory-detail': {
+            title: 'Inventar-Details',
+            subtitle: 'Details ansehen',
+        },
+        'inventory-requirements': {
+            title: 'Ausrüstungs-Anforderungen',
+            subtitle: 'Pflichtausrüstung pro Mitgliedstyp festlegen',
+        },
+        'inventory-checks': {
+            title: 'Prüfungen',
+            subtitle: 'Übersicht aller Prüfungen',
+        },
+        'inventory-check-member': {
+            title: 'Mitglieder-Prüfung',
+            subtitle: 'Items eines Mitglieds abgleichen',
+        },
+        'inventory-check-result': {
+            title: 'Prüfungsergebnis',
+            subtitle: 'Abweichungen ansehen',
+        },
+        'inventory-lending-create': {
+            title: 'Ausleih-Anfrage',
+            subtitle: 'Neue Ausleihe anfragen',
+        },
+        'inventory-lending-blocks-create': {
+            title: 'Sperrzeit anlegen',
+            subtitle: 'Neuen Sperrzeitraum erstellen',
+        },
+        'inventory-item-detail': {
+            title: 'Item-Details',
+            subtitle: 'Details ansehen',
+        },
+        'lost-and-found': {
+            title: 'Fundsachen',
+            subtitle: 'Verlorene und gefundene Sachen',
+        },
+        'station-theme': {
+            title: 'Design',
+            subtitle: 'Farben und Look der Wache',
+        },
+        'station-mailing': {
+            title: 'E-Mail-Versand',
+            subtitle: 'E-Mail-Einstellungen der Wache',
+        },
+        'station-modules': {
+            title: 'Module',
+            subtitle: 'Aktive Module verwalten',
+        },
+        'station-traffic': {
+            title: 'Traffic',
+            subtitle: 'Anfragen und Datenverkehr der Wache',
+        },
+        'station-insights': {
+            title: 'Einblicke',
+            subtitle: 'Nutzungs-Statistiken',
+        },
+        'station-import': {
+            title: 'Wache übertragen',
+            subtitle: 'Wache auf eine andere Instanz übertragen',
+        },
+        'station-storage-backend': {
+            title: 'Speicher-Backend',
+            subtitle: 'Speicherort für Dateien konfigurieren',
+        },
+        'station-security': {
+            title: 'Sicherheit',
+            subtitle: 'Sicherheitseinstellungen der Wache',
+        },
+        'station-federation': {
+            title: 'Föderation',
+            subtitle: 'Partnerwachen verwalten',
+        },
+        'station-federation-settings': {
+            title: 'Föderations-Einstellungen',
+            subtitle: 'Einstellungen der Föderation',
+        },
+        'station-federation-partner': {
+            title: 'Partnerwache',
+            subtitle: 'Details und Konfiguration',
+        },
+        'station-discovery': {
+            title: 'Discovery',
+            subtitle: 'Bekannte Peer-Instanzen',
+        },
+        'members-import': {
+            title: 'Mitglieder importieren',
+            subtitle: 'Mitglieder aus einer Datei laden',
+        },
+        'members-import-team': {
+            title: 'Team importieren',
+            subtitle: 'Ganzes Team aus Datei laden',
+        },
+        'waiting-list-create-entry': {
+            title: 'Neuer Wartelisten-Eintrag',
+            subtitle: 'Eintrag anlegen',
+        },
+        'news-detail': {
+            title: 'Neuigkeit',
+            subtitle: 'Details ansehen',
+        },
+        'pages-list': {
+            title: 'Seiten',
+            subtitle: 'Öffentliche Seiten verwalten',
+        },
+        'pages-files': {
+            title: 'Dateien',
+            subtitle: 'Öffentliche Dateien verwalten',
+        },
+        'pages-forms': {
+            title: 'Formulare',
+            subtitle: 'Öffentliche Formulare verwalten',
+        },
+        'pages-polls': {
+            title: 'Umfragen',
+            subtitle: 'Öffentliche Umfragen verwalten',
+        },
+        'pages-polls-analytics': {
+            title: 'Auswertung',
+            subtitle: 'Ergebnisse und Statistiken',
+        },
+        'page-editor': {
+            title: 'Seite bearbeiten',
+            subtitle: 'Seiten-Editor',
+        },
+        'protocol-list': {
+            title: 'Protokolle',
+            subtitle: 'Prüfungs-Protokolle verwalten',
+        },
+        'protocol-detail': {
+            title: 'Protokoll',
+            subtitle: 'Protokoll-Details',
+        },
+        'protocol-run-list': {
+            title: 'Prüfungen',
+            subtitle: 'Absolvierte Prüfungen',
+        },
+        'protocol-run-detail': {
+            title: 'Prüfung',
+            subtitle: 'Prüfungs-Details',
+        },
+        'protocol-grade': {
+            title: 'Bewertung',
+            subtitle: 'Prüfung eines Mitglieds bewerten',
+        },
+        'protocol-evaluation': {
+            title: 'Auswertung',
+            subtitle: 'Prüfungs-Auswertung',
+        },
+        'quiz-catalog-mc-fill': {
+            title: 'MC-Antworten ergänzen',
+            subtitle: 'Multiple-Choice-Antworten mit KI ergänzen',
+        },
+        'quiz-catalog-import': {
+            title: 'Fragen importieren',
+            subtitle: 'Fragen aus CSV-Datei importieren',
+        },
+        'profile-inventory': {
+            title: 'Mein Inventar',
+            subtitle: 'Zugewiesene Ausrüstung',
+        },
+        'profile-notifications': {
+            title: 'Benachrichtigungen',
+            subtitle: 'Präferenzen für Benachrichtigungen',
+        },
+        'station-setup': {
+            title: 'Einrichtungs-Assistent',
+            subtitle: 'Wache einrichten',
         },
     },
     helpCenter: {

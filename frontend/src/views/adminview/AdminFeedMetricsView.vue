@@ -158,7 +158,7 @@ const volumeChartOption = computed(() => ({
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.admin-feed-metrics.title')" :subtitle="t('pages.admin-feed-metrics.subtitle')">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
         <MutedText tag="p" size="sm">{{ t('feedMetrics.subtitle') }}</MutedText>

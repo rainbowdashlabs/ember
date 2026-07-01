@@ -11,7 +11,6 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type {MemberCheckSummary} from '@/api/types'
 import {StationUserType} from '@/api/types'
 import {inventoryCheck} from '@/api'
@@ -66,10 +65,11 @@ function viewLastCheck(member: MemberCheckSummary) {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.inventory-checks.title')"
+      :subtitle="t('pages.inventory-checks.subtitle')"
+  >
     <div class="space-y-6">
-      <SectionHeader>{{ t('inventory.check.title') }}</SectionHeader>
-
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 

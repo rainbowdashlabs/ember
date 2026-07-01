@@ -5,6 +5,7 @@
  */
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -21,6 +22,7 @@ import DetailHeader from './detailview/DetailHeader.vue'
 import DetailLoadedContent from './detailview/DetailLoadedContent.vue'
 import DetailViewModals from './detailview/DetailViewModals.vue'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const { currentStationId } = useStations()
@@ -160,7 +162,10 @@ function goBack() { router.push({ name: 'inventory-manage' }) }
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.inventory-detail.title')"
+      :subtitle="t('pages.inventory-detail.subtitle')"
+  >
     <div class="space-y-6">
       <DetailHeader
         :name="detail?.name ?? ''"

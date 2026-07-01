@@ -5,6 +5,7 @@
  */
 <script lang="ts" setup>
 import {computed, onMounted, ref, watch} from 'vue'
+import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import {insights} from '@/api'
 import type {HourlyTotal, PageDetailResponse, PageLeaderboardEntry} from '@/api/insights'
@@ -13,6 +14,8 @@ import InsightsHeader from '@/views/stationview/manage/manageStationInsightsView
 import InsightsTotalsGrid from '@/views/stationview/manage/manageStationInsightsView/InsightsTotalsGrid.vue'
 import LeaderboardPanel from '@/views/stationview/manage/manageStationInsightsView/LeaderboardPanel.vue'
 import DetailPanel from '@/views/stationview/manage/manageStationInsightsView/DetailPanel.vue'
+
+const {t} = useI18n()
 
 const windowHours = ref(168)
 const includeBots = ref(false)
@@ -73,7 +76,10 @@ watch(windowHours, async () => {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.station-insights.title')"
+      :subtitle="t('pages.station-insights.subtitle')"
+  >
     <div class="space-y-4">
       <InsightsHeader/>
       <InsightsWindowSelector

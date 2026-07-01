@@ -9,7 +9,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import type {StationPage} from '@/api/pageManage'
 
@@ -31,7 +31,7 @@ const {t} = useI18n()
 <template>
   <Modal v-model="open">
     <div class="space-y-4">
-      <SectionHeader>{{ t('stationPages.createPage') }}</SectionHeader>
+      <SubHeader>{{ t('stationPages.createPage') }}</SubHeader>
       <div>
         <FormLabel>{{ t('stationPages.editor.titleLabel') }}</FormLabel>
         <TextInput v-model="title" :placeholder="t('stationPages.editor.titlePlaceholder')"/>

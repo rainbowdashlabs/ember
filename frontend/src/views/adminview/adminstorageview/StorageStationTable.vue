@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import {
   type AdminStationUsage,
   recalculateStation,
@@ -55,7 +55,7 @@ async function handleReset(uid: string) {
 
 <template>
   <div>
-    <SectionHeader>{{ t('storageMonitoring.stationOverview') }}</SectionHeader>
+    <SubHeader>{{ t('storageMonitoring.stationOverview') }}</SubHeader>
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
         <StorageStationHeader :sort-by="sortBy" :sort-desc="sortDesc" @toggle="toggleSort"/>

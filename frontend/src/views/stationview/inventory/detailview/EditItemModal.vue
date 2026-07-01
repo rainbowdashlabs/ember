@@ -7,7 +7,7 @@
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import type {InventoryItem, InventorySize} from '@/api/types'
 import {inventory, inventoryContainers, inventoryFields} from '@/api'
@@ -103,7 +103,7 @@ async function save() {
 <template>
   <Modal v-model="show">
     <div class="space-y-4">
-      <SectionHeader>{{ t('inventory.edit.editItem') }}</SectionHeader>
+      <SubHeader>{{ t('inventory.edit.editItem') }}</SubHeader>
       <EditItemFields
           v-model:itemName="itemName"
           v-model:internalId="internalId"

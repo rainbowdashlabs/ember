@@ -9,7 +9,6 @@ import {useI18n} from 'vue-i18n'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
@@ -126,13 +125,11 @@ function focusStation(uid: string) {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.station-discovery-network.title')"
+      :subtitle="t('pages.station-discovery-network.subtitle')"
+  >
     <div class="space-y-6">
-      <div>
-        <SectionHeader>{{ t('stationDiscovery.title') }}</SectionHeader>
-        <p class="text-sm text-(--text-muted)">{{ t('stationDiscovery.subtitle') }}</p>
-      </div>
-
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 

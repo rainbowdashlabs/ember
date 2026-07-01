@@ -254,7 +254,7 @@ onMounted(loadData)
 </script>
 
 <template>
-  <ViewContent v-if="isDev">
+  <ViewContent v-if="isDev" :title="t('pages.admin-data-tracking.title')" :subtitle="t('pages.admin-data-tracking.subtitle')">
     <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
       <span class="text-sm text-(--text-muted)">{{ t('adminDataTracking.devOnlyNotice') }}</span>
     </div>
@@ -309,7 +309,7 @@ onMounted(loadData)
         @updated="onTableUpdated"/>
   </ViewContent>
 
-  <ViewContent v-else>
+  <ViewContent v-else :title="t('pages.admin-data-tracking.title')" :subtitle="t('pages.admin-data-tracking.subtitle')">
     <NeutralContainer>{{ t('adminDataTracking.devOnlyDisabled') }}</NeutralContainer>
   </ViewContent>
 </template>

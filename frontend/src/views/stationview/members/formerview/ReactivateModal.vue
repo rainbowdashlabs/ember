@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 
@@ -26,7 +26,7 @@ const { t } = useI18n()
 <template>
   <Modal :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)">
     <div class="space-y-4">
-      <SectionHeader>{{ t('formerMembers.reactivateTitle') }}</SectionHeader>
+      <SubHeader>{{ t('formerMembers.reactivateTitle') }}</SubHeader>
       <p class="text-sm">
         {{ t('formerMembers.reactivateConfirm', { name: targetName }) }}
       </p>

@@ -68,7 +68,7 @@ async function clearMailingConfig() {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.admin-mailing.title')" :subtitle="t('pages.admin-mailing.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>

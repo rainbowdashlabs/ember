@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -29,7 +29,7 @@ const { t } = useI18n()
 <template>
   <Modal v-model="modelValue">
     <div class="space-y-3">
-      <SectionHeader>{{ t('inventory.detail.assign') }}</SectionHeader>
+      <SubHeader>{{ t('inventory.detail.assign') }}</SubHeader>
       <SelectInput v-model="memberId">
         <option value="" disabled>{{ t('inventory.detail.selectMember') }}</option>
         <option v-for="m in members" :key="m.id" :value="String(m.id)">

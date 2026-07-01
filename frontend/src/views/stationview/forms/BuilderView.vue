@@ -193,7 +193,10 @@ async function save() {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.forms-create.title')"
+      :subtitle="t('pages.forms-create.subtitle')"
+  >
     <div class="space-y-6 max-w-3xl">
       <Spinner v-if="loading" size="lg" />
       <Alert v-if="error" variant="error">{{ error }}</Alert>

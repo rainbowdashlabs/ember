@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 
 const { t } = useI18n()
@@ -15,7 +15,7 @@ const router = useRouter()
 
 <template>
   <div class="flex items-center justify-between">
-    <SectionHeader>{{ t('memberImport.title') }}</SectionHeader>
+    <SubHeader>{{ t('memberImport.title') }}</SubHeader>
     <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({ name: 'members-create' })">
       {{ t('common.back') }}
     </SecondaryButton>

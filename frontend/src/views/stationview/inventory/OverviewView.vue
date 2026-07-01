@@ -9,7 +9,6 @@ import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type { InventorySize, StationMember, ExchangeRequestEntry, ProcurementEntry } from '@/api/types'
 import { ExchangeStatus } from '@/api/types'
 import { inventory, stationMembers, exchanges, procurement } from '@/api'
@@ -96,10 +95,11 @@ watch(() => activeStation.value?.stationId, (newId, oldId) => {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.inventory-overview.title')"
+      :subtitle="t('pages.inventory-overview.subtitle')"
+  >
     <div class="space-y-6">
-      <SectionHeader>{{ t('inventory.overview.title') }}</SectionHeader>
-
       <Spinner v-if="loading" size="lg" />
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 

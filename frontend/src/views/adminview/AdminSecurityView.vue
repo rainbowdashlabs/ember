@@ -15,7 +15,7 @@ const {t} = useI18n()
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.admin-security.title')" :subtitle="t('pages.admin-security.subtitle')">
     <div class="space-y-6">
       <div>
         <MutedText tag="p" size="sm">{{ t('adminSecurity.hub.hint') }}</MutedText>

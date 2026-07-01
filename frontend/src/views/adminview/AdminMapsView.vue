@@ -93,7 +93,7 @@ async function purgeCache() {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.admin-maps.title')" :subtitle="t('pages.admin-maps.subtitle')">
     <div class="space-y-6">
       <div>
         <p class="text-sm text-(--text-muted)">{{ t('adminMaps.subtitle') }}</p>

@@ -12,7 +12,7 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 
@@ -45,7 +45,7 @@ const genUserPrompt = ref('')
 
 <template>
   <div class="space-y-3">
-    <SectionHeader>{{ t('quiz.ai.generateQuestions') }}</SectionHeader>
+    <SubHeader>{{ t('quiz.ai.generateQuestions') }}</SubHeader>
 
     <div class="space-y-3">
       <div v-for="(entry, eIdx) in genEntries" :key="eIdx" class="flex flex-col sm:flex-row gap-2 items-start sm:items-end p-3 rounded border border-bg-light-accent dark:border-bg-dark-accent">

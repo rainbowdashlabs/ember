@@ -9,7 +9,6 @@ import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import {inventory, managedMembers, exchanges} from '@/api'
 import type {ExchangeRequestEntry, InventorySize} from '@/api/types'
 import {ExchangeStatus} from '@/api/types'
@@ -39,11 +38,6 @@ const currentMemberId = computed(() => sessionInfo.value?.member?.id ?? 0)
 const viewingMemberId = computed(() => {
   if (!selectedMemberId.value || selectedMemberId.value === String(currentMemberId.value)) return null
   return Number(selectedMemberId.value)
-})
-
-const viewingMemberName = computed(() => {
-  if (!viewingMemberId.value) return null
-  return managed.value.find(m => m.id === viewingMemberId.value)?.name ?? ''
 })
 
 const showOwnTab = computed(() => {
@@ -228,12 +222,11 @@ async function submitExchange() {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.profile-inventory.title')"
+      :subtitle="t('pages.profile-inventory.subtitle')"
+  >
     <div class="space-y-6">
-      <SectionHeader>
-        {{ viewingMemberName ? `${t('profile.inventory')} — ${viewingMemberName}` : t('profile.inventory') }}
-      </SectionHeader>
-
       <MemberTabSelector :tabs="tabs" :selected-id="selectedMemberId" @select="selectedMemberId = $event"/>
 
       <Spinner v-if="loading" size="lg"/>

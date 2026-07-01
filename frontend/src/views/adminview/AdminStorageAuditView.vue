@@ -58,7 +58,7 @@ async function applyFilters() {
 </script>
 
 <template>
-    <ViewContent>
+    <ViewContent :title="t('pages.admin-storage-audit.title')" :subtitle="t('pages.admin-storage-audit.subtitle')">
         <div class="space-y-6">
             <div class="flex items-center justify-between">
                 <RouterLink :to="{name: 'admin-storage-backend'}" class="text-sm underline">

@@ -5,6 +5,7 @@
  */
 <script setup lang="ts">
 import {ref, computed, inject} from 'vue'
+import {useI18n} from 'vue-i18n'
 import {useRouter, useRoute} from 'vue-router'
 import type {Ref} from 'vue'
 import type {PublicStationInfo as DiscoveryStationInfo} from '@/api/discovery'
@@ -20,6 +21,7 @@ import KbFileRenderer from '@/views/public/publickbfileview/KbFileRenderer.vue'
 import {youtubeEmbedUrl as toYoutubeEmbedUrl} from '@/util/youtube'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
+const {t} = useI18n()
 const router = useRouter()
 const route = useRoute()
 
@@ -104,7 +106,7 @@ useHead(computed(() => {
 </script>
 
 <template>
-    <ViewContent>
+    <ViewContent :title="t('pages.public-kb-file.title')">
         <div class="space-y-6">
             <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
             <Spinner v-if="loading"/>

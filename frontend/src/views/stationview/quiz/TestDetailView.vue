@@ -233,7 +233,7 @@ watch(loaded, (isLoaded) => { if (isLoaded) reload() })
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.quiz-test-detail.title')" :subtitle="t('pages.quiz-test-detail.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg" />
       <Alert v-if="error" variant="error">{{ error }}</Alert>

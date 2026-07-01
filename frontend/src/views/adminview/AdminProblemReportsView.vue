@@ -55,7 +55,7 @@ function toggle(id: number) {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.admin-problem-reports.title')" :subtitle="t('pages.admin-problem-reports.subtitle')">
     <div class="space-y-4">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">

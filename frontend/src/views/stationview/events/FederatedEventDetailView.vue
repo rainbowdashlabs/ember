@@ -152,7 +152,10 @@ watch(() => [route.params.stationUid, route.params.eventId], () => {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.federated-event-detail.title')"
+      :subtitle="t('pages.federated-event-detail.subtitle')"
+  >
     <div class="space-y-4">
       <SecondaryButton :icon="['fas', 'arrow-left']" compact @click="router.push({ name: 'events-upcoming' })">
         {{ t('common.back') }}

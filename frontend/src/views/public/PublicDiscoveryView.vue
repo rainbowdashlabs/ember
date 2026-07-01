@@ -6,13 +6,13 @@
 <script setup lang="ts">
 import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import ViewContent from '@/components/layout/ViewContent.vue'
 import DiscoveryGrid from '@/components/discovery/DiscoveryGrid.vue'
 import StationMap, {type MapStation} from '@/components/map/StationMap.vue'
 import {discovery} from '@/api'
@@ -73,8 +73,8 @@ async function handleInvite(station: DiscoveryEntry) {
 </script>
 
 <template>
+  <ViewContent :title="t('pages.public-discovery.title')" :subtitle="t('pages.public-discovery.subtitle')">
   <div class="max-w-5xl mx-auto px-4 py-8">
-    <SectionHeader class="mb-4">{{ t('discovery.title') }}</SectionHeader>
     <MutedText tag="p" class="mb-6">{{ t('discovery.subtitle') }}</MutedText>
 
     <Alert v-if="error" variant="error" class="mb-2">{{ error }}</Alert>
@@ -106,4 +106,5 @@ async function handleInvite(station: DiscoveryEntry) {
       <DiscoveryGrid v-else :stations="stations" :can-connect="canManageFederation()" :show-invite="true" @connect="handleConnect" @invite="handleInvite"/>
     </template>
   </div>
+  </ViewContent>
 </template>

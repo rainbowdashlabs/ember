@@ -60,7 +60,10 @@ function onError(message: string) {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.inventory-edit.title')"
+      :subtitle="t('pages.inventory-edit.subtitle')"
+  >
     <div class="space-y-6">
       <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({ name: 'inventory-manage' })">
         {{ t('inventory.edit.back') }}

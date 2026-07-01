@@ -7,7 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import type {AttendanceTemplate} from '@/api/types'
 
@@ -24,7 +24,7 @@ const {t} = useI18n()
 
 <template>
   <div class="space-y-3">
-    <SectionHeader>{{ t('attendanceNew.fromTemplate') }}</SectionHeader>
+    <SubHeader>{{ t('attendanceNew.fromTemplate') }}</SubHeader>
     <MutedText tag="div" size="sm" class="py-2" v-if="props.templates.length === 0">
       {{ t('attendanceNew.noTemplates') }}
     </MutedText>

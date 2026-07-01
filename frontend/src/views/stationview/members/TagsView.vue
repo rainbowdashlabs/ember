@@ -166,7 +166,10 @@ async function removeMemberFromTag(member: StationMember) {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.members-tags.title')"
+      :subtitle="t('pages.members-tags.subtitle')"
+  >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>

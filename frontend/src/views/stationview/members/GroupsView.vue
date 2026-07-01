@@ -199,7 +199,10 @@ async function syncGroupRoles(newIds: Set<number>) {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.members-groups.title')"
+      :subtitle="t('pages.members-groups.subtitle')"
+  >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>

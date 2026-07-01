@@ -6,7 +6,6 @@
 <script lang="ts" setup>
 import {computed} from 'vue'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import PageHeader from '@/components/typography/PageHeader.vue'
 
 const props = defineProps<{
   title: string
@@ -24,12 +23,8 @@ useHead(computed(() => ({
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="title" :subtitle="subtitle">
     <div class="max-w-3xl mx-auto space-y-6">
-      <div>
-        <PageHeader class="text-2xl font-bold">{{ title }}</PageHeader>
-        <p v-if="subtitle" class="text-[var(--text-muted)] mt-1">{{ subtitle }}</p>
-      </div>
       <div class="prose prose-sm dark:prose-invert max-w-none space-y-6">
         <slot/>
       </div>

@@ -7,7 +7,7 @@
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Spinner from '@/components/feedback/Spinner.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import PermissionPicker from '@/components/input/PermissionPicker.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
@@ -45,7 +45,7 @@ const roleIdsModel = useModelProxy(() => props.groupRoleIds, emit, 'groupRoleIds
 
 <template>
   <div class="space-y-4">
-    <SectionHeader>{{ selectedGroup.name }}</SectionHeader>
+    <SubHeader>{{ selectedGroup.name }}</SubHeader>
 
     <Spinner v-if="groupLoading" size="md"/>
 

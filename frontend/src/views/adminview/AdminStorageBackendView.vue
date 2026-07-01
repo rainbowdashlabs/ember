@@ -227,7 +227,7 @@ function newSftp(): SftpRequest {
 </script>
 
 <template>
-    <ViewContent>
+    <ViewContent :title="t('pages.admin-storage-backend.title')" :subtitle="t('pages.admin-storage-backend.subtitle')">
         <div class="space-y-6">
             <div class="flex items-center justify-between">
                 <div class="flex gap-3 text-sm">

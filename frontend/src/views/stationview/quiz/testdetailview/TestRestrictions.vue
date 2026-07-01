@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import RestrictionsField from '@/components/input/RestrictionsField.vue'
 import type {MemberGroup, UserTag} from '@/api/types'
@@ -30,7 +30,7 @@ const {t} = useI18n()
 
 <template>
   <div class="space-y-3">
-    <SectionHeader>{{ t('quiz.tests.restrictions') }}</SectionHeader>
+    <SubHeader>{{ t('quiz.tests.restrictions') }}</SubHeader>
     <NeutralContainer>
       <RestrictionsField
           :groups="allGroups"

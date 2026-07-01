@@ -92,7 +92,10 @@ watch(loaded, (v) => {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.inventory-lending-create.title')"
+      :subtitle="t('pages.inventory-lending-create.subtitle')"
+  >
     <SecondaryButton :icon="['fas', 'chevron-left']" class="mb-4" @click="router.push({name: 'inventory-lending'})">
       {{ t('lending.backToList') }}
     </SecondaryButton>

@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import type {ProblemEntry} from '@/api/problems'
 
 defineProps<{
@@ -24,7 +25,7 @@ async function copyStacktrace(text: string) {
   <div class="mt-3 pt-3 border-t border-[var(--border)]">
     <div v-if="entry.stacktrace" class="mb-3">
       <div class="flex items-center gap-2 mb-1">
-        <SectionHeader class="!text-xs !mb-0">Stacktrace</SectionHeader>
+        <SubHeader class="!text-xs !mb-0">Stacktrace</SubHeader>
         <IconButton
           :icon="['fas', 'copy']"
           :label="t('adminProblems.copyStacktrace')"

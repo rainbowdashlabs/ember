@@ -8,7 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import type {TrackingStatusName, TransferContext} from '@/api/dataTracking'
 import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import StatusBadge from './StatusBadge.vue'
 import StatusReasonFields from './StatusReasonFields.vue'
 
@@ -29,7 +29,7 @@ const ignoredColumns = computed({
 <template>
   <section>
     <div class="flex items-center justify-between">
-      <SectionHeader class="!text-base">{{ t('adminDataTracking.stationTransfer') }}</SectionHeader>
+      <SubHeader class="!text-base">{{ t('adminDataTracking.stationTransfer') }}</SubHeader>
       <StatusBadge :status="transfer.status"/>
     </div>
     <div class="space-y-2 mt-2">

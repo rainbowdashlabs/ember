@@ -6,7 +6,6 @@
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
@@ -37,7 +36,7 @@ const {t} = useI18n()
 <template>
   <div>
     <div class="flex items-center justify-between mb-2">
-      <SectionHeader>{{ t('inventory.storage.contents') }}</SectionHeader>
+      <SubHeader>{{ t('inventory.storage.contents') }}</SubHeader>
       <div class="flex items-center gap-2 text-sm">
         <label class="flex items-center gap-1">
           <ToggleInput v-model="recursive" />

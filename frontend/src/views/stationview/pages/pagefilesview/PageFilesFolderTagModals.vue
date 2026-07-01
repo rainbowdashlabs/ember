@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -38,9 +38,9 @@ const {t} = useI18n()
 <template>
     <Modal v-model="folderOpen" size="md">
         <div class="space-y-3">
-            <SectionHeader>
+            <SubHeader>
                 {{ editingFolder ? t('stationPages.editor.editFolder') : t('stationPages.editor.newFolder') }}
-            </SectionHeader>
+            </SubHeader>
             <TextInput v-model="folderName" :placeholder="t('stationPages.editor.folderName')"/>
             <SelectInput :model-value="folderParent === null ? '' : String(folderParent)"
                          class="w-full"
@@ -60,9 +60,9 @@ const {t} = useI18n()
 
     <Modal v-model="tagOpen" size="md">
         <div class="space-y-3">
-            <SectionHeader>
+            <SubHeader>
                 {{ editingTag ? t('stationPages.editor.editTag') : t('stationPages.editor.newTag') }}
-            </SectionHeader>
+            </SubHeader>
             <TextInput v-model="tagName" :placeholder="t('stationPages.editor.tagName')"/>
             <div class="flex items-center gap-2">
                 <ColorInput v-model="tagColor"/>

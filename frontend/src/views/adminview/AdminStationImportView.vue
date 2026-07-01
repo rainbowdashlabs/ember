@@ -57,7 +57,7 @@ function backToStations() {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.admin-station-import.title')" :subtitle="t('pages.admin-station-import.subtitle')">
     <div class="space-y-6">
       <div class="flex items-center justify-between">
         <SecondaryButton @click="backToStations">

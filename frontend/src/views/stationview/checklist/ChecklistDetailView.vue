@@ -205,7 +205,10 @@ async function confirmDeleteChecklist() {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.checklist-detail.title')"
+      :subtitle="t('pages.checklist-detail.subtitle')"
+  >
     <div v-if="loading" class="flex justify-center py-6"><Spinner/></div>
     <Alert v-else-if="error" variant="error" class="mb-4">{{ error }}</Alert>
 

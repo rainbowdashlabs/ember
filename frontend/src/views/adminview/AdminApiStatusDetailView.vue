@@ -112,7 +112,7 @@ const responseTimeChartOption = computed(() => {
 </script>
 
 <template>
-    <ViewContent>
+    <ViewContent :title="t('pages.admin-api-status-detail.title')" :subtitle="t('pages.admin-api-status-detail.subtitle')">
         <div class="flex items-center gap-3 mb-6">
             <SecondaryButton :icon="['fas', 'arrow-left']" @click="router.push({name: 'admin-api-status'})">
                 {{ t('common.back') }}

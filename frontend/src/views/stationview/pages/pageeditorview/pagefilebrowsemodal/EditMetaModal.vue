@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -27,7 +27,7 @@ const {t} = useI18n()
   <Modal v-if="editing != null" :model-value="editing != null" size="md"
          @update:model-value="(v: boolean) => { if (!v) emit('cancel') }">
     <div class="space-y-3">
-      <SectionHeader>{{ t('stationPages.editor.editFileMeta') }}</SectionHeader>
+      <SubHeader>{{ t('stationPages.editor.editFileMeta') }}</SubHeader>
       <TextInput v-model="editAlt" :placeholder="t('stationPages.editor.altText')"/>
       <TextInput v-model="editDesc" :placeholder="t('stationPages.editor.imageDescription')"/>
       <div class="flex justify-end gap-2">

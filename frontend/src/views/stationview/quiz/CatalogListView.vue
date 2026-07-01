@@ -176,7 +176,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.quiz-catalogs.title')" :subtitle="t('pages.quiz-catalogs.subtitle')">
     <div class="space-y-6">
       <CatalogToolbar
         v-model:search-query="searchQuery"

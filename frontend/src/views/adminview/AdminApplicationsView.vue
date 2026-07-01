@@ -68,7 +68,7 @@ function formatDate(dateStr?: string | null): string {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.admin-station-applications.title')" :subtitle="t('pages.admin-station-applications.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>

@@ -10,7 +10,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import type {InventorySize} from '@/api/types'
@@ -36,7 +36,7 @@ const {t} = useI18n()
 <template>
   <Modal v-model="modelValue">
     <div class="space-y-3">
-      <SectionHeader>{{ t('profile.requestExchange') }}</SectionHeader>
+      <SubHeader>{{ t('profile.requestExchange') }}</SubHeader>
       <p class="text-sm" v-if="item">
         {{ item.inventoryName }} — {{ item.name }}
         <SizeBadge>{{ item.sizeName ?? t('common.unisize') }}</SizeBadge>

@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
 import NoteEditor from '@/components/comment/NoteEditor.vue'
 import AbsencesTab from './AbsencesTab.vue'
@@ -62,7 +62,7 @@ const activeTab = ref('profile')
 </script>
 
 <template>
-  <SectionHeader>{{ memberDisplayName(member) }}</SectionHeader>
+  <SubHeader>{{ memberDisplayName(member) }}</SubHeader>
   <p v-if="member.email" class="text-sm text-(--text-muted)">{{ member.email }}</p>
 
   <TabBar v-model="activeTab" :tabs="tabs" />

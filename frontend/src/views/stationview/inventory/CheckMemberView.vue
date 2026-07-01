@@ -325,7 +325,10 @@ function itemLabel(item: InventoryItem, req: RequiredInventoryItem): string {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.inventory-check-member.title')"
+      :subtitle="t('pages.inventory-check-member.subtitle')"
+  >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg" />
       <Alert v-if="error" variant="error">{{ error }}</Alert>

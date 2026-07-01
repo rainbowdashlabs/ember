@@ -8,7 +8,6 @@ import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import PageHeader from '@/components/typography/PageHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -60,15 +59,11 @@ function open(item: ChecklistSummary) {
 </script>
 
 <template>
-  <ViewContent>
-    <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
-      <div>
-        <PageHeader>
-          <font-awesome-icon :icon="['fas', 'list-check']" class="mr-2"/>
-          {{ t('checklist.title') }}
-        </PageHeader>
-        <p class="text-sm text-(--text-muted)">{{ t('checklist.subtitle') }}</p>
-      </div>
+  <ViewContent
+      :title="t('pages.checklist-list.title')"
+      :subtitle="t('pages.checklist-list.subtitle')"
+  >
+    <div class="flex flex-wrap items-end justify-end gap-3 mb-4">
       <PrimaryButton @click="showCreate = true">
         <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
         {{ t('checklist.create') }}

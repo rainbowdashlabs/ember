@@ -90,7 +90,10 @@ watch(loading, (isLoading) => {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.news-detail.title')"
+      :subtitle="t('pages.news-detail.subtitle')"
+  >
     <div class="space-y-4">
       <SecondaryButton :icon="['fas', 'arrow-left']" compact @click="router.push({name: 'news-list'})">
         {{ t('common.back') }}

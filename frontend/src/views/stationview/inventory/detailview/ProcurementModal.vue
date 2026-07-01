@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
@@ -36,7 +36,7 @@ const { t } = useI18n()
 <template>
   <Modal v-model="modelValue">
     <div class="space-y-3">
-      <SectionHeader>{{ t('inventory.detail.createProcurement') }}</SectionHeader>
+      <SubHeader>{{ t('inventory.detail.createProcurement') }}</SubHeader>
       <Alert v-if="created" variant="success">{{ t('inventory.check.procurementCreated') }}</Alert>
       <template v-if="!created">
         <SelectInput v-model="memberId">

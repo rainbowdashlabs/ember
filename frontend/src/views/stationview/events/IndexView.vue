@@ -152,7 +152,10 @@ function goToAttendance(ev: StationEvent) {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.events.title')"
+      :subtitle="t('pages.events.subtitle')"
+  >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>

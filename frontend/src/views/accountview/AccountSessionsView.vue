@@ -55,7 +55,7 @@ async function invalidateAll() {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.account-sessions.title')" :subtitle="t('pages.account-sessions.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>

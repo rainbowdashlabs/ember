@@ -16,7 +16,6 @@ import EditButton from '@/components/button/EditButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type { QuizCategory } from '@/api/types'
 import { quiz } from '@/api'
@@ -91,7 +90,7 @@ async function deleteCategory() {
 <template>
   <div class="space-y-3">
     <div class="flex items-center justify-between flex-wrap gap-2">
-      <SectionHeader>{{ t('quiz.categories.title') }}</SectionHeader>
+      <SubHeader>{{ t('quiz.categories.title') }}</SubHeader>
       <SecondaryButton :icon="['fas', 'plus']" @click="openCategoryModal">
         {{ t('quiz.categories.create') }}
       </SecondaryButton>

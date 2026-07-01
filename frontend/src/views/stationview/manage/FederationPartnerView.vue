@@ -97,7 +97,10 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.station-federation-partner.title')"
+      :subtitle="t('pages.station-federation-partner.subtitle')"
+  >
     <div class="flex items-center gap-2 mb-4">
       <SecondaryButton @click="router.push({ name: 'station-federation' })">
         <font-awesome-icon :icon="['fas', 'chevron-left']" />

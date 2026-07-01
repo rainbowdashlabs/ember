@@ -137,7 +137,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.admin-legal.title')" :subtitle="t('pages.admin-legal.subtitle')">
     <div class="space-y-6">
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 

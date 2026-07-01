@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import StatusBadge from './StatusBadge.vue'
 import type {DataTrackingSummary} from '@/api/dataTracking'
 
@@ -19,7 +19,7 @@ const {t} = useI18n()
 
 <template>
   <div class="contents">
-    <SectionHeader>{{ t('adminDataTracking.statusBreakdown') }}</SectionHeader>
+    <SubHeader>{{ t('adminDataTracking.statusBreakdown') }}</SubHeader>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
       <NeutralContainer>
         <div class="font-semibold mb-2">{{ t('adminDataTracking.stationTransfer') }}</div>

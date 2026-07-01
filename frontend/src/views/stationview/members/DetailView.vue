@@ -344,7 +344,10 @@ const detailModalsProps = computed(() => ({
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.members-detail.title')"
+      :subtitle="t('pages.members-detail.subtitle')"
+  >
     <div class="space-y-6">
       <DetailHeader
         :member-id="memberId" :can-edit="canEdit"

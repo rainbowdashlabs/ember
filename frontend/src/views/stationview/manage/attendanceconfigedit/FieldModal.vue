@@ -7,7 +7,7 @@
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import BasicFields from './fieldmodal/BasicFields.vue'
 import GroupSelector from './fieldmodal/GroupSelector.vue'
 import EnumOptionsField from './fieldmodal/EnumOptionsField.vue'
@@ -134,7 +134,7 @@ function handleSave() {
 <template>
   <Modal v-model="open">
     <div class="space-y-4">
-      <SectionHeader>{{ isEditing ? t('attendanceConfig.editField') : t('attendanceConfig.addField') }}</SectionHeader>
+      <SubHeader>{{ isEditing ? t('attendanceConfig.editField') : t('attendanceConfig.addField') }}</SubHeader>
       <BasicFields v-model:name="fieldName" v-model:field-type="fieldType"/>
       <GroupSelector v-if="fieldTypeNeedsGroup(fieldType)" v-model="fieldConfigGroupId"
                      :available-groups="availableGroups"/>

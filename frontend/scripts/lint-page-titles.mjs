@@ -129,19 +129,26 @@ for (const file of allVueFiles) {
     const template = extractTemplate(content)
     if (!template) continue
 
+    const vc = viewContentHasTitle(template)
+
+    // The rules only apply to files that host their own <ViewContent> — those
+    // are the leaf page-level views. Sub-components (modals, tiles, help-page
+    // dummies, style-showcase panels) that render inside a parent ViewContent
+    // are legitimately allowed to open with their own SectionHeader.
+    if (!vc.found) continue
+
+    // Rule 1: title prop is required on ViewContent.
+    if (!vc.hasTitle) {
+        reporter.error(file, 0,
+            'ViewContent is missing the required `title` prop. Add `:title="..."` (e.g. from an i18n key).',
+            'Missing title prop')
+    }
+
     // Rule 2: no top-of-page PageHeader/SectionHeader.
     if (hasTopOfPageTitle(template)) {
         reporter.error(file, 0,
             'View renders its own top-of-page title (PageHeader / SectionHeader). Remove it — the header is set via ViewContent title prop.',
             'Top-of-page title')
-    }
-
-    // Rule 1: if the view uses <ViewContent>, the title prop is required.
-    const vc = viewContentHasTitle(template)
-    if (vc.found && !vc.hasTitle) {
-        reporter.error(file, 0,
-            'ViewContent is missing the required `title` prop. Add `:title="..."` (e.g. from an i18n key).',
-            'Missing title prop')
     }
 }
 

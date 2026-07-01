@@ -8,7 +8,7 @@ import { useI18n } from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import WaitingListStatusBadge from '@/components/badge/WaitingListStatusBadge.vue'
 import type { WaitingListEntryWithScore } from '@/api/types'
 
@@ -35,7 +35,7 @@ function formatDateTime(dateStr: string | undefined | null): string {
 
 <template>
   <div class="flex items-center gap-2">
-    <SectionHeader>{{ entryFullName }}</SectionHeader>
+    <SubHeader>{{ entryFullName }}</SubHeader>
     <WaitingListStatusBadge :status="entry.entry.status" />
   </div>
 

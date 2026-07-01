@@ -195,7 +195,10 @@ watch(memberId, loadData)
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.inventory-member.title')"
+      :subtitle="t('pages.inventory-member.subtitle')"
+  >
     <div class="space-y-6">
       <MemberInventoryHeader :member="member" @back="goBack" />
 

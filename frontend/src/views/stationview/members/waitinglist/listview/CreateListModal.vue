@@ -10,7 +10,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const modelValue = defineModel<boolean>({required: true})
@@ -31,7 +31,7 @@ const { t } = useI18n()
 <template>
   <Modal v-model="modelValue">
     <div class="space-y-4">
-      <SectionHeader>{{ t('waitingList.createTitle') }}</SectionHeader>
+      <SubHeader>{{ t('waitingList.createTitle') }}</SubHeader>
       <div class="space-y-1">
         <FieldLabel>{{ t('waitingList.name') }}</FieldLabel>
         <TextInput v-model="name" :placeholder="t('waitingList.namePlaceholder')" />

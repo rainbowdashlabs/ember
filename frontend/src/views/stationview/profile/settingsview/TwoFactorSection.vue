@@ -15,7 +15,6 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
@@ -110,7 +109,7 @@ async function handleRegenerate() {
 
 <template>
   <div class="space-y-6">
-    <SectionHeader>{{ t('twoFactor.title') }}</SectionHeader>
+    <SubHeader>{{ t('twoFactor.title') }}</SubHeader>
 
     <Spinner v-if="loading" size="md"/>
 

@@ -7,7 +7,7 @@
 import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import type { MemberCheckState } from '@/api/types'
 
@@ -29,7 +29,7 @@ const { t } = useI18n()
 <template>
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
     <div>
-      <SectionHeader><MemberName :identity="state.memberIdentity ?? null"/></SectionHeader>
+      <SubHeader><MemberName :identity="state.memberIdentity ?? null"/></SubHeader>
       <p class="text-sm text-(--text-muted)">{{ t('inventory.check.title') }}</p>
     </div>
     <div class="flex gap-2">

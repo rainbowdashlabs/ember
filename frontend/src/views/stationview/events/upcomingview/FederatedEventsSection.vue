@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import FederatedEventTile from '@/views/stationview/events/upcomingview/federatedeventssection/FederatedEventTile.vue'
 import {events} from '@/api'
 import type {FederatedEvent, FederatedRegistration} from '@/api/events'
@@ -82,10 +82,10 @@ onMounted(async () => {
 
 <template>
   <div v-if="federatedEvents.length > 0" class="space-y-3">
-    <SectionHeader>
+    <SubHeader>
       <font-awesome-icon :icon="['fas', 'arrow-right-arrow-left']" class="mr-2"/>
       {{ t('eventsUpcoming.federated') }}
-    </SectionHeader>
+    </SubHeader>
     <div class="space-y-2">
       <FederatedEventTile
           v-for="fed in federatedEvents"

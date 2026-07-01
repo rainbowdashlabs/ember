@@ -15,7 +15,6 @@ import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import TemplateSelectorSection from '@/views/stationview/procedure/procedurecreateview/TemplateSelectorSection.vue'
 import BasicInfoSection from '@/views/stationview/procedure/procedurecreateview/BasicInfoSection.vue'
@@ -311,9 +310,10 @@ watch(loaded, (v) => {
 </script>
 
 <template>
-  <ViewContent>
-    <SectionHeader class="mb-4">{{ isEditMode ? t('procedures.editProcedure') : t('procedures.createProcedure') }}</SectionHeader>
-
+  <ViewContent
+      :title="t('pages.procedure-create.title')"
+      :subtitle="t('pages.procedure-create.subtitle')"
+  >
     <Spinner v-if="loading"/>
     <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
 

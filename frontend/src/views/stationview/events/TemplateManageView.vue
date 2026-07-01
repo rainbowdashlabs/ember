@@ -13,7 +13,6 @@ import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import Modal from '@/components/feedback/Modal.vue'
@@ -60,10 +59,12 @@ async function deleteTemplate(id: number) {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.event-templates.title')"
+      :subtitle="t('pages.event-templates.subtitle')"
+  >
     <div class="space-y-6">
-      <div class="flex items-center justify-between">
-        <SectionHeader>{{ t('eventTemplates.title') }}</SectionHeader>
+      <div class="flex items-center justify-end">
         <PrimaryButton :icon="['fas', 'plus']" @click="createOpen = true">{{ t('eventTemplates.create') }}</PrimaryButton>
       </div>
 

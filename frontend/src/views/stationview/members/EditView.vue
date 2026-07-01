@@ -116,7 +116,10 @@ function goBack() {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.members-edit.title')"
+      :subtitle="t('pages.members-edit.subtitle')"
+  >
     <div class="space-y-6">
       <SecondaryButton :icon="['fas', 'chevron-left']" @click="goBack">
         {{ t('memberEdit.back') }}

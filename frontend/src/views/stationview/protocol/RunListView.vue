@@ -21,7 +21,6 @@ import DateInput from '@/components/input/datetime/DateInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import { useSession } from '@/composables/useSession'
@@ -108,9 +107,12 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.protocol-run-list.title')"
+      :subtitle="t('pages.protocol-run-list.subtitle')"
+  >
     <div class="flex items-center justify-between mb-4">
-      <SectionHeader>{{ t('protocol.runs') }}</SectionHeader>
+      <div />
       <PrimaryButton v-if="canCreateRun" @click="showCreateModal = true">
         <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" /> {{ t('protocol.createRun') }}
       </PrimaryButton>

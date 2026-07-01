@@ -143,7 +143,10 @@ onMounted(load)
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.inventory-storage.title')"
+      :subtitle="t('pages.inventory-storage.subtitle')"
+  >
     <div v-if="error" class="mb-4">
       <Alert variant="error">{{ error }}</Alert>
     </div>

@@ -273,7 +273,10 @@ watch([partnerUid, boardKey], loadData)
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.federated-board-view.title')"
+      :subtitle="t('pages.federated-board-view.subtitle')"
+  >
     <Spinner v-if="loading"/>
     <Alert v-else-if="error" variant="error">{{ error }}</Alert>
     <template v-else-if="board">

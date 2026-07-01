@@ -78,7 +78,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.account-gdpr.title')" :subtitle="t('pages.account-gdpr.subtitle')">
     <div class="space-y-6">
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 

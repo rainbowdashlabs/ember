@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import ReportMonthlySummaryTable from './ReportMonthlySummaryTable.vue'
 import ReportSessionCard from './ReportSessionCard.vue'
 import type {MonthSummary} from '@/api/attendance'
@@ -18,7 +18,7 @@ defineProps<{
 </script>
 
 <template>
-  <SectionHeader>{{ t('attendanceReport.monthReport', {month: monthSummary.month}) }}</SectionHeader>
+  <SubHeader>{{ t('attendanceReport.monthReport', {month: monthSummary.month}) }}</SubHeader>
   <ReportMonthlySummaryTable :members="monthSummary.members"/>
   <ReportSessionCard v-for="session in monthSummary.sessions" :key="session.sessionId" :session="session"/>
 </template>

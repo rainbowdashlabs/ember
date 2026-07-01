@@ -48,7 +48,7 @@ function toggleExpand(id: number) {
 </script>
 
 <template>
-    <ViewContent>
+    <ViewContent :title="t('pages.admin-problems.title')" :subtitle="t('pages.admin-problems.subtitle')">
         <div class="flex items-center justify-between mb-4">
             <div class="flex items-center gap-2">
                 <SelectionToggleButton :selected="showAcknowledged" @toggle="showAcknowledged = !showAcknowledged; loadData()">

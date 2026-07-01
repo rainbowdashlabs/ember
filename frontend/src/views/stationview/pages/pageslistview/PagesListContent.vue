@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
@@ -56,7 +56,7 @@ const {t} = useI18n()
 <template>
   <div class="space-y-6">
     <div class="flex items-center justify-between flex-wrap gap-2">
-      <SectionHeader>{{ t('stationPages.title') }}</SectionHeader>
+      <SubHeader>{{ t('stationPages.title') }}</SubHeader>
       <PrimaryButton v-if="props.canEdit" @click="emit('open-create')">
         <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
         {{ t('stationPages.createPage') }}

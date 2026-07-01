@@ -11,7 +11,6 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import { contrastTextColor } from '@/theme/contrast'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -276,14 +275,16 @@ watch(boardKey, reload)
 </script>
 
 <template>
-    <ViewContent>
+    <ViewContent
+        :title="t('pages.board-view.title')"
+        :subtitle="t('pages.board-view.subtitle')"
+    >
         <Spinner v-if="loading" />
         <Alert v-else-if="error" variant="error">{{ error }}</Alert>
         <template v-else-if="board">
             <!-- Header -->
             <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
                 <div class="flex items-center gap-3">
-                    <SectionHeader>{{ board.name }}</SectionHeader>
                     <span class="text-xs font-mono text-(--text-muted) bg-(--bg-accent) px-1.5 py-0.5 rounded">{{ board.shortKey }}</span>
                 </div>
                 <div class="flex items-center gap-2">

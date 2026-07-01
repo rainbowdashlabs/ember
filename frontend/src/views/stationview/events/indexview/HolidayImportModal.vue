@@ -10,7 +10,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const {t} = useI18n()
@@ -69,7 +69,7 @@ async function importHolidays() {
 <template>
   <Modal v-model="modelValue">
     <div class="space-y-4">
-      <SectionHeader>{{ t('events.importHolidaysTitle') }}</SectionHeader>
+      <SubHeader>{{ t('events.importHolidaysTitle') }}</SubHeader>
       <p class="text-sm text-(--text-muted)">{{ t('events.importHolidaysHint') }}</p>
 
       <div class="space-y-1">

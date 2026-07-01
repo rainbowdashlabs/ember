@@ -92,7 +92,7 @@ function stationLabel(stationId: string | null): string {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.admin-traffic.title')" :subtitle="t('pages.admin-traffic.subtitle')">
     <div class="space-y-4">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>

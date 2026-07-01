@@ -39,7 +39,7 @@ function goBack() {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.public-blog-detail.title')">
   <div class="space-y-6">
     <SecondaryButton size="sm" :icon="['fas', 'arrow-left']" @click="goBack">
       {{ t('publicStation.blogTitle') }}

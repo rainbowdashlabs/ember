@@ -307,7 +307,10 @@ function navigateToFavourites() {
 </script>
 
 <template>
-    <ViewContent>
+    <ViewContent
+        :title="t('pages.kb-browse.title')"
+        :subtitle="t('pages.kb-browse.subtitle')"
+    >
         <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
 
         <!-- Search -->

@@ -20,7 +20,7 @@ function onResetPerformed() {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.admin-two-factor.title')" :subtitle="t('pages.admin-two-factor.subtitle')">
     <div class="space-y-6">
       <div>
         <MutedText tag="p" size="sm">{{ t('twoFactor.admin.instanceHint') }}</MutedText>

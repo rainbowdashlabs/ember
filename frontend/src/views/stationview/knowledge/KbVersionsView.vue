@@ -72,7 +72,10 @@ watch(loaded, (isLoaded) => {
 </script>
 
 <template>
-    <ViewContent>
+    <ViewContent
+        :title="t('pages.kb-versions.title')"
+        :subtitle="t('pages.kb-versions.subtitle')"
+    >
         <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
         <Spinner v-if="loading"/>
 

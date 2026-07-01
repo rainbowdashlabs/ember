@@ -90,7 +90,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.quiz-catalog-detail.title')" :subtitle="t('pages.quiz-catalog-detail.subtitle')">
     <div class="space-y-6">
       <SecondaryButton :icon="['fas', 'chevron-left']" @click="router.push({ name: 'quiz-catalogs' })">
         {{ t('common.back') }}

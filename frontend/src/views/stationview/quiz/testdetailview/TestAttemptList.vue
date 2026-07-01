@@ -7,7 +7,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import {QuizAttemptStatus} from '@/api/types'
 import type {QuizTestAttempt, StationMember} from '@/api/types'
 import {useBreakpoint} from '@/composables/useBreakpoint'
@@ -32,7 +32,7 @@ const gradedAttempts = computed(() =>
 
 <template>
   <div class="space-y-6">
-    <SectionHeader>{{ t('quiz.attempt.title') }} ({{ attempts.length }})</SectionHeader>
+    <SubHeader>{{ t('quiz.attempt.title') }} ({{ attempts.length }})</SubHeader>
 
     <EmptyState compact v-if="attempts.length === 0">{{ t('quiz.attempt.noAttempts') }}</EmptyState>
 

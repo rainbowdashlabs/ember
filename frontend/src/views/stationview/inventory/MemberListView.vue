@@ -273,7 +273,10 @@ function goToMember(memberId: number) {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.inventory-members.title')"
+      :subtitle="t('pages.inventory-members.subtitle')"
+  >
     <div class="space-y-6">
       <MemberListHeader
         :export-mode="exportMode"

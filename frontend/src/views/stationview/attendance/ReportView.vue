@@ -7,7 +7,6 @@
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import ReportPresetList from './reportview/ReportPresetList.vue'
@@ -207,8 +206,10 @@ watch(loaded, (isLoaded) => {
 </script>
 
 <template>
-  <ViewContent>
-    <SectionHeader>{{ t('attendanceReport.title') }}</SectionHeader>
+  <ViewContent
+      :title="t('pages.attendance-report.title')"
+      :subtitle="t('pages.attendance-report.subtitle')"
+  >
     <Spinner v-if="loading" size="lg"/>
     <Alert v-if="error" variant="error">{{ error }}</Alert>
     <template v-if="!loading">

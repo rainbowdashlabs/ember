@@ -14,7 +14,6 @@ import SuccessButton from '@/components/button/SuccessButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import GradingSectionPanel from './gradingview/GradingSectionPanel.vue'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
@@ -226,22 +225,20 @@ onBeforeUnmount(async () => {
   }
 })
 
-function memberName(): string {
-  if (!member.value) return ''
-  return member.value.name || member.value.email || `#${member.value.id}`
-}
-
 watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.protocol-grade.title')"
+      :subtitle="t('pages.protocol-grade.subtitle')"
+  >
     <Spinner v-if="loading" size="lg" />
     <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
 
     <template v-if="!loading && currentSection">
       <div class="flex items-center justify-between mb-2">
-        <SectionHeader>{{ memberName() }}</SectionHeader>
+        <div />
         <SecondaryButton @click="saveAndExit">
           <font-awesome-icon :icon="['fas', 'xmark']" class="mr-1" /> {{ t('protocol.saveAndExit') }}
         </SecondaryButton>

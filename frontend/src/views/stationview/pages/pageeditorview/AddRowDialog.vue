@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Modal from '@/components/feedback/Modal.vue'
 
@@ -21,7 +21,7 @@ const {t} = useI18n()
 <template>
   <Modal v-model="open">
     <div class="space-y-4">
-      <SectionHeader>{{ t('stationPages.editor.addRowTitle') }}</SectionHeader>
+      <SubHeader>{{ t('stationPages.editor.addRowTitle') }}</SubHeader>
       <p class="text-sm text-(--text-muted)">{{ t('stationPages.editor.addRowHint') }}</p>
       <div class="grid grid-cols-4 gap-2">
         <button

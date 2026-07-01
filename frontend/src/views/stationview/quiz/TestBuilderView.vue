@@ -12,7 +12,6 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type { QuizCatalog, QuizCategory, QuizSectionDetail, MemberGroup, UserTag } from '@/api/types'
 import { quiz, memberGroups, userTags } from '@/api'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
@@ -26,6 +25,7 @@ const router = useRouter()
 
 const testId = computed(() => route.params.id ? Number(route.params.id) : null)
 const isEdit = computed(() => testId.value !== null)
+const routeKey = computed(() => isEdit.value ? 'quiz-test-edit' : 'quiz-test-create')
 
 const title = ref('')
 const description = ref('')
@@ -223,14 +223,12 @@ async function save() {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t(`pages.${routeKey}.title`)" :subtitle="t(`pages.${routeKey}.subtitle`)">
     <div class="space-y-6 max-w-3xl">
       <Spinner v-if="loading" size="lg" />
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading">
-        <SectionHeader>{{ isEdit ? t('quiz.tests.editTest') : t('quiz.tests.createTest') }}</SectionHeader>
-
         <TestMetadataForm
             v-model:title="title"
             v-model:description="description"

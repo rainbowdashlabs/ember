@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import type {ColumnEntry, TableEntry} from '@/api/dataTracking'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 
 const props = defineProps<{
   columns: ColumnEntry[]
@@ -37,7 +37,7 @@ function foreignKeyTooltip(column: string): string {
 
 <template>
   <section>
-    <SectionHeader class="!text-base">{{ t('adminDataTracking.detail.columns') }}</SectionHeader>
+    <SubHeader class="!text-base">{{ t('adminDataTracking.detail.columns') }}</SubHeader>
     <div class="rounded-theme border border-(--border)">
       <div
           v-for="col in columns"

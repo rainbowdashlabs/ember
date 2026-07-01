@@ -9,7 +9,7 @@ import { useI18n } from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import type { WaitingListEntryWithScore } from '@/api/types'
 
 const props = defineProps<{
@@ -38,7 +38,7 @@ function entryFullName(item: WaitingListEntryWithScore): string {
 <template>
   <Modal v-model="open">
     <div class="space-y-4">
-      <SectionHeader>{{ t('waitingList.deleteEntryTitle') }}</SectionHeader>
+      <SubHeader>{{ t('waitingList.deleteEntryTitle') }}</SubHeader>
       <p class="text-sm">{{ t('waitingList.deleteEntryConfirm', { name: target ? entryFullName(target) : '' }) }}</p>
       <div class="flex justify-end gap-2">
         <SecondaryButton @click="open = false">{{ t('common.cancel') }}</SecondaryButton>

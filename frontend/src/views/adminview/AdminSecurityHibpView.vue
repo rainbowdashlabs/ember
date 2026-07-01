@@ -37,7 +37,7 @@ async function save() {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.admin-security-hibp.title')" :subtitle="t('pages.admin-security-hibp.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>

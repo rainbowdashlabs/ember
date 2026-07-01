@@ -150,7 +150,7 @@ function openDetail(ep: EndpointStats) {
 </script>
 
 <template>
-    <ViewContent>
+    <ViewContent :title="t('pages.admin-api-status.title')" :subtitle="t('pages.admin-api-status.subtitle')">
         <div class="flex items-center justify-between mb-4">
             <SecondaryButton :icon="['fas', 'rotate']" @click="reload">
                 {{ t('common.refresh') }}

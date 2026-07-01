@@ -200,7 +200,10 @@ watch(loaded, (isLoaded) => {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.inventory-exchanges.title')"
+      :subtitle="t('pages.inventory-exchanges.subtitle')"
+  >
     <div class="space-y-6">
       <ExchangeToolbar
         :export-mode="exportMode"

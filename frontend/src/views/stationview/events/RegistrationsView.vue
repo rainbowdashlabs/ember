@@ -10,7 +10,6 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import EventGroupCard from './registrationsview/EventGroupCard.vue'
 import {events} from '@/api'
 import type {StationEvent} from '@/api/types'
@@ -178,10 +177,11 @@ const {loading, error} = useAsyncLoader(async () => {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.events-registrations.title')"
+      :subtitle="t('pages.events-registrations.subtitle')"
+  >
     <div class="space-y-6">
-      <SectionHeader>{{ t('eventsRegistrations.title') }}</SectionHeader>
-
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 

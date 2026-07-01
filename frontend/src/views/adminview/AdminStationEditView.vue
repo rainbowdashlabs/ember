@@ -75,7 +75,7 @@ function goBack() {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.admin-station-edit.title')" :subtitle="t('pages.admin-station-edit.subtitle')">
     <div class="space-y-6">
       <SecondaryButton :icon="['fas', 'chevron-left']" @click="goBack">
         {{ t('adminStations.back') }}

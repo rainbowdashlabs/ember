@@ -162,7 +162,10 @@ async function handleClose() {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.inventory-lending-request.title')"
+      :subtitle="t('pages.inventory-lending-request.subtitle')"
+  >
     <SecondaryButton :icon="['fas', 'chevron-left']" class="mb-4" @click="router.push({name: 'inventory-lending'})">
       {{ t('lending.backToList') }}
     </SecondaryButton>

@@ -8,9 +8,7 @@ import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
@@ -112,13 +110,11 @@ onMounted(load)
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.station-security.title')"
+      :subtitle="t('pages.station-security.subtitle')"
+  >
     <div class="space-y-6">
-      <div>
-        <SectionHeader>{{ t('twoFactor.admin.title') }}</SectionHeader>
-        <MutedText tag="p" size="sm">{{ t('twoFactor.admin.subtitle') }}</MutedText>
-      </div>
-
       <Spinner v-if="loading" size="md"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 

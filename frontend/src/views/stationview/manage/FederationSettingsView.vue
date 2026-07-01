@@ -7,7 +7,6 @@
 import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -128,9 +127,11 @@ watch(loaded, (v) => { if (v) loadSettings() })
 </script>
 
 <template>
-  <ViewContent>
-    <div class="flex items-center justify-between mb-4">
-      <SectionHeader>{{ t('discovery.settings.title') }}</SectionHeader>
+  <ViewContent
+      :title="t('pages.station-federation-settings.title')"
+      :subtitle="t('pages.station-federation-settings.subtitle')"
+  >
+    <div class="flex items-center justify-end mb-4">
       <Transition name="fade">
         <MutedText v-if="saving" size="sm" class="flex items-center gap-1">
           <font-awesome-icon :icon="['fas', 'spinner']" spin class="h-3 w-3"/>

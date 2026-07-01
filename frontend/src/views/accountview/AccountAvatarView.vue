@@ -91,7 +91,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.account-avatar.title')" :subtitle="t('pages.account-avatar.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>

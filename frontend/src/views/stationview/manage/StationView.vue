@@ -152,7 +152,10 @@ function handleSuccess(msg: string) {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.station-manage.title')"
+      :subtitle="t('pages.station-manage.subtitle')"
+  >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
 

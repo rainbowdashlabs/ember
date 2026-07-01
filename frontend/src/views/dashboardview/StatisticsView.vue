@@ -11,7 +11,6 @@ import {CanvasRenderer} from 'echarts/renderers'
 import {BarChart, LineChart, PieChart} from 'echarts/charts'
 import {GridComponent, LegendComponent, TitleComponent, TooltipComponent} from 'echarts/components'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import client from '@/api/client'
@@ -207,10 +206,8 @@ watch(loaded, (isLoaded) => {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.dashboard-statistics.title')" :subtitle="t('pages.dashboard-statistics.subtitle')">
     <div class="space-y-6">
-      <SectionHeader>{{ t('statistics.title') }}</SectionHeader>
-
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 

@@ -10,7 +10,6 @@ import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import { getRequirements } from '@/api/requirements'
@@ -46,12 +45,12 @@ onMounted(async () => {
 </script>
 
 <template>
-    <ViewContent>
+    <ViewContent
+        :title="t('pages.station-requirements.title')"
+        :subtitle="t('pages.station-requirements.subtitle')"
+    >
         <Spinner v-if="loading" />
         <template v-else-if="hasRequirements">
-            <SectionHeader class="mb-2">{{ t('requirements.title') }}</SectionHeader>
-            <p class="text-sm text-(--text-muted) mb-6">{{ t('requirements.subtitle') }}</p>
-
             <div class="space-y-4 max-w-xl">
                 <NeutralContainer v-if="data!.profileIncomplete">
                     <div class="flex items-center gap-3">

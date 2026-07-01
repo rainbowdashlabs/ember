@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
@@ -33,7 +33,7 @@ const {t} = useI18n()
 <template>
     <Modal v-model="moveOpen" size="md">
         <div class="space-y-3">
-            <SectionHeader>{{ t('stationPages.editor.moveToFolder') }}</SectionHeader>
+            <SubHeader>{{ t('stationPages.editor.moveToFolder') }}</SubHeader>
             <p class="text-sm text-(--text-muted)">
                 {{ t('stationPages.editor.selectedCount', {count: selectedCount}) }}
             </p>
@@ -52,7 +52,7 @@ const {t} = useI18n()
 
     <Modal v-model="deleteOpen" size="md">
         <div class="space-y-3">
-            <SectionHeader>{{ t('stationPages.editor.deleteSelected') }}</SectionHeader>
+            <SubHeader>{{ t('stationPages.editor.deleteSelected') }}</SubHeader>
             <p class="text-sm">
                 {{ t('stationPages.editor.deleteSelectedPrompt', {count: selectedCount}) }}
             </p>

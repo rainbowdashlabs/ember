@@ -7,7 +7,7 @@
 import { useI18n } from 'vue-i18n'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import TestSectionCard from './TestSectionCard.vue'
 import type { QuizCatalog, QuizCategory } from '@/api/types'
 
@@ -46,7 +46,7 @@ const { t } = useI18n()
 <template>
   <div class="space-y-4">
     <div class="flex items-center justify-between">
-      <SectionHeader>{{ t('quiz.sections.title') }}</SectionHeader>
+      <SubHeader>{{ t('quiz.sections.title') }}</SubHeader>
       <SecondaryButton :icon="['fas', 'plus']" @click="emit('addSection')">
         {{ t('quiz.sections.add') }}
       </SecondaryButton>

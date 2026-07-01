@@ -7,7 +7,7 @@
 import { useI18n } from 'vue-i18n'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import ManagedFormTile from './ManagedFormTile.vue'
 import type { Form } from '@/api/types'
 
@@ -34,7 +34,7 @@ const { t } = useI18n()
 <template>
   <div class="space-y-4">
     <div class="flex items-center justify-between">
-      <SectionHeader>{{ t(titleKey ?? 'forms.title') }}</SectionHeader>
+      <SubHeader>{{ t(titleKey ?? 'forms.title') }}</SubHeader>
       <PrimaryButton v-if="canCreatePolls" :icon="['fas', 'plus']" @click="emit('create')">
         {{ t('forms.create') }}
       </PrimaryButton>

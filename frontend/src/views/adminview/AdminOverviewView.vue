@@ -65,7 +65,7 @@ const totalAttention = computed(() => {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.admin-overview.title')" :subtitle="t('pages.admin-overview.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>

@@ -7,7 +7,6 @@
 import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -51,8 +50,10 @@ watch(loaded, (v) => { if (v) loadAll() }, {immediate: true})
 </script>
 
 <template>
-  <ViewContent>
-    <SectionHeader class="mb-4">{{ t('discovery.title') }}</SectionHeader>
+  <ViewContent
+      :title="t('pages.station-discovery.title')"
+      :subtitle="t('pages.station-discovery.subtitle')"
+  >
     <MutedText tag="p" class="mb-6">{{ t('discovery.subtitle') }}</MutedText>
 
     <Alert v-if="error" variant="error" class="mb-2">{{ error }}</Alert>

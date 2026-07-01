@@ -12,7 +12,7 @@ const {t} = useI18n()
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.admin-discovery.title')" :subtitle="t('pages.admin-discovery.subtitle')">
     <div class="space-y-6">
       <div>
         <p class="text-sm text-(--text-muted)">{{ t('adminDiscovery.subtitle') }}</p>

@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import AvailableFormRow from './AvailableFormRow.vue'
 import type { FormListEntry } from '@/api/types'
 
@@ -24,7 +24,7 @@ const { t } = useI18n()
 
 <template>
   <div class="space-y-4">
-    <SectionHeader v-if="showHeading" class="mt-6">{{ t('forms.fillForm') }}</SectionHeader>
+    <SubHeader v-if="showHeading" class="mt-6">{{ t('forms.fillForm') }}</SubHeader>
 
     <EmptyState compact v-if="forms.length === 0">{{ t('forms.noAvailableForms') }}</EmptyState>
 

@@ -83,7 +83,7 @@ function showSuccess() {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.admin-settings.title')" :subtitle="t('pages.admin-settings.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>

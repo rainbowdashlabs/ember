@@ -160,7 +160,7 @@ function onReorder(fromIndex: number, toIndex: number) {
 </script>
 
 <template>
-    <ViewContent>
+    <ViewContent :title="t('pages.pages-list.title')" :subtitle="t('pages.pages-list.subtitle')">
         <PagesListContent
             v-model:show-create-modal="showCreateModal"
             v-model:new-title="newTitle"

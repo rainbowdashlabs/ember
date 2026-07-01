@@ -16,7 +16,6 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
@@ -180,7 +179,10 @@ watch(loaded, (v) => {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent
+      :title="t('pages.procedure-detail.title')"
+      :subtitle="t('pages.procedure-detail.subtitle')"
+  >
     <Spinner v-if="loading"/>
     <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
 
@@ -189,7 +191,6 @@ watch(loaded, (v) => {
       <div class="flex items-start justify-between mb-4 gap-4">
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 mb-1 flex-wrap">
-            <SectionHeader>{{ detail.procedure.name }}</SectionHeader>
             <SuccessBadge v-if="detail.procedure.status === ProcedureStatus.RESOLVED">{{ t('procedures.resolved') }}</SuccessBadge>
             <PrimaryBadge v-else>{{ t('procedures.open') }}</PrimaryBadge>
             <ErrorBadge v-if="isOverdue">{{ t('procedures.overdue') }}</ErrorBadge>

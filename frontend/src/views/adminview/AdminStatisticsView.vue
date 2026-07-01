@@ -214,7 +214,7 @@ const emailStatusOption = computed(() => {
 </script>
 
 <template>
-  <ViewContent>
+  <ViewContent :title="t('pages.admin-statistics.title')" :subtitle="t('pages.admin-statistics.subtitle')">
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error" variant="error">{{ error }}</Alert>

@@ -7,7 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import Spinner from '@/components/feedback/Spinner.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import type {PublicSearchResult} from '@/api/publicKb'
 import type {KbFile} from '@/api/knowledgeBase'
 import {fileIcon} from '@/util/kbFileIcon'
@@ -26,7 +26,7 @@ const {t} = useI18n()
 
 <template>
   <div>
-    <SectionHeader class="text-lg font-semibold mb-3">{{ t('publicKb.searchResults') }}</SectionHeader>
+    <SubHeader class="text-lg font-semibold mb-3">{{ t('publicKb.searchResults') }}</SubHeader>
     <Spinner v-if="searching"/>
     <p v-else-if="searchResults.length === 0" class="text-[var(--text-muted)]">
       {{ t('publicKb.noResults') }}
