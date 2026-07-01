@@ -38,6 +38,7 @@ public class StatisticsRoutes implements Routes {
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/statistics", this::getStatistics, StationPermission.STATION_STATISTICS);
         routes.get(prefix + "/admin/statistics", this::getAdminStatistics, InstancePermission.ADMINISTRATOR);
+        routes.get(prefix + "/admin/overview", this::getAdminOverview, InstancePermission.ADMINISTRATOR);
     }
 
     @OpenApi(
@@ -160,6 +161,79 @@ public class StatisticsRoutes implements Routes {
         data.put("totalAttendanceEntries", globalInt("SELECT count(*) FROM attendance_entry"));
         data.put("totalProfileFields", globalInt("SELECT count(*) FROM profile_field"));
         data.put("totalGroups", globalInt("SELECT count(*) FROM member_group"));
+
+        // Account verification status
+        data.put("accountsVerified", globalInt("SELECT count(*) FROM account WHERE email_verified = TRUE"));
+        data.put("accountsUnverified", globalInt("SELECT count(*) FROM account WHERE email_verified = FALSE"));
+        data.put(
+                "stationsSetupComplete",
+                globalInt("SELECT count(*) FROM station WHERE setup_completed_at IS NOT NULL"));
+        data.put("stationsSetupPending", globalInt("SELECT count(*) FROM station WHERE setup_completed_at IS NULL"));
+
+        // Session activity — last 30 days, zero-filled
+        data.put("sessionsByDay", globalMapList("""
+                SELECT to_char(d.day, 'YYYY-MM-DD') AS day,
+                       COALESCE(count(se.id), 0)::INT AS count
+                FROM generate_series(CURRENT_DATE - interval '29 days', CURRENT_DATE, interval '1 day') AS d(day)
+                LEFT JOIN account_session se ON se.created_at::date = d.day
+                GROUP BY d.day ORDER BY d.day"""));
+
+        // Top 10 stations by active member count
+        data.put("topStationsByMembers", globalMapList("""
+                SELECT s.name, count(sm.id)::INT AS member_count
+                FROM station s
+                LEFT JOIN station_member sm ON sm.station_id = s.id AND sm.former = FALSE
+                GROUP BY s.id, s.name
+                HAVING count(sm.id) > 0
+                ORDER BY member_count DESC, s.name
+                LIMIT 10"""));
+
+        ctx.json(data);
+    }
+
+    @OpenApi(
+            path = "/api/v1/admin/overview",
+            methods = HttpMethod.GET,
+            summary = "Aggregated 'needs attention' metrics for the instance admin dashboard",
+            tags = {"Statistics"},
+            responses = @OpenApiResponse(status = "200"))
+    private void getAdminOverview(Context ctx) {
+        var data = new LinkedHashMap<String, Object>();
+
+        data.put("emailFailed", globalInt("SELECT count(*) FROM email_queue WHERE status = 'FAILED'"));
+        data.put("emailPending", globalInt("SELECT count(*) FROM email_queue WHERE status = 'PENDING'"));
+        data.put(
+                "emailStuckSending",
+                globalInt(
+                        "SELECT count(*) FROM email_queue WHERE status = 'SENDING' AND created_at < now() - interval '10 minutes'"));
+
+        data.put(
+                "stationApplicationsPending",
+                globalInt("SELECT count(*) FROM station_application WHERE status = 'PENDING'"));
+        data.put("stationsSetupPending", globalInt("SELECT count(*) FROM station WHERE setup_completed_at IS NULL"));
+        data.put("accountsUnverified", globalInt("SELECT count(*) FROM account WHERE email_verified = FALSE"));
+
+        data.put(
+                "federationPartnersPending",
+                globalInt("SELECT count(*) FROM federation_partner WHERE status = 'PENDING'"));
+        data.put(
+                "discoveryPeersUnreachable",
+                globalInt("SELECT count(*) FROM discovery_peer WHERE reachable = FALSE AND blocked = FALSE"));
+
+        data.put("problemReportsOpen", globalInt("SELECT count(*) FROM problem_report WHERE acknowledged = FALSE"));
+
+        data.put("recentApplications", globalMapList("""
+                SELECT id, first_name || ' ' || last_name AS name, station_name, created_at
+                FROM station_application
+                WHERE status = 'PENDING'
+                ORDER BY created_at DESC
+                LIMIT 5"""));
+        data.put("recentProblemReports", globalMapList("""
+                SELECT id, reporter_name, page_url, created_at
+                FROM problem_report
+                WHERE acknowledged = FALSE
+                ORDER BY created_at DESC
+                LIMIT 5"""));
 
         ctx.json(data);
     }

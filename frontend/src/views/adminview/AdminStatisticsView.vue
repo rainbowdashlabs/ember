@@ -8,19 +8,22 @@ import {computed, onMounted, onUnmounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {use} from 'echarts/core'
 import {CanvasRenderer} from 'echarts/renderers'
-import {BarChart, PieChart} from 'echarts/charts'
-import {GridComponent, TitleComponent, TooltipComponent} from 'echarts/components'
+import {BarChart, LineChart, PieChart} from 'echarts/charts'
+import {GridComponent, LegendComponent, TitleComponent, TooltipComponent} from 'echarts/components'
+import VChart from 'vue-echarts'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import client from '@/api/client'
 import EmailStatsSection from './adminstatisticsview/EmailStatsSection.vue'
 import PlatformStatsSection from './adminstatisticsview/PlatformStatsSection.vue'
 import DataStatsSection from './adminstatisticsview/DataStatsSection.vue'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 
-use([CanvasRenderer, BarChart, PieChart, TitleComponent, TooltipComponent, GridComponent])
+use([CanvasRenderer, BarChart, LineChart, PieChart, TitleComponent, TooltipComponent, GridComponent, LegendComponent])
 
 const {t, te} = useI18n()
 
@@ -61,6 +64,12 @@ interface AdminStats {
   totalAttendanceEntries: number
   totalProfileFields: number
   totalGroups: number
+  accountsVerified: number
+  accountsUnverified: number
+  stationsSetupComplete: number
+  stationsSetupPending: number
+  sessionsByDay: Array<{ day: string; count: number }>
+  topStationsByMembers: Array<{ name: string; member_count: number }>
 }
 
 const statusColors: Record<string, string> = {
@@ -87,6 +96,104 @@ const emailByDayOption = computed(() => {
     xAxis: {type: 'category', data: days.map(d => d.day), axisLabel: {rotate: 45, fontSize: 10, color: mutedColor.value}, axisLine: {lineStyle: {color: mutedColor.value}}},
     yAxis: {type: 'value', minInterval: 1, axisLabel: {color: mutedColor.value}, axisLine: {lineStyle: {color: mutedColor.value}}, splitLine: {lineStyle: {color: isDark.value ? '#333' : '#e0e0e0'}}},
     series: [{type: 'bar', data: days.map(d => d.count), color: '#FF6421'}],
+  }
+})
+
+function dailyLineOption(title: string, series: Array<{day: string; count: number}>, color: string) {
+  return {
+    title: {text: title, left: 'center', textStyle: {fontSize: 14, color: textColor.value}},
+    tooltip: {trigger: 'axis'},
+    grid: {left: 50, right: 20, top: 40, bottom: 30},
+    xAxis: {
+      type: 'category',
+      data: series.map(d => d.day),
+      axisLabel: {rotate: 45, fontSize: 10, color: mutedColor.value},
+      axisLine: {lineStyle: {color: mutedColor.value}},
+    },
+    yAxis: {
+      type: 'value',
+      minInterval: 1,
+      axisLabel: {color: mutedColor.value},
+      axisLine: {lineStyle: {color: mutedColor.value}},
+      splitLine: {lineStyle: {color: isDark.value ? '#333' : '#e0e0e0'}},
+    },
+    series: [{
+      type: 'line',
+      smooth: true,
+      symbol: 'circle',
+      symbolSize: 5,
+      data: series.map(d => d.count),
+      areaStyle: {opacity: 0.15},
+      lineStyle: {color, width: 2},
+      itemStyle: {color},
+    }],
+  }
+}
+
+const sessionsByDayOption = computed(() => {
+  if (!stats.value) return {}
+  return dailyLineOption(t('adminStats.sessionsGrowth'), stats.value.sessionsByDay, '#00C507')
+})
+
+const topStationsOption = computed(() => {
+  if (!stats.value || stats.value.topStationsByMembers.length === 0) return {}
+  const rows = [...stats.value.topStationsByMembers].reverse()
+  return {
+    title: {text: t('adminStats.topStations'), left: 'center', textStyle: {fontSize: 14, color: textColor.value}},
+    tooltip: {trigger: 'axis', axisPointer: {type: 'shadow'}},
+    grid: {left: 120, right: 30, top: 40, bottom: 30},
+    xAxis: {
+      type: 'value',
+      minInterval: 1,
+      axisLabel: {color: mutedColor.value},
+      axisLine: {lineStyle: {color: mutedColor.value}},
+      splitLine: {lineStyle: {color: isDark.value ? '#333' : '#e0e0e0'}},
+    },
+    yAxis: {
+      type: 'category',
+      data: rows.map(r => r.name),
+      axisLabel: {color: mutedColor.value, fontSize: 11},
+      axisLine: {lineStyle: {color: mutedColor.value}},
+    },
+    series: [{
+      type: 'bar',
+      data: rows.map(r => r.member_count),
+      itemStyle: {color: '#FF6421'},
+    }],
+  }
+})
+
+const verifiedOption = computed(() => {
+  if (!stats.value) return {}
+  return {
+    title: {text: t('adminStats.verificationStatus'), left: 'center', textStyle: {fontSize: 14, color: textColor.value}},
+    tooltip: {trigger: 'item', formatter: '{b}: {c} ({d}%)'},
+    series: [{
+      type: 'pie',
+      radius: ['40%', '70%'],
+      label: {color: mutedColor.value},
+      data: [
+        {name: t('adminStats.verified'), value: stats.value.accountsVerified, itemStyle: {color: '#00C507'}},
+        {name: t('adminStats.unverified'), value: stats.value.accountsUnverified, itemStyle: {color: '#ec2929'}},
+      ],
+    }],
+  }
+})
+
+const setupOption = computed(() => {
+  if (!stats.value) return {}
+  return {
+    title: {text: t('adminStats.setupStatus'), left: 'center', textStyle: {fontSize: 14, color: textColor.value}},
+    tooltip: {trigger: 'item', formatter: '{b}: {c} ({d}%)'},
+    series: [{
+      type: 'pie',
+      radius: ['40%', '70%'],
+      label: {color: mutedColor.value},
+      data: [
+        {name: t('adminStats.setupComplete'), value: stats.value.stationsSetupComplete, itemStyle: {color: '#00C507'}},
+        {name: t('adminStats.setupPending'), value: stats.value.stationsSetupPending, itemStyle: {color: '#ffdd1b'}},
+      ],
+    }],
   }
 })
 
@@ -130,6 +237,27 @@ const emailStatusOption = computed(() => {
             :total-members="stats.totalMembers"
             :active-sessions="stats.activeSessions"
             :total-groups="stats.totalGroups"/>
+
+        <SubHeader>{{ t('adminStats.growthSection') }}</SubHeader>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <NeutralContainer>
+            <VChart v-if="stats.sessionsByDay.length > 0" :option="sessionsByDayOption" autoresize style="height: 260px"/>
+          </NeutralContainer>
+          <NeutralContainer>
+            <VChart v-if="stats.topStationsByMembers.length > 0" :option="topStationsOption" autoresize style="height: 260px"/>
+          </NeutralContainer>
+        </div>
+
+        <SubHeader>{{ t('adminStats.healthSection') }}</SubHeader>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <NeutralContainer>
+            <VChart v-if="stats.accountsVerified + stats.accountsUnverified > 0" :option="verifiedOption" autoresize style="height: 260px"/>
+          </NeutralContainer>
+          <NeutralContainer>
+            <VChart v-if="stats.stationsSetupComplete + stats.stationsSetupPending > 0" :option="setupOption" autoresize style="height: 260px"/>
+          </NeutralContainer>
+        </div>
+
         <DataStatsSection
             :total-events="stats.totalEvents"
             :total-attendance-sessions="stats.totalAttendanceSessions"
