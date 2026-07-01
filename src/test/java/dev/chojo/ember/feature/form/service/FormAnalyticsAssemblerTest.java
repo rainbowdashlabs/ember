@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
+import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
@@ -23,6 +24,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.util.Map;
 import java.util.Set;
 
@@ -143,5 +145,49 @@ class FormAnalyticsAssemblerTest extends RepositoryTestBase {
         assertNotNull(detail.response().acknowledgedAt());
         assertEquals(guardianMember.id(), detail.response().acknowledgedBy());
         assertNotNull(detail.response().acknowledgedByIdentity());
+    }
+
+    @Test
+    void buildAnalyticsListsMissingResponsesForForcedForm() {
+        var forced = formService.create(
+                station.id(), "Forced", "", false, false, true, null, null, guardianMember.id(), FormPurpose.INTERNAL);
+        formService.publish(forced.id());
+        try {
+            var analytics = assembler.buildAnalytics(forced.id());
+            assertEquals(2, analytics.missingResponses().size());
+        } finally {
+            formService.delete(forced.id());
+        }
+    }
+
+    @Test
+    void listResponsesForAnonymousSubmissionHasNullMemberIdentity() {
+        var poll = formService.create(
+                station.id(), "Poll", "", false, false, false, null, null, guardianMember.id(), FormPurpose.POLL);
+        formService.publish(poll.id());
+        try {
+            var question = formService.createQuestion(
+                    poll.id(),
+                    0,
+                    FormQuestionType.TEXT,
+                    "Pick one",
+                    "",
+                    true,
+                    false,
+                    new FormQuestionConfig.Text(false));
+            var consent = new ConsentProof("v1", "v1", "v1", "127.0.0.1", "US", "test-agent", Instant.now());
+            var response = formService.submitAnonymousResponse(
+                    poll.id(), new byte[] {1, 2, 3, 4}, Map.of(question.id(), new FormAnswerValue.Text("A")), consent);
+
+            var entry = assembler.listResponses(poll.id()).stream()
+                    .filter(e -> e.id() == response.id())
+                    .findFirst()
+                    .orElseThrow();
+            assertNull(entry.memberId());
+            assertNull(entry.memberIdentity());
+            assertNull(entry.submittedByName());
+        } finally {
+            formService.delete(poll.id());
+        }
     }
 }

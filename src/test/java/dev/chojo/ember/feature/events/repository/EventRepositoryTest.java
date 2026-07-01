@@ -248,11 +248,12 @@ class EventRepositoryTest extends RepositoryTestBase {
 
     // -- Registrations --
 
+    private static final LocalDate REGISTRATION_DATE = LocalDate.now().plusMonths(1);
+
     @Test
     @Order(30)
     void createRegistration() {
-        LocalDate eventDate = LocalDate.of(2026, 7, 1);
-        EventRegistration reg = eventRepo.createRegistration(eventId, member.id(), eventDate);
+        EventRegistration reg = eventRepo.createRegistration(eventId, member.id(), REGISTRATION_DATE);
         assertNotNull(reg);
         assertEquals(eventId, reg.eventId());
         assertEquals(member.id(), reg.memberId());
@@ -269,7 +270,7 @@ class EventRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(32)
     void findRegistrations() {
-        var regs = eventRepo.findRegistrations(eventId, LocalDate.of(2026, 7, 1));
+        var regs = eventRepo.findRegistrations(eventId, REGISTRATION_DATE);
         assertEquals(1, regs.size());
     }
 
