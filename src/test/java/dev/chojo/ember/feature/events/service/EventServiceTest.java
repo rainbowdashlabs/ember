@@ -194,7 +194,7 @@ class EventServiceTest extends RepositoryTestBase {
     @Test
     @Order(30)
     void createBreak() {
-        var br = service.createBreak(station.id(), "Summer", LocalDate.of(2026, 7, 1), LocalDate.of(2026, 8, 31));
+        var br = service.createBreak(station.id(), "Summer", LocalDate.of(2020, 7, 1), LocalDate.of(2020, 8, 31));
         assertNotNull(br);
         var breaks = service.findBreaksByStation(station.id());
         assertTrue(breaks.stream().anyMatch(b -> b.id() == br.id()));
