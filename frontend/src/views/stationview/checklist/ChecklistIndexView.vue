@@ -15,7 +15,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {checklists, memberGroups, stationMembers, userTags} from '@/api'
 import type {ChecklistCreateRequest, ChecklistSummary, MemberGroup, StationMember, UserTag} from '@/api/types'
-import ChecklistListRow from './checklistindexview/ChecklistListRow.vue'
+import ChecklistTile from './checklistindexview/ChecklistTile.vue'
 import ChecklistCreateModal from './ChecklistCreateModal.vue'
 
 const {t} = useI18n()
@@ -76,11 +76,14 @@ function open(item: ChecklistSummary) {
 
     <template v-else>
       <EmptyState v-if="items.length === 0">{{ t('checklist.empty') }}</EmptyState>
-      <ul v-else class="space-y-2">
-        <li v-for="item in items" :key="item.id">
-          <ChecklistListRow :item="item" @open="open(item)"/>
-        </li>
-      </ul>
+      <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <ChecklistTile
+            v-for="item in items"
+            :key="item.id"
+            :item="item"
+            @open="open(item)"
+        />
+      </div>
     </template>
 
     <ChecklistCreateModal

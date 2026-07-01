@@ -283,10 +283,16 @@ public enum StationPermission implements RouteRole {
     LOST_AND_FOUND_MANAGER(LOST_AND_FOUND_MANAGE),
 
     /**
+     * Allows read-only access to checklists: listing them, opening the detail view,
+     * filtering rows and viewing note history. No write access.
+     */
+    CHECKLIST_READ,
+
+    /**
      * Allows creating, editing, refreshing and deleting checklists, editing their columns,
      * ticking cells, adding or removing rows by hand.
      */
-    CHECKLIST_MANAGE,
+    CHECKLIST_MANAGE(CHECKLIST_READ),
 
     /**
      * Allows managing checklists.

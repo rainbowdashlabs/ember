@@ -6,6 +6,7 @@
 <script lang="ts" setup>
 import {ref} from 'vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import DownloadButton from '@/components/button/DownloadButton.vue'
@@ -23,7 +24,7 @@ const toggleStates = ref(new Set([1, 3]))
 
 <template>
   <section class="space-y-4">
-    <SectionHeader>Buttons</SectionHeader>
+    <SubHeader>Buttons</SubHeader>
     <StyleButtonsRows/>
   </section>
 

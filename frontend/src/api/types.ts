@@ -79,6 +79,7 @@ export const StationPermission = {
     LOST_AND_FOUND_CREATE: 'LOST_AND_FOUND_CREATE',
     LOST_AND_FOUND_MANAGE: 'LOST_AND_FOUND_MANAGE',
     LOST_AND_FOUND_MANAGER: 'LOST_AND_FOUND_MANAGER',
+    CHECKLIST_READ: 'CHECKLIST_READ',
     CHECKLIST_MANAGE: 'CHECKLIST_MANAGE',
     CHECKLIST_MANAGER: 'CHECKLIST_MANAGER',
     TEST_CATALOG_VIEW: 'TEST_CATALOG_VIEW',
@@ -589,6 +590,7 @@ export interface Form {
     createdBy: number
     createdAt: string
     updatedAt: string
+    lastActivityAt: string
     restrictionMode?: string
     restricted?: boolean
     purpose: FormPurposeName

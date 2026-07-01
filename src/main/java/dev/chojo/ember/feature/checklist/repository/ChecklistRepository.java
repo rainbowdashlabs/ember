@@ -156,6 +156,35 @@ public class ChecklistRepository {
                 .update();
     }
 
+    /**
+     * Rewrites the position of every column that belongs to {@code checklistId} to match
+     * {@code orderedIds}. Runs in two passes to sidestep the {@code UNIQUE(checklist_id, position)}
+     * constraint: pass one moves each involved column into a distinct negative slot, pass two lands
+     * them on their final 0-based positions.
+     */
+    public void reorderColumns(int checklistId, List<Integer> orderedIds) {
+        for (int i = 0; i < orderedIds.size(); i++) {
+            query("""
+                            UPDATE checklist_column
+                               SET position = :position
+                             WHERE id = :id AND checklist_id = :checklist_id;""")
+                    .single(call().bind("id", orderedIds.get(i))
+                            .bind("position", -(i + 1))
+                            .bind("checklist_id", checklistId))
+                    .update();
+        }
+        for (int i = 0; i < orderedIds.size(); i++) {
+            query("""
+                            UPDATE checklist_column
+                               SET position = :position
+                             WHERE id = :id AND checklist_id = :checklist_id;""")
+                    .single(call().bind("id", orderedIds.get(i))
+                            .bind("position", i)
+                            .bind("checklist_id", checklistId))
+                    .update();
+        }
+    }
+
     public int countCheckedCellsInColumn(int columnId) {
         return query("SELECT count(*) AS cnt FROM checklist_cell WHERE column_id = :col AND checked = TRUE;")
                 .single(call().bind("col", columnId))

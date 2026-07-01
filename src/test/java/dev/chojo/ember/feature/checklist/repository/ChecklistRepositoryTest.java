@@ -117,6 +117,20 @@ class ChecklistRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(7)
+    void reorderColumns() {
+        var columns = checklistRepo.findColumns(checklistId);
+        assertEquals(2, columns.size());
+        var reversed = List.of(columns.get(1).id(), columns.get(0).id());
+        checklistRepo.reorderColumns(checklistId, reversed);
+        var after = checklistRepo.findColumns(checklistId);
+        assertEquals(reversed.get(0), after.get(0).id());
+        assertEquals(reversed.get(1), after.get(1).id());
+        checklistRepo.reorderColumns(
+                checklistId, List.of(columns.get(0).id(), columns.get(1).id()));
+    }
+
+    @Test
     @Order(8)
     void replaceFilter() {
         checklistRepo.replaceFilter(

@@ -16,7 +16,9 @@ import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useSession} from '@/composables/useSession'
 import {useToast} from '@/composables/useToast'
+import {StationPermission} from '@/api/types'
 import {checklists, memberGroups, stationMembers, userTags} from '@/api'
 import type {
   ChecklistAddMembersResult,
@@ -40,6 +42,10 @@ const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
+const {hasPermission} = useSession()
+
+const canManage = computed(() => hasPermission(StationPermission.CHECKLIST_MANAGE))
+const readOnly = computed(() => !canManage.value)
 
 const detail = ref<ChecklistDetail | null>(null)
 const groups = ref<MemberGroup[]>([])
@@ -171,16 +177,7 @@ async function onSaveMeta(payload: {name: string; description: string; orderedCo
 
     const currentOrder = detail.value.columns.map(c => c.id).join(',')
     if (payload.orderedColumnIds.join(',') !== currentOrder) {
-      const byId = new Map(detail.value.columns.map(c => [c.id, c]))
-      for (let i = 0; i < payload.orderedColumnIds.length; i++) {
-        const col = byId.get(payload.orderedColumnIds[i])
-        if (!col || col.position === i) continue
-        await checklists.updateColumn(detail.value.id, col.id, {
-          label: col.label,
-          description: col.description,
-          position: i,
-        })
-      }
+      await checklists.reorderColumns(detail.value.id, payload.orderedColumnIds)
       await reload()
     }
     showEditMeta.value = false
@@ -226,13 +223,15 @@ async function confirmDeleteChecklist() {
           <p v-if="detail.description" class="text-sm text-(--text-muted)">{{ detail.description }}</p>
         </div>
         <div class="flex flex-wrap gap-2 items-center">
-          <EditButton @click="showEditMeta = true">
-            {{ t('checklist.editChecklist') }}
-          </EditButton>
-          <ChecklistRefreshButton :last-refreshed-at="detail.lastRefreshedAt" :on-refresh="onRefresh"/>
-          <ChecklistAddMembersButton @click="showAddMembers = true"/>
+          <template v-if="canManage">
+            <EditButton @click="showEditMeta = true">
+              {{ t('checklist.editChecklist') }}
+            </EditButton>
+            <ChecklistRefreshButton :last-refreshed-at="detail.lastRefreshedAt" :on-refresh="onRefresh"/>
+            <ChecklistAddMembersButton @click="showAddMembers = true"/>
+          </template>
           <ChecklistExportMenu :checklist-id="detail.id"/>
-          <DeleteButton @click="showDeleteConfirm = true">
+          <DeleteButton v-if="canManage" @click="showDeleteConfirm = true">
             {{ t('checklist.deleteChecklist') }}
           </DeleteButton>
         </div>
@@ -253,6 +252,7 @@ async function confirmDeleteChecklist() {
             v-else
             :detail="detail"
             :visible-entries="visibleEntries"
+            :read-only="readOnly"
             v-model:column-filters="columnFilters"
             @cell-change="applyCell"
             @delete-entry="onDeleteEntry"
@@ -261,29 +261,31 @@ async function confirmDeleteChecklist() {
         />
       </template>
 
-      <ChecklistAddMembersModal
-          v-model="showAddMembers"
-          :adding="addingMembers"
-          :members="members"
-          :alive-member-ids="aliveMemberIds"
-          :removed-entries="removedEntries"
-          @submit="onAddMembers"
-      />
+      <template v-if="canManage">
+        <ChecklistAddMembersModal
+            v-model="showAddMembers"
+            :adding="addingMembers"
+            :members="members"
+            :alive-member-ids="aliveMemberIds"
+            :removed-entries="removedEntries"
+            @submit="onAddMembers"
+        />
 
-      <ChecklistEditModal
-          v-model="showEditMeta"
-          :initial-name="detail.name"
-          :initial-description="detail.description"
-          :initial-columns="detail.columns"
-          :saving="savingMeta"
-          @submit="onSaveMeta"
-      />
+        <ChecklistEditModal
+            v-model="showEditMeta"
+            :initial-name="detail.name"
+            :initial-description="detail.description"
+            :initial-columns="detail.columns"
+            :saving="savingMeta"
+            @submit="onSaveMeta"
+        />
 
-      <ConfirmDeleteModal
-          v-model="showDeleteConfirm"
-          :message="t('checklist.deleteChecklistMessage', {name: detail.name})"
-          @confirm="confirmDeleteChecklist"
-      />
+        <ConfirmDeleteModal
+            v-model="showDeleteConfirm"
+            :message="t('checklist.deleteChecklistMessage', {name: detail.name})"
+            @confirm="confirmDeleteChecklist"
+        />
+      </template>
     </template>
   </ViewContent>
 </template>

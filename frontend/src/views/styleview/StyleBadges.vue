@@ -4,7 +4,6 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
@@ -21,7 +20,7 @@ import {ExchangeStatus, WaitingListEntryStatus} from '@/api/types'
 
 <template>
   <section class="space-y-4">
-    <SectionHeader>Badges</SectionHeader>
+    <SubHeader>Badges</SubHeader>
     <div class="flex flex-wrap gap-2 items-center">
       <PrimaryBadge>Primary</PrimaryBadge>
       <SecondaryBadge>Secondary</SecondaryBadge>

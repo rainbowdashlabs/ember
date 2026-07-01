@@ -19,6 +19,7 @@ const props = defineProps<{
   columns: ChecklistColumnDto[]
   isCheckedFn: (entryId: number, columnId: number) => boolean
   noteFn: (entryId: number, columnId: number) => string | null
+  readOnly?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -40,7 +41,7 @@ function applyDelete() {
     <td class="sticky left-0 z-10 bg-bg-light dark:bg-bg-dark px-2 py-1 border-b border-bg-light-accent dark:border-bg-dark-accent">
       <div class="flex items-center gap-2 min-w-[200px]">
         <IconButton
-            v-if="!entry.deletedAt"
+            v-if="!readOnly && !entry.deletedAt"
             :icon="['fas', 'trash']"
             :label="t('checklist.deleteRow')"
             @click="confirmDelete = true"
@@ -65,7 +66,7 @@ function applyDelete() {
           :column-id="column.id"
           :checked="isCheckedFn(entry.id, column.id)"
           :note="noteFn(entry.id, column.id)"
-          :disabled="!!entry.deletedAt"
+          :disabled="!!entry.deletedAt || readOnly"
           @changed="(cell) => emit('cell-changed', cell)"
       />
     </td>

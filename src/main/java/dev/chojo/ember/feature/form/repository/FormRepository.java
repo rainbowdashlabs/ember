@@ -34,9 +34,9 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING
 public class FormRepository {
 
     private static final String FORM_COLUMNS =
-            "f.id, f.station_id, f.title, f.description, f.status, f.shuffle_questions, f.allow_edit, f.forced, f.start_at, f.end_at, f.closed_at, f.created_by, f.created_at, f.updated_at, f.restriction_mode, EXISTS(SELECT 1 FROM form_restriction r WHERE r.form_id = f.id) AS restricted, f.purpose, f.public_uid, (SELECT count(*) FROM form_response fr WHERE fr.form_id = f.id)::INT AS response_count";
+            "f.id, f.station_id, f.title, f.description, f.status, f.shuffle_questions, f.allow_edit, f.forced, f.start_at, f.end_at, f.closed_at, f.created_by, f.created_at, f.updated_at, f.restriction_mode, EXISTS(SELECT 1 FROM form_restriction r WHERE r.form_id = f.id) AS restricted, f.purpose, f.public_uid, (SELECT count(*) FROM form_response fr WHERE fr.form_id = f.id)::INT AS response_count, GREATEST(f.updated_at, (SELECT MAX(fr2.updated_at) FROM form_response fr2 WHERE fr2.form_id = f.id)) AS last_activity_at";
     private static final String FORM_COLUMNS_BARE =
-            "id, station_id, title, description, status, shuffle_questions, allow_edit, forced, start_at, end_at, closed_at, created_by, created_at, updated_at, restriction_mode, EXISTS(SELECT 1 FROM form_restriction r WHERE r.form_id = id) AS restricted, purpose, public_uid, 0::INT AS response_count";
+            "id, station_id, title, description, status, shuffle_questions, allow_edit, forced, start_at, end_at, closed_at, created_by, created_at, updated_at, restriction_mode, EXISTS(SELECT 1 FROM form_restriction r WHERE r.form_id = id) AS restricted, purpose, public_uid, 0::INT AS response_count, updated_at AS last_activity_at";
 
     // -- Forms --
 

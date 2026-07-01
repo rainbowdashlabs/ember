@@ -5,12 +5,13 @@
  */
 <script lang="ts" setup>
 import {ref, watchEffect} from 'vue'
+import {useI18n} from 'vue-i18n'
 import {useRoute} from 'vue-router'
 
+import ViewContent from '@/components/layout/ViewContent.vue'
 import ThemeSelector from '@/components/theme/ThemeSelector.vue'
 import type {ThemeColors} from '@/theme/themes'
 import {contrastTextColor, ensureContrast} from '@/theme/contrast'
-import PageHeader from '@/components/typography/PageHeader.vue'
 
 import StylePrideText from '@/views/styleview/StylePrideText.vue'
 import StyleLayeredLogo from '@/views/styleview/StyleLayeredLogo.vue'
@@ -23,6 +24,7 @@ import StyleTable from '@/views/styleview/StyleTable.vue'
 import StyleFeedback from '@/views/styleview/StyleFeedback.vue'
 import StyleScanner from '@/views/styleview/StyleScanner.vue'
 
+const {t} = useI18n()
 const route = useRoute()
 const hasCustomParam = ref(false)
 
@@ -73,21 +75,20 @@ watchEffect(() => {
 </script>
 
 <template>
-  <div class="max-w-3xl mx-auto px-4 py-6 sm:px-8 sm:py-8 space-y-10 sm:space-y-12">
-    <div class="space-y-4">
-      <PageHeader>Style Guide</PageHeader>
+  <ViewContent :title="t('pages.style.title')" :subtitle="t('pages.style.subtitle')">
+    <div class="max-w-3xl mx-auto space-y-10 sm:space-y-12">
       <ThemeSelector/>
-    </div>
 
-    <StylePrideText/>
-    <StyleLayeredLogo/>
-    <StyleTypography/>
-    <StyleButtons/>
-    <StyleInputs/>
-    <StyleBadges/>
-    <StyleContainers/>
-    <StyleTable/>
-    <StyleFeedback/>
-    <StyleScanner/>
-  </div>
+      <StylePrideText/>
+      <StyleLayeredLogo/>
+      <StyleTypography/>
+      <StyleButtons/>
+      <StyleInputs/>
+      <StyleBadges/>
+      <StyleContainers/>
+      <StyleTable/>
+      <StyleFeedback/>
+      <StyleScanner/>
+    </div>
+  </ViewContent>
 </template>

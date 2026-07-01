@@ -13,10 +13,12 @@ import type {ChecklistCellDto, ChecklistColumnDto, ChecklistDetail, ChecklistEnt
 import ChecklistColumnHeader from './ChecklistColumnHeader.vue'
 import ChecklistMatrixRow from './ChecklistMatrixRow.vue'
 import ChecklistColumnEditor from './ChecklistColumnEditor.vue'
+import ChecklistCards from './ChecklistCards.vue'
 
 const props = defineProps<{
   detail: ChecklistDetail
   visibleEntries: ChecklistEntryDto[]
+  readOnly?: boolean
 }>()
 
 const columnFilters = defineModel<Record<number, 'any' | 'checked' | 'unchecked'>>('columnFilters', {required: true})
@@ -72,7 +74,7 @@ function isChecked(entryId: number, columnId: number): boolean {
 <template>
   <template v-if="detail.columns.length === 0">
     <EmptyState>{{ t('checklist.columnsEmpty') }}</EmptyState>
-    <div class="text-center mt-2">
+    <div v-if="!readOnly" class="text-center mt-2">
       <PrimaryButton @click="showAddColumn = true">
         <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
         {{ t('checklist.addFirstColumn') }}
@@ -81,14 +83,14 @@ function isChecked(entryId: number, columnId: number): boolean {
   </template>
 
   <template v-else>
-    <div class="overflow-x-auto">
+    <div class="hidden md:block overflow-x-auto">
       <table class="border-collapse min-w-full text-sm">
         <thead>
         <tr>
           <th class="sticky left-0 z-10 bg-bg-light dark:bg-bg-dark text-left px-2 py-1 border-b border-bg-light-accent dark:border-bg-dark-accent">
             <div class="flex items-center justify-between gap-2">
               <span class="font-semibold">{{ t('checklist.memberSet') }}</span>
-              <PrimaryButton class="text-xs" @click="showAddColumn = true">
+              <PrimaryButton v-if="!readOnly" class="text-xs" @click="showAddColumn = true">
                 <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
                 {{ t('checklist.addColumn') }}
               </PrimaryButton>
@@ -100,6 +102,7 @@ function isChecked(entryId: number, columnId: number): boolean {
               :column="column"
               :filter="columnFilters[column.id] ?? 'any'"
               :visible-count="visibleEntries.length"
+              :read-only="readOnly"
               @set-filter="(v) => setFilter(column.id, v)"
               @edit="editingColumn = column"
               @bulk-tick="onBulkAll(column.id, true)"
@@ -116,6 +119,7 @@ function isChecked(entryId: number, columnId: number): boolean {
             :columns="detail.columns"
             :is-checked-fn="isChecked"
             :note-fn="cellNote"
+            :read-only="readOnly"
             @cell-changed="(cell) => emit('cell-change', cell)"
             @delete="emit('delete-entry', entry.id)"
         />
@@ -123,8 +127,21 @@ function isChecked(entryId: number, columnId: number): boolean {
       </table>
     </div>
 
+    <div class="md:hidden">
+      <ChecklistCards
+          :checklist-id="detail.id"
+          :entries="visibleEntries"
+          :columns="detail.columns"
+          :is-checked-fn="isChecked"
+          :note-fn="cellNote"
+          :read-only="!!readOnly"
+          @cell-change="(cell) => emit('cell-change', cell)"
+          @delete-entry="(id) => emit('delete-entry', id)"
+      />
+    </div>
+
     <ChecklistColumnEditor
-        v-if="editingColumn"
+        v-if="!readOnly && editingColumn"
         :checklist-id="detail.id"
         :column="editingColumn"
         :total-columns="detail.columns.length"
@@ -132,7 +149,7 @@ function isChecked(entryId: number, columnId: number): boolean {
         @changed="onColumnChanged"
     />
     <ChecklistColumnEditor
-        v-if="showAddColumn"
+        v-if="!readOnly && showAddColumn"
         :checklist-id="detail.id"
         :total-columns="detail.columns.length"
         @close="showAddColumn = false"

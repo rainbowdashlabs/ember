@@ -16,6 +16,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 import {FormStatus} from '@/api/types'
 import type {Form} from '@/api/types'
+import {formatDate} from '@/util/format'
 
 const props = defineProps<{
   form: Form
@@ -68,6 +69,10 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
       </div>
       <div class="font-semibold">{{ form.title }}</div>
       <p v-if="form.description" class="text-xs text-(--text-muted) line-clamp-3">{{ form.description }}</p>
+      <div class="mt-auto pt-2 text-xs text-(--text-muted) flex flex-col gap-0.5">
+        <span>{{ t('forms.createdOn', {when: formatDate(form.createdAt)}) }}</span>
+        <span>{{ t('forms.lastActivityOn', {when: formatDate(form.lastActivityAt ?? form.updatedAt)}) }}</span>
+      </div>
     </div>
 
     <div class="absolute top-2 right-2" :data-form-menu="form.id" @click.stop>

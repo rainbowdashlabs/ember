@@ -17,6 +17,7 @@ const props = defineProps<{
   column: ChecklistColumnDto
   filter: 'any' | 'checked' | 'unchecked'
   visibleCount: number
+  readOnly?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -86,9 +87,11 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
             <DropdownMenuItem :icon="['fas', 'filter']" @click="pickFilter('any')">{{ t('checklist.filterAny') }}</DropdownMenuItem>
             <DropdownMenuItem :icon="['fas', 'square-check']" @click="pickFilter('checked')">{{ t('checklist.filterChecked') }}</DropdownMenuItem>
             <DropdownMenuItem :icon="['fas', 'square']" @click="pickFilter('unchecked')">{{ t('checklist.filterUnchecked') }}</DropdownMenuItem>
-            <DropdownMenuItem :icon="['fas', 'check-double']" @click="askBulkTick">{{ t('checklist.bulkTickShown') }}</DropdownMenuItem>
-            <DropdownMenuItem :icon="['fas', 'xmark']" @click="askBulkClear">{{ t('checklist.bulkClearShown') }}</DropdownMenuItem>
-            <DropdownMenuItem :icon="['fas', 'pen']" @click="emit('edit'); menuOpen = false">{{ t('checklist.editColumn') }}</DropdownMenuItem>
+            <template v-if="!readOnly">
+              <DropdownMenuItem :icon="['fas', 'check-double']" @click="askBulkTick">{{ t('checklist.bulkTickShown') }}</DropdownMenuItem>
+              <DropdownMenuItem :icon="['fas', 'xmark']" @click="askBulkClear">{{ t('checklist.bulkClearShown') }}</DropdownMenuItem>
+              <DropdownMenuItem :icon="['fas', 'pen']" @click="emit('edit'); menuOpen = false">{{ t('checklist.editColumn') }}</DropdownMenuItem>
+            </template>
           </div>
         </div>
       </div>

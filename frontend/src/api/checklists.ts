@@ -67,6 +67,10 @@ export async function deleteColumn(id: number, columnId: number): Promise<void> 
     await client.delete(`/checklist/${id}/column/${columnId}`)
 }
 
+export async function reorderColumns(id: number, orderedIds: number[]): Promise<void> {
+    await client.put(`/checklist/${id}/columns/reorder`, {orderedIds})
+}
+
 export async function addMembers(
     id: number,
     memberIds: number[],

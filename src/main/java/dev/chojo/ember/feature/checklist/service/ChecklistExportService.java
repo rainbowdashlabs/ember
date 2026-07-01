@@ -5,20 +5,29 @@
  */
 package dev.chojo.ember.feature.checklist.service;
 
-import dev.chojo.ember.feature.checklist.entity.Checklist;
+import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.checklist.entity.ChecklistCell;
 import dev.chojo.ember.feature.checklist.entity.ChecklistColumn;
-import dev.chojo.ember.feature.checklist.entity.ChecklistEntry;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
 import dev.chojo.ember.util.TypstCompiler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -30,15 +39,25 @@ import java.util.Map;
 @Singleton
 public class ChecklistExportService {
     private static final Logger log = LoggerFactory.getLogger(ChecklistExportService.class);
-    private static final DateTimeFormatter DATE_TIME_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+    private static final DateTimeFormatter CSV_DATE_TIME_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+    private static final DateTimeFormatter PDF_DATE_TIME_FMT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
+    private static final ObjectMapper MAPPER = JsonMapper.builder().build();
 
     private final ChecklistService checklistService;
     private final MemberNameResolver memberNameResolver;
+    private final StationRepository stationRepository;
+    private final Api apiConfig;
 
     @Inject
-    public ChecklistExportService(ChecklistService checklistService, MemberNameResolver memberNameResolver) {
+    public ChecklistExportService(
+            ChecklistService checklistService,
+            MemberNameResolver memberNameResolver,
+            StationRepository stationRepository,
+            Api apiConfig) {
         this.checklistService = checklistService;
         this.memberNameResolver = memberNameResolver;
+        this.stationRepository = stationRepository;
+        this.apiConfig = apiConfig;
     }
 
     public String exportCsv(int checklistId) {
@@ -73,66 +92,58 @@ public class ChecklistExportService {
         return sb.toString();
     }
 
-    public byte[] exportPdf(int checklistId) throws IOException, InterruptedException {
+    public byte[] exportPdf(int checklistId, String generatedBy) throws IOException, InterruptedException {
         var checklist = checklistService.findById(checklistId).orElseThrow();
+        var station = stationRepository.findById(checklist.stationId()).orElseThrow();
         var columns = checklistService.findColumns(checklistId);
         var entries = checklistService.findEntries(checklistId, false);
         var cells = indexCells(checklistService.findCells(checklistId));
-        String typst = renderTypst(checklist, columns, entries, cells);
-        return TypstCompiler.compile(typst, Map.of());
-    }
 
-    private String renderTypst(
-            Checklist checklist,
-            List<ChecklistColumn> columns,
-            List<ChecklistEntry> entries,
-            Map<String, ChecklistCell> cells) {
-        var sb = new StringBuilder();
-        sb.append("#set page(paper: \"a4\", flipped: true, margin: 1.5cm)\n");
-        sb.append("#set text(font: \"Linux Libertine\", size: 9pt)\n");
-        sb.append("#align(center)[= ").append(typstEscape(checklist.name())).append("]\n\n");
-        if (checklist.description() != null && !checklist.description().isBlank()) {
-            sb.append(typstEscape(checklist.description())).append("\n\n");
-        }
+        String locale = resolveLocalePrefix(station);
+        ZoneId zone = resolveTimezone(station);
 
-        int columnCount = 1 + columns.size();
-        sb.append("#table(\n  columns: (auto");
-        for (int i = 0; i < columns.size(); i++) sb.append(", 1fr");
-        sb.append("),\n  align: (left");
-        for (int i = 0; i < columns.size(); i++) sb.append(", center");
-        sb.append("),\n  table.header(\n    [*Member*]");
-        for (var column : columns) {
-            sb.append(", [*").append(typstEscape(column.label())).append("*]");
-        }
-        sb.append("\n  ),\n");
-
+        var rows = new ArrayList<Map<String, Object>>();
         for (var entry : entries) {
             String name = memberNameResolver.resolveLocal(entry.memberId());
-            sb.append("  [")
-                    .append(typstEscape(name != null ? name : "#" + entry.memberId()))
-                    .append("]");
+            var rowCells = new ArrayList<Map<String, Object>>();
             for (var column : columns) {
                 var cell = cells.get(cellKey(entry.id(), column.id()));
                 boolean checked = cell != null && cell.checked();
-                String glyph = checked ? "☑" : "☐";
-                sb.append(", [").append(glyph);
-                if (cell != null && cell.note() != null && !cell.note().isBlank()) {
-                    sb.append("\\\n#text(size: 7pt)[")
-                            .append(typstEscape(cell.note()))
-                            .append("]");
-                }
-                sb.append("]");
+                String note = cell != null && cell.note() != null ? cell.note() : "";
+                var cellMap = new LinkedHashMap<String, Object>();
+                cellMap.put("checked", checked);
+                cellMap.put("note", note);
+                rowCells.add(cellMap);
             }
-            sb.append(",\n");
+            var row = new LinkedHashMap<String, Object>();
+            row.put("name", name != null ? name : "#" + entry.memberId());
+            row.put("cells", rowCells);
+            rows.add(row);
         }
-        sb.append(")\n");
+
+        var data = new LinkedHashMap<String, Object>();
+        data.put("stationName", station.name());
+        data.put("generatedBy", generatedBy);
+        data.put("generatedAt", PDF_DATE_TIME_FMT.format(Instant.now().atZone(zone)));
+        data.put("baseUrl", apiConfig.baseUrl());
+        data.put("hasLogo", false);
+        data.put("checklistName", checklist.name());
+        data.put("checklistDescription", checklist.description() == null ? "" : checklist.description());
+        data.put("columns", columns.stream().map(ChecklistColumn::label).toList());
+        data.put("rows", rows);
+
+        StationLogo logo = stationRepository.findLogo(checklist.stationId()).orElse(null);
+        byte[] pdf = TypstCompiler.compileTemplate(
+                data,
+                locale + "/checklist-export.typ",
+                logo != null ? new TypstCompiler.StationLogo(logo.data(), logo.contentType()) : null,
+                MAPPER);
         log.info(
-                "Rendered Typst source for checklist {} ({} entries, {} columns, {} table cells)",
+                "Rendered checklist PDF for {} ({} entries, {} columns)",
                 checklist.id(),
                 entries.size(),
-                columns.size(),
-                entries.size() * columnCount);
-        return sb.toString();
+                columns.size());
+        return pdf;
     }
 
     private String latestUpdateForEntry(Map<String, ChecklistCell> cells, int entryId) {
@@ -140,7 +151,7 @@ public class ChecklistExportService {
                 .filter(c -> c.entryId() == entryId)
                 .map(ChecklistCell::updatedAt)
                 .max(java.util.Comparator.naturalOrder())
-                .map(ts -> DATE_TIME_FMT.format(ts.atZone(java.time.ZoneOffset.UTC)))
+                .map(ts -> CSV_DATE_TIME_FMT.format(ts.atZone(ZoneOffset.UTC)))
                 .orElse("");
     }
 
@@ -162,15 +173,18 @@ public class ChecklistExportService {
         return '"' + escaped + '"';
     }
 
-    private static String typstEscape(String value) {
-        if (value == null) return "";
-        return value.replace("\\", "\\\\")
-                .replace("#", "\\#")
-                .replace("[", "\\[")
-                .replace("]", "\\]")
-                .replace("*", "\\*")
-                .replace("_", "\\_")
-                .replace("`", "\\`")
-                .replace("$", "\\$");
+    private static String resolveLocalePrefix(Station station) {
+        if (station != null && station.locale() != null && station.locale().startsWith("de")) return "de";
+        return "en";
+    }
+
+    private static ZoneId resolveTimezone(Station station) {
+        if (station != null && station.timezone() != null) {
+            try {
+                return ZoneId.of(station.timezone());
+            } catch (Exception ignored) {
+            }
+        }
+        return ZoneOffset.UTC;
     }
 }

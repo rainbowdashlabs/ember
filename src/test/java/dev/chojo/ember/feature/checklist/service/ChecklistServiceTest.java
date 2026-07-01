@@ -110,6 +110,21 @@ class ChecklistServiceTest extends RepositoryTestBase {
         assertEquals("Late renamed", renamedColumn.label());
         assertTrue(service.findColumn(addedColumn.id()).isPresent());
         assertEquals(0, service.countCheckedCellsInColumn(addedColumn.id()));
+
+        var columnsForReorder = service.findColumns(checklist.id());
+        var reversedIds = columnsForReorder.stream()
+                .map(dev.chojo.ember.feature.checklist.entity.ChecklistColumn::id)
+                .collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
+        java.util.Collections.reverse(reversedIds);
+        service.reorderColumns(checklist.id(), reversedIds);
+        var afterReorder = service.findColumns(checklist.id());
+        assertEquals(reversedIds.get(0), afterReorder.get(0).id());
+        try {
+            service.reorderColumns(checklist.id(), List.of(reversedIds.get(0)));
+            throw new AssertionError("expected reject");
+        } catch (IllegalArgumentException expected) {
+        }
+
         assertTrue(service.deleteColumn(addedColumn.id()));
 
         assertTrue(service.findById(checklist.id()).isPresent());

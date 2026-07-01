@@ -35,11 +35,17 @@ const selected = ref<Set<number>>(new Set())
 
 const removedMemberIds = computed(() => new Set(props.removedEntries.map(e => e.memberId)))
 
+function displayName(m: StationMember): string {
+  return m.name ?? m.email ?? `#${m.id}`
+}
+
 const candidates = computed(() => {
   const query = search.value.trim().toLowerCase()
   return props.members
       .filter(m => !props.aliveMemberIds.has(m.id))
-      .filter(m => !query || (m.name ?? '').toLowerCase().includes(query))
+      .filter(m => !query || displayName(m).toLowerCase().includes(query))
+      .slice()
+      .sort((a, b) => displayName(a).localeCompare(displayName(b), 'de', {sensitivity: 'base'}))
 })
 
 function toggle(id: number) {
@@ -85,7 +91,7 @@ watch(visible, (value, previous) => {
           >
             <div class="flex items-center gap-2 min-w-0">
               <CheckboxInput :model-value="selected.has(member.id)" @update:model-value="toggle(member.id)"/>
-              <span class="truncate">{{ member.name ?? member.email ?? `#${member.id}` }}</span>
+              <span class="truncate">{{ displayName(member) }}</span>
             </div>
             <SecondaryBadge v-if="removedMemberIds.has(member.id)">{{ t('checklist.previouslyRemoved') }}</SecondaryBadge>
           </li>

@@ -53,8 +53,8 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * HTTP routes for the checklist feature. Every endpoint requires CHECKLIST_MANAGE on the
- * calling member's station context.
+ * HTTP routes for the checklist feature. Read endpoints require CHECKLIST_READ; every
+ * write endpoint requires CHECKLIST_MANAGE.
  */
 @Singleton
 public class ChecklistRoutes implements Routes {
@@ -85,9 +85,9 @@ public class ChecklistRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/checklist", this::list, StationPermission.CHECKLIST_MANAGE);
+        routes.get(prefix + "/checklist", this::list, StationPermission.CHECKLIST_READ);
         routes.post(prefix + "/checklist", this::create, StationPermission.CHECKLIST_MANAGE);
-        routes.get(prefix + "/checklist/{id}", this::get, StationPermission.CHECKLIST_MANAGE);
+        routes.get(prefix + "/checklist/{id}", this::get, StationPermission.CHECKLIST_READ);
         routes.patch(prefix + "/checklist/{id}", this::update, StationPermission.CHECKLIST_MANAGE);
         routes.delete(prefix + "/checklist/{id}", this::delete, StationPermission.CHECKLIST_MANAGE);
 
@@ -97,6 +97,8 @@ public class ChecklistRoutes implements Routes {
                 prefix + "/checklist/{id}/column/{columnId}", this::updateColumn, StationPermission.CHECKLIST_MANAGE);
         routes.delete(
                 prefix + "/checklist/{id}/column/{columnId}", this::deleteColumn, StationPermission.CHECKLIST_MANAGE);
+        routes.put(
+                prefix + "/checklist/{id}/columns/reorder", this::reorderColumns, StationPermission.CHECKLIST_MANAGE);
 
         routes.post(prefix + "/checklist/{id}/entry", this::addMembers, StationPermission.CHECKLIST_MANAGE);
         routes.delete(
@@ -109,14 +111,14 @@ public class ChecklistRoutes implements Routes {
         routes.get(
                 prefix + "/checklist/{id}/entry/{entryId}/column/{columnId}/note-history",
                 this::noteHistory,
-                StationPermission.CHECKLIST_MANAGE);
+                StationPermission.CHECKLIST_READ);
         routes.post(
                 prefix + "/checklist/{id}/column/{columnId}/bulk",
                 this::bulkSetColumn,
                 StationPermission.CHECKLIST_MANAGE);
 
-        routes.get(prefix + "/checklist/{id}/export.csv", this::exportCsv, StationPermission.CHECKLIST_MANAGE);
-        routes.get(prefix + "/checklist/{id}/export.pdf", this::exportPdf, StationPermission.CHECKLIST_MANAGE);
+        routes.get(prefix + "/checklist/{id}/export.csv", this::exportCsv, StationPermission.CHECKLIST_READ);
+        routes.get(prefix + "/checklist/{id}/export.pdf", this::exportPdf, StationPermission.CHECKLIST_READ);
     }
 
     @OpenApi(
@@ -283,6 +285,28 @@ public class ChecklistRoutes implements Routes {
     }
 
     @OpenApi(
+            path = "/api/v1/checklist/{id}/columns/reorder",
+            methods = HttpMethod.PUT,
+            summary = "Rewrite the position of every column of the checklist",
+            tags = {"Checklist"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ReorderColumnsRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
+    private void reorderColumns(Context ctx) {
+        var checklist = loadOwned(ctx);
+        var request = ctx.bodyAsClass(ReorderColumnsRequest.class);
+        if (request.orderedIds() == null || request.orderedIds().isEmpty()) {
+            throw new BadRequestResponse("orderedIds is required");
+        }
+        try {
+            checklistService.reorderColumns(checklist.id(), request.orderedIds());
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestResponse(e.getMessage());
+        }
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    @OpenApi(
             path = "/api/v1/checklist/{id}/entry",
             methods = HttpMethod.POST,
             summary = "Manually place members on a checklist or restore previously removed ones",
@@ -417,9 +441,12 @@ public class ChecklistRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200"))
     private void exportPdf(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         var checklist = loadOwned(ctx);
+        var account = session.account();
+        String generatedBy = (account.firstName() + " " + account.lastName()).trim();
         try {
-            byte[] pdf = exportService.exportPdf(checklist.id());
+            byte[] pdf = exportService.exportPdf(checklist.id(), generatedBy);
             ctx.contentType("application/pdf");
             ctx.header(
                     "Content-Disposition",
@@ -687,6 +714,8 @@ public class ChecklistRoutes implements Routes {
     public record ColumnCreateRequest(String label, String description, Integer position) {}
 
     public record ColumnUpdateRequest(String label, String description, Integer position) {}
+
+    public record ReorderColumnsRequest(List<Integer> orderedIds) {}
 
     public record RestrictionRequest(
             List<String> userTypes,

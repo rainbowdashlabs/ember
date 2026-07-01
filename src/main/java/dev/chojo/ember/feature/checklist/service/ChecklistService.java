@@ -199,6 +199,21 @@ public class ChecklistService {
         return repository.findColumn(columnId).orElseThrow();
     }
 
+    /**
+     * Reorders every column of {@code checklistId} to match {@code orderedIds}. The list must
+     * contain every column of the checklist exactly once; any extras or missing ids are rejected
+     * so a partial reorder cannot corrupt the sequence.
+     */
+    public void reorderColumns(int checklistId, List<Integer> orderedIds) {
+        var existingIds = repository.findColumns(checklistId).stream()
+                .map(ChecklistColumn::id)
+                .collect(java.util.stream.Collectors.toSet());
+        if (orderedIds.size() != existingIds.size() || !new HashSet<>(orderedIds).equals(existingIds)) {
+            throw new IllegalArgumentException("orderedIds must contain every column exactly once");
+        }
+        repository.reorderColumns(checklistId, orderedIds);
+    }
+
     public int countCheckedCellsInColumn(int columnId) {
         return repository.countCheckedCellsInColumn(columnId);
     }
