@@ -15,6 +15,8 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
+import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -43,14 +45,53 @@ public class ProfileFieldRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(ProfileFieldRoutes.class);
 
     private final ProfileFieldService profileFieldService;
+    private final StationMemberRepository stationMemberRepository;
 
     @Inject
-    public ProfileFieldRoutes(ProfileFieldService profileFieldService) {
+    public ProfileFieldRoutes(
+            ProfileFieldService profileFieldService, StationMemberRepository stationMemberRepository) {
         this.profileFieldService = profileFieldService;
+        this.stationMemberRepository = stationMemberRepository;
     }
 
     private static boolean isBlank(String s) {
         return s == null || s.isBlank();
+    }
+
+    /**
+     * Returns the caller's station id, rejecting sessions without a resolved station.
+     */
+    private static int requireStation(UserSession session) {
+        Integer stationId = session.stationId();
+        if (stationId == null) {
+            throw new NotFoundResponse();
+        }
+        return stationId;
+    }
+
+    /**
+     * Loads a profile field definition and asserts it belongs to the caller's station.
+     * Answers with 404 (rather than 403) when the field is absent or owned by another
+     * station, so foreign field ids cannot be probed for existence.
+     */
+    private ProfileField requireOwnedField(int fieldId, UserSession session) {
+        var field = profileFieldService.findById(fieldId).orElseThrow(NotFoundResponse::new);
+        if (field.stationId() != requireStation(session)) {
+            throw new NotFoundResponse();
+        }
+        return field;
+    }
+
+    /**
+     * Loads a station member and asserts they belong to the caller's station.
+     * Answers with 404 when the member is absent or owned by another station.
+     */
+    private StationMember requireOwnedMember(int memberId, UserSession session) {
+        var member = stationMemberRepository.findById(memberId).orElseThrow(NotFoundResponse::new);
+        if (member.stationId() != requireStation(session)) {
+            throw new NotFoundResponse();
+        }
+        return member;
     }
 
     // -- Field Definitions --
@@ -118,10 +159,9 @@ public class ProfileFieldRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void get(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        profileFieldService.findById(id).ifPresentOrElse(ctx::json, () -> {
-            throw new NotFoundResponse();
-        });
+        ctx.json(requireOwnedField(id, session));
     }
 
     @OpenApi(
@@ -136,11 +176,13 @@ public class ProfileFieldRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void update(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var request = ctx.bodyAsClass(ProfileFieldRequest.class);
         if (isBlank(request.name()) || request.fieldType() == null) {
             throw new BadRequestResponse("name and fieldType are required");
         }
+        requireOwnedField(id, session);
         profileFieldService
                 .update(
                         id,
@@ -167,7 +209,9 @@ public class ProfileFieldRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void delete(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        requireOwnedField(id, session);
         if (profileFieldService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -183,7 +227,9 @@ public class ProfileFieldRoutes implements Routes {
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProfileField[].class)))
     private void getApplicableFields(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        requireOwnedMember(memberId, session);
         ctx.json(profileFieldService.findApplicableFields(memberId));
     }
 
@@ -195,7 +241,9 @@ public class ProfileFieldRoutes implements Routes {
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProfileFieldValue[].class)))
     private void getValues(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        requireOwnedMember(memberId, session);
         ctx.json(profileFieldService.findValues(memberId));
     }
 
@@ -210,20 +258,21 @@ public class ProfileFieldRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProfileFieldValue[].class)))
     private void setValues(Context ctx) {
         UserSession session = UserSession.from(ctx);
+        int stationId = requireStation(session);
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        requireOwnedMember(memberId, session);
         var request = ctx.bodyAsClass(SetValuesRequest.class);
         boolean canEditReadonly = session.hasPermission(StationPermission.MEMBER_EDIT);
 
         List<FieldValueEntry> entries = request.values() != null
                 ? request.values().stream()
                         .filter(v -> {
-                            if (!canEditReadonly) {
-                                var field = profileFieldService
-                                        .findById(v.fieldId())
-                                        .orElse(null);
-                                return field == null || !field.config().readonly();
+                            var field =
+                                    profileFieldService.findById(v.fieldId()).orElseThrow(NotFoundResponse::new);
+                            if (field.stationId() != stationId) {
+                                throw new NotFoundResponse();
                             }
-                            return true;
+                            return canEditReadonly || !field.config().readonly();
                         })
                         .map(v -> new FieldValueEntry(v.fieldId(), v.value()))
                         .toList()
