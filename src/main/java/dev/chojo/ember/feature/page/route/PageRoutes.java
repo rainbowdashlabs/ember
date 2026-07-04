@@ -59,6 +59,19 @@ public class PageRoutes implements Routes {
         this.avatarService = avatarService;
     }
 
+    /**
+     * Loads a page and asserts it belongs to the caller's station, returning it. Answers 404
+     * when the page is absent or owned by another station, so a page id from one station cannot
+     * be read, edited, published, duplicated, or deleted by another station.
+     */
+    private StationPage requireOwnedPage(int pageId, UserSession session) {
+        var page = pageService.getPage(pageId).orElseThrow(NotFoundResponse::new);
+        if (page.stationId() != session.stationId()) {
+            throw new NotFoundResponse();
+        }
+        return page;
+    }
+
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/pages", this::list, StationPermission.PAGE_EDIT);
@@ -247,13 +260,15 @@ public class PageRoutes implements Routes {
     }
 
     private void get(Context ctx) {
+        var session = UserSession.from(ctx);
         int pid = ctx.pathParamAsClass("pid", Integer.class).get();
-        var page = pageService.getPage(pid).orElseThrow(NotFoundResponse::new);
-        ctx.json(page);
+        ctx.json(requireOwnedPage(pid, session));
     }
 
     private void save(Context ctx) {
+        var session = UserSession.from(ctx);
         int pid = ctx.pathParamAsClass("pid", Integer.class).get();
+        requireOwnedPage(pid, session);
         var request = ctx.bodyAsClass(SavePageRequest.class);
         if (request.title() == null || request.title().isBlank()) {
             throw new BadRequestResponse("title is required");
@@ -299,6 +314,7 @@ public class PageRoutes implements Routes {
     private void duplicate(Context ctx) {
         var session = UserSession.from(ctx);
         int pid = ctx.pathParamAsClass("pid", Integer.class).get();
+        requireOwnedPage(pid, session);
         try {
             var copy = pageService.duplicatePage(pid, session.member().id());
             ctx.status(HttpStatus.CREATED).json(copy);
@@ -308,7 +324,9 @@ public class PageRoutes implements Routes {
     }
 
     private void delete(Context ctx) {
+        var session = UserSession.from(ctx);
         int pid = ctx.pathParamAsClass("pid", Integer.class).get();
+        requireOwnedPage(pid, session);
         if (!pageService.deletePage(pid)) {
             throw new NotFoundResponse();
         }
@@ -316,7 +334,9 @@ public class PageRoutes implements Routes {
     }
 
     private void togglePublish(Context ctx) {
+        var session = UserSession.from(ctx);
         int pid = ctx.pathParamAsClass("pid", Integer.class).get();
+        requireOwnedPage(pid, session);
         var request = ctx.bodyAsClass(PublishRequest.class);
         if (!pageService.setPublished(pid, request.published())) {
             throw new NotFoundResponse();
@@ -336,7 +356,9 @@ public class PageRoutes implements Routes {
     }
 
     private void uploadPageFile(Context ctx) {
+        var session = UserSession.from(ctx);
         int pid = ctx.pathParamAsClass("pid", Integer.class).get();
+        requireOwnedPage(pid, session);
         var file = ctx.uploadedFile("file");
         if (file == null) throw new BadRequestResponse("file is required");
 
@@ -353,7 +375,12 @@ public class PageRoutes implements Routes {
     }
 
     private void deleteFile(Context ctx) {
+        var session = UserSession.from(ctx);
         int fileId = ctx.pathParamAsClass("fileId", Integer.class).get();
+        var pageFile = pageService.findFile(fileId).orElseThrow(NotFoundResponse::new);
+        if (pageFile.stationId() != session.stationId()) {
+            throw new NotFoundResponse();
+        }
         if (!pageService.deleteFile(fileId)) {
             throw new NotFoundResponse();
         }

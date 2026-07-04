@@ -304,6 +304,10 @@ public class PageService {
         return variantService.readBest(stationId, contentHash, requestedWidth, acceptHeader);
     }
 
+    public Optional<PageFile> findFile(int fileId) {
+        return pageRepository.findFile(fileId);
+    }
+
     public boolean deleteFile(int fileId) {
         var image = pageRepository.findFile(fileId).orElse(null);
         if (image == null) return false;
