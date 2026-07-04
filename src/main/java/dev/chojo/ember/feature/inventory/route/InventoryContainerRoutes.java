@@ -123,7 +123,11 @@ public class InventoryContainerRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void updateKind(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        if (containerService.listKinds(session.stationId()).stream().noneMatch(k -> k.id() == id)) {
+            throw new NotFoundResponse();
+        }
         var body = ctx.bodyAsClass(KindRequest.class);
         try {
             containerService
@@ -147,7 +151,11 @@ public class InventoryContainerRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void deleteKind(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        if (containerService.listKinds(session.stationId()).stream().noneMatch(k -> k.id() == id)) {
+            throw new NotFoundResponse();
+        }
         if (containerService.deleteKind(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {

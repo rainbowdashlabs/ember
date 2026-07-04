@@ -68,6 +68,16 @@ public class InventoryFieldDefinitionRoutes implements Routes {
         return inventory;
     }
 
+    /**
+     * Asserts the given field belongs to the given inventory, so a field id from another
+     * inventory cannot be edited or deleted by pairing it with an owned inventory id.
+     */
+    private void verifyFieldInInventory(int inventoryId, int fieldId) {
+        if (fieldService.findByInventory(inventoryId).stream().noneMatch(f -> f.id() == fieldId)) {
+            throw new NotFoundResponse();
+        }
+    }
+
     @OpenApi(
             path = "/api/v1/inventories/{inventoryId}/fields",
             methods = HttpMethod.GET,
@@ -136,6 +146,7 @@ public class InventoryFieldDefinitionRoutes implements Routes {
         int fieldId = ctx.pathParamAsClass("fieldId", Integer.class).get();
         UserSession session = UserSession.from(ctx);
         ownedInventory(inventoryId, session);
+        verifyFieldInInventory(inventoryId, fieldId);
         var body = ctx.bodyAsClass(FieldUpdateRequest.class);
         try {
             fieldService
@@ -166,6 +177,7 @@ public class InventoryFieldDefinitionRoutes implements Routes {
         int fieldId = ctx.pathParamAsClass("fieldId", Integer.class).get();
         UserSession session = UserSession.from(ctx);
         ownedInventory(inventoryId, session);
+        verifyFieldInInventory(inventoryId, fieldId);
         if (fieldService.delete(fieldId)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {

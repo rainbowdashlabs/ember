@@ -74,6 +74,18 @@ public class ExchangeRoutes implements Routes {
         this.memberIdentityFactory = memberIdentityFactory;
     }
 
+    /**
+     * Loads an exchange request and asserts it belongs to the caller's station, returning it.
+     * Answers 404 when absent and 403 when owned by another station.
+     */
+    private ExchangeRequest requireOwnedExchange(int exchangeId, UserSession session) {
+        var exchange = exchangeService.findById(exchangeId).orElseThrow(NotFoundResponse::new);
+        if (exchange.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
+        return exchange;
+    }
+
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/exchanges", this::list, StationPermission.USER);
@@ -127,10 +139,9 @@ public class ExchangeRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void get(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        exchangeService.findById(id).ifPresentOrElse(request -> ctx.json(toResponse(request)), () -> {
-            throw new NotFoundResponse();
-        });
+        ctx.json(toResponse(requireOwnedExchange(id, session)));
     }
 
     @OpenApi(
@@ -141,7 +152,9 @@ public class ExchangeRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = LogResponse[].class)))
     private void logs(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        requireOwnedExchange(id, session);
         var logs = exchangeService.findLogs(id);
         ctx.json(logs.stream().map(this::toLogResponse).toList());
     }
@@ -202,6 +215,7 @@ public class ExchangeRoutes implements Routes {
     private void updateStatus(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         UserSession session = UserSession.from(ctx);
+        requireOwnedExchange(id, session);
         var request = ctx.bodyAsClass(UpdateStatusRequest.class);
         if (request.status() == null) {
             throw new BadRequestResponse("status is required");
@@ -226,7 +240,9 @@ public class ExchangeRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void delete(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        requireOwnedExchange(id, session);
         if (exchangeService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {

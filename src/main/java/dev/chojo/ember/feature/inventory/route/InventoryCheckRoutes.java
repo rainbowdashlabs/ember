@@ -14,10 +14,13 @@ import dev.chojo.ember.feature.inventory.entity.CheckItemRequest;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository.MemberCheckSummary;
 import dev.chojo.ember.feature.inventory.service.InventoryCheckService;
+import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
+import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
@@ -41,16 +44,53 @@ import java.util.List;
 public class InventoryCheckRoutes implements Routes {
     private final InventoryCheckService checkService;
     private final InventoryService inventoryService;
+    private final InventoryContainerService containerService;
+    private final StationMemberRepository stationMemberRepository;
     private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
     public InventoryCheckRoutes(
             InventoryCheckService checkService,
             InventoryService inventoryService,
+            InventoryContainerService containerService,
+            StationMemberRepository stationMemberRepository,
             MemberIdentityFactory memberIdentityFactory) {
         this.checkService = checkService;
         this.inventoryService = inventoryService;
+        this.containerService = containerService;
+        this.stationMemberRepository = stationMemberRepository;
         this.memberIdentityFactory = memberIdentityFactory;
+    }
+
+    /**
+     * Asserts the given container belongs to the caller's station.
+     */
+    private void verifyContainerInStation(int containerId, UserSession session) {
+        var container = containerService.findById(containerId).orElseThrow(NotFoundResponse::new);
+        if (container.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
+    }
+
+    /**
+     * Asserts the given item's inventory belongs to the caller's station.
+     */
+    private void verifyItemInStation(int itemId, UserSession session) {
+        var item = inventoryService.findItemById(itemId).orElseThrow(NotFoundResponse::new);
+        var inventory = inventoryService.findById(item.inventoryId()).orElseThrow(NotFoundResponse::new);
+        if (inventory.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
+    }
+
+    /**
+     * Asserts the given member belongs to the caller's station.
+     */
+    private void verifyMemberInStation(int memberId, UserSession session) {
+        var member = stationMemberRepository.findById(memberId).orElseThrow(NotFoundResponse::new);
+        if (member.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
     }
 
     @Override
@@ -101,7 +141,9 @@ public class InventoryCheckRoutes implements Routes {
             queryParams = @OpenApiParam(name = "deep", type = Boolean.class),
             responses = @OpenApiResponse(status = "200"))
     private void containerExpectedItems(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int containerId = ctx.pathParamAsClass("containerId", Integer.class).get();
+        verifyContainerInStation(containerId, session);
         boolean deep = "true".equalsIgnoreCase(ctx.queryParam("deep"));
         ctx.json(checkService.expectedContainerItems(containerId, deep));
     }
@@ -115,7 +157,9 @@ public class InventoryCheckRoutes implements Routes {
             queryParams = @OpenApiParam(name = "deep", type = Boolean.class),
             responses = @OpenApiResponse(status = "200"))
     private void containerLastItemResults(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int containerId = ctx.pathParamAsClass("containerId", Integer.class).get();
+        verifyContainerInStation(containerId, session);
         boolean deep = "true".equalsIgnoreCase(ctx.queryParam("deep"));
         ctx.json(checkService.lastCheckForContainerItems(containerId, deep));
     }
@@ -128,7 +172,9 @@ public class InventoryCheckRoutes implements Routes {
             pathParams = @OpenApiParam(name = "itemId", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200"))
     private void itemCheckHistory(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int itemId = ctx.pathParamAsClass("itemId", Integer.class).get();
+        verifyItemInStation(itemId, session);
         ctx.json(checkService.findCheckHistoryForItem(itemId));
     }
 
@@ -223,6 +269,7 @@ public class InventoryCheckRoutes implements Routes {
     private void cancelCheck(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        verifyMemberInStation(memberId, session);
         checkService.cancelCheck(memberId, session.member().id());
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -235,7 +282,9 @@ public class InventoryCheckRoutes implements Routes {
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
             responses = {@OpenApiResponse(status = "200"), @OpenApiResponse(status = "404")})
     private void lastCheck(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        verifyMemberInStation(memberId, session);
         var detail = checkService.lastCheckDetail(memberId);
         if (detail.isEmpty()) throw new NotFoundResponse();
         ctx.json(detail.get());
