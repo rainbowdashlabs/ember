@@ -52,6 +52,29 @@ class AuthRateLimiterTest {
     }
 
     @Test
+    void twoFactorIpBucketExhaustsAtBurst() {
+        var clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
+        var limiter = new AuthRateLimiter(clock);
+        for (int i = 0; i < 20; i++) {
+            assertTrue(limiter.tryTwoFactor("1.2.3.4", i).isEmpty());
+        }
+        var retry = limiter.tryTwoFactor("1.2.3.4", 999);
+        assertTrue(retry.isPresent());
+        assertTrue(retry.get() > 0);
+    }
+
+    @Test
+    void twoFactorIdentityBucketExhaustsAcrossIps() {
+        var clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
+        var limiter = new AuthRateLimiter(clock);
+        for (int i = 0; i < 10; i++) {
+            assertTrue(limiter.tryTwoFactor("10.0.0." + i, 42).isEmpty());
+        }
+        var retry = limiter.tryTwoFactor("10.99.99.99", 42);
+        assertTrue(retry.isPresent(), "11th attempt for same account should be limited even from a new IP");
+    }
+
+    @Test
     void registerLimitsPerIp() {
         var clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
         var limiter = new AuthRateLimiter(clock);

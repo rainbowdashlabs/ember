@@ -12,19 +12,25 @@ import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Demo;
+import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.account.entity.AccountToken;
 import dev.chojo.ember.feature.account.entity.LoginResult;
 import dev.chojo.ember.feature.account.entity.TokenType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.account.service.AuthRateLimiter;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
 import dev.chojo.ember.feature.twofactor.service.TrustedDeviceService;
+import dev.chojo.ember.feature.twofactor.service.TwoFactorAttemptTracker;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorAuditService;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
 import dev.chojo.ember.feature.twofactor.service.WebAuthnService;
+import dev.chojo.ember.util.ClientIp;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
+import io.javalin.http.HttpResponseException;
+import io.javalin.http.HttpStatus;
 import io.javalin.http.UnauthorizedResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
@@ -36,6 +42,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Singleton
@@ -51,6 +58,9 @@ public class TwoFactorRoutes implements Routes {
     private final WebAuthnService webAuthnService;
     private final Demo demoConfig;
     private final TrustedDeviceService trustedDeviceService;
+    private final AuthRateLimiter rateLimiter;
+    private final TwoFactorAttemptTracker attemptTracker;
+    private final Network network;
 
     @Inject
     public TwoFactorRoutes(
@@ -62,7 +72,10 @@ public class TwoFactorRoutes implements Routes {
             TokenHasher tokenHasher,
             WebAuthnService webAuthnService,
             Demo demoConfig,
-            TrustedDeviceService trustedDeviceService) {
+            TrustedDeviceService trustedDeviceService,
+            AuthRateLimiter rateLimiter,
+            TwoFactorAttemptTracker attemptTracker,
+            Network network) {
         this.twoFactorService = twoFactorService;
         this.auditService = auditService;
         this.accountRepository = accountRepository;
@@ -72,6 +85,21 @@ public class TwoFactorRoutes implements Routes {
         this.webAuthnService = webAuthnService;
         this.demoConfig = demoConfig;
         this.trustedDeviceService = trustedDeviceService;
+        this.rateLimiter = rateLimiter;
+        this.attemptTracker = attemptTracker;
+        this.network = network;
+    }
+
+    private String clientIp(Context ctx) {
+        return ClientIp.resolve(ctx, network).getHostAddress();
+    }
+
+    private static void enforceLimit(Optional<Long> retryAfter) {
+        if (retryAfter.isEmpty()) return;
+        throw new HttpResponseException(
+                HttpStatus.TOO_MANY_REQUESTS.getCode(),
+                "Too many requests, please try again later",
+                Map.of("Retry-After", Long.toString(retryAfter.get())));
     }
 
     /**
@@ -232,6 +260,8 @@ public class TwoFactorRoutes implements Routes {
         }
 
         int accountId = preAuth.accountId();
+        enforceLimit(rateLimiter.tryTwoFactor(clientIp(ctx), accountId));
+        String attemptKey = tokenHasher.hash(request.preAuthToken());
         boolean verified;
 
         if ("BACKUP_CODE".equals(request.factor())) {
@@ -260,9 +290,13 @@ public class TwoFactorRoutes implements Routes {
         }
 
         if (!verified) {
+            if (attemptTracker.recordFailure(attemptKey) >= TwoFactorAttemptTracker.MAX_ATTEMPTS) {
+                accountRepository.deleteToken(request.preAuthToken());
+            }
             throw new UnauthorizedResponse("Invalid verification code");
         }
 
+        attemptTracker.reset(attemptKey);
         accountRepository.deleteToken(request.preAuthToken());
         Integer deviceTrustId = issueTrustedDeviceIfRequested(ctx, accountId, request.rememberDeviceDays());
         LoginResult session = authService.createVerifiedSessionForAccount(
@@ -322,6 +356,7 @@ public class TwoFactorRoutes implements Routes {
         if (!twoFactorService.isEnrolled(session.accountId())) {
             throw new BadRequestResponse("Not enrolled in 2FA");
         }
+        enforceLimit(rateLimiter.tryTwoFactor(clientIp(ctx), session.accountId()));
 
         boolean verified;
         TwoFactorKind kind;
@@ -419,6 +454,7 @@ public class TwoFactorRoutes implements Routes {
             throw new BadRequestResponse("preAuthToken, challengeToken, and credentialJson are required");
         }
         int accountId = consumeReadOnlyPreAuth(request.preAuthToken());
+        enforceLimit(rateLimiter.tryTwoFactor(clientIp(ctx), accountId));
         if (!webAuthnService.finishAssertion(accountId, request.challengeToken(), request.credentialJson())) {
             throw new UnauthorizedResponse("WebAuthn verification failed");
         }
@@ -478,6 +514,7 @@ public class TwoFactorRoutes implements Routes {
         if (request.challengeToken() == null || request.credentialJson() == null) {
             throw new BadRequestResponse("challengeToken and credentialJson are required");
         }
+        enforceLimit(rateLimiter.tryTwoFactor(clientIp(ctx), session.accountId()));
         if (!webAuthnService.finishAssertion(session.accountId(), request.challengeToken(), request.credentialJson())) {
             throw new UnauthorizedResponse("WebAuthn verification failed");
         }
