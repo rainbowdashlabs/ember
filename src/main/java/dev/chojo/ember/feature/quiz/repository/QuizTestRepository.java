@@ -333,6 +333,13 @@ public class QuizTestRepository {
                 .all();
     }
 
+    public Optional<QuizTestAnswer> findAnswerById(int id) {
+        return query("SELECT * FROM quiz_test_answer WHERE id = :id;")
+                .single(call().bind("id", id))
+                .map(QuizTestAnswer.map())
+                .first();
+    }
+
     public void upsertAnswer(int attemptId, int questionId, Integer sectionId, String answer, int position) {
         query("""
                 INSERT INTO quiz_test_answer(attempt_id, question_id, section_id, answer, position)

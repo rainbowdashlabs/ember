@@ -495,6 +495,10 @@ public class QuizService {
         testRepository.saveAnswer(attemptId, questionId, answer);
     }
 
+    public Optional<QuizTestAnswer> findAnswerById(int answerId) {
+        return testRepository.findAnswerById(answerId);
+    }
+
     public boolean gradeAnswer(int answerId, double points) {
         return testRepository.gradeAnswer(answerId, points);
     }
