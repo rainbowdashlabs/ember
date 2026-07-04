@@ -90,8 +90,9 @@ public class NoteRoutes implements Routes {
     private void getNote(Context ctx) {
         var entityType = NoteEntityType.valueOf(ctx.pathParam("entityType").toUpperCase());
         int entityId = ctx.pathParamAsClass("entityId", Integer.class).get();
-        requireNoteAccess(UserSession.from(ctx), entityType);
-        var note = noteService.findNote(entityType, entityId);
+        UserSession session = UserSession.from(ctx);
+        requireNoteAccess(session, entityType);
+        var note = noteService.findNote(entityType, entityId, session.stationId());
         if (note.isEmpty()) {
             ctx.json(new NoteResponse(null, entityType, entityId, "", null, null));
         } else {
@@ -147,8 +148,10 @@ public class NoteRoutes implements Routes {
     private void listVersions(Context ctx) {
         var entityType = NoteEntityType.valueOf(ctx.pathParam("entityType").toUpperCase());
         int entityId = ctx.pathParamAsClass("entityId", Integer.class).get();
-        requireNoteAccess(UserSession.from(ctx), entityType);
-        var note = noteService.findNote(entityType, entityId).orElseThrow(NotFoundResponse::new);
+        UserSession session = UserSession.from(ctx);
+        requireNoteAccess(session, entityType);
+        var note =
+                noteService.findNote(entityType, entityId, session.stationId()).orElseThrow(NotFoundResponse::new);
         var versions = noteService.findVersions(note.id());
         ctx.json(versions.stream().map(this::toVersionResponse).toList());
     }

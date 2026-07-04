@@ -37,10 +37,11 @@ public class NoteService {
      *
      * @param entityType the entity type (e.g. "event", "news")
      * @param entityId   the entity ID
+     * @param stationId  the caller's station ID; notes are scoped to it
      * @return the note, if found
      */
-    public Optional<EntityNote> findNote(NoteEntityType entityType, int entityId) {
-        return noteRepository.findNote(entityType, entityId);
+    public Optional<EntityNote> findNote(NoteEntityType entityType, int entityId, int stationId) {
+        return noteRepository.findNote(entityType, entityId, stationId);
     }
 
     /**
@@ -56,7 +57,7 @@ public class NoteService {
      */
     public EntityNote updateNote(
             NoteEntityType entityType, int entityId, int stationId, String newContent, int authorId) {
-        var existing = noteRepository.findNote(entityType, entityId);
+        var existing = noteRepository.findNote(entityType, entityId, stationId);
 
         var note = noteRepository.createOrUpdate(entityType, entityId, stationId, newContent, authorId);
 

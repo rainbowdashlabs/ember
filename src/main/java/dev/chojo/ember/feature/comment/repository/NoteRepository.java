@@ -29,7 +29,7 @@ public class NoteRepository {
      * @param entityId   the entity ID
      * @return the note, if found
      */
-    public Optional<EntityNote> findNote(NoteEntityType entityType, int entityId) {
+    public Optional<EntityNote> findNote(NoteEntityType entityType, int entityId, int stationId) {
         return query("""
                 SELECT
                     id,
@@ -42,8 +42,11 @@ public class NoteRepository {
                 FROM
                     entity_note
                 WHERE entity_type = :entity_type
-                  AND entity_id = :entity_id;""")
-                .single(call().bind("entity_type", entityType).bind("entity_id", entityId))
+                  AND entity_id = :entity_id
+                  AND station_id = :station_id;""")
+                .single(call().bind("entity_type", entityType)
+                        .bind("entity_id", entityId)
+                        .bind("station_id", stationId))
                 .map(EntityNote.map())
                 .first();
     }
@@ -67,7 +70,7 @@ public class NoteRepository {
                     (entity_type, entity_id, station_id, content, updated_by)
                 VALUES
                     (:entity_type, :entity_id, :station_id, :content, :updated_by)
-                ON CONFLICT (entity_type, entity_id) DO UPDATE
+                ON CONFLICT (station_id, entity_type, entity_id) DO UPDATE
                     SET
                         content    = :content,
                         updated_by = :updated_by,
