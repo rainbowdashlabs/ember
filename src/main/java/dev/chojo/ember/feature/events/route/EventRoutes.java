@@ -129,6 +129,19 @@ public class EventRoutes implements Routes {
         this.memberIdentityFactory = memberIdentityFactory;
     }
 
+    /**
+     * Loads an event and asserts it belongs to the caller's station. Answers 404 when the
+     * event is absent and 403 when it is owned by another station, so an event id from one
+     * station cannot be used to read or act on another station's event.
+     */
+    private StationEvent requireOwnedEvent(int eventId, UserSession session) {
+        var event = eventService.findById(eventId).orElseThrow(NotFoundResponse::new);
+        if (event.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
+        return event;
+    }
+
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/events", this::list, StationPermission.USER);
@@ -712,8 +725,9 @@ public class EventRoutes implements Routes {
             pathParams = @OpenApiParam(name = "eventId", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventRegistration[].class)))
     private void getRegistrationStats(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int eventId = ctx.pathParamAsClass("eventId", Integer.class).get();
-        var event = eventService.findById(eventId).orElseThrow(NotFoundResponse::new);
+        var event = requireOwnedEvent(eventId, session);
         String catParam = ctx.queryParam("categoryId");
         Integer categoryId = catParam != null ? Integer.parseInt(catParam) : event.categoryId();
         String monthsParam = ctx.queryParam("months");
@@ -752,7 +766,9 @@ public class EventRoutes implements Routes {
     }
 
     private void listRegistrations(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int eventId = ctx.pathParamAsClass("eventId", Integer.class).get();
+        requireOwnedEvent(eventId, session);
         String dateStr = ctx.queryParam("date");
         var regs = dateStr != null
                 ? eventService.findRegistrations(eventId, LocalDate.parse(dateStr))
@@ -797,7 +813,7 @@ public class EventRoutes implements Routes {
         int eventId = ctx.pathParamAsClass("eventId", Integer.class).get();
         var req = ctx.bodyAsClass(RegisterRequest.class);
 
-        var event = eventService.findById(eventId).orElseThrow(NotFoundResponse::new);
+        var event = requireOwnedEvent(eventId, session);
         LocalDate date = resolveEventDate(req, event);
         if (!event.requiresRegistration()) {
             throw new BadRequestResponse("Event does not require registration");
@@ -856,7 +872,7 @@ public class EventRoutes implements Routes {
         int eventId = ctx.pathParamAsClass("eventId", Integer.class).get();
         var req = ctx.bodyAsClass(RegisterRequest.class);
 
-        var event = eventService.findById(eventId).orElseThrow(NotFoundResponse::new);
+        var event = requireOwnedEvent(eventId, session);
         LocalDate date = resolveEventDate(req, event);
 
         if (session.member() == null) throw new BadRequestResponse("Not a station member");
@@ -1108,8 +1124,9 @@ public class EventRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventRestrictions.class)))
     private void getRestrictions(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        eventService.findById(id).orElseThrow(NotFoundResponse::new);
+        requireOwnedEvent(id, session);
         var restrictions = eventService.findRestrictions(id);
         ctx.json(new EventRestrictions(
                 restrictions.userTypes(),
@@ -1152,7 +1169,9 @@ public class EventRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventFieldDefault[].class)))
     private void getFieldDefaults(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        requireOwnedEvent(id, session);
         ctx.json(eventService.findFieldDefaults(id));
     }
 
@@ -1215,7 +1234,9 @@ public class EventRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventField[].class)))
     private void getFields(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        requireOwnedEvent(id, session);
         ctx.json(eventFieldService.findByEvent(id));
     }
 
@@ -1773,12 +1794,16 @@ public class EventRoutes implements Routes {
     }
 
     private void getReminders(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        requireOwnedEvent(id, session);
         ctx.json(eventService.findReminderDays(id));
     }
 
     private void setReminders(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
+        requireOwnedEvent(id, session);
         var req = ctx.bodyAsClass(SetRemindersRequest.class);
         eventService.setReminders(id, req.daysBefore() != null ? req.daysBefore() : List.of());
         ctx.json(eventService.findReminderDays(id));
