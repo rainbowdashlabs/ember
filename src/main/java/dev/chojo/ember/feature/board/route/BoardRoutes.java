@@ -704,7 +704,12 @@ public class BoardRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LabelRequest.class)),
             responses = @OpenApiResponse(status = "200"))
     private void updateLabel(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int boardId = resolveBoardId(ctx, session.stationId());
         int labelId = ctx.pathParamAsClass("labelId", Integer.class).get();
+        if (boardService.findLabels(boardId).stream().noneMatch(l -> l.id() == labelId)) {
+            throw new NotFoundResponse();
+        }
         var req = ctx.bodyAsClass(LabelRequest.class);
         boardService.updateLabel(labelId, req.name(), req.color());
         ctx.status(HttpStatus.OK);
@@ -721,7 +726,12 @@ public class BoardRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "204"))
     private void deleteLabel(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int boardId = resolveBoardId(ctx, session.stationId());
         int labelId = ctx.pathParamAsClass("labelId", Integer.class).get();
+        if (boardService.findLabels(boardId).stream().noneMatch(l -> l.id() == labelId)) {
+            throw new NotFoundResponse();
+        }
         boardService.deleteLabel(labelId);
         ctx.status(HttpStatus.NO_CONTENT);
     }

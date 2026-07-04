@@ -698,7 +698,11 @@ public class BoardTicketRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int boardId = resolveBoardId(ctx, session.stationId());
         requireEditAccess(boardId, session);
+        int ticketId = resolveTicketId(ctx, boardId);
         int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
+        if (ticketService.findComments(ticketId).stream().noneMatch(c -> c.id() == commentId)) {
+            throw new NotFoundResponse();
+        }
         var req = ctx.bodyAsClass(CommentRequest.class);
         ticketService.updateComment(commentId, req.content());
         ctx.status(HttpStatus.OK);
@@ -719,7 +723,11 @@ public class BoardTicketRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int boardId = resolveBoardId(ctx, session.stationId());
         requireEditAccess(boardId, session);
+        int ticketId = resolveTicketId(ctx, boardId);
         int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
+        if (ticketService.findComments(ticketId).stream().noneMatch(c -> c.id() == commentId)) {
+            throw new NotFoundResponse();
+        }
         ticketService.deleteComment(commentId);
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -783,7 +791,11 @@ public class BoardTicketRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int boardId = resolveBoardId(ctx, session.stationId());
         requireEditAccess(boardId, session);
+        int ticketId = resolveTicketId(ctx, boardId);
         int weblinkId = ctx.pathParamAsClass("weblinkId", Integer.class).get();
+        if (ticketService.findWeblinks(ticketId).stream().noneMatch(w -> w.id() == weblinkId)) {
+            throw new NotFoundResponse();
+        }
         ticketService.deleteWeblink(weblinkId);
         ctx.status(HttpStatus.NO_CONTENT);
     }
