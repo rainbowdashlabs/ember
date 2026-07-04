@@ -461,6 +461,30 @@ public class AttendanceRepository {
                 .first();
     }
 
+    /**
+     * Finds an attendance entry by its ID.
+     *
+     * @param id the entry ID
+     * @return the entry if found
+     */
+    public Optional<AttendanceEntry> findEntryById(int id) {
+        return query("""
+                SELECT
+                    id,
+                    session_id,
+                    member_id,
+                    status,
+                    check_in,
+                    check_out,
+                    source
+                FROM
+                    attendance_entry
+                WHERE id = :id;""")
+                .single(call().bind("id", id))
+                .map(AttendanceEntry.map())
+                .first();
+    }
+
     // -- Entries --
 
     /**
