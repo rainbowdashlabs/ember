@@ -6,7 +6,9 @@
 <script setup lang="ts">
 import HelpCenterAdminView from '~/views/HelpCenterAdminView.vue'
 import {usePageTitle} from '~/composables/usePageTitle'
+import {loadHelpcenterMessages} from '~/composables/useHelpcenterMessages'
 
+await loadHelpcenterMessages()
 usePageTitle()
 </script>
 
