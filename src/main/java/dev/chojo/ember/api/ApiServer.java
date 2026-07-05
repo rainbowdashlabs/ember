@@ -40,6 +40,7 @@ import io.javalin.compression.CompressionStrategy;
 import io.javalin.compression.Gzip;
 import io.javalin.config.JavalinConfig;
 import io.javalin.config.RoutesConfig;
+import io.javalin.config.SizeUnit;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -295,6 +296,10 @@ public class ApiServer {
             config.http.defaultContentType = "application/json";
             config.jsonMapper(jacksonMapper());
             configureCompression(config);
+
+            config.jetty.multipartConfig.maxFileSize(apiConfig.maxUploadSizeBytes(), SizeUnit.BYTES);
+            config.jetty.multipartConfig.maxInMemoryFileSize(1, SizeUnit.MB);
+            config.jetty.multipartConfig.maxTotalRequestSize(apiConfig.maxRequestSizeBytes(), SizeUnit.BYTES);
 
             config.registerPlugin(new OpenApiPlugin(this::configureOpenApi));
             config.registerPlugin(new SwaggerPlugin(this::configureSwagger));

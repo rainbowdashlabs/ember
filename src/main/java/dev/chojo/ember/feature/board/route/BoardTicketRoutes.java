@@ -10,6 +10,7 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
 import dev.chojo.ember.feature.board.entity.BoardComment;
@@ -70,6 +71,7 @@ public class BoardTicketRoutes implements Routes {
     private final BoardService boardService;
     private final MemberNameResolver memberNameResolver;
     private final MemberIdentityFactory memberIdentityFactory;
+    private final Api apiConfig;
 
     @Inject
     public BoardTicketRoutes(
@@ -82,11 +84,13 @@ public class BoardTicketRoutes implements Routes {
             StationMemberRepository stationMemberRepository,
             AccountRepository accountRepository,
             MemberNameResolver memberNameResolver,
-            MemberIdentityFactory memberIdentityFactory) {
+            MemberIdentityFactory memberIdentityFactory,
+            Api apiConfig) {
         this.ticketService = ticketService;
         this.boardService = boardService;
         this.memberNameResolver = memberNameResolver;
         this.memberIdentityFactory = memberIdentityFactory;
+        this.apiConfig = apiConfig;
     }
 
     @Override
@@ -841,6 +845,7 @@ public class BoardTicketRoutes implements Routes {
         int ticketId = resolveTicketId(ctx, boardId);
         var file = ctx.uploadedFile("file");
         if (file == null) throw new BadRequestResponse("No file uploaded");
+        if (file.size() > apiConfig.maxUploadSizeBytes()) throw new BadRequestResponse("File too large");
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
             var att = ticketService.uploadAttachment(

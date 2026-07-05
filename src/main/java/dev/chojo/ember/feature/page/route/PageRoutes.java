@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.page.route;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
@@ -44,6 +45,7 @@ public class PageRoutes implements Routes {
     private final FormAnalyticsAssembler formAnalyticsAssembler;
     private final StationMemberRepository stationMemberRepository;
     private final AvatarService avatarService;
+    private final Api apiConfig;
 
     @Inject
     public PageRoutes(
@@ -51,12 +53,14 @@ public class PageRoutes implements Routes {
             FormService formService,
             FormAnalyticsAssembler formAnalyticsAssembler,
             StationMemberRepository stationMemberRepository,
-            AvatarService avatarService) {
+            AvatarService avatarService,
+            Api apiConfig) {
         this.pageService = pageService;
         this.formService = formService;
         this.formAnalyticsAssembler = formAnalyticsAssembler;
         this.stationMemberRepository = stationMemberRepository;
         this.avatarService = avatarService;
+        this.apiConfig = apiConfig;
     }
 
     /**
@@ -361,6 +365,7 @@ public class PageRoutes implements Routes {
         requireOwnedPage(pid, session);
         var file = ctx.uploadedFile("file");
         if (file == null) throw new BadRequestResponse("file is required");
+        if (file.size() > apiConfig.maxUploadSizeBytes()) throw new BadRequestResponse("File too large");
 
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
@@ -503,6 +508,7 @@ public class PageRoutes implements Routes {
         var session = UserSession.from(ctx);
         var file = ctx.uploadedFile("file");
         if (file == null) throw new BadRequestResponse("file is required");
+        if (file.size() > apiConfig.maxUploadSizeBytes()) throw new BadRequestResponse("File too large");
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
             var stored = pageService.uploadStationFile(session.stationId(), file.filename(), file.contentType(), data);
