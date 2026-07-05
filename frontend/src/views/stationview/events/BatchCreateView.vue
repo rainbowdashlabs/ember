@@ -117,9 +117,7 @@ async function createBatch() {
       requiresRegistration: requiresRegistration.value,
       requiresConfirmation: requiresConfirmation.value,
       registrationDeadline: registrationDeadline.value || undefined,
-      restrictedUserTypes: restriction.value.userTypes.length > 0 ? restriction.value.userTypes : undefined,
-      restrictedGroupIds: restriction.value.groupIds.length > 0 ? restriction.value.groupIds : undefined,
-      restrictedTagIds: restriction.value.tagIds.length > 0 ? restriction.value.tagIds : undefined,
+      restriction: restriction.value,
     })
     success.value = t('batchCreate.success', {count: created.length})
     setTimeout(() => router.push({name: 'events'}), 1500)

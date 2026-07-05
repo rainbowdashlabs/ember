@@ -165,9 +165,7 @@ function submit() {
     registrationDeadline: eventHasDeadline.value && eventRegistrationDeadline.value
       ? new Date(eventRegistrationDeadline.value).toISOString() : null,
     requiresConfirmation: eventRequiresConfirmation.value,
-    restrictedUserTypes: restriction.value.userTypes,
-    restrictedGroupIds: restriction.value.groupIds,
-    restrictedTagIds: restriction.value.tagIds,
+    restriction: restriction.value,
     fieldDefaults: [...fieldDefaults.value.entries()]
       .filter(([, v]) => v.source)
       .map(([fieldId, v]) => ({ fieldId, source: v.source, value: v.value || undefined })),

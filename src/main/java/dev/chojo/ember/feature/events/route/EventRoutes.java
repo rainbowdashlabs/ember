@@ -487,16 +487,10 @@ public class EventRoutes implements Routes {
                 req.minRegistrations(),
                 req.thresholdDate(),
                 req.registrationCloseDays());
-        eventService.setRestrictions(
-                event.id(),
-                new RestrictionSelection(
-                        req.restrictedUserTypes(),
-                        req.restrictedGroupIds(),
-                        req.restrictedTagIds(),
-                        List.of(),
-                        req.restrictionMode()));
-        if (req.restrictionMode() != null) {
-            eventService.updateRestrictionMode(event.id(), req.restrictionMode());
+        var restriction = req.restriction() != null ? req.restriction() : RestrictionSelection.empty();
+        eventService.setRestrictions(event.id(), restriction);
+        if (req.restriction() != null) {
+            eventService.updateRestrictionMode(event.id(), restriction.mode());
         }
 
         ctx.status(HttpStatus.CREATED).json(event);
@@ -557,16 +551,11 @@ public class EventRoutes implements Routes {
                         req.registrationCloseDays())
                 .ifPresentOrElse(
                         event -> {
-                            eventService.setRestrictions(
-                                    id,
-                                    new RestrictionSelection(
-                                            req.restrictedUserTypes(),
-                                            req.restrictedGroupIds(),
-                                            req.restrictedTagIds(),
-                                            List.of(),
-                                            req.restrictionMode()));
-                            if (req.restrictionMode() != null) {
-                                eventService.updateRestrictionMode(id, req.restrictionMode());
+                            var restriction =
+                                    req.restriction() != null ? req.restriction() : RestrictionSelection.empty();
+                            eventService.setRestrictions(id, restriction);
+                            if (req.restriction() != null) {
+                                eventService.updateRestrictionMode(id, restriction.mode());
                             }
                             ctx.json(event);
                         },
@@ -1299,9 +1288,7 @@ public class EventRoutes implements Routes {
                 req.requiresRegistration(),
                 req.requiresConfirmation(),
                 req.registrationDeadline(),
-                req.restrictedUserTypes(),
-                req.restrictedGroupIds(),
-                req.restrictedTagIds());
+                req.restriction() != null ? req.restriction() : RestrictionSelection.empty());
         var created = batchEventService.createBatch(session.stationId(), batchReq);
         ctx.json(created);
     }
@@ -1863,15 +1850,12 @@ public class EventRoutes implements Routes {
             Instant registrationDeadline,
             Boolean requiresConfirmation,
             Integer categoryId,
-            List<StationUserType> restrictedUserTypes,
-            List<Integer> restrictedGroupIds,
-            List<Integer> restrictedTagIds,
+            RestrictionSelection restriction,
             Boolean isPublic,
             Integer registrationLimit,
             Integer minRegistrations,
             Instant thresholdDate,
-            Integer registrationCloseDays,
-            RestrictionMode restrictionMode) {}
+            Integer registrationCloseDays) {}
 
     public record CancelEventRequest(String reason) {}
 
@@ -1960,9 +1944,7 @@ public class EventRoutes implements Routes {
             Boolean requiresRegistration,
             Boolean requiresConfirmation,
             Instant registrationDeadline,
-            List<StationUserType> restrictedUserTypes,
-            List<Integer> restrictedGroupIds,
-            List<Integer> restrictedTagIds) {}
+            RestrictionSelection restriction) {}
 
     public record BatchFieldEntryDto(
             String name,

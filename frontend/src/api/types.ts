@@ -360,6 +360,14 @@ export interface StationEvent {
     registrationCloseDays?: number | null
 }
 
+export interface RestrictionSelection {
+    userTypes: string[]
+    groupIds: number[]
+    tagIds: number[]
+    memberIds: number[]
+    mode: 'AND' | 'OR'
+}
+
 export interface EventRequest {
     name?: string
     description?: string
@@ -372,10 +380,7 @@ export interface EventRequest {
     registrationDeadline?: string | null
     requiresConfirmation?: boolean
     categoryId?: number | null
-    restrictedUserTypes?: string[]
-    restrictedGroupIds?: number[]
-    restrictedTagIds?: number[]
-    restrictionMode?: string
+    restriction?: RestrictionSelection
     isPublic?: boolean
     registrationLimit?: number | null
     minRegistrations?: number | null

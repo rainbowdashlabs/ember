@@ -14,6 +14,7 @@ import type {
     EventField,
     EventRequest,
     EventRestrictions,
+    RestrictionSelection,
     EventTemplate,
     EventTemplateDetail,
     EventTemplateFieldEntry,
@@ -369,9 +370,7 @@ export interface BatchCreateRequest {
     requiresRegistration?: boolean
     requiresConfirmation?: boolean
     registrationDeadline?: string | null
-    restrictedUserTypes?: string[]
-    restrictedGroupIds?: number[]
-    restrictedTagIds?: number[]
+    restriction?: RestrictionSelection
 }
 
 export interface GenerateDatesRequest {

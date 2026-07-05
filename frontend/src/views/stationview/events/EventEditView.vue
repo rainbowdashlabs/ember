@@ -274,10 +274,7 @@ async function submit() {
       minRegistrations: eventMinRegistrations.value ?? undefined,
       thresholdDate: eventHasThreshold.value && eventThresholdDate.value
           ? new Date(eventThresholdDate.value).toISOString() : undefined,
-      restrictedUserTypes: restriction.value.userTypes,
-      restrictedGroupIds: restriction.value.groupIds,
-      restrictedTagIds: restriction.value.tagIds,
-      restrictionMode: restriction.value.mode,
+      restriction: restriction.value,
       registrationCloseDays: eventRegistrationCloseDays.value ?? undefined,
     }
 

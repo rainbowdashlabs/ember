@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.events.entity;
 
-import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
 
 import java.time.Instant;
 import java.util.List;
@@ -20,6 +20,4 @@ public record BatchRequest(
         Boolean requiresRegistration,
         Boolean requiresConfirmation,
         Instant registrationDeadline,
-        List<StationUserType> restrictedUserTypes,
-        List<Integer> restrictedGroupIds,
-        List<Integer> restrictedTagIds) {}
+        RestrictionSelection restriction) {}

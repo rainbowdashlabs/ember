@@ -3,13 +3,9 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-export interface RestrictionSelection {
-    userTypes: string[]
-    groupIds: number[]
-    tagIds: number[]
-    memberIds: number[]
-    mode: 'AND' | 'OR'
-}
+import type {RestrictionSelection} from '@/api/types'
+
+export type {RestrictionSelection}
 
 /**
  * A fresh, empty restriction selection. Use to initialise a `ref<RestrictionSelection>`

@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.events.entity.IntervalConfig;
 import dev.chojo.ember.feature.events.entity.IntervalType;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.restriction.RestrictionRepository;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -76,7 +77,7 @@ class BatchEventServiceTest extends RepositoryTestBase {
                 new BatchRow("Event Day 2", start2, end2, Map.of("Location", "Munich", "Notes", "Optional")));
 
         var request = new BatchRequest(
-                "Batch Training", "Weekly batch", null, null, inlineFields, rows, false, false, null, null, null, null);
+                "Batch Training", "Weekly batch", null, null, inlineFields, rows, false, false, null, null);
 
         var created = batchService.createBatch(station.id(), request);
         assertEquals(2, created.size());
@@ -93,8 +94,7 @@ class BatchEventServiceTest extends RepositoryTestBase {
 
         var rows = List.of(new BatchRow(null, start, end, Map.of()));
 
-        var request = new BatchRequest(
-                "Default Name", "desc", null, null, List.of(), rows, false, false, null, null, null, null);
+        var request = new BatchRequest("Default Name", "desc", null, null, List.of(), rows, false, false, null, null);
 
         var created = batchService.createBatch(station.id(), request);
         assertEquals(1, created.size());
@@ -119,9 +119,7 @@ class BatchEventServiceTest extends RepositoryTestBase {
                 false,
                 false,
                 null,
-                List.of(StationUserType.MEMBER),
-                List.of(),
-                null);
+                new RestrictionSelection(List.of(StationUserType.MEMBER), List.of(), List.of(), List.of(), null));
 
         var created = batchService.createBatch(station.id(), request);
         assertEquals(1, created.size());
