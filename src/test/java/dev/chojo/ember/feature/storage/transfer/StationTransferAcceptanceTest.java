@@ -10,6 +10,7 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AvatarService;
+import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
 import dev.chojo.ember.feature.media.service.ImageVariantService;
 import dev.chojo.ember.feature.members.route.TransferRoutes;
@@ -28,6 +29,7 @@ import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.TestRemoteUrlValidator;
 import dev.chojo.ember.util.WebpEncoder;
 import io.javalin.Javalin;
 import org.junit.jupiter.api.AfterAll;
@@ -118,14 +120,15 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
                 pageFileStorageService,
                 pageImageVariantService,
                 new FederationPartnerTransferFixupService(
-                        new dev.chojo.ember.feature.federation.repository.FederationRepository(), null, stationRepo));
+                        new FederationRepository(), null, stationRepo),
+                TestRemoteUrlValidator.permissive());
 
         var transferRoutes = new TransferRoutes(
                 exportService,
                 importService,
                 stationRepo,
                 new FederationPartnerTransferFixupService(
-                        new dev.chojo.ember.feature.federation.repository.FederationRepository(), null, stationRepo));
+                        new FederationRepository(), null, stationRepo));
         var assetRoutes = new StationTransferAssetRoutes(
                 exportService, descriptorService, stationRepo, storageService, avatarService);
 

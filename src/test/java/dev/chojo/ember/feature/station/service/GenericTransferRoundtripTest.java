@@ -7,9 +7,11 @@ package dev.chojo.ember.feature.station.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.TestRemoteUrlValidator;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -53,7 +55,8 @@ class GenericTransferRoundtripTest extends RepositoryTestBase {
                 null,
                 null,
                 new FederationPartnerTransferFixupService(
-                        new dev.chojo.ember.feature.federation.repository.FederationRepository(), null, stationRepo));
+                        new FederationRepository(), null, stationRepo),
+                TestRemoteUrlValidator.permissive());
     }
 
     @Test

@@ -11,6 +11,7 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
@@ -25,6 +26,7 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.TestRemoteUrlValidator;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -101,7 +103,8 @@ class StationTransferTest extends RepositoryTestBase {
                 null,
                 null,
                 new FederationPartnerTransferFixupService(
-                        new dev.chojo.ember.feature.federation.repository.FederationRepository(), null, stationRepo));
+                        new FederationRepository(), null, stationRepo),
+                TestRemoteUrlValidator.permissive());
 
         // Create station with full settings
         var station = stationRepo.create("Jugendfeuerwehr Musterstadt");

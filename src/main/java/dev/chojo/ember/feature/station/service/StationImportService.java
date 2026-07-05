@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
+import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import dev.chojo.ember.feature.media.service.ImageVariantService;
 import dev.chojo.ember.feature.page.service.PageFileStorageService;
 import dev.chojo.ember.feature.page.service.PageImageVariantService;
@@ -100,6 +101,7 @@ public class StationImportService {
     private final PageFileStorageService pageFileStorageService;
     private final PageImageVariantService pageImageVariantService;
     private final FederationPartnerTransferFixupService federationFixup;
+    private final RemoteUrlValidator urlValidator;
     private final GenericTableImporter engine;
     private final List<String> tableOrder;
     private final DataTracking tracking;
@@ -126,7 +128,8 @@ public class StationImportService {
             ImageVariantService imageVariantService,
             PageFileStorageService pageFileStorageService,
             PageImageVariantService pageImageVariantService,
-            FederationPartnerTransferFixupService federationFixup) {
+            FederationPartnerTransferFixupService federationFixup,
+            RemoteUrlValidator urlValidator) {
         this.stationRepository = stationRepository;
         this.accountRepository = accountRepository;
         this.exportService = exportService;
@@ -138,6 +141,7 @@ public class StationImportService {
         this.pageFileStorageService = pageFileStorageService;
         this.pageImageVariantService = pageImageVariantService;
         this.federationFixup = federationFixup;
+        this.urlValidator = urlValidator;
         DataTracking t;
         try {
             t = DataTrackingLoader.loadFromClasspath();
@@ -282,10 +286,23 @@ public class StationImportService {
     }
 
     /**
+     * Rejects an import source URL that resolves to a private, loopback, or otherwise
+     * non-public address before any request is issued. Every fetch derives its URL
+     * from this same base, so validating it here guards the whole import run against
+     * server-side request forgery.
+     */
+    private void validateImportSource(String baseUrl) {
+        if (!urlValidator.isAllowed(baseUrl)) {
+            throw new BadRequestResponse(RemoteUrlValidator.rejectReason());
+        }
+    }
+
+    /**
      * Pulls a station bundle from a remote Ember instance and creates a new station from it.
      */
     public ImportResult startRemoteImport(String sourceUrl, String token) {
         String baseUrl = sourceUrl.replaceAll("/+$", "");
+        validateImportSource(baseUrl);
         log.info("start remote-import-as-new-station from source {}", baseUrl);
         var mapper = JsonMapper.builder().build();
         var httpClient = buildImportHttpClient(baseUrl);
@@ -319,6 +336,7 @@ public class StationImportService {
      */
     public ImportResult startRemoteImportInto(int stationId, String sourceUrl, String token) {
         String baseUrl = sourceUrl.replaceAll("/+$", "");
+        validateImportSource(baseUrl);
         log.info("start remote-import-into-station {} from source {}", stationId, baseUrl);
         var mapper = JsonMapper.builder().build();
         var httpClient = buildImportHttpClient(baseUrl);
