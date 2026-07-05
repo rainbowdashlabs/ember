@@ -113,7 +113,7 @@ public class FederationWebhookService {
                     if (partner.publicKey() != null) {
                         var privateKey = signingService.decodePrivateKey(partner.publicKey());
                         signature = signingService.sign(
-                                "POST", pathWithQuery, partner.partnerStationId(), body, timestamp, privateKey);
+                                "POST", pathWithQuery, partner.partnerStationId(), nonce, body, timestamp, privateKey);
                     }
 
                     var request = HttpRequest.newBuilder()
