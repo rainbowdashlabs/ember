@@ -80,6 +80,7 @@ import dev.chojo.ember.feature.system.repository.ProblemReportRepository;
 import dev.chojo.ember.feature.traffic.repository.StationTrafficRepository;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -294,5 +295,17 @@ public abstract class RepositoryTestBase {
         memberNameResolver =
                 new MemberNameResolver(memberSvc, accountRepo, eventFedRepo, fedRepo, stationRepo, groupSvc, tagSvc);
         memberIdentityFactory = new MemberIdentityFactory(stationRepo, stationMemberRepo, memberNameResolver);
+    }
+
+    /**
+     * Closes this class's connection pool so its connections are returned to the shared container.
+     * Without it, every test class would leak a pool against the one Postgres instance and exhaust
+     * its connection limit once enough classes have run in a single fork.
+     */
+    @AfterAll
+    static void teardownDatabase() throws Exception {
+        if (dataSource instanceof AutoCloseable closeable) {
+            closeable.close();
+        }
     }
 }
