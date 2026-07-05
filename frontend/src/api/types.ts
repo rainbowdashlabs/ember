@@ -375,6 +375,7 @@ export interface EventRequest {
     restrictedUserTypes?: string[]
     restrictedGroupIds?: number[]
     restrictedTagIds?: number[]
+    restrictionMode?: string
     isPublic?: boolean
     registrationLimit?: number | null
     minRegistrations?: number | null

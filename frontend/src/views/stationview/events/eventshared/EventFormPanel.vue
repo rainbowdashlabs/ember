@@ -56,6 +56,7 @@ const registrationCloseDays = defineModel<number>('registrationCloseDays')
 const selectedUserTypes = defineModel<string[]>('selectedUserTypes', {default: () => []})
 const selectedGroupIds = defineModel<number[]>('selectedGroupIds', {default: () => []})
 const selectedTagIds = defineModel<number[]>('selectedTagIds', {default: () => []})
+const restrictionMode = defineModel<'AND' | 'OR'>('mode', {default: 'AND'})
 
 const {t} = useI18n()
 </script>
@@ -208,6 +209,7 @@ const {t} = useI18n()
           v-model:selected-user-types="selectedUserTypes"
           v-model:selected-group-ids="selectedGroupIds"
           v-model:selected-tag-ids="selectedTagIds"
+          v-model:mode="restrictionMode"
       />
     </template>
 

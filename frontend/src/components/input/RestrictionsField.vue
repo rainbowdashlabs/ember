@@ -16,6 +16,7 @@ defineProps<{
 const selectedUserTypes = defineModel<string[]>('selectedUserTypes', {required: true})
 const selectedGroupIds = defineModel<number[]>('selectedGroupIds', {required: true})
 const selectedTagIds = defineModel<number[]>('selectedTagIds', {required: true})
+const mode = defineModel<'AND' | 'OR'>('mode', {default: 'AND'})
 </script>
 
 <template>
@@ -26,5 +27,6 @@ const selectedTagIds = defineModel<number[]>('selectedTagIds', {required: true})
       v-model:selected-user-types="selectedUserTypes"
       v-model:selected-group-ids="selectedGroupIds"
       v-model:selected-tag-ids="selectedTagIds"
+      v-model:mode="mode"
   />
 </template>

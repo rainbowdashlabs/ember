@@ -488,6 +488,9 @@ public class EventRoutes implements Routes {
                 req.registrationCloseDays());
         eventService.setRestrictions(
                 event.id(), req.restrictedUserTypes(), req.restrictedGroupIds(), req.restrictedTagIds(), List.of());
+        if (req.restrictionMode() != null) {
+            eventService.updateRestrictionMode(event.id(), req.restrictionMode());
+        }
 
         ctx.status(HttpStatus.CREATED).json(event);
     }
@@ -553,6 +556,9 @@ public class EventRoutes implements Routes {
                                     req.restrictedGroupIds(),
                                     req.restrictedTagIds(),
                                     List.of());
+                            if (req.restrictionMode() != null) {
+                                eventService.updateRestrictionMode(id, req.restrictionMode());
+                            }
                             ctx.json(event);
                         },
                         () -> {
@@ -1853,7 +1859,8 @@ public class EventRoutes implements Routes {
             Integer registrationLimit,
             Integer minRegistrations,
             Instant thresholdDate,
-            Integer registrationCloseDays) {}
+            Integer registrationCloseDays,
+            RestrictionMode restrictionMode) {}
 
     public record CancelEventRequest(String reason) {}
 

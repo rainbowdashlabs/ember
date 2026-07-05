@@ -282,6 +282,7 @@ async function submit() {
       restrictedUserTypes: selectedUserTypes.value,
       restrictedGroupIds: selectedGroupIds.value,
       restrictedTagIds: selectedTagIds.value,
+      restrictionMode: restrictionMode.value,
       registrationCloseDays: eventRegistrationCloseDays.value ?? undefined,
     }
 
@@ -377,6 +378,7 @@ const bodyProps = computed(() => ({
   selectedUserTypes: selectedUserTypes.value,
   selectedGroupIds: selectedGroupIds.value,
   selectedTagIds: selectedTagIds.value,
+  mode: restrictionMode.value,
   fields: eventCustomFields.value,
   reminders: eventReminders.value,
   federationShared: federationShared.value,
@@ -406,6 +408,7 @@ const bodyHandlers = {
   'update:selectedUserTypes': (v: string[]) => { selectedUserTypes.value = v },
   'update:selectedGroupIds': (v: number[]) => { selectedGroupIds.value = v },
   'update:selectedTagIds': (v: number[]) => { selectedTagIds.value = v },
+  'update:mode': (v: 'AND' | 'OR') => { restrictionMode.value = v },
   'update:fields': (v: EventFieldEntry[]) => { eventCustomFields.value = v },
   'update:reminders': (v: number[]) => { eventReminders.value = v },
   'update:federationShared': (v: boolean) => { federationShared.value = v },
