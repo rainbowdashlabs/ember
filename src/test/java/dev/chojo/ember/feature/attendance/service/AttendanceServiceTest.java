@@ -255,6 +255,8 @@ class AttendanceServiceTest extends RepositoryTestBase {
     void findEntries() {
         var entries = service.findEntries(sessionId);
         assertFalse(entries.isEmpty());
+        assertTrue(service.findEntryById(entries.getFirst().id()).isPresent());
+        assertTrue(service.findEntryById(-1).isEmpty());
     }
 
     @Test

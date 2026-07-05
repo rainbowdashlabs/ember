@@ -444,6 +444,8 @@ class QuizServiceTest extends RepositoryTestBase {
         service.saveAnswer(attemptId, qId, "{\"value\":true}");
         var answers = service.findAnswers(attemptId);
         assertFalse(answers.isEmpty());
+        assertTrue(service.findAnswerById(answers.getFirst().id()).isPresent());
+        assertTrue(service.findAnswerById(-1).isEmpty());
     }
 
     @Test

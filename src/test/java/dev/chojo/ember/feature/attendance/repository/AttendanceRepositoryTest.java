@@ -215,7 +215,12 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(31)
     void findEntry() {
-        assertTrue(attendanceRepo.findEntry(sessionId, member.id()).isPresent());
+        var entry = attendanceRepo.findEntry(sessionId, member.id()).orElseThrow();
+        assertTrue(attendanceRepo.findEntryById(entry.id()).isPresent());
+        assertEquals(
+                sessionId,
+                attendanceRepo.findEntryById(entry.id()).orElseThrow().sessionId());
+        assertTrue(attendanceRepo.findEntryById(-1).isEmpty());
     }
 
     @Test
