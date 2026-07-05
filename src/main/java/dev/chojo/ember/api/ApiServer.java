@@ -13,6 +13,7 @@ import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Demo;
+import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.insights.service.BotClassifier;
 import dev.chojo.ember.feature.insights.service.PageHitRecorder;
@@ -33,6 +34,7 @@ import dev.chojo.ember.feature.traffic.service.AuthBucketClassifier;
 import dev.chojo.ember.feature.traffic.service.StationResolver;
 import dev.chojo.ember.feature.traffic.service.StationTrafficRecorder;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
+import dev.chojo.ember.util.ClientIp;
 import dev.chojo.ember.util.DevErrorWriter;
 import dev.chojo.ember.util.LogRedaction;
 import io.javalin.Javalin;
@@ -144,6 +146,8 @@ public class ApiServer {
     private final RefererDomainExtractor refererExtractor;
     private final BotClassifier botClassifier;
     private final TwoFactorService twoFactorService;
+    private final Network network;
+    private final GlobalRateLimiter globalRateLimiter;
 
     @Inject
     public ApiServer(
@@ -166,7 +170,9 @@ public class ApiServer {
             PageHitRecorder pageHitRecorder,
             RefererDomainExtractor refererExtractor,
             BotClassifier botClassifier,
-            TwoFactorService twoFactorService) {
+            TwoFactorService twoFactorService,
+            Network network,
+            GlobalRateLimiter globalRateLimiter) {
         this.routes = routes;
         this.apiConfig = apiConfig;
         this.authConfig = authConfig;
@@ -187,6 +193,8 @@ public class ApiServer {
         this.refererExtractor = refererExtractor;
         this.botClassifier = botClassifier;
         this.twoFactorService = twoFactorService;
+        this.network = network;
+        this.globalRateLimiter = globalRateLimiter;
         this.apiRequestLogger.start();
         this.trafficRecorder.start();
         this.pageHitRecorder.start();
@@ -318,6 +326,8 @@ public class ApiServer {
                     rule.allowHost("http://localhost:3001");
                 }
             }));
+
+            config.routes.before(this::enforceGlobalRateLimit);
 
             config.routes.before(ctx -> {
                 if (ctx.method() == HandlerType.OPTIONS) return;
@@ -880,6 +890,34 @@ public class ApiServer {
         var strategy = new CompressionStrategy(null, new Gzip(apiConfig.httpGzipLevel()));
         strategy.setDefaultMinSizeForCompression(apiConfig.httpGzipMinSizeBytes());
         config.http.compressionStrategy = strategy;
+    }
+
+    /**
+     * Coarse per-IP rate limit applied to every non-preflight API request, on top of
+     * the finer auth-endpoint limits. Answers {@code 429 Too Many Requests} with a
+     * {@code Retry-After} header when a client exceeds its budget. Server-to-server
+     * federation traffic under {@code /remote/} is exempt — it is authenticated by
+     * request signature and replay-protected already.
+     */
+    private void enforceGlobalRateLimit(@NotNull Context ctx) {
+        if (ctx.method() == HandlerType.OPTIONS) return;
+        if (ctx.path().startsWith(API_PREFIX + "/remote/")) return;
+
+        String clientIp;
+        try {
+            clientIp = ClientIp.resolve(ctx, network).getHostAddress();
+        } catch (Exception e) {
+            clientIp = ctx.ip();
+        }
+
+        boolean expensivePath = ctx.path().contains("/ai/");
+        Optional<Long> retryAfter = globalRateLimiter.check(clientIp, expensivePath);
+        if (retryAfter.isPresent()) {
+            throw new HttpResponseException(
+                    HttpStatus.TOO_MANY_REQUESTS.getCode(),
+                    "Too many requests, please try again later",
+                    Map.of("Retry-After", Long.toString(retryAfter.get())));
+        }
     }
 
     /**
