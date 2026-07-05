@@ -180,6 +180,24 @@ class FederationSigningServiceTest {
     }
 
     @Test
+    void decodePublicKeyRejectsWeakRsaKey() throws Exception {
+        var generator = KeyPairGenerator.getInstance("RSA");
+        generator.initialize(1024);
+        var weak = generator.generateKeyPair();
+        String encoded = Base64.getEncoder().encodeToString(weak.getPublic().getEncoded());
+        assertThrows(RuntimeException.class, () -> signingService.decodePublicKey(encoded));
+    }
+
+    @Test
+    void detectsDuplicateQueryKeys() {
+        assertTrue(FederationSigningService.hasDuplicateQueryKeys("a=1&a=2"));
+        assertTrue(FederationSigningService.hasDuplicateQueryKeys("a=2&b=1&a=1"));
+        assertFalse(FederationSigningService.hasDuplicateQueryKeys("a=1&b=2"));
+        assertFalse(FederationSigningService.hasDuplicateQueryKeys(""));
+        assertFalse(FederationSigningService.hasDuplicateQueryKeys(null));
+    }
+
+    @Test
     void decodePrivateKeyInvalid() {
         assertThrows(RuntimeException.class, () -> signingService.decodePrivateKey("not-a-valid-key"));
     }

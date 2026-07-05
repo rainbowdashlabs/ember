@@ -15,6 +15,7 @@ import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
+import java.security.interfaces.RSAKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.time.Duration;
@@ -45,6 +46,7 @@ public class FederationSigningService {
     private static final Logger log = LoggerFactory.getLogger(FederationSigningService.class);
     private static final String ALGORITHM = "SHA256withRSA";
     private static final Duration MAX_TIMESTAMP_DRIFT = Duration.ofMinutes(5);
+    private static final int MIN_RSA_KEY_BITS = 2048;
 
     /**
      * Builds the canonical path-with-query string by sorting {@code &}-separated
@@ -67,6 +69,28 @@ public class FederationSigningService {
      */
     public static String canonicalPathWithQuery(URI uri) {
         return canonicalPathWithQuery(uri.getRawPath(), uri.getRawQuery());
+    }
+
+    /**
+     * Reports whether the query string repeats any parameter name. Because the
+     * canonical form sorts {@code &}-separated pairs, {@code a=1&a=2} and
+     * {@code a=2&a=1} would share one signature while a handler reads wire order;
+     * the receiver rejects any request with duplicate keys to close that gap.
+     */
+    public static boolean hasDuplicateQueryKeys(String query) {
+        if (query == null || query.isEmpty()) {
+            return false;
+        }
+        var seen = new java.util.HashSet<String>();
+        for (String pair : query.split("&")) {
+            if (pair.isEmpty()) continue;
+            int eq = pair.indexOf('=');
+            String key = eq >= 0 ? pair.substring(0, eq) : pair;
+            if (!seen.add(key)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static String canonicalEnvelope(
@@ -191,13 +215,19 @@ public class FederationSigningService {
     }
 
     /**
-     * Decodes a Base64-encoded RSA public key.
+     * Decodes a Base64-encoded RSA public key. Rejects keys weaker than
+     * {@value #MIN_RSA_KEY_BITS} bits so a partner cannot register a trivially
+     * factorable key.
      */
     public PublicKey decodePublicKey(String base64Key) {
         try {
             var keyBytes = Base64.getDecoder().decode(base64Key);
             var spec = new X509EncodedKeySpec(keyBytes);
-            return KeyFactory.getInstance("RSA").generatePublic(spec);
+            var key = KeyFactory.getInstance("RSA").generatePublic(spec);
+            if (key instanceof RSAKey rsaKey && rsaKey.getModulus().bitLength() < MIN_RSA_KEY_BITS) {
+                throw new IllegalArgumentException("RSA public key must be at least " + MIN_RSA_KEY_BITS + " bits");
+            }
+            return key;
         } catch (Exception e) {
             throw new RuntimeException("Failed to decode public key", e);
         }

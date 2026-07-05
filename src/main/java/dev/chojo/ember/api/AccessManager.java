@@ -239,6 +239,11 @@ public class AccessManager {
             return Optional.empty();
         }
 
+        if (FederationSigningService.hasDuplicateQueryKeys(ctx.queryString())) {
+            log.warn("Rejecting federation request from partner {} — duplicate query parameter keys", p.id());
+            return Optional.empty();
+        }
+
         var publicKey = signingService.decodePublicKey(p.partnerPublicKey());
         String pathWithQuery = FederationSigningService.canonicalPathWithQuery(ctx.path(), ctx.queryString());
         boolean valid = signingService.verify(
