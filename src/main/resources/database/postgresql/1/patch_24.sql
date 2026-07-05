@@ -7,3 +7,10 @@ ALTER TABLE ember_schema.entity_note
 
 ALTER TABLE ember_schema.entity_note
     ADD CONSTRAINT entity_note_station_entity_key UNIQUE (station_id, entity_type, entity_id);
+
+-- Track the last accepted TOTP time-step per factor so a code cannot be replayed
+-- within its validity window.
+ALTER TABLE ember_schema.account_2fa_totp
+    ADD COLUMN last_used_step BIGINT NOT NULL DEFAULT 0;
+COMMENT ON COLUMN ember_schema.account_2fa_totp.last_used_step IS
+    'Highest TOTP time-step already consumed; verification rejects any step at or below it.';

@@ -234,8 +234,12 @@ public class TwoFactorService {
         if (totp.isEmpty()) return false;
 
         String secret = totpService.decryptSecret(totp.get().secretEncrypted());
-        if (!totpService.verifyCode(secret, code)) return false;
+        var step = totpService.matchStep(secret, code);
+        if (step.isEmpty() || step.getAsLong() <= totp.get().lastUsedStep()) {
+            return false;
+        }
 
+        repository.updateLastUsedStep(factor.get().id(), step.getAsLong());
         repository.touchFactorUsed(factor.get().id());
         return true;
     }

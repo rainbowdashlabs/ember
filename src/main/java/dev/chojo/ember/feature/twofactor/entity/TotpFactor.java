@@ -8,7 +8,13 @@ package dev.chojo.ember.feature.twofactor.entity;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 
 public record TotpFactor(
-        int factorId, byte[] secretEncrypted, short secretKid, short digits, short periodSeconds, String algorithm) {
+        int factorId,
+        byte[] secretEncrypted,
+        short secretKid,
+        short digits,
+        short periodSeconds,
+        String algorithm,
+        long lastUsedStep) {
 
     public static RowMapping<TotpFactor> map() {
         return row -> new TotpFactor(
@@ -17,6 +23,7 @@ public record TotpFactor(
                 row.getShort("secret_kid"),
                 row.getShort("digits"),
                 row.getShort("period_seconds"),
-                row.getString("algorithm"));
+                row.getString("algorithm"),
+                row.getLong("last_used_step"));
     }
 }

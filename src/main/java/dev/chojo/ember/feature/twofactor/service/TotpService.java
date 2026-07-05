@@ -11,6 +11,7 @@ import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.qrcode.QRCodeWriter;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
+import dev.samstevens.totp.code.CodeGenerator;
 import dev.samstevens.totp.code.CodeVerifier;
 import dev.samstevens.totp.code.DefaultCodeGenerator;
 import dev.samstevens.totp.code.DefaultCodeVerifier;
@@ -18,6 +19,7 @@ import dev.samstevens.totp.code.HashingAlgorithm;
 import dev.samstevens.totp.secret.DefaultSecretGenerator;
 import dev.samstevens.totp.secret.SecretGenerator;
 import dev.samstevens.totp.time.SystemTimeProvider;
+import dev.samstevens.totp.time.TimeProvider;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -27,8 +29,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.OptionalLong;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;
@@ -44,6 +48,8 @@ public class TotpService {
     private final byte[] encryptionKey;
     private final SecretGenerator secretGenerator;
     private final CodeVerifier codeVerifier;
+    private final CodeGenerator codeGenerator;
+    private final TimeProvider timeProvider;
 
     @Inject
     public TotpService(TwoFactorSettings twoFactorSettings, Demo demo) {
@@ -53,11 +59,35 @@ public class TotpService {
 
         this.secretGenerator = new DefaultSecretGenerator();
         var algorithm = HashingAlgorithm.valueOf(config.algorithm());
-        var codeGenerator = new DefaultCodeGenerator(algorithm, config.digits());
-        var verifier = new DefaultCodeVerifier(codeGenerator, new SystemTimeProvider());
+        this.codeGenerator = new DefaultCodeGenerator(algorithm, config.digits());
+        this.timeProvider = new SystemTimeProvider();
+        var verifier = new DefaultCodeVerifier(codeGenerator, timeProvider);
         verifier.setTimePeriod(config.periodSeconds());
         verifier.setAllowedTimePeriodDiscrepancy(config.driftWindow());
         this.codeVerifier = verifier;
+    }
+
+    /**
+     * Returns the TOTP time-step that the given code matches, searching the configured drift
+     * window around the current step, or empty when the code is invalid. Callers can persist
+     * the matched step and reject any step at or below it to make each code single-use.
+     */
+    public OptionalLong matchStep(String secret, String code) {
+        if (code == null) return OptionalLong.empty();
+        long currentStep = timeProvider.getTime() / config.periodSeconds();
+        int drift = config.driftWindow();
+        for (long step = currentStep - drift; step <= currentStep + drift; step++) {
+            try {
+                String candidate = codeGenerator.generate(secret, step);
+                if (MessageDigest.isEqual(
+                        candidate.getBytes(StandardCharsets.UTF_8), code.getBytes(StandardCharsets.UTF_8))) {
+                    return OptionalLong.of(step);
+                }
+            } catch (Exception ignored) {
+                // A generation failure for one step should not abort the window scan.
+            }
+        }
+        return OptionalLong.empty();
     }
 
     /**

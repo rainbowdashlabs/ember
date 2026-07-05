@@ -88,6 +88,21 @@ class TwoFactorServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    void totpCodeCannotBeReplayedWithinWindow() {
+        int accountId = newAccount();
+        var enrollment = service.beginTotpEnrollment(accountId, "replay@test.com");
+        String enrollCode = generateCurrentTotp(enrollment.secret());
+        assertTrue(service.confirmTotpEnrollment(
+                accountId, enrollment.secret(), enrollCode, enrollment.recoveryCodes(), "ua", null));
+
+        String loginCode = generateCurrentTotp(enrollment.secret());
+        assertTrue(service.verifyTotp(accountId, loginCode), "first use of a fresh code should succeed");
+        assertFalse(
+                service.verifyTotp(accountId, loginCode),
+                "the same code must be rejected as a replay within its window");
+    }
+
+    @Test
     void totpVerifyAndBackupCode() {
         int accountId = newAccount();
         var enrollment = service.beginTotpEnrollment(accountId, "verify@test.com");
