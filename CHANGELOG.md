@@ -1,5 +1,15 @@
 # Changelog
 
+## v26.11.1
+
+### Security
+
+- **Stricter cross-station isolation.** Every station-scoped resource — pages and their files, forms and responses, events and registrations, members and their profile data, notes, quiz catalogs and attempts, inventory, attendance, waiting lists, knowledge-base documents and boards — is now checked to belong to the signed-in user's own station before it can be read or changed, closing cases where a resource from another station could be reached by supplying its id.
+- **Two-factor sign-in is rate limited.** Repeated two-factor and step-up attempts are throttled per account and per address, and a login's pending two-factor challenge is invalidated after several wrong codes, so a stolen password can no longer be paired with unlimited guesses.
+- **Authenticator codes are single-use.** A time-based authenticator code can no longer be used more than once within its short validity window.
+- **Password resets clear remembered devices.** Resetting a password, and removing a second factor, now revoke every "remember this device" entry so a saved device can no longer skip the two-factor prompt afterwards.
+- **Shorter password-reset links.** Self-service password-reset links now expire after one hour, configurable via `auth.resetTokenHours`; operator-issued invites and admin resets keep their longer window.
+
 ## v26.11.0
 
 ### New Features
@@ -9,14 +19,6 @@
 - **Form list redesigned as tiles.** The station's form list now shows each form as a tile with its status, response count, title and description. Each tile also shows when the form was created and when it last saw activity (either an edit or a new response), and the list can be sorted by last activity, creation date, or title, in either direction. Clicking a tile opens the form — the editor for drafts, analytics for everything else. Publish, close, edit, analytics and delete actions live in a context menu in the tile's upper-right corner.
 - **Outstanding members on required-form analytics.** When a form is marked as required, its analytics page lists the eligible members who have not submitted a response yet, so chasing the missing ones is a glance away.
 - **Checklists for member follow-up.** Managers can build a list of yes/no questions, pick a member set by user type, group, tag or by hand, and tick each member off as they finish each step. The list overview shows one tile per checklist; on a phone the detail view switches from the wide matrix to a per-member card so every column is readable without horizontal scrolling. Member rows are listed alphabetically by name, and the search bar at the top of the matrix jumps straight to a member as you type. The add-members picker is also sorted alphabetically. Each cell takes an optional note with full history of every change, and the note text shows directly in the matrix next to its toggle. The list's name and description stay editable after creation, columns can be reordered by drag-and-drop or with up/down arrows in the edit dialog (the arrows also work on touch), and a new column lands at the position the manager picks. The list can be refreshed later to pull in newly-matching members, individual members can be added or removed by hand at any time, and the matrix exports to CSV for spreadsheet work or to a printable PDF that carries the station logo and name in a compact running header, uses drawn checkboxes instead of emoji, and follows the station language. Access splits into a read-only permission for staff who only need to look, and a manage permission for the rest.
-
-### Security
-
-- **Stricter cross-station isolation.** Every station-scoped resource — pages and their files, forms and responses, events and registrations, members and their profile data, notes, quiz catalogs and attempts, inventory, attendance, waiting lists, knowledge-base documents and boards — is now checked to belong to the signed-in user's own station before it can be read or changed, closing cases where a resource from another station could be reached by supplying its id.
-- **Two-factor sign-in is rate limited.** Repeated two-factor and step-up attempts are throttled per account and per address, and a login's pending two-factor challenge is invalidated after several wrong codes, so a stolen password can no longer be paired with unlimited guesses.
-- **Authenticator codes are single-use.** A time-based authenticator code can no longer be used more than once within its short validity window.
-- **Password resets clear remembered devices.** Resetting a password, and removing a second factor, now revoke every "remember this device" entry so a saved device can no longer skip the two-factor prompt afterwards.
-- **Shorter password-reset links.** Self-service password-reset links now expire after one hour, configurable via `auth.resetTokenHours`; operator-issued invites and admin resets keep their longer window.
 
 ### Changes
 
