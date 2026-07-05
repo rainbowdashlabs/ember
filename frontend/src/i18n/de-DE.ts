@@ -6920,6 +6920,10 @@ volumes:
             codePlaceholder: '6-stelliger Code',
             verify: 'Code bestätigen',
             invalidCode: 'Ungültiger Code. Bitte versuche es erneut.',
+            passwordPrompt: 'Bestätige zur Sicherheit dein aktuelles Passwort, um die Zwei-Faktor-Authentifizierung einzurichten.',
+            passwordPlaceholder: 'Aktuelles Passwort',
+            passwordRequired: 'Bitte gib dein aktuelles Passwort ein.',
+            passwordWrong: 'Das Passwort ist falsch.',
         },
         verify: {
             title: 'Zwei-Faktor-Verifizierung',

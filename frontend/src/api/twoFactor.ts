@@ -52,8 +52,13 @@ export async function beginTotpSetup(): Promise<TotpBeginResponse> {
     return res.data
 }
 
-export async function confirmTotpSetup(secret: string, code: string, recoveryCodes: string[]): Promise<void> {
-    await client.post('/account/2fa/totp/confirm', {secret, code, recoveryCodes})
+export async function confirmTotpSetup(
+    secret: string,
+    code: string,
+    recoveryCodes: string[],
+    password?: string,
+): Promise<void> {
+    await client.post('/account/2fa/totp/confirm', {secret, code, recoveryCodes, password})
 }
 
 export async function removeTotp(): Promise<void> {
@@ -123,10 +128,11 @@ export async function webauthnRegisterFinish(
     challengeToken: string,
     credentialJson: string,
     label: string,
+    password?: string,
 ): Promise<WebAuthnRegisterFinishResponse> {
     const res = await client.post<WebAuthnRegisterFinishResponse>(
         '/account/2fa/webauthn/register/finish',
-        {challengeToken, credentialJson, label},
+        {challengeToken, credentialJson, label, password},
     )
     return res.data
 }

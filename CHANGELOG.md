@@ -8,6 +8,7 @@
 - **Two-factor sign-in is rate limited.** Repeated two-factor and step-up attempts are throttled per account and per address, and a login's pending two-factor challenge is invalidated after several wrong codes, so a stolen password can no longer be paired with unlimited guesses.
 - **Authenticator codes are single-use.** A time-based authenticator code can no longer be used more than once within its short validity window.
 - **Password resets clear remembered devices.** Resetting a password, and removing a second factor, now revoke every "remember this device" entry so a saved device can no longer skip the two-factor prompt afterwards.
+- **Setting up two-factor asks for your password.** Enrolling the first authenticator app or security key now requires confirming the account password, so a stolen browser session alone cannot add its own second factor.
 - **Shorter password-reset links.** Self-service password-reset links now expire after one hour, configurable via `auth.resetTokenHours`; operator-issued invites and admin resets keep their longer window.
 
 ## v26.11.0

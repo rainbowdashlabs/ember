@@ -605,6 +605,22 @@ public class AuthService {
      * @param newPassword     the new plaintext password
      * @return {@code true} if the password was changed successfully
      */
+    /**
+     * Verifies an account's current password. Used to re-authenticate a session before it may
+     * enroll its first second factor, so a hijacked bearer token on its own cannot silently
+     * plant an attacker-controlled factor for persistence.
+     *
+     * @param accountId the account to check
+     * @param password  the plaintext password supplied by the caller
+     * @return {@code true} when the account has a credential and the password matches
+     */
+    public boolean verifyPassword(int accountId, String password) {
+        if (password == null || password.isBlank()) return false;
+        var credOpt = accountRepository.findCredential(accountId);
+        return credOpt.isPresent()
+                && passwordHasher.verify(password, credOpt.get().passwordHash());
+    }
+
     public boolean changePassword(
             int accountId, String currentSessionToken, String currentPassword, String newPassword) {
         if (validateNewPassword(newPassword) != PasswordPolicy.Result.OK) {

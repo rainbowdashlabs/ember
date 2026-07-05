@@ -103,6 +103,20 @@ public class TwoFactorRoutes implements Routes {
     }
 
     /**
+     * Requires the account's password before its first second factor may be enrolled. First-factor
+     * enrollment cannot be gated by step-up (no factor exists yet), so a session-bound password
+     * re-entry is the substitute that stops a hijacked bearer token from silently planting a
+     * factor for persistence. Once a factor exists, further enrollment is gated by step-up.
+     */
+    private void requireReauthForFirstFactor(int accountId, String password) {
+        if (twoFactorService.isEnrolled(accountId)) return;
+        enforceLimit(rateLimiter.tryTwoFactor("enroll", accountId));
+        if (!authService.verifyPassword(accountId, password)) {
+            throw new UnauthorizedResponse("Password confirmation is required to set up two-factor authentication");
+        }
+    }
+
+    /**
      * Best-effort "is this the device the caller is currently signed in on?" check. We don't
      * have direct access to {@code account_session.device_trust_id} from {@link UserSession}
      * yet — the next session refresh will surface it. For now we always return false; the UI
@@ -210,6 +224,7 @@ public class TwoFactorRoutes implements Routes {
         if (request.secret() == null || request.code() == null || request.recoveryCodes() == null) {
             throw new BadRequestResponse("secret, code, and recoveryCodes are required");
         }
+        requireReauthForFirstFactor(session.accountId(), request.password());
         boolean confirmed = twoFactorService.confirmTotpEnrollment(
                 session.accountId(),
                 request.secret(),
@@ -400,6 +415,7 @@ public class TwoFactorRoutes implements Routes {
         if (request.challengeToken() == null || request.credentialJson() == null) {
             throw new BadRequestResponse("challengeToken and credentialJson are required");
         }
+        requireReauthForFirstFactor(session.accountId(), request.password());
         var factor = webAuthnService.finishRegistration(
                 session.accountId(),
                 request.challengeToken(),
@@ -560,7 +576,7 @@ public class TwoFactorRoutes implements Routes {
 
     public record TotpBeginResponse(String secret, String otpauthUri, String qrPng, List<String> recoveryCodes) {}
 
-    public record TotpConfirmRequest(String secret, String code, List<String> recoveryCodes) {}
+    public record TotpConfirmRequest(String secret, String code, List<String> recoveryCodes, String password) {}
 
     public record BackupCodesResponse(List<String> codes) {}
 
@@ -576,7 +592,8 @@ public class TwoFactorRoutes implements Routes {
 
     public record WebAuthnBeginResponse(String challengeToken, String optionsJson) {}
 
-    public record WebAuthnRegisterFinishRequest(String challengeToken, String credentialJson, String label) {}
+    public record WebAuthnRegisterFinishRequest(
+            String challengeToken, String credentialJson, String label, String password) {}
 
     public record WebAuthnRegisterFinishResponse(FactorInfo factor, List<String> recoveryCodes) {}
 
