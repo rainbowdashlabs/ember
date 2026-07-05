@@ -100,7 +100,11 @@ public abstract class RepositoryTestBase {
     static final PostgreSQLContainer PG = new PostgreSQLContainer("postgres:17")
             .withDatabaseName("ember_test")
             .withUsername("test")
-            .withPassword("test");
+            .withPassword("test")
+            // Rootless Docker occasionally assigns two concurrently-started containers the same
+            // random host port, failing the second bind. Retrying the start picks a fresh port,
+            // so transient collisions self-heal instead of failing the class.
+            .withStartupAttempts(4);
 
     protected static AccountRepository accountRepo;
     protected static StationRepository stationRepo;

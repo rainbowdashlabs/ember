@@ -51,7 +51,8 @@ class S3StorageBackendTest {
             .withExposedPorts(9000)
             .withEnv("RUSTFS_ACCESS_KEY", ACCESS_KEY)
             .withEnv("RUSTFS_SECRET_KEY", SECRET_KEY)
-            .waitingFor(Wait.forListeningPort());
+            .waitingFor(Wait.forListeningPort())
+            .withStartupAttempts(4);
 
     private static S3BackendConfig config;
     private static S3StorageBackend backend;

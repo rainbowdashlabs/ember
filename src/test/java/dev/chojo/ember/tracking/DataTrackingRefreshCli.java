@@ -36,7 +36,8 @@ public final class DataTrackingRefreshCli {
         try (var container = new PostgreSQLContainer("postgres:17")
                 .withDatabaseName("ember_tracking")
                 .withUsername("test")
-                .withPassword("test")) {
+                .withPassword("test")
+                .withStartupAttempts(4)) {
             container.start();
             log.info("Container running at {}:{}", container.getHost(), container.getFirstMappedPort());
 

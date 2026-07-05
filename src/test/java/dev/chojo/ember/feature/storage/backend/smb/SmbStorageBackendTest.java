@@ -42,7 +42,8 @@ class SmbStorageBackendTest {
     static final GenericContainer<?> SAMBA = new GenericContainer<>("dperson/samba")
             .withExposedPorts(445)
             .withCommand("-p", "-w", "WORKGROUP", "-u", USER + ";" + PASSWORD, "-s", SHARE + ";/tmp;yes;no;no;" + USER)
-            .waitingFor(Wait.forListeningPort());
+            .waitingFor(Wait.forListeningPort())
+            .withStartupAttempts(4);
 
     private static SmbBackendConfig config;
     private static SmbStorageBackend backend;

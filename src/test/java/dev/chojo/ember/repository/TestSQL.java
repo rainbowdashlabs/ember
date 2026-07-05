@@ -49,7 +49,8 @@ public class TestSQL {
                 .withExposedPorts(5432)
                 .withEnv("POSTGRES_USER", user)
                 .withEnv("POSTGRES_PASSWORD", pw)
-                .waitingFor(Wait.forLogMessage(".*database system is ready to accept connections.*", 2));
+                .waitingFor(Wait.forLogMessage(".*database system is ready to accept connections.*", 2))
+                .withStartupAttempts(4);
         self.start();
         return self;
     }
