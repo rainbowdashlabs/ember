@@ -11,6 +11,15 @@
 - **Setting up two-factor asks for your password.** Enrolling the first authenticator app or security key now requires confirming the account password, so a stolen browser session alone cannot add its own second factor.
 - **Shorter password-reset links.** Self-service password-reset links now expire after one hour, configurable via `auth.resetTokenHours`; operator-issued invites and admin resets keep their longer window.
 
+### Changes
+
+- **Station logos are raster images served at size.** A station logo upload accepts PNG, JPEG, WebP or GIF, and each place that shows the logo receives an appropriately sized copy instead of the full-resolution file, so pages load lighter. SVG uploads are no longer accepted.
+
+### Fixes
+
+- **Event access restrictions keep their match mode.** Choosing whether an event's user-type, group and tag conditions must all match or any single one is enough now persists when the event is saved.
+- **Blank profile fields when adding a member.** Custom profile fields without a default value start empty on the new-member form.
+
 ## v26.11.0
 
 ### New Features
