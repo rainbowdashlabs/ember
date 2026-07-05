@@ -985,7 +985,7 @@ class QuizServiceTest extends RepositoryTestBase {
         var share = federationRepo.createQuizShare(stationB.id(), fedCatalog.id(), ShareScope.ALL_PARTNERS);
         var shared = service.browseSharedQuiz(station.id());
         assertTrue(shared.stream().anyMatch(s -> s.id() == fedCatalog.id()));
-        federationRepo.deleteQuizShare(share.id());
+        federationRepo.deleteQuizShare(share.id(), stationB.id());
         quizCatalogRepo.delete(fedCatalog.id());
     }
 

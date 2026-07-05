@@ -1055,7 +1055,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         var share = federationRepo.createKbShare(stationB.id(), file.id(), null, ShareScope.ALL_PARTNERS);
         var items = service.browseSharedKb(station.id());
         assertTrue(items.stream().anyMatch(i -> i.file().id() == file.id()));
-        federationRepo.deleteKbShare(share.id());
+        federationRepo.deleteKbShare(share.id(), stationB.id());
         knowledgeBaseRepo.deleteFile(file.id());
     }
 

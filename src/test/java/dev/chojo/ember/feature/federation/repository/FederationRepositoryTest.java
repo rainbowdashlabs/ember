@@ -222,7 +222,7 @@ class FederationRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(21)
     void deleteKbShare() {
-        assertTrue(federationRepo.deleteKbShare(kbShareId));
+        assertTrue(federationRepo.deleteKbShare(kbShareId, stationA.id()));
         var shares = federationRepo.findKbShares(stationA.id());
         assertTrue(shares.stream().noneMatch(s -> s.id() == kbShareId));
     }
@@ -246,7 +246,7 @@ class FederationRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(31)
     void deleteQuizShare() {
-        assertTrue(federationRepo.deleteQuizShare(quizShareId));
+        assertTrue(federationRepo.deleteQuizShare(quizShareId, stationA.id()));
         var shares = federationRepo.findQuizShares(stationA.id());
         assertTrue(shares.stream().noneMatch(s -> s.id() == quizShareId));
     }
@@ -270,7 +270,7 @@ class FederationRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(41)
     void deleteProtocolShare() {
-        assertTrue(federationRepo.deleteProtocolShare(protocolShareId));
+        assertTrue(federationRepo.deleteProtocolShare(protocolShareId, stationA.id()));
         var shares = federationRepo.findProtocolShares(stationA.id());
         assertTrue(shares.stream().noneMatch(s -> s.id() == protocolShareId));
     }

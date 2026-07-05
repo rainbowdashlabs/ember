@@ -321,8 +321,8 @@ public class FederationService {
 
     // -- Sharing --
 
-    public boolean deleteKbShare(int id) {
-        return repository.deleteKbShare(id);
+    public boolean deleteKbShare(int id, int stationId) {
+        return repository.deleteKbShare(id, stationId);
     }
 
     public List<FederationShare> findQuizShares(int stationId) {
@@ -333,8 +333,8 @@ public class FederationService {
         return repository.createQuizShare(stationId, catalogId, shareScope);
     }
 
-    public boolean deleteQuizShare(int id) {
-        return repository.deleteQuizShare(id);
+    public boolean deleteQuizShare(int id, int stationId) {
+        return repository.deleteQuizShare(id, stationId);
     }
 
     public List<FederationShare> findProtocolShares(int stationId) {
@@ -345,8 +345,8 @@ public class FederationService {
         return repository.createProtocolShare(stationId, protocolId, shareScope);
     }
 
-    public boolean deleteProtocolShare(int id) {
-        return repository.deleteProtocolShare(id);
+    public boolean deleteProtocolShare(int id, int stationId) {
+        return repository.deleteProtocolShare(id, stationId);
     }
 
     // Available for remote sync — not yet called from routes
