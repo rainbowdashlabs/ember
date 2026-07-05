@@ -60,7 +60,7 @@ const {loading, error} = useAsyncLoader(async () => {
 function nextFromIdentity() {
   for (const field of scopeFields.value) {
     const cfg = parseFieldConfig(field.config)
-    if (cfg.defaultValue !== undefined && !fieldValues.value.has(field.id)) {
+    if (cfg.defaultValue !== undefined && cfg.defaultValue !== null && !fieldValues.value.has(field.id)) {
       if (cfg.defaultValue === '__TODAY__') {
         setFieldValue(field.id, new Date().toISOString().slice(0, 10))
       } else {
