@@ -341,7 +341,7 @@ public class AuthService {
                 account.id(),
                 token,
                 TokenType.RESET_PASSWORD,
-                Instant.now().plus(authConfig.verifyTokenHours(), ChronoUnit.HOURS));
+                Instant.now().plus(authConfig.resetTokenHours(), ChronoUnit.HOURS));
         emailService.sendPasswordResetEmail(
                 account.email(), account.firstName(), token, accountRepository.findMailLocale(account.id()));
         log.info("Password reset requested for account {} ({})", account.id(), email);
