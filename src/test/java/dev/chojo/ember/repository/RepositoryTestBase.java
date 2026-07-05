@@ -82,8 +82,6 @@ import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 import java.util.Set;
@@ -92,19 +90,27 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.sql.DataSource;
 
 @Tag("database")
-@Testcontainers
 public abstract class RepositoryTestBase {
     private static final AtomicInteger SCHEMA_COUNTER = new AtomicInteger(0);
 
-    @Container
+    /**
+     * A single PostgreSQL container per JVM (Gradle test fork), started once here and shared by
+     * every repository test class in that fork; each class isolates its data in its own schema.
+     * Sharing one container — instead of letting the {@code @Testcontainers} lifecycle start and
+     * stop one per test class — removes the container start/stop churn under parallel forks that
+     * let rootless Docker occasionally hand two concurrently-starting containers the same host
+     * port. {@code withStartupAttempts} still self-heals the rare remaining collision, and the
+     * container is reaped when the fork's JVM exits.
+     */
     static final PostgreSQLContainer PG = new PostgreSQLContainer("postgres:17")
             .withDatabaseName("ember_test")
             .withUsername("test")
             .withPassword("test")
-            // Rootless Docker occasionally assigns two concurrently-started containers the same
-            // random host port, failing the second bind. Retrying the start picks a fresh port,
-            // so transient collisions self-heal instead of failing the class.
             .withStartupAttempts(4);
+
+    static {
+        PG.start();
+    }
 
     protected static AccountRepository accountRepo;
     protected static StationRepository stationRepo;
