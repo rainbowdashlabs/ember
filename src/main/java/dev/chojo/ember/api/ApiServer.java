@@ -49,7 +49,6 @@ import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HandlerType;
 import io.javalin.http.HttpResponseException;
 import io.javalin.http.HttpStatus;
-import io.javalin.http.NotFoundResponse;
 import io.javalin.http.UnauthorizedResponse;
 import io.javalin.openapi.plugin.OpenApiPlugin;
 import io.javalin.openapi.plugin.OpenApiPluginConfiguration;
@@ -452,7 +451,7 @@ public class ApiServer {
                     API_PREFIX + "/demo/status",
                     ctx -> ctx.json(new DemoStatusResponse(demoConfig.enabled(), demoConfig.dev())));
 
-            if (demoConfig.enabled()) {
+            if (demoConfig.enabled() || demoConfig.dev()) {
                 config.routes.get(API_PREFIX + "/demo/accounts", this::handleDemoAccounts);
             }
 
@@ -551,9 +550,6 @@ public class ApiServer {
     }
 
     private void handleDemoAccounts(@NotNull Context ctx) {
-        if (!demoConfig.enabled()) {
-            throw new NotFoundResponse();
-        }
         var allStations = stationRepository.findAll();
         var stationGroups = new ArrayList<DemoStationGroup>();
         for (var station : allStations) {
