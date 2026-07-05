@@ -382,10 +382,9 @@ public class NotificationService {
      *
      * @param id       the notification ID
      * @param memberId the member ID
-     * @return {@code true} if the notification was acknowledged
      */
-    public boolean acknowledge(int id, int memberId) {
-        return notificationRepository.acknowledge(id, memberId);
+    public void acknowledge(int id, int memberId) {
+        notificationRepository.acknowledge(id, memberId);
     }
 
     /**
@@ -403,10 +402,9 @@ public class NotificationService {
      *
      * @param type            the notification type
      * @param partialDataJson JSON fragment for containment matching
-     * @return the number of notifications deleted
      */
-    public int deleteByTypeContaining(NotificationType type, String partialDataJson) {
-        return notificationRepository.deleteByTypeContaining(type, partialDataJson);
+    public void deleteByTypeContaining(NotificationType type, String partialDataJson) {
+        notificationRepository.deleteByTypeContaining(type, partialDataJson);
     }
 
     /**

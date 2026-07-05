@@ -40,13 +40,12 @@ import static org.junit.jupiter.api.Assertions.*;
 class BatchEventServiceTest extends RepositoryTestBase {
 
     private static BatchEventService batchService;
-    private static EventService eventService;
     private static Station station;
 
     @BeforeAll
     static void setup() {
         var domainEventBus = new DomainEventBus(Set.of());
-        eventService = new EventService(
+        EventService eventService = new EventService(
                 eventRepo, new RestrictionRepository(stationMemberRepo, memberGroupRepo, userTagRepo), domainEventBus);
         var fieldService = new EventFieldService(
                 eventFieldRepo, stationMemberRepo, memberGroupRepo, new UserTagService(userTagRepo, memberGroupRepo));

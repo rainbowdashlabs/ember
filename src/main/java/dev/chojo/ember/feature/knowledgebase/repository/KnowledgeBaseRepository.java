@@ -42,7 +42,7 @@ public class KnowledgeBaseRepository {
                 ) any_kb_entry
                 LIMIT 1;""")
                 .single(call().bind("station_id", stationId))
-                .map(row -> true)
+                .map(_ -> true)
                 .first()
                 .orElse(false);
     }
@@ -65,8 +65,7 @@ public class KnowledgeBaseRepository {
      * Each word gets :* appended so "Notr" matches "Notruf".
      * Multiple words are combined with &amp; (AND).
      */
-    private static String buildPrefixTsQuery(String cfg, String query) {
-        // to_tsquery with :* suffix for prefix matching
+    private static String buildPrefixTsQuery(String cfg) {
         return "to_tsquery('%s', :tsquery)".formatted(cfg);
     }
 
@@ -257,8 +256,8 @@ public class KnowledgeBaseRepository {
                 .changed();
     }
 
-    public boolean updateConversionStatus(int fileId, ConversionStatus status) {
-        return query("UPDATE kb_file SET conversion_status = :status, updated_at = now() WHERE id = :id;")
+    public void updateConversionStatus(int fileId, ConversionStatus status) {
+        query("UPDATE kb_file SET conversion_status = :status, updated_at = now() WHERE id = :id;")
                 .single(call().bind("id", fileId).bind("status", status))
                 .update()
                 .changed();
@@ -353,7 +352,7 @@ public class KnowledgeBaseRepository {
 
     public List<KbFile> search(int stationId, String query, String tsConfig) {
         String cfg = sanitizeTsConfig(tsConfig);
-        String tsq = buildPrefixTsQuery(cfg, query);
+        String tsq = buildPrefixTsQuery(cfg);
         return query("""
                 SELECT
                     %s
@@ -372,7 +371,7 @@ public class KnowledgeBaseRepository {
 
     public List<KbSearchResult> searchWithSnippets(int stationId, String query, String tsConfig) {
         String cfg = sanitizeTsConfig(tsConfig);
-        String tsq = buildPrefixTsQuery(cfg, query);
+        String tsq = buildPrefixTsQuery(cfg);
         // Strip markdown/HTML from text_content before generating headline snippet
         // strip HTML tags
         String cleanText = """
@@ -648,7 +647,7 @@ public class KnowledgeBaseRepository {
     public boolean isFavourite(int memberId, int fileId) {
         return query("SELECT 1 FROM kb_favourite WHERE member_id = :member_id AND file_id = :file_id;")
                 .single(call().bind("member_id", memberId).bind("file_id", fileId))
-                .map(row -> true)
+                .map(_ -> true)
                 .first()
                 .orElse(false);
     }
@@ -718,14 +717,14 @@ public class KnowledgeBaseRepository {
         if (folderId != null) {
             return query("SELECT 1 FROM kb_access_restriction WHERE folder_id = :folder_id LIMIT 1;")
                     .single(call().bind("folder_id", folderId))
-                    .map(row -> true)
+                    .map(_ -> true)
                     .first()
                     .orElse(false);
         }
         if (fileId != null) {
             return query("SELECT 1 FROM kb_access_restriction WHERE file_id = :file_id LIMIT 1;")
                     .single(call().bind("file_id", fileId))
-                    .map(row -> true)
+                    .map(_ -> true)
                     .first()
                     .orElse(false);
         }

@@ -598,14 +598,6 @@ public class AuthService {
     }
 
     /**
-     * Changes a user's password after verifying the current password.
-     *
-     * @param accountId       the account identifier
-     * @param currentPassword the current plaintext password for verification
-     * @param newPassword     the new plaintext password
-     * @return {@code true} if the password was changed successfully
-     */
-    /**
      * Verifies an account's current password. Used to re-authenticate a session before it may
      * enroll its first second factor, so a hijacked bearer token on its own cannot silently
      * plant an attacker-controlled factor for persistence.
@@ -778,14 +770,6 @@ public class AuthService {
         accountRepository.deleteToken(token);
         log.info("Station deletion confirmed by account {} for station {}", accountToken.accountId(), stationId);
         return Optional.of(stationId);
-    }
-
-    /**
-     * Creates a session for the given account, callable from the 2FA verification
-     * flow after the user has proven their second factor.
-     */
-    public LoginResult createSessionForAccount(int accountId, String userAgent, String location) {
-        return createSession(accountId, userAgent, location);
     }
 
     /**

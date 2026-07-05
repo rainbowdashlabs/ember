@@ -392,6 +392,7 @@ public class FederationHttpClient {
         }
         builder.method(method, publisher);
 
+        //noinspection resource
         return clientFor(url).send(builder.build(), HttpResponse.BodyHandlers.ofString());
     }
 }

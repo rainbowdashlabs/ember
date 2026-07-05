@@ -43,8 +43,6 @@ import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
-import dev.chojo.ember.feature.federation.service.FederationDisplayNames;
-import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.StationMemberService;
@@ -81,6 +79,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
+import static dev.chojo.ember.api.RouteSupport.pathInt;
+import static dev.chojo.ember.api.RouteSupport.requireOwned;
+
 /**
  * Routes for event management including CRUD operations on events, categories, breaks,
  * registrations, event fields, restrictions, PDF export, and notification handling.
@@ -111,7 +112,6 @@ public class EventRoutes implements Routes {
             AttendanceService attendanceService,
             EventExportService eventExportService,
             EventFederationService eventFederationService,
-            FederationService federationService,
             FederationRepository federationRepository,
             StationRepository stationRepository,
             MemberIdentityFactory memberIdentityFactory) {
@@ -296,6 +296,60 @@ public class EventRoutes implements Routes {
                 .orElse(null);
     }
 
+    /**
+     * Resolves a member's display name and identity, empty and {@code null} respectively when unknown.
+     */
+    private MemberDisplay resolveMemberDisplay(int memberId) {
+        var member = stationMemberRepository.findById(memberId);
+        String name = member.flatMap(m -> accountRepository.findById(m.accountId()))
+                .map(a -> (a.firstName() + " " + a.lastName()).trim())
+                .orElse("");
+        MemberIdentity identity = member.map(m -> memberIdentityFactory.local(m.stationId(), memberId))
+                .orElse(null);
+        return new MemberDisplay(name, identity);
+    }
+
+    /**
+     * Maps a registration to its response, resolving the member's display name, identity, and creator.
+     */
+    private RegistrationResponse toRegistrationResponse(EventRegistration r) {
+        var display = resolveMemberDisplay(r.memberId());
+        String createdByName = resolveCreatedByName(r.createdBy());
+        return new RegistrationResponse(
+                r.id(),
+                r.eventId(),
+                r.memberId(),
+                display.name(),
+                display.identity(),
+                r.eventDate(),
+                r.status(),
+                r.createdAt(),
+                createdByName);
+    }
+
+    /**
+     * Resolves and authorises the member id a register or decline call targets, defaulting to the caller.
+     */
+    private int resolveTargetMemberId(UserSession session, RegisterRequest req) {
+        if (session.member() == null) throw new BadRequestResponse("Not a station member");
+        int memberId;
+        if (req.memberId() != null) {
+            memberId = req.memberId();
+            if (memberId != session.member().id()) {
+                boolean manages = stationMemberService
+                        .findManaged(session.member().id())
+                        .stream()
+                        .anyMatch(m -> m.id() == memberId);
+                if (!manages && !session.hasPermission(StationPermission.EVENT_MANAGER)) {
+                    throw new ForbiddenResponse("You do not manage this member");
+                }
+            }
+        } else {
+            memberId = session.member().id();
+        }
+        return memberId;
+    }
+
     // -- Events --
 
     @OpenApi(
@@ -313,14 +367,22 @@ public class EventRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationEvent[].class)))
     private void list(Context ctx) {
         UserSession session = UserSession.from(ctx);
+        var filter = parseCategoryFilter(ctx);
+        List<Integer> memberIds = resolveVisibleMemberIds(session);
+        var events = eventService.findFilteredForMembers(
+                session.stationId(), memberIds, filter.categoryId(), filter.requiresRegistration());
+        ctx.json(events.stream().map(EventSummary::of).toList());
+    }
+
+    /**
+     * Parses the optional category and registration-requirement filters shared by the event listings.
+     */
+    private CategoryFilter parseCategoryFilter(Context ctx) {
         String catParam = ctx.queryParam("categoryId");
         Integer categoryId = catParam != null ? Integer.valueOf(catParam) : null;
         String regParam = ctx.queryParam("requiresRegistration");
         Boolean requiresRegistration = regParam != null ? Boolean.valueOf(regParam) : null;
-        List<Integer> memberIds = resolveVisibleMemberIds(session);
-        var events =
-                eventService.findFilteredForMembers(session.stationId(), memberIds, categoryId, requiresRegistration);
-        ctx.json(events.stream().map(EventSummary::of).toList());
+        return new CategoryFilter(categoryId, requiresRegistration);
     }
 
     private void searchPicker(Context ctx) {
@@ -377,16 +439,19 @@ public class EventRoutes implements Routes {
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = UpcomingEventOccurrence[].class)))
     private void listUpcoming(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        String catParam = ctx.queryParam("categoryId");
-        Integer categoryId = catParam != null ? Integer.valueOf(catParam) : null;
-        String regParam = ctx.queryParam("requiresRegistration");
-        Boolean requiresRegistration = regParam != null ? Boolean.valueOf(regParam) : null;
+        var filter = parseCategoryFilter(ctx);
         String search = ctx.queryParam("search");
         int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(10);
         int offset = ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0);
         List<Integer> memberIds = resolveVisibleMemberIds(session);
         ctx.json(eventService.findUpcomingOccurrences(
-                session.stationId(), memberIds, categoryId, requiresRegistration, search, limit, offset));
+                session.stationId(),
+                memberIds,
+                filter.categoryId(),
+                filter.requiresRegistration(),
+                search,
+                limit,
+                offset));
     }
 
     @OpenApi(
@@ -439,12 +504,8 @@ public class EventRoutes implements Routes {
             })
     private void get(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var event = eventService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (event.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
-        ctx.json(event);
+        int id = pathInt(ctx, "id");
+        ctx.json(requireOwnedEvent(id, session));
     }
 
     @OpenApi(
@@ -460,11 +521,8 @@ public class EventRoutes implements Routes {
             })
     private void update(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var existing = eventService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (existing.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        int id = pathInt(ctx, "id");
+        requireOwnedEvent(id, session);
         var req = ctx.bodyAsClass(EventRequest.class);
         validate(req);
         var eventType = req.eventType();
@@ -514,11 +572,8 @@ public class EventRoutes implements Routes {
             })
     private void delete(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var event = eventService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (event.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        int id = pathInt(ctx, "id");
+        requireOwnedEvent(id, session);
         if (eventService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -528,7 +583,7 @@ public class EventRoutes implements Routes {
 
     private void cancelEvent(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var req = ctx.bodyAsClass(CancelEventRequest.class);
         if (!eventService.cancelEvent(session.stationId(), id, req.reason())) {
             throw new NotFoundResponse();
@@ -579,12 +634,8 @@ public class EventRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void updateBreak(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var existing = eventService.findBreakById(id).orElseThrow(NotFoundResponse::new);
-        if (existing.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        int id = pathInt(ctx, "id");
+        requireOwned(ctx, id, eventService::findBreakById, EventBreak::stationId);
         var req = ctx.bodyAsClass(BreakRequest.class);
         eventService.updateBreak(id, req.name(), req.startDate(), req.endDate()).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
@@ -602,12 +653,8 @@ public class EventRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void deleteBreak(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var existing = eventService.findBreakById(id).orElseThrow(NotFoundResponse::new);
-        if (existing.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        int id = pathInt(ctx, "id");
+        requireOwned(ctx, id, eventService::findBreakById, EventBreak::stationId);
         if (eventService.deleteBreak(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -661,28 +708,7 @@ public class EventRoutes implements Routes {
                 registrations.addAll(eventService.findRegistrationsByMember(managed.id()));
             }
         }
-        ctx.json(registrations.stream()
-                .map(r -> {
-                    var member = stationMemberRepository.findById(r.memberId());
-                    String memberName = member.flatMap(m -> accountRepository.findById(m.accountId()))
-                            .map(a -> (a.firstName() + " " + a.lastName()).trim())
-                            .orElse("");
-                    MemberIdentity memberIdentity = member.map(
-                                    m -> memberIdentityFactory.local(m.stationId(), r.memberId()))
-                            .orElse(null);
-                    String createdByName = resolveCreatedByName(r.createdBy());
-                    return new RegistrationResponse(
-                            r.id(),
-                            r.eventId(),
-                            r.memberId(),
-                            memberName,
-                            memberIdentity,
-                            r.eventDate(),
-                            r.status(),
-                            r.createdAt(),
-                            createdByName);
-                })
-                .toList());
+        ctx.json(registrations.stream().map(this::toRegistrationResponse).toList());
     }
 
     @OpenApi(
@@ -694,27 +720,7 @@ public class EventRoutes implements Routes {
     private void listPendingRegistrations(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var regs = eventService.findPendingRegistrationsByStation(session.stationId());
-        ctx.json(regs.stream()
-                .map(r -> {
-                    var member = stationMemberRepository.findById(r.memberId());
-                    String memberName = member.flatMap(m -> accountRepository.findById(m.accountId()))
-                            .map(a -> (a.firstName() + " " + a.lastName()).trim())
-                            .orElse("");
-                    MemberIdentity identity = member.map(m -> memberIdentityFactory.local(m.stationId(), r.memberId()))
-                            .orElse(null);
-                    String createdByName = resolveCreatedByName(r.createdBy());
-                    return new RegistrationResponse(
-                            r.id(),
-                            r.eventId(),
-                            r.memberId(),
-                            memberName,
-                            identity,
-                            r.eventDate(),
-                            r.status(),
-                            r.createdAt(),
-                            createdByName);
-                })
-                .toList());
+        ctx.json(regs.stream().map(this::toRegistrationResponse).toList());
     }
 
     @OpenApi(
@@ -726,7 +732,7 @@ public class EventRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventRegistration[].class)))
     private void getRegistrationStats(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int eventId = ctx.pathParamAsClass("eventId", Integer.class).get();
+        int eventId = pathInt(ctx, "eventId");
         var event = requireOwnedEvent(eventId, session);
         String catParam = ctx.queryParam("categoryId");
         Integer categoryId = catParam != null ? Integer.parseInt(catParam) : event.categoryId();
@@ -767,34 +773,13 @@ public class EventRoutes implements Routes {
 
     private void listRegistrations(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int eventId = ctx.pathParamAsClass("eventId", Integer.class).get();
+        int eventId = pathInt(ctx, "eventId");
         requireOwnedEvent(eventId, session);
         String dateStr = ctx.queryParam("date");
         var regs = dateStr != null
                 ? eventService.findRegistrations(eventId, LocalDate.parse(dateStr))
                 : eventService.findAllRegistrations(eventId);
-        ctx.json(regs.stream()
-                .map(r -> {
-                    var member = stationMemberRepository.findById(r.memberId());
-                    String memberName = member.flatMap(m -> accountRepository.findById(m.accountId()))
-                            .map(a -> (a.firstName() + " " + a.lastName()).trim())
-                            .orElse("");
-                    MemberIdentity memberIdentity = member.map(
-                                    m -> memberIdentityFactory.local(m.stationId(), r.memberId()))
-                            .orElse(null);
-                    String createdByName = resolveCreatedByName(r.createdBy());
-                    return new RegistrationResponse(
-                            r.id(),
-                            r.eventId(),
-                            r.memberId(),
-                            memberName,
-                            memberIdentity,
-                            r.eventDate(),
-                            r.status(),
-                            r.createdAt(),
-                            createdByName);
-                })
-                .toList());
+        ctx.json(regs.stream().map(this::toRegistrationResponse).toList());
     }
 
     @OpenApi(
@@ -810,7 +795,7 @@ public class EventRoutes implements Routes {
             })
     private void register(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int eventId = ctx.pathParamAsClass("eventId", Integer.class).get();
+        int eventId = pathInt(ctx, "eventId");
         var req = ctx.bodyAsClass(RegisterRequest.class);
 
         var event = requireOwnedEvent(eventId, session);
@@ -822,26 +807,7 @@ public class EventRoutes implements Routes {
             throw new BadRequestResponse("Registration deadline has passed");
         }
 
-        if (session.member() == null) throw new BadRequestResponse("Not a station member");
-
-        // Determine which member to register
-        int memberId;
-        if (req.memberId() != null) {
-            // Member manager registering a managed member
-            memberId = req.memberId();
-            if (memberId != session.member().id()) {
-                // Verify the caller manages this member
-                boolean manages = stationMemberService
-                        .findManaged(session.member().id())
-                        .stream()
-                        .anyMatch(m -> m.id() == memberId);
-                if (!manages && !session.hasPermission(StationPermission.EVENT_MANAGER)) {
-                    throw new ForbiddenResponse("You do not manage this member");
-                }
-            }
-        } else {
-            memberId = session.member().id();
-        }
+        int memberId = resolveTargetMemberId(session, req);
 
         // Check eligibility — skip when an event manager registers on behalf of another member
         boolean isManagerRegistration = req.memberId() != null
@@ -869,29 +835,13 @@ public class EventRoutes implements Routes {
             })
     private void decline(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int eventId = ctx.pathParamAsClass("eventId", Integer.class).get();
+        int eventId = pathInt(ctx, "eventId");
         var req = ctx.bodyAsClass(RegisterRequest.class);
 
         var event = requireOwnedEvent(eventId, session);
         LocalDate date = resolveEventDate(req, event);
 
-        if (session.member() == null) throw new BadRequestResponse("Not a station member");
-
-        int memberId;
-        if (req.memberId() != null) {
-            memberId = req.memberId();
-            if (memberId != session.member().id()) {
-                boolean manages = stationMemberService
-                        .findManaged(session.member().id())
-                        .stream()
-                        .anyMatch(m -> m.id() == memberId);
-                if (!manages && !session.hasPermission(StationPermission.EVENT_MANAGER)) {
-                    throw new ForbiddenResponse("You do not manage this member");
-                }
-            }
-        } else {
-            memberId = session.member().id();
-        }
+        int memberId = resolveTargetMemberId(session, req);
 
         Integer createdBy = memberId != session.member().id() ? session.member().id() : null;
         ctx.status(HttpStatus.CREATED).json(eventService.decline(eventId, memberId, date, createdBy));
@@ -920,7 +870,7 @@ public class EventRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void updateRegistrationStatus(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(StatusUpdateRequest.class);
         if (req.status() != RegistrationStatus.ACCEPTED && req.status() != RegistrationStatus.DENIED) {
@@ -949,7 +899,7 @@ public class EventRoutes implements Routes {
             })
     private void withdrawRegistration(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var reg = eventService.findRegistrationById(id).orElseThrow(NotFoundResponse::new);
 
         // Allow if it's the user's own registration, they manage the member, or they have EVENT_MANAGER
@@ -1015,12 +965,8 @@ public class EventRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void updateCategory(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var existing = eventService.findCategoryById(id).orElseThrow(NotFoundResponse::new);
-        if (existing.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        int id = pathInt(ctx, "id");
+        requireOwned(ctx, id, eventService::findCategoryById, EventCategory::stationId);
         var req = ctx.bodyAsClass(CategoryRequest.class);
         if (!eventService.updateCategory(
                 id,
@@ -1059,12 +1005,8 @@ public class EventRoutes implements Routes {
     }
 
     private void deleteCategory(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var existing = eventService.findCategoryById(id).orElseThrow(NotFoundResponse::new);
-        if (existing.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        int id = pathInt(ctx, "id");
+        requireOwned(ctx, id, eventService::findCategoryById, EventCategory::stationId);
         if (eventService.deleteCategory(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -1125,7 +1067,7 @@ public class EventRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventRestrictions.class)))
     private void getRestrictions(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         requireOwnedEvent(id, session);
         var restrictions = eventService.findRestrictions(id);
         ctx.json(new EventRestrictions(
@@ -1148,11 +1090,8 @@ public class EventRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventRestrictions.class)))
     private void setRestrictions(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var event = eventService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (event.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        int id = pathInt(ctx, "id");
+        requireOwnedEvent(id, session);
         var req = ctx.bodyAsClass(EventRestrictions.class);
         eventService.setRestrictions(id, req.userTypes(), req.groupIds(), req.tagIds(), req.memberIds());
         if (req.mode() != null) {
@@ -1170,7 +1109,7 @@ public class EventRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventFieldDefault[].class)))
     private void getFieldDefaults(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         requireOwnedEvent(id, session);
         ctx.json(eventService.findFieldDefaults(id));
     }
@@ -1187,11 +1126,8 @@ public class EventRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventFieldDefault[].class)))
     private void setFieldDefaults(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var event = eventService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (event.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        int id = pathInt(ctx, "id");
+        requireOwnedEvent(id, session);
         var req = ctx.bodyAsClass(FieldDefaultEntry[].class);
         var defaults = Arrays.stream(req)
                 .map(e -> new EventFieldDefault(id, e.fieldId(), e.source(), e.value()))
@@ -1235,7 +1171,7 @@ public class EventRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventField[].class)))
     private void getFields(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         requireOwnedEvent(id, session);
         ctx.json(eventFieldService.findByEvent(id));
     }
@@ -1252,11 +1188,8 @@ public class EventRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventField[].class)))
     private void setFields(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var event = eventService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (event.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        int id = pathInt(ctx, "id");
+        requireOwnedEvent(id, session);
         var req = ctx.bodyAsClass(SetEventFieldsRequest.class);
         eventFieldService.replaceFields(
                 id,
@@ -1285,12 +1218,9 @@ public class EventRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventField.class)))
     private void selfRegisterField(Context ctx) {
         var session = UserSession.from(ctx);
-        int eventId = ctx.pathParamAsClass("eventId", Integer.class).get();
-        int fieldId = ctx.pathParamAsClass("fieldId", Integer.class).get();
-        var event = eventService.findById(eventId).orElseThrow(NotFoundResponse::new);
-        if (event.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        int eventId = pathInt(ctx, "eventId");
+        int fieldId = pathInt(ctx, "fieldId");
+        requireOwnedEvent(eventId, session);
         ctx.json(eventFieldService.toggleSelfRegistration(
                 eventId, fieldId, session.member().id()));
     }
@@ -1374,15 +1304,14 @@ public class EventRoutes implements Routes {
         var absences = attendanceService.findAbsencesByStationOnDate(session.stationId(), date);
         ctx.json(absences.stream()
                 .map(a -> {
-                    var member = stationMemberRepository.findById(a.memberId());
-                    String memberName = member.flatMap(m -> accountRepository.findById(m.accountId()))
-                            .map(acc -> (acc.firstName() + " " + acc.lastName()).trim())
-                            .orElse("");
-                    MemberIdentity memberIdentity = member.map(
-                                    m -> memberIdentityFactory.local(m.stationId(), a.memberId()))
-                            .orElse(null);
+                    var display = resolveMemberDisplay(a.memberId());
                     return new AbsentMemberResponse(
-                            a.memberId(), memberName, memberIdentity, a.absentFrom(), a.absentUntil(), a.reason());
+                            a.memberId(),
+                            display.name(),
+                            display.identity(),
+                            a.absentFrom(),
+                            a.absentUntil(),
+                            a.reason());
                 })
                 .toList());
     }
@@ -1450,7 +1379,7 @@ public class EventRoutes implements Routes {
 
     private void getFederationShare(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var event = eventService.findById(id).orElseThrow(NotFoundResponse::new);
         if (event.stationId() != session.stationId()) throw new ForbiddenResponse();
         var share = eventFederationService.findShareByEvent(id);
@@ -1464,7 +1393,7 @@ public class EventRoutes implements Routes {
 
     private void setFederationShare(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var event = eventService.findById(id).orElseThrow(NotFoundResponse::new);
         if (event.stationId() != session.stationId()) throw new ForbiddenResponse();
         var req = ctx.bodyAsClass(SetFederationShareRequest.class);
@@ -1474,7 +1403,7 @@ public class EventRoutes implements Routes {
 
     private void removeFederationShare(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var event = eventService.findById(id).orElseThrow(NotFoundResponse::new);
         if (event.stationId() != session.stationId()) throw new ForbiddenResponse();
         eventFederationService.removeShare(id);
@@ -1483,7 +1412,7 @@ public class EventRoutes implements Routes {
 
     private void listFederationRegistrations(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var event = eventService.findById(id).orElseThrow(NotFoundResponse::new);
         if (event.stationId() != session.stationId()) throw new ForbiddenResponse();
         String dateParam = ctx.queryParam("date");
@@ -1541,7 +1470,7 @@ public class EventRoutes implements Routes {
     private void federatedGetEvent(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var stationUid = UUID.fromString(ctx.pathParam("stationuid"));
-        int eventId = ctx.pathParamAsClass("id", Integer.class).get();
+        int eventId = pathInt(ctx, "id");
         var event = eventFederationService.getFederatedEvent(session.stationId(), stationUid, eventId);
         var fields = eventFieldService.findByEvent(eventId).stream()
                 .filter(EventField::isPublic)
@@ -1550,33 +1479,45 @@ public class EventRoutes implements Routes {
     }
 
     private void federatedRegister(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        var station = stationRepository.findById(session.stationId()).orElseThrow();
-        var partner = resolvePartner(ctx, session.stationId());
-        int eventId = ctx.pathParamAsClass("id", Integer.class).get();
-        var req = ctx.bodyAsClass(FederatedRegBody.class);
-        UUID remoteMemberId =
-                req.memberId() != null ? req.memberId() : session.member().uid();
-
+        var fed = resolveFederatedRegContext(ctx);
+        var partner = fed.partner();
         if (partner.isRemote()) {
             boolean success = eventFederationService.registerForFederatedEvent(
                     partner.remoteHost(),
                     partner.partnerStationId(),
-                    eventId,
-                    remoteMemberId,
-                    req.eventDate(),
-                    station.id(),
-                    station.federationPrivateKey());
+                    fed.eventId(),
+                    fed.remoteMemberId(),
+                    fed.req().eventDate(),
+                    fed.station().id(),
+                    fed.station().federationPrivateKey());
             if (!success) throw new BadRequestResponse("Registration failed");
         } else {
             eventFederationService.registerFederated(
-                    eventId, partner.id(), remoteMemberId, LocalDate.parse(req.eventDate()));
+                    fed.eventId(),
+                    partner.id(),
+                    fed.remoteMemberId(),
+                    LocalDate.parse(fed.req().eventDate()));
         }
         ctx.status(HttpStatus.CREATED).json(new StatusResponse("PENDING"));
     }
 
+    /**
+     * Resolves the shared inputs for a federated register or withdraw: the caller's station, the
+     * addressed partner, the target event, the request body, and the effective remote member id.
+     */
+    private FederatedRegContext resolveFederatedRegContext(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var station = stationRepository.findById(session.stationId()).orElseThrow();
+        var partner = resolvePartner(ctx, session.stationId());
+        int eventId = pathInt(ctx, "id");
+        var req = ctx.bodyAsClass(FederatedRegBody.class);
+        UUID remoteMemberId =
+                req.memberId() != null ? req.memberId() : session.member().uid();
+        return new FederatedRegContext(station, partner, eventId, req, remoteMemberId);
+    }
+
     private void updateFederationRegistrationStatus(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var req = ctx.bodyAsClass(StatusUpdateRequest.class);
         var reg = eventFederationService.findRegistrationById(id).orElseThrow(NotFoundResponse::new);
         var event = eventService.findById(reg.eventId()).orElseThrow(NotFoundResponse::new);
@@ -1602,26 +1543,23 @@ public class EventRoutes implements Routes {
     }
 
     private void federatedWithdraw(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        var station = stationRepository.findById(session.stationId()).orElseThrow();
-        var partner = resolvePartner(ctx, session.stationId());
-        int eventId = ctx.pathParamAsClass("id", Integer.class).get();
-        var req = ctx.bodyAsClass(FederatedRegBody.class);
-        UUID remoteMemberId =
-                req.memberId() != null ? req.memberId() : session.member().uid();
-
+        var fed = resolveFederatedRegContext(ctx);
+        var partner = fed.partner();
         if (partner.isRemote()) {
             eventFederationService.withdrawFederatedRegistration(
                     partner.remoteHost(),
                     partner.partnerStationId(),
-                    eventId,
-                    remoteMemberId,
-                    req.eventDate(),
-                    station.id(),
-                    station.federationPrivateKey());
+                    fed.eventId(),
+                    fed.remoteMemberId(),
+                    fed.req().eventDate(),
+                    fed.station().id(),
+                    fed.station().federationPrivateKey());
         } else {
             eventFederationService.withdrawRegistration(
-                    eventId, partner.id(), remoteMemberId, LocalDate.parse(req.eventDate()));
+                    fed.eventId(),
+                    partner.id(),
+                    fed.remoteMemberId(),
+                    LocalDate.parse(fed.req().eventDate()));
         }
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -1639,7 +1577,7 @@ public class EventRoutes implements Routes {
 
     private void remoteGetEvent(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int eventId = ctx.pathParamAsClass("id", Integer.class).get();
+        int eventId = pathInt(ctx, "id");
         var eventIds = eventFederationService.findSharedEventIds(partner.id(), partner.stationId());
         if (!eventIds.contains(eventId)) {
             throw new NotFoundResponse();
@@ -1653,7 +1591,7 @@ public class EventRoutes implements Routes {
 
     private void remoteRegister(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int eventId = ctx.pathParamAsClass("id", Integer.class).get();
+        int eventId = pathInt(ctx, "id");
         var eventIds = eventFederationService.findSharedEventIds(partner.id(), partner.stationId());
         if (!eventIds.contains(eventId)) {
             throw new NotFoundResponse();
@@ -1666,7 +1604,7 @@ public class EventRoutes implements Routes {
 
     private void remoteWithdraw(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int eventId = ctx.pathParamAsClass("id", Integer.class).get();
+        int eventId = pathInt(ctx, "id");
         var req = ctx.bodyAsClass(RemoteRegistrationRequest.class);
         eventFederationService.withdrawRegistration(eventId, partner.id(), req.remoteMemberId(), req.eventDate());
         ctx.status(HttpStatus.NO_CONTENT);
@@ -1674,7 +1612,7 @@ public class EventRoutes implements Routes {
 
     private void remoteListRegistrations(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int eventId = ctx.pathParamAsClass("id", Integer.class).get();
+        int eventId = pathInt(ctx, "id");
         var eventIds = eventFederationService.findSharedEventIds(partner.id(), partner.stationId());
         if (!eventIds.contains(eventId)) {
             throw new NotFoundResponse();
@@ -1734,10 +1672,6 @@ public class EventRoutes implements Routes {
         }
     }
 
-    private String partnerStationName(FederationPartner partner) {
-        return FederationDisplayNames.partnerName(stationRepository, partner, "?");
-    }
-
     private RemoteEvent toRemoteEvent(StationEvent e) {
         return new RemoteEvent(
                 e.id(),
@@ -1753,7 +1687,7 @@ public class EventRoutes implements Routes {
 
     private void remoteListComments(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int eventId = ctx.pathParamAsClass("eventId", Integer.class).get();
+        int eventId = pathInt(ctx, "eventId");
         requireSharedEvent(partner, eventId);
         ctx.json(eventFederationService.listComments(eventId));
     }
@@ -1762,7 +1696,7 @@ public class EventRoutes implements Routes {
 
     private void remoteCreateComment(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int eventId = ctx.pathParamAsClass("eventId", Integer.class).get();
+        int eventId = pathInt(ctx, "eventId");
         requireSharedEvent(partner, eventId);
         var req = ctx.bodyAsClass(RemoteCommentRequest.class);
         if (req.content() == null || req.content().isBlank()) {
@@ -1791,7 +1725,7 @@ public class EventRoutes implements Routes {
 
     private void remoteUpdateComment(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
+        int commentId = pathInt(ctx, "commentId");
         var req = ctx.bodyAsClass(RemoteCommentUpdateRequest.class);
         if (req.content() == null || req.content().isBlank()) {
             throw new BadRequestResponse("content is required");
@@ -1801,7 +1735,7 @@ public class EventRoutes implements Routes {
 
     private void remoteDeleteComment(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
+        int commentId = pathInt(ctx, "commentId");
         var req = ctx.bodyAsClass(RemoteCommentDeleteRequest.class);
         if (eventFederationService.deleteRemoteComment(partner, commentId, req.remoteMemberUid())) {
             ctx.status(HttpStatus.NO_CONTENT);
@@ -1812,14 +1746,14 @@ public class EventRoutes implements Routes {
 
     private void getReminders(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         requireOwnedEvent(id, session);
         ctx.json(eventService.findReminderDays(id));
     }
 
     private void setReminders(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         requireOwnedEvent(id, session);
         var req = ctx.bodyAsClass(SetRemindersRequest.class);
         eventService.setReminders(id, req.daysBefore() != null ? req.daysBefore() : List.of());
@@ -1829,7 +1763,7 @@ public class EventRoutes implements Routes {
     private void federatedListComments(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var partnerUid = UUID.fromString(ctx.pathParam("stationuid"));
-        int eventId = ctx.pathParamAsClass("eventId", Integer.class).get();
+        int eventId = pathInt(ctx, "eventId");
         var result = eventFederationService.listFederatedComments(session.stationId(), partnerUid, eventId);
         switch (result) {
             case EventFederationService.FederatedCommentResult.ListResult r -> ctx.json(r.comments());
@@ -1842,7 +1776,7 @@ public class EventRoutes implements Routes {
     private void federatedCreateComment(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var partnerUid = UUID.fromString(ctx.pathParam("stationuid"));
-        int eventId = ctx.pathParamAsClass("eventId", Integer.class).get();
+        int eventId = pathInt(ctx, "eventId");
         var req = ctx.bodyAsClass(EventCommentRoutes.CreateCommentRequest.class);
         if (req.content() == null || req.content().isBlank()) {
             throw new BadRequestResponse("content is required");
@@ -1867,7 +1801,7 @@ public class EventRoutes implements Routes {
     private void federatedUpdateComment(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var partnerUid = UUID.fromString(ctx.pathParam("stationuid"));
-        int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
+        int commentId = pathInt(ctx, "commentId");
         var req = ctx.bodyAsClass(EventCommentRoutes.UpdateCommentRequest.class);
         if (req.content() == null || req.content().isBlank()) {
             throw new BadRequestResponse("content is required");
@@ -1883,7 +1817,7 @@ public class EventRoutes implements Routes {
     private void federatedDeleteComment(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var partnerUid = UUID.fromString(ctx.pathParam("stationuid"));
-        int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
+        int commentId = pathInt(ctx, "commentId");
         eventFederationService.deleteFederatedComment(
                 session.stationId(), partnerUid, commentId, session.member().uid());
         ctx.status(HttpStatus.NO_CONTENT);
@@ -1944,6 +1878,22 @@ public class EventRoutes implements Routes {
             RestrictionMode mode) {}
 
     public record FieldDefaultEntry(int fieldId, String source, String value) {}
+
+    /**
+     * A member's resolved display name and identity for registration and absence responses.
+     */
+    private record MemberDisplay(String name, MemberIdentity identity) {}
+
+    /**
+     * The optional category and registration-requirement filters shared by the event listings.
+     */
+    private record CategoryFilter(Integer categoryId, Boolean requiresRegistration) {}
+
+    /**
+     * Shared inputs for a federated register or withdraw request.
+     */
+    private record FederatedRegContext(
+            Station station, FederationPartner partner, int eventId, FederatedRegBody req, UUID remoteMemberId) {}
 
     // -- Federation helpers --
 

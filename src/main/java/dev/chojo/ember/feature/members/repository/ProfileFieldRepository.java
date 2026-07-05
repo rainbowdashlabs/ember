@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.members.repository;
 
-import de.chojo.sadu.queries.api.results.writing.insertion.InsertionResult;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
@@ -168,8 +167,8 @@ public class ProfileFieldRepository {
     /**
      * Sets a profile field value for a member, inserting or updating as needed.
      */
-    public InsertionResult setValue(int memberId, int fieldId, String value) {
-        return query("""
+    public void setValue(int memberId, int fieldId, String value) {
+        query("""
                 INSERT
                 INTO
                     profile_field_value(member_id, field_id, value)

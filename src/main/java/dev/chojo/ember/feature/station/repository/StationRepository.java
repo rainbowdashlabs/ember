@@ -125,8 +125,8 @@ public class StationRepository {
     /**
      * Updates the public slug for a station.
      */
-    public boolean updatePublicSlug(int id, String slug) {
-        return query("UPDATE station SET public_slug = :slug WHERE id = :id;")
+    public void updatePublicSlug(int id, String slug) {
+        query("UPDATE station SET public_slug = :slug WHERE id = :id;")
                 .single(call().bind("slug", slug).bind("id", id))
                 .update()
                 .changed();
@@ -222,22 +222,22 @@ public class StationRepository {
                 .changed();
     }
 
-    public boolean updatePublicPagesEnabled(int id, boolean enabled) {
-        return query("UPDATE station SET public_pages_enabled = :enabled WHERE id = :id;")
+    public void updatePublicPagesEnabled(int id, boolean enabled) {
+        query("UPDATE station SET public_pages_enabled = :enabled WHERE id = :id;")
                 .single(call().bind("enabled", enabled).bind("id", id))
                 .update()
                 .changed();
     }
 
-    public boolean updatePublicWaitlistEnabled(int id, boolean enabled) {
-        return query("UPDATE station SET public_waitlist_enabled = :enabled WHERE id = :id;")
+    public void updatePublicWaitlistEnabled(int id, boolean enabled) {
+        query("UPDATE station SET public_waitlist_enabled = :enabled WHERE id = :id;")
                 .single(call().bind("enabled", enabled).bind("id", id))
                 .update()
                 .changed();
     }
 
-    public boolean updatePublicBlogEnabled(int id, boolean enabled) {
-        return query("UPDATE station SET public_blog_enabled = :enabled WHERE id = :id;")
+    public void updatePublicBlogEnabled(int id, boolean enabled) {
+        query("UPDATE station SET public_blog_enabled = :enabled WHERE id = :id;")
                 .single(call().bind("enabled", enabled).bind("id", id))
                 .update()
                 .changed();
@@ -254,7 +254,7 @@ public class StationRepository {
      * Writes the opt-in geolocation block. All fields nullable; clearing them removes the
      * station from the discovery map and lending-distance results.
      */
-    public boolean updateLocation(
+    public void updateLocation(
             int id,
             String addressLine,
             String postalCode,
@@ -262,7 +262,7 @@ public class StationRepository {
             String country,
             BigDecimal latitude,
             BigDecimal longitude) {
-        return query("""
+        query("""
                 UPDATE station
                 SET address_line = :address_line,
                     postal_code  = :postal_code,

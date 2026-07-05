@@ -27,6 +27,8 @@ import jakarta.inject.Singleton;
 
 import java.util.List;
 
+import static dev.chojo.ember.api.RouteSupport.pathInt;
+
 /**
  * Routes for managing registration codes that allow self-registration with automatic
  * group assignment and usage limits.
@@ -96,7 +98,7 @@ public class RegistrationCodeRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void get(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         codeService
                 .findById(id)
                 .ifPresentOrElse(
@@ -121,7 +123,7 @@ public class RegistrationCodeRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void delete(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         if (codeService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -137,7 +139,7 @@ public class RegistrationCodeRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Integer[].class)))
     private void getGroups(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         ctx.json(codeService.findGroupIds(id));
     }
 
@@ -152,7 +154,7 @@ public class RegistrationCodeRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetGroupsRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Integer[].class)))
     private void setGroups(Context ctx) {
-        int codeId = ctx.pathParamAsClass("id", Integer.class).get();
+        int codeId = pathInt(ctx, "id");
         var request = ctx.bodyAsClass(SetGroupsRequest.class);
         List<Integer> groupIds = request.groupIds() != null ? request.groupIds() : List.of();
         ctx.json(codeService.setGroups(codeId, groupIds));

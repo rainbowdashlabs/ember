@@ -76,15 +76,23 @@ public class TestProtocolService {
     }
 
     public TestProtocol createProtocol(int stationId, String name, String description, Integer passThreshold) {
-        return repository.createProtocol(stationId, name, description, passThreshold);
+        TestProtocol protocol = repository.createProtocol(stationId, name, description, passThreshold);
+        log.info("Created test protocol {} (name='{}') in station {}", protocol.id(), name, stationId);
+        return protocol;
     }
 
     public boolean updateProtocol(int id, String name, String description, Integer passThreshold) {
-        return repository.updateProtocol(id, name, description, passThreshold);
+        boolean updated = repository.updateProtocol(id, name, description, passThreshold);
+        if (updated) log.info("Updated test protocol {} (name='{}')", id, name);
+        else log.warn("Update of test protocol {} did not change any row", id);
+        return updated;
     }
 
     public boolean deleteProtocol(int id) {
-        return repository.deleteProtocol(id);
+        boolean deleted = repository.deleteProtocol(id);
+        if (deleted) log.info("Deleted test protocol {}", id);
+        else log.warn("Delete of test protocol {} did not change any row", id);
+        return deleted;
     }
 
     // -- Sections --
@@ -101,16 +109,30 @@ public class TestProtocolService {
             Integer maxPoints,
             Integer passThreshold,
             int position) {
-        return repository.createSection(protocolId, parentId, name, description, maxPoints, passThreshold, position);
+        TestProtocolSection section =
+                repository.createSection(protocolId, parentId, name, description, maxPoints, passThreshold, position);
+        log.info(
+                "Created section {} (name='{}', parentId={}) in test protocol {}",
+                section.id(),
+                name,
+                parentId,
+                protocolId);
+        return section;
     }
 
     public boolean updateSection(
             int id, String name, String description, Integer maxPoints, Integer passThreshold, int position) {
-        return repository.updateSection(id, name, description, maxPoints, passThreshold, position);
+        boolean updated = repository.updateSection(id, name, description, maxPoints, passThreshold, position);
+        if (updated) log.info("Updated section {} (name='{}')", id, name);
+        else log.warn("Update of section {} did not change any row", id);
+        return updated;
     }
 
     public boolean deleteSection(int id) {
-        return repository.deleteSection(id);
+        boolean deleted = repository.deleteSection(id);
+        if (deleted) log.info("Deleted section {}", id);
+        else log.warn("Delete of section {} did not change any row", id);
+        return deleted;
     }
 
     // -- Items --
@@ -124,15 +146,23 @@ public class TestProtocolService {
     }
 
     public TestProtocolItem createItem(int sectionId, String label, String description, double points, int position) {
-        return repository.createItem(sectionId, label, description, points, position);
+        TestProtocolItem item = repository.createItem(sectionId, label, description, points, position);
+        log.info("Created protocol item {} (label='{}', points={}) in section {}", item.id(), label, points, sectionId);
+        return item;
     }
 
     public boolean updateItem(int id, String label, String description, double points, int position) {
-        return repository.updateItem(id, label, description, points, position);
+        boolean updated = repository.updateItem(id, label, description, points, position);
+        if (updated) log.info("Updated protocol item {} (label='{}', points={})", id, label, points);
+        else log.warn("Update of protocol item {} did not change any row", id);
+        return updated;
     }
 
     public boolean deleteItem(int id) {
-        return repository.deleteItem(id);
+        boolean deleted = repository.deleteItem(id);
+        if (deleted) log.info("Deleted protocol item {}", id);
+        else log.warn("Delete of protocol item {} did not change any row", id);
+        return deleted;
     }
 
     // -- Runs --
@@ -146,19 +176,36 @@ public class TestProtocolService {
     }
 
     public TestProtocolRun createRun(int protocolId, int stationId, String name, LocalDate testDate, int createdBy) {
-        return repository.createRun(protocolId, stationId, name, testDate, createdBy);
+        TestProtocolRun run = repository.createRun(protocolId, stationId, name, testDate, createdBy);
+        log.info(
+                "Created protocol run {} (name='{}') for protocol {} in station {} by member {}",
+                run.id(),
+                name,
+                protocolId,
+                stationId,
+                createdBy);
+        return run;
     }
 
     public boolean updateRun(int id, String name, LocalDate testDate) {
-        return repository.updateRun(id, name, testDate);
+        boolean updated = repository.updateRun(id, name, testDate);
+        if (updated) log.info("Updated protocol run {} (name='{}')", id, name);
+        else log.warn("Update of protocol run {} did not change any row", id);
+        return updated;
     }
 
     public boolean closeRun(int id) {
-        return repository.closeRun(id);
+        boolean closed = repository.closeRun(id);
+        if (closed) log.info("Closed protocol run {}", id);
+        else log.warn("Close of protocol run {} did not change any row", id);
+        return closed;
     }
 
     public boolean deleteRun(int id) {
-        return repository.deleteRun(id);
+        boolean deleted = repository.deleteRun(id);
+        if (deleted) log.info("Deleted protocol run {}", id);
+        else log.warn("Delete of protocol run {} did not change any row", id);
+        return deleted;
     }
 
     // -- Run Members --
@@ -172,25 +219,34 @@ public class TestProtocolService {
     }
 
     public TestProtocolRunMember addRunMember(int runId, int memberId) {
-        return repository.addRunMember(runId, memberId);
+        TestProtocolRunMember runMember = repository.addRunMember(runId, memberId);
+        log.info("Added member {} to protocol run {}", memberId, runId);
+        return runMember;
     }
 
     public void addRunMembers(int runId, List<Integer> memberIds) {
         for (int memberId : memberIds) {
             repository.addRunMember(runId, memberId);
         }
+        log.info("Added {} members to protocol run {}", memberIds.size(), runId);
     }
 
     public boolean lockMember(int runId, int memberId, int lockedBy) {
         var rm = repository.findRunMember(runId, memberId);
-        return rm.filter(testProtocolRunMember -> repository.lockMember(testProtocolRunMember.id(), lockedBy))
+        boolean locked = rm.filter(testProtocolRunMember -> repository.lockMember(testProtocolRunMember.id(), lockedBy))
                 .isPresent();
+        if (locked) log.info("Locked member {} on protocol run {} by member {}", memberId, runId, lockedBy);
+        else log.warn("Lock of member {} on protocol run {} did not change any row", memberId, runId);
+        return locked;
     }
 
     public boolean unlockMember(int runId, int memberId) {
         var rm = repository.findRunMember(runId, memberId);
-        return rm.filter(testProtocolRunMember -> repository.unlockMember(testProtocolRunMember.id()))
+        boolean unlocked = rm.filter(testProtocolRunMember -> repository.unlockMember(testProtocolRunMember.id()))
                 .isPresent();
+        if (unlocked) log.info("Unlocked member {} on protocol run {}", memberId, runId);
+        else log.warn("Unlock of member {} on protocol run {} did not change any row", memberId, runId);
+        return unlocked;
     }
 
     public void saveChecks(int runId, int memberId, Map<Integer, Boolean> checks, int checkedBy, int protocolId) {
@@ -211,6 +267,13 @@ public class TestProtocolService {
             }
         }
         repository.updateScore(runMemberId, score);
+        log.info(
+                "Saved {} checks for member {} on protocol run {} by member {} (score={})",
+                checks.size(),
+                memberId,
+                runId,
+                checkedBy,
+                score);
     }
 
     // -- Section Done --
@@ -228,8 +291,15 @@ public class TestProtocolService {
         var done = repository.findDoneSections(runMemberId);
         if (done.contains(sectionId)) {
             repository.unmarkSectionDone(runMemberId, sectionId);
+            log.info("Unmarked section {} done for member {} on protocol run {}", sectionId, memberId, runId);
         } else {
             repository.markSectionDone(runMemberId, sectionId, doneBy);
+            log.info(
+                    "Marked section {} done for member {} on protocol run {} by member {}",
+                    sectionId,
+                    memberId,
+                    runId,
+                    doneBy);
         }
     }
 
@@ -260,7 +330,18 @@ public class TestProtocolService {
             }
         }
 
-        return repository.completeMember(runMemberId, totalScore);
+        boolean completed = repository.completeMember(runMemberId, totalScore);
+        if (completed) {
+            log.info(
+                    "Completed member {} on protocol run {} (protocol {}, score={})",
+                    memberId,
+                    runId,
+                    protocolId,
+                    totalScore);
+        } else {
+            log.warn("Completion of member {} on protocol run {} did not change any row", memberId, runId);
+        }
+        return completed;
     }
 
     // -- Federated protocols --
@@ -286,7 +367,6 @@ public class TestProtocolService {
         return collectResults(futures);
     }
 
-    @SuppressWarnings("unchecked")
     public FederatedProtocolDetail getFederatedProtocol(int localStationId, UUID partnerStationUid, int protocolId) {
         var partner = resolveActivePartner(localStationId, partnerStationUid);
         if (partner.isRemote()) {
@@ -313,6 +393,11 @@ public class TestProtocolService {
     public TestProtocol copyProtocol(int protocolId, int targetStationId) {
         var source = findProtocol(protocolId).orElseThrow();
         var newProto = createProtocol(targetStationId, source.name(), source.description(), source.passThreshold());
+        log.info(
+                "Copying test protocol {} into new protocol {} at station {}",
+                protocolId,
+                newProto.id(),
+                targetStationId);
 
         var sections = findSections(source.id());
         var sectionMap = new HashMap<Integer, Integer>();

@@ -28,6 +28,8 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import static dev.chojo.ember.api.RouteSupport.pathInt;
+
 /**
  * Routes for member account management including inviting new members,
  * updating account details, and email change confirmation.
@@ -87,7 +89,7 @@ public class MemberRoutes implements Routes {
             })
     private void updateAccount(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int accountId = ctx.pathParamAsClass("accountId", Integer.class).get();
+        int accountId = pathInt(ctx, "accountId");
         requireStationAccount(accountId, session);
         var request = ctx.bodyAsClass(UpdateAccountRequest.class);
         var existing = accountRepository.findById(accountId).orElseThrow(NotFoundResponse::new);

@@ -32,6 +32,8 @@ import jakarta.inject.Singleton;
 
 import java.util.List;
 
+import static dev.chojo.ember.api.RouteSupport.pathInt;
+
 /**
  * Routes for storage containers and their station-defined kind catalogue.
  * Items are placed in containers via {@code /inventory-items/{id}/container}
@@ -124,7 +126,7 @@ public class InventoryContainerRoutes implements Routes {
             })
     private void updateKind(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         if (containerService.listKinds(session.stationId()).stream().noneMatch(k -> k.id() == id)) {
             throw new NotFoundResponse();
         }
@@ -152,7 +154,7 @@ public class InventoryContainerRoutes implements Routes {
             })
     private void deleteKind(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         if (containerService.listKinds(session.stationId()).stream().noneMatch(k -> k.id() == id)) {
             throw new NotFoundResponse();
         }
@@ -224,7 +226,7 @@ public class InventoryContainerRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getContainer(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
         InventoryContainer container = verifyContainerOwnership(id, session);
         ContainerPath path = containerService.pathOf(id);
@@ -244,7 +246,7 @@ public class InventoryContainerRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void updateContainer(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
         verifyContainerOwnership(id, session);
         var body = ctx.bodyAsClass(ContainerRequest.class);
@@ -277,7 +279,7 @@ public class InventoryContainerRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void deleteContainer(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
         verifyContainerOwnership(id, session);
         if (containerService.delete(id, session.member().id())) {
@@ -296,7 +298,7 @@ public class InventoryContainerRoutes implements Routes {
             queryParams = @OpenApiParam(name = "recursive", type = Boolean.class, description = "Include descendants"),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ContainerContents.class)))
     private void listContents(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
         verifyContainerOwnership(id, session);
         boolean recursive = "true".equalsIgnoreCase(ctx.queryParam("recursive"));
@@ -315,7 +317,7 @@ public class InventoryContainerRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ContainerPathResponse.class)))
     private void getPath(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
         verifyContainerOwnership(id, session);
         ContainerPath path = containerService.pathOf(id);
@@ -333,7 +335,7 @@ public class InventoryContainerRoutes implements Routes {
                             status = "200",
                             content = @OpenApiContent(from = InventoryContainerHistory[].class)))
     private void getHistory(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
         verifyContainerOwnership(id, session);
         ctx.json(containerService.findHistory(id));

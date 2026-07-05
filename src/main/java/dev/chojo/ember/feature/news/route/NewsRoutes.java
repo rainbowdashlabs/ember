@@ -19,14 +19,12 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.mail.service.EmailService;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.news.entity.News;
@@ -59,6 +57,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
+import static dev.chojo.ember.api.RouteSupport.pathInt;
+import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
+
 /**
  * HTTP route definitions for the news feature.
  * Provides endpoints for CRUD operations on news articles and comments,
@@ -80,8 +81,6 @@ public class NewsRoutes implements Routes {
     public NewsRoutes(
             NewsService newsService,
             NewsFederationService newsFederationService,
-            AccountRepository accountRepository,
-            StationMemberRepository stationMemberRepository,
             FederationRepository federationRepository,
             FederationHttpClient federationHttpClient,
             StationRepository stationRepository,
@@ -198,7 +197,7 @@ public class NewsRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void get(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
         int memberId = session.member().id();
         newsService
@@ -258,7 +257,7 @@ public class NewsRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void update(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
         var news = newsService.findById(id).orElseThrow(NotFoundResponse::new);
         if (news.stationId() != session.stationId()) {
@@ -299,7 +298,7 @@ public class NewsRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void delete(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
         var news = newsService.findById(id).orElseThrow(NotFoundResponse::new);
         if (news.stationId() != session.stationId()) {
@@ -390,7 +389,7 @@ public class NewsRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CommentResponse[].class)))
     private void listComments(Context ctx) {
-        int newsId = ctx.pathParamAsClass("id", Integer.class).get();
+        int newsId = pathInt(ctx, "id");
         var comments = newsService.findComments(newsId);
         ctx.json(comments.stream().map(this::toCommentResponse).toList());
     }
@@ -404,7 +403,7 @@ public class NewsRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CommentRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = CommentResponse.class)))
     private void createComment(Context ctx) {
-        int newsId = ctx.pathParamAsClass("id", Integer.class).get();
+        int newsId = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(CommentRequest.class);
         if (request.content() == null || request.content().isBlank()) {
@@ -434,7 +433,7 @@ public class NewsRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void updateComment(Context ctx) {
-        int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
+        int commentId = pathInt(ctx, "commentId");
         UserSession session = UserSession.from(ctx);
         var comment = newsService.findCommentById(commentId).orElseThrow(NotFoundResponse::new);
         var sessionIdentity =
@@ -462,7 +461,7 @@ public class NewsRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void deleteComment(Context ctx) {
-        int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
+        int commentId = pathInt(ctx, "commentId");
         UserSession session = UserSession.from(ctx);
         var comment = newsService.findCommentById(commentId).orElseThrow(NotFoundResponse::new);
         var sessionIdentity =
@@ -492,10 +491,9 @@ public class NewsRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void recordView(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
-        var news = newsService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (news.stationId() != session.stationId()) throw new NotFoundResponse();
+        requireOwnedOrNotFound(ctx, id, newsService::findById, News::stationId);
         newsService.recordView(id, session.member().id());
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -513,10 +511,9 @@ public class NewsRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void listViewers(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
-        var news = newsService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (news.stationId() != session.stationId()) throw new NotFoundResponse();
+        requireOwnedOrNotFound(ctx, id, newsService::findById, News::stationId);
         var summary = newsService.findViewerSummary(id, session.stationId());
         ctx.json(new NewsViewsResponse(
                 summary.seen().stream().map(this::toViewerEntry).toList(),
@@ -535,10 +532,8 @@ public class NewsRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getViewCount(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        UserSession session = UserSession.from(ctx);
-        var news = newsService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (news.stationId() != session.stationId()) throw new NotFoundResponse();
+        int id = pathInt(ctx, "id");
+        requireOwnedOrNotFound(ctx, id, newsService::findById, News::stationId);
         ctx.json(new NewsViewCountResponse(newsService.countViews(id)));
     }
 
@@ -574,11 +569,24 @@ public class NewsRoutes implements Routes {
 
     // -- Federation sharing management --
 
-    private void getFederationShare(Context ctx) {
+    /**
+     * Reads the news id path parameter and confirms the news belongs to the caller's
+     * station, throwing {@code 404} when it is absent and {@code 403} when it belongs to
+     * another station.
+     *
+     * @param ctx the request context
+     * @return the owned news id
+     */
+    private int requireOwnedNewsId(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var news = newsService.findById(id).orElseThrow(NotFoundResponse::new);
         if (news.stationId() != session.stationId()) throw new ForbiddenResponse();
+        return id;
+    }
+
+    private void getFederationShare(Context ctx) {
+        int id = requireOwnedNewsId(ctx);
         var share = newsFederationService.findShareByNews(id);
         if (share.isEmpty()) {
             ctx.json(new NewsFederationShareResponse(false, null, null, null));
@@ -590,10 +598,7 @@ public class NewsRoutes implements Routes {
     }
 
     private void setFederationShare(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var news = newsService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (news.stationId() != session.stationId()) throw new ForbiddenResponse();
+        int id = requireOwnedNewsId(ctx);
         var req = ctx.bodyAsClass(SetNewsFederationShareRequest.class);
         NewsVisibilityRole visibilityRole =
                 req.visibilityRole() != null ? req.visibilityRole() : NewsVisibilityRole.MEMBER;
@@ -603,10 +608,7 @@ public class NewsRoutes implements Routes {
     }
 
     private void removeFederationShare(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var news = newsService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (news.stationId() != session.stationId()) throw new ForbiddenResponse();
+        int id = requireOwnedNewsId(ctx);
         newsFederationService.removeShare(id);
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -652,7 +654,7 @@ public class NewsRoutes implements Routes {
 
     private void remoteGetNews(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int newsId = ctx.pathParamAsClass("newsId", Integer.class).get();
+        int newsId = pathInt(ctx, "newsId");
         requireSharedNews(partner, newsId);
         var news = newsService.findById(newsId).orElseThrow(NotFoundResponse::new);
         var authorResolved = news.author() != null ? memberNameResolver.resolveDisplay(news.author()) : null;
@@ -672,7 +674,7 @@ public class NewsRoutes implements Routes {
 
     private void remoteListComments(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int newsId = ctx.pathParamAsClass("newsId", Integer.class).get();
+        int newsId = pathInt(ctx, "newsId");
         requireSharedNews(partner, newsId);
         var comments = newsService.findComments(newsId);
         ctx.json(comments.stream().map(this::toCommentResponse).toList());
@@ -680,7 +682,7 @@ public class NewsRoutes implements Routes {
 
     private void remoteCreateComment(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int newsId = ctx.pathParamAsClass("newsId", Integer.class).get();
+        int newsId = pathInt(ctx, "newsId");
         requireSharedNews(partner, newsId);
         var req = ctx.bodyAsClass(RemoteNewsCommentRequest.class);
         if (req.content() == null || req.content().isBlank()) {
@@ -695,7 +697,7 @@ public class NewsRoutes implements Routes {
 
     private void remoteUpdateComment(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
+        int commentId = pathInt(ctx, "commentId");
         var req = ctx.bodyAsClass(RemoteNewsCommentUpdateRequest.class);
         if (req.content() == null || req.content().isBlank()) {
             throw new BadRequestResponse("content is required");
@@ -712,7 +714,7 @@ public class NewsRoutes implements Routes {
 
     private void remoteDeleteComment(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
+        int commentId = pathInt(ctx, "commentId");
         var req = ctx.bodyAsClass(RemoteNewsCommentDeleteRequest.class);
         var comment = newsService.findCommentById(commentId).orElseThrow(NotFoundResponse::new);
         var expectedIdentity = new MemberIdentity(partner.partnerStationId(), req.remoteMemberUid());
@@ -736,7 +738,7 @@ public class NewsRoutes implements Routes {
     private void federatedGetNews(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var stationUid = UUID.fromString(ctx.pathParam("stationuid"));
-        int newsId = ctx.pathParamAsClass("newsId", Integer.class).get();
+        int newsId = pathInt(ctx, "newsId");
         var news = newsFederationService.getFederatedNews(session.stationId(), stationUid, newsId);
         ctx.json(news);
     }
@@ -745,7 +747,7 @@ public class NewsRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var station = stationRepository.findById(session.stationId()).orElseThrow();
         var partner = resolvePartner(ctx, session.stationId());
-        int newsId = ctx.pathParamAsClass("newsId", Integer.class).get();
+        int newsId = pathInt(ctx, "newsId");
 
         if (partner.isRemote()) {
             var result = federationHttpClient.getList(
@@ -766,7 +768,7 @@ public class NewsRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var station = stationRepository.findById(session.stationId()).orElseThrow();
         var partner = resolvePartner(ctx, session.stationId());
-        int newsId = ctx.pathParamAsClass("newsId", Integer.class).get();
+        int newsId = pathInt(ctx, "newsId");
         var req = ctx.bodyAsClass(CommentRequest.class);
         if (req.content() == null || req.content().isBlank()) {
             throw new BadRequestResponse("content is required");
@@ -802,7 +804,7 @@ public class NewsRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var station = stationRepository.findById(session.stationId()).orElseThrow();
         var partner = resolvePartner(ctx, session.stationId());
-        int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
+        int commentId = pathInt(ctx, "commentId");
         var req = ctx.bodyAsClass(CommentRequest.class);
         if (req.content() == null || req.content().isBlank()) {
             throw new BadRequestResponse("content is required");
@@ -839,9 +841,7 @@ public class NewsRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var station = stationRepository.findById(session.stationId()).orElseThrow();
         var partner = resolvePartner(ctx, session.stationId());
-        int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
-
-        UUID memberUid = session.member().uid();
+        int commentId = pathInt(ctx, "commentId");
 
         if (partner.isRemote()) {
             boolean success = federationHttpClient.delete(
@@ -983,7 +983,7 @@ public class NewsRoutes implements Routes {
         int stationId = resolvePublicStation(ctx);
         var station = stationRepository.findById(stationId).orElseThrow(NotFoundResponse::new);
         if (!station.publicBlogEnabled()) throw new NotFoundResponse();
-        int blogId = ctx.pathParamAsClass("blogId", Integer.class).get();
+        int blogId = pathInt(ctx, "blogId");
         var news = newsService.findById(blogId).orElseThrow(NotFoundResponse::new);
         if (news.stationId() != stationId || !news.publicBlog() || news.publishedAt() == null || news.restricted()) {
             throw new NotFoundResponse();

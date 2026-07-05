@@ -135,6 +135,7 @@ public class StationService {
      */
     public Optional<Station> update(int id, String name) {
         if (stationRepository.update(id, name)) {
+            log.info("Station renamed: id={}, name='{}'", id, name);
             return stationRepository.findById(id);
         }
         return Optional.empty();
@@ -192,6 +193,7 @@ public class StationService {
             return Optional.empty();
         }
         assignManager(id, managerEmail);
+        log.info("Station updated with manager: id={}, name='{}'", id, name);
         return stationRepository.findById(id);
     }
 

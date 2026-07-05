@@ -12,6 +12,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.legal.service.GdprDeletionService;
 import dev.chojo.ember.feature.members.entity.MemberWithName;
@@ -25,7 +26,6 @@ import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.restriction.RestrictionType;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -50,6 +50,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import static dev.chojo.ember.api.RouteSupport.pathInt;
+
 /**
  * Routes for station member management including listing, creating, deleting members,
  * role assignment, display name management, and GDPR anonymization on deletion.
@@ -64,9 +66,8 @@ public class StationMemberRoutes implements Routes {
     private final GdprDeletionService gdprDeletionService;
     private final MemberIdentityFactory memberIdentityFactory;
     private final RestrictionRepository restrictionRepository;
-    private final StationRepository stationRepository;
     private final AvatarService avatarService;
-    private final dev.chojo.ember.feature.account.service.AuthService authService;
+    private final AuthService authService;
 
     @Inject
     public StationMemberRoutes(
@@ -78,9 +79,8 @@ public class StationMemberRoutes implements Routes {
             GdprDeletionService gdprDeletionService,
             MemberIdentityFactory memberIdentityFactory,
             RestrictionRepository restrictionRepository,
-            StationRepository stationRepository,
             AvatarService avatarService,
-            dev.chojo.ember.feature.account.service.AuthService authService) {
+            AuthService authService) {
         this.memberService = memberService;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -89,7 +89,6 @@ public class StationMemberRoutes implements Routes {
         this.gdprDeletionService = gdprDeletionService;
         this.memberIdentityFactory = memberIdentityFactory;
         this.restrictionRepository = restrictionRepository;
-        this.stationRepository = stationRepository;
         this.avatarService = avatarService;
         this.authService = authService;
     }
@@ -331,7 +330,7 @@ public class StationMemberRoutes implements Routes {
             })
     private void get(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var member = requireOwnedMember(id, session);
         ctx.json(toMemberWithName(member));
     }
@@ -370,7 +369,7 @@ public class StationMemberRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void delete(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
         var member = stationMemberRepository.findById(id).orElseThrow(NotFoundResponse::new);
         if (member.stationId() != session.stationId()) {
@@ -399,7 +398,7 @@ public class StationMemberRoutes implements Routes {
 
     private void getPermissions(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         requireOwnedMember(id, session);
         ctx.json(memberService.findPermissions(id));
     }
@@ -415,7 +414,7 @@ public class StationMemberRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetPermissionsRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Permission[].class)))
     private void setPermissions(Context ctx) {
-        int memberId = ctx.pathParamAsClass("id", Integer.class).get();
+        int memberId = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
         requireOwnedMember(memberId, session);
         var request = ctx.bodyAsClass(SetPermissionsRequest.class);
@@ -433,7 +432,7 @@ public class StationMemberRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationMember[].class)))
     private void getManaged(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         requireOwnedMember(id, session);
         ctx.json(memberService.findManaged(id).stream()
                 .map(this::toMemberWithName)
@@ -449,7 +448,7 @@ public class StationMemberRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationMember[].class)))
     private void getManagers(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         requireOwnedMember(id, session);
         ctx.json(memberService.findManagers(id).stream()
                 .map(this::toMemberWithName)
@@ -476,7 +475,7 @@ public class StationMemberRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationMember[].class)))
     private void setManagers(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int managedId = ctx.pathParamAsClass("id", Integer.class).get();
+        int managedId = pathInt(ctx, "id");
         requireOwnedMember(managedId, session);
         var request = ctx.bodyAsClass(SetManagersRequest.class);
         List<Integer> managerIds = request.managerIds() != null ? request.managerIds() : List.of();
@@ -486,7 +485,7 @@ public class StationMemberRoutes implements Routes {
 
     private void setManaged(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int managerId = ctx.pathParamAsClass("id", Integer.class).get();
+        int managerId = pathInt(ctx, "id");
         requireOwnedMember(managerId, session);
         var request = ctx.bodyAsClass(SetManagedRequest.class);
         List<Integer> managedIds = request.managedIds() != null ? request.managedIds() : List.of();
@@ -521,7 +520,7 @@ public class StationMemberRoutes implements Routes {
             })
     private void markFormer(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int memberId = ctx.pathParamAsClass("id", Integer.class).get();
+        int memberId = pathInt(ctx, "id");
         requireOwnedMember(memberId, session);
         String check = formerMemberService.canMarkFormer(memberId);
         if (check != null) {
@@ -543,7 +542,7 @@ public class StationMemberRoutes implements Routes {
             })
     private void reactivate(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int memberId = ctx.pathParamAsClass("id", Integer.class).get();
+        int memberId = pathInt(ctx, "id");
         requireOwnedMember(memberId, session);
         formerMemberService.reactivate(memberId);
         ctx.json(new FormerCheckResponse(true, null));
@@ -562,7 +561,7 @@ public class StationMemberRoutes implements Routes {
             })
     private void resendSetupMail(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int memberId = ctx.pathParamAsClass("id", Integer.class).get();
+        int memberId = pathInt(ctx, "id");
         var member = requireOwnedMember(memberId, session);
         if (member.accountId() == null) {
             throw new BadRequestResponse("Member has no linked account");
@@ -590,7 +589,7 @@ public class StationMemberRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void setUserType(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int memberId = ctx.pathParamAsClass("id", Integer.class).get();
+        int memberId = pathInt(ctx, "id");
         requireOwnedMember(memberId, session);
         var request = ctx.bodyAsClass(SetUserTypeRequest.class);
         if (request.userType() == null) {
@@ -612,7 +611,7 @@ public class StationMemberRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void setJoinDate(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int memberId = ctx.pathParamAsClass("id", Integer.class).get();
+        int memberId = pathInt(ctx, "id");
         requireOwnedMember(memberId, session);
         var request = ctx.bodyAsClass(SetJoinDateRequest.class);
         if (request.joinDate() == null) {

@@ -45,12 +45,13 @@ class SmbStorageBackendTest {
             .waitingFor(Wait.forListeningPort())
             .withStartupAttempts(4);
 
-    private static SmbBackendConfig config;
     private static SmbStorageBackend backend;
 
     @BeforeAll
     static void setup() {
-        config = new SmbBackendConfig(
+        /* seal */
+        /* dfs */
+        SmbBackendConfig config = new SmbBackendConfig(
                 SAMBA.getHost(),
                 SAMBA.getMappedPort(445),
                 SHARE,

@@ -54,7 +54,6 @@ class QuizServiceTest extends RepositoryTestBase {
     private static FederationHttpClient httpClient;
     private static Station stationB;
     private static Station stationC;
-    private static int partnerIdAtoB;
 
     @BeforeAll
     static void setup() {
@@ -81,7 +80,7 @@ class QuizServiceTest extends RepositoryTestBase {
         var keyPair = federationService.generateKeyPair();
         var partner = federationService.acceptInvite(
                 station.id(), stationB.id(), federationService.encodePublicKey(keyPair), null, null);
-        partnerIdAtoB = partner.id();
+        int partnerIdAtoB = partner.id();
 
         // Create remote federation partnership (stationC is a remote partner)
         var keyPairC = federationService.generateKeyPair();

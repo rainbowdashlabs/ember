@@ -12,7 +12,7 @@ import dev.chojo.ocular.override.Overwrite;
  * Authentication configuration controlling token sizes and expiration durations
  * for sessions, email verification, and password reset tokens.
  */
-@SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal", "CanBeFinal"})
+@SuppressWarnings({"FieldMayBeFinal", "CanBeFinal"})
 public class Auth {
     @Overwrite(env = @Env)
     private int tokenBytes = 32;

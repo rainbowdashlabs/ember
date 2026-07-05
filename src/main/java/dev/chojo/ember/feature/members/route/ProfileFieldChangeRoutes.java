@@ -28,6 +28,8 @@ import jakarta.inject.Singleton;
 import java.time.Instant;
 import java.util.List;
 
+import static dev.chojo.ember.api.RouteSupport.pathInt;
+
 /**
  * Routes for tracking and acknowledging profile field changes made by managers,
  * including change history and per-member summaries.
@@ -125,7 +127,7 @@ public class ProfileFieldChangeRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProfileFieldChange[].class)))
     private void getChanges(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        int memberId = pathInt(ctx, "memberId");
         var identity = memberIdentityFactory.local(session.stationId(), memberId);
         ctx.json(profileFieldService.findChanges(memberId).stream()
                 .map(c -> new EnrichedProfileFieldChange(c, identity))
@@ -145,7 +147,7 @@ public class ProfileFieldChangeRoutes implements Routes {
                             content = @OpenApiContent(from = ProfileFieldChangeAcknowledgement.class)))
     private void acknowledge(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int changeId = ctx.pathParamAsClass("changeId", Integer.class).get();
+        int changeId = pathInt(ctx, "changeId");
         var request = ctx.bodyAsClass(AcknowledgeRequest.class);
         ctx.json(profileFieldService.acknowledge(changeId, session.member().id(), request.comment()));
     }
@@ -163,7 +165,7 @@ public class ProfileFieldChangeRoutes implements Routes {
                             content = @OpenApiContent(from = ProfileFieldChangeAcknowledgement[].class)))
     private void acknowledgeAll(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        int memberId = pathInt(ctx, "memberId");
         var request = ctx.bodyAsClass(AcknowledgeRequest.class);
         ctx.json(profileFieldService.acknowledgeAll(memberId, session.member().id(), request.comment()));
     }

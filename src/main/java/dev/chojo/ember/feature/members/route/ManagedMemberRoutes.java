@@ -44,6 +44,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static dev.chojo.ember.api.RouteSupport.pathInt;
+
 /**
  * Routes for guardians/managers to view and manage members they are responsible for,
  * including profile fields, inventory items, and GDPR data export.
@@ -156,7 +158,7 @@ public class ManagedMemberRoutes implements Routes {
             })
     private void getProfile(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        int memberId = pathInt(ctx, "memberId");
         assertManages(session, memberId);
         var member = stationMemberRepository.findById(memberId).orElseThrow(NotFoundResponse::new);
         var fields = applicableFields(member.stationId(), memberId);
@@ -177,7 +179,7 @@ public class ManagedMemberRoutes implements Routes {
             responses = @OpenApiResponse(status = "200"))
     private void setProfile(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        int memberId = pathInt(ctx, "memberId");
         assertManages(session, memberId);
         var member = stationMemberRepository.findById(memberId).orElseThrow(NotFoundResponse::new);
         var allowedFieldIds = applicableFields(member.stationId(), memberId).stream()
@@ -208,7 +210,7 @@ public class ManagedMemberRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberInventoryItem[].class)))
     private void getMemberInventory(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        int memberId = pathInt(ctx, "memberId");
         assertManages(session, memberId);
         var items = inventoryService.findItemsByMember(memberId);
         ctx.json(items.stream()
@@ -247,7 +249,7 @@ public class ManagedMemberRoutes implements Routes {
             responses = @OpenApiResponse(status = "200"))
     private void getMemberRequirements(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        int memberId = pathInt(ctx, "memberId");
         assertManages(session, memberId);
         var member = stationMemberRepository.findById(memberId).orElseThrow(NotFoundResponse::new);
         var required = checkService.getRequiredItems(member.stationId(), memberId);
@@ -265,7 +267,7 @@ public class ManagedMemberRoutes implements Routes {
             responses = @OpenApiResponse(status = "200"))
     private void gdprExport(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        int memberId = pathInt(ctx, "memberId");
         assertManages(session, memberId);
         var data = gdprExportService.exportMemberData(memberId);
         ctx.contentType("application/json");

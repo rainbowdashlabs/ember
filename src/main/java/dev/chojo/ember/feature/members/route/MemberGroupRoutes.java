@@ -19,7 +19,6 @@ import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
@@ -33,6 +32,9 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.util.List;
+
+import static dev.chojo.ember.api.RouteSupport.pathInt;
+import static dev.chojo.ember.api.RouteSupport.requireOwned;
 
 /**
  * Routes for member group management including CRUD operations on groups,
@@ -135,7 +137,7 @@ public class MemberGroupRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void get(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         groupService
                 .findById(id)
                 .ifPresentOrElse(
@@ -160,12 +162,8 @@ public class MemberGroupRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void update(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        UserSession session = UserSession.from(ctx);
-        var group = groupService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (group.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        int id = pathInt(ctx, "id");
+        requireOwned(ctx, id, groupService::findById, MemberGroup::stationId);
         var request = ctx.bodyAsClass(GroupRequest.class);
         if (isBlank(request.name())) {
             throw new BadRequestResponse("name is required");
@@ -188,12 +186,8 @@ public class MemberGroupRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void delete(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        UserSession session = UserSession.from(ctx);
-        var group = groupService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (group.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        int id = pathInt(ctx, "id");
+        requireOwned(ctx, id, groupService::findById, MemberGroup::stationId);
         if (groupService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -211,7 +205,7 @@ public class MemberGroupRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationMember[].class)))
     private void getMembers(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         ctx.json(groupService.findMembers(id).stream()
                 .map(this::toMemberWithName)
                 .toList());
@@ -228,16 +222,12 @@ public class MemberGroupRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetMembersRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberWithName[].class)))
     private void setMembers(Context ctx) {
-        int groupId = ctx.pathParamAsClass("id", Integer.class).get();
+        int groupId = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
-        var group = groupService.findById(groupId).orElseThrow(NotFoundResponse::new);
-        if (group.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        requireOwned(ctx, groupId, groupService::findById, MemberGroup::stationId);
         var request = ctx.bodyAsClass(SetMembersRequest.class);
         List<Integer> memberIds = request.memberIds() != null ? request.memberIds() : List.of();
 
-        // Determine which members are being added
         var result =
                 groupService.setMembers(groupId, memberIds, session.member().id());
         ctx.json(result.stream().map(this::toMemberWithName).toList());
@@ -251,7 +241,7 @@ public class MemberGroupRoutes implements Routes {
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberGroup[].class)))
     private void getMemberGroups(Context ctx) {
-        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        int memberId = pathInt(ctx, "memberId");
         ctx.json(groupService.findGroupsForMember(memberId));
     }
 
@@ -265,7 +255,7 @@ public class MemberGroupRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Permission[].class)))
     private void getGroupPermissions(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         ctx.json(groupService.findGroupPermissions(id));
     }
 
@@ -284,12 +274,9 @@ public class MemberGroupRoutes implements Routes {
                 @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void setGroupPermissions(Context ctx) {
-        int groupId = ctx.pathParamAsClass("id", Integer.class).get();
+        int groupId = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
-        var group = groupService.findById(groupId).orElseThrow(NotFoundResponse::new);
-        if (group.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        requireOwned(ctx, groupId, groupService::findById, MemberGroup::stationId);
         var request = ctx.bodyAsClass(SetGroupPermissionsRequest.class);
         List<Integer> permissionIds = request.permissionIds() != null ? request.permissionIds() : List.of();
         ctx.json(groupService.setGroupPermissions(groupId, permissionIds, session.permissions()));
@@ -306,21 +293,10 @@ public class MemberGroupRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void convertToTag(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        UserSession session = UserSession.from(ctx);
-        groupService
-                .findById(id)
-                .ifPresentOrElse(
-                        group -> {
-                            if (group.stationId() != session.stationId()) {
-                                throw new ForbiddenResponse("Cannot access resources from another station");
-                            }
-                            groupService.convertToTag(id);
-                            ctx.status(HttpStatus.NO_CONTENT);
-                        },
-                        () -> {
-                            throw new NotFoundResponse();
-                        });
+        int id = pathInt(ctx, "id");
+        requireOwned(ctx, id, groupService::findById, MemberGroup::stationId);
+        groupService.convertToTag(id);
+        ctx.status(HttpStatus.NO_CONTENT);
     }
 
     // -- Request/Response records --

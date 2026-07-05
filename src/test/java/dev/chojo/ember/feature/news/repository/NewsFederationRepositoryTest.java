@@ -35,14 +35,12 @@ class NewsFederationRepositoryTest extends RepositoryTestBase {
 
     private static Station station;
     private static Account account;
-    private static StationMember member;
     private static News news1;
     private static News news2;
     private static News news3;
     private static int partnerId;
     private static int partnerIdB;
     private static int shareId;
-    private static int commentId;
 
     @BeforeAll
     static void setup() {
@@ -54,7 +52,7 @@ class NewsFederationRepositoryTest extends RepositoryTestBase {
         var stationB = stationRepo.create("NewsFedRepoStationB");
         var stationC = stationRepo.create("NewsFedRepoStationC");
         account = accountRepo.create("newsfed@test.com", "NewsFed", "User");
-        member = stationMemberRepo.create(station.id(), account.id());
+        StationMember member = stationMemberRepo.create(station.id(), account.id());
 
         // Create news articles (published at creation)
         var authorIdentity = stationMemberRepo.resolveIdentity(member.id());
@@ -75,7 +73,7 @@ class NewsFederationRepositoryTest extends RepositoryTestBase {
 
         // Create a comment for federated author tests
         var comment = newsRepo.createComment(news1.id(), null, authorIdentity, "Test comment");
-        commentId = comment.id();
+        int commentId = comment.id();
     }
 
     @AfterAll

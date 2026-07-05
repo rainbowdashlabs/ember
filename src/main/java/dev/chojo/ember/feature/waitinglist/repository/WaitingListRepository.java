@@ -506,9 +506,9 @@ public class WaitingListRepository {
                 .all();
     }
 
-    public WaitingListEntryGuardian createGuardian(
+    public void createGuardian(
             int entryId, String firstname, String lastname, String email, String phone, int position) {
-        return query("""
+        query("""
                 INSERT
                 INTO
                     waiting_list_entry_guardian
@@ -593,7 +593,7 @@ public class WaitingListRepository {
 
     // --- Verification tokens ---
 
-    public WaitlistVerificationToken createVerificationToken(
+    public void createVerificationToken(
             String token,
             int listId,
             String firstname,
@@ -605,7 +605,7 @@ public class WaitingListRepository {
             ConsentProof consent) {
         String guardiansPayload = JSON.writeValueAsString(guardians != null ? guardians : List.of());
         String fieldValuesPayload = JSON.writeValueAsString(fieldValues != null ? fieldValues : Map.of());
-        return query("""
+        query("""
                 INSERT
                 INTO
                     waitlist_verification_token
@@ -637,12 +637,6 @@ public class WaitingListRepository {
     public void deleteVerificationToken(int id) {
         query("DELETE FROM waitlist_verification_token WHERE id = :id;")
                 .single(call().bind("id", id))
-                .delete();
-    }
-
-    public void deleteExpiredVerificationTokens() {
-        query("DELETE FROM waitlist_verification_token WHERE expires_at < now();")
-                .single(call())
                 .delete();
     }
 }

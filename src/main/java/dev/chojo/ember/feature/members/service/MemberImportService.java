@@ -240,6 +240,16 @@ public class MemberImportService {
             }
         }
 
+        log.info(
+                "Member import completed: station={}, membersCreated={}, managersCreated={}, managersLinked={}, "
+                        + "groupsAssigned={}, profileFieldsSet={}, warnings={}",
+                stationId,
+                membersCreated,
+                managersCreated,
+                managersLinked,
+                groupsAssigned,
+                profileFieldsSet,
+                warnings.size());
         return new ImportResult(
                 membersCreated, managersCreated, managersLinked, groupsAssigned, profileFieldsSet, warnings);
     }
@@ -305,6 +315,14 @@ public class MemberImportService {
             }
         }
 
+        log.info(
+                "Team member import completed: station={}, membersCreated={}, groupsAssigned={}, "
+                        + "profileFieldsSet={}, warnings={}",
+                stationId,
+                membersCreated,
+                groupsAssigned,
+                profileFieldsSet,
+                warnings.size());
         return new TeamImportResult(membersCreated, groupsAssigned, profileFieldsSet, warnings);
     }
 
@@ -314,7 +332,7 @@ public class MemberImportService {
         var byTarget = new LinkedHashMap<String, List<ColumnMapping>>();
         for (var m : mappings) {
             if ("skip".equals(m.target())) continue;
-            byTarget.computeIfAbsent(m.target(), k -> new ArrayList<>()).add(m);
+            byTarget.computeIfAbsent(m.target(), _ -> new ArrayList<>()).add(m);
         }
         // Sort each group by mergeOrder
         byTarget.values().forEach(list -> list.sort(Comparator.comparingInt(ColumnMapping::mergeOrder)));
@@ -340,7 +358,7 @@ public class MemberImportService {
                         var parts = target.split(":", 3);
                         if (parts.length == 3) {
                             int idx = Integer.parseInt(parts[1]);
-                            var arr = managerData.computeIfAbsent(idx, k -> new String[] {"", "", "", ""});
+                            var arr = managerData.computeIfAbsent(idx, _ -> new String[] {"", "", "", ""});
                             switch (parts[2]) {
                                 case "firstName" -> arr[0] = val;
                                 case "lastName" -> arr[1] = val;

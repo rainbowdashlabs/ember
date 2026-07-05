@@ -35,8 +35,6 @@ class MemberListResolverTest extends RepositoryTestBase {
     private static Station station;
     private static Account account1;
     private static Account account2;
-    private static StationMember member1;
-    private static StationMember member2;
     private static int groupId;
     private static int tagId;
     private static UUID uid1;
@@ -48,8 +46,8 @@ class MemberListResolverTest extends RepositoryTestBase {
         station = stationRepo.create("MemberListStation");
         account1 = accountRepo.create("mlr-1@test.com", "Alice", "Alpha");
         account2 = accountRepo.create("mlr-2@test.com", "Bob", "Bravo");
-        member1 = stationMemberRepo.create(station.id(), account1.id());
-        member2 = stationMemberRepo.create(station.id(), account2.id());
+        StationMember member1 = stationMemberRepo.create(station.id(), account1.id());
+        StationMember member2 = stationMemberRepo.create(station.id(), account2.id());
         uid1 = stationMemberRepo.resolveUid(member1.id());
         uid2 = stationMemberRepo.resolveUid(member2.id());
 

@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.members.repository;
 
-import de.chojo.sadu.queries.api.results.writing.insertion.InsertionResult;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -51,7 +50,7 @@ public class MemberGroupRepository {
     public boolean existsForStation(int stationId) {
         return query("SELECT 1 FROM member_group WHERE station_id = :station_id LIMIT 1;")
                 .single(call().bind("station_id", stationId))
-                .map(row -> true)
+                .map(_ -> true)
                 .first()
                 .orElse(false);
     }
@@ -130,8 +129,8 @@ public class MemberGroupRepository {
     /**
      * Adds a member to a group.
      */
-    public InsertionResult addMember(int groupId, int memberId) {
-        return query("INSERT INTO member_group_entry(group_id, member_id) VALUES(:group_id, :member_id);")
+    public void addMember(int groupId, int memberId) {
+        query("INSERT INTO member_group_entry(group_id, member_id) VALUES(:group_id, :member_id);")
                 .single(call().bind("group_id", groupId).bind("member_id", memberId))
                 .insert();
     }
@@ -165,8 +164,8 @@ public class MemberGroupRepository {
     /**
      * Assigns a permission to a group.
      */
-    public InsertionResult addGroupPermission(int groupId, int permissionId) {
-        return query(
+    public void addGroupPermission(int groupId, int permissionId) {
+        query(
                         "INSERT INTO member_group_permission(group_id, permission_id) VALUES(:group_id, :permission_id) ON CONFLICT DO NOTHING;")
                 .single(call().bind("group_id", groupId).bind("permission_id", permissionId))
                 .insert();
@@ -175,9 +174,8 @@ public class MemberGroupRepository {
     /**
      * Removes a permission from a group.
      */
-    public boolean removeGroupPermission(int groupId, int permissionId) {
-        return query(
-                        "DELETE FROM member_group_permission WHERE group_id = :group_id AND permission_id = :permission_id;")
+    public void removeGroupPermission(int groupId, int permissionId) {
+        query("DELETE FROM member_group_permission WHERE group_id = :group_id AND permission_id = :permission_id;")
                 .single(call().bind("group_id", groupId).bind("permission_id", permissionId))
                 .delete()
                 .changed();

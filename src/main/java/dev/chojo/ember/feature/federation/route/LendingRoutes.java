@@ -16,7 +16,6 @@ import dev.chojo.ember.feature.federation.entity.LendingRequest;
 import dev.chojo.ember.feature.federation.entity.LendingRequestItem;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
-import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.federation.service.LendingService;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
@@ -39,6 +38,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
+import static dev.chojo.ember.api.RouteSupport.pathInt;
+
 /**
  * Routes for cross-station inventory lending, chat messages, and date blocking.
  */
@@ -57,7 +58,6 @@ public class LendingRoutes implements Routes {
             LendingService service,
             LendingRepository lendingRepository,
             StationRepository stationRepository,
-            FederationService federationService,
             InventoryRepository inventoryRepository,
             StationMemberRepository stationMemberRepository,
             AccountRepository accountRepository) {
@@ -192,7 +192,7 @@ public class LendingRoutes implements Routes {
 
     private void getRequest(Context ctx) {
         var session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var request = service.findRequest(id).orElseThrow(NotFoundResponse::new);
         verifyAccess(request, session.stationId());
 
@@ -202,7 +202,7 @@ public class LendingRoutes implements Routes {
 
     private void approveRequest(Context ctx) {
         var session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var request = service.findRequest(id).orElseThrow(NotFoundResponse::new);
         verifyOwner(request, session.stationId());
         service.approveRequest(id, session.stationId());
@@ -211,7 +211,7 @@ public class LendingRoutes implements Routes {
 
     private void declineRequest(Context ctx) {
         var session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var request = service.findRequest(id).orElseThrow(NotFoundResponse::new);
         verifyOwner(request, session.stationId());
         var body = ctx.bodyAsClass(DeclineBody.class);
@@ -221,7 +221,7 @@ public class LendingRoutes implements Routes {
 
     private void availableItemsForRequest(Context ctx) {
         var session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var request = service.findRequest(id).orElseThrow(NotFoundResponse::new);
         verifyOwner(request, session.stationId());
 
@@ -258,7 +258,7 @@ public class LendingRoutes implements Routes {
 
     private void assignItems(Context ctx) {
         var session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var request = service.findRequest(id).orElseThrow(NotFoundResponse::new);
         verifyOwner(request, session.stationId());
         if (request.status() != LendingStatus.APPROVED) {
@@ -276,7 +276,7 @@ public class LendingRoutes implements Routes {
 
     private void markLent(Context ctx) {
         var session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var request = service.findRequest(id).orElseThrow(NotFoundResponse::new);
         verifyOwner(request, session.stationId());
         service.markLent(id, session.stationId());
@@ -285,7 +285,7 @@ public class LendingRoutes implements Routes {
 
     private void markReturned(Context ctx) {
         var session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var request = service.findRequest(id).orElseThrow(NotFoundResponse::new);
         verifyAccess(request, session.stationId());
         service.markReturned(id, session.stationId());
@@ -294,7 +294,7 @@ public class LendingRoutes implements Routes {
 
     private void closeRequest(Context ctx) {
         var session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var request = service.findRequest(id).orElseThrow(NotFoundResponse::new);
         verifyAccess(request, session.stationId());
         service.closeRequest(id, session.stationId());
@@ -305,7 +305,7 @@ public class LendingRoutes implements Routes {
 
     private void getMessages(Context ctx) {
         var session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var request = service.findRequest(id).orElseThrow(NotFoundResponse::new);
         verifyAccess(request, session.stationId());
         var messages = service.getMessages(id, session.stationId());
@@ -338,7 +338,7 @@ public class LendingRoutes implements Routes {
 
     private void sendMessage(Context ctx) {
         var session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var request = service.findRequest(id).orElseThrow(NotFoundResponse::new);
         verifyAccess(request, session.stationId());
         var body = ctx.bodyAsClass(MessageBody.class);
@@ -374,7 +374,7 @@ public class LendingRoutes implements Routes {
     }
 
     private void deleteBlock(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         service.deleteBlock(id);
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -420,19 +420,7 @@ public class LendingRoutes implements Routes {
         UUID currentStationUid = stationRepository.resolveUid(currentStationId);
         boolean isOwner = Objects.equals(request.owningStationUid(), currentStationUid);
 
-        // Build item summary for list display
-        var items = service.findRequestItems(request.id());
-        var summaryParts = new ArrayList<String>();
-        for (var item : items) {
-            String name = item.inventoryId() != null
-                    ? inventoryRepository
-                            .findById(item.inventoryId())
-                            .map(Inventory::name)
-                            .orElse("?")
-                    : "?";
-            summaryParts.add(item.quantity() + "x " + name);
-        }
-        String itemSummary = String.join(", ", summaryParts);
+        String itemSummary = service.buildItemSummary(request.id());
 
         boolean overdue = (request.status() == LendingStatus.LENT || request.status() == LendingStatus.APPROVED)
                 && request.requestedDateTo() != null
@@ -459,7 +447,7 @@ public class LendingRoutes implements Routes {
 
     private void lentOutByInventory(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int inventoryId = ctx.pathParamAsClass("inventoryId", Integer.class).get();
+        int inventoryId = pathInt(ctx, "inventoryId");
         var lentItems = lendingRepository.findLentOutByInventory(
                 inventoryId, stationRepository.resolveUid(session.stationId()));
         ctx.json(lentItems);
@@ -469,7 +457,7 @@ public class LendingRoutes implements Routes {
 
     private void remoteGetMessages(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int requestId = ctx.pathParamAsClass("requestId", Integer.class).get();
+        int requestId = pathInt(ctx, "requestId");
         var messages = service.getLocalMessages(requestId, partner.stationId());
         ctx.json(messages);
     }

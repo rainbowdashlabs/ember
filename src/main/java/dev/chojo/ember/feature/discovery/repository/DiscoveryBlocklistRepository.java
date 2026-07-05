@@ -27,7 +27,7 @@ public class DiscoveryBlocklistRepository {
     public boolean contains(BlocklistKind kind, String value) {
         return query("SELECT 1 FROM discovery_blocklist WHERE kind = :kind AND value = :value;")
                 .single(call().bind("kind", kind.name()).bind("value", value))
-                .map(row -> true)
+                .map(_ -> true)
                 .first()
                 .orElse(false);
     }

@@ -206,6 +206,7 @@ public class StationMemberService {
             }
         }
 
+        log.info("Managed relations updated for manager {}: {}", managerId, desiredManagedIds);
         return memberRepository.findManaged(managerId);
     }
 
@@ -227,6 +228,7 @@ public class StationMemberService {
             }
         }
 
+        log.info("Manager relations updated for member {}: {}", managedId, desiredManagerIds);
         return memberRepository.findManagers(managedId);
     }
 

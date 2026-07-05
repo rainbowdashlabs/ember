@@ -22,6 +22,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -81,7 +82,7 @@ public class FederationSigningService {
         if (query == null || query.isEmpty()) {
             return false;
         }
-        var seen = new java.util.HashSet<String>();
+        var seen = new HashSet<String>();
         for (String pair : query.split("&")) {
             if (pair.isEmpty()) continue;
             int eq = pair.indexOf('=');

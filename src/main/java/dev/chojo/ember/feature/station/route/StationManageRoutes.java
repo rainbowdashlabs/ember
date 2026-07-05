@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.station.entity.StationMailConfig;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.repository.StationMailConfigRepository;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
 import dev.chojo.ember.feature.station.service.StationExportService;
 import dev.chojo.ember.feature.station.service.StationImportService;
@@ -70,7 +71,7 @@ public class StationManageRoutes implements Routes {
     private final AuthService authService;
     private final StationImportService importService;
     private final StationLocationService locationService;
-    private final dev.chojo.ember.feature.station.repository.StationRepository stationRepository;
+    private final StationRepository stationRepository;
 
     @Inject
     public StationManageRoutes(
@@ -80,7 +81,7 @@ public class StationManageRoutes implements Routes {
             AuthService authService,
             StationImportService importService,
             StationLocationService locationService,
-            dev.chojo.ember.feature.station.repository.StationRepository stationRepository) {
+            StationRepository stationRepository) {
         this.stationService = stationService;
         this.mailConfigRepository = mailConfigRepository;
         this.emailService = emailService;

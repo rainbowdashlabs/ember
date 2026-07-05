@@ -36,13 +36,13 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+
+import static dev.chojo.ember.api.RouteSupport.pathInt;
 
 /**
  * Routes for inventory exchange requests including creating, reviewing, shipping, completing,
@@ -50,7 +50,6 @@ import java.util.List;
  */
 @Singleton
 public class ExchangeRoutes implements Routes {
-    private static final Logger log = LoggerFactory.getLogger(ExchangeRoutes.class);
     private final ExchangeService exchangeService;
     private final ExchangeExportService exchangeExportService;
     private final AccountRepository accountRepository;
@@ -140,7 +139,7 @@ public class ExchangeRoutes implements Routes {
             })
     private void get(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         ctx.json(toResponse(requireOwnedExchange(id, session)));
     }
 
@@ -153,7 +152,7 @@ public class ExchangeRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = LogResponse[].class)))
     private void logs(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         requireOwnedExchange(id, session);
         var logs = exchangeService.findLogs(id);
         ctx.json(logs.stream().map(this::toLogResponse).toList());
@@ -213,7 +212,7 @@ public class ExchangeRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void updateStatus(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
         requireOwnedExchange(id, session);
         var request = ctx.bodyAsClass(UpdateStatusRequest.class);
@@ -241,7 +240,7 @@ public class ExchangeRoutes implements Routes {
             })
     private void delete(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         requireOwnedExchange(id, session);
         if (exchangeService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);

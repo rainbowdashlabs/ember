@@ -150,7 +150,7 @@ public class PageFileMetaRepository {
                 WHERE file_id = ANY(:file_ids);""")
                 .single(call().bind("file_ids", fileIds, PostgreSqlTypes.INTEGER))
                 .map(row -> {
-                    out.computeIfAbsent(row.getInt("file_id"), k -> new HashSet<>())
+                    out.computeIfAbsent(row.getInt("file_id"), _ -> new HashSet<>())
                             .add(row.getInt("tag_id"));
                     return null;
                 })

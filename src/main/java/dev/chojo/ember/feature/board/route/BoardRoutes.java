@@ -13,7 +13,6 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.board.entity.AccessData;
 import dev.chojo.ember.feature.board.entity.Board;
 import dev.chojo.ember.feature.board.entity.BoardComment;
@@ -29,7 +28,6 @@ import dev.chojo.ember.feature.board.entity.LanePreset;
 import dev.chojo.ember.feature.board.entity.LinkType;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.board.entity.TicketSummary;
-import dev.chojo.ember.feature.board.repository.FederatedBoardRepository;
 import dev.chojo.ember.feature.board.service.BoardService;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
 import dev.chojo.ember.feature.board.service.FederatedBoardProxyService;
@@ -91,10 +89,8 @@ public class BoardRoutes implements Routes {
             FederatedBoardProxyService proxyService,
             FederationRepository federationRepository,
             BoardTicketService ticketService,
-            FederatedBoardRepository federatedBoardRepository,
             EventFederationRepository eventFederationRepository,
             StationMemberRepository stationMemberRepository,
-            AccountRepository accountRepository,
             StationRepository stationRepository,
             MemberNameResolver memberNameResolver,
             MemberIdentityFactory memberIdentityFactory) {
@@ -760,7 +756,7 @@ public class BoardRoutes implements Routes {
             responses = @OpenApiResponse(status = "200"))
     private void listBoardMembers(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = resolveBoardId(ctx, session.stationId());
+        resolveBoardId(ctx, session.stationId());
         ctx.json(memberIdentityFactory.enrichCompletions(stationMemberRepository.findCompletions(session.stationId())));
     }
 
@@ -1999,7 +1995,7 @@ public class BoardRoutes implements Routes {
         int boardId = resolveRemoteBoardId(ctx, partner);
         requireRemoteWrite(boardId, partner);
         var req = ctx.bodyAsClass(RemoteCreateTicketRequest.class);
-        var board = boardService.findById(boardId).orElseThrow(NotFoundResponse::new);
+        boardService.findById(boardId).orElseThrow(NotFoundResponse::new);
         // Use the first lane if none specified
         int laneId = req.laneId() != null
                 ? req.laneId()

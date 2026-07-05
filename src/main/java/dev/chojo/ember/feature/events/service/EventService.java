@@ -419,7 +419,6 @@ public class EventService {
         var breaks = eventRepository.findBreaksByStation(stationId);
 
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
-        String todayStr = today.toString();
         int maxDays = 28;
         var occurrences = new ArrayList<UpcomingEventOccurrence>();
 
@@ -435,34 +434,10 @@ public class EventService {
         // Recurring events for the next 28 days
         for (int d = 0; d <= maxDays; d++) {
             LocalDate date = today.plusDays(d);
-            String dateStr = date.toString();
-            boolean inBreak = breaks.stream()
-                    .anyMatch(b -> b.startDate() != null
-                            && b.endDate() != null
-                            && dateStr.compareTo(b.startDate().toString()) >= 0
-                            && dateStr.compareTo(b.endDate().toString()) <= 0);
-            if (inBreak) continue;
-
-            int dow = date.getDayOfWeek().getValue();
-            int dayOfMonth = date.getDayOfMonth();
-            int month = date.getMonthValue();
+            if (EventBreak.coversAny(breaks, date)) continue;
 
             for (var ev : events) {
-                if (ev.eventType() == StationEvent.EventType.ONE_TIME) continue;
-                if (ev.dayOfWeek() == null || ev.dayOfWeek() != dow) continue;
-
-                boolean matches =
-                        switch (ev.eventType()) {
-                            case RECURRING -> true;
-                            case MONTHLY_FIRST -> dayOfMonth <= 7;
-                            case QUARTERLY -> dayOfMonth <= 7 && (month - 1) % 3 == 0;
-                            case YEARLY ->
-                                ev.startTime() != null
-                                        && ev.startTime().atZone(ZoneOffset.UTC).getMonthValue() == month
-                                        && ev.startTime().atZone(ZoneOffset.UTC).getDayOfMonth() == dayOfMonth;
-                            default -> false;
-                        };
-                if (matches) {
+                if (ev.occursOn(date)) {
                     occurrences.add(new UpcomingEventOccurrence(EventSummary.of(ev), date));
                 }
             }

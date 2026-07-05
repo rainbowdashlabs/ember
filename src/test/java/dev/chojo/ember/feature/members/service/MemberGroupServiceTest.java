@@ -113,6 +113,12 @@ class MemberGroupServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(31)
+    void updateMissingReturnsEmpty() {
+        assertTrue(service.update(999999, "Ghost", null, 0).isEmpty());
+    }
+
+    @Test
     @Order(40)
     void delete() {
         assertTrue(service.delete(groupId));

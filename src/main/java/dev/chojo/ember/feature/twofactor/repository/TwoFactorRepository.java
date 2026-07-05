@@ -187,8 +187,8 @@ public class TwoFactorRepository {
                 .all();
     }
 
-    public boolean updateWebAuthnSignatureCounter(int factorId, long newCounter) {
-        return query("""
+    public void updateWebAuthnSignatureCounter(int factorId, long newCounter) {
+        query("""
                 UPDATE account_2fa_webauthn
                 SET signature_counter = :counter
                 WHERE factor_id = :factor_id AND signature_counter < :counter;""")

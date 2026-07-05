@@ -34,7 +34,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class StationExportServiceTest extends RepositoryTestBase {
     private static StationExportService exportService;
     private static int stationId;
-    private static StationMember member;
 
     @Test
     @Order(1)
@@ -45,7 +44,7 @@ class StationExportServiceTest extends RepositoryTestBase {
         stationId = station.id();
 
         Account account = accountRepo.create("export-test@example.com", "Max", "Mustermann", true);
-        member = stationMemberRepo.create(stationId, account.id());
+        StationMember member = stationMemberRepo.create(stationId, account.id());
 
         var group = memberGroupRepo.create(stationId, "Anfänger");
         memberGroupRepo.addMember(group.id(), member.id());

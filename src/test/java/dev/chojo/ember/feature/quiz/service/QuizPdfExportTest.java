@@ -106,7 +106,7 @@ class QuizPdfExportTest {
         var backend = new LocalStorageBackend();
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
         var imageService = new QuizQuestionImageService(new ImageVariantService(storage), stationRepo);
-        pdfService = new QuizPdfService(testRepo, catalogRepo, imageService, quizService);
+        pdfService = new QuizPdfService(testRepo, catalogRepo, imageService);
     }
 
     @Test

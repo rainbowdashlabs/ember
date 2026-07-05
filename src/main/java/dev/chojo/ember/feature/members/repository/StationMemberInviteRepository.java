@@ -38,7 +38,7 @@ public class StationMemberInviteRepository {
     public boolean existsForStation(int stationId) {
         return query("SELECT 1 FROM station_member_invite WHERE station_id = :station_id LIMIT 1;")
                 .single(call().bind("station_id", stationId))
-                .map(row -> true)
+                .map(_ -> true)
                 .first()
                 .orElse(false);
     }

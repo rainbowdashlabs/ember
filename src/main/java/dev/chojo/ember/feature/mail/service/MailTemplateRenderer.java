@@ -10,8 +10,6 @@ import io.pebbletemplates.pebble.PebbleEngine;
 import io.pebbletemplates.pebble.loader.FileLoader;
 import io.pebbletemplates.pebble.template.PebbleTemplate;
 import jakarta.inject.Singleton;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -29,7 +27,6 @@ import java.util.Map;
  */
 @Singleton
 public class MailTemplateRenderer {
-    private static final Logger log = LoggerFactory.getLogger(MailTemplateRenderer.class);
     private static final String TEMPLATE_ROOT = "templates/mail";
     private static final String FALLBACK_LOCALE = "en";
     private static final Localizer LOCALIZER = new Localizer();

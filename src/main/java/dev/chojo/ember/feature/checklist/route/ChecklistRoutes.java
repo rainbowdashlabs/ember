@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.checklist.service.ChecklistService;
 import dev.chojo.ember.feature.checklist.service.ChecklistService.ColumnSpec;
 import dev.chojo.ember.feature.checklist.service.ChecklistService.FilterSpec;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -47,10 +48,13 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+
+import static dev.chojo.ember.api.RouteSupport.pathInt;
 
 /**
  * HTTP routes for the checklist feature. Read endpoints require CHECKLIST_READ; every
@@ -463,7 +467,7 @@ public class ChecklistRoutes implements Routes {
 
     private Checklist loadOwned(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var checklist = checklistService.findById(id).orElseThrow(() -> new NotFoundResponse("Checklist not found"));
         if (checklist.stationId() != session.stationId()) {
             throw new ForbiddenResponse("Checklist belongs to another station");
@@ -472,7 +476,7 @@ public class ChecklistRoutes implements Routes {
     }
 
     private ChecklistColumn loadColumn(Context ctx, Checklist checklist) {
-        int columnId = ctx.pathParamAsClass("columnId", Integer.class).get();
+        int columnId = pathInt(ctx, "columnId");
         var column = checklistService.findColumn(columnId).orElseThrow(() -> new NotFoundResponse("Column not found"));
         if (column.checklistId() != checklist.id()) {
             throw new ForbiddenResponse("Column does not belong to this checklist");
@@ -481,7 +485,7 @@ public class ChecklistRoutes implements Routes {
     }
 
     private ChecklistEntry loadEntry(Context ctx, Checklist checklist) {
-        int entryId = ctx.pathParamAsClass("entryId", Integer.class).get();
+        int entryId = pathInt(ctx, "entryId");
         var entry = checklistService.findEntry(entryId).orElseThrow(() -> new NotFoundResponse("Entry not found"));
         if (entry.checklistId() != checklist.id()) {
             throw new ForbiddenResponse("Entry does not belong to this checklist");
@@ -495,7 +499,7 @@ public class ChecklistRoutes implements Routes {
         for (var member : memberRepository.findByStation(stationId)) {
             stationMemberIds.add(member.id());
         }
-        var out = new java.util.ArrayList<Integer>();
+        var out = new ArrayList<Integer>();
         for (int id : memberIds) {
             if (deduped.add(id) && stationMemberIds.contains(id)) {
                 out.add(id);
@@ -510,7 +514,7 @@ public class ChecklistRoutes implements Routes {
             checklistEntryIds.add(entry.id());
         }
         var deduped = new HashSet<Integer>();
-        var out = new java.util.ArrayList<Integer>();
+        var out = new ArrayList<Integer>();
         for (int id : entryIds) {
             if (deduped.add(id) && checklistEntryIds.contains(id)) {
                 out.add(id);
@@ -527,7 +531,7 @@ public class ChecklistRoutes implements Routes {
         var restrictionSet = checklistService.findRestrictionSet(checklist);
         var groupCache = new HashMap<Integer, List<Integer>>();
         var tagCache = new HashMap<Integer, List<Integer>>();
-        var members = new HashMap<Integer, dev.chojo.ember.feature.members.entity.StationMember>();
+        var members = new HashMap<Integer, StationMember>();
         for (var m : memberRepository.findByStation(checklist.stationId(), true)) {
             members.put(m.id(), m);
         }

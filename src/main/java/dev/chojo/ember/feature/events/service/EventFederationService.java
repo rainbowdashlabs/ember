@@ -92,6 +92,7 @@ public class EventFederationService {
     public EventFederationShare setShare(int eventId, ShareScope scope, List<Integer> partnerIds) {
         var share = federationRepository.setShare(eventId, scope);
         federationRepository.setShareTargets(share.id(), partnerIds);
+        log.info("Set federation share for event {} (scope {}, {} targets)", eventId, scope, partnerIds.size());
         return share;
     }
 
@@ -102,6 +103,7 @@ public class EventFederationService {
      */
     public void removeShare(int eventId) {
         federationRepository.removeShare(eventId);
+        log.info("Removed federation share for event {}", eventId);
     }
 
     /**
@@ -148,7 +150,9 @@ public class EventFederationService {
      */
     public EventFederationRegistration registerFederated(
             int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
-        return federationRepository.createRegistration(eventId, partnerId, remoteMemberId, eventDate);
+        var registration = federationRepository.createRegistration(eventId, partnerId, remoteMemberId, eventDate);
+        log.info("Registered federated member for event {} from partner {} on {}", eventId, partnerId, eventDate);
+        return registration;
     }
 
     public List<EventFederationRegistration> findRegistrationsByRemoteMember(UUID remoteMemberId) {
@@ -159,7 +163,6 @@ public class EventFederationService {
      * Finds all federated event registrations for the given member UIDs.
      * Queries local federation registrations directly and remote partners via HTTP.
      */
-    @SuppressWarnings("unchecked")
     public List<MyFederatedRegistration> findMyRegistrations(int stationId, List<UUID> memberUids) {
         var result = new ArrayList<MyFederatedRegistration>();
 
@@ -210,7 +213,12 @@ public class EventFederationService {
      * @return true if a row was updated
      */
     public boolean updateRegistrationStatus(int id, RegistrationStatus status) {
-        return federationRepository.updateRegistrationStatus(id, status);
+        if (federationRepository.updateRegistrationStatus(id, status)) {
+            log.info("Updated federated registration {} status to {}", id, status);
+            return true;
+        }
+        log.warn("Cannot update federated registration status: registration {} not found", id);
+        return false;
     }
 
     /**
@@ -254,7 +262,20 @@ public class EventFederationService {
      * @return true if a registration was deleted
      */
     public boolean withdrawRegistration(int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
-        return federationRepository.deleteRegistration(eventId, partnerId, remoteMemberId, eventDate);
+        if (federationRepository.deleteRegistration(eventId, partnerId, remoteMemberId, eventDate)) {
+            log.info(
+                    "Withdrew federated registration for event {} from partner {} on {}",
+                    eventId,
+                    partnerId,
+                    eventDate);
+            return true;
+        }
+        log.warn(
+                "Cannot withdraw federated registration: no registration for event {} from partner {} on {}",
+                eventId,
+                partnerId,
+                eventDate);
+        return false;
     }
 
     // -- Name cache --
@@ -413,11 +434,7 @@ public class EventFederationService {
      */
     public EventCommentRoutes.CommentResponse updateRemoteComment(
             FederationPartner partner, int commentId, UUID remoteMemberUid, String content) {
-        var comment = commentService.findById(commentId).orElseThrow(NotFoundResponse::new);
-        var expectedIdentity = new MemberIdentity(partner.partnerStationId(), remoteMemberUid);
-        if (comment.author() == null || !comment.author().sameMember(expectedIdentity)) {
-            throw new ForbiddenResponse("You can only edit your own comments");
-        }
+        requireCommentAuthor(commentId, partner, remoteMemberUid, "edit");
         commentRepository.update(commentId, content);
         var updated = commentService.findById(commentId).orElseThrow(NotFoundResponse::new);
         return toCommentResponse(updated);
@@ -427,11 +444,7 @@ public class EventFederationService {
      * Deletes a comment from a remote federated partner after verifying ownership.
      */
     public boolean deleteRemoteComment(FederationPartner partner, int commentId, UUID remoteMemberUid) {
-        var comment = commentService.findById(commentId).orElseThrow(NotFoundResponse::new);
-        var expectedIdentity = new MemberIdentity(partner.partnerStationId(), remoteMemberUid);
-        if (comment.author() == null || !comment.author().sameMember(expectedIdentity)) {
-            throw new ForbiddenResponse("You can only delete your own comments");
-        }
+        requireCommentAuthor(commentId, partner, remoteMemberUid, "delete");
         return commentService.delete(commentId);
     }
 
@@ -514,11 +527,7 @@ public class EventFederationService {
             if (result == null) throw new IllegalStateException("Failed to update comment on partner");
             return FederatedCommentResult.ofSingle(result);
         }
-        var comment = commentService.findById(commentId).orElseThrow(NotFoundResponse::new);
-        var expectedIdentity = new MemberIdentity(partner.partnerStationId(), memberUid);
-        if (comment.author() == null || !comment.author().sameMember(expectedIdentity)) {
-            throw new ForbiddenResponse("You can only edit your own comments");
-        }
+        requireCommentAuthor(commentId, partner, memberUid, "edit");
         commentRepository.update(commentId, content);
         var updated = commentService.findById(commentId).orElseThrow(NotFoundResponse::new);
         return FederatedCommentResult.ofSingle(toCommentResponse(updated));
@@ -542,12 +551,20 @@ public class EventFederationService {
             if (!success) throw new IllegalStateException("Failed to delete comment on partner");
             return true;
         }
+        requireCommentAuthor(commentId, partner, memberUid, "delete");
+        return commentService.delete(commentId);
+    }
+
+    /**
+     * Verifies the comment exists and was authored by the given federated member, throwing
+     * {@link NotFoundResponse} when absent and {@link ForbiddenResponse} on an author mismatch.
+     */
+    private void requireCommentAuthor(int commentId, FederationPartner partner, UUID memberUid, String action) {
         var comment = commentService.findById(commentId).orElseThrow(NotFoundResponse::new);
         var expectedIdentity = new MemberIdentity(partner.partnerStationId(), memberUid);
         if (comment.author() == null || !comment.author().sameMember(expectedIdentity)) {
-            throw new ForbiddenResponse("You can only delete your own comments");
+            throw new ForbiddenResponse("You can only " + action + " your own comments");
         }
-        return commentService.delete(commentId);
     }
 
     public List<RemoteFederatedEvent> fetchFederatedEvents(

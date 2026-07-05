@@ -36,6 +36,8 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.UUID;
 
+import static dev.chojo.ember.api.RouteSupport.pathInt;
+
 /**
  * Unauthenticated, read-only routes for the public knowledgebase.
  * Only serves content from the station itself (no federated content).
@@ -105,6 +107,20 @@ public class PublicKnowledgeBaseRoutes implements Routes {
         }
     }
 
+    /**
+     * Resolves the public station, loads the {@code id} file, and confirms it belongs to that
+     * station and is publicly visible, returning it. Answers 404 for a missing, cross-station, or
+     * non-public file.
+     */
+    private KbFile resolvePublicFile(Context ctx) {
+        var station = resolveStation(ctx);
+        int id = pathInt(ctx, "id");
+        var file = kbService.findFile(id).orElseThrow(NotFoundResponse::new);
+        if (file.stationId() != station.id()) throw new NotFoundResponse();
+        requirePubliclyVisible(station, null, id);
+        return file;
+    }
+
     @OpenApi(
             path = "/api/v1/public/kb/{stationUid}/info",
             methods = HttpMethod.GET,
@@ -168,12 +184,7 @@ public class PublicKnowledgeBaseRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getFile(Context ctx) {
-        var station = resolveStation(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var file = kbService.findFile(id).orElseThrow(NotFoundResponse::new);
-        if (file.stationId() != station.id()) throw new NotFoundResponse();
-        requirePubliclyVisible(station, null, id);
-        ctx.json(file);
+        ctx.json(resolvePublicFile(ctx));
     }
 
     @OpenApi(
@@ -190,11 +201,8 @@ public class PublicKnowledgeBaseRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getFileContent(Context ctx) {
-        var station = resolveStation(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var file = kbService.findFile(id).orElseThrow(NotFoundResponse::new);
-        if (file.stationId() != station.id()) throw new NotFoundResponse();
-        requirePubliclyVisible(station, null, id);
+        var file = resolvePublicFile(ctx);
+        int id = file.id();
 
         switch (file.fileType()) {
             case MARKDOWN, TEXT -> {
@@ -231,14 +239,10 @@ public class PublicKnowledgeBaseRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getMarkdownHtml(Context ctx) {
-        var station = resolveStation(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var file = kbService.findFile(id).orElseThrow(NotFoundResponse::new);
-        if (file.stationId() != station.id()) throw new NotFoundResponse();
-        requirePubliclyVisible(station, null, id);
+        var file = resolvePublicFile(ctx);
         if (file.fileType() != KbFileType.MARKDOWN) throw new BadRequestResponse("Not a markdown file");
 
-        var markdown = kbService.getMarkdownContent(id).orElse("");
+        var markdown = kbService.getMarkdownContent(file.id()).orElse("");
         var html = kbService.renderMarkdown(markdown);
         ctx.json(new MarkdownHtmlResponse(html, markdown));
     }
@@ -279,7 +283,7 @@ public class PublicKnowledgeBaseRoutes implements Routes {
             responses = {@OpenApiResponse(status = "200"), @OpenApiResponse(status = "404")})
     private void getFolderIcon(Context ctx) {
         var station = resolveStation(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(128);
         iconService
                 .read(station.id(), id, size)

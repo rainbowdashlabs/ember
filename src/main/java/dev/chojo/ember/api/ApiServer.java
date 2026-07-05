@@ -810,7 +810,7 @@ public class ApiServer {
 
     private void configureOpenApi(OpenApiPluginConfiguration config) {
         config.withDocumentationPath("/docs")
-                .withDefinitionConfiguration((version, definition) -> definition.info(info -> {
+                .withDefinitionConfiguration((_, definition) -> definition.info(info -> {
                     info.title("Ember API");
                     info.version("1.0");
                     info.description("Documentation for the Ember API");

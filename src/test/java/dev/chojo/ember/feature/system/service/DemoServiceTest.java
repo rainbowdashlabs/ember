@@ -186,8 +186,6 @@ class DemoServiceTest extends RepositoryTestBase {
                 federationHttpClient,
                 stationRepo,
                 newsService,
-                stationMemberRepo,
-                accountRepo,
                 eventFederationRepo,
                 memberNameResolver);
         var lendingService = new LendingService(

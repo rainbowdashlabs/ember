@@ -67,8 +67,7 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
                 null,
                 null,
                 null,
-                new FederationPartnerTransferFixupService(
-                        new FederationRepository(), null, stationRepo),
+                new FederationPartnerTransferFixupService(new FederationRepository(), null, stationRepo),
                 TestRemoteUrlValidator.permissive());
     }
 
@@ -248,7 +247,6 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
         return switch (payload) {
             case null -> 0;
             case List<?> l -> l.size();
-            case Map map -> 1;
             default -> 1;
         };
     }

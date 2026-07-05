@@ -10,7 +10,6 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.auth.TokenHasher;
-import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.account.entity.AccountToken;
@@ -35,8 +34,6 @@ import io.javalin.http.UnauthorizedResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -45,15 +42,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static dev.chojo.ember.api.RouteSupport.pathInt;
+
 @Singleton
 public class TwoFactorRoutes implements Routes {
-    private static final Logger log = LoggerFactory.getLogger(TwoFactorRoutes.class);
-
     private final TwoFactorService twoFactorService;
     private final TwoFactorAuditService auditService;
     private final AccountRepository accountRepository;
     private final AuthService authService;
-    private final Auth authConfig;
     private final TokenHasher tokenHasher;
     private final WebAuthnService webAuthnService;
     private final Demo demoConfig;
@@ -68,7 +64,6 @@ public class TwoFactorRoutes implements Routes {
             TwoFactorAuditService auditService,
             AccountRepository accountRepository,
             AuthService authService,
-            Auth authConfig,
             TokenHasher tokenHasher,
             WebAuthnService webAuthnService,
             Demo demoConfig,
@@ -80,7 +75,6 @@ public class TwoFactorRoutes implements Routes {
         this.auditService = auditService;
         this.accountRepository = accountRepository;
         this.authService = authService;
-        this.authConfig = authConfig;
         this.tokenHasher = tokenHasher;
         this.webAuthnService = webAuthnService;
         this.demoConfig = demoConfig;
@@ -335,7 +329,7 @@ public class TwoFactorRoutes implements Routes {
 
     private void revokeTrustedDevice(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         if (!trustedDeviceService.revoke(id, session.accountId())) {
             throw new BadRequestResponse("Trusted device not found");
         }
@@ -436,7 +430,7 @@ public class TwoFactorRoutes implements Routes {
 
     private void removeFactor(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int factorId = ctx.pathParamAsClass("id", Integer.class).get();
+        int factorId = pathInt(ctx, "id");
         if (!twoFactorService.removeFactor(
                 session.accountId(), factorId, ctx.userAgent(), ctx.header("CF-IPCountry"))) {
             throw new BadRequestResponse("Factor not found");
@@ -446,7 +440,7 @@ public class TwoFactorRoutes implements Routes {
 
     private void renameFactor(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int factorId = ctx.pathParamAsClass("id", Integer.class).get();
+        int factorId = pathInt(ctx, "id");
         var request = ctx.bodyAsClass(RenameFactorRequest.class);
         if (!twoFactorService.renameFactor(session.accountId(), factorId, request.label())) {
             throw new BadRequestResponse("Invalid label or factor not found");

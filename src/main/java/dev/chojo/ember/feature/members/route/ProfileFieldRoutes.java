@@ -31,10 +31,10 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
+
+import static dev.chojo.ember.api.RouteSupport.pathInt;
 
 /**
  * Routes for profile field definition management including CRUD operations,
@@ -42,7 +42,6 @@ import java.util.List;
  */
 @Singleton
 public class ProfileFieldRoutes implements Routes {
-    private static final Logger log = LoggerFactory.getLogger(ProfileFieldRoutes.class);
 
     private final ProfileFieldService profileFieldService;
     private final StationMemberRepository stationMemberRepository;
@@ -160,7 +159,7 @@ public class ProfileFieldRoutes implements Routes {
             })
     private void get(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         ctx.json(requireOwnedField(id, session));
     }
 
@@ -177,7 +176,7 @@ public class ProfileFieldRoutes implements Routes {
             })
     private void update(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var request = ctx.bodyAsClass(ProfileFieldRequest.class);
         if (isBlank(request.name()) || request.fieldType() == null) {
             throw new BadRequestResponse("name and fieldType are required");
@@ -210,7 +209,7 @@ public class ProfileFieldRoutes implements Routes {
             })
     private void delete(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         requireOwnedField(id, session);
         if (profileFieldService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
@@ -228,7 +227,7 @@ public class ProfileFieldRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProfileField[].class)))
     private void getApplicableFields(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        int memberId = pathInt(ctx, "memberId");
         requireOwnedMember(memberId, session);
         ctx.json(profileFieldService.findApplicableFields(memberId));
     }
@@ -242,7 +241,7 @@ public class ProfileFieldRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProfileFieldValue[].class)))
     private void getValues(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        int memberId = pathInt(ctx, "memberId");
         requireOwnedMember(memberId, session);
         ctx.json(profileFieldService.findValues(memberId));
     }
@@ -259,7 +258,7 @@ public class ProfileFieldRoutes implements Routes {
     private void setValues(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int stationId = requireStation(session);
-        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        int memberId = pathInt(ctx, "memberId");
         requireOwnedMember(memberId, session);
         var request = ctx.bodyAsClass(SetValuesRequest.class);
         boolean canEditReadonly = session.hasPermission(StationPermission.MEMBER_EDIT);

@@ -172,7 +172,13 @@ public class TwoFactorService {
 
     public boolean renameFactor(int accountId, int factorId, String label) {
         if (label == null || label.isBlank() || label.length() > 64) return false;
-        return repository.renameFactor(factorId, accountId, label);
+        boolean renamed = repository.renameFactor(factorId, accountId, label);
+        if (renamed) {
+            log.info("Renamed 2FA factor {} for account {}", factorId, accountId);
+        } else {
+            log.warn("2FA factor rename missed: factor {} for account {}", factorId, accountId);
+        }
+        return renamed;
     }
 
     public boolean removeTotpFactor(int accountId, String userAgent, String country) {
@@ -204,6 +210,7 @@ public class TwoFactorService {
                 TwoFactorKind.BACKUP_CODES,
                 userAgent,
                 country);
+        log.info("Backup codes regenerated for account {} ({} codes)", accountId, codes.size());
         return codes;
     }
 
@@ -227,6 +234,7 @@ public class TwoFactorService {
                 TwoFactorKind.BACKUP_CODES,
                 userAgent,
                 country);
+        log.info("Initial backup codes issued for account {} ({} codes)", accountId, codes.size());
         return codes;
     }
 

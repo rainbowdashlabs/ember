@@ -101,15 +101,29 @@ public class QuizService {
     }
 
     public QuizCatalog createCatalog(int stationId, String name, String description, boolean trainingEnabled) {
-        return catalogRepository.create(stationId, name, description, trainingEnabled);
+        var catalog = catalogRepository.create(stationId, name, description, trainingEnabled);
+        log.info("Created quiz catalog {} for station {}", catalog.id(), stationId);
+        return catalog;
     }
 
     public boolean updateCatalog(int id, String name, String description, boolean trainingEnabled) {
-        return catalogRepository.update(id, name, description, trainingEnabled);
+        boolean updated = catalogRepository.update(id, name, description, trainingEnabled);
+        if (updated) {
+            log.info("Updated quiz catalog {}", id);
+        } else {
+            log.warn("Update for quiz catalog {} affected zero rows", id);
+        }
+        return updated;
     }
 
     public boolean deleteCatalog(int id) {
-        return catalogRepository.delete(id);
+        boolean deleted = catalogRepository.delete(id);
+        if (deleted) {
+            log.info("Deleted quiz catalog {}", id);
+        } else {
+            log.warn("Delete for quiz catalog {} affected zero rows", id);
+        }
+        return deleted;
     }
 
     public List<QuizCatalog> findTrainingCatalogs(int stationId) {
@@ -127,15 +141,29 @@ public class QuizService {
     }
 
     public QuizCategory createCategory(int stationId, String name, String description, int position) {
-        return catalogRepository.createCategory(stationId, name, description, position);
+        var category = catalogRepository.createCategory(stationId, name, description, position);
+        log.info("Created quiz category {} for station {}", category.id(), stationId);
+        return category;
     }
 
     public boolean updateCategory(int id, String name, String description, int position) {
-        return catalogRepository.updateCategory(id, name, description, position);
+        boolean updated = catalogRepository.updateCategory(id, name, description, position);
+        if (updated) {
+            log.info("Updated quiz category {}", id);
+        } else {
+            log.warn("Update for quiz category {} affected zero rows", id);
+        }
+        return updated;
     }
 
     public boolean deleteCategory(int id) {
-        return catalogRepository.deleteCategory(id);
+        boolean deleted = catalogRepository.deleteCategory(id);
+        if (deleted) {
+            log.info("Deleted quiz category {}", id);
+        } else {
+            log.warn("Delete for quiz category {} affected zero rows", id);
+        }
+        return deleted;
     }
 
     // -- Questions --
@@ -165,7 +193,7 @@ public class QuizService {
             int position) {
         String configStr = serializeConfig(config);
         double effectivePoints = autoPoints ? calculateAutoPoints(quizQuestionType, configStr, points) : points;
-        return catalogRepository.createQuestion(
+        var question = catalogRepository.createQuestion(
                 catalogId,
                 categoryId,
                 quizQuestionType,
@@ -176,6 +204,8 @@ public class QuizService {
                 autoPoints,
                 configStr,
                 position);
+        log.info("Created quiz question {} in catalog {} (type {})", question.id(), catalogId, quizQuestionType);
+        return question;
     }
 
     /**
@@ -224,12 +254,24 @@ public class QuizService {
                 effectivePoints = calculateAutoPoints(existing.get().quizQuestionType(), config, points);
             }
         }
-        return catalogRepository.updateQuestion(
+        boolean updated = catalogRepository.updateQuestion(
                 id, categoryId, title, description, imageUrl, effectivePoints, autoPoints, config, position);
+        if (updated) {
+            log.info("Updated quiz question {}", id);
+        } else {
+            log.warn("Update for quiz question {} affected zero rows", id);
+        }
+        return updated;
     }
 
     public boolean deleteQuestion(int id) {
-        return catalogRepository.deleteQuestion(id);
+        boolean deleted = catalogRepository.deleteQuestion(id);
+        if (deleted) {
+            log.info("Deleted quiz question {}", id);
+        } else {
+            log.warn("Delete for quiz question {} affected zero rows", id);
+        }
+        return deleted;
     }
 
     public int countQuestions(int catalogId) {
@@ -268,7 +310,9 @@ public class QuizService {
             boolean shuffle,
             boolean forced,
             int createdBy) {
-        return testRepository.create(stationId, title, description, timeLimit, shuffle, forced, createdBy);
+        var test = testRepository.create(stationId, title, description, timeLimit, shuffle, forced, createdBy);
+        log.info("Created quiz test {} for station {} (member {})", test.id(), stationId, createdBy);
+        return test;
     }
 
     public boolean updateTest(
@@ -280,7 +324,13 @@ public class QuizService {
             boolean forced,
             Instant startAt,
             Instant endAt) {
-        return testRepository.update(id, title, description, timeLimit, shuffle, forced, startAt, endAt);
+        boolean updated = testRepository.update(id, title, description, timeLimit, shuffle, forced, startAt, endAt);
+        if (updated) {
+            log.info("Updated quiz test {}", id);
+        } else {
+            log.warn("Update for quiz test {} affected zero rows", id);
+        }
+        return updated;
     }
 
     public void generateFrozenQuestions(int testId) {
@@ -297,6 +347,7 @@ public class QuizService {
             var entry = selectedQuestions.get(i);
             testRepository.createFrozenQuestion(testId, entry.questionId(), entry.sectionId(), i);
         }
+        log.info("Generated {} frozen questions for quiz test {}", selectedQuestions.size(), testId);
     }
 
     public List<QuizTestFrozenQuestion> findFrozenQuestions(int testId) {
@@ -314,6 +365,11 @@ public class QuizService {
         }
         testRepository.deleteFrozenQuestionAtPosition(testId, position);
         testRepository.createFrozenQuestion(testId, newQuestionId, sectionId, position);
+        log.info(
+                "Replaced frozen question at position {} on quiz test {} with question {}",
+                position,
+                testId,
+                newQuestionId);
     }
 
     public void replaceWithRandomQuestion(int testId, int position) {
@@ -329,25 +385,7 @@ public class QuizService {
             }
         }
 
-        // Collect all questions from test sources
-        var sections = testRepository.findSections(testId);
-        List<QuizQuestion> candidates = new ArrayList<>();
-        for (var section : sections) {
-            var sources = testRepository.findSources(section.id());
-            for (var source : sources) {
-                List<QuizQuestion> pool;
-                if (source.categoryId() != null) {
-                    pool = catalogRepository.findQuestionsByCategory(source.catalogId(), source.categoryId());
-                } else {
-                    pool = catalogRepository.findQuestions(source.catalogId());
-                }
-                for (var q : pool) {
-                    if (!usedQuestionIds.contains(q.id())) {
-                        candidates.add(q);
-                    }
-                }
-            }
-        }
+        var candidates = collectUnusedCandidates(testId, usedQuestionIds);
 
         if (candidates.isEmpty()) {
             throw new IllegalStateException("No unused questions available for replacement");
@@ -358,6 +396,11 @@ public class QuizService {
 
         testRepository.deleteFrozenQuestionAtPosition(testId, position);
         testRepository.createFrozenQuestion(testId, replacement.id(), sectionId, position);
+        log.info(
+                "Replaced frozen question at position {} on quiz test {} with random question {}",
+                position,
+                testId,
+                replacement.id());
     }
 
     public List<QuizQuestion> findAvailableReplacements(int testId) {
@@ -365,6 +408,10 @@ public class QuizService {
         var usedQuestionIds =
                 frozen.stream().map(QuizTestFrozenQuestion::questionId).collect(Collectors.toSet());
 
+        return collectUnusedCandidates(testId, usedQuestionIds);
+    }
+
+    private List<QuizQuestion> collectUnusedCandidates(int testId, Set<Integer> usedQuestionIds) {
         var sections = testRepository.findSections(testId);
         List<QuizQuestion> candidates = new ArrayList<>();
         for (var section : sections) {
@@ -391,15 +438,33 @@ public class QuizService {
         if (frozen.isEmpty()) {
             generateFrozenQuestions(id);
         }
-        return testRepository.updateStatus(id, TestStatus.ACTIVE);
+        boolean activated = testRepository.updateStatus(id, TestStatus.ACTIVE);
+        if (activated) {
+            log.info("Activated quiz test {}", id);
+        } else {
+            log.warn("Activation for quiz test {} affected zero rows", id);
+        }
+        return activated;
     }
 
     public boolean closeTest(int id) {
-        return testRepository.updateStatus(id, TestStatus.CLOSED);
+        boolean closed = testRepository.updateStatus(id, TestStatus.CLOSED);
+        if (closed) {
+            log.info("Closed quiz test {}", id);
+        } else {
+            log.warn("Close for quiz test {} affected zero rows", id);
+        }
+        return closed;
     }
 
     public boolean deleteTest(int id) {
-        return testRepository.delete(id);
+        boolean deleted = testRepository.delete(id);
+        if (deleted) {
+            log.info("Deleted quiz test {}", id);
+        } else {
+            log.warn("Delete for quiz test {} affected zero rows", id);
+        }
+        return deleted;
     }
 
     public boolean isTestAccessible(QuizTest test, int memberId, Set<StationPermission> memberPermissions) {
@@ -427,6 +492,7 @@ public class QuizService {
                         section.id(), source.catalogId(), source.categoryId(), source.questionCount());
             }
         }
+        log.info("Replaced sections on quiz test {} with {} sections", testId, sections.size());
     }
 
     // -- Sections --
@@ -472,6 +538,7 @@ public class QuizService {
             testRepository.createAttemptQuestion(attempt.id(), fq.questionId(), fq.sectionId(), fq.position());
         }
 
+        log.info("Started quiz attempt {} on test {} for member {}", attempt.id(), testId, memberId);
         return attempt;
     }
 
@@ -479,6 +546,9 @@ public class QuizService {
         boolean submitted = testRepository.submitAttempt(attemptId);
         if (submitted) {
             autoGradeAnswers(attemptId);
+            log.info("Submitted quiz attempt {}", attemptId);
+        } else {
+            log.warn("Submit for quiz attempt {} affected zero rows", attemptId);
         }
         return submitted;
     }
@@ -500,7 +570,13 @@ public class QuizService {
     }
 
     public boolean gradeAnswer(int answerId, double points) {
-        return testRepository.gradeAnswer(answerId, points);
+        boolean graded = testRepository.gradeAnswer(answerId, points);
+        if (graded) {
+            log.info("Graded quiz answer {} with {} points", answerId, points);
+        } else {
+            log.warn("Grade for quiz answer {} affected zero rows", answerId);
+        }
+        return graded;
     }
 
     public boolean gradeAttempt(int attemptId, int gradedBy) {
@@ -520,15 +596,23 @@ public class QuizService {
         }
         testRepository.updateAttemptMaxPoints(attemptId, maxPoints);
 
-        return testRepository.gradeAttempt(attemptId, total, gradedBy);
+        boolean graded = testRepository.gradeAttempt(attemptId, total, gradedBy);
+        if (graded) {
+            log.info("Graded quiz attempt {} with {} points (grader member {})", attemptId, total, gradedBy);
+        } else {
+            log.warn("Grade for quiz attempt {} affected zero rows", attemptId);
+        }
+        return graded;
     }
 
     public void grantMemberAccess(int testId, int memberId, Instant closesAt) {
         testRepository.grantMemberAccess(testId, memberId, closesAt);
+        log.info("Granted access to quiz test {} for member {}", testId, memberId);
     }
 
     public void revokeMemberAccess(int testId, int memberId) {
         testRepository.revokeMemberAccess(testId, memberId);
+        log.info("Revoked access to quiz test {} for member {}", testId, memberId);
     }
 
     /**
@@ -555,10 +639,12 @@ public class QuizService {
                 groupIds != null ? groupIds : List.of(),
                 tagIds != null ? tagIds : List.of(),
                 memberIds != null ? memberIds : List.of());
+        log.info("Updated restrictions for quiz test {}", testId);
     }
 
     public void updateRestrictionMode(int testId, RestrictionMode mode) {
         testRepository.updateRestrictionMode(testId, mode);
+        log.info("Updated restriction mode for quiz test {} to {}", testId, mode);
     }
 
     /**
@@ -589,7 +675,6 @@ public class QuizService {
         return collectResults(futures);
     }
 
-    @SuppressWarnings("unchecked")
     public FederatedCatalogDetail getFederatedQuizCatalog(int localStationId, UUID partnerStationUid, int catalogId) {
         var partner = resolveActivePartner(localStationId, partnerStationUid);
         if (partner.isRemote()) {
@@ -639,6 +724,12 @@ public class QuizService {
                     q.config() != null ? q.config() : new QuestionConfig.Unknown(),
                     q.position());
         }
+        log.info(
+                "Copied quiz catalog {} to new catalog {} for station {} ({} questions)",
+                catalogId,
+                newCatalog.id(),
+                targetStationId,
+                questions.size());
         return newCatalog;
     }
 
@@ -695,7 +786,7 @@ public class QuizService {
         var byCategory = new LinkedHashMap<Integer, List<QuizQuestion>>();
         for (var q : allQuestions) {
             byCategory
-                    .computeIfAbsent(q.categoryId() != null ? q.categoryId() : -1, k -> new ArrayList<>())
+                    .computeIfAbsent(q.categoryId() != null ? q.categoryId() : -1, _ -> new ArrayList<>())
                     .add(q);
         }
         // Shuffle within each category

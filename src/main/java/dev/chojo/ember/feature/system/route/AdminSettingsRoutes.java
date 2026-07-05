@@ -952,6 +952,4 @@ public class AdminSettingsRoutes implements Routes {
 
     public record PublicThemeResponse(
             String defaultTheme, String defaultFeel, boolean lockFeel, boolean forcePrideFlag) {}
-
-    private record ErrorResponse(String error) {}
 }

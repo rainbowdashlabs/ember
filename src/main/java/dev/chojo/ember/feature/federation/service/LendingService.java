@@ -80,6 +80,11 @@ public class LendingService {
                 request.id(),
                 stationName(requestingStationId),
                 buildItemSummary(request.id())));
+        log.info(
+                "Created lending request {} from station {} to station {}",
+                request.id(),
+                requestingStationId,
+                owningStationId);
         return request;
     }
 
@@ -114,6 +119,9 @@ public class LendingService {
             repository
                     .findRequestById(requestId)
                     .ifPresent(r -> publishStatusChange(r, stationId, LendingStatus.APPROVED));
+            log.info("Lending request {} approved by station {}", requestId, stationId);
+        } else {
+            log.warn("Approve for lending request {} by station {} affected no row", requestId, stationId);
         }
         return updated;
     }
@@ -126,6 +134,9 @@ public class LendingService {
                     .findRequestById(requestId)
                     .ifPresent(r -> publishStatusChange(r, stationId, LendingStatus.DECLINED));
             repository.createMessage(requestId, stationRepository.resolveUid(stationId), null, msg, true);
+            log.info("Lending request {} declined by station {}", requestId, stationId);
+        } else {
+            log.warn("Decline for lending request {} by station {} affected no row", requestId, stationId);
         }
         return updated;
     }
@@ -136,6 +147,9 @@ public class LendingService {
             repository.createMessage(
                     requestId, stationRepository.resolveUid(stationId), null, "Ausrüstung ausgeliehen", true);
             repository.findRequestById(requestId).ifPresent(r -> publishStatusChange(r, stationId, LendingStatus.LENT));
+            log.info("Lending request {} marked lent by station {}", requestId, stationId);
+        } else {
+            log.warn("Mark-lent for lending request {} by station {} affected no row", requestId, stationId);
         }
         return updated;
     }
@@ -150,6 +164,9 @@ public class LendingService {
             repository
                     .findRequestById(requestId)
                     .ifPresent(r -> publishStatusChange(r, stationId, LendingStatus.RETURNED));
+            log.info("Lending request {} marked returned by station {}", requestId, stationId);
+        } else {
+            log.warn("Mark-returned for lending request {} by station {} affected no row", requestId, stationId);
         }
         return updated;
     }
@@ -162,6 +179,9 @@ public class LendingService {
             repository
                     .findRequestById(requestId)
                     .ifPresent(r -> publishStatusChange(r, stationId, LendingStatus.CLOSED));
+            log.info("Lending request {} closed by station {}", requestId, stationId);
+        } else {
+            log.warn("Close for lending request {} by station {} affected no row", requestId, stationId);
         }
         return updated;
     }
@@ -181,6 +201,7 @@ public class LendingService {
             eventBus.publish(new LendingMessageSent(
                     senderStationId, targetStationId, requestId, stationName(senderStationId), senderName));
         });
+        log.info("Lending message {} sent on request {} by station {}", msg.id(), requestId, senderStationId);
         return msg;
     }
 
@@ -220,13 +241,21 @@ public class LendingService {
 
     public InventoryBlock createBlock(
             int stationId, Integer inventoryId, Integer itemId, LocalDate from, LocalDate to, String reason) {
-        return repository.createBlock(stationId, inventoryId, itemId, from, to, reason);
+        var block = repository.createBlock(stationId, inventoryId, itemId, from, to, reason);
+        log.info("Created inventory block {} for station {}", block.id(), stationId);
+        return block;
     }
 
     // -- Messages --
 
     public boolean deleteBlock(int blockId) {
-        return repository.deleteBlock(blockId);
+        boolean deleted = repository.deleteBlock(blockId);
+        if (deleted) {
+            log.info("Deleted inventory block {}", blockId);
+        } else {
+            log.warn("Delete of inventory block {} affected no row", blockId);
+        }
+        return deleted;
     }
 
     public List<InventoryBlock> findBlocks(int stationId) {
@@ -274,7 +303,15 @@ public class LendingService {
 
     // -- Blocks --
 
-    private String buildItemSummary(int requestId) {
+    /**
+     * Builds a compact comma-separated summary of the items on a lending request, in the
+     * form {@code "2x Ladder, 1x Drill"}, resolving inventory names and falling back to
+     * {@code "?"} for unknown entries.
+     *
+     * @param requestId the lending request id
+     * @return the item summary line
+     */
+    public String buildItemSummary(int requestId) {
         var items = repository.findItemsByRequest(requestId);
         var parts = new ArrayList<String>();
         for (var item : items) {

@@ -30,7 +30,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class EventThresholdCheckerTest extends RepositoryTestBase {
     private static EventThresholdChecker checker;
-    private static EventService eventService;
     private static Station station;
     private static Account account;
     private static StationMember member;
@@ -38,7 +37,7 @@ class EventThresholdCheckerTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         var eventBus = new DomainEventBus(Set.of());
-        eventService = new EventService(eventRepo, restrictionRepo, eventBus);
+        EventService eventService = new EventService(eventRepo, restrictionRepo, eventBus);
         checker = new EventThresholdChecker(eventRepo, eventService, new StationReadOnlyGuard(stationRepo));
         station = stationRepo.create("ThresholdChecker Station");
         account = accountRepo.create("threshold@test.com", "Threshold", "Checker");

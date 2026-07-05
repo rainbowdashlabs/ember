@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.events.entity;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * Represents a break period during which recurring events are suspended.
@@ -29,5 +30,17 @@ public record EventBreak(int id, int stationId, String name, LocalDate startDate
                 row.getString("name"),
                 row.getObject("start_date", LocalDate.class),
                 row.getObject("end_date", LocalDate.class));
+    }
+
+    /**
+     * Returns whether any of the given breaks covers the date, comparing ISO-8601 date strings.
+     */
+    public static boolean coversAny(List<EventBreak> breaks, LocalDate date) {
+        String dateStr = date.toString();
+        return breaks.stream()
+                .anyMatch(b -> b.startDate() != null
+                        && b.endDate() != null
+                        && dateStr.compareTo(b.startDate().toString()) >= 0
+                        && dateStr.compareTo(b.endDate().toString()) <= 0);
     }
 }

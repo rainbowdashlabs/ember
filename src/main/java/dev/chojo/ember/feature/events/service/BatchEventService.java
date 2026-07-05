@@ -156,13 +156,7 @@ public class BatchEventService {
             case MONTHLY_FIRST -> {
                 LocalDate cursor = start.withDayOfMonth(1);
                 while (!cursor.isAfter(end)) {
-                    for (int d = 1; d <= 7 && !cursor.plusDays(d - 1).isAfter(end); d++) {
-                        LocalDate candidate = cursor.plusDays(d - 1);
-                        if (candidate.getDayOfWeek().getValue() == dayOfWeek && !candidate.isBefore(start)) {
-                            dates.add(candidate);
-                            break;
-                        }
-                    }
+                    addFirstMatchingWeekday(dates, cursor, start, end, dayOfWeek);
                     cursor = cursor.plusMonths(1).withDayOfMonth(1);
                 }
                 yield dates;
@@ -171,13 +165,7 @@ public class BatchEventService {
                 LocalDate cursor = start.withDayOfMonth(1);
                 while (!cursor.isAfter(end)) {
                     if ((cursor.getMonthValue() - 1) % 3 == 0) {
-                        for (int d = 1; d <= 7 && !cursor.plusDays(d - 1).isAfter(end); d++) {
-                            LocalDate candidate = cursor.plusDays(d - 1);
-                            if (candidate.getDayOfWeek().getValue() == dayOfWeek && !candidate.isBefore(start)) {
-                                dates.add(candidate);
-                                break;
-                            }
-                        }
+                        addFirstMatchingWeekday(dates, cursor, start, end, dayOfWeek);
                     }
                     cursor = cursor.plusMonths(1).withDayOfMonth(1);
                 }
@@ -192,5 +180,20 @@ public class BatchEventService {
                 yield dates;
             }
         };
+    }
+
+    /**
+     * Adds the first day within the seven-day window opening at {@code cursor} that falls on the
+     * target weekday and is not before {@code start}, bounded by {@code end}.
+     */
+    private void addFirstMatchingWeekday(
+            List<LocalDate> dates, LocalDate cursor, LocalDate start, LocalDate end, int dayOfWeek) {
+        for (int d = 1; d <= 7 && !cursor.plusDays(d - 1).isAfter(end); d++) {
+            LocalDate candidate = cursor.plusDays(d - 1);
+            if (candidate.getDayOfWeek().getValue() == dayOfWeek && !candidate.isBefore(start)) {
+                dates.add(candidate);
+                break;
+            }
+        }
     }
 }

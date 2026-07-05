@@ -81,16 +81,6 @@ public final class ScoreEvaluator {
         return sb.toString();
     }
 
-    private static boolean isNumeric(String s) {
-        if (s == null || s.isEmpty()) return false;
-        try {
-            Double.parseDouble(s);
-            return true;
-        } catch (NumberFormatException e) {
-            return false;
-        }
-    }
-
     // --- Tokenizer ---
 
     private static List<Token> tokenize(String input) {

@@ -67,7 +67,6 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
     private static int boardId;
     private static int laneId;
     private static int ticketId;
-    private static int commentId;
     private static int partnerId;
     private static int partner2Id;
 
@@ -115,7 +114,7 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
         // Create a comment
         var comment = ticketService.createComment(
                 ticketId, null, memberIdentityFactory.local(station.id(), member.id()), "Fed comment");
-        commentId = comment.id();
+        int commentId = comment.id();
 
         // Create federation partners via direct SQL
         partnerId = Query.query(

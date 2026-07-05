@@ -11,6 +11,8 @@ import dev.chojo.ember.feature.storage.entity.Variant;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -31,6 +33,7 @@ import java.util.Optional;
  */
 @Singleton
 public class LogoFragmentService {
+    private static final Logger log = LoggerFactory.getLogger(LogoFragmentService.class);
     private static final Variant MARKER = new Variant(".source-hash");
 
     private final ImageVariantService variants;
@@ -54,16 +57,16 @@ public class LogoFragmentService {
      * Persists the fragment when its source hash differs from what is already stored. Returns
      * {@code true} when the bytes were written, {@code false} when the stored marker matched.
      */
-    public boolean storeIfChanged(String name, byte[] data, String declaredMime) throws IOException {
+    public void storeIfChanged(String name, byte[] data, String declaredMime) throws IOException {
         String sourceHash = sha256(data);
         if (storedMarker(name)
                 .map(stored -> stored.equalsIgnoreCase(sourceHash))
                 .orElse(false)) {
-            return false;
+            return;
         }
         variants.store(scope(), StorageCategory.IMAGE_LOGO_FRAGMENT, name, data, declaredMime, 0);
         writeMarker(name, sourceHash);
-        return true;
+        log.info("Logo fragment stored name={}", name);
     }
 
     /**

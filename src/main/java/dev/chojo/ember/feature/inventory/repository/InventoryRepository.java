@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.inventory.repository;
 
-import de.chojo.sadu.queries.api.results.writing.insertion.InsertionResult;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
@@ -175,10 +174,9 @@ public class InventoryRepository {
      * @param label       the size label
      * @param position    the sort position
      * @param note        an optional note
-     * @return the insertion result
      */
-    public InsertionResult createSize(int inventoryId, String label, int position, String note) {
-        return query(
+    public void createSize(int inventoryId, String label, int position, String note) {
+        query(
                         "INSERT INTO inventory_size(inventory_id, label, position, note) VALUES(:inventory_id, :label, :position, :note);")
                 .single(call().bind("inventory_id", inventoryId)
                         .bind("label", label)

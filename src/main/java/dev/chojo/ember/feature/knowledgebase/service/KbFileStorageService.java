@@ -78,6 +78,7 @@ public class KbFileStorageService {
             storage.store(scope, StorageCategory.KB_FILES, fileKey(fileId), new Variant(CONTENT), data, contentType);
             storage.delete(scope, StorageCategory.KB_FILES, fileKey(fileId), new Variant(CONTENT_GZ));
         }
+        log.info("Stored KB file {} for station {} ({} bytes)", fileId, stationId, data.length);
     }
 
     /**
@@ -106,6 +107,7 @@ public class KbFileStorageService {
      */
     public void delete(int stationId, int fileId) {
         storage.deletePrefix(stationScope(stationId), StorageCategory.KB_FILES, fileKey(fileId));
+        log.info("Deleted KB file {} for station {}", fileId, stationId);
     }
 
     /**
@@ -119,6 +121,7 @@ public class KbFileStorageService {
                 new Variant(PRESENTATION_PDF),
                 pdfData,
                 "application/pdf");
+        log.info("Stored presentation PDF for KB file {} (station {}, {} bytes)", fileId, stationId, pdfData.length);
     }
 
     /**

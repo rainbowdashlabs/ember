@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.checklist.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.checklist.entity.ChecklistColumn;
+import dev.chojo.ember.feature.checklist.entity.ChecklistEntry;
 import dev.chojo.ember.feature.checklist.service.ChecklistService.ColumnSpec;
 import dev.chojo.ember.feature.checklist.service.ChecklistService.FilterSpec;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -16,7 +18,10 @@ import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -27,7 +32,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ChecklistServiceTest extends RepositoryTestBase {
     private static ChecklistService service;
     private static Station station;
-    private static Account account;
     private static StationMember managerMember;
     private static StationMember other;
 
@@ -35,7 +39,7 @@ class ChecklistServiceTest extends RepositoryTestBase {
     static void setupService() {
         service = new ChecklistService(checklistRepo, stationMemberRepo, memberGroupRepo, userTagRepo);
         station = stationRepo.create("Service Station");
-        account = accountRepo.create("svc@test.com", "Svc", "Member");
+        Account account = accountRepo.create("svc@test.com", "Svc", "Member");
         managerMember = stationMemberRepo.create(station.id(), account.id());
         var account2 = accountRepo.create("svc2@test.com", "Svc", "Two");
         other = stationMemberRepo.create(station.id(), account2.id());
@@ -63,8 +67,8 @@ class ChecklistServiceTest extends RepositoryTestBase {
         assertEquals(0, refresh1.added());
         assertEquals(2, refresh1.alreadyPresent());
 
-        var entry = service.findEntries(checklist.id(), false).get(0);
-        var column = service.findColumns(checklist.id()).get(0);
+        var entry = service.findEntries(checklist.id(), false).getFirst();
+        var column = service.findColumns(checklist.id()).getFirst();
 
         var write1 = service.writeCell(entry.id(), column.id(), true, "first note", managerMember.id());
         assertTrue(write1.noteChanged());
@@ -85,7 +89,7 @@ class ChecklistServiceTest extends RepositoryTestBase {
 
         var allEntries = service.findEntries(checklist.id(), false);
         int bulkCount = service.bulkSetColumn(
-                column.id(), allEntries.stream().map(e -> e.id()).toList(), true, managerMember.id());
+                column.id(), allEntries.stream().map(ChecklistEntry::id).toList(), true, managerMember.id());
         assertTrue(bulkCount >= 1);
 
         service.softDeleteEntry(entry.id());
@@ -112,15 +116,14 @@ class ChecklistServiceTest extends RepositoryTestBase {
         assertEquals(0, service.countCheckedCellsInColumn(addedColumn.id()));
 
         var columnsForReorder = service.findColumns(checklist.id());
-        var reversedIds = columnsForReorder.stream()
-                .map(dev.chojo.ember.feature.checklist.entity.ChecklistColumn::id)
-                .collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
-        java.util.Collections.reverse(reversedIds);
+        var reversedIds =
+                columnsForReorder.stream().map(ChecklistColumn::id).collect(Collectors.toCollection(ArrayList::new));
+        Collections.reverse(reversedIds);
         service.reorderColumns(checklist.id(), reversedIds);
         var afterReorder = service.findColumns(checklist.id());
-        assertEquals(reversedIds.get(0), afterReorder.get(0).id());
+        assertEquals(reversedIds.getFirst(), afterReorder.getFirst().id());
         try {
-            service.reorderColumns(checklist.id(), List.of(reversedIds.get(0)));
+            service.reorderColumns(checklist.id(), List.of(reversedIds.getFirst()));
             throw new AssertionError("expected reject");
         } catch (IllegalArgumentException expected) {
         }

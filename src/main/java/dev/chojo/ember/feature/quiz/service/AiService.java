@@ -80,10 +80,12 @@ public class AiService {
 
     public void saveProvider(int stationId, String provider, String apiKey, String model) {
         providerRepository.upsert(stationId, provider, apiKey, model);
+        log.info("Saved AI provider {} (model {}) for station {}", provider, model, stationId);
     }
 
     public void deleteProvider(int stationId, String provider) {
         providerRepository.delete(stationId, provider);
+        log.info("Deleted AI provider {} for station {}", provider, stationId);
     }
 
     public String getPrompt(int stationId) {
@@ -92,6 +94,7 @@ public class AiService {
 
     public void setPrompt(int stationId, String prompt) {
         providerRepository.setPrompt(stationId, prompt);
+        log.info("Updated AI prompt for station {}", stationId);
     }
 
     // -- Prompt Loading --

@@ -9,7 +9,6 @@ import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberInviteRepository;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationMailConfig;
 import dev.chojo.ember.feature.station.entity.StationModule;
@@ -17,6 +16,8 @@ import dev.chojo.ember.feature.station.repository.StationMailConfigRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -36,6 +37,8 @@ import java.util.Set;
  */
 @Singleton
 public class SetupService {
+
+    private static final Logger log = LoggerFactory.getLogger(SetupService.class);
 
     /** Identifier of the address-and-geolocation required step. */
     public static final String STEP_ADDRESS = "address";
@@ -70,7 +73,6 @@ public class SetupService {
     private final StationRepository stationRepository;
     private final StationMailConfigRepository mailConfigRepository;
     private final MemberGroupRepository memberGroupRepository;
-    private final StationMemberRepository stationMemberRepository;
     private final EventRepository eventRepository;
     private final KnowledgeBaseRepository knowledgeBaseRepository;
     private final StationMemberInviteRepository inviteRepository;
@@ -81,7 +83,6 @@ public class SetupService {
             StationRepository stationRepository,
             StationMailConfigRepository mailConfigRepository,
             MemberGroupRepository memberGroupRepository,
-            StationMemberRepository stationMemberRepository,
             EventRepository eventRepository,
             KnowledgeBaseRepository knowledgeBaseRepository,
             StationMemberInviteRepository inviteRepository,
@@ -89,7 +90,6 @@ public class SetupService {
         this.stationRepository = stationRepository;
         this.mailConfigRepository = mailConfigRepository;
         this.memberGroupRepository = memberGroupRepository;
-        this.stationMemberRepository = stationMemberRepository;
         this.eventRepository = eventRepository;
         this.knowledgeBaseRepository = knowledgeBaseRepository;
         this.inviteRepository = inviteRepository;
@@ -142,7 +142,11 @@ public class SetupService {
             return CompletionResult.MISSING_REQUIRED_STEPS;
         }
         boolean changed = stationRepository.markSetupComplete(stationId);
-        return changed ? CompletionResult.COMPLETED : CompletionResult.ALREADY_COMPLETE;
+        if (changed) {
+            log.info("Station setup wizard completed: station={}", stationId);
+            return CompletionResult.COMPLETED;
+        }
+        return CompletionResult.ALREADY_COMPLETE;
     }
 
     private List<StepState> buildRequiredSteps(int stationId, Station station) {

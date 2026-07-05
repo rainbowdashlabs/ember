@@ -158,8 +158,8 @@ public class BoardRepository {
                 .update();
     }
 
-    public boolean deleteLane(int id) {
-        return query("DELETE FROM board_lane WHERE id = :id;")
+    public void deleteLane(int id) {
+        query("DELETE FROM board_lane WHERE id = :id;")
                 .single(call().bind("id", id))
                 .delete()
                 .changed();
@@ -245,9 +245,8 @@ public class BoardRepository {
                 .all();
     }
 
-    public BoardField createField(
-            int boardId, String name, BoardFieldType fieldType, BoardFieldConfig config, int position) {
-        return query("""
+    public void createField(int boardId, String name, BoardFieldType fieldType, BoardFieldConfig config, int position) {
+        query("""
                 INSERT INTO board_field(board_id, name, field_type, config, position)
                 VALUES (:board_id, :name, :field_type, :config::JSONB, :position)
                 RETURNING *;""")
@@ -358,7 +357,7 @@ public class BoardRepository {
     public boolean hasViewRestrictions(int boardId) {
         return query("SELECT 1 FROM board_view_access WHERE board_id = :board_id LIMIT 1;")
                 .single(call().bind("board_id", boardId))
-                .map(row -> true)
+                .map(_ -> true)
                 .first()
                 .isPresent();
     }
@@ -366,7 +365,7 @@ public class BoardRepository {
     public boolean hasEditRestrictions(int boardId) {
         return query("SELECT 1 FROM board_edit_access WHERE board_id = :board_id LIMIT 1;")
                 .single(call().bind("board_id", boardId))
-                .map(row -> true)
+                .map(_ -> true)
                 .first()
                 .isPresent();
     }

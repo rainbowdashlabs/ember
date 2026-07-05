@@ -5,8 +5,6 @@
  */
 package dev.chojo.ember.feature.inventory.entity;
 
-import java.util.Set;
-
 /**
  * Represents the lifecycle status of an equipment exchange request.
  * Internal exchanges follow a shorter flow, while external exchanges include shipping steps.
@@ -31,15 +29,6 @@ public enum ExchangeStatus {
     /**
      * The exchange is complete and the new item has been handed over.
      */
-    DONE;
+    DONE
     // Renamed from EXCHANGED (1.12); a migration in patch_12.sql rewrites stored values.
-
-    /**
-     * The valid status transitions for internal inventory exchanges.
-     */
-    public static final Set<ExchangeStatus> INTERNAL_FLOW = Set.of(ANNOUNCED, RECEIVED, DONE);
-    /**
-     * The valid status transitions for external inventory exchanges, including shipping steps.
-     */
-    public static final Set<ExchangeStatus> EXTERNAL_FLOW = Set.of(ANNOUNCED, RECEIVED, SHIPPED, ARRIVED, DONE);
 }

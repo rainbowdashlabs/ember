@@ -199,6 +199,7 @@ public class StorageQuotaService {
                         .bind("per_file", perFileBytes)
                         .bind("per_image", perImageBytes))
                 .update();
+        log.info("Updated storage quota overrides for station {}", stationId);
     }
 
     /**
@@ -247,6 +248,7 @@ public class StorageQuotaService {
         boolean warningSent = isWarningSent(stationId);
         if (percent >= storageConfig.warningThresholdPercent() && !warningSent) {
             setWarningSent(stationId, true);
+            log.info("Storage usage warning threshold reached for station {} at {}%", stationId, percent);
             eventBus.publish(new StorageWarningEvent(stationId, percent, totalUsed, totalLimit));
         } else if (percent < storageConfig.warningThresholdPercent() && warningSent) {
             setWarningSent(stationId, false);

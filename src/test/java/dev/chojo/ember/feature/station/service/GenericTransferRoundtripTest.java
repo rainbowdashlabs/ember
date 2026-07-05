@@ -54,8 +54,7 @@ class GenericTransferRoundtripTest extends RepositoryTestBase {
                 null,
                 null,
                 null,
-                new FederationPartnerTransferFixupService(
-                        new FederationRepository(), null, stationRepo),
+                new FederationPartnerTransferFixupService(new FederationRepository(), null, stationRepo),
                 TestRemoteUrlValidator.permissive());
     }
 

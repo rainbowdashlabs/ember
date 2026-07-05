@@ -14,7 +14,7 @@ import dev.chojo.ocular.override.Overwrite;
  * deployments leave it disabled, local-dev / CI overrides may enable it so a
  * peer running on {@code localhost} can be reached.
  */
-@SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal", "CanBeFinal"})
+@SuppressWarnings({"FieldMayBeFinal", "CanBeFinal"})
 public class Federation {
     @Overwrite(env = @Env)
     private boolean allowPrivateHosts = false;

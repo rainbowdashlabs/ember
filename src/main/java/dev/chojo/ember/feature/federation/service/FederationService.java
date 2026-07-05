@@ -94,6 +94,7 @@ public class FederationService {
     public String generateStationInvite(int stationId, UUID stationUid) {
         String token = generateRandomToken();
         repository.createInviteToken(stationId, token);
+        log.info("Generated federation station invite for station {}", stationId);
         return generatePairingCode(stationUid) + "-" + token;
     }
 
@@ -122,7 +123,13 @@ public class FederationService {
      * Validates and consumes a station invite token. Returns true if valid (station consented).
      */
     public boolean consumeInviteToken(int stationId, String token) {
-        return repository.deleteInviteToken(stationId, token);
+        boolean consumed = repository.deleteInviteToken(stationId, token);
+        if (consumed) {
+            log.info("Consumed federation invite token for station {}", stationId);
+        } else {
+            log.warn("Federation invite token for station {} was invalid or already used", stationId);
+        }
+        return consumed;
     }
 
     public String getInstanceHost() {
@@ -165,7 +172,13 @@ public class FederationService {
      */
     public FederationPartner createPairRequest(int requestingStationId, int targetStationId) {
         UUID targetUid = resolveStationUid(targetStationId);
-        return repository.createPartner(requestingStationId, targetUid, null, null, null);
+        var partner = repository.createPartner(requestingStationId, targetUid, null, null, null);
+        log.info(
+                "Created federation pair request {} from station {} to station {}",
+                partner.id(),
+                requestingStationId,
+                targetStationId);
+        return partner;
     }
 
     /**
@@ -198,6 +211,7 @@ public class FederationService {
      */
     public void declinePairRequest(int partnerId) {
         repository.deletePartner(partnerId);
+        log.info("Declined federation pair request {}", partnerId);
     }
 
     /**
@@ -251,15 +265,34 @@ public class FederationService {
             }
         }
 
-        return repository.findPartnerById(partner.id()).orElseThrow();
+        var established = repository.findPartnerById(partner.id()).orElseThrow();
+        log.info(
+                "Established federation partnership between station {} and station {} (partner records {} and {})",
+                initiatingStationId,
+                acceptingStationId,
+                partner.id(),
+                reverse.id());
+        return established;
     }
 
     public boolean suspendPartner(int partnerId) {
-        return repository.updatePartnerStatus(partnerId, FederationPartner.FederationStatus.SUSPENDED);
+        boolean updated = repository.updatePartnerStatus(partnerId, FederationPartner.FederationStatus.SUSPENDED);
+        if (updated) {
+            log.info("Suspended federation partner {}", partnerId);
+        } else {
+            log.warn("Suspend for federation partner {} affected no row", partnerId);
+        }
+        return updated;
     }
 
     public boolean resumePartner(int partnerId) {
-        return repository.updatePartnerStatus(partnerId, FederationPartner.FederationStatus.ACTIVE);
+        boolean updated = repository.updatePartnerStatus(partnerId, FederationPartner.FederationStatus.ACTIVE);
+        if (updated) {
+            log.info("Resumed federation partner {}", partnerId);
+        } else {
+            log.warn("Resume for federation partner {} affected no row", partnerId);
+        }
+        return updated;
     }
 
     /**
@@ -273,6 +306,7 @@ public class FederationService {
         // We need to find all records across ALL stations where partner_station_id = stationUid
         // and update their remote_host
         repository.updateRemoteHostForPartnerStation(stationUid, newHost);
+        log.info("Updated remote host for partners pointing at station {} to {}", stationUid, newHost);
     }
 
     public boolean endFederation(int partnerId) {
@@ -292,7 +326,13 @@ public class FederationService {
                 }
             }
         }
-        return repository.deletePartner(partnerId);
+        boolean deleted = repository.deletePartner(partnerId);
+        if (deleted) {
+            log.info("Ended federation partner {}", partnerId);
+        } else {
+            log.warn("End federation for partner {} affected no row", partnerId);
+        }
+        return deleted;
     }
 
     public List<FederationCapability> findCapabilities(int partnerId) {
@@ -301,6 +341,7 @@ public class FederationService {
 
     public void setCapability(int partnerId, CapabilityType capability, Direction direction, boolean enabled) {
         repository.upsertCapability(partnerId, capability, direction, enabled);
+        log.info("Set federation capability {} {} to {} for partner {}", capability, direction, enabled, partnerId);
     }
 
     // -- Capabilities --
@@ -316,13 +357,25 @@ public class FederationService {
     }
 
     public FederationShare createKbShare(int stationId, Integer fileId, Integer folderId, ShareScope shareScope) {
-        return repository.createKbShare(stationId, fileId, folderId, shareScope);
+        var share = repository.createKbShare(stationId, fileId, folderId, shareScope);
+        log.info(
+                "Created knowledge-base federation share {} for station {} (scope {})",
+                share.id(),
+                stationId,
+                shareScope);
+        return share;
     }
 
     // -- Sharing --
 
     public boolean deleteKbShare(int id, int stationId) {
-        return repository.deleteKbShare(id, stationId);
+        boolean deleted = repository.deleteKbShare(id, stationId);
+        if (deleted) {
+            log.info("Deleted knowledge-base federation share {} for station {}", id, stationId);
+        } else {
+            log.warn("Delete of knowledge-base federation share {} for station {} affected no row", id, stationId);
+        }
+        return deleted;
     }
 
     public List<FederationShare> findQuizShares(int stationId) {
@@ -330,11 +383,19 @@ public class FederationService {
     }
 
     public FederationShare createQuizShare(int stationId, int catalogId, ShareScope shareScope) {
-        return repository.createQuizShare(stationId, catalogId, shareScope);
+        var share = repository.createQuizShare(stationId, catalogId, shareScope);
+        log.info("Created quiz federation share {} for station {} (scope {})", share.id(), stationId, shareScope);
+        return share;
     }
 
     public boolean deleteQuizShare(int id, int stationId) {
-        return repository.deleteQuizShare(id, stationId);
+        boolean deleted = repository.deleteQuizShare(id, stationId);
+        if (deleted) {
+            log.info("Deleted quiz federation share {} for station {}", id, stationId);
+        } else {
+            log.warn("Delete of quiz federation share {} for station {} affected no row", id, stationId);
+        }
+        return deleted;
     }
 
     public List<FederationShare> findProtocolShares(int stationId) {
@@ -342,11 +403,19 @@ public class FederationService {
     }
 
     public FederationShare createProtocolShare(int stationId, int protocolId, ShareScope shareScope) {
-        return repository.createProtocolShare(stationId, protocolId, shareScope);
+        var share = repository.createProtocolShare(stationId, protocolId, shareScope);
+        log.info("Created protocol federation share {} for station {} (scope {})", share.id(), stationId, shareScope);
+        return share;
     }
 
     public boolean deleteProtocolShare(int id, int stationId) {
-        return repository.deleteProtocolShare(id, stationId);
+        boolean deleted = repository.deleteProtocolShare(id, stationId);
+        if (deleted) {
+            log.info("Deleted protocol federation share {} for station {}", id, stationId);
+        } else {
+            log.warn("Delete of protocol federation share {} for station {} affected no row", id, stationId);
+        }
+        return deleted;
     }
 
     // Available for remote sync — not yet called from routes

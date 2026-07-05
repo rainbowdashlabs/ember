@@ -257,7 +257,7 @@ public class UserFeedRoutes implements Routes {
             } else {
                 String name = managedNameById.getOrDefault(reg.memberId(), "Member #" + reg.memberId());
                 managedByEvent
-                        .computeIfAbsent(reg.eventId(), k -> new ArrayList<>())
+                        .computeIfAbsent(reg.eventId(), _ -> new ArrayList<>())
                         .add(new IcalEventRenderer.ManagedRegistration(name, reg.status()));
             }
         }

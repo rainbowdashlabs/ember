@@ -9,6 +9,8 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
@@ -93,6 +95,29 @@ public record StationEvent(
      */
     public boolean isRecurring() {
         return eventType != EventType.ONE_TIME;
+    }
+
+    /**
+     * Returns whether this recurring event falls on the given date, matching the configured
+     * weekday and recurrence schedule. One-time events never match.
+     *
+     * @param date the calendar date to test
+     * @return true if the event recurs on that date
+     */
+    public boolean occursOn(LocalDate date) {
+        if (dayOfWeek == null || dayOfWeek != date.getDayOfWeek().getValue()) {
+            return false;
+        }
+        return switch (eventType) {
+            case RECURRING -> true;
+            case MONTHLY_FIRST -> date.getDayOfMonth() <= 7;
+            case QUARTERLY -> date.getDayOfMonth() <= 7 && (date.getMonthValue() - 1) % 3 == 0;
+            case YEARLY ->
+                startTime != null
+                        && startTime.atZone(ZoneOffset.UTC).getMonthValue() == date.getMonthValue()
+                        && startTime.atZone(ZoneOffset.UTC).getDayOfMonth() == date.getDayOfMonth();
+            default -> false;
+        };
     }
 
     /**

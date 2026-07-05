@@ -9,7 +9,6 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
-import de.chojo.sadu.queries.api.results.writing.insertion.InsertionResult;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -413,8 +412,8 @@ public class StationMemberRepository {
                 .changed();
     }
 
-    public boolean setFormer(int id, boolean former) {
-        return query(
+    public void setFormer(int id, boolean former) {
+        query(
                         "UPDATE station_member SET former = :former, former_at = CASE WHEN :former THEN now() ELSE NULL END WHERE id = :id;")
                 .single(call().bind("id", id).bind("former", former))
                 .update()
@@ -450,7 +449,7 @@ public class StationMemberRepository {
                   )
                 LIMIT 1;""")
                 .single(call().bind("account_id", accountId))
-                .map(row -> true)
+                .map(_ -> true)
                 .first()
                 .isPresent();
     }
@@ -474,8 +473,8 @@ public class StationMemberRepository {
                 .first();
     }
 
-    public InsertionResult grantPermission(int memberId, int permissionId) {
-        return query(
+    public void grantPermission(int memberId, int permissionId) {
+        query(
                         "INSERT INTO station_member_permission(member_id, permission_id) VALUES(:member_id, :permission_id) ON CONFLICT DO NOTHING;")
                 .single(call().bind("member_id", memberId).bind("permission_id", permissionId))
                 .insert();
@@ -527,8 +526,8 @@ public class StationMemberRepository {
                 .changed();
     }
 
-    public boolean setJoinDate(int memberId, LocalDate joinDate) {
-        return query("UPDATE station_member SET join_date = :join_date WHERE id = :id;")
+    public void setJoinDate(int memberId, LocalDate joinDate) {
+        query("UPDATE station_member SET join_date = :join_date WHERE id = :id;")
                 .single(call().bind("join_date", joinDate).bind("id", memberId))
                 .update()
                 .changed();
@@ -545,19 +544,6 @@ public class StationMemberRepository {
                 .single(call().bind("station_id", stationId).bind("user_type", userType))
                 .map(Permission.map())
                 .all();
-    }
-
-    /**
-     * Returns {@code true} if the station has at least one configured user-type permission row.
-     * Used by the setup wizard's status endpoint to mark the "Member types" required step complete
-     * once the administrator has actively populated the permission matrix.
-     */
-    public boolean hasAnyUserTypePermission(int stationId) {
-        return query("SELECT 1 FROM station_user_type_permission WHERE station_id = :station_id LIMIT 1;")
-                .single(call().bind("station_id", stationId))
-                .map(row -> true)
-                .first()
-                .orElse(false);
     }
 
     // -- Join Date --
@@ -600,8 +586,8 @@ public class StationMemberRepository {
 
     // -- Manager Relations --
 
-    public InsertionResult addManager(int managerId, int managedId) {
-        return query("INSERT INTO member_manager(manager_id, managed_id) VALUES(:manager_id, :managed_id);")
+    public void addManager(int managerId, int managedId) {
+        query("INSERT INTO member_manager(manager_id, managed_id) VALUES(:manager_id, :managed_id);")
                 .single(call().bind("manager_id", managerId).bind("managed_id", managedId))
                 .insert();
     }

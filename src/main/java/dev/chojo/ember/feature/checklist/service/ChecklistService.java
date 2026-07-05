@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Orchestrates checklist creation, refresh, manual member add/restore, cell upserts and column edits.
@@ -130,11 +131,15 @@ public class ChecklistService {
         if (filter != null) {
             repository.replaceFilter(id, filter.userTypes(), filter.groupIds(), filter.tagIds(), filter.memberIds());
         }
+        log.info("Updated checklist {} (name='{}', mode={}, filterReplaced={})", id, name, mode, filter != null);
         return repository.findById(id).orElseThrow();
     }
 
     public boolean delete(int id) {
-        return repository.delete(id);
+        boolean deleted = repository.delete(id);
+        if (deleted) log.info("Deleted checklist {}", id);
+        else log.warn("Delete of checklist {} did not change any row", id);
+        return deleted;
     }
 
     /**
@@ -182,20 +187,30 @@ public class ChecklistService {
                 skipped++;
             }
         }
+        log.info(
+                "Added members to checklist {}: added={}, restored={}, skipped={}",
+                checklistId,
+                added,
+                restored,
+                skipped);
         return new ManualAddResult(added, restored, skipped);
     }
 
     public void softDeleteEntry(int entryId) {
         repository.softDeleteEntry(entryId);
+        log.info("Soft-deleted checklist entry {}", entryId);
     }
 
     public ChecklistColumn addColumn(int checklistId, String label, String description, Integer position) {
         int pos = position != null ? position : repository.nextColumnPosition(checklistId);
-        return repository.createColumn(checklistId, pos, label, description);
+        ChecklistColumn column = repository.createColumn(checklistId, pos, label, description);
+        log.info("Added column {} to checklist {} (label='{}', position={})", column.id(), checklistId, label, pos);
+        return column;
     }
 
     public ChecklistColumn updateColumn(int columnId, String label, String description, int position) {
         repository.updateColumn(columnId, label, description, position);
+        log.info("Updated checklist column {} (label='{}', position={})", columnId, label, position);
         return repository.findColumn(columnId).orElseThrow();
     }
 
@@ -207,11 +222,12 @@ public class ChecklistService {
     public void reorderColumns(int checklistId, List<Integer> orderedIds) {
         var existingIds = repository.findColumns(checklistId).stream()
                 .map(ChecklistColumn::id)
-                .collect(java.util.stream.Collectors.toSet());
+                .collect(Collectors.toSet());
         if (orderedIds.size() != existingIds.size() || !new HashSet<>(orderedIds).equals(existingIds)) {
             throw new IllegalArgumentException("orderedIds must contain every column exactly once");
         }
         repository.reorderColumns(checklistId, orderedIds);
+        log.info("Reordered {} columns of checklist {}", orderedIds.size(), checklistId);
     }
 
     public int countCheckedCellsInColumn(int columnId) {
@@ -219,7 +235,10 @@ public class ChecklistService {
     }
 
     public boolean deleteColumn(int columnId) {
-        return repository.deleteColumn(columnId);
+        boolean deleted = repository.deleteColumn(columnId);
+        if (deleted) log.info("Deleted checklist column {}", columnId);
+        else log.warn("Delete of checklist column {} did not change any row", columnId);
+        return deleted;
     }
 
     /**
@@ -235,6 +254,13 @@ public class ChecklistService {
         if (noteChanged) {
             repository.appendNoteHistory(cell.id(), previousNote, normalisedNote, updatedBy);
         }
+        log.info(
+                "Wrote checklist cell (entry {}, column {}) checked={}, noteChanged={} by member {}",
+                entryId,
+                columnId,
+                checked,
+                noteChanged,
+                updatedBy);
         return new CellWriteResult(cell, noteChanged);
     }
 
@@ -246,7 +272,15 @@ public class ChecklistService {
     }
 
     public int bulkSetColumn(int columnId, List<Integer> entryIds, boolean checked, int updatedBy) {
-        return repository.bulkSetChecked(entryIds, columnId, checked, updatedBy);
+        int changed = repository.bulkSetChecked(entryIds, columnId, checked, updatedBy);
+        log.info(
+                "Bulk set column {} checked={} for {} entries ({} rows changed) by member {}",
+                columnId,
+                checked,
+                entryIds.size(),
+                changed,
+                updatedBy);
+        return changed;
     }
 
     /**

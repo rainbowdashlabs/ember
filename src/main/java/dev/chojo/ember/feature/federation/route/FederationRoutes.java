@@ -158,8 +158,7 @@ public class FederationRoutes implements Routes {
      * remote; ultimately returns "Unknown" only when neither is known.
      */
     private String resolvePartnerName(FederationPartner partner) {
-        return FederationDisplayNames.partnerName(
-                stationRepository, partner, "Unknown");
+        return FederationDisplayNames.partnerName(stationRepository, partner, "Unknown");
     }
 
     private void createInvite(Context ctx) {

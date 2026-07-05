@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.attendance.repository;
 
-import de.chojo.sadu.queries.api.results.writing.insertion.InsertionResult;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
@@ -129,11 +128,10 @@ public class AttendanceRepository {
      * @param fieldType  the type of field
      * @param config     JSONB configuration string
      * @param position   ordering position
-     * @return the insertion result
      */
-    public InsertionResult createTemplateField(
+    public void createTemplateField(
             int templateId, String name, AttendanceFieldType fieldType, AttendanceFieldConfig config, int position) {
-        return query("""
+        query("""
                 INSERT
                 INTO
                     attendance_template_field(template_id, name, field_type, config, position)
@@ -383,10 +381,9 @@ public class AttendanceRepository {
      * @param sessionId the session ID
      * @param fieldId   the template field ID
      * @param value     the JSONB value to store
-     * @return the insertion result
      */
-    public InsertionResult setSessionField(int sessionId, int fieldId, String value) {
-        return query("""
+    public void setSessionField(int sessionId, int fieldId, String value) {
+        query("""
                 INSERT
                 INTO
                     attendance_session_field(session_id, field_id, value)
@@ -407,10 +404,9 @@ public class AttendanceRepository {
      *
      * @param sessionId the session ID
      * @param fieldId   the field ID
-     * @return {@code true} if the field value was deleted
      */
-    public boolean deleteSessionField(int sessionId, int fieldId) {
-        return query("DELETE FROM attendance_session_field WHERE session_id = :session_id AND field_id = :field_id;")
+    public void deleteSessionField(int sessionId, int fieldId) {
+        query("DELETE FROM attendance_session_field WHERE session_id = :session_id AND field_id = :field_id;")
                 .single(call().bind("session_id", sessionId).bind("field_id", fieldId))
                 .delete()
                 .changed();
@@ -508,11 +504,10 @@ public class AttendanceRepository {
      * @param memberId  the member ID
      * @param status    initial attendance status
      * @param source    how the entry was created
-     * @return the insertion result
      */
-    public InsertionResult createEntry(
+    public void createEntry(
             int sessionId, int memberId, AttendanceEntry.AttendanceStatus status, AttendanceEntry.EntrySource source) {
-        return query(
+        query(
                         "INSERT INTO attendance_entry(session_id, member_id, status, source) VALUES(:session_id, :member_id, :status, :source);")
                 .single(call().bind("session_id", sessionId)
                         .bind("member_id", memberId)
@@ -819,7 +814,7 @@ public class AttendanceRepository {
         return query(
                         "SELECT 1 FROM member_absence WHERE member_id = :member_id AND absent_from <= current_date AND absent_until >= current_date LIMIT 1;")
                 .single(call().bind("member_id", memberId))
-                .map(row -> true)
+                .map(_ -> true)
                 .first()
                 .isPresent();
     }

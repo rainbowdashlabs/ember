@@ -263,7 +263,7 @@ public class BoardService {
 
     public boolean canEdit(int boardId, int memberId, boolean isBoardManager) {
         if (isBoardManager) return true;
-        if (!repository.hasEditRestrictions(boardId)) return canView(boardId, memberId, isBoardManager);
+        if (!repository.hasEditRestrictions(boardId)) return canView(boardId, memberId, false);
         return matchesAccess(
                 memberId,
                 repository.findEditAccessUserTypes(boardId),

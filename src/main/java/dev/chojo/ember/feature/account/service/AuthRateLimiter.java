@@ -31,7 +31,6 @@ import java.util.Optional;
 @Singleton
 public class AuthRateLimiter {
 
-    private static final Duration MINUTE = Duration.ofMinutes(1);
     private static final Duration FIFTEEN_MIN = Duration.ofMinutes(15);
     private static final Duration HOUR = Duration.ofHours(1);
     private static final Duration PRUNE_AFTER = Duration.ofHours(1);

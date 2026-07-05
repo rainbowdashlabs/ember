@@ -143,18 +143,17 @@ public class DiscoveryPingService {
      * @param rawBody         raw request body bytes (used for signature verification)
      * @param message         parsed body
      * @param signatureHeader value of {@code X-Ember-Discovery-Signature}
-     * @return {@code true} if the ping was accepted (callback dispatched)
      */
-    public boolean handleInboundPing(String rawBody, DiscoveryPingMessage message, String signatureHeader) {
-        if (!settingsService.isEnabled()) return false;
-        if (message == null || message.from() == null || message.nonce() == null) return false;
+    public void handleInboundPing(String rawBody, DiscoveryPingMessage message, String signatureHeader) {
+        if (!settingsService.isEnabled()) return;
+        if (message == null || message.from() == null || message.nonce() == null) return;
 
         // Drift check
         Instant now = Instant.now();
         if (message.issuedAt() == null
                 || Duration.between(message.issuedAt(), now).abs().compareTo(MAX_DRIFT) > 0) {
             log.debug("Discarding ping from {} due to drift", message.from().baseUrl());
-            return false;
+            return;
         }
 
         // Blocklist
@@ -162,7 +161,7 @@ public class DiscoveryPingService {
                         BlocklistKind.PUBLIC_KEY, message.from().publicKey())
                 || blocklistRepository.contains(
                         BlocklistKind.BASE_URL, message.from().baseUrl())) {
-            return false;
+            return;
         }
 
         // Signature
@@ -171,7 +170,7 @@ public class DiscoveryPingService {
                         rawBody, signatureHeader, message.from().publicKey())) {
             log.debug("Rejecting ping from {} — bad signature", message.from().baseUrl());
             reputationService.recordSignatureFailure(message.from().publicKey());
-            return false;
+            return;
         }
 
         // Callback target must be a public endpoint (SSRF guard on the attacker-chosen URL).
@@ -179,7 +178,7 @@ public class DiscoveryPingService {
             log.debug(
                     "Rejecting ping from {} — callback URL not permitted",
                     message.from().baseUrl());
-            return false;
+            return;
         }
 
         // Replay / loop check
@@ -187,7 +186,7 @@ public class DiscoveryPingService {
                 message.nonce(), PingDirection.IN, message.from().publicKey(), now, now.plus(NONCE_TTL));
         if (!fresh) {
             log.debug("Dropping replayed/looped ping nonce {}", message.nonce());
-            return false;
+            return;
         }
 
         // Remember the peer (or refresh observed URL)
@@ -200,7 +199,6 @@ public class DiscoveryPingService {
 
         // Dispatch the callback asynchronously so the inbound request returns 204 immediately.
         callbackExecutor.schedule(() -> sendCallback(message), 100, TimeUnit.MILLISECONDS);
-        return true;
     }
 
     /**

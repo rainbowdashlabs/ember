@@ -55,11 +55,9 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     private static FederationRepository federationRepo;
     private static FederationService federationService;
     private static Station stationB;
-    private static int partnerIdAtoB;
     private static FederationHttpClient httpClient;
     private static KbFileStorageService fileStorage;
     private static Station stationC;
-    private static int remotePartnerId;
 
     @BeforeAll
     static void setup() {
@@ -93,7 +91,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         var keyPair = federationService.generateKeyPair();
         var partner = federationService.acceptInvite(
                 station.id(), stationB.id(), federationService.encodePublicKey(keyPair), null, null);
-        partnerIdAtoB = partner.id();
+        int partnerIdAtoB = partner.id();
 
         // Enable KB_SHARE capability
         federationService.setCapability(partnerIdAtoB, CapabilityType.KB_SHARE, Direction.IMPORT, true);
@@ -107,7 +105,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
                 federationService.encodePublicKey(keyPairRemote),
                 "https://remote-kb.example.com",
                 null);
-        remotePartnerId = remotePartner.id();
+        int remotePartnerId = remotePartner.id();
         federationService.setCapability(remotePartnerId, CapabilityType.KB_SHARE, Direction.IMPORT, true);
     }
 

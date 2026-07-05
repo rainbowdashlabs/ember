@@ -9,6 +9,8 @@ import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 
+import java.util.Optional;
+
 /**
  * Single source of truth for "what name do we display for a federation partner station". The
  * preferred name is whatever the local {@code station} table holds for that UID (fresh and
@@ -32,7 +34,7 @@ public final class FederationDisplayNames {
         return stationRepository
                 .findByUid(partner.partnerStationId())
                 .map(Station::name)
-                .or(() -> java.util.Optional.ofNullable(partner.partnerStationName()))
+                .or(() -> Optional.ofNullable(partner.partnerStationName()))
                 .filter(s -> !s.isBlank())
                 .orElse(fallback);
     }

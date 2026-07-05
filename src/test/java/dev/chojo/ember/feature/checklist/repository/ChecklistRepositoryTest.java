@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.checklist.repository;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.checklist.entity.ChecklistEntry;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -29,7 +30,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ChecklistRepositoryTest extends RepositoryTestBase {
     private static Station station;
-    private static Account account;
     private static StationMember member;
     private static StationMember secondMember;
     private static int checklistId;
@@ -40,7 +40,7 @@ class ChecklistRepositoryTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         station = stationRepo.create("Checklist Station");
-        account = accountRepo.create("checklist@test.com", "Check", "List");
+        Account account = accountRepo.create("checklist@test.com", "Check", "List");
         member = stationMemberRepo.create(station.id(), account.id());
         var account2 = accountRepo.create("checklist2@test.com", "Check", "Two");
         secondMember = stationMemberRepo.create(station.id(), account2.id());
@@ -188,7 +188,7 @@ class ChecklistRepositoryTest extends RepositoryTestBase {
         checklistRepo.appendNoteHistory(cellId, "first", "second", member.id());
         var history = checklistRepo.findNoteHistory(cellId);
         assertEquals(2, history.size());
-        assertEquals("second", history.get(0).newNote());
+        assertEquals("second", history.getFirst().newNote());
     }
 
     @Test
@@ -209,7 +209,7 @@ class ChecklistRepositoryTest extends RepositoryTestBase {
     @Order(17)
     void bulkSetCheckedInsertAndUpdate() {
         var entries = checklistRepo.findEntries(checklistId, false);
-        var ids = entries.stream().map(e -> e.id()).toList();
+        var ids = entries.stream().map(ChecklistEntry::id).toList();
         int updated = checklistRepo.bulkSetChecked(ids, columnId, true, member.id());
         assertTrue(updated >= 1);
         int unchanged = checklistRepo.bulkSetChecked(List.of(), columnId, true, member.id());
@@ -235,8 +235,8 @@ class ChecklistRepositoryTest extends RepositoryTestBase {
     void findSummariesByStation() {
         var summaries = checklistRepo.findSummariesByStation(station.id());
         assertEquals(1, summaries.size());
-        assertEquals("Safety Briefing", summaries.get(0).name());
-        assertEquals(2, summaries.get(0).columnCount());
+        assertEquals("Safety Briefing", summaries.getFirst().name());
+        assertEquals(2, summaries.getFirst().columnCount());
     }
 
     @Test

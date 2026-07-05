@@ -41,6 +41,8 @@ import jakarta.inject.Singleton;
 import java.time.Instant;
 import java.util.List;
 
+import static dev.chojo.ember.api.RouteSupport.pathInt;
+
 /**
  * Routes for inventory management including CRUD operations on inventories, sizes, items,
  * requirements, member item assignments, and PDF export.
@@ -234,7 +236,7 @@ public class InventoryRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MyInventoryItem[].class)))
     private void memberItems(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        int memberId = pathInt(ctx, "memberId");
         var items = inventoryService.findItemsByMember(memberId).stream()
                 .filter(item -> inventoryService
                         .findById(item.inventoryId())
@@ -330,7 +332,7 @@ public class InventoryRoutes implements Routes {
             })
     private void get(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         requireOwnedInventory(id, session);
         inventoryService
                 .findById(id)
@@ -362,12 +364,9 @@ public class InventoryRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void update(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
-        var inventory = inventoryService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (inventory.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        requireOwnedInventory(id, session);
         var request = ctx.bodyAsClass(InventoryRequest.class);
         if (isBlank(request.name())) {
             throw new BadRequestResponse("name is required");
@@ -395,12 +394,9 @@ public class InventoryRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void delete(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
-        var inventory = inventoryService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (inventory.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        requireOwnedInventory(id, session);
         if (inventoryService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -417,7 +413,7 @@ public class InventoryRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = InventorySize[].class)))
     private void listSizes(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int inventoryId = ctx.pathParamAsClass("inventoryId", Integer.class).get();
+        int inventoryId = pathInt(ctx, "inventoryId");
         requireOwnedInventory(inventoryId, session);
         ctx.json(inventoryService.findSizes(inventoryId));
     }
@@ -431,12 +427,9 @@ public class InventoryRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SizeRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = InventorySize[].class)))
     private void createSize(Context ctx) {
-        int inventoryId = ctx.pathParamAsClass("inventoryId", Integer.class).get();
+        int inventoryId = pathInt(ctx, "inventoryId");
         UserSession session = UserSession.from(ctx);
-        var inventory = inventoryService.findById(inventoryId).orElseThrow(NotFoundResponse::new);
-        if (inventory.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        requireOwnedInventory(inventoryId, session);
         var request = ctx.bodyAsClass(SizeRequest.class);
         if (isBlank(request.label())) {
             throw new BadRequestResponse("label is required");
@@ -460,13 +453,10 @@ public class InventoryRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void updateSize(Context ctx) {
-        int inventoryId = ctx.pathParamAsClass("inventoryId", Integer.class).get();
-        int sizeId = ctx.pathParamAsClass("sizeId", Integer.class).get();
+        int inventoryId = pathInt(ctx, "inventoryId");
+        int sizeId = pathInt(ctx, "sizeId");
         UserSession session = UserSession.from(ctx);
-        var inventory = inventoryService.findById(inventoryId).orElseThrow(NotFoundResponse::new);
-        if (inventory.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        requireOwnedInventory(inventoryId, session);
         var request = ctx.bodyAsClass(SizeRequest.class);
         if (isBlank(request.label())) {
             throw new BadRequestResponse("label is required");
@@ -494,13 +484,10 @@ public class InventoryRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void deleteSize(Context ctx) {
-        int inventoryId = ctx.pathParamAsClass("inventoryId", Integer.class).get();
-        int sizeId = ctx.pathParamAsClass("sizeId", Integer.class).get();
+        int inventoryId = pathInt(ctx, "inventoryId");
+        int sizeId = pathInt(ctx, "sizeId");
         UserSession session = UserSession.from(ctx);
-        var inventory = inventoryService.findById(inventoryId).orElseThrow(NotFoundResponse::new);
-        if (inventory.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        requireOwnedInventory(inventoryId, session);
         inventoryService.deleteSize(inventoryId, sizeId).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
         });
@@ -515,7 +502,7 @@ public class InventoryRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = InventoryItem[].class)))
     private void listItems(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int inventoryId = ctx.pathParamAsClass("inventoryId", Integer.class).get();
+        int inventoryId = pathInt(ctx, "inventoryId");
         requireOwnedInventory(inventoryId, session);
         ctx.json(inventoryService.findItems(inventoryId));
     }
@@ -529,12 +516,9 @@ public class InventoryRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ItemRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = InventoryItem.class)))
     private void createItem(Context ctx) {
-        int inventoryId = ctx.pathParamAsClass("inventoryId", Integer.class).get();
+        int inventoryId = pathInt(ctx, "inventoryId");
         UserSession session = UserSession.from(ctx);
-        var inventory = inventoryService.findById(inventoryId).orElseThrow(NotFoundResponse::new);
-        if (inventory.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        requireOwnedInventory(inventoryId, session);
         var request = ctx.bodyAsClass(ItemRequest.class);
         if (isBlank(request.name())) {
             throw new BadRequestResponse("name is required");
@@ -591,7 +575,7 @@ public class InventoryRoutes implements Routes {
             })
     private void getItem(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         verifyItemOwnership(id, session);
         inventoryService.findItemById(id).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
@@ -610,7 +594,7 @@ public class InventoryRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void updateItem(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         verifyItemOwnership(id, UserSession.from(ctx));
         var request = ctx.bodyAsClass(ItemRequest.class);
         if (isBlank(request.name())) {
@@ -635,7 +619,7 @@ public class InventoryRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void assignItem(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         verifyItemOwnership(id, UserSession.from(ctx));
         var request = ctx.bodyAsClass(AssignRequest.class);
         inventoryService
@@ -656,7 +640,7 @@ public class InventoryRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void getItemLocation(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         verifyItemOwnership(id, UserSession.from(ctx));
         InventoryItem item = inventoryService.findItemById(id).orElseThrow(NotFoundResponse::new);
         ContainerPath path = containerService.pathOfItem(item);
@@ -676,7 +660,7 @@ public class InventoryRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void setItemContainer(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         verifyItemOwnership(id, UserSession.from(ctx));
         var body = ctx.bodyAsClass(ContainerAssignRequest.class);
         try {
@@ -691,7 +675,7 @@ public class InventoryRoutes implements Routes {
     }
 
     private void getHistory(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
         ctx.json(inventoryService.findHistory(id).stream()
                 .map(h -> new HistoryResponse(
@@ -716,7 +700,7 @@ public class InventoryRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void markLost(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         verifyItemOwnership(id, UserSession.from(ctx));
         inventoryService.markLost(id).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
@@ -734,7 +718,7 @@ public class InventoryRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void markFound(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         verifyItemOwnership(id, UserSession.from(ctx));
         inventoryService.markFound(id).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
@@ -752,7 +736,7 @@ public class InventoryRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void deleteItem(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         verifyItemOwnership(id, UserSession.from(ctx));
         if (inventoryService.deleteItem(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
@@ -815,7 +799,7 @@ public class InventoryRoutes implements Routes {
             })
     private void updateRequirement(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         verifyRequirementOwnership(id, session);
         var request = ctx.bodyAsClass(UpdateRequirementRequest.class);
         if (inventoryService.updateRequirement(id, request.quantity() > 0 ? request.quantity() : 1)) {
@@ -838,7 +822,7 @@ public class InventoryRoutes implements Routes {
             })
     private void updateRequirementPosition(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         verifyRequirementOwnership(id, session);
         var request = ctx.bodyAsClass(UpdatePositionRequest.class);
         if (inventoryService.updateRequirementPosition(id, request.position())) {
@@ -860,7 +844,7 @@ public class InventoryRoutes implements Routes {
             })
     private void deleteRequirement(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         verifyRequirementOwnership(id, session);
         if (inventoryService.deleteRequirement(id)) {
             ctx.status(HttpStatus.NO_CONTENT);

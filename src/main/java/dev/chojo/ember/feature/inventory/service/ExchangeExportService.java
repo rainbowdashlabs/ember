@@ -126,7 +126,7 @@ public class ExchangeExportService {
         var exchangesByMember = new LinkedHashMap<Integer, List<ExchangeRequest>>();
         for (var ex : selectedExchanges) {
             exchangesByMember
-                    .computeIfAbsent(ex.memberId(), k -> new ArrayList<>())
+                    .computeIfAbsent(ex.memberId(), _ -> new ArrayList<>())
                     .add(ex);
         }
 

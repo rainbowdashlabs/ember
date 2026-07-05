@@ -91,7 +91,7 @@ public class SftpStorageBackend implements StorageBackend, AutoCloseable {
 
     private static SshClient defaultClient(SftpBackendConfig config) {
         SshClient client = SshClient.setUpDefaultClient();
-        client.setServerKeyVerifier((clientSession, remoteAddress, serverKey) -> {
+        client.setServerKeyVerifier((_, _, serverKey) -> {
             if (config.trustsAnyHost()) return true;
             try {
                 String fingerprint = KeyUtils.getFingerPrint(serverKey);

@@ -27,8 +27,6 @@ import static org.mockito.Mockito.mock;
 class TwoFactorServiceTest extends RepositoryTestBase {
 
     private static TwoFactorService service;
-    private static TotpService totpService;
-    private static BackupCodeService backupCodeService;
 
     @BeforeAll
     static void initService() throws Exception {
@@ -36,8 +34,8 @@ class TwoFactorServiceTest extends RepositoryTestBase {
         setField(settings, "enabled", true);
         setField(settings, "secretKey", validKey());
         var demo = new Demo();
-        totpService = new TotpService(settings, demo);
-        backupCodeService = new BackupCodeService(settings);
+        TotpService totpService = new TotpService(settings, demo);
+        BackupCodeService backupCodeService = new BackupCodeService(settings);
         var auditService = new TwoFactorAuditService(twoFactorRepo);
         var emailService = mock(EmailService.class);
         service = new TwoFactorService(

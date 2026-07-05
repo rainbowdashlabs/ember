@@ -44,12 +44,11 @@ class SftpStorageBackendTest {
             .waitingFor(Wait.forListeningPort())
             .withStartupAttempts(4);
 
-    private static SftpBackendConfig config;
     private static SftpStorageBackend backend;
 
     @BeforeAll
     static void setup() {
-        config = new SftpBackendConfig(
+        SftpBackendConfig config = new SftpBackendConfig(
                 SFTP.getHost(), SFTP.getMappedPort(22), USER, Optional.of(PASSWORD), Optional.empty(), "", "/share");
         backend = new SftpStorageBackend(config);
     }

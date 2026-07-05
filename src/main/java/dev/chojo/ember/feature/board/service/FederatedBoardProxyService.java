@@ -373,6 +373,7 @@ public class FederatedBoardProxyService {
             LocalDate dueDate,
             UUID remoteMemberId) {
         var partner = findPartner(partnerId);
+        log.info("Federated ticket creation on partner {} board {} by member {}", partnerId, boardKey, remoteMemberId);
         if (partner.isRemote()) {
             var body = new CreateTicketBody(
                     remoteMemberId,
@@ -411,6 +412,12 @@ public class FederatedBoardProxyService {
             UUID remoteMemberUid,
             String displayName) {
         var partner = findPartner(partnerId);
+        log.info(
+                "Federated ticket update on partner {} board {} ticket {} by member {}",
+                partnerId,
+                boardKey,
+                ticketNumber,
+                remoteMemberUid);
         if (partner.isRemote()) {
             var body = new HashMap<String, Object>();
             if (title != null) body.put("title", title);
@@ -439,6 +446,7 @@ public class FederatedBoardProxyService {
 
     public void proxyDeleteTicket(int partnerId, String boardKey, int ticketNumber) {
         var partner = findPartner(partnerId);
+        log.info("Federated ticket deletion on partner {} board {} ticket {}", partnerId, boardKey, ticketNumber);
         if (partner.isRemote()) {
             remoteDelete(partner, "/remote/boards/" + boardKey + "/tickets/" + ticketNumber);
             return;
@@ -459,6 +467,13 @@ public class FederatedBoardProxyService {
             UUID remoteMemberUid,
             String displayName) {
         var partner = findPartner(partnerId);
+        log.info(
+                "Federated ticket move on partner {} board {} ticket {} to lane {} by member {}",
+                partnerId,
+                boardKey,
+                ticketNumber,
+                toLaneId,
+                remoteMemberUid);
         if (partner.isRemote()) {
             var body = new HashMap<String, Object>();
             body.put("toLaneId", toLaneId);
@@ -502,6 +517,12 @@ public class FederatedBoardProxyService {
             UUID remoteMemberId,
             String displayName) {
         var partner = findPartner(partnerId);
+        log.info(
+                "Federated comment added on partner {} board {} ticket {} by member {}",
+                partnerId,
+                boardKey,
+                ticketNumber,
+                remoteMemberId);
         if (partner.isRemote()) {
             var body = new HashMap<String, Object>();
             body.put("remoteMemberId", remoteMemberId);
@@ -525,6 +546,12 @@ public class FederatedBoardProxyService {
     public BoardChecklistItem proxyAddChecklistItem(
             int partnerId, String boardKey, int ticketNumber, String title, UUID remoteMemberUid, String displayName) {
         var partner = findPartner(partnerId);
+        log.info(
+                "Federated checklist item added on partner {} board {} ticket {} by member {}",
+                partnerId,
+                boardKey,
+                ticketNumber,
+                remoteMemberUid);
         if (partner.isRemote()) {
             var body = new HashMap<String, Object>();
             body.put("title", title);
@@ -554,6 +581,13 @@ public class FederatedBoardProxyService {
             UUID remoteMemberUid,
             String displayName) {
         var partner = findPartner(partnerId);
+        log.info(
+                "Federated checklist item {} updated on partner {} board {} ticket {} by member {}",
+                itemId,
+                partnerId,
+                boardKey,
+                ticketNumber,
+                remoteMemberUid);
         if (partner.isRemote()) {
             var body = new HashMap<String, Object>();
             body.put("title", title);
@@ -575,6 +609,13 @@ public class FederatedBoardProxyService {
     public void proxyDeleteChecklistItem(
             int partnerId, String boardKey, int ticketNumber, int itemId, UUID remoteMemberUid, String displayName) {
         var partner = findPartner(partnerId);
+        log.info(
+                "Federated checklist item {} deleted on partner {} board {} ticket {} by member {}",
+                itemId,
+                partnerId,
+                boardKey,
+                ticketNumber,
+                remoteMemberUid);
         if (partner.isRemote()) {
             remoteDelete(partner, "/remote/boards/" + boardKey + "/tickets/" + ticketNumber + "/checklist/" + itemId);
             return;
@@ -590,6 +631,13 @@ public class FederatedBoardProxyService {
     public List<BoardLabel> proxyAddTicketLabel(
             int partnerId, String boardKey, int ticketNumber, int labelId, UUID remoteMemberId, String displayName) {
         var partner = findPartner(partnerId);
+        log.info(
+                "Federated label {} added to ticket {} on partner {} board {} by member {}",
+                labelId,
+                ticketNumber,
+                partnerId,
+                boardKey,
+                remoteMemberId);
         if (partner.isRemote()) {
             return remotePostList(
                     partner,
@@ -616,6 +664,13 @@ public class FederatedBoardProxyService {
     public void proxyRemoveTicketLabel(
             int partnerId, String boardKey, int ticketNumber, int labelId, UUID remoteMemberId, String displayName) {
         var partner = findPartner(partnerId);
+        log.info(
+                "Federated label {} removed from ticket {} on partner {} board {} by member {}",
+                labelId,
+                ticketNumber,
+                partnerId,
+                boardKey,
+                remoteMemberId);
         if (partner.isRemote()) {
             remotePost(
                     partner,
@@ -640,6 +695,7 @@ public class FederatedBoardProxyService {
 
     public BoardLabel proxyCreateLabel(int partnerId, String boardKey, String name, String color) {
         var partner = findPartner(partnerId);
+        log.info("Federated label creation on partner {} board {}", partnerId, boardKey);
         if (partner.isRemote()) {
             var body = new CreateLabelBody(name, color != null ? color : "#6b7280");
             return remotePost(partner, "/remote/boards/" + boardKey + "/labels", body, BoardLabel.class);
@@ -682,6 +738,13 @@ public class FederatedBoardProxyService {
             UUID remoteMemberUid,
             String displayName) {
         var partner = findPartner(partnerId);
+        log.info(
+                "Federated ticket link on partner {} board {} from ticket {} to ticket {} by member {}",
+                partnerId,
+                boardKey,
+                ticketNumber,
+                linkedTicketNumber,
+                remoteMemberUid);
         if (partner.isRemote()) {
             var body = new HashMap<String, Object>();
             body.put("linkedTicketNumber", linkedTicketNumber);
@@ -691,6 +754,19 @@ public class FederatedBoardProxyService {
             remotePost(partner, "/remote/boards/" + boardKey + "/tickets/" + ticketNumber + "/links", body);
             return;
         }
+        var link = resolveLinkContext(
+                partnerId, partner, boardKey, ticketNumber, linkedTicketNumber, remoteMemberUid, displayName);
+        ticketService.linkTickets(link.ticketId(), link.linkedTicketId(), linkType, link.actorIdentity());
+    }
+
+    private LinkContext resolveLinkContext(
+            int partnerId,
+            FederationPartner partner,
+            String boardKey,
+            int ticketNumber,
+            int linkedTicketNumber,
+            UUID remoteMemberUid,
+            String displayName) {
         int boardId = resolveBoardId(boardKey, partner);
         int ticketId = resolveTicketId(boardId, ticketNumber);
         int linkedTicketId = resolveTicketId(boardId, linkedTicketNumber);
@@ -699,8 +775,10 @@ public class FederatedBoardProxyService {
         if (displayName != null && remoteMemberUid != null) {
             eventFederationRepository.cacheName(partnerId, remoteMemberUid, displayName);
         }
-        ticketService.linkTickets(ticketId, linkedTicketId, linkType, actorIdentity);
+        return new LinkContext(ticketId, linkedTicketId, actorIdentity);
     }
+
+    private record LinkContext(int ticketId, int linkedTicketId, MemberIdentity actorIdentity) {}
 
     public void proxyDeleteLink(
             int partnerId,
@@ -710,6 +788,13 @@ public class FederatedBoardProxyService {
             UUID remoteMemberUid,
             String displayName) {
         var partner = findPartner(partnerId);
+        log.info(
+                "Federated ticket unlink on partner {} board {} from ticket {} to ticket {} by member {}",
+                partnerId,
+                boardKey,
+                ticketNumber,
+                linkedTicketNumber,
+                remoteMemberUid);
         if (partner.isRemote()) {
             var body = new HashMap<String, Object>();
             if (remoteMemberUid != null) body.put("remoteMemberUid", remoteMemberUid.toString());
@@ -720,15 +805,9 @@ public class FederatedBoardProxyService {
                     body);
             return;
         }
-        int boardId = resolveBoardId(boardKey, partner);
-        int ticketId = resolveTicketId(boardId, ticketNumber);
-        int linkedTicketId = resolveTicketId(boardId, linkedTicketNumber);
-        var actorIdentity =
-                remoteMemberUid != null ? new MemberIdentity(partner.partnerStationId(), remoteMemberUid) : null;
-        if (displayName != null && remoteMemberUid != null) {
-            eventFederationRepository.cacheName(partnerId, remoteMemberUid, displayName);
-        }
-        ticketService.unlinkTickets(ticketId, linkedTicketId, actorIdentity);
+        var link = resolveLinkContext(
+                partnerId, partner, boardKey, ticketNumber, linkedTicketNumber, remoteMemberUid, displayName);
+        ticketService.unlinkTickets(link.ticketId(), link.linkedTicketId(), link.actorIdentity());
     }
 
     /**

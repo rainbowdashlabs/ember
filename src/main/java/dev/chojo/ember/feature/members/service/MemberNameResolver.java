@@ -11,6 +11,7 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.service.FederationDisplayNames;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -88,8 +89,7 @@ public class MemberNameResolver {
         }
         return federationRepository
                 .findPartnerById(partnerId)
-                .map(p -> dev.chojo.ember.feature.federation.service.FederationDisplayNames.partnerName(
-                        stationRepository, p, null))
+                .map(p -> FederationDisplayNames.partnerName(stationRepository, p, null))
                 .orElse(null);
     }
 

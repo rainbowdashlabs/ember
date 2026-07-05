@@ -26,6 +26,7 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -150,7 +151,7 @@ public class ChecklistExportService {
         return cells.values().stream()
                 .filter(c -> c.entryId() == entryId)
                 .map(ChecklistCell::updatedAt)
-                .max(java.util.Comparator.naturalOrder())
+                .max(Comparator.naturalOrder())
                 .map(ts -> CSV_DATE_TIME_FMT.format(ts.atZone(ZoneOffset.UTC)))
                 .orElse("");
     }

@@ -423,8 +423,6 @@ public class AiRoutes implements Routes {
     public record GeneratedQuestionWithMeta(
             String title, String config, QuizQuestionType quizQuestionType, Integer categoryId) {}
 
-    public record GenerateQuestionsResponse(List<GeneratedQuestionWithMeta> questions) {}
-
     public record GenerationPollResponse(List<GeneratedQuestionWithMeta> questions, boolean done) {}
 
     public record BatchResult(int generatedCount, List<String> errors) {}

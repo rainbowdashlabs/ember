@@ -30,6 +30,8 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import static dev.chojo.ember.api.RouteSupport.pathInt;
+
 /**
  * Routes for managing per-inventory custom field definitions.
  */
@@ -60,12 +62,11 @@ public class InventoryFieldDefinitionRoutes implements Routes {
                 StationPermission.INVENTORY_EDIT);
     }
 
-    private Inventory ownedInventory(int inventoryId, UserSession session) {
+    private void ownedInventory(int inventoryId, UserSession session) {
         Inventory inventory = inventoryService.findById(inventoryId).orElseThrow(NotFoundResponse::new);
         if (inventory.stationId() != session.stationId()) {
             throw new ForbiddenResponse("Inventory belongs to a different station");
         }
-        return inventory;
     }
 
     /**
@@ -89,7 +90,7 @@ public class InventoryFieldDefinitionRoutes implements Routes {
                             status = "200",
                             content = @OpenApiContent(from = InventoryFieldDefinition[].class)))
     private void listFields(Context ctx) {
-        int inventoryId = ctx.pathParamAsClass("inventoryId", Integer.class).get();
+        int inventoryId = pathInt(ctx, "inventoryId");
         UserSession session = UserSession.from(ctx);
         ownedInventory(inventoryId, session);
         ctx.json(fieldService.findByInventory(inventoryId));
@@ -107,7 +108,7 @@ public class InventoryFieldDefinitionRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void createField(Context ctx) {
-        int inventoryId = ctx.pathParamAsClass("inventoryId", Integer.class).get();
+        int inventoryId = pathInt(ctx, "inventoryId");
         UserSession session = UserSession.from(ctx);
         ownedInventory(inventoryId, session);
         var body = ctx.bodyAsClass(FieldDefinitionRequest.class);
@@ -142,8 +143,8 @@ public class InventoryFieldDefinitionRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void updateField(Context ctx) {
-        int inventoryId = ctx.pathParamAsClass("inventoryId", Integer.class).get();
-        int fieldId = ctx.pathParamAsClass("fieldId", Integer.class).get();
+        int inventoryId = pathInt(ctx, "inventoryId");
+        int fieldId = pathInt(ctx, "fieldId");
         UserSession session = UserSession.from(ctx);
         ownedInventory(inventoryId, session);
         verifyFieldInInventory(inventoryId, fieldId);
@@ -173,8 +174,8 @@ public class InventoryFieldDefinitionRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void deleteField(Context ctx) {
-        int inventoryId = ctx.pathParamAsClass("inventoryId", Integer.class).get();
-        int fieldId = ctx.pathParamAsClass("fieldId", Integer.class).get();
+        int inventoryId = pathInt(ctx, "inventoryId");
+        int fieldId = pathInt(ctx, "fieldId");
         UserSession session = UserSession.from(ctx);
         ownedInventory(inventoryId, session);
         verifyFieldInInventory(inventoryId, fieldId);

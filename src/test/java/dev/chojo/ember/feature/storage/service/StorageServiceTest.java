@@ -30,12 +30,11 @@ class StorageServiceTest {
     @TempDir
     Path tempDir;
 
-    private LocalStorageBackend backend;
     private StorageService service;
 
     @BeforeEach
     void setup() {
-        backend = new LocalStorageBackend(tempDir);
+        LocalStorageBackend backend = new LocalStorageBackend(tempDir);
         service = new StorageService(new StorageBackendResolver(backend), backend);
     }
 

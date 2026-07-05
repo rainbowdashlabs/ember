@@ -23,7 +23,6 @@ class PageFileMetaRepositoryTest extends RepositoryTestBase {
     private static PageFileMetaRepository metaRepo;
     private static Station station;
     private static Account account;
-    private static StationMember member;
     private static int pageId;
 
     @BeforeAll
@@ -31,7 +30,7 @@ class PageFileMetaRepositoryTest extends RepositoryTestBase {
         metaRepo = new PageFileMetaRepository();
         station = stationRepo.create("PageMetaStation");
         account = accountRepo.create("page-meta@test.com", "Page", "Meta");
-        member = stationMemberRepo.create(station.id(), account.id());
+        StationMember member = stationMemberRepo.create(station.id(), account.id());
         var page = pageRepo.create(station.id(), "Meta Page", "meta-page", null, member.id());
         pageId = page.id();
     }

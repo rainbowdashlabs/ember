@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -103,18 +104,9 @@ public class RestrictionRepository {
         var restrictions = findRestrictions(type.table(), type.fkColumn(), entityId);
         if (restrictions.isEmpty()) return Set.of();
 
-        var groupIds = restrictions.stream()
-                .map(Restriction::groupId)
-                .filter(Objects::nonNull)
-                .toList();
-        var tagIds = restrictions.stream()
-                .map(Restriction::tagId)
-                .filter(Objects::nonNull)
-                .toList();
-        var userTypes = restrictions.stream()
-                .map(Restriction::userType)
-                .filter(Objects::nonNull)
-                .toList();
+        var groupIds = nonNullValues(restrictions, Restriction::groupId);
+        var tagIds = nonNullValues(restrictions, Restriction::tagId);
+        var userTypes = nonNullValues(restrictions, Restriction::userType);
         var memberIds = restrictions.stream()
                 .map(Restriction::memberId)
                 .filter(Objects::nonNull)
@@ -141,6 +133,15 @@ public class RestrictionRepository {
                 .forEach(m -> memberIds.add(m.id()));
 
         return memberIds;
+    }
+
+    /**
+     * Collects the non-null results of applying an extractor to each restriction.
+     *
+     * @param extractor selects a nullable value from a restriction
+     */
+    private static <R> List<R> nonNullValues(List<Restriction> restrictions, Function<Restriction, R> extractor) {
+        return restrictions.stream().map(extractor).filter(Objects::nonNull).toList();
     }
 
     /**

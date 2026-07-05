@@ -62,8 +62,10 @@ public class MemberGroupService {
 
     public Optional<MemberGroup> update(int id, String name, String color, int position) {
         if (groupRepository.update(id, name, color, position)) {
+            log.info("Group updated: id={}, name='{}'", id, name);
             return groupRepository.findById(id);
         }
+        log.warn("Group update affected no rows: id={}", id);
         return Optional.empty();
     }
 
@@ -88,9 +90,11 @@ public class MemberGroupService {
                 new HashSet<>(currentMembers.stream().map(StationMember::id).toList());
 
         var addedMemberIds = new ArrayList<Integer>();
+        int removedCount = 0;
         for (int memberId : currentMemberIdSet) {
             if (!desiredMemberIds.contains(memberId)) {
                 groupRepository.removeMember(groupId, memberId);
+                removedCount++;
             }
         }
         for (int memberId : desiredMemberIds) {
@@ -99,6 +103,13 @@ public class MemberGroupService {
                 addedMemberIds.add(memberId);
             }
         }
+
+        log.info(
+                "Group membership updated: group={}, added={}, removed={}, by={}",
+                groupId,
+                addedMemberIds.size(),
+                removedCount,
+                addedByMemberId);
 
         if (!addedMemberIds.isEmpty()) {
             findById(groupId)

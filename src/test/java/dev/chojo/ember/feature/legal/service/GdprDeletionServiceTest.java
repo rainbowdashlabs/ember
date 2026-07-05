@@ -30,7 +30,6 @@ import static org.junit.jupiter.api.Assertions.*;
 class GdprDeletionServiceTest extends RepositoryTestBase {
     private static GdprDeletionService service;
     private static Station station;
-    private static Account account;
     private static StationMember member;
 
     @BeforeAll
@@ -40,7 +39,7 @@ class GdprDeletionServiceTest extends RepositoryTestBase {
         var avatars = new AvatarService(new ImageVariantService(storage));
         service = new GdprDeletionService(accountRepo, stationMemberRepo, avatars);
         station = stationRepo.create("GdprStation");
-        account = accountRepo.create("gdpr-del@test.com", "Delete", "Me");
+        Account account = accountRepo.create("gdpr-del@test.com", "Delete", "Me");
         accountRepo.createCredential(account.id(), "hash");
         member = stationMemberRepo.create(station.id(), account.id());
 

@@ -38,6 +38,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Set;
 
+import static dev.chojo.ember.api.RouteSupport.pathInt;
+
 /**
  * HTTP routes for managing lost and found items. Provides endpoints for listing, creating,
  * claiming, uploading images, marking as provided, and deleting items. Regular users see
@@ -132,7 +134,7 @@ public class LostAndFoundRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = LostAndFoundItemResponse.class)))
     private void getById(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var item = lostAndFoundService.findById(id).orElseThrow(() -> new NotFoundResponse("Item not found"));
         ctx.json(toResponse(item));
     }
@@ -146,7 +148,7 @@ public class LostAndFoundRoutes implements Routes {
             responses = @OpenApiResponse(status = "200"))
     private void getImage(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(0);
         imageService
                 .read(session.stationId(), id, size)
@@ -170,7 +172,7 @@ public class LostAndFoundRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void uploadImage(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var file = ctx.uploadedFile("image");
         if (file == null) {
             throw new BadRequestResponse("No file uploaded");
@@ -201,7 +203,7 @@ public class LostAndFoundRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void claim(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var request = ctx.bodyAsClass(ClaimRequest.class);
 
         int claimMemberId;
@@ -231,7 +233,7 @@ public class LostAndFoundRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "204"))
     private void provided(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var item = lostAndFoundService.findById(id).orElseThrow(() -> new NotFoundResponse("Item not found"));
         if (item.claimedBy() == null) {
             throw new BadRequestResponse("Item has not been claimed yet");
@@ -249,7 +251,7 @@ public class LostAndFoundRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void delete(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         lostAndFoundService.delete(id);
         imageService.delete(session.stationId(), id);
         ctx.status(HttpStatus.NO_CONTENT);

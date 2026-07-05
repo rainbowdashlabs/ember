@@ -11,7 +11,6 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.conf.file.elements.Api;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
 import dev.chojo.ember.feature.board.entity.BoardComment;
 import dev.chojo.ember.feature.board.entity.BoardFieldValue;
@@ -30,15 +29,10 @@ import dev.chojo.ember.feature.board.entity.BoardWeblink;
 import dev.chojo.ember.feature.board.entity.LinkType;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.board.entity.TicketSummary;
-import dev.chojo.ember.feature.board.repository.FederatedBoardRepository;
 import dev.chojo.ember.feature.board.service.BoardService;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
-import dev.chojo.ember.feature.events.repository.EventFederationRepository;
-import dev.chojo.ember.feature.federation.repository.FederationRepository;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.SafeContentDisposition;
 import dev.chojo.ember.util.SafeInlineMime;
 import io.javalin.http.BadRequestResponse;
@@ -64,6 +58,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
+import static dev.chojo.ember.api.RouteSupport.pathInt;
+
 @SuppressWarnings("DefaultAnnotationParam")
 @Singleton
 public class BoardTicketRoutes implements Routes {
@@ -77,12 +73,6 @@ public class BoardTicketRoutes implements Routes {
     public BoardTicketRoutes(
             BoardTicketService ticketService,
             BoardService boardService,
-            FederatedBoardRepository federatedBoardRepository,
-            EventFederationRepository eventFederationRepository,
-            FederationRepository federationRepository,
-            StationRepository stationRepository,
-            StationMemberRepository stationMemberRepository,
-            AccountRepository accountRepository,
             MemberNameResolver memberNameResolver,
             MemberIdentityFactory memberIdentityFactory,
             Api apiConfig) {
@@ -181,6 +171,18 @@ public class BoardTicketRoutes implements Routes {
                 .findByBoardAndNumber(boardId, ticketNumber)
                 .orElseThrow(() -> new NotFoundResponse("Ticket not found: " + ticketNumber))
                 .id();
+    }
+
+    private int requireOwnedComment(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int boardId = resolveBoardId(ctx, session.stationId());
+        requireEditAccess(boardId, session);
+        int ticketId = resolveTicketId(ctx, boardId);
+        int commentId = pathInt(ctx, "commentId");
+        if (ticketService.findComments(ticketId).stream().noneMatch(c -> c.id() == commentId)) {
+            throw new NotFoundResponse();
+        }
+        return commentId;
     }
 
     private void requireEditAccess(int boardId, UserSession session) {
@@ -699,14 +701,7 @@ public class BoardTicketRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CommentRequest.class)),
             responses = @OpenApiResponse(status = "200"))
     private void updateComment(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        int boardId = resolveBoardId(ctx, session.stationId());
-        requireEditAccess(boardId, session);
-        int ticketId = resolveTicketId(ctx, boardId);
-        int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
-        if (ticketService.findComments(ticketId).stream().noneMatch(c -> c.id() == commentId)) {
-            throw new NotFoundResponse();
-        }
+        int commentId = requireOwnedComment(ctx);
         var req = ctx.bodyAsClass(CommentRequest.class);
         ticketService.updateComment(commentId, req.content());
         ctx.status(HttpStatus.OK);
@@ -724,15 +719,7 @@ public class BoardTicketRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "204"))
     private void deleteComment(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        int boardId = resolveBoardId(ctx, session.stationId());
-        requireEditAccess(boardId, session);
-        int ticketId = resolveTicketId(ctx, boardId);
-        int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
-        if (ticketService.findComments(ticketId).stream().noneMatch(c -> c.id() == commentId)) {
-            throw new NotFoundResponse();
-        }
-        ticketService.deleteComment(commentId);
+        ticketService.deleteComment(requireOwnedComment(ctx));
         ctx.status(HttpStatus.NO_CONTENT);
     }
 

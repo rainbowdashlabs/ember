@@ -25,6 +25,8 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import static dev.chojo.ember.api.RouteSupport.pathInt;
+
 /**
  * Routes for saving and managing member list filter presets per user.
  */
@@ -89,7 +91,7 @@ public class SavedFilterRoutes implements Routes {
             responses = {@OpenApiResponse(status = "204"), @OpenApiResponse(status = "404")})
     private void delete(Context ctx) {
         var session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         if (repository.delete(id, session.accountId())) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {

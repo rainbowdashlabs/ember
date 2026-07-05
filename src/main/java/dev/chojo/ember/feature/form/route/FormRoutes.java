@@ -10,7 +10,6 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormAnswerValue;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
@@ -25,8 +24,6 @@ import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.FormResponseE
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler.ResponseDetailDto;
 import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import io.javalin.http.BadRequestResponse;
@@ -57,6 +54,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import static dev.chojo.ember.api.RouteSupport.pathInt;
+
 /**
  * HTTP route handlers for form management, including CRUD operations, question management,
  * access restrictions, response submission, and analytics. Requires {@code POLL_MANAGER} role
@@ -66,24 +65,15 @@ import java.util.stream.Collectors;
 public class FormRoutes implements Routes {
     private final FormService formService;
     private final StationMemberService stationMemberService;
-    private final StationMemberRepository stationMemberRepository;
-    private final AccountRepository accountRepository;
-    private final MemberIdentityFactory memberIdentityFactory;
     private final FormAnalyticsAssembler analyticsAssembler;
 
     @Inject
     public FormRoutes(
             FormService formService,
             StationMemberService stationMemberService,
-            StationMemberRepository stationMemberRepository,
-            AccountRepository accountRepository,
-            MemberIdentityFactory memberIdentityFactory,
             FormAnalyticsAssembler analyticsAssembler) {
         this.formService = formService;
         this.stationMemberService = stationMemberService;
-        this.stationMemberRepository = stationMemberRepository;
-        this.accountRepository = accountRepository;
-        this.memberIdentityFactory = memberIdentityFactory;
         this.analyticsAssembler = analyticsAssembler;
     }
 
@@ -323,7 +313,7 @@ public class FormRoutes implements Routes {
             })
     private void get(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         ctx.json(requireOwnedForm(id, session));
     }
 
@@ -339,12 +329,8 @@ public class FormRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void update(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        UserSession session = UserSession.from(ctx);
-        var form = formService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (form.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        int id = pathInt(ctx, "id");
+        requireOwnedForm(id, UserSession.from(ctx));
         var req = ctx.bodyAsClass(FormRequest.class);
         if (!formService.update(
                 id,
@@ -373,12 +359,8 @@ public class FormRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void delete(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        UserSession session = UserSession.from(ctx);
-        var form = formService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (form.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        int id = pathInt(ctx, "id");
+        requireOwnedForm(id, UserSession.from(ctx));
         if (formService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -397,12 +379,8 @@ public class FormRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void publish(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var form = formService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (form.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        int id = pathInt(ctx, "id");
+        var form = requireOwnedForm(id, UserSession.from(ctx));
         if (form.status() != Form.FormStatus.DRAFT) throw new BadRequestResponse("Form is not in DRAFT status");
         formService.publish(id);
 
@@ -422,12 +400,8 @@ public class FormRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void close(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        UserSession session = UserSession.from(ctx);
-        var form = formService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (form.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        int id = pathInt(ctx, "id");
+        requireOwnedForm(id, UserSession.from(ctx));
         if (!formService.close(id)) throw new NotFoundResponse();
         formService.findById(id).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
@@ -445,7 +419,7 @@ public class FormRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormQuestion[].class)))
     private void listQuestions(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         requireOwnedForm(id, session);
         ctx.json(formService.findQuestions(id));
     }
@@ -459,12 +433,8 @@ public class FormRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = QuestionRequest[].class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormQuestion[].class)))
     private void setQuestions(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        UserSession session = UserSession.from(ctx);
-        var form = formService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (form.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        int id = pathInt(ctx, "id");
+        var form = requireOwnedForm(id, UserSession.from(ctx));
         var questions = ctx.bodyAsClass(QuestionRequest[].class);
         var disallowed = Arrays.stream(questions)
                 .map(QuestionRequest::questionType)
@@ -500,7 +470,7 @@ public class FormRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormRestrictions.class)))
     private void getRestrictions(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         requireOwnedForm(id, session);
         var restrictions = formService.findRestrictions(id);
         ctx.json(new FormRestrictions(
@@ -520,12 +490,8 @@ public class FormRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FormRestrictions.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormRestrictions.class)))
     private void setRestrictions(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        UserSession session = UserSession.from(ctx);
-        var form = formService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (form.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        int id = pathInt(ctx, "id");
+        requireOwnedForm(id, UserSession.from(ctx));
         var req = ctx.bodyAsClass(FormRestrictions.class);
         formService.setRestrictions(
                 id,
@@ -549,7 +515,7 @@ public class FormRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ResponseDetailDto.class)))
     private void getMyResponse(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
         if (session.member() == null) throw new BadRequestResponse("Not a station member");
         requireOwnedForm(id, session);
@@ -569,7 +535,7 @@ public class FormRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EligibleMembers.class)))
     private void getEligibleMembers(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
         if (session.member() == null) {
             ctx.json(new EligibleMembers(false, List.of()));
@@ -597,7 +563,7 @@ public class FormRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void submitResponse(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
         if (session.member() == null) throw new BadRequestResponse("Not a station member");
         var form = requireOwnedForm(id, session);
@@ -627,7 +593,7 @@ public class FormRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void updateResponse(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
         if (session.member() == null) throw new BadRequestResponse("Not a station member");
         var form = requireOwnedForm(id, session);
@@ -660,24 +626,7 @@ public class FormRoutes implements Routes {
                 @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void submitForMember(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
-        UserSession session = UserSession.from(ctx);
-        if (session.member() == null) throw new BadRequestResponse("Not a station member");
-        verifyManages(session, memberId);
-        var form = requireOwnedForm(id, session);
-        if (!formService.isAcceptingResponses(form)) throw new BadRequestResponse("Form is not accepting responses");
-        if (!formService.canMemberAccess(id, memberId)) {
-            throw new ForbiddenResponse("The member does not have access to this form");
-        }
-        var req = ctx.bodyAsClass(SubmitRequest.class);
-        try {
-            var response =
-                    formService.submitResponse(id, memberId, session.member().id(), req.answers());
-            ctx.status(HttpStatus.CREATED).json(response);
-        } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse(e.getMessage());
-        }
+        respondForMember(ctx, true);
     }
 
     @OpenApi(
@@ -695,13 +644,32 @@ public class FormRoutes implements Routes {
                 @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void updateForMember(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        respondForMember(ctx, false);
+    }
+
+    /**
+     * Shared handler for submitting or updating a managed member's response. Verifies station
+     * membership, that the caller manages the target member, and that the form belongs to the
+     * caller's station before delegating to the form service. When {@code creating} is true the
+     * form must be accepting responses and a {@code 201} is returned; otherwise the form must
+     * allow editing and a {@code 200} is returned.
+     *
+     * @param creating whether this is an initial submission ({@code true}) or an edit ({@code false})
+     */
+    private void respondForMember(Context ctx, boolean creating) {
+        int id = pathInt(ctx, "id");
+        int memberId = pathInt(ctx, "memberId");
         UserSession session = UserSession.from(ctx);
         if (session.member() == null) throw new BadRequestResponse("Not a station member");
         verifyManages(session, memberId);
         var form = requireOwnedForm(id, session);
-        if (!form.allowEdit()) throw new BadRequestResponse("Form does not allow editing");
+        if (creating) {
+            if (!formService.isAcceptingResponses(form)) {
+                throw new BadRequestResponse("Form is not accepting responses");
+            }
+        } else if (!form.allowEdit()) {
+            throw new BadRequestResponse("Form does not allow editing");
+        }
         if (!formService.canMemberAccess(id, memberId)) {
             throw new ForbiddenResponse("The member does not have access to this form");
         }
@@ -709,7 +677,11 @@ public class FormRoutes implements Routes {
         try {
             var response =
                     formService.submitResponse(id, memberId, session.member().id(), req.answers());
-            ctx.json(response);
+            if (creating) {
+                ctx.status(HttpStatus.CREATED).json(response);
+            } else {
+                ctx.json(response);
+            }
         } catch (IllegalArgumentException e) {
             throw new BadRequestResponse(e.getMessage());
         }
@@ -741,7 +713,7 @@ public class FormRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormAnalyticsDto.class)))
     private void getAnalytics(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         requireOwnedForm(id, session);
         ctx.json(analyticsAssembler.buildAnalytics(id));
     }
@@ -756,7 +728,7 @@ public class FormRoutes implements Routes {
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = FormResponseEntryDto[].class)))
     private void listResponses(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         requireOwnedForm(id, session);
         ctx.json(analyticsAssembler.listResponses(id));
     }
@@ -773,8 +745,8 @@ public class FormRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ResponseDetailDto.class)))
     private void getResponseDetail(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int formId = ctx.pathParamAsClass("id", Integer.class).get();
-        int responseId = ctx.pathParamAsClass("responseId", Integer.class).get();
+        int formId = pathInt(ctx, "id");
+        int responseId = pathInt(ctx, "responseId");
         requireOwnedForm(formId, session);
         ctx.json(analyticsAssembler.getResponseDetail(formId, responseId));
     }

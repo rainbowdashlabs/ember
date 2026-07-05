@@ -257,6 +257,7 @@ public class StationImportService {
         var idMap = new IdRemapper();
         seedStationRemap(idMap, stationData, stationId);
         int total = 1 + runImport(stationId, bundle, idMap);
+        log.info("Station import complete: created station id={} ('{}'), {} rows imported", stationId, name, total);
         return new ImportResult(stationId, name, total);
     }
 
@@ -267,7 +268,7 @@ public class StationImportService {
      * applied (timezone, locale, themes, public toggles); all other TRACKED tables are inserted
      * alongside the station's existing data.
      */
-    public ImportResult importStationInto(int targetStationId, Map<String, Object> bundle) {
+    public void importStationInto(int targetStationId, Map<String, Object> bundle) {
         Map<String, Object> stationData = asMap(bundle.get("station"));
         if (stationData != null) applyStationFields(targetStationId, stationData);
         String name =
@@ -275,7 +276,8 @@ public class StationImportService {
         var idMap = new IdRemapper();
         seedStationRemap(idMap, stationData, targetStationId);
         int total = runImport(targetStationId, bundle, idMap);
-        return new ImportResult(targetStationId, name, total);
+        log.info("Station import-into complete: station={}, {} rows merged", targetStationId, total);
+        new ImportResult(targetStationId, name, total);
     }
 
     /**
@@ -334,7 +336,7 @@ public class StationImportService {
     /**
      * Pulls a station bundle from a remote Ember instance and merges it INTO an existing station.
      */
-    public ImportResult startRemoteImportInto(int stationId, String sourceUrl, String token) {
+    public void startRemoteImportInto(int stationId, String sourceUrl, String token) {
         String baseUrl = sourceUrl.replaceAll("/+$", "");
         validateImportSource(baseUrl);
         log.info("start remote-import-into-station {} from source {}", stationId, baseUrl);
@@ -352,7 +354,7 @@ public class StationImportService {
         var progress = new ImportProgress(stationId, target.uid(), target.name(), buildPhases(), baseUrl, token);
         activeImports.put(stationId, progress);
         importExecutor.submit(() -> runRemoteImport(stationId, baseUrl, token, httpClient, mapper, progress));
-        return new ImportResult(stationId, target.name(), 0);
+        new ImportResult(stationId, target.name(), 0);
     }
 
     /**
@@ -517,21 +519,7 @@ public class StationImportService {
      * back to manual reconfiguration if this call is lost.
      */
     private void notifySourceOfComplete(String baseUrl, String token, HttpClient httpClient) {
-        try {
-            var uri = URI.create(baseUrl + "/api/v1/public/transfer/" + token + "/complete");
-            var builder = HttpRequest.newBuilder()
-                    .uri(uri)
-                    .POST(HttpRequest.BodyPublishers.noBody())
-                    .timeout(Duration.ofSeconds(30));
-            String ourUrl = api.baseUrl();
-            if (ourUrl != null && !ourUrl.isBlank()) {
-                builder.header("X-Ember-Importing-From", ourUrl);
-            }
-            var response = sendThrottled(httpClient, builder.build(), HttpResponse.BodyHandlers.discarding());
-            log.info("notified source of completion: HTTP {}", response.statusCode());
-        } catch (Exception e) {
-            log.warn("could not notify source of completion: {}", e.getMessage());
-        }
+        postTransferSignal(baseUrl, token, httpClient, "complete", "completion");
     }
 
     /**
@@ -541,8 +529,20 @@ public class StationImportService {
      * is the safety net.
      */
     private void notifySourceOfAbort(String baseUrl, String token, HttpClient httpClient) {
+        postTransferSignal(baseUrl, token, httpClient, "abort", "abort");
+    }
+
+    /**
+     * Best-effort token-authenticated POST to one of the source's transfer signalling endpoints.
+     * Any failure is logged and swallowed.
+     *
+     * @param pathSegment the endpoint suffix under {@code /transfer/{token}/}
+     * @param label       the human-readable action name used in log lines
+     */
+    private void postTransferSignal(
+            String baseUrl, String token, HttpClient httpClient, String pathSegment, String label) {
         try {
-            var uri = URI.create(baseUrl + "/api/v1/public/transfer/" + token + "/abort");
+            var uri = URI.create(baseUrl + "/api/v1/public/transfer/" + token + "/" + pathSegment);
             var builder = HttpRequest.newBuilder()
                     .uri(uri)
                     .POST(HttpRequest.BodyPublishers.noBody())
@@ -552,9 +552,9 @@ public class StationImportService {
                 builder.header("X-Ember-Importing-From", ourUrl);
             }
             var response = sendThrottled(httpClient, builder.build(), HttpResponse.BodyHandlers.discarding());
-            log.info("notified source of abort: HTTP {}", response.statusCode());
+            log.info("notified source of {}: HTTP {}", label, response.statusCode());
         } catch (Exception e) {
-            log.warn("could not notify source of abort: {}", e.getMessage());
+            log.warn("could not notify source of {}: {}", label, e.getMessage());
         }
     }
 
@@ -787,7 +787,6 @@ public class StationImportService {
         log.info("Avatar carry-over: imported {} (skipped {})", copied, skipped);
     }
 
-    @SuppressWarnings("unchecked")
     private TransferBackendDescriptor fetchBackendDescriptor(
             HttpClient httpClient, ObjectMapper mapper, String baseUrl, String token) {
         var uri = URI.create(baseUrl + "/api/v1/public/transfer/" + token + "/backend");
@@ -1240,10 +1239,6 @@ public class StationImportService {
 
         public List<String> phases() {
             return phases;
-        }
-
-        public int totalPhases() {
-            return phases.size();
         }
 
         public int completedPhases() {
