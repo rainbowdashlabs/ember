@@ -71,6 +71,15 @@ public enum StorageCategory {
             false,
             false,
             null),
+    IMAGE_STATION_LOGO(
+            "images/logos",
+            StorageScope.Kind.STATION,
+            true,
+            QuotaMode.UNTRACKED,
+            List.of("image/png", "image/jpeg", "image/webp", "image/gif"),
+            false,
+            false,
+            null),
     IMAGE_QUIZ_QUESTION(
             "images/quiz-questions",
             StorageScope.Kind.STATION,

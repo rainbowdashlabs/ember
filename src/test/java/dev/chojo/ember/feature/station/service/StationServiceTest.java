@@ -21,7 +21,6 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Set;
 import java.util.UUID;
 
@@ -123,30 +122,6 @@ class StationServiceTest extends RepositoryTestBase {
     @Order(17)
     void updateThemeSettings() {
         assertDoesNotThrow(() -> service.updateThemeSettings(stationId, "ember", true, "{}", ThemeFeel.ROUNDED, false));
-    }
-
-    @Test
-    @Order(20)
-    void setLogoAndGet() {
-        byte[] data = "fake-image-data".getBytes(StandardCharsets.UTF_8);
-        assertDoesNotThrow(() -> service.setLogo(stationId, data, "image/png"));
-        var logo = service.getLogo(stationId);
-        assertTrue(logo.isPresent());
-        assertEquals("image/png", logo.get().contentType());
-    }
-
-    @Test
-    @Order(21)
-    void setLogoTooLarge() {
-        byte[] tooLarge = new byte[3 * 1024 * 1024]; // 3 MB
-        assertThrows(BadRequestResponse.class, () -> service.setLogo(stationId, tooLarge, "image/png"));
-    }
-
-    @Test
-    @Order(22)
-    void deleteLogo() {
-        assertDoesNotThrow(() -> service.deleteLogo(stationId));
-        assertTrue(service.getLogo(stationId).isEmpty());
     }
 
     @Test

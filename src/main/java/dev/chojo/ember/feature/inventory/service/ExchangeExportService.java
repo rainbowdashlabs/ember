@@ -11,11 +11,12 @@ import dev.chojo.ember.feature.inventory.entity.ExchangeRequest;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.repository.ExchangeRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
+import dev.chojo.ember.feature.media.service.ImageVariantService.ImageData;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
+import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.util.TypstCompiler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -54,6 +55,7 @@ public class ExchangeExportService {
     private final AccountRepository accountRepository;
     private final StationRepository stationRepository;
     private final ProfileFieldRepository profileFieldRepository;
+    private final StationLogoService logoService;
     private final Api apiConfig;
 
     @Inject
@@ -64,6 +66,7 @@ public class ExchangeExportService {
             AccountRepository accountRepository,
             StationRepository stationRepository,
             ProfileFieldRepository profileFieldRepository,
+            StationLogoService logoService,
             Api apiConfig) {
         this.exchangeRepository = exchangeRepository;
         this.inventoryRepository = inventoryRepository;
@@ -71,6 +74,7 @@ public class ExchangeExportService {
         this.accountRepository = accountRepository;
         this.stationRepository = stationRepository;
         this.profileFieldRepository = profileFieldRepository;
+        this.logoService = logoService;
         this.apiConfig = apiConfig;
     }
 
@@ -202,7 +206,7 @@ public class ExchangeExportService {
         data.put("rows", rows);
 
         // Render
-        StationLogo logo = stationRepository.findLogo(stationId).orElse(null);
+        var logo = logoService.original(stationId).orElse(null);
         try {
             return Optional.of(renderPdf(data, locale + "/exchange-export.typ", logo));
         } catch (Exception e) {
@@ -236,7 +240,7 @@ public class ExchangeExportService {
         return ZoneOffset.UTC;
     }
 
-    private byte[] renderPdf(Map<String, Object> data, String templateName, StationLogo logo)
+    private byte[] renderPdf(Map<String, Object> data, String templateName, ImageData logo)
             throws IOException, InterruptedException {
         return TypstCompiler.compileTemplate(
                 data,

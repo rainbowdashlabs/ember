@@ -65,10 +65,10 @@ async function loadAvatar() {
 
 function resolveUrl(): string | null {
   if (props.identity?.accountUid) {
-    return `/accounts/${props.identity.accountUid}/avatar?size=128`
+    return `/accounts/${props.identity.accountUid}/avatar?size=64`
   }
   if (props.identity?.memberUid && props.identity?.stationUid) {
-    return `/members/${props.identity.stationUid}/${props.identity.memberUid}/avatar?size=128`
+    return `/members/${props.identity.stationUid}/${props.identity.memberUid}/avatar?size=64`
   }
   return null
 }

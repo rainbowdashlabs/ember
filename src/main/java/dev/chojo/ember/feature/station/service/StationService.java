@@ -21,7 +21,6 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
 import dev.chojo.ember.util.SlugGenerator;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
@@ -30,27 +29,23 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Service for station management including CRUD, logo handling, manager assignment,
- * ownership transfer, and module configuration.
+ * Service for station management including CRUD, manager assignment, ownership transfer,
+ * and module configuration.
  */
 @Singleton
 public class StationService {
     private static final Logger log = LoggerFactory.getLogger(StationService.class);
-    private static final long MAX_LOGO_SIZE = 2 * 1024 * 1024; // 2 MB
 
     private final StationRepository stationRepository;
     private final StationMemberRepository memberRepository;
     private final AccountRepository accountRepository;
     private final AuthService authService;
     private final FederationService federationService;
-    private final Map<Integer, Optional<StationLogo>> logoCache = new ConcurrentHashMap<>();
 
     @Inject
     public StationService(
@@ -234,44 +229,6 @@ public class StationService {
             }
         }
         return Optional.empty();
-    }
-
-    /**
-     * Retrieves the logo for a station, using an in-memory cache.
-     *
-     * @param stationId the station ID
-     * @return the logo, or empty if no logo is set
-     */
-    public Optional<StationLogo> getLogo(int stationId) {
-        return logoCache.computeIfAbsent(stationId, stationRepository::findLogo);
-    }
-
-    /**
-     * Sets the logo for a station.
-     *
-     * @param stationId   the station ID
-     * @param data        the logo image data
-     * @param contentType the MIME content type of the logo
-     * @throws IllegalArgumentException if the data exceeds the maximum size
-     */
-    public void setLogo(int stationId, byte[] data, String contentType) {
-        if (data.length > MAX_LOGO_SIZE) {
-            throw new BadRequestResponse("Logo exceeds maximum size of 2 MB");
-        }
-        stationRepository.updateLogo(stationId, data, contentType);
-        logoCache.put(stationId, Optional.of(new StationLogo(data, contentType)));
-    }
-
-    // -- Logo --
-
-    /**
-     * Removes the logo from a station and clears the cache.
-     *
-     * @param stationId the station ID
-     */
-    public void deleteLogo(int stationId) {
-        stationRepository.deleteLogo(stationId);
-        logoCache.put(stationId, Optional.empty());
     }
 
     /**

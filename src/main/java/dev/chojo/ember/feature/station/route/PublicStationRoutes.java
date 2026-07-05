@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.feature.waitinglist.service.WaitingListService;
 import io.javalin.http.Context;
@@ -32,6 +33,7 @@ import java.util.UUID;
 public class PublicStationRoutes implements Routes {
     private final StationRepository stationRepository;
     private final StationService stationService;
+    private final StationLogoService logoService;
     private final PageService pageService;
     private final WaitingListService waitingListService;
     private final NewsService newsService;
@@ -40,11 +42,13 @@ public class PublicStationRoutes implements Routes {
     public PublicStationRoutes(
             StationRepository stationRepository,
             StationService stationService,
+            StationLogoService logoService,
             PageService pageService,
             WaitingListService waitingListService,
             NewsService newsService) {
         this.stationRepository = stationRepository;
         this.stationService = stationService;
+        this.logoService = logoService;
         this.pageService = pageService;
         this.waitingListService = waitingListService;
         this.newsService = newsService;
@@ -80,7 +84,7 @@ public class PublicStationRoutes implements Routes {
             throw new NotFoundResponse();
         }
 
-        boolean hasLogo = stationService.getLogo(station.id()).isPresent();
+        boolean hasLogo = logoService.exists(station.id());
         String landingPageSlug =
                 hasPublicPages ? pageService.getLandingPageSlug(station.id()).orElse(null) : null;
 

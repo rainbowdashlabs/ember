@@ -48,7 +48,7 @@ export function useStations() {
     }
 
     async function fetchLogo(stationId: string): Promise<string | null> {
-        const res = await client.get(`/stations/${stationId}/logo`, {
+        const res = await client.get(`/stations/${stationId}/logo?size=256`, {
             responseType: 'blob',
             validateStatus: (status) => status === 200 || status === 404,
         })

@@ -227,7 +227,11 @@ class DemoServiceTest extends RepositoryTestBase {
         var quizSeeder = new DemoQuizSeeder(quizCatalogRepo, quizTestRepo, quizService, quizImageService);
         var kbSeeder = new DemoKnowledgeBaseSeeder(kbService, knowledgeBaseRepo);
         var protocolSeeder = new DemoProtocolSeeder(testProtocolRepo);
-        var mediaSeeder = new DemoMediaSeeder(avatarService, stationService, accountRepo);
+        var mediaSeeder = new DemoMediaSeeder(
+                avatarService,
+                stationService,
+                mock(dev.chojo.ember.feature.station.service.StationLogoService.class),
+                accountRepo);
         var federationSeeder = new DemoFederationSeeder(
                 stationRepo,
                 federationService,

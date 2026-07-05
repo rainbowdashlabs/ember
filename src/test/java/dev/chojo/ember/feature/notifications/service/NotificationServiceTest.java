@@ -57,6 +57,7 @@ class NotificationServiceTest extends RepositoryTestBase {
                 notificationSettingsRepo,
                 accountRepo,
                 stationRepo,
+                mock(dev.chojo.ember.feature.station.service.StationLogoService.class),
                 emailService,
                 mailing);
 
@@ -326,6 +327,7 @@ class NotificationServiceTest extends RepositoryTestBase {
                 notificationSettingsRepo,
                 accountRepo,
                 stationRepo,
+                mock(dev.chojo.ember.feature.station.service.StationLogoService.class),
                 emailServiceMock,
                 mailing);
 
@@ -365,6 +367,7 @@ class NotificationServiceTest extends RepositoryTestBase {
                 notificationSettingsRepo,
                 accountRepo,
                 stationRepo,
+                mock(dev.chojo.ember.feature.station.service.StationLogoService.class),
                 emailServiceMock,
                 mailing);
 
@@ -517,6 +520,7 @@ class NotificationServiceTest extends RepositoryTestBase {
                 notificationSettingsRepo,
                 accountRepo,
                 stationRepo,
+                mock(dev.chojo.ember.feature.station.service.StationLogoService.class),
                 emailServiceMock,
                 mailing);
 
@@ -552,6 +556,7 @@ class NotificationServiceTest extends RepositoryTestBase {
                 notificationSettingsRepo,
                 accountRepo,
                 stationRepo,
+                mock(dev.chojo.ember.feature.station.service.StationLogoService.class),
                 emailServiceMock,
                 mailing);
 
