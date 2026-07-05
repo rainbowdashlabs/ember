@@ -638,13 +638,22 @@ public class NewsRoutes implements Routes {
         ctx.json(newsList);
     }
 
-    private void remoteGetNews(Context ctx) {
-        var partner = requireFederationPartner(ctx);
-        int newsId = ctx.pathParamAsClass("newsId", Integer.class).get();
+    /**
+     * Confirms the partner is allowed to see the given news item, i.e. it is in the
+     * set this station shares with that partner. Guards every {@code /remote/news}
+     * read/write so a partner cannot address never-federated news by enumerating ids.
+     */
+    private void requireSharedNews(FederationPartner partner, int newsId) {
         var newsIds = newsFederationService.findSharedNewsIds(partner.id(), partner.stationId());
         if (!newsIds.contains(newsId)) {
             throw new NotFoundResponse();
         }
+    }
+
+    private void remoteGetNews(Context ctx) {
+        var partner = requireFederationPartner(ctx);
+        int newsId = ctx.pathParamAsClass("newsId", Integer.class).get();
+        requireSharedNews(partner, newsId);
         var news = newsService.findById(newsId).orElseThrow(NotFoundResponse::new);
         var authorResolved = news.author() != null ? memberNameResolver.resolveDisplay(news.author()) : null;
         String authorName = authorResolved != null && authorResolved.name() != null ? authorResolved.name() : "";
@@ -662,8 +671,9 @@ public class NewsRoutes implements Routes {
     }
 
     private void remoteListComments(Context ctx) {
-        requireFederationPartner(ctx);
+        var partner = requireFederationPartner(ctx);
         int newsId = ctx.pathParamAsClass("newsId", Integer.class).get();
+        requireSharedNews(partner, newsId);
         var comments = newsService.findComments(newsId);
         ctx.json(comments.stream().map(this::toCommentResponse).toList());
     }
@@ -671,6 +681,7 @@ public class NewsRoutes implements Routes {
     private void remoteCreateComment(Context ctx) {
         var partner = requireFederationPartner(ctx);
         int newsId = ctx.pathParamAsClass("newsId", Integer.class).get();
+        requireSharedNews(partner, newsId);
         var req = ctx.bodyAsClass(RemoteNewsCommentRequest.class);
         if (req.content() == null || req.content().isBlank()) {
             throw new BadRequestResponse("content is required");

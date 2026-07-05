@@ -1686,9 +1686,11 @@ public class EventRoutes implements Routes {
     }
 
     private void remoteListMemberRegistrations(Context ctx) {
-        requireFederationPartner(ctx);
+        var partner = requireFederationPartner(ctx);
         var memberUid = UUID.fromString(ctx.pathParam("memberUid"));
-        var registrations = eventFederationService.findRegistrationsByRemoteMember(memberUid);
+        var registrations = eventFederationService.findRegistrationsByRemoteMember(memberUid).stream()
+                .filter(r -> r.partnerId() == partner.id())
+                .toList();
         ctx.json(registrations.stream()
                 .map(r -> new RemoteMemberRegistration(
                         r.eventId(),
@@ -1719,6 +1721,19 @@ public class EventRoutes implements Routes {
         return session.partner();
     }
 
+    /**
+     * Confirms the partner is allowed to see the given event, i.e. it is in the set
+     * this station shares with that partner. Guards every {@code /remote/events}
+     * read/write so a partner cannot address never-federated events by enumerating
+     * ids.
+     */
+    private void requireSharedEvent(FederationPartner partner, int eventId) {
+        var eventIds = eventFederationService.findSharedEventIds(partner.id(), partner.stationId());
+        if (!eventIds.contains(eventId)) {
+            throw new NotFoundResponse();
+        }
+    }
+
     private String partnerStationName(FederationPartner partner) {
         return FederationDisplayNames.partnerName(stationRepository, partner, "?");
     }
@@ -1737,8 +1752,9 @@ public class EventRoutes implements Routes {
     }
 
     private void remoteListComments(Context ctx) {
-        requireFederationPartner(ctx);
+        var partner = requireFederationPartner(ctx);
         int eventId = ctx.pathParamAsClass("eventId", Integer.class).get();
+        requireSharedEvent(partner, eventId);
         ctx.json(eventFederationService.listComments(eventId));
     }
 
@@ -1747,6 +1763,7 @@ public class EventRoutes implements Routes {
     private void remoteCreateComment(Context ctx) {
         var partner = requireFederationPartner(ctx);
         int eventId = ctx.pathParamAsClass("eventId", Integer.class).get();
+        requireSharedEvent(partner, eventId);
         var req = ctx.bodyAsClass(RemoteCommentRequest.class);
         if (req.content() == null || req.content().isBlank()) {
             throw new BadRequestResponse("content is required");
