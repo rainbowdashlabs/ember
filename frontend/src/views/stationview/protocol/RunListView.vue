@@ -20,6 +20,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
+import {type RestrictionSelection, emptyRestriction} from '@/components/input/restriction'
 import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -46,18 +47,15 @@ const showCreateModal = ref(false)
 const newProtocolId = ref<string>('')
 const newName = ref('')
 const newDate = ref(new Date().toISOString().split('T')[0])
-const selectedUserTypes = ref<string[]>([])
-const selectedGroupIds = ref<number[]>([])
-const selectedTagIds = ref<number[]>([])
-const selectedMemberIds = ref<number[]>([])
+const restriction = ref<RestrictionSelection>(emptyRestriction())
 
 const memberOptions = computed(() =>
   members.value.map(m => ({ value: String(m.id), label: m.name || m.email || `#${m.id}` }))
 )
-const selectedMemberValues = computed(() => selectedMemberIds.value.map(String))
+const selectedMemberValues = computed(() => restriction.value.memberIds.map(String))
 
 function onMembersChange(values: string[]) {
-  selectedMemberIds.value = values.map(Number)
+  restriction.value.memberIds = values.map(Number)
 }
 
 const {loading, error, reload: loadData} = useAsyncLoader(async () => {
@@ -83,10 +81,10 @@ async function handleCreate() {
     const run = await protocol.createRun(Number(newProtocolId.value), {
       name: newName.value.trim(),
       testDate: newDate.value,
-      memberIds: selectedMemberIds.value.length > 0 ? selectedMemberIds.value : undefined,
-      userTypes: selectedUserTypes.value.length > 0 ? selectedUserTypes.value : undefined,
-      groupIds: selectedGroupIds.value.length > 0 ? selectedGroupIds.value : undefined,
-      tagIds: selectedTagIds.value.length > 0 ? selectedTagIds.value : undefined,
+      memberIds: restriction.value.memberIds.length > 0 ? restriction.value.memberIds : undefined,
+      userTypes: restriction.value.userTypes.length > 0 ? restriction.value.userTypes : undefined,
+      groupIds: restriction.value.groupIds.length > 0 ? restriction.value.groupIds : undefined,
+      tagIds: restriction.value.tagIds.length > 0 ? restriction.value.tagIds : undefined,
     })
     showCreateModal.value = false
     router.push({ name: 'protocol-run-detail', params: { id: run.id } })
@@ -97,10 +95,7 @@ function resetCreateModal() {
   newProtocolId.value = ''
   newName.value = ''
   newDate.value = new Date().toISOString().split('T')[0]
-  selectedUserTypes.value = []
-  selectedGroupIds.value = []
-  selectedTagIds.value = []
-  selectedMemberIds.value = []
+  restriction.value = emptyRestriction()
 }
 
 watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
@@ -160,9 +155,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
           <RestrictionPicker
             :groups="allGroups"
             :tags="allTags"
-            v-model:selected-user-types="selectedUserTypes"
-            v-model:selected-group-ids="selectedGroupIds"
-            v-model:selected-tag-ids="selectedTagIds"
+            v-model="restriction"
             :show-mode="false"
           />
         </div>

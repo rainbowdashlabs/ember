@@ -11,6 +11,7 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
 import type {MemberGroup, StationMember, UserTag} from '@/api/types'
 import {StationUserType, StationUserTypeLabels} from '@/api/types'
+import type {RestrictionSelection} from '@/components/input/restriction'
 
 const {t} = useI18n()
 
@@ -31,11 +32,16 @@ const props = withDefaults(defineProps<{
   showMode: true,
 })
 
-const selectedUserTypes = defineModel<string[]>('selectedUserTypes', {default: () => []})
-const selectedGroupIds = defineModel<number[]>('selectedGroupIds', {required: true})
-const selectedTagIds = defineModel<number[]>('selectedTagIds', {required: true})
-const selectedMemberIds = defineModel<number[]>('selectedMemberIds', {default: () => []})
-const mode = defineModel<'AND' | 'OR'>('mode', {default: 'AND'})
+const model = defineModel<RestrictionSelection>({required: true})
+
+function patch(part: Partial<RestrictionSelection>) {
+  model.value = {...model.value, ...part}
+}
+
+const mode = computed({
+  get: () => model.value.mode,
+  set: (v: 'AND' | 'OR') => patch({mode: v}),
+})
 
 const userTypeOptions = computed(() =>
     Object.values(StationUserType).map(ut => ({value: ut, label: StationUserTypeLabels[ut] ?? ut}))
@@ -53,35 +59,33 @@ const memberOptions = computed(() =>
     (props.members ?? []).map(m => ({value: String(m.id), label: m.name ?? m.email ?? `#${m.id}`}))
 )
 
-const selectedGroupValues = computed(() => selectedGroupIds.value.map(String))
-const selectedTagValues = computed(() => selectedTagIds.value.map(String))
-const selectedMemberValues = computed(() => selectedMemberIds.value.map(String))
+const selectedGroupValues = computed(() => model.value.groupIds.map(String))
+const selectedTagValues = computed(() => model.value.tagIds.map(String))
+const selectedMemberValues = computed(() => model.value.memberIds.map(String))
 
 function onUserTypesChange(values: string[]) {
-  selectedUserTypes.value = values
+  patch({userTypes: values})
 }
 
 function onGroupsChange(values: string[]) {
-  selectedGroupIds.value = values.map(Number)
+  patch({groupIds: values.map(Number)})
 }
 
 function onTagsChange(values: string[]) {
-  selectedTagIds.value = values.map(Number)
+  patch({tagIds: values.map(Number)})
 }
 
 function onMembersChange(values: string[]) {
-  selectedMemberIds.value = values.map(Number)
+  patch({memberIds: values.map(Number)})
 }
 
 const hasActiveSelection = computed(() =>
-    selectedUserTypes.value.length > 0 || selectedGroupIds.value.length > 0 || selectedTagIds.value.length > 0 || selectedMemberIds.value.length > 0
+    model.value.userTypes.length > 0 || model.value.groupIds.length > 0
+    || model.value.tagIds.length > 0 || model.value.memberIds.length > 0
 )
 
 function reset() {
-  selectedUserTypes.value = []
-  selectedGroupIds.value = []
-  selectedTagIds.value = []
-  selectedMemberIds.value = []
+  patch({userTypes: [], groupIds: [], tagIds: [], memberIds: []})
 }
 </script>
 
@@ -99,7 +103,7 @@ function reset() {
     <MultiSelectDropdown
         v-if="showUserTypes"
         :options="userTypeOptions"
-        :model-value="selectedUserTypes"
+        :model-value="model.userTypes"
         :placeholder="t('restriction.userTypes')"
         @update:model-value="onUserTypesChange"
     />

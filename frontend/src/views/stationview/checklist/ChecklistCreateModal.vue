@@ -15,6 +15,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
+import {type RestrictionSelection, emptyRestriction} from '@/components/input/restriction'
 import type {ChecklistCreateRequest, MemberGroup, StationMember, UserTag} from '@/api/types'
 
 const visible = defineModel<boolean>({required: true})
@@ -35,11 +36,7 @@ const {t} = useI18n()
 const name = ref('')
 const description = ref('')
 const columns = ref<{label: string; description: string}[]>([{label: '', description: ''}])
-const selectedUserTypes = ref<string[]>([])
-const selectedGroupIds = ref<number[]>([])
-const selectedTagIds = ref<number[]>([])
-const selectedMemberIds = ref<number[]>([])
-const mode = ref<'AND' | 'OR'>('AND')
+const restriction = ref<RestrictionSelection>(emptyRestriction())
 
 function addColumn() {
   columns.value.push({label: '', description: ''})
@@ -54,11 +51,7 @@ function reset() {
   name.value = ''
   description.value = ''
   columns.value = [{label: '', description: ''}]
-  selectedUserTypes.value = []
-  selectedGroupIds.value = []
-  selectedTagIds.value = []
-  selectedMemberIds.value = []
-  mode.value = 'AND'
+  restriction.value = emptyRestriction()
 }
 
 function cancel() {
@@ -76,11 +69,11 @@ function submit() {
     description: description.value.trim(),
     columns: cleanColumns,
     restriction: {
-      userTypes: selectedUserTypes.value,
-      groupIds: selectedGroupIds.value,
-      tagIds: selectedTagIds.value,
-      memberIds: selectedMemberIds.value,
-      mode: mode.value,
+      userTypes: restriction.value.userTypes,
+      groupIds: restriction.value.groupIds,
+      tagIds: restriction.value.tagIds,
+      memberIds: restriction.value.memberIds,
+      mode: restriction.value.mode,
     },
   })
 }
@@ -133,11 +126,7 @@ watch(visible, (value, previous) => {
         <FieldLabel>{{ t('checklist.memberSet') }}</FieldLabel>
         <p class="text-xs text-(--text-muted) mb-2">{{ t('checklist.memberSetHelp') }}</p>
         <RestrictionPicker
-            v-model:selected-user-types="selectedUserTypes"
-            v-model:selected-group-ids="selectedGroupIds"
-            v-model:selected-tag-ids="selectedTagIds"
-            v-model:selected-member-ids="selectedMemberIds"
-            v-model:mode="mode"
+            v-model="restriction"
             :groups="groups"
             :tags="tags"
             :members="members"

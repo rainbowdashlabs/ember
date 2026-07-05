@@ -10,6 +10,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, EventFieldEntry, EventTemplate, MemberGroup, StationMember, UserTag} from '@/api/types'
 import type {PartnerResponse} from '@/api/federation'
+import type {RestrictionSelection} from '@/components/input/restriction'
 import EventEditHeader from './EventEditHeader.vue'
 import EventFormCard from './EventFormCard.vue'
 import FederationCard from './FederationCard.vue'
@@ -62,9 +63,7 @@ const minRegistrations = defineModel<number | undefined>('minRegistrations')
 const hasThreshold = defineModel<boolean>('hasThreshold', {required: true})
 const thresholdDate = defineModel<string>('thresholdDate', {required: true})
 const registrationCloseDays = defineModel<number | undefined>('registrationCloseDays')
-const selectedUserTypes = defineModel<string[]>('selectedUserTypes', {required: true})
-const selectedGroupIds = defineModel<number[]>('selectedGroupIds', {required: true})
-const selectedTagIds = defineModel<number[]>('selectedTagIds', {required: true})
+const restriction = defineModel<RestrictionSelection>('restriction', {required: true})
 const fields = defineModel<EventFieldEntry[]>('fields', {required: true})
 const reminders = defineModel<number[]>('reminders', {required: true})
 const federationShared = defineModel<boolean>('federationShared', {required: true})
@@ -101,9 +100,7 @@ const canSubmit = computed(() => !props.saving && !!name.value && !!startTime.va
       v-model:has-threshold="hasThreshold"
       v-model:threshold-date="thresholdDate"
       v-model:registration-close-days="registrationCloseDays"
-      v-model:selected-user-types="selectedUserTypes"
-      v-model:selected-group-ids="selectedGroupIds"
-      v-model:selected-tag-ids="selectedTagIds"
+      v-model:restriction="restriction"
       v-model:fields="fields"
       v-model:reminders="reminders"
       :categories="props.categories"

@@ -16,6 +16,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import QuestionEditor from './builderview/QuestionEditor.vue'
 import FormMetadataEditor from './builderview/FormMetadataEditor.vue'
 import FormRestrictionsEditor from './builderview/FormRestrictionsEditor.vue'
+import { type RestrictionSelection, emptyRestriction } from '@/components/input/restriction'
 import type { QuestionDraft } from './builderview/types'
 import type { FormPurposeName, FormQuestionRequest, QuestionType, MemberGroup, StationMember, UserTag } from '@/api/types'
 import { FormPurpose, QuestionTypes, QUESTION_TYPES_BY_PURPOSE } from '@/api/types'
@@ -51,10 +52,7 @@ const endAt = ref('')
 const allGroups = ref<MemberGroup[]>([])
 const allTags = ref<UserTag[]>([])
 const allMembers = ref<StationMember[]>([])
-const selectedUserTypes = ref<string[]>([])
-const selectedGroupIds = ref<number[]>([])
-const selectedTagIds = ref<number[]>([])
-const selectedMemberIds = ref<number[]>([])
+const restriction = ref<RestrictionSelection>(emptyRestriction())
 
 const questions = ref<QuestionDraft[]>([])
 let nextTempId = 1
@@ -129,10 +127,13 @@ const { loading, error } = useAsyncLoader(async () => {
   endAt.value = form.endAt ? form.endAt.slice(0, 16) : ''
   purpose.value = form.purpose
 
-  selectedUserTypes.value = restrictions.userTypes ?? []
-  selectedGroupIds.value = restrictions.groupIds ?? []
-  selectedTagIds.value = restrictions.tagIds ?? []
-  selectedMemberIds.value = restrictions.memberIds ?? []
+  restriction.value = {
+    userTypes: restrictions.userTypes ?? [],
+    groupIds: restrictions.groupIds ?? [],
+    tagIds: restrictions.tagIds ?? [],
+    memberIds: restrictions.memberIds ?? [],
+    mode: 'AND',
+  }
 
   questions.value = qs.map(q => ({
     id: `existing-${q.id}`,
@@ -178,10 +179,10 @@ async function save() {
     await forms.setQuestions(id!, questionRequests)
 
     await forms.setRestrictions(id!, {
-      userTypes: selectedUserTypes.value,
-      groupIds: selectedGroupIds.value,
-      tagIds: selectedTagIds.value,
-      memberIds: selectedMemberIds.value,
+      userTypes: restriction.value.userTypes,
+      groupIds: restriction.value.groupIds,
+      tagIds: restriction.value.tagIds,
+      memberIds: restriction.value.memberIds,
     })
 
     router.push({ name: returnRouteName.value })
@@ -216,10 +217,7 @@ async function save() {
           :groups="allGroups"
           :tags="allTags"
           :members="allMembers"
-          v-model:selected-user-types="selectedUserTypes"
-          v-model:selected-group-ids="selectedGroupIds"
-          v-model:selected-tag-ids="selectedTagIds"
-          v-model:selected-member-ids="selectedMemberIds"
+          v-model="restriction"
         />
 
         <div class="space-y-3">

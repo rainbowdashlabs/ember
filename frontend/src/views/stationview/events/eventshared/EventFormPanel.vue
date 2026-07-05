@@ -15,6 +15,7 @@ import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import RestrictionsField from '@/components/input/RestrictionsField.vue'
+import type {RestrictionSelection} from '@/components/input/restriction'
 import EventFieldList from './EventFieldList.vue'
 import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, EventFieldEntry, MemberGroup, StationMember, UserTag} from '@/api/types'
 import {EventTypes, needsDayOfWeek} from '@/api/types'
@@ -53,10 +54,7 @@ const hasThreshold = defineModel<boolean>('hasThreshold')
 const thresholdDate = defineModel<string>('thresholdDate')
 const registrationCloseDays = defineModel<number>('registrationCloseDays')
 
-const selectedUserTypes = defineModel<string[]>('selectedUserTypes', {default: () => []})
-const selectedGroupIds = defineModel<number[]>('selectedGroupIds', {default: () => []})
-const selectedTagIds = defineModel<number[]>('selectedTagIds', {default: () => []})
-const restrictionMode = defineModel<'AND' | 'OR'>('mode', {default: 'AND'})
+const restriction = defineModel<RestrictionSelection>('restriction', {required: true})
 
 const {t} = useI18n()
 </script>
@@ -206,10 +204,7 @@ const {t} = useI18n()
       <RestrictionsField
           :groups="groups"
           :tags="tags"
-          v-model:selected-user-types="selectedUserTypes"
-          v-model:selected-group-ids="selectedGroupIds"
-          v-model:selected-tag-ids="selectedTagIds"
-          v-model:mode="restrictionMode"
+          v-model="restriction"
       />
     </template>
 

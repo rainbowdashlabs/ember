@@ -16,6 +16,7 @@ import type {AttendanceTemplateField, EventFieldEntry, EventTemplate, StationMem
 import {EventTypes, StationPermission, needsDayOfWeek} from '@/api/types'
 import type {EventFieldDefault} from '@/api/events'
 import {attendance, events, federation, memberGroups} from '@/api'
+import {type RestrictionSelection, emptyRestriction} from '@/components/input/restriction'
 import type {PartnerResponse} from '@/api/federation'
 import EventEditBody from './eventeditview/EventEditBody.vue'
 import {useSession} from '@/composables/useSession'
@@ -34,9 +35,6 @@ const {categories, templates, groups, tags, members: allMembers, reload: reloadD
 const eventTemplates = ref<EventTemplate[]>([])
 const allTemplateFields = ref<AttendanceTemplateField[]>([])
 const groupMembersMap = ref(new Map<number, StationMember[]>())
-const eventUserTypes = ref<string[]>([])
-const eventGroupIds = ref<number[]>([])
-const eventTagIds = ref<number[]>([])
 const eventFieldDefaults = ref<EventFieldDefault[]>([])
 const eventCustomFields = ref<EventFieldEntry[]>([])
 
@@ -103,10 +101,7 @@ const eventRegistrationCloseDays = ref<number | undefined>(undefined)
 
 const eventReminders = ref<number[]>([])
 
-const selectedUserTypes = ref<string[]>([])
-const selectedGroupIds = ref<number[]>([])
-const selectedTagIds = ref<number[]>([])
-const restrictionMode = ref<'AND' | 'OR'>('AND')
+const restriction = ref<RestrictionSelection>(emptyRestriction())
 const federationShared = ref(false)
 const federationScope = ref('ALL_PARTNERS')
 const federationPartnerIds = ref<number[]>([])
@@ -148,13 +143,13 @@ async function loadExistingEvent(id: number) {
   eventThresholdDate.value = ev.thresholdDate ? toLocalDateTime(ev.thresholdDate) : ''
   eventRegistrationCloseDays.value = ev.registrationCloseDays ?? undefined
 
-  eventUserTypes.value = restrictions.userTypes ?? []
-  eventGroupIds.value = restrictions.groupIds ?? []
-  eventTagIds.value = restrictions.tagIds ?? []
-  selectedUserTypes.value = [...eventUserTypes.value]
-  selectedGroupIds.value = [...eventGroupIds.value]
-  selectedTagIds.value = [...eventTagIds.value]
-  restrictionMode.value = (restrictions.mode as 'AND' | 'OR') ?? 'AND'
+  restriction.value = {
+    userTypes: restrictions.userTypes ?? [],
+    groupIds: restrictions.groupIds ?? [],
+    tagIds: restrictions.tagIds ?? [],
+    memberIds: [],
+    mode: (restrictions.mode as 'AND' | 'OR') ?? 'AND',
+  }
 
   try {
     eventReminders.value = await events.getEventReminders(id)
@@ -279,10 +274,10 @@ async function submit() {
       minRegistrations: eventMinRegistrations.value ?? undefined,
       thresholdDate: eventHasThreshold.value && eventThresholdDate.value
           ? new Date(eventThresholdDate.value).toISOString() : undefined,
-      restrictedUserTypes: selectedUserTypes.value,
-      restrictedGroupIds: selectedGroupIds.value,
-      restrictedTagIds: selectedTagIds.value,
-      restrictionMode: restrictionMode.value,
+      restrictedUserTypes: restriction.value.userTypes,
+      restrictedGroupIds: restriction.value.groupIds,
+      restrictedTagIds: restriction.value.tagIds,
+      restrictionMode: restriction.value.mode,
       registrationCloseDays: eventRegistrationCloseDays.value ?? undefined,
     }
 
@@ -375,10 +370,7 @@ const bodyProps = computed(() => ({
   hasThreshold: eventHasThreshold.value,
   thresholdDate: eventThresholdDate.value,
   registrationCloseDays: eventRegistrationCloseDays.value,
-  selectedUserTypes: selectedUserTypes.value,
-  selectedGroupIds: selectedGroupIds.value,
-  selectedTagIds: selectedTagIds.value,
-  mode: restrictionMode.value,
+  restriction: restriction.value,
   fields: eventCustomFields.value,
   reminders: eventReminders.value,
   federationShared: federationShared.value,
@@ -405,10 +397,7 @@ const bodyHandlers = {
   'update:hasThreshold': (v: boolean) => { eventHasThreshold.value = v },
   'update:thresholdDate': (v: string) => { eventThresholdDate.value = v },
   'update:registrationCloseDays': (v: number | undefined) => { eventRegistrationCloseDays.value = v },
-  'update:selectedUserTypes': (v: string[]) => { selectedUserTypes.value = v },
-  'update:selectedGroupIds': (v: number[]) => { selectedGroupIds.value = v },
-  'update:selectedTagIds': (v: number[]) => { selectedTagIds.value = v },
-  'update:mode': (v: 'AND' | 'OR') => { restrictionMode.value = v },
+  'update:restriction': (v: RestrictionSelection) => { restriction.value = v },
   'update:fields': (v: EventFieldEntry[]) => { eventCustomFields.value = v },
   'update:reminders': (v: number[]) => { eventReminders.value = v },
   'update:federationShared': (v: boolean) => { federationShared.value = v },

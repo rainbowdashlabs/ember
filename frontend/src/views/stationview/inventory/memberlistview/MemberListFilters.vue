@@ -11,6 +11,7 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
+import { type RestrictionSelection, emptyRestriction } from '@/components/input/restriction'
 import type { FilterCriteria } from '@/composables/useMemberFilter'
 import type { Inventory, MemberGroup, UserTag } from '@/api/types'
 
@@ -33,17 +34,14 @@ const emit = defineEmits<{
   toggleInventory: [invId: number]
 }>()
 
-const selectedUserTypes = ref<string[]>([])
-const selectedGroupIds = ref<number[]>([])
-const selectedTagIds = ref<number[]>([])
-const filterMode = ref<'AND' | 'OR'>('AND')
+const restriction = ref<RestrictionSelection>(emptyRestriction())
 
 function emitFilter() {
   emit('filter', {
-    userTypes: selectedUserTypes.value,
-    groupIds: selectedGroupIds.value,
-    tagIds: selectedTagIds.value,
-    mode: filterMode.value,
+    userTypes: restriction.value.userTypes,
+    groupIds: restriction.value.groupIds,
+    tagIds: restriction.value.tagIds,
+    mode: restriction.value.mode,
   })
 }
 </script>
@@ -53,14 +51,8 @@ function emitFilter() {
     <RestrictionPicker
         :groups="groups"
         :tags="tags"
-        :selected-user-types="selectedUserTypes"
-        :selected-group-ids="selectedGroupIds"
-        :selected-tag-ids="selectedTagIds"
-        :mode="filterMode"
-        @update:selected-user-types="v => { selectedUserTypes = v; emitFilter() }"
-        @update:selected-group-ids="v => { selectedGroupIds = v; emitFilter() }"
-        @update:selected-tag-ids="v => { selectedTagIds = v; emitFilter() }"
-        @update:mode="v => { filterMode = v; emitFilter() }"
+        v-model="restriction"
+        @update:model-value="emitFilter"
     />
     <div class="flex items-center gap-2">
       <label class="text-sm font-medium">{{ t('inventoryMembers.showEmpty') }}</label>
