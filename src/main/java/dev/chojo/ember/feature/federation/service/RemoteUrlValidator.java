@@ -130,6 +130,33 @@ public class RemoteUrlValidator {
     }
 
     /**
+     * Checks a bare host name (no scheme) against the private-range deny-list. Used
+     * for backend endpoints that are not HTTPS URLs — S3 endpoint overrides and
+     * SMB/SFTP hosts — so an operator cannot point them at loopback or internal
+     * addresses for a port scan. Honours the same {@code allowPrivateHosts} / demo
+     * escape hatches as {@link #isAllowed(String)}.
+     */
+    public boolean isHostAllowed(String host) {
+        if (host == null || host.isBlank()) return false;
+        if (config.allowPrivateHosts() || demo.dev() || demo.enabled()) return true;
+
+        InetAddress[] addresses;
+        try {
+            addresses = InetAddress.getAllByName(host.trim());
+        } catch (Exception e) {
+            log.warn("Refusing host {} — DNS resolution failed: {}", host, e.getMessage());
+            return false;
+        }
+        for (InetAddress address : addresses) {
+            if (isDenied(address)) {
+                log.warn("Refusing host {} — resolves to denied address {}", host, address);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
      * Boolean form of {@link #validate(String)} for the soft send-time check.
      */
     public boolean isAllowed(String url) {
