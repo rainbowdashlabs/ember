@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionRepository;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -274,18 +275,20 @@ class FormServiceTest extends RepositoryTestBase {
     @Test
     @Order(31)
     void setRestrictions() {
-        service.setRestrictions(formId, List.of(StationUserType.MEMBER), List.of(), List.of(), List.of());
+        service.setRestrictions(
+                formId,
+                new RestrictionSelection(List.of(StationUserType.MEMBER), List.of(), List.of(), List.of(), null));
         var rs = service.findRestrictions(formId);
         assertTrue(rs.hasRestrictions());
         // Clear
-        service.setRestrictions(formId, List.of(), List.of(), List.of(), List.of());
+        service.setRestrictions(formId, RestrictionSelection.empty());
         assertFalse(service.findRestrictions(formId).hasRestrictions());
     }
 
     @Test
     @Order(32)
     void setRestrictionsNullLists() {
-        service.setRestrictions(formId, null, null, null, null);
+        service.setRestrictions(formId, new RestrictionSelection(null, null, null, null, null));
         assertFalse(service.findRestrictions(formId).hasRestrictions());
     }
 
@@ -311,7 +314,8 @@ class FormServiceTest extends RepositoryTestBase {
                 station.id(), "Restricted Form", "", false, true, false, null, null, member.id(), FormPurpose.INTERNAL);
 
         // Set restrictions to specific member
-        service.setRestrictions(form.id(), List.of(), List.of(), List.of(), List.of(member.id()));
+        service.setRestrictions(
+                form.id(), new RestrictionSelection(List.of(), List.of(), List.of(), List.of(member.id()), null));
 
         // Need to set up mocks for memberService, groupService, tagService
         var memberService = mock(StationMemberService.class);

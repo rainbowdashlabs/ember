@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionRepository;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -457,7 +458,9 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        service.setRestrictions(event.id(), List.of(StationUserType.MEMBER), List.of(), List.of(), List.of());
+        service.setRestrictions(
+                event.id(),
+                new RestrictionSelection(List.of(StationUserType.MEMBER), List.of(), List.of(), List.of(), null));
         var restrictions = service.findRestrictions(event.id());
         assertNotNull(restrictions);
     }
@@ -1515,7 +1518,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null);
 
         // All null lists — should default to empty
-        service.setRestrictions(event.id(), null, null, null, null);
+        service.setRestrictions(event.id(), new RestrictionSelection(null, null, null, null, null));
         var restrictions = service.findRestrictions(event.id());
         assertNotNull(restrictions);
     }

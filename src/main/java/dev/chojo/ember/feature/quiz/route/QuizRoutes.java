@@ -33,6 +33,7 @@ import dev.chojo.ember.feature.quiz.service.QuizPdfService;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionImageService;
 import dev.chojo.ember.feature.quiz.service.QuizService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.CsvParser;
@@ -980,10 +981,7 @@ public class QuizRoutes implements Routes {
         var req = ctx.bodyAsClass(TestRestrictions.class);
         quizService.setRestrictions(
                 id,
-                req.userTypes(),
-                req.groupIds(),
-                req.tagIds(),
-                req.memberIds() != null ? req.memberIds() : List.of());
+                new RestrictionSelection(req.userTypes(), req.groupIds(), req.tagIds(), req.memberIds(), req.mode()));
         if (req.mode() != null) {
             quizService.updateRestrictionMode(id, req.mode());
         }

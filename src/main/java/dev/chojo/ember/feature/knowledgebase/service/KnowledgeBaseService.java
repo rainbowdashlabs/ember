@@ -40,6 +40,7 @@ import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.restriction.Restriction;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionSet;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -369,24 +370,18 @@ public class KnowledgeBaseService {
 
     // -- Access Restrictions --
 
-    public void setRestrictions(
-            Integer folderId,
-            Integer fileId,
-            List<String> userTypes,
-            List<Integer> groupIds,
-            List<Integer> tagIds,
-            List<Integer> memberIds) {
+    public void setRestrictions(Integer folderId, Integer fileId, RestrictionSelection selection) {
         repository.clearRestrictions(folderId, fileId);
-        for (String userType : userTypes) {
-            repository.addRestriction(folderId, fileId, StationUserType.valueOf(userType), null, null, null);
+        for (StationUserType userType : selection.userTypes()) {
+            repository.addRestriction(folderId, fileId, userType, null, null, null);
         }
-        for (Integer groupId : groupIds) {
+        for (Integer groupId : selection.groupIds()) {
             repository.addRestriction(folderId, fileId, null, groupId, null, null);
         }
-        for (Integer tagId : tagIds) {
+        for (Integer tagId : selection.tagIds()) {
             repository.addRestriction(folderId, fileId, null, null, tagId, null);
         }
-        for (Integer memberId : memberIds) {
+        for (Integer memberId : selection.memberIds()) {
             repository.addRestriction(folderId, fileId, null, null, null, memberId);
         }
     }

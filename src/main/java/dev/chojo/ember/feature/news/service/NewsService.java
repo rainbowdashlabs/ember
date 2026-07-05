@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.news.entity.NewsViewer;
 import dev.chojo.ember.feature.news.repository.NewsRepository;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionRepository;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionSet;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import jakarta.inject.Inject;
@@ -133,7 +134,7 @@ public class NewsService {
             List<Integer> tagIds,
             List<Integer> memberIds) {
         var news = newsRepository.create(stationId, title, contentMarkdown, contentHtml, author);
-        setRestrictions(news.id(), userTypes, groupIds, tagIds, memberIds);
+        setRestrictions(news.id(), new RestrictionSelection(userTypes, groupIds, tagIds, memberIds, null));
         String authorName = resolveAuthorName(stationId, author);
         eventBus.publish(new NewsCreated(stationId, news.id(), title, authorName, previewOf(contentMarkdown)));
         log.info("Created news {} on station {}", news.id(), stationId);
@@ -195,7 +196,7 @@ public class NewsService {
             List<Integer> tagIds,
             List<Integer> memberIds) {
         if (newsRepository.update(id, title, contentMarkdown, contentHtml)) {
-            setRestrictions(id, userTypes, groupIds, tagIds, memberIds);
+            setRestrictions(id, new RestrictionSelection(userTypes, groupIds, tagIds, memberIds, null));
             log.info("Updated news {}", id);
             return newsRepository.findById(id);
         }
@@ -289,20 +290,9 @@ public class NewsService {
     /**
      * Sets all restrictions for a news article.
      */
-    public void setRestrictions(
-            int newsId,
-            List<StationUserType> userTypes,
-            List<Integer> groupIds,
-            List<Integer> tagIds,
-            List<Integer> memberIds) {
+    public void setRestrictions(int newsId, RestrictionSelection selection) {
         restrictionRepository.setRestrictions(
-                RestrictionType.NEWS.table(),
-                RestrictionType.NEWS.fkColumn(),
-                newsId,
-                userTypes != null ? userTypes : List.of(),
-                groupIds != null ? groupIds : List.of(),
-                tagIds != null ? tagIds : List.of(),
-                memberIds != null ? memberIds : List.of());
+                RestrictionType.NEWS.table(), RestrictionType.NEWS.fkColumn(), newsId, selection);
     }
 
     /**

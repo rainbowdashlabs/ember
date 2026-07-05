@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.events.entity.IntervalConfig;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -82,10 +83,12 @@ public class BatchEventService {
                     || request.restrictedTagIds() != null) {
                 eventService.setRestrictions(
                         event.id(),
-                        request.restrictedUserTypes() != null ? request.restrictedUserTypes() : List.of(),
-                        request.restrictedGroupIds() != null ? request.restrictedGroupIds() : List.of(),
-                        request.restrictedTagIds() != null ? request.restrictedTagIds() : List.of(),
-                        List.of());
+                        new RestrictionSelection(
+                                request.restrictedUserTypes(),
+                                request.restrictedGroupIds(),
+                                request.restrictedTagIds(),
+                                List.of(),
+                                null));
             }
 
             var fieldEntries = fieldDefs.stream()

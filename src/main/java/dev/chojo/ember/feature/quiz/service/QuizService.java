@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.quiz.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.ContentType;
 import dev.chojo.ember.feature.federation.entity.Direction;
@@ -32,6 +31,7 @@ import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
 import dev.chojo.ember.feature.quiz.repository.QuizTestRepository;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionRepository;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionSet;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -625,20 +625,9 @@ public class QuizService {
                 RestrictionType.QUIZ_TEST.table(), RestrictionType.QUIZ_TEST.fkColumn(), testId, mode);
     }
 
-    public void setRestrictions(
-            int testId,
-            List<StationUserType> userTypes,
-            List<Integer> groupIds,
-            List<Integer> tagIds,
-            List<Integer> memberIds) {
+    public void setRestrictions(int testId, RestrictionSelection selection) {
         restrictionRepository.setRestrictions(
-                RestrictionType.QUIZ_TEST.table(),
-                RestrictionType.QUIZ_TEST.fkColumn(),
-                testId,
-                userTypes != null ? userTypes : List.of(),
-                groupIds != null ? groupIds : List.of(),
-                tagIds != null ? tagIds : List.of(),
-                memberIds != null ? memberIds : List.of());
+                RestrictionType.QUIZ_TEST.table(), RestrictionType.QUIZ_TEST.fkColumn(), testId, selection);
         log.info("Updated restrictions for quiz test {}", testId);
     }
 

@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.EventCancelled;
 import dev.chojo.ember.event.events.EventCreated;
@@ -25,6 +24,7 @@ import dev.chojo.ember.feature.events.entity.UpcomingEventOccurrence;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionRepository;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionSet;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import jakarta.inject.Inject;
@@ -606,25 +606,11 @@ public class EventService {
      * Sets all restrictions for an event, replacing any existing restrictions.
      *
      * @param eventId   the event ID
-     * @param userTypes the user type names to restrict to, or null for no user type restrictions
-     * @param groupIds  the group IDs to restrict to, or null for no group restrictions
-     * @param tagIds    the tag IDs to restrict to, or null for no tag restrictions
-     * @param memberIds the member IDs to restrict to, or null for no member restrictions
+     * @param selection the restriction selection to persist
      */
-    public void setRestrictions(
-            int eventId,
-            List<StationUserType> userTypes,
-            List<Integer> groupIds,
-            List<Integer> tagIds,
-            List<Integer> memberIds) {
+    public void setRestrictions(int eventId, RestrictionSelection selection) {
         restrictionRepository.setRestrictions(
-                RestrictionType.EVENT.table(),
-                RestrictionType.EVENT.fkColumn(),
-                eventId,
-                userTypes != null ? userTypes : List.of(),
-                groupIds != null ? groupIds : List.of(),
-                tagIds != null ? tagIds : List.of(),
-                memberIds != null ? memberIds : List.of());
+                RestrictionType.EVENT.table(), RestrictionType.EVENT.fkColumn(), eventId, selection);
         log.info("Set restrictions for event {}", eventId);
     }
 

@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -495,10 +496,7 @@ public class FormRoutes implements Routes {
         var req = ctx.bodyAsClass(FormRestrictions.class);
         formService.setRestrictions(
                 id,
-                req.userTypes(),
-                req.groupIds(),
-                req.tagIds(),
-                req.memberIds() != null ? req.memberIds() : List.of());
+                new RestrictionSelection(req.userTypes(), req.groupIds(), req.tagIds(), req.memberIds(), req.mode()));
         if (req.mode() != null) {
             formService.updateRestrictionMode(id, req.mode());
         }

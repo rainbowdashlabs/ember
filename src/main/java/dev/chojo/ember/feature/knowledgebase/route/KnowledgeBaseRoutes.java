@@ -39,6 +39,7 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.PandocConverter;
 import dev.chojo.ember.util.SafeContentDisposition;
@@ -812,10 +813,16 @@ public class KnowledgeBaseRoutes implements Routes {
         service.setRestrictions(
                 id,
                 null,
-                req.userTypes() != null ? req.userTypes() : List.of(),
-                req.groupIds() != null ? req.groupIds() : List.of(),
-                req.tagIds() != null ? req.tagIds() : List.of(),
-                req.memberIds() != null ? req.memberIds() : List.of());
+                new RestrictionSelection(
+                        req.userTypes() == null
+                                ? List.of()
+                                : req.userTypes().stream()
+                                        .map(StationUserType::valueOf)
+                                        .toList(),
+                        req.groupIds(),
+                        req.tagIds(),
+                        req.memberIds(),
+                        null));
         ctx.json(toRestrictionResponse(service.findRestrictions(id, null)));
     }
 
@@ -834,10 +841,16 @@ public class KnowledgeBaseRoutes implements Routes {
         service.setRestrictions(
                 null,
                 id,
-                req.userTypes() != null ? req.userTypes() : List.of(),
-                req.groupIds() != null ? req.groupIds() : List.of(),
-                req.tagIds() != null ? req.tagIds() : List.of(),
-                req.memberIds() != null ? req.memberIds() : List.of());
+                new RestrictionSelection(
+                        req.userTypes() == null
+                                ? List.of()
+                                : req.userTypes().stream()
+                                        .map(StationUserType::valueOf)
+                                        .toList(),
+                        req.groupIds(),
+                        req.tagIds(),
+                        req.memberIds(),
+                        null));
         ctx.json(toRestrictionResponse(service.findRestrictions(null, id)));
     }
 

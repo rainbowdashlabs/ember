@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.repository.FormRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.restriction.RestrictionRepository;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -329,10 +330,7 @@ public class DemoFormSeeder {
                 RestrictionType.FORM.table(),
                 RestrictionType.FORM.fkColumn(),
                 memberOnly.id(),
-                List.of(memberUserType),
-                List.of(),
-                List.of(),
-                List.of());
+                new RestrictionSelection(List.of(memberUserType), List.of(), List.of(), List.of(), null));
 
         // Form 4: For MEMBER + GUARDIAN (both can fill for themselves)
         var bothRoles = formRepository.create(
@@ -371,10 +369,8 @@ public class DemoFormSeeder {
                 RestrictionType.FORM.table(),
                 RestrictionType.FORM.fkColumn(),
                 bothRoles.id(),
-                List.of(memberUserType, guardianUserType),
-                List.of(),
-                List.of(),
-                List.of());
+                new RestrictionSelection(
+                        List.of(memberUserType, guardianUserType), List.of(), List.of(), List.of(), null));
 
         // Form 5: Restricted to Wettkampfgruppe tag only
         var wettkampfForm = formRepository.create(
@@ -417,10 +413,7 @@ public class DemoFormSeeder {
                 RestrictionType.FORM.table(),
                 RestrictionType.FORM.fkColumn(),
                 wettkampfForm.id(),
-                List.of(),
-                List.of(),
-                List.of(wettkampfTagId),
-                List.of());
+                new RestrictionSelection(List.of(), List.of(), List.of(wettkampfTagId), List.of(), null));
 
         // Form 6: Restricted to Anfänger group only
         var anfaengerForm = formRepository.create(
@@ -459,10 +452,7 @@ public class DemoFormSeeder {
                 RestrictionType.FORM.table(),
                 RestrictionType.FORM.fkColumn(),
                 anfaengerForm.id(),
-                List.of(),
-                List.of(anfaengerGroupId),
-                List.of(),
-                List.of());
+                new RestrictionSelection(List.of(), List.of(anfaengerGroupId), List.of(), List.of(), null));
 
         // Form 7: Showcase — one question per type, open, unrestricted
         var showcase = formRepository.create(

@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.quiz.entity.SourceEntry;
 import dev.chojo.ember.feature.quiz.entity.TestStatus;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionRepository;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -484,7 +485,7 @@ class QuizServiceTest extends RepositoryTestBase {
     @Test
     @Order(85)
     void restrictions() {
-        service.setRestrictions(testId, List.of(), List.of(), List.of(), List.of());
+        service.setRestrictions(testId, RestrictionSelection.empty());
         var rs = service.findRestrictions(testId);
         assertNotNull(rs);
         assertFalse(rs.hasRestrictions());

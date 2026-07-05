@@ -47,6 +47,7 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
@@ -487,7 +488,13 @@ public class EventRoutes implements Routes {
                 req.thresholdDate(),
                 req.registrationCloseDays());
         eventService.setRestrictions(
-                event.id(), req.restrictedUserTypes(), req.restrictedGroupIds(), req.restrictedTagIds(), List.of());
+                event.id(),
+                new RestrictionSelection(
+                        req.restrictedUserTypes(),
+                        req.restrictedGroupIds(),
+                        req.restrictedTagIds(),
+                        List.of(),
+                        req.restrictionMode()));
         if (req.restrictionMode() != null) {
             eventService.updateRestrictionMode(event.id(), req.restrictionMode());
         }
@@ -552,10 +559,12 @@ public class EventRoutes implements Routes {
                         event -> {
                             eventService.setRestrictions(
                                     id,
-                                    req.restrictedUserTypes(),
-                                    req.restrictedGroupIds(),
-                                    req.restrictedTagIds(),
-                                    List.of());
+                                    new RestrictionSelection(
+                                            req.restrictedUserTypes(),
+                                            req.restrictedGroupIds(),
+                                            req.restrictedTagIds(),
+                                            List.of(),
+                                            req.restrictionMode()));
                             if (req.restrictionMode() != null) {
                                 eventService.updateRestrictionMode(id, req.restrictionMode());
                             }
@@ -1099,7 +1108,9 @@ public class EventRoutes implements Routes {
         int id = pathInt(ctx, "id");
         requireOwnedEvent(id, session);
         var req = ctx.bodyAsClass(EventRestrictions.class);
-        eventService.setRestrictions(id, req.userTypes(), req.groupIds(), req.tagIds(), req.memberIds());
+        eventService.setRestrictions(
+                id,
+                new RestrictionSelection(req.userTypes(), req.groupIds(), req.tagIds(), req.memberIds(), req.mode()));
         if (req.mode() != null) {
             eventService.updateRestrictionMode(id, req.mode());
         }

@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.news.repository;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.restriction.RestrictionRepository;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -89,12 +90,13 @@ class NewsRepositoryTest extends RepositoryTestBase {
         var restrictionRepo = new RestrictionRepository(stationMemberRepo, memberGroupRepo, userTagRepo);
         var group = memberGroupRepo.create(station.id(), "News Group");
         restrictionRepo.setRestrictions(
-                "news_restriction", "news_id", newsId, List.of(), List.of(group.id()), List.of(), List.of());
+                "news_restriction",
+                "news_id",
+                newsId,
+                new RestrictionSelection(List.of(), List.of(group.id()), List.of(), List.of(), null));
         var restrictions = restrictionRepo.findRestrictions("news_restriction", "news_id", newsId);
         assertEquals(1, restrictions.size());
-        // Clear
-        restrictionRepo.setRestrictions(
-                "news_restriction", "news_id", newsId, List.of(), List.of(), List.of(), List.of());
+        restrictionRepo.setRestrictions("news_restriction", "news_id", newsId, RestrictionSelection.empty());
         assertTrue(restrictionRepo
                 .findRestrictions("news_restriction", "news_id", newsId)
                 .isEmpty());

@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.form.service;
 
-import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.FormDeleted;
 import dev.chojo.ember.event.events.FormPublished;
@@ -27,6 +26,7 @@ import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionRepository;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionSet;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.system.service.RequirementsService;
@@ -514,28 +514,14 @@ public class FormService {
     }
 
     /**
-     * Replaces all access restrictions for a form. Null lists are treated as empty.
+     * Replaces all access restrictions for a form.
      *
      * @param formId    the form ID
-     * @param userTypes user type names to restrict access to, or {@code null} for none
-     * @param groupIds  group IDs to restrict access to, or {@code null} for none
-     * @param tagIds    tag IDs to restrict access to, or {@code null} for none
-     * @param memberIds member IDs to restrict access to, or {@code null} for none
+     * @param selection the restriction selection to apply
      */
-    public void setRestrictions(
-            int formId,
-            List<StationUserType> userTypes,
-            List<Integer> groupIds,
-            List<Integer> tagIds,
-            List<Integer> memberIds) {
+    public void setRestrictions(int formId, RestrictionSelection selection) {
         restrictionRepository.setRestrictions(
-                RestrictionType.FORM.table(),
-                RestrictionType.FORM.fkColumn(),
-                formId,
-                userTypes != null ? userTypes : List.of(),
-                groupIds != null ? groupIds : List.of(),
-                tagIds != null ? tagIds : List.of(),
-                memberIds != null ? memberIds : List.of());
+                RestrictionType.FORM.table(), RestrictionType.FORM.fkColumn(), formId, selection);
         log.info("Updated access restrictions for form {}", formId);
     }
 
