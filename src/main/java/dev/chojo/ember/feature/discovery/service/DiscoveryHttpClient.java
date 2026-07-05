@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.discovery.service;
 
+import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -32,6 +33,10 @@ import java.time.Duration;
  * <p>The embedded {@link JsonMapper} intentionally disables
  * {@code FAIL_ON_UNKNOWN_PROPERTIES} so a peer running a newer discovery protocol
  * version can add fields to a response without breaking older peers.
+ *
+ * <p>Every outbound target URL is checked against {@link RemoteUrlValidator} before
+ * the request is sent, so attacker-supplied peer base URLs and ping callback URLs
+ * cannot be used to reach loopback, link-local, or otherwise private addresses.
  */
 @Singleton
 public class DiscoveryHttpClient {
@@ -41,11 +46,13 @@ public class DiscoveryHttpClient {
 
     private final HttpClient httpClient;
     private final DiscoverySigningService signingService;
+    private final RemoteUrlValidator urlValidator;
     private final JsonMapper mapper;
 
     @Inject
-    public DiscoveryHttpClient(DiscoverySigningService signingService) {
+    public DiscoveryHttpClient(DiscoverySigningService signingService, RemoteUrlValidator urlValidator) {
         this.signingService = signingService;
+        this.urlValidator = urlValidator;
         this.httpClient =
                 HttpClient.newBuilder().connectTimeout(CONNECT_TIMEOUT).build();
         this.mapper = JsonMapper.builder()
@@ -65,8 +72,13 @@ public class DiscoveryHttpClient {
      */
     public <T> T get(String baseUrl, String path, Class<T> responseType) {
         try {
+            String url = joinUrl(baseUrl, path);
+            if (!urlValidator.isAllowed(url)) {
+                log.warn("Discovery GET rejected by RemoteUrlValidator: {}", url);
+                return null;
+            }
             var request = HttpRequest.newBuilder()
-                    .uri(URI.create(joinUrl(baseUrl, path)))
+                    .uri(URI.create(url))
                     .timeout(REQUEST_TIMEOUT)
                     .GET()
                     .build();
@@ -91,10 +103,15 @@ public class DiscoveryHttpClient {
      */
     public boolean signedPost(String baseUrl, String path, Object body) {
         try {
+            String url = joinUrl(baseUrl, path);
+            if (!urlValidator.isAllowed(url)) {
+                log.warn("Discovery POST rejected by RemoteUrlValidator: {}", url);
+                return false;
+            }
             String json = mapper.writeValueAsString(body);
             String signature = signingService.sign(json);
             var request = HttpRequest.newBuilder()
-                    .uri(URI.create(joinUrl(baseUrl, path)))
+                    .uri(URI.create(url))
                     .timeout(REQUEST_TIMEOUT)
                     .header("Content-Type", "application/json")
                     .header(DiscoverySigningService.SIGNATURE_HEADER, signature)

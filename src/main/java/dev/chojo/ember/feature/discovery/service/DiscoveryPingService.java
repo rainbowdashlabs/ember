@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.discovery.protocol.PeerAnnouncement;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryBlocklistRepository;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPeerRepository;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPingRepository;
+import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -64,6 +65,7 @@ public class DiscoveryPingService {
     private final DiscoveryBlocklistRepository blocklistRepository;
     private final DiscoveryReputationService reputationService;
     private final DiscoverySettingsService settingsService;
+    private final RemoteUrlValidator urlValidator;
     private final Conf conf;
 
     private final ScheduledExecutorService callbackExecutor = Executors.newScheduledThreadPool(2, r -> {
@@ -82,6 +84,7 @@ public class DiscoveryPingService {
             DiscoveryBlocklistRepository blocklistRepository,
             DiscoveryReputationService reputationService,
             DiscoverySettingsService settingsService,
+            RemoteUrlValidator urlValidator,
             Conf conf) {
         this.keyService = keyService;
         this.signingService = signingService;
@@ -91,6 +94,7 @@ public class DiscoveryPingService {
         this.blocklistRepository = blocklistRepository;
         this.reputationService = reputationService;
         this.settingsService = settingsService;
+        this.urlValidator = urlValidator;
         this.conf = conf;
     }
 
@@ -167,6 +171,14 @@ public class DiscoveryPingService {
                         rawBody, signatureHeader, message.from().publicKey())) {
             log.debug("Rejecting ping from {} — bad signature", message.from().baseUrl());
             reputationService.recordSignatureFailure(message.from().publicKey());
+            return false;
+        }
+
+        // Callback target must be a public endpoint (SSRF guard on the attacker-chosen URL).
+        if (message.callbackUrl() == null || !urlValidator.isAllowed(message.callbackUrl())) {
+            log.debug(
+                    "Rejecting ping from {} — callback URL not permitted",
+                    message.from().baseUrl());
             return false;
         }
 
@@ -267,6 +279,12 @@ public class DiscoveryPingService {
         for (var ann : unique) {
             if (blocklistRepository.contains(BlocklistKind.PUBLIC_KEY, ann.publicKey())
                     || blocklistRepository.contains(BlocklistKind.BASE_URL, ann.baseUrl())) {
+                continue;
+            }
+            // Never persist a peer whose base URL points at a private/loopback address; the
+            // scheduler would later ping it (persistent SSRF).
+            if (ann.baseUrl() == null || !urlValidator.isAllowed(ann.baseUrl())) {
+                reputationService.recordInvalidAnnouncement(announcerKey);
                 continue;
             }
             // Validate the public key is decodable; reject (and ding announcer reputation) if not.
