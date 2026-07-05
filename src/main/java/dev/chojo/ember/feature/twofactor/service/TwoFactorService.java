@@ -157,6 +157,9 @@ public class TwoFactorService {
                     .findActiveFactor(accountId, TwoFactorKind.BACKUP_CODES)
                     .ifPresent(f -> repository.disableFactor(f.id()));
         }
+        // A trusted device bypasses the 2FA challenge; removing a factor is a security event, so
+        // revoke every remembered device to force fresh verification with what remains.
+        repository.revokeAllTrustedDevices(accountId);
         auditService.record(
                 accountId, null, TwoFactorEvent.REMOVED, target.get().kind(), userAgent, country);
         log.info(
@@ -181,6 +184,7 @@ public class TwoFactorService {
         var backupFactor = repository.findActiveFactor(accountId, TwoFactorKind.BACKUP_CODES);
         backupFactor.ifPresent(f -> repository.disableFactor(f.id()));
 
+        repository.revokeAllTrustedDevices(accountId);
         auditService.record(accountId, null, TwoFactorEvent.REMOVED, TwoFactorKind.TOTP, userAgent, country);
         log.info("TOTP removed for account {}", accountId);
         return true;

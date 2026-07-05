@@ -827,6 +827,9 @@ public class AuthService {
             accountRepository.deleteSessionsExceptToken(accountId, keepSessionToken);
         }
         accountRepository.deleteAllTokens(accountId);
+        // A password reset is a security event; a captured "remember this device" cookie is a
+        // standing 2FA bypass, so revoke every trusted device alongside sessions and tokens.
+        trustedDeviceService.revokeAll(accountId);
     }
 
     // -- Station deletion --

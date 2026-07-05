@@ -179,7 +179,14 @@ class TwoFactorServiceTest extends RepositoryTestBase {
                 enrollment.recoveryCodes(),
                 "ua",
                 null);
+        twoFactorRepo.createTrustedDevice(
+                accountId, "rm-trust-hash", "ua", Instant.now().plusSeconds(3600));
+        assertEquals(1, twoFactorRepo.findActiveTrustedDevices(accountId).size());
         assertTrue(service.removeTotpFactor(accountId, "ua", null));
+        assertEquals(
+                0,
+                twoFactorRepo.findActiveTrustedDevices(accountId).size(),
+                "removing a factor must revoke trusted devices that bypass 2FA");
         assertFalse(service.removeTotpFactor(accountId, "ua", null));
     }
 
