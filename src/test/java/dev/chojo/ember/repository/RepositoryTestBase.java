@@ -94,23 +94,24 @@ public abstract class RepositoryTestBase {
     private static final AtomicInteger SCHEMA_COUNTER = new AtomicInteger(0);
 
     /**
-     * A single PostgreSQL container per JVM (Gradle test fork), started once here and shared by
-     * every repository test class in that fork; each class isolates its data in its own schema.
-     * Sharing one container — instead of letting the {@code @Testcontainers} lifecycle start and
-     * stop one per test class — removes the container start/stop churn under parallel forks that
-     * let rootless Docker occasionally hand two concurrently-starting containers the same host
-     * port. {@code withStartupAttempts} still self-heals the rare remaining collision, and the
-     * container is reaped when the fork's JVM exits.
+     * A single PostgreSQL container per JVM (Gradle test fork), started lazily on the first test
+     * class's {@link #setupDatabase()} and shared by every repository test class in that fork; each
+     * class isolates its data in its own schema. Sharing one container — instead of letting the
+     * {@code @Testcontainers} lifecycle start and stop one per test class — removes the container
+     * start/stop churn under parallel forks that let rootless Docker occasionally hand two
+     * concurrently-starting containers the same host port. {@code withStartupAttempts} self-heals
+     * the rare remaining collision, and the container is reaped when the fork's JVM exits.
+     *
+     * <p>Startup is deliberately kept out of a static initialiser: a transient Docker failure there
+     * would poison this class for the whole fork ({@code NoClassDefFoundError} on every later
+     * class). From {@code @BeforeAll} a failure fails only the current class and the next one
+     * retries the start.
      */
     static final PostgreSQLContainer PG = new PostgreSQLContainer("postgres:17")
             .withDatabaseName("ember_test")
             .withUsername("test")
             .withPassword("test")
             .withStartupAttempts(4);
-
-    static {
-        PG.start();
-    }
 
     protected static AccountRepository accountRepo;
     protected static StationRepository stationRepo;
@@ -177,7 +178,9 @@ public abstract class RepositoryTestBase {
 
     @BeforeAll
     static void setupDatabase() throws Exception {
-        // Each test class gets its own schema to prevent cross-class interference
+        if (!PG.isRunning()) {
+            PG.start();
+        }
         String SCHEMA = "ember_t" + SCHEMA_COUNTER.incrementAndGet();
         DatabaseConfig dbConfig = new DatabaseConfig() {
             @Override
