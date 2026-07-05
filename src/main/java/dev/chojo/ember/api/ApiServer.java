@@ -883,47 +883,62 @@ public class ApiServer {
     }
 
     /**
-     * After-handler that sets appropriate Cache-Control and ETag headers based on the request path.
+     * After-handler that sets Cache-Control and ETag headers based on the request path.
+     *
+     * <p>Ordering matters: content-hashed page files get an immutable year-long cache;
+     * everything under {@code /public/} is publicly cacheable; only then are non-public
+     * binary resources given a short private cache. Error responses receive no caching
+     * headers, and the binary-resource match is segment-precise so an authenticated path
+     * that merely contains {@code image}/{@code logo} as a substring (e.g. the logout
+     * endpoint) is not mis-tagged as cacheable.
      */
     private void applyCacheHeaders(@NotNull Context ctx) {
         if (ctx.method() != HandlerType.GET) return;
+        if (ctx.statusCode() >= 400) return;
 
         String path = ctx.path();
 
-        // Content-hashed page files. The hash makes the URL
-        // content-addressed, so a year-long immutable cache is safe; repeat visits drop to
-        // 304 / cache hits with zero body bytes. Must come before the generic /public/
-        // branch so the long max-age sticks.
         if (path.startsWith(API_PREFIX + "/public/pages/") && path.contains("/files/")) {
             ctx.header("Cache-Control", "public, max-age=31536000, immutable");
             ctx.header("Vary", "Accept");
             return;
         }
 
-        // Binary resources (images, avatars, logos) — private short cache
-        if (path.contains("/avatar") || path.contains("/logo") || path.contains("/image")) {
-            ctx.header("Cache-Control", "private, max-age=300");
-            return;
-        }
-
-        // Public legal documents — cache with version-based ETag
         if (path.startsWith(API_PREFIX + "/public/")) {
             ctx.header("Cache-Control", "public, max-age=3600");
             addETag(ctx);
             return;
         }
 
-        // Demo status — rarely changes
+        if (isBinaryResourcePath(path)) {
+            ctx.header("Cache-Control", "private, max-age=300");
+            return;
+        }
+
         if (path.startsWith(API_PREFIX + "/demo/")) {
             ctx.header("Cache-Control", "public, max-age=60");
             return;
         }
 
-        // All other API GET responses — private, use ETag for conditional requests
         if (path.startsWith(API_PREFIX + "/")) {
             ctx.header("Cache-Control", "private, no-cache");
             addETag(ctx);
         }
+    }
+
+    /**
+     * Matches the binary-resource endpoints (avatars, logos, images) by whole path
+     * segment or suffix rather than substring, so unrelated paths that merely contain
+     * {@code avatar}/{@code logo}/{@code image} — such as {@code /auth/logout} — are
+     * excluded.
+     */
+    private static boolean isBinaryResourcePath(String path) {
+        return path.endsWith("/avatar")
+                || path.endsWith("/logo")
+                || path.endsWith("/image")
+                || path.endsWith("/images")
+                || path.contains("/images/")
+                || path.contains("/logo-fragment/");
     }
 
     /**
