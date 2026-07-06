@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Verify Backend Build
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set up JDK
         uses: actions/setup-java@v5
         with:
@@ -27,7 +27,7 @@ jobs:
     name: Verify Repository Tests
     needs: verify-build-backend
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set up JDK
         uses: actions/setup-java@v5
         with:
@@ -50,7 +50,7 @@ jobs:
     name: Verify Service Tests
     needs: verify-build-backend
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set up JDK
         uses: actions/setup-java@v5
         with:
@@ -78,7 +78,7 @@ jobs:
     name: Verify Data Tracking
     needs: verify-build-backend
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set up JDK
         uses: actions/setup-java@v5
         with:
@@ -106,7 +106,7 @@ jobs:
     name: Verify Other Tests
     needs: verify-build-backend
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set up JDK
         uses: actions/setup-java@v5
         with:
@@ -130,7 +130,7 @@ jobs:
     name: Verify Coverage
     needs: [verify-test-repositories, verify-test-services, verify-test-tracking, verify-test-other]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set up JDK
         uses: actions/setup-java@v5
         with:
@@ -149,7 +149,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Verify Javadoc
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set up JDK
         uses: actions/setup-java@v5
         with:
@@ -162,7 +162,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Verify Frontend Build
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
@@ -183,7 +183,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Verify Backend Formatting
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set up JDK
         uses: actions/setup-java@v5
         with:
@@ -196,7 +196,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Verify Frontend Formatting
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set up JDK
         uses: actions/setup-java@v5
         with:
@@ -209,7 +209,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Verify Locales
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
@@ -226,7 +226,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Verify Docker Build
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Build backend image
         run: docker build . -f docker/backend.Dockerfile
       - name: Build frontend image

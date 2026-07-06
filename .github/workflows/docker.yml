@@ -33,7 +33,7 @@ jobs:
           running-workflow-name: 'Deploy Docker Images (${{ matrix.name }})'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           allowed-conclusions: success
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: gradle/actions/wrapper-validation@v6
         if: matrix.name == 'backend'
       - name: Build Image
