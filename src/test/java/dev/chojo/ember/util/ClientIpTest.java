@@ -79,10 +79,34 @@ class ClientIpTest {
     }
 
     @Test
-    void traefikTakesLeftmostFromCommaSeparatedXff() {
+    void traefikTakesRightmostUntrustedFromCommaSeparatedXff() {
         assertEquals(
-                "203.0.113.42",
+                "198.51.100.1",
                 ClientIp.resolve(ctx("10.0.0.5", "203.0.113.42, 198.51.100.1", null, null), traefik())
+                        .getHostAddress());
+    }
+
+    @Test
+    void traefikSkipsTrustedHopsInChainAndResolvesLeftNeighbour() {
+        assertEquals(
+                "198.51.100.1",
+                ClientIp.resolve(ctx("10.0.0.5", "203.0.113.42, 198.51.100.1, 10.0.0.9", null, null), traefik())
+                        .getHostAddress());
+    }
+
+    @Test
+    void traefikAllTrustedChainResolvesToLeftmostEntry() {
+        assertEquals(
+                "10.0.0.9",
+                ClientIp.resolve(ctx("10.0.0.5", "10.0.0.9, 10.0.0.7", null, null), traefik())
+                        .getHostAddress());
+    }
+
+    @Test
+    void traefikUnparseableChainEntryFallsBackToImmediateHop() {
+        assertEquals(
+                "10.0.0.5",
+                ClientIp.resolve(ctx("10.0.0.5", "not-an-ip, 10.0.0.9", null, null), traefik())
                         .getHostAddress());
     }
 
@@ -111,6 +135,14 @@ class ClientIpTest {
     }
 
     @Test
+    void cloudflareEdgeHopIsTrustedForXffWithoutConfiguredProxies() {
+        assertEquals(
+                "203.0.113.42",
+                ClientIp.resolve(ctx("104.16.0.1", "203.0.113.42", null, null), cloudflareOnly())
+                        .getHostAddress());
+    }
+
+    @Test
     void cloudflareIgnoresCfConnectingIpFromNonCfHop() {
         assertEquals(
                 "8.8.8.8",
@@ -133,6 +165,32 @@ class ClientIpTest {
                 ClientIp.resolve(
                                 ctx("104.16.0.1", "10.0.0.5, 198.51.100.1", null, "203.0.113.42"),
                                 cloudflareThenTraefik())
+                        .getHostAddress());
+    }
+
+    @Test
+    void cloudflareToTraefikResolvesRealClientBehindEdgeFromXffChain() {
+        assertEquals(
+                "203.0.113.42",
+                ClientIp.resolve(
+                                ctx("10.0.0.5", "6.6.6.6, 203.0.113.42, 104.16.0.1", null, null),
+                                cloudflareThenTraefik())
+                        .getHostAddress());
+    }
+
+    @Test
+    void cloudflareToTraefikIgnoresForgedCfConnectingIpForwardedByTraefik() {
+        assertEquals(
+                "203.0.113.42",
+                ClientIp.resolve(ctx("10.0.0.5", "203.0.113.42", null, "6.6.6.6"), cloudflareThenTraefik())
+                        .getHostAddress());
+    }
+
+    @Test
+    void cloudflareDisabledTreatsEdgeAddressInChainAsOrdinaryClient() {
+        assertEquals(
+                "104.16.0.1",
+                ClientIp.resolve(ctx("10.0.0.5", "203.0.113.42, 104.16.0.1", null, null), traefik())
                         .getHostAddress());
     }
 
