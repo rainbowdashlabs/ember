@@ -8,7 +8,7 @@ networks:
 
 services:
   postgres:
-    image: postgres:17-alpine
+    image: postgres:18-alpine
     container_name: ember_dev_db
     environment:
       POSTGRES_DB: ember
@@ -206,7 +206,7 @@ services:
   #   docker compose -f docker/compose.dev.yaml --profile transfer down -v
 
   ember_target_db:
-    image: postgres:17-alpine
+    image: postgres:18-alpine
     container_name: ember_dev_target_db
     environment:
       POSTGRES_DB: ember
