@@ -10,7 +10,6 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.spi.IThrowableProxy;
 import ch.qos.logback.classic.spi.StackTraceElementProxy;
 import ch.qos.logback.core.AppenderBase;
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -152,17 +151,17 @@ public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
 
     /**
      * Represents an aggregated problem with occurrence count and optional distinct messages.
-     * Field visibility is set to ANY so Jackson serializes the private fields directly without
-     * needing JavaBean-style getters.
+     * Mutable aggregation state stays internal; API consumers receive an immutable
+     * {@link Snapshot} via {@link #snapshot()}.
      */
-    @JsonAutoDetect(
-            fieldVisibility = JsonAutoDetect.Visibility.ANY,
-            getterVisibility = JsonAutoDetect.Visibility.NONE,
-            isGetterVisibility = JsonAutoDetect.Visibility.NONE)
     public static class ProblemEntry {
         private final long id;
         private final String level;
         private final String logger;
+        private final String stacktrace;
+        private final String exceptionClass;
+        private final String exceptionMessage;
+        private final Instant firstOccurrence;
         private final List<String> distinctMessages = Collections.synchronizedList(new ArrayList<>());
         private volatile Instant lastOccurrence;
         private volatile int count;
@@ -180,6 +179,10 @@ public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
             this.id = id;
             this.level = level;
             this.logger = logger;
+            this.stacktrace = stacktrace;
+            this.exceptionClass = exceptionClass;
+            this.exceptionMessage = exceptionMessage;
+            this.firstOccurrence = timestamp;
             this.lastOccurrence = timestamp;
             this.count = 1;
             this.distinctMessages.add(message);
@@ -189,24 +192,34 @@ public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
             return id;
         }
 
-        public String level() {
-            return level;
-        }
-
-        public String logger() {
-            return logger;
-        }
-
         public Instant lastOccurrence() {
             return lastOccurrence;
         }
 
-        public int count() {
-            return count;
-        }
-
         public boolean acknowledged() {
             return acknowledged;
+        }
+
+        /**
+         * Creates an immutable copy of the current aggregation state for API serialization.
+         */
+        public Snapshot snapshot() {
+            List<String> messages;
+            synchronized (distinctMessages) {
+                messages = List.copyOf(distinctMessages);
+            }
+            return new Snapshot(
+                    id,
+                    level,
+                    logger,
+                    exceptionClass,
+                    exceptionMessage,
+                    stacktrace,
+                    firstOccurrence,
+                    lastOccurrence,
+                    count,
+                    acknowledged,
+                    messages);
         }
 
         synchronized void addOccurrence(String message, Instant timestamp) {
@@ -223,4 +236,32 @@ public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
             this.acknowledged = ack;
         }
     }
+
+    /**
+     * Immutable API view of an aggregated problem.
+     *
+     * @param id               stable identifier for acknowledging the problem
+     * @param level            log level, {@code ERROR} or {@code WARN}
+     * @param logger           fully qualified logger name that emitted the event
+     * @param exceptionClass   fully qualified exception class, or {@code null} without a throwable
+     * @param exceptionMessage exception message, or {@code null} without a throwable
+     * @param stacktrace       rendered stacktrace including causes, or {@code null} without a throwable
+     * @param firstOccurrence  timestamp of the first aggregated occurrence
+     * @param lastOccurrence   timestamp of the most recent occurrence
+     * @param count            number of aggregated occurrences
+     * @param acknowledged     whether an administrator dismissed the problem
+     * @param distinctMessages up to 50 distinct formatted log messages
+     */
+    public record Snapshot(
+            long id,
+            String level,
+            String logger,
+            String exceptionClass,
+            String exceptionMessage,
+            String stacktrace,
+            Instant firstOccurrence,
+            Instant lastOccurrence,
+            int count,
+            boolean acknowledged,
+            List<String> distinctMessages) {}
 }
