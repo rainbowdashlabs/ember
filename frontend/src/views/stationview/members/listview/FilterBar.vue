@@ -12,6 +12,7 @@ import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
+import { type RestrictionSelection, emptyRestriction } from '@/components/input/restriction'
 import type { FilterCriteria } from '@/composables/useMemberFilter'
 import type { ProfileField, MemberGroup, UserTag } from '@/api/types'
 import { useBreakpoint } from '@/composables/useBreakpoint'
@@ -70,38 +71,15 @@ const showColumnPicker = ref(false)
 const showSaveFilter = ref(false)
 const filterPresetName = ref('')
 
-const selectedUserTypes = ref<string[]>([])
-const selectedGroupIds = ref<number[]>([])
-const selectedTagIds = ref<number[]>([])
-const filterMode = ref<'AND' | 'OR'>('AND')
+const restriction = ref<RestrictionSelection>(emptyRestriction())
 
 function emitFilter() {
   emit('filter', {
-    userTypes: selectedUserTypes.value,
-    groupIds: selectedGroupIds.value,
-    tagIds: selectedTagIds.value,
-    mode: filterMode.value,
+    userTypes: restriction.value.userTypes,
+    groupIds: restriction.value.groupIds,
+    tagIds: restriction.value.tagIds,
+    mode: restriction.value.mode,
   })
-}
-
-function onUserTypesChange(types: string[]) {
-  selectedUserTypes.value = types
-  emitFilter()
-}
-
-function onGroupIdsChange(ids: number[]) {
-  selectedGroupIds.value = ids
-  emitFilter()
-}
-
-function onTagIdsChange(ids: number[]) {
-  selectedTagIds.value = ids
-  emitFilter()
-}
-
-function onModeChange(mode: 'AND' | 'OR') {
-  filterMode.value = mode
-  emitFilter()
 }
 
 function submitSaveFilter() {
@@ -130,14 +108,8 @@ function submitSaveFilter() {
   <RestrictionPicker
       :groups="groups"
       :tags="tags"
-      :selected-user-types="selectedUserTypes"
-      :selected-group-ids="selectedGroupIds"
-      :selected-tag-ids="selectedTagIds"
-      :mode="filterMode"
-      @update:selected-user-types="onUserTypesChange"
-      @update:selected-group-ids="onGroupIdsChange"
-      @update:selected-tag-ids="onTagIdsChange"
-      @update:mode="onModeChange"
+      v-model="restriction"
+      @update:model-value="emitFilter"
   />
 
   <div class="space-y-2">

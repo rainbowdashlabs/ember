@@ -102,6 +102,12 @@ public class StationMemberInviteService {
                 guardianOfInviteId,
                 invitedByMemberId,
                 expiresAt);
+        log.info(
+                "Station member invite created: invite={}, station={}, userType={}, invitedBy={}",
+                invite.id(),
+                stationId,
+                userType,
+                invitedByMemberId);
         sendInviteEmail(invite, invitedByMemberId);
         return invite;
     }
@@ -154,9 +160,24 @@ public class StationMemberInviteService {
      */
     public boolean revoke(int stationId, int inviteId) {
         var invite = inviteRepository.findById(inviteId).orElse(null);
-        if (invite == null || invite.stationId() != stationId) return false;
-        if (invite.isAccepted()) return false;
-        return inviteRepository.delete(inviteId);
+        if (invite == null || invite.stationId() != stationId) {
+            log.warn("Station member invite revoke missed: invite={}, station={}", inviteId, stationId);
+            return false;
+        }
+        if (invite.isAccepted()) {
+            log.warn(
+                    "Station member invite revoke rejected for accepted invite: invite={}, station={}",
+                    inviteId,
+                    stationId);
+            return false;
+        }
+        boolean deleted = inviteRepository.delete(inviteId);
+        if (deleted) {
+            log.info("Station member invite revoked: invite={}, station={}", inviteId, stationId);
+        } else {
+            log.warn("Station member invite revoke affected no rows: invite={}, station={}", inviteId, stationId);
+        }
+        return deleted;
     }
 
     /**

@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.service.PdfCompressor;
 import dev.chojo.ember.feature.storage.service.PresentationCompressor;
@@ -55,11 +56,9 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     private static FederationRepository federationRepo;
     private static FederationService federationService;
     private static Station stationB;
-    private static int partnerIdAtoB;
     private static FederationHttpClient httpClient;
     private static KbFileStorageService fileStorage;
     private static Station stationC;
-    private static int remotePartnerId;
 
     @BeforeAll
     static void setup() {
@@ -93,7 +92,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         var keyPair = federationService.generateKeyPair();
         var partner = federationService.acceptInvite(
                 station.id(), stationB.id(), federationService.encodePublicKey(keyPair), null, null);
-        partnerIdAtoB = partner.id();
+        int partnerIdAtoB = partner.id();
 
         // Enable KB_SHARE capability
         federationService.setCapability(partnerIdAtoB, CapabilityType.KB_SHARE, Direction.IMPORT, true);
@@ -107,7 +106,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
                 federationService.encodePublicKey(keyPairRemote),
                 "https://remote-kb.example.com",
                 null);
-        remotePartnerId = remotePartner.id();
+        int remotePartnerId = remotePartner.id();
         federationService.setCapability(remotePartnerId, CapabilityType.KB_SHARE, Direction.IMPORT, true);
     }
 
@@ -367,13 +366,16 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     @Test
     @Order(85)
     void setRestrictions() {
-        service.setRestrictions(folderId, null, List.of("MEMBER"), List.of(), List.of(), List.of());
+        service.setRestrictions(
+                folderId,
+                null,
+                new RestrictionSelection(List.of(StationUserType.MEMBER), List.of(), List.of(), List.of(), null));
         var restrictions = service.findRestrictions(folderId, null);
         assertFalse(restrictions.isEmpty());
         // Public visibility should now be false because of restrictions
         assertFalse(service.isPubliclyVisible(PublicKbMode.ALLOW_ALL, folderId, null));
         // Clear
-        service.setRestrictions(folderId, null, List.of(), List.of(), List.of(), List.of());
+        service.setRestrictions(folderId, null, RestrictionSelection.empty());
     }
 
     @Test
@@ -400,25 +402,31 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     @Order(90)
     void canAccessWithFolderRestriction() {
         // Set a restriction that requires role 1
-        service.setRestrictions(folderId, null, List.of("MEMBER"), List.of(), List.of(), List.of());
+        service.setRestrictions(
+                folderId,
+                null,
+                new RestrictionSelection(List.of(StationUserType.MEMBER), List.of(), List.of(), List.of(), null));
         // Member without role 1 should be denied
         assertFalse(service.canAccess(member.id(), folderId, null, null, List.of(), List.of()));
         // Member with role 1 should be allowed
         assertTrue(service.canAccess(member.id(), folderId, null, StationUserType.MEMBER, List.of(), List.of()));
         // Clear
-        service.setRestrictions(folderId, null, List.of(), List.of(), List.of(), List.of());
+        service.setRestrictions(folderId, null, RestrictionSelection.empty());
     }
 
     @Test
     @Order(91)
     void canAccessFileInheritsFolder() {
         // Set restriction on folder
-        service.setRestrictions(folderId, null, List.of("MEMBER"), List.of(), List.of(), List.of());
+        service.setRestrictions(
+                folderId,
+                null,
+                new RestrictionSelection(List.of(StationUserType.MEMBER), List.of(), List.of(), List.of(), null));
         // Access to file in that folder checks parent folder restriction
         assertFalse(service.canAccess(member.id(), null, fileId, null, List.of(), List.of()));
         assertTrue(service.canAccess(member.id(), null, fileId, StationUserType.MEMBER, List.of(), List.of()));
         // Clear
-        service.setRestrictions(folderId, null, List.of(), List.of(), List.of(), List.of());
+        service.setRestrictions(folderId, null, RestrictionSelection.empty());
     }
 
     // -- Link file and uploaded file --
@@ -907,14 +915,17 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         var restrictedFile = service.createMarkdownFile(
                 station.id(), null, "Restricted File", "Only for specific member", "# Secret", member.id());
 
-        service.setRestrictions(null, restrictedFile.id(), List.of(), List.of(), List.of(), List.of(member.id()));
+        service.setRestrictions(
+                null,
+                restrictedFile.id(),
+                new RestrictionSelection(List.of(), List.of(), List.of(), List.of(member.id()), null));
 
         // member (the restricted one) can access — member ID matches
         assertTrue(service.canAccess(member.id(), null, restrictedFile.id(), null, List.of(), List.of()));
         // another member ID should be denied
         assertFalse(service.canAccess(member.id() + 9999, null, restrictedFile.id(), null, List.of(), List.of()));
 
-        service.setRestrictions(null, restrictedFile.id(), List.of(), List.of(), List.of(), List.of());
+        service.setRestrictions(null, restrictedFile.id(), RestrictionSelection.empty());
         service.deleteFile(restrictedFile.id());
     }
 
@@ -925,14 +936,17 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         var tagRestrictedFile =
                 service.createMarkdownFile(station.id(), null, "Tag File", "Tag restricted", "# Tag", member.id());
 
-        service.setRestrictions(null, tagRestrictedFile.id(), List.of(), List.of(), List.of(tag.id()), List.of());
+        service.setRestrictions(
+                null,
+                tagRestrictedFile.id(),
+                new RestrictionSelection(List.of(), List.of(), List.of(tag.id()), List.of(), null));
 
         // Without the tag, access denied
         assertFalse(service.canAccess(member.id(), null, tagRestrictedFile.id(), null, List.of(), List.of()));
         // With the tag, access granted
         assertTrue(service.canAccess(member.id(), null, tagRestrictedFile.id(), null, List.of(), List.of(tag.id())));
 
-        service.setRestrictions(null, tagRestrictedFile.id(), List.of(), List.of(), List.of(), List.of());
+        service.setRestrictions(null, tagRestrictedFile.id(), RestrictionSelection.empty());
         service.deleteFile(tagRestrictedFile.id());
     }
 
@@ -943,13 +957,16 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         var groupRestrictedFile = service.createMarkdownFile(
                 station.id(), null, "Group File", "Group restricted", "# Group", member.id());
 
-        service.setRestrictions(null, groupRestrictedFile.id(), List.of(), List.of(group.id()), List.of(), List.of());
+        service.setRestrictions(
+                null,
+                groupRestrictedFile.id(),
+                new RestrictionSelection(List.of(), List.of(group.id()), List.of(), List.of(), null));
 
         assertFalse(service.canAccess(member.id(), null, groupRestrictedFile.id(), null, List.of(), List.of()));
         assertTrue(
                 service.canAccess(member.id(), null, groupRestrictedFile.id(), null, List.of(group.id()), List.of()));
 
-        service.setRestrictions(null, groupRestrictedFile.id(), List.of(), List.of(), List.of(), List.of());
+        service.setRestrictions(null, groupRestrictedFile.id(), RestrictionSelection.empty());
         service.deleteFile(groupRestrictedFile.id());
         memberGroupRepo.delete(group.id());
     }
@@ -977,7 +994,10 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     void isPubliclyVisibleFileRestrictedParentFolder() {
         // Parent folder has restrictions — file in it should not be publicly visible
         var restrictedParent = service.createFolder(station.id(), null, "RestParent", "Restricted parent", member.id());
-        service.setRestrictions(restrictedParent.id(), null, List.of("MEMBER"), List.of(), List.of(), List.of());
+        service.setRestrictions(
+                restrictedParent.id(),
+                null,
+                new RestrictionSelection(List.of(StationUserType.MEMBER), List.of(), List.of(), List.of(), null));
 
         var fileInFolder = service.createMarkdownFile(
                 station.id(), restrictedParent.id(), "FileInRestricted", "", "# Content", member.id());
@@ -985,7 +1005,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         // File in restricted folder should not be visible
         assertFalse(service.isPubliclyVisible(PublicKbMode.ALLOW_ALL, null, fileInFolder.id()));
 
-        service.setRestrictions(restrictedParent.id(), null, List.of(), List.of(), List.of(), List.of());
+        service.setRestrictions(restrictedParent.id(), null, RestrictionSelection.empty());
         service.deleteFile(fileInFolder.id());
         service.deleteFolder(restrictedParent.id());
     }
@@ -1055,7 +1075,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         var share = federationRepo.createKbShare(stationB.id(), file.id(), null, ShareScope.ALL_PARTNERS);
         var items = service.browseSharedKb(station.id());
         assertTrue(items.stream().anyMatch(i -> i.file().id() == file.id()));
-        federationRepo.deleteKbShare(share.id());
+        federationRepo.deleteKbShare(share.id(), stationB.id());
         knowledgeBaseRepo.deleteFile(file.id());
     }
 

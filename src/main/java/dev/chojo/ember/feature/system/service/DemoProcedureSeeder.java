@@ -56,7 +56,7 @@ public class DemoProcedureSeeder {
                 true,
                 true,
                 1);
-        var ob3 = repo.createTemplateItem(
+        repo.createTemplateItem(
                 onboarding.id(),
                 "Ärztliches Attest vorlegen",
                 "Sporttauglichkeitsbescheinigung vom Arzt.",

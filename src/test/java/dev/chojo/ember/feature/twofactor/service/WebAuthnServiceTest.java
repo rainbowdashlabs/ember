@@ -39,7 +39,7 @@ class WebAuthnServiceTest extends RepositoryTestBase {
         var store = new WebAuthnCredentialStore(twoFactorRepo);
         var rp = WebAuthnRelyingPartyFactory.build(settings, api, store);
         var audit = new TwoFactorAuditService(twoFactorRepo);
-        service = new WebAuthnService(rp, twoFactorRepo, audit, accountRepo, settings, auth);
+        service = new WebAuthnService(rp, twoFactorRepo, audit, accountRepo, settings);
     }
 
     private static void setField(Object target, String name, Object value) throws Exception {
@@ -158,7 +158,7 @@ class WebAuthnServiceTest extends RepositoryTestBase {
                 .when(spiedRp)
                 .finishRegistration(any());
         var audit = new TwoFactorAuditService(twoFactorRepo);
-        var spiedService = new WebAuthnService(spiedRp, twoFactorRepo, audit, accountRepo, settings, new Auth());
+        var spiedService = new WebAuthnService(spiedRp, twoFactorRepo, audit, accountRepo, settings);
 
         int accountId = newAccount();
         var start = spiedService.startRegistration(accountId, "rf@test.com", "RF");
@@ -184,7 +184,7 @@ class WebAuthnServiceTest extends RepositoryTestBase {
         RelyingParty spiedRp = spy(realRp);
         doThrow(new AssertionFailedException("nope")).when(spiedRp).finishAssertion(any());
         var audit = new TwoFactorAuditService(twoFactorRepo);
-        var spiedService = new WebAuthnService(spiedRp, twoFactorRepo, audit, accountRepo, settings, new Auth());
+        var spiedService = new WebAuthnService(spiedRp, twoFactorRepo, audit, accountRepo, settings);
 
         int accountId = newAccount();
         var start = spiedService.startAssertion(accountId);

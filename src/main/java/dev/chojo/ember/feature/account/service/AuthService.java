@@ -341,7 +341,7 @@ public class AuthService {
                 account.id(),
                 token,
                 TokenType.RESET_PASSWORD,
-                Instant.now().plus(authConfig.verifyTokenHours(), ChronoUnit.HOURS));
+                Instant.now().plus(authConfig.resetTokenHours(), ChronoUnit.HOURS));
         emailService.sendPasswordResetEmail(
                 account.email(), account.firstName(), token, accountRepository.findMailLocale(account.id()));
         log.info("Password reset requested for account {} ({})", account.id(), email);
@@ -598,13 +598,21 @@ public class AuthService {
     }
 
     /**
-     * Changes a user's password after verifying the current password.
+     * Verifies an account's current password. Used to re-authenticate a session before it may
+     * enroll its first second factor, so a hijacked bearer token on its own cannot silently
+     * plant an attacker-controlled factor for persistence.
      *
-     * @param accountId       the account identifier
-     * @param currentPassword the current plaintext password for verification
-     * @param newPassword     the new plaintext password
-     * @return {@code true} if the password was changed successfully
+     * @param accountId the account to check
+     * @param password  the plaintext password supplied by the caller
+     * @return {@code true} when the account has a credential and the password matches
      */
+    public boolean verifyPassword(int accountId, String password) {
+        if (password == null || password.isBlank()) return false;
+        var credOpt = accountRepository.findCredential(accountId);
+        return credOpt.isPresent()
+                && passwordHasher.verify(password, credOpt.get().passwordHash());
+    }
+
     public boolean changePassword(
             int accountId, String currentSessionToken, String currentPassword, String newPassword) {
         if (validateNewPassword(newPassword) != PasswordPolicy.Result.OK) {
@@ -765,14 +773,6 @@ public class AuthService {
     }
 
     /**
-     * Creates a session for the given account, callable from the 2FA verification
-     * flow after the user has proven their second factor.
-     */
-    public LoginResult createSessionForAccount(int accountId, String userAgent, String location) {
-        return createSession(accountId, userAgent, location);
-    }
-
-    /**
      * Creates a session that is already marked as 2FA-verified and (optionally) linked to a
      * trusted-device row. Used by the {@code /auth/2fa} verify path so the freshly-minted
      * session passes step-up freshness checks without a second prompt.
@@ -827,6 +827,9 @@ public class AuthService {
             accountRepository.deleteSessionsExceptToken(accountId, keepSessionToken);
         }
         accountRepository.deleteAllTokens(accountId);
+        // A password reset is a security event; a captured "remember this device" cookie is a
+        // standing 2FA bypass, so revoke every trusted device alongside sessions and tokens.
+        trustedDeviceService.revokeAll(accountId);
     }
 
     // -- Station deletion --

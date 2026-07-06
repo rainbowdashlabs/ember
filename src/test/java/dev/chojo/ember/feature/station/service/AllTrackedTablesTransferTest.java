@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.station.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.station.entity.StationModule;
@@ -14,6 +15,7 @@ import dev.chojo.ember.tracking.DataTrackingLoader;
 import dev.chojo.ember.tracking.OutputShape;
 import dev.chojo.ember.tracking.Status;
 import dev.chojo.ember.tracking.TableEntry;
+import dev.chojo.ember.util.TestRemoteUrlValidator;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -65,8 +67,8 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
                 null,
                 null,
                 null,
-                new FederationPartnerTransferFixupService(
-                        new dev.chojo.ember.feature.federation.repository.FederationRepository(), null, stationRepo));
+                new FederationPartnerTransferFixupService(new FederationRepository(), null, stationRepo),
+                TestRemoteUrlValidator.permissive());
     }
 
     @Test
@@ -245,7 +247,6 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
         return switch (payload) {
             case null -> 0;
             case List<?> l -> l.size();
-            case Map map -> 1;
             default -> 1;
         };
     }

@@ -4,10 +4,12 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
+import {type RestrictionSelection, emptyRestriction} from '@/components/input/restriction'
 import type {MemberGroup, UserTag} from '@/api/types'
 
 const selectedUserTypes = defineModel<string[]>('selectedUserTypes', {required: true})
@@ -19,6 +21,19 @@ const props = defineProps<{
   tags: UserTag[]
 }>()
 
+const restriction = computed<RestrictionSelection>(() => ({
+  ...emptyRestriction(),
+  userTypes: selectedUserTypes.value,
+  groupIds: selectedGroupIds.value,
+  tagIds: selectedTagIds.value,
+}))
+
+function onRestrictionChange(value: RestrictionSelection) {
+  selectedUserTypes.value = value.userTypes
+  selectedGroupIds.value = value.groupIds
+  selectedTagIds.value = value.tagIds
+}
+
 const {t} = useI18n()
 </script>
 
@@ -29,12 +44,8 @@ const {t} = useI18n()
     <RestrictionPicker
         :groups="props.groups"
         :tags="props.tags"
-        :selected-user-types="selectedUserTypes"
-        :selected-group-ids="selectedGroupIds"
-        :selected-tag-ids="selectedTagIds"
-        @update:selected-user-types="v => selectedUserTypes = v"
-        @update:selected-group-ids="v => selectedGroupIds = v"
-        @update:selected-tag-ids="v => selectedTagIds = v"
+        :model-value="restriction"
+        @update:model-value="onRestrictionChange"
     />
   </NeutralContainer>
 </template>

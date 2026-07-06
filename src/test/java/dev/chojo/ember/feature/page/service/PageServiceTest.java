@@ -288,6 +288,9 @@ class PageServiceTest extends RepositoryTestBase {
     @Test
     @Order(21)
     void readFileById() {
+        assertTrue(service.findFile(imageId).isPresent());
+        assertEquals(imageId, service.findFile(imageId).orElseThrow().id());
+        assertTrue(service.findFile(-1).isEmpty());
         var fileData = service.readFileById(imageId);
         assertTrue(fileData.isPresent());
         assertEquals("image/png", fileData.orElseThrow().contentType());

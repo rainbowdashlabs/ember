@@ -567,7 +567,7 @@ public class EventRepository {
                   AND end_date >= :date
                 LIMIT 1;""")
                 .single(call().bind("station_id", stationId).bind("date", date))
-                .map(row -> true)
+                .map(_ -> true)
                 .first()
                 .isPresent();
     }
@@ -1174,7 +1174,7 @@ public class EventRepository {
                 .single(call().bind("event_id", eventId)
                         .bind("event_date", eventDate)
                         .bind("days_before", daysBefore))
-                .map(row -> true)
+                .map(_ -> true)
                 .first()
                 .orElse(false);
     }
@@ -1216,7 +1216,7 @@ public class EventRepository {
     public boolean existsForStation(int stationId) {
         return query("SELECT 1 FROM station_event WHERE station_id = :station_id LIMIT 1;")
                 .single(call().bind("station_id", stationId))
-                .map(row -> true)
+                .map(_ -> true)
                 .first()
                 .orElse(false);
     }

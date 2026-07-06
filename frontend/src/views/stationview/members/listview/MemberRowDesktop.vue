@@ -67,14 +67,14 @@ const emit = defineEmits<{
             :icon="['fas', 'paper-plane']"
             :title="t('membersList.accountPendingResend')"
             :label="t('membersList.accountPendingResend')"
-            class="text-warning hover:bg-warning/15"
+            class="ml-auto text-warning hover:bg-warning/15"
             @click.stop="emit('resendSetup', $event)"
         />
         <font-awesome-icon
             v-else-if="member.accountSetupPending"
             :icon="['fas', 'hourglass-half']"
             :title="t('membersList.accountPending')"
-            class="text-warning w-3.5 h-3.5"
+            class="ml-auto text-warning w-3.5 h-3.5"
         />
       </div>
     </Td>

@@ -208,7 +208,6 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     // -- Requirements --
 
     private static int requirementId;
-    private static MemberGroup group;
 
     @Test
     @Order(40)
@@ -246,7 +245,7 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(44)
     void createRequirementByGroup() {
-        group = memberGroupRepo.create(station.id(), "Req Group");
+        MemberGroup group = memberGroupRepo.create(station.id(), "Req Group");
         InventoryRequirement req = inventoryRepo.createRequirement(inventoryId, null, group.id(), 3);
         assertNotNull(req);
         assertEquals(group.id(), req.groupId());

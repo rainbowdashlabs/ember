@@ -120,6 +120,8 @@ public class StationExportService {
                         .bind("expires_at", expiresAt, StandardValueConverter.INSTANT_TIMESTAMP))
                 .insert();
 
+        log.info("Transfer token created for station {}", stationId);
+
         String json;
         try {
             json = TOKEN_MAPPER.writeValueAsString(new TransferTokenPayload(apiConfig.baseUrl(), randomPart));
@@ -164,6 +166,7 @@ public class StationExportService {
      */
     public void markTransferStarted(int stationId) {
         stationRepository.markReadOnlyForTransfer(stationId);
+        log.info("Transfer started: station {} marked read-only", stationId);
     }
 
     /**
@@ -175,6 +178,7 @@ public class StationExportService {
                 .single(call().bind("station_id", stationId))
                 .update();
         stationRepository.clearReadOnlyForTransfer(stationId);
+        log.info("Transfer aborted: station {} read-only flag cleared, outstanding tokens invalidated", stationId);
     }
 
     /**
@@ -187,6 +191,7 @@ public class StationExportService {
         query("UPDATE transfer_token SET used = TRUE WHERE station_id = :station_id AND used = FALSE;")
                 .single(call().bind("station_id", stationId))
                 .update();
+        log.info("Transfer complete: station {} tokens invalidated, station remains read-only", stationId);
     }
 
     public Optional<Integer> validateToken(String token) {

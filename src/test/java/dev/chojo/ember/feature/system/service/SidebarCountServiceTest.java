@@ -45,11 +45,8 @@ class SidebarCountServiceTest {
     private FederationRepository federationRepository;
     private WaitingListRepository waitingListRepository;
     private LostAndFoundRepository lostAndFoundRepository;
-    private StationRepository stationRepository;
     private InventoryService inventoryService;
     private ExchangeService exchangeService;
-    private ProcedureService procedureService;
-    private StationMemberService stationMemberService;
 
     private SidebarCountService service;
 
@@ -67,11 +64,11 @@ class SidebarCountServiceTest {
         federationRepository = mock(FederationRepository.class);
         waitingListRepository = mock(WaitingListRepository.class);
         lostAndFoundRepository = mock(LostAndFoundRepository.class);
-        stationRepository = mock(StationRepository.class);
+        StationRepository stationRepository = mock(StationRepository.class);
         inventoryService = mock(InventoryService.class);
         exchangeService = mock(ExchangeService.class);
-        procedureService = mock(ProcedureService.class);
-        stationMemberService = mock(StationMemberService.class);
+        ProcedureService procedureService = mock(ProcedureService.class);
+        StationMemberService stationMemberService = mock(StationMemberService.class);
         when(stationRepository.resolveUid(STATION_ID)).thenReturn(STATION_UID);
 
         service = new SidebarCountService(

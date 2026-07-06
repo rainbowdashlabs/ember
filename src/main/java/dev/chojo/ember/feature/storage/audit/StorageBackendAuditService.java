@@ -82,13 +82,13 @@ public class StorageBackendAuditService {
      * Records a user-triggered probe with the dedupe rule. Returns {@code true} when a row was
      * inserted, {@code false} when an equivalent row inside the dedupe window suppressed it.
      */
-    public boolean recordProbe(Actor actor, int stationId, StorageAuditOutcome outcome, String errorOrNull) {
+    public void recordProbe(Actor actor, int stationId, StorageAuditOutcome outcome, String errorOrNull) {
         StorageAuditAction action =
                 outcome == StorageAuditOutcome.OK ? StorageAuditAction.PROBE_OK : StorageAuditAction.PROBE_FAILED;
         Instant cutoff = Instant.now().minus(Duration.ofSeconds(PROBE_DEDUPE_SECONDS));
         Optional<StorageAuditEntry> recent = repository.findRecentMatching(
                 actor.accountId(), actor.systemActor(), Optional.of(stationId), action, outcome, cutoff);
-        if (recent.isPresent()) return false;
+        if (recent.isPresent()) return;
         repository.insert(new StorageBackendAuditRepository.NewEntry(
                 actor.accountId(),
                 actor.memberId(),
@@ -99,7 +99,6 @@ public class StorageBackendAuditService {
                 Optional.empty(),
                 outcome,
                 Optional.ofNullable(errorOrNull)));
-        return true;
     }
 
     /**

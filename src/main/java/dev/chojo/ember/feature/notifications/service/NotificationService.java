@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
 import dev.chojo.ember.feature.notifications.repository.NotificationSettingsRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.i18n.Localizer;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -82,6 +83,7 @@ public class NotificationService {
     private final NotificationSettingsRepository notificationSettingsRepository;
     private final AccountRepository accountRepository;
     private final StationRepository stationRepository;
+    private final StationLogoService logoService;
     private final EmailService emailService;
 
     @Inject
@@ -92,6 +94,7 @@ public class NotificationService {
             NotificationSettingsRepository notificationSettingsRepository,
             AccountRepository accountRepository,
             StationRepository stationRepository,
+            StationLogoService logoService,
             EmailService emailService,
             Mailing mailing) {
         this.notificationRepository = notificationRepository;
@@ -100,6 +103,7 @@ public class NotificationService {
         this.notificationSettingsRepository = notificationSettingsRepository;
         this.accountRepository = accountRepository;
         this.stationRepository = stationRepository;
+        this.logoService = logoService;
         this.emailService = emailService;
 
         int intervalMinutes = mailing.notificationDigestIntervalMinutes();
@@ -382,10 +386,9 @@ public class NotificationService {
      *
      * @param id       the notification ID
      * @param memberId the member ID
-     * @return {@code true} if the notification was acknowledged
      */
-    public boolean acknowledge(int id, int memberId) {
-        return notificationRepository.acknowledge(id, memberId);
+    public void acknowledge(int id, int memberId) {
+        notificationRepository.acknowledge(id, memberId);
     }
 
     /**
@@ -403,10 +406,9 @@ public class NotificationService {
      *
      * @param type            the notification type
      * @param partialDataJson JSON fragment for containment matching
-     * @return the number of notifications deleted
      */
-    public int deleteByTypeContaining(NotificationType type, String partialDataJson) {
-        return notificationRepository.deleteByTypeContaining(type, partialDataJson);
+    public void deleteByTypeContaining(NotificationType type, String partialDataJson) {
+        notificationRepository.deleteByTypeContaining(type, partialDataJson);
     }
 
     /**
@@ -788,7 +790,7 @@ public class NotificationService {
 
         String stationName = station.name();
         String locale = resolveLocale(station.locale());
-        String logoApiUrl = stationRepository.findLogo(stationId).isPresent()
+        String logoApiUrl = logoService.exists(stationId)
                 ? emailService.getBaseUrl() + "/api/v1/stations/" + stationId + "/logo"
                 : null;
 

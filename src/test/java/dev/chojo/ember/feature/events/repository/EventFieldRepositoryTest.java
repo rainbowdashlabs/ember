@@ -30,16 +30,14 @@ import static org.junit.jupiter.api.Assertions.*;
 class EventFieldRepositoryTest extends RepositoryTestBase {
     private static Station station;
     private static Account account;
-    private static StationMember member;
     private static int eventId;
     private static int categoryId;
-    private static int fieldId;
 
     @BeforeAll
     static void setup() {
         station = stationRepo.create("EventField Station");
         account = accountRepo.create("eventfield@test.com", "EF", "User");
-        member = stationMemberRepo.create(station.id(), account.id());
+        StationMember member = stationMemberRepo.create(station.id(), account.id());
         EventCategory cat = eventRepo.createCategory(station.id(), "EF Cat", 1, null);
         categoryId = cat.id();
         StationEvent event = eventRepo.create(
@@ -89,7 +87,7 @@ class EventFieldRepositoryTest extends RepositoryTestBase {
         assertEquals("Berlin", field.value());
         assertEquals(0, field.position());
         assertFalse(field.overview());
-        fieldId = field.id();
+        int fieldId = field.id();
     }
 
     @Test

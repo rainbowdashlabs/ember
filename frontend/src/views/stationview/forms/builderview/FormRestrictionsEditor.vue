@@ -7,6 +7,7 @@
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
+import { type RestrictionSelection } from '@/components/input/restriction'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type { MemberGroup, StationMember, UserTag } from '@/api/types'
 
@@ -18,10 +19,7 @@ defineProps<{
   members: StationMember[]
 }>()
 
-const selectedUserTypes = defineModel<string[]>('selectedUserTypes', { required: true })
-const selectedGroupIds = defineModel<number[]>('selectedGroupIds', { required: true })
-const selectedTagIds = defineModel<number[]>('selectedTagIds', { required: true })
-const selectedMemberIds = defineModel<number[]>('selectedMemberIds', { required: true })
+const restriction = defineModel<RestrictionSelection>({ required: true })
 </script>
 
 <template>
@@ -32,10 +30,7 @@ const selectedMemberIds = defineModel<number[]>('selectedMemberIds', { required:
         :groups="groups"
         :tags="tags"
         :members="members"
-        v-model:selected-user-types="selectedUserTypes"
-        v-model:selected-group-ids="selectedGroupIds"
-        v-model:selected-tag-ids="selectedTagIds"
-        v-model:selected-member-ids="selectedMemberIds"
+        v-model="restriction"
         show-members
       />
     </div>

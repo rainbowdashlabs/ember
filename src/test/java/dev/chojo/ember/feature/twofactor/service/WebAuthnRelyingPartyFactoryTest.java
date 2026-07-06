@@ -46,7 +46,7 @@ class WebAuthnRelyingPartyFactoryTest {
                 Mockito.mock(WebAuthnCredentialStore.class));
         assertEquals("ember.example.org", rp.getIdentity().getId());
         assertEquals("Ember", rp.getIdentity().getName());
-        assertTrue(rp.getAttestationConveyancePreference().orElseThrow().equals(AttestationConveyancePreference.NONE));
+        assertEquals(rp.getAttestationConveyancePreference().orElseThrow(), AttestationConveyancePreference.NONE);
     }
 
     @Test

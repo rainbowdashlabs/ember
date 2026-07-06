@@ -524,7 +524,7 @@ public class BoardTicketRepository {
                 .single(call().bind("ticket_id", ticketId)
                         .bind("watcher_station_uid", identity.stationUid(), StandardValueConverter.UUID_STRING)
                         .bind("watcher_member_uid", identity.memberUid(), StandardValueConverter.UUID_STRING))
-                .map(row -> true)
+                .map(_ -> true)
                 .first()
                 .isPresent();
     }

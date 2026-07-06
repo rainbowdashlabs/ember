@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.system.service;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AvatarService;
+import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.feature.station.service.StationService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -38,13 +39,18 @@ public class DemoMediaSeeder {
 
     private final AvatarService avatarService;
     private final StationService stationService;
+    private final StationLogoService logoService;
     private final AccountRepository accountRepository;
 
     @Inject
     public DemoMediaSeeder(
-            AvatarService avatarService, StationService stationService, AccountRepository accountRepository) {
+            AvatarService avatarService,
+            StationService stationService,
+            StationLogoService logoService,
+            AccountRepository accountRepository) {
         this.avatarService = avatarService;
         this.stationService = stationService;
+        this.logoService = logoService;
         this.accountRepository = accountRepository;
     }
 
@@ -73,10 +79,10 @@ public class DemoMediaSeeder {
             }
         }
 
-        if (stationService.getLogo(stationId).isEmpty()) {
+        if (!logoService.exists(stationId)) {
             try {
                 byte[] logoData = loadDemoResource("demo/avatars/station_logo.png");
-                stationService.setLogo(stationId, logoData, "image/png");
+                logoService.store(stationId, logoData, "image/png");
             } catch (Exception e) {
                 log.warn("Failed to set demo station logo: {}", e.getMessage());
             }

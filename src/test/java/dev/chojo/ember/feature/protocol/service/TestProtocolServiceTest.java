@@ -44,7 +44,6 @@ class TestProtocolServiceTest extends RepositoryTestBase {
     private static int sectionId;
     private static int itemId;
     private static int runId;
-    private static int partnerIdAtoB;
 
     @BeforeAll
     static void setup() {
@@ -62,7 +61,7 @@ class TestProtocolServiceTest extends RepositoryTestBase {
         var keyPair = federationService.generateKeyPair();
         var partner = federationService.acceptInvite(
                 station.id(), stationB.id(), federationService.encodePublicKey(keyPair), null, null);
-        partnerIdAtoB = partner.id();
+        int partnerIdAtoB = partner.id();
 
         // Create remote federation partnership (stationC is a remote partner)
         var keyPairC = federationService.generateKeyPair();

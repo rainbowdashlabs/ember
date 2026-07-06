@@ -239,10 +239,22 @@ public class AccessManager {
             return Optional.empty();
         }
 
+        if (FederationSigningService.hasDuplicateQueryKeys(ctx.queryString())) {
+            log.warn("Rejecting federation request from partner {} — duplicate query parameter keys", p.id());
+            return Optional.empty();
+        }
+
         var publicKey = signingService.decodePublicKey(p.partnerPublicKey());
         String pathWithQuery = FederationSigningService.canonicalPathWithQuery(ctx.path(), ctx.queryString());
         boolean valid = signingService.verify(
-                ctx.method().name(), pathWithQuery, ourStationUid, ctx.body(), signature, publicKey, timestamp);
+                ctx.method().name(),
+                pathWithQuery,
+                ourStationUid,
+                nonce.toString(),
+                ctx.body(),
+                signature,
+                publicKey,
+                timestamp);
         if (!valid) {
             log.warn("Invalid federation signature from partner {} (station {})", p.id(), remoteStationUid);
             return Optional.empty();

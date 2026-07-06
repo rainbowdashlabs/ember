@@ -45,7 +45,6 @@ public class FederationVersionBroadcaster {
         scheduler.schedule(this::broadcastVersion, 2, TimeUnit.MINUTES);
     }
 
-    @SuppressWarnings("unchecked")
     private void broadcastVersion() {
         try {
             var partners = repository.findAllActiveRemotePartners();

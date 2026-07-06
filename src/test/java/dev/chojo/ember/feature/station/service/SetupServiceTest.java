@@ -42,7 +42,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 class SetupServiceTest extends RepositoryTestBase {
-    private static StationService stationService;
     private static SetupService setupService;
 
     private Station station;
@@ -50,13 +49,12 @@ class SetupServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setupServices() {
-        stationService = new StationService(
+        StationService stationService = new StationService(
                 stationRepo, stationMemberRepo, accountRepo, mock(AuthService.class), mock(FederationService.class));
         setupService = new SetupService(
                 stationRepo,
                 stationMailConfigRepo,
                 memberGroupRepo,
-                stationMemberRepo,
                 eventRepo,
                 knowledgeBaseRepo,
                 stationMemberInviteRepo,

@@ -8,7 +8,6 @@ package dev.chojo.ember.util;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
-import tools.jackson.databind.node.ObjectNode;
 
 /**
  * Shared JSON utilities for parsing and serializing JSON nodes.
@@ -36,12 +35,5 @@ public final class JsonUtil {
     public static String toJson(JsonNode node) {
         if (node == null) return "{}";
         return node.toString();
-    }
-
-    /**
-     * Creates an empty object node.
-     */
-    public static ObjectNode emptyObject() {
-        return MAPPER.createObjectNode();
     }
 }

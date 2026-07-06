@@ -58,7 +58,7 @@ public class NotificationRepository {
                   AND data = :data::JSONB
                   AND acknowledged_at IS NULL;""")
                 .single(call().bind("member_id", memberId).bind("type", type).bind("data", dataJson))
-                .map(row -> true)
+                .map(_ -> true)
                 .first()
                 .orElse(false);
     }

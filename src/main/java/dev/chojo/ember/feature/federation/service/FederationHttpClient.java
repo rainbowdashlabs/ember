@@ -20,6 +20,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublisher;
 import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -64,11 +65,11 @@ public class FederationHttpClient {
         this.urlValidator = urlValidator;
         this.httpsClient = HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_2)
-                .connectTimeout(java.time.Duration.ofSeconds(10))
+                .connectTimeout(Duration.ofSeconds(10))
                 .build();
         this.httpClient1 = HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_1_1)
-                .connectTimeout(java.time.Duration.ofSeconds(10))
+                .connectTimeout(Duration.ofSeconds(10))
                 .build();
         this.mapper = JsonMapper.builder()
                 .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
@@ -370,10 +371,10 @@ public class FederationHttpClient {
         String pathWithQuery = FederationSigningService.canonicalPathWithQuery(uri);
         String signedBody = body == null ? "" : body;
         var privateKey = signingService.decodePrivateKey(localPrivateKeyBase64);
-        String signature =
-                signingService.sign(method, pathWithQuery, partnerStationUid, signedBody, timestampStr, privateKey);
-        String stationUid = stationRepository.resolveUid(localStationId).toString();
         String nonce = UUID.randomUUID().toString();
+        String signature = signingService.sign(
+                method, pathWithQuery, partnerStationUid, nonce, signedBody, timestampStr, privateKey);
+        String stationUid = stationRepository.resolveUid(localStationId).toString();
 
         var builder = HttpRequest.newBuilder()
                 .uri(uri)
@@ -391,6 +392,7 @@ public class FederationHttpClient {
         }
         builder.method(method, publisher);
 
+        //noinspection resource
         return clientFor(url).send(builder.build(), HttpResponse.BodyHandlers.ofString());
     }
 }

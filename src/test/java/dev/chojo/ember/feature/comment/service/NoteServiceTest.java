@@ -44,7 +44,7 @@ class NoteServiceTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void findNoteWhenNoneExists() {
-        var note = service.findNote(NoteEntityType.EVENT, 9999);
+        var note = service.findNote(NoteEntityType.EVENT, 9999, station.id());
         assertTrue(note.isEmpty());
     }
 
@@ -62,9 +62,16 @@ class NoteServiceTest extends RepositoryTestBase {
     @Test
     @Order(3)
     void findNote() {
-        var note = service.findNote(NoteEntityType.EVENT, 1);
+        var note = service.findNote(NoteEntityType.EVENT, 1, station.id());
         assertTrue(note.isPresent());
         assertEquals("First content", note.get().content());
+    }
+
+    @Test
+    @Order(3)
+    void findNoteFromAnotherStationIsIsolated() {
+        var note = service.findNote(NoteEntityType.EVENT, 1, station.id() + 1);
+        assertTrue(note.isEmpty());
     }
 
     @Test

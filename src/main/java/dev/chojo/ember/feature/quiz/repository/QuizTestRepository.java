@@ -287,8 +287,8 @@ public class QuizTestRepository {
                 .changed();
     }
 
-    public boolean updateAttemptMaxPoints(int id, double maxPoints) {
-        return query("UPDATE quiz_test_attempt SET max_points = :max_points WHERE id = :id;")
+    public void updateAttemptMaxPoints(int id, double maxPoints) {
+        query("UPDATE quiz_test_attempt SET max_points = :max_points WHERE id = :id;")
                 .single(call().bind("id", id).bind("max_points", maxPoints))
                 .update()
                 .changed();
@@ -331,6 +331,13 @@ public class QuizTestRepository {
                 .single(call().bind("attempt_id", attemptId))
                 .map(QuizTestAnswer.map())
                 .all();
+    }
+
+    public Optional<QuizTestAnswer> findAnswerById(int id) {
+        return query("SELECT * FROM quiz_test_answer WHERE id = :id;")
+                .single(call().bind("id", id))
+                .map(QuizTestAnswer.map())
+                .first();
     }
 
     public void upsertAnswer(int attemptId, int questionId, Integer sectionId, String answer, int position) {
@@ -383,7 +390,7 @@ public class QuizTestRepository {
                 WHERE test_id = :test_id AND member_id = :member_id
                 AND (closes_at IS NULL OR closes_at > now());""")
                 .single(call().bind("test_id", testId).bind("member_id", memberId))
-                .map(row -> true)
+                .map(_ -> true)
                 .first()
                 .isPresent();
     }

@@ -29,7 +29,6 @@ class PageHitRepositoryTest extends RepositoryTestBase {
 
     private static Station station;
     private static Account account;
-    private static StationMember member;
     private static StationPage page;
     private static StationPage otherPage;
     private static final Instant HOUR = Instant.parse("2026-06-18T10:00:00Z").truncatedTo(ChronoUnit.HOURS);
@@ -39,7 +38,7 @@ class PageHitRepositoryTest extends RepositoryTestBase {
     static void setupClass() {
         station = stationRepo.create("PageHitStation");
         account = accountRepo.create("pagehit@test.example", "Page", "Hit");
-        member = stationMemberRepo.create(station.id(), account.id());
+        StationMember member = stationMemberRepo.create(station.id(), account.id());
         page = pageRepo.create(station.id(), "Welcome", "welcome", null, member.id());
         otherPage = pageRepo.create(station.id(), "About", "about", null, member.id());
     }

@@ -255,6 +255,26 @@ class AuthServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(50)
+    void verifyPasswordChecksStoredCredential() {
+        var acc = accountRepo.create("verifypw@test.com", "VP", "User");
+        accountRepo.createCredential(acc.id(), new PasswordHasher().hash("CorrectHorse123!"));
+        assertTrue(service.verifyPassword(acc.id(), "CorrectHorse123!"));
+        assertFalse(service.verifyPassword(acc.id(), "wrong-password"));
+        assertFalse(service.verifyPassword(acc.id(), null));
+        assertFalse(service.verifyPassword(acc.id(), ""));
+        accountRepo.delete(acc.id());
+    }
+
+    @Test
+    @Order(51)
+    void verifyPasswordFalseWithoutCredential() {
+        var acc = accountRepo.create("nocred@test.com", "NC", "User");
+        assertFalse(service.verifyPassword(acc.id(), "anything"));
+        accountRepo.delete(acc.id());
+    }
+
+    @Test
     @Order(17)
     void setPasswordUpdatesExisting() {
         var account2 = accountRepo.create("setpass2@test.com", "SP2", "User");

@@ -1,5 +1,25 @@
 # Changelog
 
+## v26.11.1
+
+### Security
+
+- **Stricter cross-station isolation.** Every station-scoped resource — pages and their files, forms and responses, events and registrations, members and their profile data, notes, quiz catalogs and attempts, inventory, attendance, waiting lists, knowledge-base documents and boards — is now checked to belong to the signed-in user's own station before it can be read or changed, closing cases where a resource from another station could be reached by supplying its id.
+- **Two-factor sign-in is rate limited.** Repeated two-factor and step-up attempts are throttled per account and per address, and a login's pending two-factor challenge is invalidated after several wrong codes, so a stolen password can no longer be paired with unlimited guesses.
+- **Authenticator codes are single-use.** A time-based authenticator code can no longer be used more than once within its short validity window.
+- **Password resets clear remembered devices.** Resetting a password, and removing a second factor, now revoke every "remember this device" entry so a saved device can no longer skip the two-factor prompt afterwards.
+- **Setting up two-factor asks for your password.** Enrolling the first authenticator app or security key now requires confirming the account password, so a stolen browser session alone cannot add its own second factor.
+- **Shorter password-reset links.** Self-service password-reset links now expire after one hour, configurable via `auth.resetTokenHours`; operator-issued invites and admin resets keep their longer window.
+
+### Changes
+
+- **Station logos are raster images served at size.** A station logo upload accepts PNG, JPEG, WebP or GIF, and each place that shows the logo receives an appropriately sized copy instead of the full-resolution file, so pages load lighter. SVG uploads are no longer accepted.
+
+### Fixes
+
+- **Event access restrictions keep their match mode.** Choosing whether an event's user-type, group and tag conditions must all match or any single one is enough now persists when the event is saved.
+- **Blank profile fields when adding a member.** Custom profile fields without a default value start empty on the new-member form.
+
 ## v26.11.0
 
 ### New Features

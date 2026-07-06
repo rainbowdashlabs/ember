@@ -47,9 +47,6 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
     private static StationMember member;
     private static int boardId;
     private static UUID boardUid;
-    private static int laneId;
-    private static int ticketId;
-    private static int commentId;
     private static int partnerId;
     private static int shareId;
     private static int bookmarkId;
@@ -66,7 +63,7 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
         boardUid = board.uid();
 
         BoardLane lane = boardRepo.createLane(boardId, "Open", null, 0);
-        laneId = lane.id();
+        int laneId = lane.id();
 
         int ticketNum = boardRepo.nextTicketNumber(boardId);
         BoardTicket ticket = boardTicketRepo.createTicket(
@@ -80,11 +77,11 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
                 null,
                 0,
                 memberIdentityFactory.local(owningStation.id(), member.id()));
-        ticketId = ticket.id();
+        int ticketId = ticket.id();
 
         BoardComment comment = boardTicketRepo.createComment(
                 ticketId, null, memberIdentityFactory.local(owningStation.id(), member.id()), "Fed comment");
-        commentId = comment.id();
+        int commentId = comment.id();
 
         partnerId = Query.query(
                         "INSERT INTO federation_partner(station_id, partner_station_id, status, federation_version) VALUES (:s, :p::uuid, 'ACTIVE', 1) RETURNING id;")

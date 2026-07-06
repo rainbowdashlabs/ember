@@ -27,8 +27,6 @@ import static org.mockito.Mockito.mock;
 class TwoFactorServiceTest extends RepositoryTestBase {
 
     private static TwoFactorService service;
-    private static TotpService totpService;
-    private static BackupCodeService backupCodeService;
 
     @BeforeAll
     static void initService() throws Exception {
@@ -36,8 +34,8 @@ class TwoFactorServiceTest extends RepositoryTestBase {
         setField(settings, "enabled", true);
         setField(settings, "secretKey", validKey());
         var demo = new Demo();
-        totpService = new TotpService(settings, demo);
-        backupCodeService = new BackupCodeService(settings);
+        TotpService totpService = new TotpService(settings, demo);
+        BackupCodeService backupCodeService = new BackupCodeService(settings);
         var auditService = new TwoFactorAuditService(twoFactorRepo);
         var emailService = mock(EmailService.class);
         service = new TwoFactorService(
@@ -85,6 +83,21 @@ class TwoFactorServiceTest extends RepositoryTestBase {
         assertTrue(service.isEnrolled(accountId));
         assertEquals(10, service.countUnusedBackupCodes(accountId));
         assertEquals(2, service.getActiveFactors(accountId).size()); // TOTP + BACKUP_CODES
+    }
+
+    @Test
+    void totpCodeCannotBeReplayedWithinWindow() {
+        int accountId = newAccount();
+        var enrollment = service.beginTotpEnrollment(accountId, "replay@test.com");
+        String enrollCode = generateCurrentTotp(enrollment.secret());
+        assertTrue(service.confirmTotpEnrollment(
+                accountId, enrollment.secret(), enrollCode, enrollment.recoveryCodes(), "ua", null));
+
+        String loginCode = generateCurrentTotp(enrollment.secret());
+        assertTrue(service.verifyTotp(accountId, loginCode), "first use of a fresh code should succeed");
+        assertFalse(
+                service.verifyTotp(accountId, loginCode),
+                "the same code must be rejected as a replay within its window");
     }
 
     @Test
@@ -164,7 +177,14 @@ class TwoFactorServiceTest extends RepositoryTestBase {
                 enrollment.recoveryCodes(),
                 "ua",
                 null);
+        twoFactorRepo.createTrustedDevice(
+                accountId, "rm-trust-hash", "ua", Instant.now().plusSeconds(3600));
+        assertEquals(1, twoFactorRepo.findActiveTrustedDevices(accountId).size());
         assertTrue(service.removeTotpFactor(accountId, "ua", null));
+        assertEquals(
+                0,
+                twoFactorRepo.findActiveTrustedDevices(accountId).size(),
+                "removing a factor must revoke trusted devices that bypass 2FA");
         assertFalse(service.removeTotpFactor(accountId, "ua", null));
     }
 

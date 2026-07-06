@@ -102,7 +102,9 @@ public class PageService {
             validateDepth(parentId, 1);
         }
         String slug = generateUniqueSlug(stationId, title, 0);
-        return pageRepository.create(stationId, title, slug, parentId, createdBy);
+        var page = pageRepository.create(stationId, title, slug, parentId, createdBy);
+        log.info("Page {} created in station {} by member {}", page.id(), stationId, createdBy);
+        return page;
     }
 
     public Optional<StationPage> getPage(int pageId) {
@@ -200,17 +202,21 @@ public class PageService {
             }
         }
 
+        log.info("Page {} saved in station {} ({} rows)", pageId, page.stationId(), rows.size());
         return true;
     }
 
     public boolean setPublished(int pageId, boolean published) {
         boolean changed = pageRepository.setPublished(pageId, published);
+        if (changed) {
+            log.info("Page {} publish state set to {}", pageId, published);
+        }
         if (changed && !published) {
             // Auto-unset landing page if this page is being unpublished
             pageRepository.findById(pageId).ifPresent(page -> pageRepository
                     .getLandingPageId(page.stationId())
                     .filter(id -> id == pageId)
-                    .ifPresent(id -> pageRepository.setLandingPage(page.stationId(), null)));
+                    .ifPresent(_ -> pageRepository.setLandingPage(page.stationId(), null)));
         }
         return changed;
     }
@@ -218,7 +224,13 @@ public class PageService {
     public boolean deletePage(int pageId) {
         var page = pageRepository.findById(pageId).orElse(null);
         if (page == null) return false;
-        return pageRepository.delete(pageId);
+        boolean deleted = pageRepository.delete(pageId);
+        if (deleted) {
+            log.info("Page {} deleted from station {}", pageId, page.stationId());
+        } else {
+            log.warn("Page {} delete matched no rows", pageId);
+        }
+        return deleted;
     }
 
     // --- Landing page ---
@@ -246,6 +258,12 @@ public class PageService {
             }
         }
 
+        log.info(
+                "Page {} duplicated from page {} in station {} by member {}",
+                copy.id(),
+                pageId,
+                source.stationId(),
+                createdBy);
         return pageRepository
                 .findById(copy.id())
                 .map(pageRepository::loadFullTree)
@@ -267,6 +285,7 @@ public class PageService {
             }
         }
         pageRepository.setLandingPage(stationId, pageId);
+        log.info("Landing page for station {} set to page {}", stationId, pageId);
     }
 
     // --- Images ---
@@ -304,6 +323,10 @@ public class PageService {
         return variantService.readBest(stationId, contentHash, requestedWidth, acceptHeader);
     }
 
+    public Optional<PageFile> findFile(int fileId) {
+        return pageRepository.findFile(fileId);
+    }
+
     public boolean deleteFile(int fileId) {
         var image = pageRepository.findFile(fileId).orElse(null);
         if (image == null) return false;
@@ -313,12 +336,9 @@ public class PageService {
                 imageStorage.delete(image.stationId(), image.contentHash());
             }
             quotaService.onFileDeleted(image.stationId(), StorageCategory.PAGE_FILES, image.fileSize());
+            log.info("Page file {} deleted from station {}", fileId, image.stationId());
         }
         return deleted;
-    }
-
-    public List<PageFile> listFilesByStation(int stationId) {
-        return pageRepository.findFilesByStation(stationId);
     }
 
     /**
@@ -337,7 +357,9 @@ public class PageService {
     // --- Folder + tag delegations ---
 
     public PageFileFolder createFolder(int stationId, Integer parentId, String name, int sortOrder) {
-        return metaRepository.createFolder(stationId, parentId, name, sortOrder);
+        var folder = metaRepository.createFolder(stationId, parentId, name, sortOrder);
+        log.info("Page file folder {} created in station {}", folder.id(), stationId);
+        return folder;
     }
 
     public List<PageFileFolder> listFolders(int stationId) {
@@ -347,17 +369,27 @@ public class PageService {
     public boolean updateFolder(int stationId, int folderId, Integer parentId, String name, int sortOrder) {
         var folder = metaRepository.findFolder(folderId).orElse(null);
         if (folder == null || folder.stationId() != stationId) return false;
-        return metaRepository.updateFolder(folderId, parentId, name, sortOrder);
+        boolean updated = metaRepository.updateFolder(folderId, parentId, name, sortOrder);
+        if (updated) {
+            log.info("Page file folder {} updated in station {}", folderId, stationId);
+        }
+        return updated;
     }
 
     public boolean deleteFolder(int stationId, int folderId) {
         var folder = metaRepository.findFolder(folderId).orElse(null);
         if (folder == null || folder.stationId() != stationId) return false;
-        return metaRepository.deleteFolder(folderId);
+        boolean deleted = metaRepository.deleteFolder(folderId);
+        if (deleted) {
+            log.info("Page file folder {} deleted from station {}", folderId, stationId);
+        }
+        return deleted;
     }
 
     public PageFileTag createTag(int stationId, String name, String color) {
-        return metaRepository.createTag(stationId, name, color);
+        var tag = metaRepository.createTag(stationId, name, color);
+        log.info("Page file tag {} created in station {}", tag.id(), stationId);
+        return tag;
     }
 
     public List<PageFileTag> listTags(int stationId) {
@@ -367,13 +399,21 @@ public class PageService {
     public boolean updateTag(int stationId, int tagId, String name, String color) {
         var tag = metaRepository.findTag(tagId).orElse(null);
         if (tag == null || tag.stationId() != stationId) return false;
-        return metaRepository.updateTag(tagId, name, color);
+        boolean updated = metaRepository.updateTag(tagId, name, color);
+        if (updated) {
+            log.info("Page file tag {} updated in station {}", tagId, stationId);
+        }
+        return updated;
     }
 
     public boolean deleteTag(int stationId, int tagId) {
         var tag = metaRepository.findTag(tagId).orElse(null);
         if (tag == null || tag.stationId() != stationId) return false;
-        return metaRepository.deleteTag(tagId);
+        boolean deleted = metaRepository.deleteTag(tagId);
+        if (deleted) {
+            log.info("Page file tag {} deleted from station {}", tagId, stationId);
+        }
+        return deleted;
     }
 
     public boolean assignTag(int stationId, int fileId, int tagId) {
@@ -399,7 +439,11 @@ public class PageService {
     public boolean moveFileToFolder(int stationId, int fileId, Integer folderId) {
         var file = pageRepository.findFile(fileId).orElse(null);
         if (file == null || file.stationId() != stationId) return false;
-        return metaRepository.moveFileToFolder(fileId, folderId);
+        boolean moved = metaRepository.moveFileToFolder(fileId, folderId);
+        if (moved) {
+            log.info("Page file {} moved to folder {} in station {}", fileId, folderId, stationId);
+        }
+        return moved;
     }
 
     public Optional<PageFileStorageService.FileData> readFileById(int fileId) {
@@ -469,6 +513,7 @@ public class PageService {
             quotaService.onFileDeleted(stationId, StorageCategory.PAGE_FILES, file.fileSize());
             removed++;
         }
+        log.info("Pruned {} unused page files from station {}", removed, stationId);
         return removed;
     }
 
@@ -509,6 +554,7 @@ public class PageService {
             variantService.generateVariants(stationId, contentHash, data, mimeType);
         }
         quotaService.trackDelta(stationId, StorageCategory.PAGE_FILES, data.length, 1);
+        log.info("Page file {} uploaded to station {} (page {}, {} bytes)", image.id(), stationId, pageId, data.length);
         return image;
     }
 

@@ -20,10 +20,11 @@ import dev.chojo.ember.feature.station.entity.StationMailConfig;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.repository.StationMailConfigRepository;
-import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationExportService;
 import dev.chojo.ember.feature.station.service.StationImportService;
 import dev.chojo.ember.feature.station.service.StationLocationService;
+import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.feature.station.service.StationService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -49,7 +50,6 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.zone.ZoneRulesException;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -62,7 +62,7 @@ public class StationManageRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(StationManageRoutes.class);
     private static final long MAX_LOGO_SIZE = 2 * 1024 * 1024;
     private static final Set<String> ALLOWED_CONTENT_TYPES =
-            Set.of("image/png", "image/jpeg", "image/webp", "image/svg+xml");
+            Set.of("image/png", "image/jpeg", "image/webp", "image/gif");
 
     private final StationService stationService;
     private final StationMailConfigRepository mailConfigRepository;
@@ -70,7 +70,8 @@ public class StationManageRoutes implements Routes {
     private final AuthService authService;
     private final StationImportService importService;
     private final StationLocationService locationService;
-    private final dev.chojo.ember.feature.station.repository.StationRepository stationRepository;
+    private final StationRepository stationRepository;
+    private final StationLogoService logoService;
 
     @Inject
     public StationManageRoutes(
@@ -80,7 +81,8 @@ public class StationManageRoutes implements Routes {
             AuthService authService,
             StationImportService importService,
             StationLocationService locationService,
-            dev.chojo.ember.feature.station.repository.StationRepository stationRepository) {
+            StationRepository stationRepository,
+            StationLogoService logoService) {
         this.stationService = stationService;
         this.mailConfigRepository = mailConfigRepository;
         this.emailService = emailService;
@@ -88,6 +90,7 @@ public class StationManageRoutes implements Routes {
         this.importService = importService;
         this.locationService = locationService;
         this.stationRepository = stationRepository;
+        this.logoService = logoService;
     }
 
     @Override
@@ -168,7 +171,7 @@ public class StationManageRoutes implements Routes {
     }
 
     private StationInfo buildStationInfo(Station station, UserSession session) {
-        boolean hasLogo = stationService.getLogo(station.id()).isPresent();
+        boolean hasLogo = logoService.exists(station.id());
         boolean isOwner = session.member() != null
                 && station.ownerMemberId() != null
                 && station.ownerMemberId() == session.member().id();
@@ -291,11 +294,11 @@ public class StationManageRoutes implements Routes {
         }
         String contentType = file.contentType();
         if (!ALLOWED_CONTENT_TYPES.contains(contentType)) {
-            throw new BadRequestResponse("Invalid file type. Allowed: PNG, JPEG, WebP, SVG");
+            throw new BadRequestResponse("Invalid file type. Allowed: PNG, JPEG, WebP, GIF");
         }
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
-            stationService.setLogo(session.stationId(), data, contentType);
+            logoService.store(session.stationId(), data, contentType);
             ctx.json(new MessageResponse("Logo uploaded"));
         } catch (IOException e) {
             log.warn("Failed to read uploaded logo file", e);
@@ -314,12 +317,18 @@ public class StationManageRoutes implements Routes {
             })
     private void getLogo(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        Optional<StationLogo> logoOpt = stationService.getLogo(session.stationId());
+        int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(0);
+        serveLogo(ctx, session.stationId(), size);
+    }
+
+    private void serveLogo(Context ctx, int stationId, int size) {
+        var logoOpt = logoService.read(stationId, size);
         if (logoOpt.isEmpty()) {
             throw new NoContentResponse("No logo set");
         }
-        StationLogo logo = logoOpt.get();
+        var logo = logoOpt.get();
         ctx.contentType(logo.contentType());
+        ctx.header("Cache-Control", "public, max-age=86400");
         ctx.result(logo.data());
     }
 
@@ -336,13 +345,8 @@ public class StationManageRoutes implements Routes {
     private void getLogoByStation(Context ctx) {
         String uidParam = ctx.pathParam("stationId");
         var station = stationService.findByUid(UUID.fromString(uidParam)).orElseThrow(NotFoundResponse::new);
-        Optional<StationLogo> logoOpt = stationService.getLogo(station.id());
-        if (logoOpt.isEmpty()) {
-            throw new NoContentResponse("No logo set");
-        }
-        StationLogo logo = logoOpt.get();
-        ctx.contentType(logo.contentType());
-        ctx.result(logo.data());
+        int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(0);
+        serveLogo(ctx, station.id(), size);
     }
 
     @OpenApi(
@@ -353,7 +357,7 @@ public class StationManageRoutes implements Routes {
             responses = {@OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class))})
     private void deleteLogo(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        stationService.deleteLogo(session.stationId());
+        logoService.delete(session.stationId());
         ctx.json(new MessageResponse("Logo deleted"));
     }
 

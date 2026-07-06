@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
+import dev.chojo.ember.feature.federation.service.FederationDisplayNames;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -157,8 +158,7 @@ public class FederationRoutes implements Routes {
      * remote; ultimately returns "Unknown" only when neither is known.
      */
     private String resolvePartnerName(FederationPartner partner) {
-        return dev.chojo.ember.feature.federation.service.FederationDisplayNames.partnerName(
-                stationRepository, partner, "Unknown");
+        return FederationDisplayNames.partnerName(stationRepository, partner, "Unknown");
     }
 
     private void createInvite(Context ctx) {
@@ -270,44 +270,58 @@ public class FederationRoutes implements Routes {
         ctx.json(new MessageResponse("Request declined"));
     }
 
-    private void getPartner(Context ctx) {
+    /**
+     * Loads a partner by its path id and confirms it belongs to the caller's station,
+     * so a federation manager of one station cannot address another station's partner
+     * rows by enumerating ids.
+     */
+    private FederationPartner requireOwnedPartner(Context ctx) {
+        var session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var partner = service.findPartner(id).orElseThrow(NotFoundResponse::new);
+        if (session.stationId() == null || partner.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("This partner is not for your station");
+        }
+        return partner;
+    }
+
+    private void getPartner(Context ctx) {
+        var partner = requireOwnedPartner(ctx);
         ctx.json(new PartnerResponse(partner, resolvePartnerName(partner)));
     }
 
     private void suspendPartner(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        service.suspendPartner(id);
-        ctx.json(service.findPartner(id).orElseThrow());
+        var partner = requireOwnedPartner(ctx);
+        service.suspendPartner(partner.id());
+        ctx.json(service.findPartner(partner.id()).orElseThrow());
     }
 
     private void resumePartner(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        service.resumePartner(id);
-        ctx.json(service.findPartner(id).orElseThrow());
+        var partner = requireOwnedPartner(ctx);
+        service.resumePartner(partner.id());
+        ctx.json(service.findPartner(partner.id()).orElseThrow());
     }
 
     private void endFederation(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        service.endFederation(id);
+        var partner = requireOwnedPartner(ctx);
+        service.endFederation(partner.id());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
     // -- Capabilities --
 
     private void getCapabilities(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        ctx.json(service.findCapabilities(id));
+        var partner = requireOwnedPartner(ctx);
+        ctx.json(service.findCapabilities(partner.id()));
     }
 
     private void setCapabilities(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        var partner = requireOwnedPartner(ctx);
         var req = ctx.bodyAsClass(CapabilityRequest[].class);
         for (var cap : req) {
-            service.setCapability(id, cap.capability(), cap.direction(), cap.enabled());
+            service.setCapability(partner.id(), cap.capability(), cap.direction(), cap.enabled());
         }
-        ctx.json(service.findCapabilities(id));
+        ctx.json(service.findCapabilities(partner.id()));
     }
 
     // -- Sharing --
@@ -329,8 +343,11 @@ public class FederationRoutes implements Routes {
     }
 
     private void deleteKbShare(Context ctx) {
+        var session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        service.deleteKbShare(id);
+        if (!service.deleteKbShare(id, session.stationId())) {
+            throw new NotFoundResponse();
+        }
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -350,8 +367,11 @@ public class FederationRoutes implements Routes {
     }
 
     private void deleteQuizShare(Context ctx) {
+        var session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        service.deleteQuizShare(id);
+        if (!service.deleteQuizShare(id, session.stationId())) {
+            throw new NotFoundResponse();
+        }
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -371,8 +391,11 @@ public class FederationRoutes implements Routes {
     }
 
     private void deleteProtocolShare(Context ctx) {
+        var session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
-        service.deleteProtocolShare(id);
+        if (!service.deleteProtocolShare(id, session.stationId())) {
+            throw new NotFoundResponse();
+        }
         ctx.status(HttpStatus.NO_CONTENT);
     }
 

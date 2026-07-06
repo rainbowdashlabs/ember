@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.quiz.entity.SourceEntry;
 import dev.chojo.ember.feature.quiz.entity.TestStatus;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionRepository;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -54,7 +55,6 @@ class QuizServiceTest extends RepositoryTestBase {
     private static FederationHttpClient httpClient;
     private static Station stationB;
     private static Station stationC;
-    private static int partnerIdAtoB;
 
     @BeforeAll
     static void setup() {
@@ -81,7 +81,7 @@ class QuizServiceTest extends RepositoryTestBase {
         var keyPair = federationService.generateKeyPair();
         var partner = federationService.acceptInvite(
                 station.id(), stationB.id(), federationService.encodePublicKey(keyPair), null, null);
-        partnerIdAtoB = partner.id();
+        int partnerIdAtoB = partner.id();
 
         // Create remote federation partnership (stationC is a remote partner)
         var keyPairC = federationService.generateKeyPair();
@@ -444,6 +444,8 @@ class QuizServiceTest extends RepositoryTestBase {
         service.saveAnswer(attemptId, qId, "{\"value\":true}");
         var answers = service.findAnswers(attemptId);
         assertFalse(answers.isEmpty());
+        assertTrue(service.findAnswerById(answers.getFirst().id()).isPresent());
+        assertTrue(service.findAnswerById(-1).isEmpty());
     }
 
     @Test
@@ -483,7 +485,7 @@ class QuizServiceTest extends RepositoryTestBase {
     @Test
     @Order(85)
     void restrictions() {
-        service.setRestrictions(testId, List.of(), List.of(), List.of(), List.of());
+        service.setRestrictions(testId, RestrictionSelection.empty());
         var rs = service.findRestrictions(testId);
         assertNotNull(rs);
         assertFalse(rs.hasRestrictions());
@@ -983,7 +985,7 @@ class QuizServiceTest extends RepositoryTestBase {
         var share = federationRepo.createQuizShare(stationB.id(), fedCatalog.id(), ShareScope.ALL_PARTNERS);
         var shared = service.browseSharedQuiz(station.id());
         assertTrue(shared.stream().anyMatch(s -> s.id() == fedCatalog.id()));
-        federationRepo.deleteQuizShare(share.id());
+        federationRepo.deleteQuizShare(share.id(), stationB.id());
         quizCatalogRepo.delete(fedCatalog.id());
     }
 

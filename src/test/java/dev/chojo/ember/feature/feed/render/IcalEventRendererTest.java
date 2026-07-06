@@ -40,14 +40,13 @@ import static org.mockito.Mockito.when;
 class IcalEventRendererTest {
 
     private EventFieldService eventFieldService;
-    private NotificationService notificationService;
     private IcalEventRenderer renderer;
     private Station station;
 
     @BeforeEach
     void setup() {
         eventFieldService = mock(EventFieldService.class);
-        notificationService = mock(NotificationService.class);
+        NotificationService notificationService = mock(NotificationService.class);
         // Mirror NotificationService: echo the key, but interpolate {name} placeholders from the
         // params map when present so cancelledWithReason etc. surface their substitution values.
         when(notificationService.resolveLocalized(any(), eq("ical"), any(), any()))

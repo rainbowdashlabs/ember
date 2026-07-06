@@ -409,7 +409,7 @@ public class NotificationFeedRenderer {
                 }
             }
             case NEW_EVENT -> {
-                if (params instanceof NotificationParams.NewEvent(String title, String eventDescription)) {
+                if (params instanceof NotificationParams.NewEvent(String _, String eventDescription)) {
                     putSnippetIfPresent(details, label(ctx, "description", "Description"), eventDescription);
                     enrichWithEventContext(details, notification, ctx);
                 }

@@ -54,7 +54,6 @@ public class AttendanceReportService {
     private static final Logger log = getLogger(AttendanceReportService.class);
     private static final ObjectMapper MAPPER = JsonMapper.builder().build();
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
-    private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
     private final AttendanceRepository attendanceRepository;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
@@ -92,14 +91,21 @@ public class AttendanceReportService {
      */
     public AttendanceReportPreset createPreset(
             int stationId, String name, StationUserType userType, Integer groupId, String period, String rounding) {
-        return attendanceRepository.createPreset(stationId, name, userType, groupId, period, rounding);
+        var preset = attendanceRepository.createPreset(stationId, name, userType, groupId, period, rounding);
+        log.info("Created attendance report preset {} for station {}", preset.id(), stationId);
+        return preset;
     }
 
     /**
      * Deletes a report preset by its identifier.
      */
     public boolean deletePreset(int id) {
-        return attendanceRepository.deletePreset(id);
+        if (attendanceRepository.deletePreset(id)) {
+            log.info("Deleted attendance report preset {}", id);
+            return true;
+        }
+        log.warn("Cannot delete attendance report preset: preset {} not found", id);
+        return false;
     }
 
     /**
@@ -192,14 +198,14 @@ public class AttendanceReportService {
 
                 if (ym != null) {
                     monthlyHours
-                            .computeIfAbsent(ym, k -> new LinkedHashMap<>())
+                            .computeIfAbsent(ym, _ -> new LinkedHashMap<>())
                             .merge(entry.memberId(), hours, Double::sum);
                     monthlySessions
-                            .computeIfAbsent(ym, k -> new LinkedHashMap<>())
+                            .computeIfAbsent(ym, _ -> new LinkedHashMap<>())
                             .merge(entry.memberId(), 1, Integer::sum);
                     if (entry.status() == AttendanceEntry.AttendanceStatus.PRESENT) {
                         monthlyPresent
-                                .computeIfAbsent(ym, k -> new LinkedHashMap<>())
+                                .computeIfAbsent(ym, _ -> new LinkedHashMap<>())
                                 .merge(entry.memberId(), 1, Integer::sum);
                     }
                 }
@@ -220,7 +226,7 @@ public class AttendanceReportService {
                     entryDataList);
             sessionDataList.add(sessionData);
             if (ym != null) {
-                monthlySessionData.computeIfAbsent(ym, k -> new ArrayList<>()).add(sessionData);
+                monthlySessionData.computeIfAbsent(ym, _ -> new ArrayList<>()).add(sessionData);
             }
         }
 

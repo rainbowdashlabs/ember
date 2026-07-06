@@ -45,11 +45,9 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     private static final UUID REMOTE_MEMBER_2 = UUID.fromString("00000000-0000-0000-0000-000000000002");
 
     private static NewsFederationService service;
-    private static NewsFederationRepository fedRepo;
     private static FederationRepository federationRepo;
     private static FederationService federationService;
     private static FederationHttpClient httpClient;
-    private static EventFederationRepository eventFederationRepo;
     private static NewsService newsService;
 
     private static Station stationA;
@@ -58,16 +56,15 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     private static Account accountA;
     private static StationMember memberA;
     private static int partnerIdAB;
-    private static int partnerIdAC;
     private static News news1;
     private static News news2;
     private static int commentId;
 
     @BeforeAll
     static void setup() {
-        fedRepo = new NewsFederationRepository();
+        NewsFederationRepository fedRepo = new NewsFederationRepository();
         federationRepo = new FederationRepository();
-        eventFederationRepo = new EventFederationRepository();
+        EventFederationRepository eventFederationRepo = new EventFederationRepository();
         federationService = new FederationService(federationRepo, stationRepo, new Api());
         httpClient = mock(FederationHttpClient.class);
         var eventBus = new DomainEventBus(Set.of());
@@ -85,8 +82,6 @@ class NewsFederationServiceTest extends RepositoryTestBase {
                 httpClient,
                 stationRepo,
                 newsService,
-                stationMemberRepo,
-                accountRepo,
                 eventFederationRepo,
                 memberNameResolver);
 
@@ -110,7 +105,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
                 federationService.encodePublicKey(keyPairC),
                 "https://remote-news.example.com",
                 null);
-        partnerIdAC = partnerC.id();
+        int partnerIdAC = partnerC.id();
 
         // Create published news on stationA
         var authorIdentity = stationMemberRepo.resolveIdentity(memberA.id());

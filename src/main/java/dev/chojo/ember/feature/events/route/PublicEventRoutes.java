@@ -42,6 +42,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static dev.chojo.ember.api.RouteSupport.pathInt;
+
 @SuppressWarnings("DefaultAnnotationParam")
 @Singleton
 public class PublicEventRoutes implements Routes {
@@ -81,6 +83,26 @@ public class PublicEventRoutes implements Routes {
         return station;
     }
 
+    private Map<Integer, EventCategory> categoryMap(int stationId) {
+        var map = new HashMap<Integer, EventCategory>();
+        for (var cat : eventService.findCategoriesByStation(stationId)) {
+            map.put(cat.id(), cat);
+        }
+        return map;
+    }
+
+    /**
+     * Resolves the addressed station and its publicly visible events along with the category lookup.
+     */
+    private PublicEventData loadPublicEvents(Context ctx) {
+        var station = resolveStation(ctx);
+        var categoryMap = categoryMap(station.id());
+        var publicEvents = eventService.findByStation(station.id()).stream()
+                .filter(e -> isEventPublic(e, categoryMap))
+                .toList();
+        return new PublicEventData(station, categoryMap, publicEvents);
+    }
+
     private boolean isEventPublic(StationEvent event, Map<Integer, EventCategory> categoryMap) {
         // Tri-state: true = force public, false = force hidden, null = inherit from category
         if (event.isPublic() != null) return event.isPublic();
@@ -102,14 +124,8 @@ public class PublicEventRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void listPublicEvents(Context ctx) {
-        var station = resolveStation(ctx);
-        var categories = eventService.findCategoriesByStation(station.id());
-        var categoryMap = new HashMap<Integer, EventCategory>();
-        for (var cat : categories) categoryMap.put(cat.id(), cat);
-
-        var allEvents = eventService.findByStation(station.id());
-        var publicEvents = allEvents.stream()
-                .filter(e -> isEventPublic(e, categoryMap))
+        var data = loadPublicEvents(ctx);
+        var publicEvents = data.publicEvents().stream()
                 .sorted((a, b) -> {
                     var sa = a.startTime() != null ? a.startTime().toString() : "";
                     var sb = b.startTime() != null ? b.startTime().toString() : "";
@@ -120,10 +136,10 @@ public class PublicEventRoutes implements Routes {
         var overviewFields = eventFieldService.findOverviewFieldsByEvents(
                 publicEvents.stream().map(StationEvent::id).toList());
         var publicUids = eventService.findPublicUidsByIds(
-                station.id(), publicEvents.stream().map(StationEvent::id).toList());
+                data.station().id(), publicEvents.stream().map(StationEvent::id).toList());
 
         ctx.json(publicEvents.stream()
-                .map(e -> toPublicResponse(e, categoryMap, overviewFields, publicUids.get(e.id())))
+                .map(e -> toPublicResponse(e, data.categoryMap(), overviewFields, publicUids.get(e.id())))
                 .toList());
     }
 
@@ -142,13 +158,11 @@ public class PublicEventRoutes implements Routes {
             })
     private void getPublicEvent(Context ctx) {
         var station = resolveStation(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var event = eventService.findById(id).orElseThrow(NotFoundResponse::new);
         if (event.stationId() != station.id()) throw new NotFoundResponse();
 
-        var categories = eventService.findCategoriesByStation(station.id());
-        var categoryMap = new HashMap<Integer, EventCategory>();
-        for (var cat : categories) categoryMap.put(cat.id(), cat);
+        var categoryMap = categoryMap(station.id());
 
         if (!isEventPublic(event, categoryMap)) throw new NotFoundResponse();
 
@@ -200,23 +214,16 @@ public class PublicEventRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void icalFeed(Context ctx) {
-        var station = resolveStation(ctx);
-        var categories = eventService.findCategoriesByStation(station.id());
-        var categoryMap = new HashMap<Integer, EventCategory>();
-        for (var cat : categories) categoryMap.put(cat.id(), cat);
-
-        var allEvents = eventService.findByStation(station.id());
-        var publicEvents =
-                allEvents.stream().filter(e -> isEventPublic(e, categoryMap)).toList();
+        var data = loadPublicEvents(ctx);
 
         var calendar = new Calendar();
         calendar.add(new ProdId("-//Ember//Public Calendar//DE"));
         calendar.add(ImmutableVersion.VERSION_2_0);
         calendar.add(ImmutableCalScale.GREGORIAN);
-        calendar.add(new XProperty("X-WR-CALNAME", station.name()));
+        calendar.add(new XProperty("X-WR-CALNAME", data.station().name()));
 
-        for (var event : publicEvents) {
-            var vevent = buildVEvent(event, categoryMap);
+        for (var event : data.publicEvents()) {
+            var vevent = buildVEvent(event, data.categoryMap());
             calendar.add(vevent);
         }
 
@@ -284,6 +291,12 @@ public class PublicEventRoutes implements Routes {
                 categoryName,
                 fields);
     }
+
+    /**
+     * The addressed station, its category lookup, and its publicly visible events.
+     */
+    private record PublicEventData(
+            Station station, Map<Integer, EventCategory> categoryMap, List<StationEvent> publicEvents) {}
 
     public record PublicEventResponse(
             int id,

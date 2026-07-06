@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.feature.station.service.StationService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -35,11 +36,14 @@ import java.util.UUID;
 @Singleton
 public class DiscoveryRoutes implements Routes {
     private final StationService stationService;
+    private final StationLogoService logoService;
     private final FederationService federationService;
 
     @Inject
-    public DiscoveryRoutes(StationService stationService, FederationService federationService) {
+    public DiscoveryRoutes(
+            StationService stationService, StationLogoService logoService, FederationService federationService) {
         this.stationService = stationService;
+        this.logoService = logoService;
         this.federationService = federationService;
     }
 
@@ -143,7 +147,7 @@ public class DiscoveryRoutes implements Routes {
                 s.uid(),
                 s.name(),
                 s.discoveryDescription(),
-                stationService.getLogo(s.id()).isPresent(),
+                logoService.exists(s.id()),
                 s.discoveryShowKb() && s.publicKbMode() != PublicKbMode.OFF,
                 s.publicCalendarEnabled(),
                 partnerUids.contains(s.uid()),

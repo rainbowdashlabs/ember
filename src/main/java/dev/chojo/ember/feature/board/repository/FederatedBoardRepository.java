@@ -147,7 +147,7 @@ public class FederatedBoardRepository {
     public boolean hasFederatedEditUserTypes(int boardId) {
         return query("SELECT 1 FROM federation_board_edit_user_type WHERE board_id = :board_id LIMIT 1;")
                 .single(call().bind("board_id", boardId))
-                .map(row -> true)
+                .map(_ -> true)
                 .first()
                 .orElse(false);
     }
@@ -419,7 +419,7 @@ public class FederatedBoardRepository {
                 LIMIT 1;""")
                 .single(call().bind("partner_id", partnerId)
                         .bind("remote_board_uid", remoteBoardUid, StandardValueConverter.UUID_STRING))
-                .map(row -> true)
+                .map(_ -> true)
                 .first()
                 .orElse(false);
     }
@@ -435,7 +435,7 @@ public class FederatedBoardRepository {
                 LIMIT 1;""")
                 .single(call().bind("partner_id", partnerId)
                         .bind("remote_board_uid", remoteBoardUid, StandardValueConverter.UUID_STRING))
-                .map(row -> true)
+                .map(_ -> true)
                 .first()
                 .orElse(false);
     }

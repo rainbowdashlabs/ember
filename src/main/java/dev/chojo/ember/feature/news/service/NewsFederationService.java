@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.news.service;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationPartner.FederationStatus;
@@ -15,7 +14,6 @@ import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationDisplayNames;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsComment;
@@ -60,8 +58,6 @@ public class NewsFederationService {
             FederationHttpClient httpClient,
             StationRepository stationRepository,
             NewsService newsService,
-            StationMemberRepository stationMemberRepository,
-            AccountRepository accountRepository,
             EventFederationRepository eventFederationRepository,
             MemberNameResolver memberNameResolver) {
         this.federationRepository = federationRepository;
@@ -89,6 +85,12 @@ public class NewsFederationService {
             int newsId, ShareScope scope, NewsVisibilityRole visibilityRole, List<Integer> partnerIds) {
         var share = federationRepository.setShare(newsId, scope, visibilityRole);
         federationRepository.setShareTargets(share.id(), partnerIds);
+        log.info(
+                "Configured news federation share {} for news {} (scope {}, {} target partner(s))",
+                share.id(),
+                newsId,
+                scope,
+                partnerIds.size());
         return share;
     }
 
@@ -99,6 +101,7 @@ public class NewsFederationService {
      */
     public void removeShare(int newsId) {
         federationRepository.removeShare(newsId);
+        log.info("Removed news federation share for news {}", newsId);
     }
 
     /**
@@ -163,6 +166,7 @@ public class NewsFederationService {
         var authorIdentity = partnerStationUid != null ? new MemberIdentity(partnerStationUid, remoteMemberUid) : null;
         var comment = newsService.createComment(stationId, newsId, parentId, authorIdentity, displayName, content);
         eventFederationRepository.cacheName(partnerId, remoteMemberUid, displayName);
+        log.info("Stored federated comment {} on news {} from partner {}", comment.id(), newsId, partnerId);
         return comment;
     }
 

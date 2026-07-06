@@ -13,12 +13,10 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.members.entity.MemberWithName;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
@@ -34,6 +32,9 @@ import jakarta.inject.Singleton;
 
 import java.util.List;
 
+import static dev.chojo.ember.api.RouteSupport.pathInt;
+import static dev.chojo.ember.api.RouteSupport.requireOwned;
+
 /**
  * Routes for managing user tags including CRUD operations on tag definitions
  * and assigning/removing tags to/from members.
@@ -48,7 +49,6 @@ public class UserTagRoutes implements Routes {
     public UserTagRoutes(
             UserTagService tagService,
             AccountRepository accountRepository,
-            StationMemberRepository stationMemberRepository,
             MemberIdentityFactory memberIdentityFactory) {
         this.tagService = tagService;
         this.accountRepository = accountRepository;
@@ -127,12 +127,8 @@ public class UserTagRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void update(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        UserSession session = UserSession.from(ctx);
-        var tag = tagService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (tag.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        int id = pathInt(ctx, "id");
+        requireOwned(ctx, id, tagService::findById, UserTag::stationId);
         var request = ctx.bodyAsClass(TagRequest.class);
         if (isBlank(request.name())) {
             throw new BadRequestResponse("name is required");
@@ -155,12 +151,8 @@ public class UserTagRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void delete(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        UserSession session = UserSession.from(ctx);
-        var tag = tagService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (tag.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        int id = pathInt(ctx, "id");
+        requireOwned(ctx, id, tagService::findById, UserTag::stationId);
         if (tagService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -176,7 +168,7 @@ public class UserTagRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberWithName[].class)))
     private void getMembers(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         ctx.json(tagService.findMembers(id).stream().map(this::toMemberWithName).toList());
     }
 
@@ -191,12 +183,8 @@ public class UserTagRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetMembersRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberWithName[].class)))
     private void setMembers(Context ctx) {
-        int tagId = ctx.pathParamAsClass("id", Integer.class).get();
-        UserSession session = UserSession.from(ctx);
-        var tag = tagService.findById(tagId).orElseThrow(NotFoundResponse::new);
-        if (tag.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        int tagId = pathInt(ctx, "id");
+        requireOwned(ctx, tagId, tagService::findById, UserTag::stationId);
         var request = ctx.bodyAsClass(SetMembersRequest.class);
         List<Integer> memberIds = request.memberIds() != null ? request.memberIds() : List.of();
         tagService.setMembers(tagId, memberIds);
@@ -215,7 +203,7 @@ public class UserTagRoutes implements Routes {
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = UserTag[].class)))
     private void getMemberTags(Context ctx) {
-        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        int memberId = pathInt(ctx, "memberId");
         ctx.json(tagService.findTagsForMember(memberId));
     }
 
@@ -231,21 +219,10 @@ public class UserTagRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void convertToGroup(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        UserSession session = UserSession.from(ctx);
-        tagService
-                .findById(id)
-                .ifPresentOrElse(
-                        tag -> {
-                            if (tag.stationId() != session.stationId()) {
-                                throw new ForbiddenResponse("Cannot access resources from another station");
-                            }
-                            tagService.convertToGroup(id);
-                            ctx.status(HttpStatus.NO_CONTENT);
-                        },
-                        () -> {
-                            throw new NotFoundResponse();
-                        });
+        int id = pathInt(ctx, "id");
+        requireOwned(ctx, id, tagService::findById, UserTag::stationId);
+        tagService.convertToGroup(id);
+        ctx.status(HttpStatus.NO_CONTENT);
     }
 
     // -- Request/Response records --

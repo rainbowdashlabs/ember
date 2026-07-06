@@ -27,7 +27,7 @@ const emit = defineEmits<{
 }>()
 
 function logoUrl(station: DiscoveryEntry): string {
-  return `/api/v1/public/stations/${station.stationUid}/logo`
+  return `/api/v1/public/stations/${station.stationUid}/logo?size=128`
 }
 
 

@@ -101,7 +101,7 @@ public class StationTrafficRecorder {
         if (!metrics.trafficEnabled()) return;
         Integer chargeStation = stationId != null && knownMissingStations.contains(stationId) ? null : stationId;
         var key = new BucketKey(currentHour(), chargeStation, auth);
-        var acc = buckets.computeIfAbsent(key, k -> new TrafficAccumulator());
+        var acc = buckets.computeIfAbsent(key, _ -> new TrafficAccumulator());
         acc.ingress.addAndGet(Math.max(0, ingressBytes));
         acc.egress.addAndGet(Math.max(0, egressBytes));
         acc.requests.incrementAndGet();

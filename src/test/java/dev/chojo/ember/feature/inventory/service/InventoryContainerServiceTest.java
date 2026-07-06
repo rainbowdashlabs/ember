@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -25,6 +26,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -38,7 +40,7 @@ class InventoryContainerServiceTest extends RepositoryTestBase {
         service = new InventoryContainerService(containerRepo, containerKindRepo, inventoryRepo);
     }
 
-    @org.junit.jupiter.api.BeforeEach
+    @BeforeEach
     void ensureAccount() {
         if (account == null || accountRepo.findById(account.id()).isEmpty()) {
             account = accountRepo.create("svc@test.example", "Svc", "User");
@@ -186,18 +188,17 @@ class InventoryContainerServiceTest extends RepositoryTestBase {
             assertEquals(
                     Integer.valueOf(member.id()),
                     inventoryRepo.findItemById(item.id()).orElseThrow().assignedTo());
-            assertEquals(
-                    null, inventoryRepo.findItemById(item.id()).orElseThrow().containerId());
+            assertNull(inventoryRepo.findItemById(item.id()).orElseThrow().containerId());
 
             assertTrue(service.setItemContainer(item.id(), box.id()));
             InventoryItem placed = inventoryRepo.findItemById(item.id()).orElseThrow();
-            assertEquals(null, placed.assignedTo());
+            assertNull(placed.assignedTo());
             assertEquals(Integer.valueOf(box.id()), placed.containerId());
 
             inventoryRepo.assignItem(item.id(), member.id());
             InventoryItem assigned = inventoryRepo.findItemById(item.id()).orElseThrow();
             assertEquals(Integer.valueOf(member.id()), assigned.assignedTo());
-            assertEquals(null, assigned.containerId());
+            assertNull(assigned.containerId());
 
             inventoryRepo.deleteItem(item.id());
             service.delete(box.id(), member.id());

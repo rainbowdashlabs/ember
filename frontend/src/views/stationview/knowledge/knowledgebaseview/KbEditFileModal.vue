@@ -18,6 +18,7 @@ import {useSession} from '@/composables/useSession'
 import KbRestrictionsField from './KbRestrictionsField.vue'
 import KbPublicVisibilityField from './KbPublicVisibilityField.vue'
 import KbTagsEditor from './KbTagsEditor.vue'
+import {type RestrictionSelection, emptyRestriction} from '@/components/input/restriction'
 
 const {isKbPublic} = useSession()
 
@@ -35,9 +36,7 @@ const emit = defineEmits<{
 
 const editName = ref('')
 const editDescription = ref('')
-const selectedUserTypes = ref<string[]>([])
-const groupIds = ref<number[]>([])
-const tagIds = ref<number[]>([])
+const restriction = ref<RestrictionSelection>(emptyRestriction())
 const tags = ref<string[]>([])
 const publicVisibility = ref<string>('default')
 const allGroups = ref<MemberGroup[]>([])
@@ -48,9 +47,7 @@ watch(show, async (visible) => {
     if (visible && props.file) {
         editName.value = props.file.name
         editDescription.value = props.file.description
-        selectedUserTypes.value = []
-        groupIds.value = []
-        tagIds.value = []
+        restriction.value = emptyRestriction()
         tags.value = []
         publicVisibility.value = 'default'
         error.value = ''
@@ -72,9 +69,13 @@ watch(show, async (visible) => {
                 knowledgeBase.getFileTags(props.file.id),
                 knowledgeBase.getPublicVisibility('files', props.file.id),
             ])
-            selectedUserTypes.value = r.userTypes ?? []
-            groupIds.value = r.groupIds
-            tagIds.value = r.tagIds
+            restriction.value = {
+                userTypes: r.userTypes ?? [],
+                groupIds: r.groupIds,
+                tagIds: r.tagIds,
+                memberIds: [],
+                mode: 'AND',
+            }
             tags.value = fileTags.map(t => t.name)
             publicVisibility.value = vis.visible === true ? 'public' : vis.visible === false ? 'hidden' : 'default'
         } catch {
@@ -93,9 +94,9 @@ async function handleSave() {
                 description: editDescription.value,
             }),
             knowledgeBase.setFileRestrictions(props.file.id, {
-                userTypes: selectedUserTypes.value,
-                groupIds: groupIds.value,
-                tagIds: tagIds.value,
+                userTypes: restriction.value.userTypes,
+                groupIds: restriction.value.groupIds,
+                tagIds: restriction.value.tagIds,
                 memberIds: [],
             }),
             knowledgeBase.setFileTags(props.file.id, tags.value),
@@ -118,9 +119,7 @@ async function handleSave() {
             <KbRestrictionsField
                 :all-groups="allGroups"
                 :all-tags="allTags"
-                v-model:selected-user-types="selectedUserTypes"
-                v-model:group-ids="groupIds"
-                v-model:tag-ids="tagIds"
+                v-model="restriction"
             />
             <KbPublicVisibilityField v-if="isKbPublic()" v-model="publicVisibility"/>
             <KbTagsEditor v-model="tags"/>

@@ -504,8 +504,8 @@ class FederationServiceTest extends RepositoryTestBase {
         var folder = knowledgeBaseRepo.createFolder(stationA.id(), null, "FedTestFolder", "", memberA.id());
         var share = service.createKbShare(stationA.id(), null, folder.id(), ShareScope.ALL_PARTNERS);
         assertNotNull(share);
-        assertTrue(service.deleteKbShare(share.id()));
-        assertFalse(service.deleteKbShare(share.id())); // Already deleted
+        assertTrue(service.deleteKbShare(share.id(), stationA.id()));
+        assertFalse(service.deleteKbShare(share.id(), stationA.id())); // Already deleted
         knowledgeBaseRepo.deleteFolder(folder.id());
     }
 
@@ -516,7 +516,7 @@ class FederationServiceTest extends RepositoryTestBase {
         var catalog = quizCatalogRepo.create(stationA.id(), "Test Quiz Catalog", "desc", false);
         var share = service.createQuizShare(stationA.id(), catalog.id(), ShareScope.ALL_PARTNERS);
         assertNotNull(share);
-        assertTrue(service.deleteQuizShare(share.id()));
+        assertTrue(service.deleteQuizShare(share.id(), stationA.id()));
     }
 
     @Test
@@ -526,6 +526,6 @@ class FederationServiceTest extends RepositoryTestBase {
         var protocol = testProtocolRepo.createProtocol(stationA.id(), "Test Protocol", "", null);
         var share = service.createProtocolShare(stationA.id(), protocol.id(), ShareScope.ALL_PARTNERS);
         assertNotNull(share);
-        assertTrue(service.deleteProtocolShare(share.id()));
+        assertTrue(service.deleteProtocolShare(share.id(), stationA.id()));
     }
 }

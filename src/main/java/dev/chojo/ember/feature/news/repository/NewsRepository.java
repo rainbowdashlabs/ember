@@ -388,7 +388,7 @@ public class NewsRepository {
     public boolean isAcknowledged(int newsId, int memberId) {
         return query("SELECT 1 FROM news_acknowledgement WHERE news_id = :news_id AND member_id = :member_id;")
                 .single(call().bind("news_id", newsId).bind("member_id", memberId))
-                .map(row -> true)
+                .map(_ -> true)
                 .first()
                 .isPresent();
     }
@@ -466,7 +466,7 @@ public class NewsRepository {
     public boolean hasViewed(int newsId, int memberId) {
         return query("SELECT 1 FROM news_view WHERE news_id = :news_id AND member_id = :member_id;")
                 .single(call().bind("news_id", newsId).bind("member_id", memberId))
-                .map(row -> true)
+                .map(_ -> true)
                 .first()
                 .isPresent();
     }

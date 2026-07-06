@@ -120,6 +120,18 @@ public class TwoFactorRepository {
                 .first();
     }
 
+    /**
+     * Advances the last accepted TOTP time-step for a factor. Guards against replay by only
+     * moving the marker forward, so a concurrent request that verified an older step cannot
+     * lower it.
+     */
+    public void updateLastUsedStep(int factorId, long step) {
+        query("""
+                UPDATE account_2fa_totp
+                SET last_used_step = :step
+                WHERE factor_id = :factor_id AND last_used_step < :step;""").single(call().bind("factor_id", factorId).bind("step", step)).update();
+    }
+
     // -- WebAuthn --
 
     public void createWebAuthn(
@@ -175,8 +187,8 @@ public class TwoFactorRepository {
                 .all();
     }
 
-    public boolean updateWebAuthnSignatureCounter(int factorId, long newCounter) {
-        return query("""
+    public void updateWebAuthnSignatureCounter(int factorId, long newCounter) {
+        query("""
                 UPDATE account_2fa_webauthn
                 SET signature_counter = :counter
                 WHERE factor_id = :factor_id AND signature_counter < :counter;""")

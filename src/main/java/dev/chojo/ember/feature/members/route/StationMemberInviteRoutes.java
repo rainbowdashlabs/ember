@@ -34,6 +34,8 @@ import jakarta.inject.Singleton;
 import java.time.Instant;
 import java.util.List;
 
+import static dev.chojo.ember.api.RouteSupport.pathInt;
+
 /**
  * Routes for the per-recipient member invite flow added with the station setup wizard. Two
  * surfaces:
@@ -118,7 +120,7 @@ public class StationMemberInviteRoutes implements Routes {
             responses = {@OpenApiResponse(status = "204"), @OpenApiResponse(status = "404")})
     private void deleteInvite(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         if (!service.revoke(session.stationId(), id)) {
             throw new NotFoundResponse("Invite not found or already accepted");
         }

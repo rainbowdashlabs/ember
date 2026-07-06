@@ -199,6 +199,7 @@ public class StorageQuotaService {
                         .bind("per_file", perFileBytes)
                         .bind("per_image", perImageBytes))
                 .update();
+        log.info("Updated storage quota overrides for station {}", stationId);
     }
 
     /**
@@ -230,7 +231,8 @@ public class StorageQuotaService {
                 quota.quotaImagesBytes() != null ? quota.quotaImagesBytes() : storageConfig.defaultImagesBytes();
             case PAGE_FILES, PAGE_IMAGES ->
                 quota.quotaPagesBytes() != null ? quota.quotaPagesBytes() : storageConfig.defaultPagesBytes();
-            case IMAGE_AVATAR, DOCUMENT, DISCOVERY_KEY, MAP_TILE_CACHE, DEMO_AVATAR -> Long.MAX_VALUE;
+            case IMAGE_AVATAR, IMAGE_STATION_LOGO, DOCUMENT, DISCOVERY_KEY, MAP_TILE_CACHE, DEMO_AVATAR ->
+                Long.MAX_VALUE;
         };
     }
 
@@ -247,6 +249,7 @@ public class StorageQuotaService {
         boolean warningSent = isWarningSent(stationId);
         if (percent >= storageConfig.warningThresholdPercent() && !warningSent) {
             setWarningSent(stationId, true);
+            log.info("Storage usage warning threshold reached for station {} at {}%", stationId, percent);
             eventBus.publish(new StorageWarningEvent(stationId, percent, totalUsed, totalLimit));
         } else if (percent < storageConfig.warningThresholdPercent() && warningSent) {
             setWarningSent(stationId, false);

@@ -31,7 +31,6 @@ import java.util.Optional;
 @Singleton
 public class AuthRateLimiter {
 
-    private static final Duration MINUTE = Duration.ofMinutes(1);
     private static final Duration FIFTEEN_MIN = Duration.ofMinutes(15);
     private static final Duration HOUR = Duration.ofHours(1);
     private static final Duration PRUNE_AFTER = Duration.ofHours(1);
@@ -48,6 +47,8 @@ public class AuthRateLimiter {
     private final LeakyBucket confirmEmailIp;
     private final LeakyBucket refreshIp;
     private final LeakyBucket changePasswordIdentity;
+    private final LeakyBucket twoFactorIp;
+    private final LeakyBucket twoFactorIdentity;
 
     public AuthRateLimiter() {
         this(Clock.systemUTC());
@@ -69,6 +70,8 @@ public class AuthRateLimiter {
         this.confirmEmailIp = new LeakyBucket(30, 30, PRUNE_AFTER, clock);
         this.refreshIp = new LeakyBucket(60, 60, PRUNE_AFTER, clock);
         this.changePasswordIdentity = new LeakyBucket(10, HOUR.dividedBy(5), PRUNE_AFTER, clock);
+        this.twoFactorIp = new LeakyBucket(20, 20, PRUNE_AFTER, clock);
+        this.twoFactorIdentity = new LeakyBucket(10, FIFTEEN_MIN.dividedBy(5), PRUNE_AFTER, clock);
     }
 
     /**
@@ -126,5 +129,14 @@ public class AuthRateLimiter {
 
     public Optional<Long> tryChangePassword(int accountId) {
         return changePasswordIdentity.tryAcquire(Integer.toString(accountId));
+    }
+
+    /**
+     * Throttles second-factor verification and step-up attempts, keyed by both the client IP
+     * and the numeric account id, so a stolen password plus a valid pre-auth token cannot be
+     * used to sweep the TOTP code space.
+     */
+    public Optional<Long> tryTwoFactor(String ip, int accountId) {
+        return takeMax(twoFactorIp.tryAcquire(ip), twoFactorIdentity.tryAcquire(Integer.toString(accountId)));
     }
 }

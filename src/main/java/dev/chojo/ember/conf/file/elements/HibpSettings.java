@@ -9,7 +9,7 @@ package dev.chojo.ember.conf.file.elements;
  * Configuration for the "Have I Been Pwned" k-anonymity breach lookup used by
  * the password set-time validation and the post-login background worker.
  */
-@SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal", "CanBeFinal"})
+@SuppressWarnings({"FieldMayBeFinal", "CanBeFinal"})
 public class HibpSettings {
     private boolean enabled = true;
     private int staleAfterDays = 30;

@@ -40,6 +40,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Admin-facing discovery routes mounted under {@code /api/v1/admin/discovery}. Required
@@ -261,33 +262,29 @@ public class AdminDiscoveryRoutes implements Routes {
     }
 
     private void upvotePeer(Context ctx) {
-        String key = ctx.pathParam("publicKey");
-        peerRepository.findByPublicKey(key).orElseThrow(() -> new NotFoundResponse("Peer not found"));
-        reputationService.upvote(key);
-        ctx.json(toResponse(
-                peerRepository.findByPublicKey(key).orElseThrow(() -> new NotFoundResponse("Peer disappeared"))));
+        mutateExistingPeer(ctx, reputationService::upvote);
     }
 
     private void downvotePeer(Context ctx) {
-        String key = ctx.pathParam("publicKey");
-        peerRepository.findByPublicKey(key).orElseThrow(() -> new NotFoundResponse("Peer not found"));
-        reputationService.downvote(key);
-        ctx.json(toResponse(
-                peerRepository.findByPublicKey(key).orElseThrow(() -> new NotFoundResponse("Peer disappeared"))));
+        mutateExistingPeer(ctx, reputationService::downvote);
     }
 
     private void blockPeer(Context ctx) {
-        String key = ctx.pathParam("publicKey");
-        peerRepository.findByPublicKey(key).orElseThrow(() -> new NotFoundResponse("Peer not found"));
-        peerRepository.setBlocked(key, true);
-        ctx.json(toResponse(
-                peerRepository.findByPublicKey(key).orElseThrow(() -> new NotFoundResponse("Peer disappeared"))));
+        mutateExistingPeer(ctx, key -> peerRepository.setBlocked(key, true));
     }
 
     private void unblockPeer(Context ctx) {
+        mutateExistingPeer(ctx, key -> peerRepository.setBlocked(key, false));
+    }
+
+    /**
+     * Applies a mutation to the peer named by the {@code publicKey} path parameter, confirming the
+     * peer exists both before and after the change, then responds with the refreshed peer.
+     */
+    private void mutateExistingPeer(Context ctx, Consumer<String> mutation) {
         String key = ctx.pathParam("publicKey");
         peerRepository.findByPublicKey(key).orElseThrow(() -> new NotFoundResponse("Peer not found"));
-        peerRepository.setBlocked(key, false);
+        mutation.accept(key);
         ctx.json(toResponse(
                 peerRepository.findByPublicKey(key).orElseThrow(() -> new NotFoundResponse("Peer disappeared"))));
     }

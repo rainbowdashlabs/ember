@@ -190,6 +190,18 @@ public class PageFileStorageService {
         return new StorageScope.Station(stationId, uid);
     }
 
+    /**
+     * Splits a storage key into its bare filename (the part after the last slash) and the base
+     * name that precedes the file extension.
+     */
+    private static KeyParts splitKey(String key) {
+        int slash = key.lastIndexOf('/');
+        String filename = slash < 0 ? key : key.substring(slash + 1);
+        int dot = filename.lastIndexOf('.');
+        String base = dot < 0 ? filename : filename.substring(0, dot);
+        return new KeyParts(filename, base);
+    }
+
     private String pickVariantFilename(
             StorageScope.Station scope, String contentHash, String baseName, String extension) {
         if (extension != null && !extension.isEmpty()) {
@@ -202,25 +214,19 @@ public class PageFileStorageService {
         List<String> keys = storage.listKeys(scope, StorageCategory.PAGE_FILES, contentHash);
         String fallback = null;
         for (String key : keys) {
-            int slash = key.lastIndexOf('/');
-            String filename = slash < 0 ? key : key.substring(slash + 1);
-            int dot = filename.lastIndexOf('.');
-            String base = dot < 0 ? filename : filename.substring(0, dot);
-            if (!base.equals(baseName)) continue;
-            if (!filename.endsWith(".webp")) return filename;
-            if (fallback == null) fallback = filename;
+            var name = splitKey(key);
+            if (!name.base().equals(baseName)) continue;
+            if (!name.filename().endsWith(".webp")) return name.filename();
+            if (fallback == null) fallback = name.filename();
         }
         return fallback;
     }
 
     private void cleanupLegacyOriginals(StorageScope.Station scope, String contentHash, String keepBase) {
         for (String key : storage.listKeys(scope, StorageCategory.PAGE_FILES, contentHash)) {
-            int slash = key.lastIndexOf('/');
-            String filename = slash < 0 ? key : key.substring(slash + 1);
-            int dot = filename.lastIndexOf('.');
-            String base = dot < 0 ? filename : filename.substring(0, dot);
-            if (base.equals(keepBase)) {
-                storage.delete(scope, StorageCategory.PAGE_FILES, contentHash, new Variant(filename));
+            var name = splitKey(key);
+            if (name.base().equals(keepBase)) {
+                storage.delete(scope, StorageCategory.PAGE_FILES, contentHash, new Variant(name.filename()));
             }
         }
     }
@@ -263,4 +269,6 @@ public class PageFileStorageService {
      * to the stored sidecar) so callers can set the {@code Content-Type} header verbatim.
      */
     public record FileData(byte[] data, String contentType) {}
+
+    private record KeyParts(String filename, String base) {}
 }

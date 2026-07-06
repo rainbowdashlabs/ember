@@ -51,7 +51,6 @@ public class StorageService {
     private static final Logger log = LoggerFactory.getLogger(StorageService.class);
 
     private final StorageBackendResolver resolver;
-    private final LocalStorageBackend localBackend;
     private final StationRepository stationRepository;
     private final InstanceStorageReadOnlyState instanceReadOnly;
 
@@ -62,7 +61,6 @@ public class StorageService {
             StationRepository stationRepository,
             InstanceStorageReadOnlyState instanceReadOnly) {
         this.resolver = resolver;
-        this.localBackend = localBackend;
         this.stationRepository = stationRepository;
         this.instanceReadOnly = instanceReadOnly;
     }
@@ -108,20 +106,27 @@ public class StorageService {
         ObjectMetadata sealed = initial.withSha256(wrapped.hexDigest());
         backend.updateMetadata(fullKey, sealed);
         applyPosixMode(backend, fullKey, category);
+        log.info(
+                "Stored file scope={} category={} key={} variant={} size={}",
+                scope,
+                category,
+                key,
+                variant,
+                contentLength);
         return new StoredObject(scope, category, key, sealed, contentLength);
     }
 
     /**
      * Variant-less store; the implicit {@link Variant#ORIGINAL} is used.
      */
-    public StoredObject store(
+    public void store(
             StorageScope scope,
             StorageCategory category,
             String key,
             InputStream body,
             long contentLength,
             String mimeHint) {
-        return store(scope, category, key, Variant.ORIGINAL, body, contentLength, mimeHint);
+        store(scope, category, key, Variant.ORIGINAL, body, contentLength, mimeHint);
     }
 
     /**
@@ -134,9 +139,9 @@ public class StorageService {
     /**
      * Byte-array convenience overload with explicit variant.
      */
-    public StoredObject store(
+    public void store(
             StorageScope scope, StorageCategory category, String key, Variant variant, byte[] bytes, String mimeHint) {
-        return store(scope, category, key, variant, new ByteArrayInputStream(bytes), bytes.length, mimeHint);
+        store(scope, category, key, variant, new ByteArrayInputStream(bytes), bytes.length, mimeHint);
     }
 
     /**
@@ -192,6 +197,7 @@ public class StorageService {
         StorageBackend backend = resolver.forScope(scope, category);
         String fullKey = fullKey(scope, category, key, variant);
         backend.delete(fullKey);
+        log.info("Deleted file scope={} category={} key={} variant={}", scope, category, key, variant);
     }
 
     /**

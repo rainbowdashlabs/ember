@@ -21,7 +21,7 @@ import java.util.List;
  * where no forwarded-for headers are trusted. Production deployments override
  * these values to match the actual layout.
  */
-@SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal", "CanBeFinal"})
+@SuppressWarnings({"FieldMayBeFinal", "CanBeFinal"})
 @OverwritePrefix("NETWORK")
 public class Network {
 

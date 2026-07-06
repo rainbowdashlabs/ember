@@ -67,6 +67,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import static dev.chojo.ember.api.RouteSupport.pathInt;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
@@ -399,7 +400,7 @@ public class SessionRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void invalidateSession(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         accountRepository.deleteSessionById(id, session.accountId());
         ctx.status(HttpStatus.NO_CONTENT);
     }

@@ -54,7 +54,6 @@ class LendingServiceTest extends RepositoryTestBase {
     private static int requestItemId;
     private static int inventoryIdA;
     private static int itemIdA;
-    private static int partnerIdAtoB;
 
     @BeforeAll
     static void setup() {
@@ -82,7 +81,7 @@ class LendingServiceTest extends RepositoryTestBase {
         var keyPair = federationService.generateKeyPair();
         var partner = federationService.acceptInvite(
                 stationB.id(), stationA.id(), federationService.encodePublicKey(keyPair), null, null);
-        partnerIdAtoB = partner.id();
+        int partnerIdAtoB = partner.id();
     }
 
     @AfterAll

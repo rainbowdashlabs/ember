@@ -36,6 +36,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
+import static dev.chojo.ember.api.RouteSupport.pathInt;
+
 /**
  * HTTP route definitions for event comments.
  * Provides endpoints for CRUD operations on comments attached to events.
@@ -86,7 +88,7 @@ public class EventCommentRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CommentResponse[].class)))
     private void list(Context ctx) {
-        int eventId = ctx.pathParamAsClass("eventId", Integer.class).get();
+        int eventId = pathInt(ctx, "eventId");
         String dateParam = ctx.queryParam("date");
         String scope = ctx.queryParam("scope");
         // Default behaviour stays "everything for the event" so existing callers don't
@@ -118,7 +120,7 @@ public class EventCommentRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CreateCommentRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = CommentResponse.class)))
     private void create(Context ctx) {
-        int eventId = ctx.pathParamAsClass("eventId", Integer.class).get();
+        int eventId = pathInt(ctx, "eventId");
         UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(CreateCommentRequest.class);
         if (request.content() == null || request.content().isBlank()) {
@@ -152,7 +154,7 @@ public class EventCommentRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void update(Context ctx) {
-        int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
+        int commentId = pathInt(ctx, "commentId");
         UserSession session = UserSession.from(ctx);
         var comment = commentService.findById(commentId).orElseThrow(NotFoundResponse::new);
         var authorIdentity = memberIdentityFactory.local(
@@ -180,7 +182,7 @@ public class EventCommentRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void delete(Context ctx) {
-        int commentId = ctx.pathParamAsClass("commentId", Integer.class).get();
+        int commentId = pathInt(ctx, "commentId");
         UserSession session = UserSession.from(ctx);
         var comment = commentService.findById(commentId).orElseThrow(NotFoundResponse::new);
         var authorIdentity = memberIdentityFactory.local(

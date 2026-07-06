@@ -80,10 +80,9 @@ import dev.chojo.ember.feature.system.repository.ProblemReportRepository;
 import dev.chojo.ember.feature.traffic.repository.StationTrafficRepository;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 import java.util.Set;
@@ -92,15 +91,28 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.sql.DataSource;
 
 @Tag("database")
-@Testcontainers
 public abstract class RepositoryTestBase {
     private static final AtomicInteger SCHEMA_COUNTER = new AtomicInteger(0);
 
-    @Container
+    /**
+     * A single PostgreSQL container per JVM (Gradle test fork), started lazily on the first test
+     * class's {@link #setupDatabase()} and shared by every repository test class in that fork; each
+     * class isolates its data in its own schema. Sharing one container — instead of letting the
+     * {@code @Testcontainers} lifecycle start and stop one per test class — removes the container
+     * start/stop churn under parallel forks that let rootless Docker occasionally hand two
+     * concurrently-starting containers the same host port. {@code withStartupAttempts} self-heals
+     * the rare remaining collision, and the container is reaped when the fork's JVM exits.
+     *
+     * <p>Startup is deliberately kept out of a static initialiser: a transient Docker failure there
+     * would poison this class for the whole fork ({@code NoClassDefFoundError} on every later
+     * class). From {@code @BeforeAll} a failure fails only the current class and the next one
+     * retries the start.
+     */
     static final PostgreSQLContainer PG = new PostgreSQLContainer("postgres:17")
             .withDatabaseName("ember_test")
             .withUsername("test")
-            .withPassword("test");
+            .withPassword("test")
+            .withStartupAttempts(4);
 
     protected static AccountRepository accountRepo;
     protected static StationRepository stationRepo;
@@ -167,7 +179,9 @@ public abstract class RepositoryTestBase {
 
     @BeforeAll
     static void setupDatabase() throws Exception {
-        // Each test class gets its own schema to prevent cross-class interference
+        if (!PG.isRunning()) {
+            PG.start();
+        }
         String SCHEMA = "ember_t" + SCHEMA_COUNTER.incrementAndGet();
         DatabaseConfig dbConfig = new DatabaseConfig() {
             @Override
@@ -281,5 +295,17 @@ public abstract class RepositoryTestBase {
         memberNameResolver =
                 new MemberNameResolver(memberSvc, accountRepo, eventFedRepo, fedRepo, stationRepo, groupSvc, tagSvc);
         memberIdentityFactory = new MemberIdentityFactory(stationRepo, stationMemberRepo, memberNameResolver);
+    }
+
+    /**
+     * Closes this class's connection pool so its connections are returned to the shared container.
+     * Without it, every test class would leak a pool against the one Postgres instance and exhaust
+     * its connection limit once enough classes have run in a single fork.
+     */
+    @AfterAll
+    static void teardownDatabase() throws Exception {
+        if (dataSource instanceof AutoCloseable closeable) {
+            closeable.close();
+        }
     }
 }

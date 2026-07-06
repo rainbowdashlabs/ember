@@ -95,13 +95,6 @@ public final class WebpEncoder {
         }
     }
 
-    /**
-     * Resets the cached availability probe. Used by tests that toggle the binary path.
-     */
-    public static void resetAvailabilityCacheForTests() {
-        availabilityCache = null;
-    }
-
     private static void cleanup(Path dir) {
         try (var walk = Files.walk(dir)) {
             walk.sorted(Comparator.reverseOrder()).forEach(p -> {

@@ -33,6 +33,7 @@ import dev.chojo.ember.feature.quiz.service.QuizPdfService;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionImageService;
 import dev.chojo.ember.feature.quiz.service.QuizService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.CsvParser;
@@ -63,6 +64,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
+import static dev.chojo.ember.api.RouteSupport.pathInt;
+
 @Singleton
 public class QuizRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(QuizRoutes.class);
@@ -92,6 +95,87 @@ public class QuizRoutes implements Routes {
         this.stationRepository = stationRepository;
         this.apiConfig = apiConfig;
         this.memberIdentityFactory = memberIdentityFactory;
+    }
+
+    /**
+     * Loads a quiz catalog and asserts it belongs to the caller's station, returning it. Answers
+     * 404 when absent and 403 when owned by another station.
+     */
+    private QuizCatalog requireOwnedCatalog(int catalogId, UserSession session) {
+        var catalog = quizService.findCatalog(catalogId).orElseThrow(NotFoundResponse::new);
+        if (catalog.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
+        return catalog;
+    }
+
+    /**
+     * Loads a question and asserts its catalog belongs to the caller's station, returning it.
+     */
+    private QuizQuestion requireOwnedQuestion(int questionId, UserSession session) {
+        var question = quizService.findQuestion(questionId).orElseThrow(NotFoundResponse::new);
+        requireOwnedCatalog(question.catalogId(), session);
+        return question;
+    }
+
+    /**
+     * Loads a test and asserts it belongs to the caller's station, returning it.
+     */
+    private QuizTest requireOwnedTest(int testId, UserSession session) {
+        var test = quizService.findTest(testId).orElseThrow(NotFoundResponse::new);
+        if (test.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot access resources from another station");
+        }
+        return test;
+    }
+
+    /**
+     * Loads an attempt and asserts its test belongs to the caller's station, returning it.
+     */
+    private QuizTestAttempt requireOwnedAttempt(int attemptId, UserSession session) {
+        var attempt = quizService.findAttemptById(attemptId).orElseThrow(NotFoundResponse::new);
+        requireOwnedTest(attempt.testId(), session);
+        return attempt;
+    }
+
+    /**
+     * Loads the test named by the {@code id} path parameter, asserts it belongs to the caller's
+     * station and is not active, returning it. Answers 404 when absent, 403 when owned by another
+     * station and 400 when the test is active.
+     */
+    private QuizTest requireModifiableTest(Context ctx, UserSession session) {
+        int testId = pathInt(ctx, "id");
+        var test = quizService.findTest(testId).orElseThrow(NotFoundResponse::new);
+        if (test.stationId() != session.stationId()) {
+            throw new ForbiddenResponse("Cannot modify a test from another station");
+        }
+        if (test.status() == TestStatus.ACTIVE) throw new BadRequestResponse("Cannot modify active test");
+        return test;
+    }
+
+    /**
+     * Loads the attempt named by the {@code id} path parameter and asserts it belongs to the
+     * calling member, returning it. Answers 400 when the caller is not a station member, 404 when
+     * absent and 403 when the attempt belongs to another member.
+     */
+    private QuizTestAttempt requireMemberAttempt(Context ctx, UserSession session) {
+        int attemptId = pathInt(ctx, "id");
+        if (session.member() == null) throw new BadRequestResponse("Not a station member");
+        var attempt = quizService.findAttemptById(attemptId).orElseThrow(NotFoundResponse::new);
+        if (attempt.memberId() != session.member().id()) throw new ForbiddenResponse();
+        return attempt;
+    }
+
+    /**
+     * Builds the section detail responses for a test, loading each section's sources.
+     */
+    private List<SectionDetail> buildSectionDetails(int testId) {
+        return quizService.findSections(testId).stream()
+                .map(s -> {
+                    var sources = quizService.findSources(s.id());
+                    return new SectionDetail(s.id(), s.testId(), s.title(), s.description(), s.position(), sources);
+                })
+                .toList();
     }
 
     @Override
@@ -254,7 +338,7 @@ public class QuizRoutes implements Routes {
     }
 
     private void getCatalog(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         quizService
                 .findCatalog(id)
                 .ifPresentOrElse(
@@ -295,7 +379,7 @@ public class QuizRoutes implements Routes {
     }
 
     private void updateCatalog(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
         var catalog = quizService.findCatalog(id).orElseThrow(NotFoundResponse::new);
         if (catalog.stationId() != session.stationId()) {
@@ -315,7 +399,7 @@ public class QuizRoutes implements Routes {
     }
 
     private void deleteCatalog(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
         var catalog = quizService.findCatalog(id).orElseThrow(NotFoundResponse::new);
         if (catalog.stationId() != session.stationId()) {
@@ -348,7 +432,7 @@ public class QuizRoutes implements Routes {
     }
 
     private void updateCategory(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
         var category = quizService.findCategory(id).orElseThrow(NotFoundResponse::new);
         if (category.stationId() != session.stationId()) {
@@ -366,7 +450,7 @@ public class QuizRoutes implements Routes {
     }
 
     private void deleteCategory(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
         var category = quizService.findCategory(id).orElseThrow(NotFoundResponse::new);
         if (category.stationId() != session.stationId()) {
@@ -382,14 +466,16 @@ public class QuizRoutes implements Routes {
     // -- Questions --
 
     private void listQuestions(Context ctx) {
-        int catalogId = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        int catalogId = pathInt(ctx, "id");
+        requireOwnedCatalog(catalogId, session);
         ctx.json(quizService.findQuestions(catalogId));
     }
 
     private void getQuestion(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
-        var question = quizService.findQuestion(id).orElseThrow(NotFoundResponse::new);
+        var question = requireOwnedQuestion(id, session);
         if (session.permissions().contains(StationPermission.TEST_CATALOG_VIEW)) {
             ctx.json(question);
         } else {
@@ -412,7 +498,6 @@ public class QuizRoutes implements Routes {
         return result;
     }
 
-    @SuppressWarnings("unchecked")
     private Map<String, Object> sanitizeConfig(QuizQuestionType type, JsonNode node) {
         try {
             return switch (type) {
@@ -483,7 +568,9 @@ public class QuizRoutes implements Routes {
     }
 
     private void createQuestion(Context ctx) {
-        int catalogId = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        int catalogId = pathInt(ctx, "id");
+        requireOwnedCatalog(catalogId, session);
         var req = ctx.bodyAsClass(QuestionRequest.class);
         if (req.title() == null || req.title().isBlank()) throw new BadRequestResponse("title is required");
         if (req.quizQuestionType() == null) throw new BadRequestResponse("questionType is required");
@@ -502,7 +589,7 @@ public class QuizRoutes implements Routes {
     }
 
     private void updateQuestion(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
         var question = quizService.findQuestion(id).orElseThrow(NotFoundResponse::new);
         var catalog = quizService.findCatalog(question.catalogId()).orElseThrow(NotFoundResponse::new);
@@ -528,7 +615,7 @@ public class QuizRoutes implements Routes {
     }
 
     private void deleteQuestion(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
         var question = quizService.findQuestion(id).orElseThrow(NotFoundResponse::new);
         var catalog = quizService.findCatalog(question.catalogId()).orElseThrow(NotFoundResponse::new);
@@ -584,17 +671,11 @@ public class QuizRoutes implements Routes {
     }
 
     private void getTest(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var test = quizService.findTest(id).orElseThrow(NotFoundResponse::new);
-        var sections = quizService.findSections(id);
-        var sectionDetails = sections.stream()
-                .map(s -> {
-                    var sources = quizService.findSources(s.id());
-                    return new SectionDetail(s.id(), s.testId(), s.title(), s.description(), s.position(), sources);
-                })
-                .toList();
+        var session = UserSession.from(ctx);
+        int id = pathInt(ctx, "id");
+        var test = requireOwnedTest(id, session);
         ctx.json(new TestDetail(
-                test, sectionDetails, quizService.findAttempts(id).size()));
+                test, buildSectionDetails(id), quizService.findAttempts(id).size()));
     }
 
     private void createTest(Context ctx) {
@@ -614,7 +695,7 @@ public class QuizRoutes implements Routes {
     }
 
     private void updateTest(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
         var test = quizService.findTest(id).orElseThrow(NotFoundResponse::new);
         if (test.stationId() != session.stationId()) {
@@ -638,7 +719,7 @@ public class QuizRoutes implements Routes {
     }
 
     private void deleteTest(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
         var test = quizService.findTest(id).orElseThrow(NotFoundResponse::new);
         if (test.stationId() != session.stationId()) {
@@ -652,7 +733,7 @@ public class QuizRoutes implements Routes {
     }
 
     private void activateTest(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
         var test = quizService.findTest(id).orElseThrow(NotFoundResponse::new);
         if (test.stationId() != session.stationId()) {
@@ -666,7 +747,7 @@ public class QuizRoutes implements Routes {
     }
 
     private void closeTest(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
         var test = quizService.findTest(id).orElseThrow(NotFoundResponse::new);
         if (test.stationId() != session.stationId()) {
@@ -681,7 +762,7 @@ public class QuizRoutes implements Routes {
     // -- Frozen Questions --
 
     private void generateFrozenQuestions(Context ctx) {
-        int testId = ctx.pathParamAsClass("id", Integer.class).get();
+        int testId = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
         var test = quizService.findTest(testId).orElseThrow(NotFoundResponse::new);
         if (test.stationId() != session.stationId()) {
@@ -693,41 +774,33 @@ public class QuizRoutes implements Routes {
     }
 
     private void listFrozenQuestions(Context ctx) {
-        int testId = ctx.pathParamAsClass("id", Integer.class).get();
-        quizService.findTest(testId).orElseThrow(NotFoundResponse::new);
+        var session = UserSession.from(ctx);
+        int testId = pathInt(ctx, "id");
+        requireOwnedTest(testId, session);
         ctx.json(buildFrozenQuestionResponse(testId));
     }
 
     private void replaceFrozenQuestion(Context ctx) {
-        int testId = ctx.pathParamAsClass("id", Integer.class).get();
-        int position = ctx.pathParamAsClass("position", Integer.class).get();
         var session = UserSession.from(ctx);
-        var test = quizService.findTest(testId).orElseThrow(NotFoundResponse::new);
-        if (test.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot modify a test from another station");
-        }
-        if (test.status() == TestStatus.ACTIVE) throw new BadRequestResponse("Cannot modify active test");
+        var test = requireModifiableTest(ctx, session);
+        int position = pathInt(ctx, "position");
         var req = ctx.bodyAsClass(ReplaceQuestionRequest.class);
-        quizService.replaceFrozenQuestion(testId, position, req.questionId());
-        ctx.json(buildFrozenQuestionResponse(testId));
+        quizService.replaceFrozenQuestion(test.id(), position, req.questionId());
+        ctx.json(buildFrozenQuestionResponse(test.id()));
     }
 
     private void randomReplaceFrozenQuestion(Context ctx) {
-        int testId = ctx.pathParamAsClass("id", Integer.class).get();
-        int position = ctx.pathParamAsClass("position", Integer.class).get();
         var session = UserSession.from(ctx);
-        var test = quizService.findTest(testId).orElseThrow(NotFoundResponse::new);
-        if (test.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot modify a test from another station");
-        }
-        if (test.status() == TestStatus.ACTIVE) throw new BadRequestResponse("Cannot modify active test");
-        quizService.replaceWithRandomQuestion(testId, position);
-        ctx.json(buildFrozenQuestionResponse(testId));
+        var test = requireModifiableTest(ctx, session);
+        int position = pathInt(ctx, "position");
+        quizService.replaceWithRandomQuestion(test.id(), position);
+        ctx.json(buildFrozenQuestionResponse(test.id()));
     }
 
     private void listAvailableReplacements(Context ctx) {
-        int testId = ctx.pathParamAsClass("id", Integer.class).get();
-        quizService.findTest(testId).orElseThrow(NotFoundResponse::new);
+        var session = UserSession.from(ctx);
+        int testId = pathInt(ctx, "id");
+        requireOwnedTest(testId, session);
         ctx.json(quizService.findAvailableReplacements(testId));
     }
 
@@ -742,19 +815,16 @@ public class QuizRoutes implements Routes {
     }
 
     private void listSections(Context ctx) {
-        int testId = ctx.pathParamAsClass("id", Integer.class).get();
-        var sections = quizService.findSections(testId);
-        var result = sections.stream()
-                .map(s -> {
-                    var sources = quizService.findSources(s.id());
-                    return new SectionDetail(s.id(), s.testId(), s.title(), s.description(), s.position(), sources);
-                })
-                .toList();
-        ctx.json(result);
+        var session = UserSession.from(ctx);
+        int testId = pathInt(ctx, "id");
+        requireOwnedTest(testId, session);
+        ctx.json(buildSectionDetails(testId));
     }
 
     private void replaceSections(Context ctx) {
-        int testId = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        int testId = pathInt(ctx, "id");
+        requireOwnedTest(testId, session);
         var req = ctx.bodyAsClass(SectionRequest[].class);
         var entries = Arrays.stream(req)
                 .map(s -> new SectionEntry(
@@ -774,10 +844,10 @@ public class QuizRoutes implements Routes {
     // -- Sections --
 
     private void startAttempt(Context ctx) {
-        int testId = ctx.pathParamAsClass("id", Integer.class).get();
+        int testId = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
         if (session.member() == null) throw new BadRequestResponse("Not a station member");
-        var test = quizService.findTest(testId).orElseThrow(NotFoundResponse::new);
+        var test = requireOwnedTest(testId, session);
         int memberId = session.member().id();
         if (!quizService.isTestAccessible(test, memberId, session.permissions())) {
             throw new ForbiddenResponse("Test is not currently accessible");
@@ -799,9 +869,10 @@ public class QuizRoutes implements Routes {
     }
 
     private void getMyAttempt(Context ctx) {
-        int testId = ctx.pathParamAsClass("id", Integer.class).get();
+        int testId = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
         if (session.member() == null) throw new BadRequestResponse("Not a station member");
+        requireOwnedTest(testId, session);
         var attempt = quizService.findAttempt(testId, session.member().id());
         if (attempt.isEmpty()) {
             ctx.json(new EmptyAttemptResponse());
@@ -818,39 +889,36 @@ public class QuizRoutes implements Routes {
     // -- Test Taking --
 
     private void saveAnswer(Context ctx) {
-        int attemptId = ctx.pathParamAsClass("id", Integer.class).get();
         var session = UserSession.from(ctx);
-        if (session.member() == null) throw new BadRequestResponse("Not a station member");
-        var attempt = quizService.findAttemptById(attemptId).orElseThrow(NotFoundResponse::new);
-        if (attempt.memberId() != session.member().id()) throw new ForbiddenResponse();
+        var attempt = requireMemberAttempt(ctx, session);
         if (attempt.status() != AttemptStatus.IN_PROGRESS) {
             throw new BadRequestResponse("Attempt already submitted");
         }
         var req = ctx.bodyAsClass(AnswerRequest.class);
-        quizService.saveAnswer(attemptId, req.questionId(), req.answer());
+        quizService.saveAnswer(attempt.id(), req.questionId(), req.answer());
         ctx.json(new SuccessResponse(true));
     }
 
     private void submitAttempt(Context ctx) {
-        int attemptId = ctx.pathParamAsClass("id", Integer.class).get();
         var session = UserSession.from(ctx);
-        if (session.member() == null) throw new BadRequestResponse("Not a station member");
-        var attempt = quizService.findAttemptById(attemptId).orElseThrow(NotFoundResponse::new);
-        if (attempt.memberId() != session.member().id()) throw new ForbiddenResponse();
-        quizService.submitAttempt(attemptId);
-        quizService.findAttemptById(attemptId).ifPresentOrElse(ctx::json, () -> {
+        var attempt = requireMemberAttempt(ctx, session);
+        quizService.submitAttempt(attempt.id());
+        quizService.findAttemptById(attempt.id()).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
         });
     }
 
     private void listAttempts(Context ctx) {
-        int testId = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        int testId = pathInt(ctx, "id");
+        requireOwnedTest(testId, session);
         ctx.json(quizService.findAttempts(testId));
     }
 
     private void getAttemptDetail(Context ctx) {
-        int attemptId = ctx.pathParamAsClass("id", Integer.class).get();
-        var attempt = quizService.findAttemptById(attemptId).orElseThrow(NotFoundResponse::new);
+        var session = UserSession.from(ctx);
+        int attemptId = pathInt(ctx, "id");
+        var attempt = requireOwnedAttempt(attemptId, session);
         var attemptQuestions = quizService.findAttemptQuestions(attemptId);
         var answers = quizService.findAnswers(attemptId);
         var questionIds = attemptQuestions.stream()
@@ -869,7 +937,10 @@ public class QuizRoutes implements Routes {
     // -- Grading --
 
     private void gradeAnswer(Context ctx) {
-        int answerId = ctx.pathParamAsClass("id", Integer.class).get();
+        var session = UserSession.from(ctx);
+        int answerId = pathInt(ctx, "id");
+        var answer = quizService.findAnswerById(answerId).orElseThrow(NotFoundResponse::new);
+        requireOwnedAttempt(answer.attemptId(), session);
         var req = ctx.bodyAsClass(GradeRequest.class);
         if (req.points() == null) throw new BadRequestResponse("points is required");
         quizService.gradeAnswer(answerId, req.points());
@@ -877,9 +948,10 @@ public class QuizRoutes implements Routes {
     }
 
     private void gradeAttempt(Context ctx) {
-        int attemptId = ctx.pathParamAsClass("id", Integer.class).get();
+        int attemptId = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
         if (session.member() == null) throw new BadRequestResponse("Not a station member");
+        requireOwnedAttempt(attemptId, session);
         quizService.gradeAttempt(attemptId, session.member().id());
         quizService.findAttemptById(attemptId).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
@@ -887,8 +959,9 @@ public class QuizRoutes implements Routes {
     }
 
     private void getRestrictions(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        quizService.findTest(id).orElseThrow(NotFoundResponse::new);
+        var session = UserSession.from(ctx);
+        int id = pathInt(ctx, "id");
+        requireOwnedTest(id, session);
         var restrictions = quizService.findRestrictions(id);
         ctx.json(new TestRestrictions(
                 restrictions.userTypes(),
@@ -899,7 +972,7 @@ public class QuizRoutes implements Routes {
     }
 
     private void setRestrictions(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
         var test = quizService.findTest(id).orElseThrow(NotFoundResponse::new);
         if (test.stationId() != session.stationId()) {
@@ -908,10 +981,7 @@ public class QuizRoutes implements Routes {
         var req = ctx.bodyAsClass(TestRestrictions.class);
         quizService.setRestrictions(
                 id,
-                req.userTypes(),
-                req.groupIds(),
-                req.tagIds(),
-                req.memberIds() != null ? req.memberIds() : List.of());
+                new RestrictionSelection(req.userTypes(), req.groupIds(), req.tagIds(), req.memberIds(), req.mode()));
         if (req.mode() != null) {
             quizService.updateRestrictionMode(id, req.mode());
         }
@@ -921,7 +991,7 @@ public class QuizRoutes implements Routes {
     // -- Restrictions --
 
     private void grantAccess(Context ctx) {
-        int testId = ctx.pathParamAsClass("id", Integer.class).get();
+        int testId = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
         var test = quizService.findTest(testId).orElseThrow(NotFoundResponse::new);
         if (test.stationId() != session.stationId()) {
@@ -934,8 +1004,8 @@ public class QuizRoutes implements Routes {
     }
 
     private void revokeAccess(Context ctx) {
-        int testId = ctx.pathParamAsClass("testId", Integer.class).get();
-        int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
+        int testId = pathInt(ctx, "testId");
+        int memberId = pathInt(ctx, "memberId");
         var session = UserSession.from(ctx);
         var test = quizService.findTest(testId).orElseThrow(NotFoundResponse::new);
         if (test.stationId() != session.stationId()) {
@@ -953,8 +1023,9 @@ public class QuizRoutes implements Routes {
     }
 
     private void getTrainingQuestions(Context ctx) {
-        int catalogId = ctx.pathParamAsClass("id", Integer.class).get();
-        var catalog = quizService.findCatalog(catalogId).orElseThrow(NotFoundResponse::new);
+        var session = UserSession.from(ctx);
+        int catalogId = pathInt(ctx, "id");
+        var catalog = requireOwnedCatalog(catalogId, session);
         if (!catalog.trainingEnabled()) throw new ForbiddenResponse("Training not enabled for this catalog");
         ctx.json(quizService.findQuestions(catalogId));
     }
@@ -962,8 +1033,9 @@ public class QuizRoutes implements Routes {
     // -- Training --
 
     private void exportQuestionPdf(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        quizService.findTest(id).orElseThrow(NotFoundResponse::new);
+        var session = UserSession.from(ctx);
+        int id = pathInt(ctx, "id");
+        requireOwnedTest(id, session);
         try {
             byte[] pdf = pdfService.exportQuestionPdf(id);
             ctx.contentType("application/pdf");
@@ -976,8 +1048,9 @@ public class QuizRoutes implements Routes {
     }
 
     private void exportSolutionPdf(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        quizService.findTest(id).orElseThrow(NotFoundResponse::new);
+        var session = UserSession.from(ctx);
+        int id = pathInt(ctx, "id");
+        requireOwnedTest(id, session);
         try {
             byte[] pdf = pdfService.exportSolutionPdf(id);
             ctx.contentType("application/pdf");
@@ -992,7 +1065,7 @@ public class QuizRoutes implements Routes {
     // -- PDF Export --
 
     private void exportCatalog(Context ctx) {
-        int catalogId = ctx.pathParamAsClass("id", Integer.class).get();
+        int catalogId = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
         var catalog = quizService.findCatalog(catalogId).orElseThrow(NotFoundResponse::new);
         if (catalog.stationId() != session.stationId()) {
@@ -1046,7 +1119,7 @@ public class QuizRoutes implements Routes {
     // -- Import/Export --
 
     private void importCsv(Context ctx) {
-        int catalogId = ctx.pathParamAsClass("id", Integer.class).get();
+        int catalogId = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
         var catalog = quizService.findCatalog(catalogId).orElseThrow(NotFoundResponse::new);
         if (catalog.stationId() != session.stationId()) {
@@ -1259,7 +1332,7 @@ public class QuizRoutes implements Routes {
 
     private void getQuestionImage(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         int size = ctx.queryParamAsClass("size", Integer.class).getOrDefault(0);
         imageService
                 .read(session.stationId(), id, size)
@@ -1276,8 +1349,8 @@ public class QuizRoutes implements Routes {
 
     private void uploadQuestionImage(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        quizService.findQuestion(id).orElseThrow(NotFoundResponse::new);
+        int id = pathInt(ctx, "id");
+        requireOwnedQuestion(id, session);
         var file = ctx.uploadedFile("image");
         if (file == null) {
             throw new BadRequestResponse("No file uploaded");
@@ -1302,7 +1375,7 @@ public class QuizRoutes implements Routes {
 
     private void deleteQuestionImage(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         imageService.delete(session.stationId(), id);
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -1324,7 +1397,7 @@ public class QuizRoutes implements Routes {
     private void federatedGetCatalog(Context ctx) {
         var session = UserSession.from(ctx);
         var stationUid = UUID.fromString(ctx.pathParam("stationuid"));
-        int catalogId = ctx.pathParamAsClass("id", Integer.class).get();
+        int catalogId = pathInt(ctx, "id");
         ctx.json(quizService.getFederatedQuizCatalog(session.stationId(), stationUid, catalogId));
     }
 
@@ -1332,7 +1405,8 @@ public class QuizRoutes implements Routes {
 
     private void federatedCopyCatalog(Context ctx) {
         var session = UserSession.from(ctx);
-        int catalogId = ctx.pathParamAsClass("id", Integer.class).get();
+        int catalogId = pathInt(ctx, "id");
+        requireOwnedCatalog(catalogId, session);
         var copied = quizService.copyQuizCatalog(catalogId, session.stationId());
         ctx.status(HttpStatus.CREATED).json(copied);
     }
@@ -1355,7 +1429,7 @@ public class QuizRoutes implements Routes {
 
     private void remoteGetCatalog(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        int catalogId = ctx.pathParamAsClass("id", Integer.class).get();
+        int catalogId = pathInt(ctx, "id");
         var catalog = quizService.findCatalog(catalogId).orElseThrow(NotFoundResponse::new);
         if (catalog.stationId() != partner.stationId()) {
             throw new ForbiddenResponse("Catalog not shared with this partner");

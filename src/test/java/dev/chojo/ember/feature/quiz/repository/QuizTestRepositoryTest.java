@@ -248,6 +248,12 @@ class QuizTestRepositoryTest extends RepositoryTestBase {
         quizTestRepo.saveAnswer(attempt.id(), questionId, "{\"value\":true}");
         var answers = quizTestRepo.findAnswers(attempt.id());
         assertFalse(answers.isEmpty());
+        int answerId = answers.getFirst().id();
+        assertTrue(quizTestRepo.findAnswerById(answerId).isPresent());
+        assertEquals(
+                attempt.id(),
+                quizTestRepo.findAnswerById(answerId).orElseThrow().attemptId());
+        assertTrue(quizTestRepo.findAnswerById(-1).isEmpty());
     }
 
     @Test

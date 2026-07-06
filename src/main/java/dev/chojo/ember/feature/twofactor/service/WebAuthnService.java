@@ -27,7 +27,6 @@ import com.yubico.webauthn.data.UserIdentity;
 import com.yubico.webauthn.data.UserVerificationRequirement;
 import com.yubico.webauthn.exception.AssertionFailedException;
 import com.yubico.webauthn.exception.RegistrationFailedException;
-import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
 import dev.chojo.ember.feature.account.entity.AccountToken;
 import dev.chojo.ember.feature.account.entity.TokenType;
@@ -67,7 +66,6 @@ public class WebAuthnService {
     private final TwoFactorAuditService auditService;
     private final AccountRepository accountRepository;
     private final TwoFactorSettings settings;
-    private final Auth authConfig;
 
     @Inject
     public WebAuthnService(
@@ -75,14 +73,12 @@ public class WebAuthnService {
             TwoFactorRepository repository,
             TwoFactorAuditService auditService,
             AccountRepository accountRepository,
-            TwoFactorSettings settings,
-            Auth authConfig) {
+            TwoFactorSettings settings) {
         this.relyingParty = relyingParty;
         this.repository = repository;
         this.auditService = auditService;
         this.accountRepository = accountRepository;
         this.settings = settings;
-        this.authConfig = authConfig;
     }
 
     // -- Registration --
@@ -203,9 +199,7 @@ public class WebAuthnService {
         List<String> transports = response.getResponse().getTransports().stream()
                 .map(AuthenticatorTransport::getId)
                 .toList();
-        String attestationFormat = result.getAttestationType() == null
-                ? null
-                : result.getAttestationType().name();
+        String attestationFormat = result.getAttestationType().name();
         repository.createWebAuthn(
                 factor.id(),
                 result.getKeyId().getId().getBytes(),
@@ -280,8 +274,8 @@ public class WebAuthnService {
 
         if (!result.isSuccess()) return false;
 
-        Optional<WebAuthnCredential> credential =
-                repository.findWebAuthnByCredentialId(result.getCredentialId().getBytes());
+        Optional<WebAuthnCredential> credential = repository.findWebAuthnByCredentialId(
+                result.getCredential().getCredentialId().getBytes());
         if (credential.isEmpty()) return false;
         repository.updateWebAuthnSignatureCounter(credential.get().factorId(), result.getSignatureCount());
         repository.touchFactorUsed(credential.get().factorId());

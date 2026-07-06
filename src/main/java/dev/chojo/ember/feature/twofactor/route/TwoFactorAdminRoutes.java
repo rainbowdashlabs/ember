@@ -34,6 +34,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+import static dev.chojo.ember.api.RouteSupport.pathInt;
+
 /**
  * Admin + station-admin policy management for 2FA mandates. Policy writes are step-up gated
  * (instance-wide = {@link StepUpCategory#INSTANCE_CONFIG}, station = {@link StepUpCategory#ACCOUNT_SECURITY}).
@@ -173,7 +175,7 @@ public class TwoFactorAdminRoutes implements Routes {
     // -- Admin reset --
 
     private void deleteInstancePolicy(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         if (!policyService.deletePolicy(id)) {
             throw new BadRequestResponse("Policy not found");
         }
@@ -200,7 +202,7 @@ public class TwoFactorAdminRoutes implements Routes {
 
     private void deleteStationPolicy(Context ctx) {
         int stationId = requireStation(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         // Defend against a station admin deleting policies that don't belong to them.
         var policies = policyService.listStationPolicies(stationId);
         if (policies.stream().noneMatch(p -> p.id() == id)) {
@@ -238,7 +240,7 @@ public class TwoFactorAdminRoutes implements Routes {
     }
 
     private void resetByInstanceAdmin(Context ctx) {
-        int targetId = ctx.pathParamAsClass("id", Integer.class).get();
+        int targetId = pathInt(ctx, "id");
         UserSession actor = UserSession.from(ctx);
         if (!twoFactorService.resetAccount2FA(
                 targetId, actor.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"))) {
@@ -248,7 +250,7 @@ public class TwoFactorAdminRoutes implements Routes {
     }
 
     private void resetByStationAdmin(Context ctx) {
-        int targetId = ctx.pathParamAsClass("id", Integer.class).get();
+        int targetId = pathInt(ctx, "id");
         UserSession actor = UserSession.from(ctx);
         int stationId = actor.stationIdOpt()
                 .orElseThrow(() -> new ForbiddenResponse("A station must be selected to reset 2FA on a member"));

@@ -37,10 +37,6 @@ public record DiscoveryStationCard(
 
     private static final ObjectMapper MAPPER = JsonMapper.builder().build();
 
-    public static DiscoveryStationCard parse(JsonNode node) {
-        return MAPPER.convertValue(node, DiscoveryStationCard.class);
-    }
-
     public static DiscoveryStationCard parse(String json) {
         try {
             return MAPPER.readValue(json, DiscoveryStationCard.class);

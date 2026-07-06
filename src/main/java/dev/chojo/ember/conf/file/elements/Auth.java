@@ -12,7 +12,7 @@ import dev.chojo.ocular.override.Overwrite;
  * Authentication configuration controlling token sizes and expiration durations
  * for sessions, email verification, and password reset tokens.
  */
-@SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal", "CanBeFinal"})
+@SuppressWarnings({"FieldMayBeFinal", "CanBeFinal"})
 public class Auth {
     @Overwrite(env = @Env)
     private int tokenBytes = 32;
@@ -22,6 +22,14 @@ public class Auth {
 
     @Overwrite(env = @Env)
     private int passwordTokenHours = 72;
+
+    /**
+     * Lifetime of a self-service password-reset link. Kept short because it is a
+     * bearer secret delivered by email; the longer {@link #passwordTokenHours}
+     * window applies only to operator-initiated invites and admin resets.
+     */
+    @Overwrite(env = @Env)
+    private int resetTokenHours = 1;
 
     @Overwrite(env = @Env)
     private int sessionMinutes = 30;
@@ -58,6 +66,10 @@ public class Auth {
         return passwordTokenHours;
     }
 
+    public int resetTokenHours() {
+        return resetTokenHours;
+    }
+
     public int sessionMinutes() {
         return sessionMinutes;
     }
@@ -83,7 +95,8 @@ public class Auth {
         return "Auth{" + "tokenBytes="
                 + tokenBytes + ", verifyTokenHours="
                 + verifyTokenHours + ", passwordTokenHours="
-                + passwordTokenHours + ", sessionMinutes="
+                + passwordTokenHours + ", resetTokenHours="
+                + resetTokenHours + ", sessionMinutes="
                 + sessionMinutes + ", tokenPepperConfigured="
                 + !tokenPepper.isBlank() + ", hibp="
                 + hibp + '}';

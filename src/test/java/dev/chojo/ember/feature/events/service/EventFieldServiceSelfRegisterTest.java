@@ -30,8 +30,6 @@ import static org.junit.jupiter.api.Assertions.*;
 class EventFieldServiceSelfRegisterTest extends RepositoryTestBase {
 
     private static EventFieldService service;
-    private static UserTagService tagService;
-    private static Station station;
     private static int eventId;
     private static int memberA;
     private static int memberB;
@@ -40,10 +38,10 @@ class EventFieldServiceSelfRegisterTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        tagService = new UserTagService(userTagRepo, memberGroupRepo);
+        UserTagService tagService = new UserTagService(userTagRepo, memberGroupRepo);
         service = new EventFieldService(eventFieldRepo, stationMemberRepo, memberGroupRepo, tagService);
 
-        station = stationRepo.create("SelfReg Station");
+        Station station = stationRepo.create("SelfReg Station");
 
         var accA = accountRepo.create("a@selfreg.test", "Alice", "Anders");
         var accB = accountRepo.create("b@selfreg.test", "Bob", "Brown");

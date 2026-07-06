@@ -10,6 +10,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.audit.StorageAuditAction;
 import dev.chojo.ember.feature.storage.audit.StorageAuditEntry;
@@ -37,6 +38,7 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.net.URI;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -58,6 +60,7 @@ public class StationStorageBackendRoutes implements Routes {
     private final StorageBackendAuditService auditService;
     private final StorageBackendAuditRepository auditRepository;
     private final StorageMigrationService migrationService;
+    private final RemoteUrlValidator urlValidator;
 
     @Inject
     public StationStorageBackendRoutes(
@@ -68,7 +71,8 @@ public class StationStorageBackendRoutes implements Routes {
             StationRepository stationRepository,
             StorageBackendAuditService auditService,
             StorageBackendAuditRepository auditRepository,
-            StorageMigrationService migrationService) {
+            StorageMigrationService migrationService,
+            RemoteUrlValidator urlValidator) {
         this.repository = repository;
         this.factory = factory;
         this.resolver = resolver;
@@ -77,6 +81,7 @@ public class StationStorageBackendRoutes implements Routes {
         this.auditService = auditService;
         this.auditRepository = auditRepository;
         this.migrationService = migrationService;
+        this.urlValidator = urlValidator;
     }
 
     static AuditEntryResponse toResponse(StorageAuditEntry entry) {
@@ -235,8 +240,9 @@ public class StationStorageBackendRoutes implements Routes {
 
     private StationStorageBackendConfig toEntity(BackendOverrideRequest request) {
         return switch (request) {
-            case S3Request r ->
-                new StationStorageBackendConfig.S3Variant(
+            case S3Request r -> {
+                requireAllowedHost(hostOf(r.endpoint()));
+                yield new StationStorageBackendConfig.S3Variant(
                         r.endpoint(),
                         r.region(),
                         r.bucket(),
@@ -244,15 +250,38 @@ public class StationStorageBackendRoutes implements Routes {
                         Optional.ofNullable(r.sseAlgorithm()).filter(s -> !s.isBlank()),
                         r.basePath(),
                         encryptS3(r));
-            case SmbRequest r ->
-                new StationStorageBackendConfig.SmbVariant(
+            }
+            case SmbRequest r -> {
+                requireAllowedHost(r.host());
+                yield new StationStorageBackendConfig.SmbVariant(
                         r.host(), r.port(), r.share(), r.domain(), r.basePath(), r.seal(), r.dfs(), encryptSmb(r));
-            case SftpRequest r ->
-                new StationStorageBackendConfig.SftpVariant(
+            }
+            case SftpRequest r -> {
+                requireAllowedHost(r.host());
+                yield new StationStorageBackendConfig.SftpVariant(
                         r.host(), r.port(), r.username(), r.knownHostsFingerprint(), r.basePath(), encryptSftp(r));
+            }
             case LocalRequest ignored ->
                 throw new IllegalStateException("LOCAL has no entity; the apply handler must dispatch separately");
         };
+    }
+
+    private static String hostOf(String endpoint) {
+        if (endpoint == null || endpoint.isBlank()) {
+            return null;
+        }
+        try {
+            String host = URI.create(endpoint.trim()).getHost();
+            return host != null ? host : endpoint.trim();
+        } catch (IllegalArgumentException e) {
+            return endpoint.trim();
+        }
+    }
+
+    private void requireAllowedHost(String host) {
+        if (!urlValidator.isHostAllowed(host)) {
+            throw new BadRequestResponse("Storage backend host is not a permitted address");
+        }
     }
 
     private EncryptedBlob encryptS3(S3Request r) {

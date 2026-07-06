@@ -35,15 +35,11 @@ import static org.junit.jupiter.api.Assertions.*;
 class FederationRepositoryTest extends RepositoryTestBase {
 
     private static FederationRepository federationRepo;
-    private static KnowledgeBaseRepository kbRepo;
-    private static QuizCatalogRepository quizCatalogRepo;
-    private static TestProtocolRepository protocolRepo;
 
     private static Station stationA;
     private static Station stationB;
     private static Station stationC;
     private static Account account;
-    private static StationMember member;
     private static int partnerId;
     private static int kbFileId;
     private static int quizCatalogId;
@@ -55,9 +51,9 @@ class FederationRepositoryTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         federationRepo = new FederationRepository();
-        kbRepo = new KnowledgeBaseRepository();
-        quizCatalogRepo = new QuizCatalogRepository();
-        protocolRepo = new TestProtocolRepository();
+        KnowledgeBaseRepository kbRepo = new KnowledgeBaseRepository();
+        QuizCatalogRepository quizCatalogRepo = new QuizCatalogRepository();
+        TestProtocolRepository protocolRepo = new TestProtocolRepository();
 
         stationA = stationRepo.create("FedRepoTestStationA");
         stationB = stationRepo.create("FedRepoTestStationB");
@@ -65,7 +61,7 @@ class FederationRepositoryTest extends RepositoryTestBase {
 
         // Create account and member for createdBy references
         account = accountRepo.create("fedrepo@test.com", "Fed", "Tester");
-        member = stationMemberRepo.create(stationA.id(), account.id());
+        StationMember member = stationMemberRepo.create(stationA.id(), account.id());
 
         // Create KB file for sharing tests
         var folder = kbRepo.createFolder(stationA.id(), null, "FedFolder", "Test folder", member.id());
@@ -222,7 +218,7 @@ class FederationRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(21)
     void deleteKbShare() {
-        assertTrue(federationRepo.deleteKbShare(kbShareId));
+        assertTrue(federationRepo.deleteKbShare(kbShareId, stationA.id()));
         var shares = federationRepo.findKbShares(stationA.id());
         assertTrue(shares.stream().noneMatch(s -> s.id() == kbShareId));
     }
@@ -246,7 +242,7 @@ class FederationRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(31)
     void deleteQuizShare() {
-        assertTrue(federationRepo.deleteQuizShare(quizShareId));
+        assertTrue(federationRepo.deleteQuizShare(quizShareId, stationA.id()));
         var shares = federationRepo.findQuizShares(stationA.id());
         assertTrue(shares.stream().noneMatch(s -> s.id() == quizShareId));
     }
@@ -270,7 +266,7 @@ class FederationRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(41)
     void deleteProtocolShare() {
-        assertTrue(federationRepo.deleteProtocolShare(protocolShareId));
+        assertTrue(federationRepo.deleteProtocolShare(protocolShareId, stationA.id()));
         var shares = federationRepo.findProtocolShares(stationA.id());
         assertTrue(shares.stream().noneMatch(s -> s.id() == protocolShareId));
     }

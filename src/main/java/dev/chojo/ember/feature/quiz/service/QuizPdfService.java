@@ -37,8 +37,7 @@ public class QuizPdfService {
     public QuizPdfService(
             QuizTestRepository testRepository,
             QuizCatalogRepository catalogRepository,
-            QuizQuestionImageService imageService,
-            QuizService quizService) {
+            QuizQuestionImageService imageService) {
         this.testRepository = testRepository;
         this.catalogRepository = catalogRepository;
         this.imageService = imageService;
@@ -83,7 +82,7 @@ public class QuizPdfService {
                         ? fq.sectionId()
                         : sections.getFirst().id();
                 questionsBySection
-                        .computeIfAbsent(sectionId, k -> new ArrayList<>())
+                        .computeIfAbsent(sectionId, _ -> new ArrayList<>())
                         .add(q);
             });
         }
@@ -295,50 +294,24 @@ public class QuizPdfService {
                 List<String> allWords = new ArrayList<>();
                 for (var a : answers) allWords.add(a.asString());
                 for (var d : distractors) allWords.add(d.asString());
-                // Show the sentence with the correct word bank number in each gap
                 String text = textNode.asString();
-                int ansIdx = 0;
-                StringBuilder segment = new StringBuilder();
-                for (int i = 0; i < text.length(); i++) {
-                    if (text.charAt(i) == '_' && i + 1 < text.length() && text.charAt(i + 1) == '_') {
-                        sb.append(escape(segment.toString()));
-                        segment.setLength(0);
-                        while (i < text.length() && text.charAt(i) == '_') i++;
-                        i--;
-                        String answer =
-                                ansIdx < answers.size() ? answers.get(ansIdx).asString() : "?";
-                        int wordNum = allWords.indexOf(answer) + 1;
-                        ansIdx++;
-                        sb.append(" *")
-                                .append(escape(answer))
-                                .append(" (")
-                                .append(wordNum)
-                                .append(")* ");
-                    } else {
-                        segment.append(text.charAt(i));
-                    }
-                }
-                sb.append(escape(segment.toString())).append("\n\n");
+                renderGappedText(sb, text, (out, ansIdx) -> {
+                    String answer =
+                            ansIdx < answers.size() ? answers.get(ansIdx).asString() : "?";
+                    int wordNum = allWords.indexOf(answer) + 1;
+                    out.append(" *")
+                            .append(escape(answer))
+                            .append(" (")
+                            .append(wordNum)
+                            .append(")* ");
+                });
             } else if (textNode != null && !textNode.asString().isBlank() && answers != null && answers.isArray()) {
-                // No word bank: show sentence with answers filled in bold
                 String text = textNode.asString();
-                int ansIdx = 0;
-                StringBuilder segment = new StringBuilder();
-                for (int i = 0; i < text.length(); i++) {
-                    if (text.charAt(i) == '_' && i + 1 < text.length() && text.charAt(i + 1) == '_') {
-                        sb.append(escape(segment.toString()));
-                        segment.setLength(0);
-                        while (i < text.length() && text.charAt(i) == '_') i++;
-                        i--;
-                        String answer =
-                                ansIdx < answers.size() ? answers.get(ansIdx).asString() : "?";
-                        ansIdx++;
-                        sb.append(" *").append(escape(answer)).append("* ");
-                    } else {
-                        segment.append(text.charAt(i));
-                    }
-                }
-                sb.append(escape(segment.toString())).append("\n\n");
+                renderGappedText(sb, text, (out, ansIdx) -> {
+                    String answer =
+                            ansIdx < answers.size() ? answers.get(ansIdx).asString() : "?";
+                    out.append(" *").append(escape(answer)).append("* ");
+                });
             } else if (answers != null && answers.isArray()) {
                 // Fallback: just list the answers
                 List<String> parts = new ArrayList<>();
@@ -481,34 +454,47 @@ public class QuizPdfService {
     }
 
     private void renderFillBlankText(StringBuilder sb, String text, boolean numbered, JsonNode answers) {
+        renderGappedText(sb, text, (out, ansIdx) -> {
+            if (numbered) {
+                out.append("#box(width: 1.5cm, stroke: (bottom: 0.5pt))[]");
+            } else {
+                int ansLen = answers != null && ansIdx < answers.size()
+                        ? answers.get(ansIdx).asString().length()
+                        : 5;
+                double cm = Math.max(1.5, (ansLen + 2) * 0.25);
+                out.append("#box(width: ").append(String.format("%.1f", cm)).append("cm, stroke: (bottom: 0.5pt))[]");
+            }
+        });
+    }
+
+    /**
+     * Renders a fill-in-the-blank sentence, delegating each {@code __} gap to the supplied renderer
+     * while automatically escaping and appending the surrounding text segments.
+     */
+    private void renderGappedText(StringBuilder sb, String text, GapRenderer renderer) {
         int ansIdx = 0;
         StringBuilder segment = new StringBuilder();
         for (int i = 0; i < text.length(); i++) {
             if (text.charAt(i) == '_' && i + 1 < text.length() && text.charAt(i + 1) == '_') {
-                // Flush text before gap
                 sb.append(escape(segment.toString()));
                 segment.setLength(0);
                 while (i < text.length() && text.charAt(i) == '_') i++;
                 i--;
-                if (numbered) {
-                    // Fixed-width gap — user writes the number from the word bank
-                    sb.append("#box(width: 1.5cm, stroke: (bottom: 0.5pt))[]");
-                } else {
-                    // Sized inline gap (using box with bottom stroke to stay inline)
-                    int ansLen = answers != null && ansIdx < answers.size()
-                            ? answers.get(ansIdx).asString().length()
-                            : 5;
-                    ansIdx++;
-                    double cm = Math.max(1.5, (ansLen + 2) * 0.25);
-                    sb.append("#box(width: ")
-                            .append(String.format("%.1f", cm))
-                            .append("cm, stroke: (bottom: 0.5pt))[]");
-                }
+                renderer.renderGap(sb, ansIdx);
+                ansIdx++;
             } else {
                 segment.append(text.charAt(i));
             }
         }
         sb.append(escape(segment.toString())).append("\n\n");
+    }
+
+    /**
+     * Renders the content of a single fill-in-the-blank gap, given the running answer index.
+     */
+    @FunctionalInterface
+    private interface GapRenderer {
+        void renderGap(StringBuilder sb, int ansIdx);
     }
 
     private String resolveImage(int questionId, int catalogId, int questionNum, Map<String, byte[]> resources) {

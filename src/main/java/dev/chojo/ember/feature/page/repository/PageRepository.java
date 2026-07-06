@@ -176,7 +176,7 @@ public class PageRepository {
         return query(
                         "SELECT 1 FROM station_page WHERE station_id = :station_id AND slug = :slug AND id != :exclude_id;")
                 .single(call().bind("station_id", stationId).bind("slug", slug).bind("exclude_id", excludePageId))
-                .map(row -> true)
+                .map(_ -> true)
                 .first()
                 .isPresent();
     }

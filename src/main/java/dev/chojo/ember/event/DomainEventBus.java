@@ -32,7 +32,7 @@ public class DomainEventBus {
     @Inject
     public DomainEventBus(Set<DomainEventHandler<?>> registeredHandlers) {
         for (var handler : registeredHandlers) {
-            handlers.computeIfAbsent(handler.eventType(), k -> new ArrayList<>())
+            handlers.computeIfAbsent(handler.eventType(), _ -> new ArrayList<>())
                     .add(handler);
         }
         log.info(

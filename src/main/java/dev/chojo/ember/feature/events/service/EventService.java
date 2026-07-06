@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.EventCancelled;
 import dev.chojo.ember.event.events.EventCreated;
@@ -25,6 +24,7 @@ import dev.chojo.ember.feature.events.entity.UpcomingEventOccurrence;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionRepository;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionSet;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import jakarta.inject.Inject;
@@ -419,7 +419,6 @@ public class EventService {
         var breaks = eventRepository.findBreaksByStation(stationId);
 
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
-        String todayStr = today.toString();
         int maxDays = 28;
         var occurrences = new ArrayList<UpcomingEventOccurrence>();
 
@@ -435,34 +434,10 @@ public class EventService {
         // Recurring events for the next 28 days
         for (int d = 0; d <= maxDays; d++) {
             LocalDate date = today.plusDays(d);
-            String dateStr = date.toString();
-            boolean inBreak = breaks.stream()
-                    .anyMatch(b -> b.startDate() != null
-                            && b.endDate() != null
-                            && dateStr.compareTo(b.startDate().toString()) >= 0
-                            && dateStr.compareTo(b.endDate().toString()) <= 0);
-            if (inBreak) continue;
-
-            int dow = date.getDayOfWeek().getValue();
-            int dayOfMonth = date.getDayOfMonth();
-            int month = date.getMonthValue();
+            if (EventBreak.coversAny(breaks, date)) continue;
 
             for (var ev : events) {
-                if (ev.eventType() == StationEvent.EventType.ONE_TIME) continue;
-                if (ev.dayOfWeek() == null || ev.dayOfWeek() != dow) continue;
-
-                boolean matches =
-                        switch (ev.eventType()) {
-                            case RECURRING -> true;
-                            case MONTHLY_FIRST -> dayOfMonth <= 7;
-                            case QUARTERLY -> dayOfMonth <= 7 && (month - 1) % 3 == 0;
-                            case YEARLY ->
-                                ev.startTime() != null
-                                        && ev.startTime().atZone(ZoneOffset.UTC).getMonthValue() == month
-                                        && ev.startTime().atZone(ZoneOffset.UTC).getDayOfMonth() == dayOfMonth;
-                            default -> false;
-                        };
-                if (matches) {
+                if (ev.occursOn(date)) {
                     occurrences.add(new UpcomingEventOccurrence(EventSummary.of(ev), date));
                 }
             }
@@ -631,25 +606,11 @@ public class EventService {
      * Sets all restrictions for an event, replacing any existing restrictions.
      *
      * @param eventId   the event ID
-     * @param userTypes the user type names to restrict to, or null for no user type restrictions
-     * @param groupIds  the group IDs to restrict to, or null for no group restrictions
-     * @param tagIds    the tag IDs to restrict to, or null for no tag restrictions
-     * @param memberIds the member IDs to restrict to, or null for no member restrictions
+     * @param selection the restriction selection to persist
      */
-    public void setRestrictions(
-            int eventId,
-            List<StationUserType> userTypes,
-            List<Integer> groupIds,
-            List<Integer> tagIds,
-            List<Integer> memberIds) {
+    public void setRestrictions(int eventId, RestrictionSelection selection) {
         restrictionRepository.setRestrictions(
-                RestrictionType.EVENT.table(),
-                RestrictionType.EVENT.fkColumn(),
-                eventId,
-                userTypes != null ? userTypes : List.of(),
-                groupIds != null ? groupIds : List.of(),
-                tagIds != null ? tagIds : List.of(),
-                memberIds != null ? memberIds : List.of());
+                RestrictionType.EVENT.table(), RestrictionType.EVENT.fkColumn(), eventId, selection);
         log.info("Set restrictions for event {}", eventId);
     }
 

@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import RestrictionsField from '@/components/input/RestrictionsField.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import type {RestrictionSelection} from '@/components/input/restriction'
 import type {MemberGroup, UserTag} from '@/api/types'
 
 const {t} = useI18n()
@@ -16,9 +17,7 @@ defineProps<{
   tags: UserTag[]
 }>()
 
-const selectedUserTypes = defineModel<string[]>('selectedUserTypes', {required: true})
-const selectedGroupIds = defineModel<number[]>('selectedGroupIds', {required: true})
-const selectedTagIds = defineModel<number[]>('selectedTagIds', {required: true})
+const model = defineModel<RestrictionSelection>({required: true})
 </script>
 
 <template>
@@ -28,9 +27,7 @@ const selectedTagIds = defineModel<number[]>('selectedTagIds', {required: true})
     <RestrictionsField
         :groups="groups"
         :tags="tags"
-        v-model:selected-user-types="selectedUserTypes"
-        v-model:selected-group-ids="selectedGroupIds"
-        v-model:selected-tag-ids="selectedTagIds"
+        v-model="model"
     />
   </div>
 </template>

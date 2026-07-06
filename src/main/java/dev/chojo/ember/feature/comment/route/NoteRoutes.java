@@ -29,6 +29,8 @@ import jakarta.inject.Singleton;
 
 import java.time.Instant;
 
+import static dev.chojo.ember.api.RouteSupport.pathInt;
+
 /**
  * HTTP route definitions for entity notes.
  * Provides endpoints for reading and updating notes with version history.
@@ -53,6 +55,16 @@ public class NoteRoutes implements Routes {
             throw new ForbiddenResponse("Missing required permission: " + required.name());
         }
     }
+
+    private NoteAccess resolveAccess(Context ctx) {
+        var entityType = NoteEntityType.valueOf(ctx.pathParam("entityType").toUpperCase());
+        int entityId = pathInt(ctx, "entityId");
+        UserSession session = UserSession.from(ctx);
+        requireNoteAccess(session, entityType);
+        return new NoteAccess(entityType, entityId, session);
+    }
+
+    private record NoteAccess(NoteEntityType entityType, int entityId, UserSession session) {}
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
@@ -88,12 +100,11 @@ public class NoteRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = NoteResponse.class)))
     private void getNote(Context ctx) {
-        var entityType = NoteEntityType.valueOf(ctx.pathParam("entityType").toUpperCase());
-        int entityId = ctx.pathParamAsClass("entityId", Integer.class).get();
-        requireNoteAccess(UserSession.from(ctx), entityType);
-        var note = noteService.findNote(entityType, entityId);
+        var access = resolveAccess(ctx);
+        var note = noteService.findNote(
+                access.entityType(), access.entityId(), access.session().stationId());
         if (note.isEmpty()) {
-            ctx.json(new NoteResponse(null, entityType, entityId, "", null, null));
+            ctx.json(new NoteResponse(null, access.entityType(), access.entityId(), "", null, null));
         } else {
             ctx.json(toResponse(note.get()));
         }
@@ -114,20 +125,17 @@ public class NoteRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void updateNote(Context ctx) {
-        var entityType = NoteEntityType.valueOf(ctx.pathParam("entityType").toUpperCase());
-        int entityId = ctx.pathParamAsClass("entityId", Integer.class).get();
-        UserSession session = UserSession.from(ctx);
-        requireNoteAccess(session, entityType);
+        var access = resolveAccess(ctx);
         var request = ctx.bodyAsClass(UpdateNoteRequest.class);
         if (request.content() == null) {
             throw new BadRequestResponse("content is required");
         }
         var note = noteService.updateNote(
-                entityType,
-                entityId,
-                session.stationId(),
+                access.entityType(),
+                access.entityId(),
+                access.session().stationId(),
                 request.content(),
-                session.member().id());
+                access.session().member().id());
         ctx.json(toResponse(note));
     }
 
@@ -145,10 +153,11 @@ public class NoteRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void listVersions(Context ctx) {
-        var entityType = NoteEntityType.valueOf(ctx.pathParam("entityType").toUpperCase());
-        int entityId = ctx.pathParamAsClass("entityId", Integer.class).get();
-        requireNoteAccess(UserSession.from(ctx), entityType);
-        var note = noteService.findNote(entityType, entityId).orElseThrow(NotFoundResponse::new);
+        var access = resolveAccess(ctx);
+        var note = noteService
+                .findNote(
+                        access.entityType(), access.entityId(), access.session().stationId())
+                .orElseThrow(NotFoundResponse::new);
         var versions = noteService.findVersions(note.id());
         ctx.json(versions.stream().map(this::toVersionResponse).toList());
     }

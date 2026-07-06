@@ -199,6 +199,12 @@ public class ConsentService {
             String userAgent) {
         accountRepository.recordConsent(
                 accountId, consentVersion, privacyVersion, tosVersion, ipAddress, country, userAgent);
+        log.info(
+                "Consent recorded: account={}, consentVersion={}, privacyVersion={}, tosVersion={}",
+                accountId,
+                consentVersion,
+                privacyVersion,
+                tosVersion);
     }
 
     /**

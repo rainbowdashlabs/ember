@@ -54,10 +54,8 @@ class EventFederationServiceTest extends RepositoryTestBase {
     private static final UUID REMOTE_MEMBER_3 = UUID.fromString("00000000-0000-0000-0000-000000000003");
 
     private static EventFederationService service;
-    private static EventService eventService;
     private static FederationService federationService;
     private static FederationRepository federationRepo;
-    private static EventFederationRepository eventFederationRepo;
     private static FederationHttpClient httpClient;
     private static CommentService commentService;
 
@@ -67,19 +65,16 @@ class EventFederationServiceTest extends RepositoryTestBase {
     private static int partnerId;
     private static int eventId;
     private static FederationPartner localPartner;
-    private static FederationPartner remotePartner;
-    private static Account testAccount;
-    private static StationMember testMember;
     private static MemberIdentity testMemberIdentity;
 
     @BeforeAll
     static void setup() {
         federationRepo = new FederationRepository();
-        eventFederationRepo = new EventFederationRepository();
+        EventFederationRepository eventFederationRepo = new EventFederationRepository();
         federationService = new FederationService(federationRepo, stationRepo, new Api());
         httpClient = mock(FederationHttpClient.class);
         var eventBus = new DomainEventBus(Set.of());
-        eventService = new EventService(eventRepo, restrictionRepo, eventBus);
+        EventService eventService = new EventService(eventRepo, restrictionRepo, eventBus);
         var memberSvc = new StationMemberService(stationMemberRepo, stationRepo, accountRepo, mock(AuthService.class));
         commentService = new CommentService(eventCommentRepo, eventBus, memberSvc, stationRepo);
         service = new EventFederationService(
@@ -112,7 +107,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
 
         // Create remote federation: stationA accepts, stationC initiates (stationA sees stationC as remote)
         var keyPairC = federationService.generateKeyPair();
-        remotePartner = federationService.acceptInvite(
+        FederationPartner remotePartner = federationService.acceptInvite(
                 stationA.id(),
                 stationC.id(),
                 federationService.encodePublicKey(keyPairC),
@@ -120,8 +115,8 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 null);
 
         // Create test account and member for local comment author tests
-        testAccount = accountRepo.create("eventfed@test.com", "Test", "Author");
-        testMember = stationMemberRepo.create(stationA.id(), testAccount.id());
+        Account testAccount = accountRepo.create("eventfed@test.com", "Test", "Author");
+        StationMember testMember = stationMemberRepo.create(stationA.id(), testAccount.id());
         testMemberIdentity = memberIdentityFactory.local(stationA.id(), testMember.id());
 
         // Create a test event on stationA

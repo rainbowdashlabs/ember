@@ -29,7 +29,6 @@ public final class Localizer {
      * Loads a JSON file from {@code i18n/<prefix>_<locale>.json} and returns the map for the given section.
      * Results are cached.
      */
-    @SuppressWarnings("unchecked")
     public Map<String, String> get(String prefix, String locale, String section) {
         String key = prefix + "_" + locale;
         var fileMap = cache.computeIfAbsent(key, k -> loadFile(prefix, locale));

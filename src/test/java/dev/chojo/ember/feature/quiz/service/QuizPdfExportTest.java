@@ -41,7 +41,10 @@ class QuizPdfExportTest {
     static final PostgreSQLContainer PG = new PostgreSQLContainer("postgres:17")
             .withDatabaseName("ember_test")
             .withUsername("test")
-            .withPassword("test");
+            .withPassword("test")
+            // Retry on the rootless-Docker random-host-port collision; a fresh attempt gets a
+            // new port. See RepositoryTestBase for the full rationale.
+            .withStartupAttempts(4);
 
     private static QuizCatalogRepository catalogRepo;
     private static QuizTestRepository testRepo;
@@ -103,7 +106,7 @@ class QuizPdfExportTest {
         var backend = new LocalStorageBackend();
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
         var imageService = new QuizQuestionImageService(new ImageVariantService(storage), stationRepo);
-        pdfService = new QuizPdfService(testRepo, catalogRepo, imageService, quizService);
+        pdfService = new QuizPdfService(testRepo, catalogRepo, imageService);
     }
 
     @Test

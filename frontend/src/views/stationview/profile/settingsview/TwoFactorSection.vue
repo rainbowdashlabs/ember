@@ -12,6 +12,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import PasswordInput from '@/components/input/text/PasswordInput.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -36,6 +37,7 @@ const {config: status, loading, error, reload: loadStatus} = useConfigPanel<TwoF
 const setupStep = ref<'idle' | 'qr' | 'backup-display'>('idle')
 const setupData = ref<TotpBeginResponse | null>(null)
 const confirmCode = ref('')
+const confirmPassword = ref('')
 const confirmLoading = ref(false)
 const confirmError = ref('')
 
@@ -66,15 +68,28 @@ async function startSetup() {
   }
 }
 
+const requiresPassword = () => !status.value?.enrolled
+
 async function confirmSetup() {
   if (!setupData.value || !confirmCode.value) return
+  if (requiresPassword() && !confirmPassword.value) {
+    confirmError.value = t('twoFactor.setup.passwordRequired')
+    return
+  }
   confirmError.value = ''
   confirmLoading.value = true
   try {
-    await confirmTotpSetup(setupData.value.secret, confirmCode.value, setupData.value.recoveryCodes)
+    await confirmTotpSetup(
+      setupData.value.secret,
+      confirmCode.value,
+      setupData.value.recoveryCodes,
+      requiresPassword() ? confirmPassword.value : undefined,
+    )
     setupStep.value = 'backup-display'
-  } catch {
-    confirmError.value = t('twoFactor.setup.invalidCode')
+  } catch (e: any) {
+    confirmError.value = e?.response?.status === 401
+      ? t('twoFactor.setup.passwordWrong')
+      : t('twoFactor.setup.invalidCode')
   } finally {
     confirmLoading.value = false
   }
@@ -84,6 +99,7 @@ function finishSetup() {
   setupStep.value = 'idle'
   setupData.value = null
   confirmCode.value = ''
+  confirmPassword.value = ''
   loadStatus()
 }
 
@@ -144,8 +160,12 @@ async function handleRegenerate() {
 
           <form class="space-y-3" @submit.prevent="confirmSetup">
             <TextInput v-model="confirmCode" :placeholder="t('twoFactor.setup.codePlaceholder')" autocomplete="one-time-code" inputmode="numeric"/>
+            <template v-if="requiresPassword()">
+              <MutedText tag="p" size="sm">{{ t('twoFactor.setup.passwordPrompt') }}</MutedText>
+              <PasswordInput v-model="confirmPassword" :placeholder="t('twoFactor.setup.passwordPlaceholder')"/>
+            </template>
             <Alert v-if="confirmError" variant="error">{{ confirmError }}</Alert>
-            <PrimaryButton :disabled="confirmLoading || !confirmCode" class="w-full" @click="confirmSetup">
+            <PrimaryButton :disabled="confirmLoading || !confirmCode || (requiresPassword() && !confirmPassword)" class="w-full" @click="confirmSetup">
               {{ confirmLoading ? t('common.loading') : t('twoFactor.setup.verify') }}
             </PrimaryButton>
           </form>

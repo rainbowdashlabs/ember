@@ -50,12 +50,8 @@ class InstanceStorageMigrationServiceTest extends RepositoryTestBase {
 
     private static StationStorageConfigRepository storageConfigRepo;
 
-    private Path sourceRoot;
     private Path targetRoot;
-    private LocalStorageBackend sourceBackend;
     private LocalStorageBackend targetBackend;
-    private Storage storage;
-    private StorageBackendFactory factory;
     private StorageService storageService;
     private InstanceStorageMigrationService migrationService;
     private MigrationLockRegistry locks;
@@ -68,18 +64,18 @@ class InstanceStorageMigrationServiceTest extends RepositoryTestBase {
 
     @BeforeEach
     void setup() throws Exception {
-        sourceRoot = Files.createTempDirectory("instance-migration-source");
+        Path sourceRoot = Files.createTempDirectory("instance-migration-source");
         targetRoot = Files.createTempDirectory("instance-migration-target");
-        sourceBackend = new LocalStorageBackend(sourceRoot);
+        LocalStorageBackend sourceBackend = new LocalStorageBackend(sourceRoot);
         targetBackend = new LocalStorageBackend(targetRoot);
         var cipher = new CredentialCipher(Base64.getEncoder().encodeToString(new byte[32]));
 
-        storage = new Storage();
+        Storage storage = new Storage();
         setField(Storage.class, storage, "backend", new StorageBackendSettings());
         setField(StorageBackendSettings.class, storage.backend(), "type", StorageBackendType.LOCAL);
         setField(StorageBackendSettings.LocalSettings.class, storage.backend().local(), "root", sourceRoot.toString());
 
-        factory = new StorageBackendFactory(storage, sourceBackend, cipher);
+        StorageBackendFactory factory = new StorageBackendFactory(storage, sourceBackend, cipher);
         var resolver = new StorageBackendResolver(factory, storageConfigRepo);
         storageService = new StorageService(resolver, sourceBackend);
 

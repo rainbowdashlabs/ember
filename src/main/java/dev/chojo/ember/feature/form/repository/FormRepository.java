@@ -546,7 +546,7 @@ public class FormRepository {
     public boolean hasResponded(int formId, int memberId) {
         return query("SELECT 1 FROM form_response WHERE form_id = :form_id AND member_id = :member_id;")
                 .single(call().bind("form_id", formId).bind("member_id", memberId))
-                .map(row -> true)
+                .map(_ -> true)
                 .first()
                 .isPresent();
     }
@@ -604,10 +604,9 @@ public class FormRepository {
      *
      * @param formId the form ID
      * @param mode   the restriction mode
-     * @return {@code true} if a row was updated
      */
-    public boolean updateRestrictionMode(int formId, RestrictionMode mode) {
-        return query("UPDATE form SET restriction_mode = :mode WHERE id = :id;")
+    public void updateRestrictionMode(int formId, RestrictionMode mode) {
+        query("UPDATE form SET restriction_mode = :mode WHERE id = :id;")
                 .single(call().bind("mode", mode.name()).bind("id", formId))
                 .update()
                 .changed();

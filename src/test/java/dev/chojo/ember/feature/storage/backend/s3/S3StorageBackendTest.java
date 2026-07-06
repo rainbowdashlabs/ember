@@ -51,16 +51,16 @@ class S3StorageBackendTest {
             .withExposedPorts(9000)
             .withEnv("RUSTFS_ACCESS_KEY", ACCESS_KEY)
             .withEnv("RUSTFS_SECRET_KEY", SECRET_KEY)
-            .waitingFor(Wait.forListeningPort());
+            .waitingFor(Wait.forListeningPort())
+            .withStartupAttempts(4);
 
-    private static S3BackendConfig config;
     private static S3StorageBackend backend;
 
     @BeforeAll
     static void setup() {
         String endpoint = "http://" + RUSTFS.getHost() + ":" + RUSTFS.getMappedPort(9000);
-        config = new S3BackendConfig(
-                endpoint, REGION, BUCKET, ACCESS_KEY, SECRET_KEY, /* pathStyle */ true, Optional.empty(), "");
+        S3BackendConfig config =
+                new S3BackendConfig(endpoint, REGION, BUCKET, ACCESS_KEY, SECRET_KEY, true, Optional.empty(), "");
 
         try (S3Client setupClient = S3Client.builder()
                 .endpointOverride(URI.create(endpoint))

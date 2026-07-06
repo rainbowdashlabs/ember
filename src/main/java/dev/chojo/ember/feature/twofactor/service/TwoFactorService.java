@@ -157,6 +157,9 @@ public class TwoFactorService {
                     .findActiveFactor(accountId, TwoFactorKind.BACKUP_CODES)
                     .ifPresent(f -> repository.disableFactor(f.id()));
         }
+        // A trusted device bypasses the 2FA challenge; removing a factor is a security event, so
+        // revoke every remembered device to force fresh verification with what remains.
+        repository.revokeAllTrustedDevices(accountId);
         auditService.record(
                 accountId, null, TwoFactorEvent.REMOVED, target.get().kind(), userAgent, country);
         log.info(
@@ -169,7 +172,13 @@ public class TwoFactorService {
 
     public boolean renameFactor(int accountId, int factorId, String label) {
         if (label == null || label.isBlank() || label.length() > 64) return false;
-        return repository.renameFactor(factorId, accountId, label);
+        boolean renamed = repository.renameFactor(factorId, accountId, label);
+        if (renamed) {
+            log.info("Renamed 2FA factor {} for account {}", factorId, accountId);
+        } else {
+            log.warn("2FA factor rename missed: factor {} for account {}", factorId, accountId);
+        }
+        return renamed;
     }
 
     public boolean removeTotpFactor(int accountId, String userAgent, String country) {
@@ -181,6 +190,7 @@ public class TwoFactorService {
         var backupFactor = repository.findActiveFactor(accountId, TwoFactorKind.BACKUP_CODES);
         backupFactor.ifPresent(f -> repository.disableFactor(f.id()));
 
+        repository.revokeAllTrustedDevices(accountId);
         auditService.record(accountId, null, TwoFactorEvent.REMOVED, TwoFactorKind.TOTP, userAgent, country);
         log.info("TOTP removed for account {}", accountId);
         return true;
@@ -200,6 +210,7 @@ public class TwoFactorService {
                 TwoFactorKind.BACKUP_CODES,
                 userAgent,
                 country);
+        log.info("Backup codes regenerated for account {} ({} codes)", accountId, codes.size());
         return codes;
     }
 
@@ -223,6 +234,7 @@ public class TwoFactorService {
                 TwoFactorKind.BACKUP_CODES,
                 userAgent,
                 country);
+        log.info("Initial backup codes issued for account {} ({} codes)", accountId, codes.size());
         return codes;
     }
 
@@ -234,8 +246,12 @@ public class TwoFactorService {
         if (totp.isEmpty()) return false;
 
         String secret = totpService.decryptSecret(totp.get().secretEncrypted());
-        if (!totpService.verifyCode(secret, code)) return false;
+        var step = totpService.matchStep(secret, code);
+        if (step.isEmpty() || step.getAsLong() <= totp.get().lastUsedStep()) {
+            return false;
+        }
 
+        repository.updateLastUsedStep(factor.get().id(), step.getAsLong());
         repository.touchFactorUsed(factor.get().id());
         return true;
     }

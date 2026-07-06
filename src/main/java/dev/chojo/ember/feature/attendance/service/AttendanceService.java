@@ -185,6 +185,10 @@ public class AttendanceService {
         return attendanceRepository.findEntries(sessionId);
     }
 
+    public Optional<AttendanceEntry> findEntryById(int id) {
+        return attendanceRepository.findEntryById(id);
+    }
+
     public AttendanceSession createSession(
             int templateId, Instant startTime, Instant endTime, Integer eventId, String title) {
         // Reuse existing session for this event

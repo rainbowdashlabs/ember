@@ -291,13 +291,18 @@ public class BoardTicketService {
         var ticket = ticketRepository.findById(ticketId).orElse(null);
         var linkedTicket = ticketRepository.findById(linkedTicketId).orElse(null);
         if (ticket != null && linkedTicket != null) {
-            var board = boardRepository.findById(ticket.boardId()).orElse(null);
-            var linkedBoard = boardRepository.findById(linkedTicket.boardId()).orElse(null);
-            String key = (board != null ? board.shortKey() : "?") + "-" + linkedTicket.ticketNumber();
-            String reverseKey = (linkedBoard != null ? linkedBoard.shortKey() : "?") + "-" + ticket.ticketNumber();
-            ticketRepository.logHistory(ticketId, BoardTicketHistoryAction.LINK_ADDED, key, actor);
-            ticketRepository.logHistory(linkedTicketId, BoardTicketHistoryAction.LINK_ADDED, reverseKey, actor);
+            logLinkHistory(ticket, linkedTicket, BoardTicketHistoryAction.LINK_ADDED, actor);
         }
+    }
+
+    private void logLinkHistory(
+            BoardTicket ticket, BoardTicket linkedTicket, BoardTicketHistoryAction action, MemberIdentity actor) {
+        var board = boardRepository.findById(ticket.boardId()).orElse(null);
+        var linkedBoard = boardRepository.findById(linkedTicket.boardId()).orElse(null);
+        String key = (board != null ? board.shortKey() : "?") + "-" + linkedTicket.ticketNumber();
+        String reverseKey = (linkedBoard != null ? linkedBoard.shortKey() : "?") + "-" + ticket.ticketNumber();
+        ticketRepository.logHistory(ticket.id(), action, key, actor);
+        ticketRepository.logHistory(linkedTicket.id(), action, reverseKey, actor);
     }
 
     public boolean unlinkTickets(int ticketId, int linkedTicketId, MemberIdentity actor) {
@@ -305,12 +310,7 @@ public class BoardTicketService {
         var linkedTicket = ticketRepository.findById(linkedTicketId).orElse(null);
         boolean deleted = ticketRepository.deleteLink(ticketId, linkedTicketId);
         if (deleted && ticket != null && linkedTicket != null) {
-            var board = boardRepository.findById(ticket.boardId()).orElse(null);
-            var linkedBoard = boardRepository.findById(linkedTicket.boardId()).orElse(null);
-            String key = (board != null ? board.shortKey() : "?") + "-" + linkedTicket.ticketNumber();
-            String reverseKey = (linkedBoard != null ? linkedBoard.shortKey() : "?") + "-" + ticket.ticketNumber();
-            ticketRepository.logHistory(ticketId, BoardTicketHistoryAction.LINK_REMOVED, key, actor);
-            ticketRepository.logHistory(linkedTicketId, BoardTicketHistoryAction.LINK_REMOVED, reverseKey, actor);
+            logLinkHistory(ticket, linkedTicket, BoardTicketHistoryAction.LINK_REMOVED, actor);
             log.info("Unlinked ticket {} from ticket {}", ticketId, linkedTicketId);
         } else if (!deleted) {
             log.warn("Unlink of ticket {} from ticket {} affected zero rows", ticketId, linkedTicketId);
@@ -550,8 +550,8 @@ public class BoardTicketService {
 
     // -- KB Links --
 
-    public boolean removeKbLink(int id) {
-        return ticketRepository.removeKbLink(id);
+    public void removeKbLink(int id) {
+        ticketRepository.removeKbLink(id);
     }
 
     public void logHistory(int ticketId, BoardTicketHistoryAction action, String detail, MemberIdentity actor) {

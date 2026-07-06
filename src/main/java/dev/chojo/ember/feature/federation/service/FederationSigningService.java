@@ -15,12 +15,14 @@ import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
+import java.security.interfaces.RSAKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -29,10 +31,11 @@ import java.util.UUID;
  * <p>
  * Signatures are RSA SHA-256 over a canonical envelope that binds the HTTP method,
  * request path (including a sorted query string), the recipient station UUID, the
- * timestamp and the request body. Binding the method, path and recipient prevents
- * a captured signature from being replayed against a different endpoint or peer
- * within the timestamp window. Replay protection within the window is provided
- * by the per-partner nonce check in {@link FederationReplayCache}.
+ * per-request nonce, the timestamp and the request body. Binding the method, path
+ * and recipient prevents a captured signature from being replayed against a
+ * different endpoint or peer within the timestamp window. Binding the nonce means
+ * an attacker cannot swap in a fresh nonce to sidestep the per-partner replay
+ * check in {@link FederationReplayCache}.
  * <p>
  * The handshake exchange that establishes a federation predates the request
  * envelope; it uses {@link #signEnrollmentPayload(String, PrivateKey)} /
@@ -44,6 +47,7 @@ public class FederationSigningService {
     private static final Logger log = LoggerFactory.getLogger(FederationSigningService.class);
     private static final String ALGORITHM = "SHA256withRSA";
     private static final Duration MAX_TIMESTAMP_DRIFT = Duration.ofMinutes(5);
+    private static final int MIN_RSA_KEY_BITS = 2048;
 
     /**
      * Builds the canonical path-with-query string by sorting {@code &}-separated
@@ -68,13 +72,37 @@ public class FederationSigningService {
         return canonicalPathWithQuery(uri.getRawPath(), uri.getRawQuery());
     }
 
+    /**
+     * Reports whether the query string repeats any parameter name. Because the
+     * canonical form sorts {@code &}-separated pairs, {@code a=1&a=2} and
+     * {@code a=2&a=1} would share one signature while a handler reads wire order;
+     * the receiver rejects any request with duplicate keys to close that gap.
+     */
+    public static boolean hasDuplicateQueryKeys(String query) {
+        if (query == null || query.isEmpty()) {
+            return false;
+        }
+        var seen = new HashSet<String>();
+        for (String pair : query.split("&")) {
+            if (pair.isEmpty()) continue;
+            int eq = pair.indexOf('=');
+            String key = eq >= 0 ? pair.substring(0, eq) : pair;
+            if (!seen.add(key)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static String canonicalEnvelope(
-            String method, String pathWithQuery, UUID recipientUuid, String timestamp, String body) {
+            String method, String pathWithQuery, UUID recipientUuid, String nonce, String timestamp, String body) {
         return method.toUpperCase(Locale.ROOT)
                 + "\n"
                 + (pathWithQuery == null ? "" : pathWithQuery)
                 + "\n"
                 + recipientUuid
+                + "\n"
+                + (nonce == null ? "" : nonce)
                 + "\n"
                 + timestamp
                 + "\n"
@@ -88,6 +116,8 @@ public class FederationSigningService {
      * @param pathWithQuery path plus canonical (sorted) query string; see
      *                      {@link #canonicalPathWithQuery(String, String)}
      * @param recipientUuid the UUID of the station that will receive the request
+     * @param nonce         the per-request replay nonce sent in the
+     *                      {@code X-Federation-Nonce} header
      * @param body          the request body (use {@code ""} for empty)
      * @param timestamp     the request timestamp (ISO-8601)
      * @param privateKey    the signing RSA private key
@@ -97,13 +127,14 @@ public class FederationSigningService {
             String method,
             String pathWithQuery,
             UUID recipientUuid,
+            String nonce,
             String body,
             String timestamp,
             PrivateKey privateKey) {
         try {
             var signer = Signature.getInstance(ALGORITHM);
             signer.initSign(privateKey);
-            signer.update(canonicalEnvelope(method, pathWithQuery, recipientUuid, timestamp, body)
+            signer.update(canonicalEnvelope(method, pathWithQuery, recipientUuid, nonce, timestamp, body)
                     .getBytes(StandardCharsets.UTF_8));
             return Base64.getEncoder().encodeToString(signer.sign());
         } catch (Exception e) {
@@ -118,6 +149,8 @@ public class FederationSigningService {
      * @param method        uppercase HTTP method
      * @param pathWithQuery path plus canonical (sorted) query string
      * @param recipientUuid the UUID of the receiving station (i.e. this instance's own)
+     * @param nonce         the per-request replay nonce from the
+     *                      {@code X-Federation-Nonce} header
      * @param body          the request body
      * @param signature     the Base64-encoded signature
      * @param publicKey     the sender's RSA public key
@@ -128,6 +161,7 @@ public class FederationSigningService {
             String method,
             String pathWithQuery,
             UUID recipientUuid,
+            String nonce,
             String body,
             String signature,
             PublicKey publicKey,
@@ -141,7 +175,7 @@ public class FederationSigningService {
         try {
             var verifier = Signature.getInstance(ALGORITHM);
             verifier.initVerify(publicKey);
-            verifier.update(canonicalEnvelope(method, pathWithQuery, recipientUuid, timestamp.toString(), body)
+            verifier.update(canonicalEnvelope(method, pathWithQuery, recipientUuid, nonce, timestamp.toString(), body)
                     .getBytes(StandardCharsets.UTF_8));
             return verifier.verify(Base64.getDecoder().decode(signature));
         } catch (Exception e) {
@@ -182,13 +216,19 @@ public class FederationSigningService {
     }
 
     /**
-     * Decodes a Base64-encoded RSA public key.
+     * Decodes a Base64-encoded RSA public key. Rejects keys weaker than
+     * {@value #MIN_RSA_KEY_BITS} bits so a partner cannot register a trivially
+     * factorable key.
      */
     public PublicKey decodePublicKey(String base64Key) {
         try {
             var keyBytes = Base64.getDecoder().decode(base64Key);
             var spec = new X509EncodedKeySpec(keyBytes);
-            return KeyFactory.getInstance("RSA").generatePublic(spec);
+            var key = KeyFactory.getInstance("RSA").generatePublic(spec);
+            if (key instanceof RSAKey rsaKey && rsaKey.getModulus().bitLength() < MIN_RSA_KEY_BITS) {
+                throw new IllegalArgumentException("RSA public key must be at least " + MIN_RSA_KEY_BITS + " bits");
+            }
+            return key;
         } catch (Exception e) {
             throw new RuntimeException("Failed to decode public key", e);
         }

@@ -19,6 +19,7 @@ import KbRestrictionsField from './KbRestrictionsField.vue'
 import KbPublicVisibilityField from './KbPublicVisibilityField.vue'
 import KbTagsEditor from './KbTagsEditor.vue'
 import KbFolderIconField from './KbFolderIconField.vue'
+import {type RestrictionSelection, emptyRestriction} from '@/components/input/restriction'
 
 const {isKbPublic} = useSession()
 
@@ -36,9 +37,7 @@ const emit = defineEmits<{
 
 const editName = ref('')
 const editDescription = ref('')
-const selectedUserTypes = ref<string[]>([])
-const groupIds = ref<number[]>([])
-const tagIds = ref<number[]>([])
+const restriction = ref<RestrictionSelection>(emptyRestriction())
 const tags = ref<string[]>([])
 const iconFile = ref<File | null>(null)
 const publicVisibility = ref<string>('default')
@@ -50,9 +49,7 @@ watch(show, async (visible) => {
     if (visible && props.folder) {
         editName.value = props.folder.name
         editDescription.value = props.folder.description
-        selectedUserTypes.value = []
-        groupIds.value = []
-        tagIds.value = []
+        restriction.value = emptyRestriction()
         tags.value = []
         iconFile.value = null
         publicVisibility.value = 'default'
@@ -75,9 +72,13 @@ watch(show, async (visible) => {
                 knowledgeBase.getFolderTags(props.folder.id),
                 knowledgeBase.getPublicVisibility('folders', props.folder.id),
             ])
-            selectedUserTypes.value = r.userTypes ?? []
-            groupIds.value = r.groupIds
-            tagIds.value = r.tagIds
+            restriction.value = {
+                userTypes: r.userTypes ?? [],
+                groupIds: r.groupIds,
+                tagIds: r.tagIds,
+                memberIds: [],
+                mode: 'AND',
+            }
             tags.value = folderTags.map(t => t.name)
             publicVisibility.value = vis.visible === true ? 'public' : vis.visible === false ? 'hidden' : 'default'
         } catch {
@@ -96,9 +97,9 @@ async function handleSave() {
                 description: editDescription.value,
             }),
             knowledgeBase.setFolderRestrictions(props.folder.id, {
-                userTypes: selectedUserTypes.value,
-                groupIds: groupIds.value,
-                tagIds: tagIds.value,
+                userTypes: restriction.value.userTypes,
+                groupIds: restriction.value.groupIds,
+                tagIds: restriction.value.tagIds,
                 memberIds: [],
             }),
             knowledgeBase.setFolderTags(props.folder.id, tags.value),
@@ -126,9 +127,7 @@ async function handleSave() {
             <KbRestrictionsField
                 :all-groups="allGroups"
                 :all-tags="allTags"
-                v-model:selected-user-types="selectedUserTypes"
-                v-model:group-ids="groupIds"
-                v-model:tag-ids="tagIds"
+                v-model="restriction"
             />
             <KbPublicVisibilityField v-if="isKbPublic()" v-model="publicVisibility"/>
             <KbTagsEditor v-model="tags"/>

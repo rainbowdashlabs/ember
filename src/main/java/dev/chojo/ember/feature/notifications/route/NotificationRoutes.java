@@ -25,6 +25,8 @@ import jakarta.inject.Singleton;
 import java.time.Instant;
 import java.util.Map;
 
+import static dev.chojo.ember.api.RouteSupport.pathInt;
+
 /**
  * Routes for notification management including listing, acknowledging,
  * and bulk-acknowledging notifications for the current user.
@@ -95,7 +97,7 @@ public class NotificationRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "204"))
     private void acknowledge(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
         notificationService.acknowledge(id, session.member().id());
         ctx.status(HttpStatus.NO_CONTENT);

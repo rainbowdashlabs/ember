@@ -50,6 +50,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import static dev.chojo.ember.api.RouteSupport.pathInt;
+
 @Singleton
 public class StorageRoutes implements Routes {
     private final StorageQuotaService quotaService;
@@ -212,7 +214,7 @@ public class StorageRoutes implements Routes {
         Map<Integer, List<StorageUsage>> usageByStation = new HashMap<>();
         for (var usage : allUsage) {
             usageByStation
-                    .computeIfAbsent(usage.stationId(), k -> new ArrayList<>())
+                    .computeIfAbsent(usage.stationId(), _ -> new ArrayList<>())
                     .add(usage);
         }
 
@@ -283,7 +285,7 @@ public class StorageRoutes implements Routes {
     }
 
     private void updatePreset(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var req = ctx.bodyAsClass(PresetRequest.class);
         ctx.json(presetRepository.update(
                 id,
@@ -298,13 +300,13 @@ public class StorageRoutes implements Routes {
     }
 
     private void deletePreset(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         presetRepository.delete(id);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
     private void applyPreset(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var req = ctx.bodyAsClass(ApplyPresetRequest.class);
         for (String uidStr : req.stationUids()) {
             UUID uid = UUID.fromString(uidStr);

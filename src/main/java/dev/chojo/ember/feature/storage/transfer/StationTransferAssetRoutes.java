@@ -266,7 +266,7 @@ public class StationTransferAssetRoutes implements Routes {
         for (String key : keys) {
             int slash = key.lastIndexOf('/');
             String dir = slash < 0 ? "" : key.substring(0, slash);
-            byDir.computeIfAbsent(dir, k -> new ArrayList<>()).add(key);
+            byDir.computeIfAbsent(dir, _ -> new ArrayList<>()).add(key);
         }
 
         var out = new ArrayList<String>(byDir.size());

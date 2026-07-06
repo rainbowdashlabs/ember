@@ -43,6 +43,7 @@ class LostAndFoundServiceTest extends RepositoryTestBase {
                 notificationSettingsRepo,
                 accountRepo,
                 stationRepo,
+                mock(dev.chojo.ember.feature.station.service.StationLogoService.class),
                 emailService,
                 new Mailing());
         service = new LostAndFoundService(lostAndFoundRepo, notificationService);

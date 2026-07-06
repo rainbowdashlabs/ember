@@ -19,6 +19,7 @@ import RestrictionsFields from './eventmodal/RestrictionsFields.vue'
 import type { StationEvent, EventCategory, AttendanceTemplate, AttendanceTemplateField, MemberGroup, UserTag } from '@/api/types'
 import { EventTypes } from '@/api/types'
 import type { EventFieldDefault } from '@/api/events'
+import { type RestrictionSelection, emptyRestriction } from '@/components/input/restriction'
 
 const { t } = useI18n()
 
@@ -59,9 +60,7 @@ const eventRequiresRegistration = ref(false)
 const eventHasDeadline = ref(false)
 const eventRegistrationDeadline = ref('')
 const eventRequiresConfirmation = ref(false)
-const selectedUserTypes = ref<string[]>([])
-const selectedGroupIds = ref<number[]>([])
-const selectedTagIds = ref<number[]>([])
+const restriction = ref<RestrictionSelection>(emptyRestriction())
 const fieldDefaults = ref<Map<number, { source: string; value: string }>>(new Map())
 const saving = ref(false)
 
@@ -87,9 +86,13 @@ watch(modelValue, (open) => {
     eventHasDeadline.value = !!ev.registrationDeadline
     eventRegistrationDeadline.value = ev.registrationDeadline ? toLocalDateTime(ev.registrationDeadline) : ''
     eventRequiresConfirmation.value = ev.requiresConfirmation ?? false
-    selectedUserTypes.value = [...props.eventUserTypes]
-    selectedGroupIds.value = [...props.eventGroupIds]
-    selectedTagIds.value = [...props.eventTagIds]
+    restriction.value = {
+      userTypes: [...props.eventUserTypes],
+      groupIds: [...props.eventGroupIds],
+      tagIds: [...props.eventTagIds],
+      memberIds: [],
+      mode: 'AND',
+    }
     const fdMap = new Map<number, { source: string; value: string }>()
     for (const fd of props.eventFieldDefaults) {
       fdMap.set(fd.fieldId, { source: fd.source, value: fd.value ?? '' })
@@ -108,9 +111,7 @@ watch(modelValue, (open) => {
     eventHasDeadline.value = false
     eventRegistrationDeadline.value = ''
     eventRequiresConfirmation.value = false
-    selectedUserTypes.value = []
-    selectedGroupIds.value = []
-    selectedTagIds.value = []
+    restriction.value = emptyRestriction()
     fieldDefaults.value = new Map()
   }
 })
@@ -164,9 +165,7 @@ function submit() {
     registrationDeadline: eventHasDeadline.value && eventRegistrationDeadline.value
       ? new Date(eventRegistrationDeadline.value).toISOString() : null,
     requiresConfirmation: eventRequiresConfirmation.value,
-    restrictedUserTypes: selectedUserTypes.value,
-    restrictedGroupIds: selectedGroupIds.value,
-    restrictedTagIds: selectedTagIds.value,
+    restriction: restriction.value,
     fieldDefaults: [...fieldDefaults.value.entries()]
       .filter(([, v]) => v.source)
       .map(([fieldId, v]) => ({ fieldId, source: v.source, value: v.value || undefined })),
@@ -184,7 +183,7 @@ function submit() {
       <TemplateSection v-model:event-template-id="eventTemplateId" :templates="templates" :current-template-fields="currentTemplateFields" :sources="EVENT_SOURCES" :get-default="getFieldDefault" @update-source="setFieldDefaultSource" @update-value="setFieldDefaultValue"/>
       <CategorySelect v-model:event-category-id="eventCategoryId" :categories="categories"/>
       <RegistrationFields v-model:event-requires-registration="eventRequiresRegistration" v-model:event-requires-confirmation="eventRequiresConfirmation" v-model:event-has-deadline="eventHasDeadline" v-model:event-registration-deadline="eventRegistrationDeadline"/>
-      <RestrictionsFields v-model:selected-user-types="selectedUserTypes" v-model:selected-group-ids="selectedGroupIds" v-model:selected-tag-ids="selectedTagIds" :groups="groups" :tags="tags"/>
+      <RestrictionsFields v-model="restriction" :groups="groups" :tags="tags"/>
       <div class="flex justify-end gap-3">
         <SecondaryButton @click="modelValue = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="saving || !eventName || !eventStartTime || !eventEndTime" @click="submit">

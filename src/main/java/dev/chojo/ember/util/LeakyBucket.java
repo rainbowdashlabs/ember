@@ -98,7 +98,7 @@ public final class LeakyBucket {
 
         var admitted = new boolean[1];
         var retryAfterSeconds = new long[1];
-        buckets.compute(key, (k, existing) -> {
+        buckets.compute(key, (_, existing) -> {
             Bucket bucket = existing != null ? existing : new Bucket(capacity, now);
             bucket.refill(now, refillInterval, capacity);
             if (bucket.tokens >= 1.0) {

@@ -11,7 +11,7 @@ import dev.chojo.ember.feature.checklist.entity.ChecklistColumn;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import dev.chojo.ember.feature.station.repository.StationRepository.StationLogo;
+import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.util.TypstCompiler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -26,6 +26,7 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -46,6 +47,7 @@ public class ChecklistExportService {
     private final ChecklistService checklistService;
     private final MemberNameResolver memberNameResolver;
     private final StationRepository stationRepository;
+    private final StationLogoService logoService;
     private final Api apiConfig;
 
     @Inject
@@ -53,10 +55,12 @@ public class ChecklistExportService {
             ChecklistService checklistService,
             MemberNameResolver memberNameResolver,
             StationRepository stationRepository,
+            StationLogoService logoService,
             Api apiConfig) {
         this.checklistService = checklistService;
         this.memberNameResolver = memberNameResolver;
         this.stationRepository = stationRepository;
+        this.logoService = logoService;
         this.apiConfig = apiConfig;
     }
 
@@ -132,7 +136,7 @@ public class ChecklistExportService {
         data.put("columns", columns.stream().map(ChecklistColumn::label).toList());
         data.put("rows", rows);
 
-        StationLogo logo = stationRepository.findLogo(checklist.stationId()).orElse(null);
+        var logo = logoService.original(checklist.stationId()).orElse(null);
         byte[] pdf = TypstCompiler.compileTemplate(
                 data,
                 locale + "/checklist-export.typ",
@@ -150,7 +154,7 @@ public class ChecklistExportService {
         return cells.values().stream()
                 .filter(c -> c.entryId() == entryId)
                 .map(ChecklistCell::updatedAt)
-                .max(java.util.Comparator.naturalOrder())
+                .max(Comparator.naturalOrder())
                 .map(ts -> CSV_DATE_TIME_FMT.format(ts.atZone(ZoneOffset.UTC)))
                 .orElse("");
     }

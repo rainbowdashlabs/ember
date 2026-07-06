@@ -18,7 +18,6 @@ import dev.chojo.ember.feature.events.service.EventTemplateService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
@@ -32,6 +31,9 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.util.List;
+
+import static dev.chojo.ember.api.RouteSupport.pathInt;
+import static dev.chojo.ember.api.RouteSupport.requireOwned;
 
 @Singleton
 public class EventTemplateRoutes implements Routes {
@@ -111,12 +113,8 @@ public class EventTemplateRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void get(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var template = eventTemplateService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (template.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        int id = pathInt(ctx, "id");
+        var template = requireOwned(ctx, id, eventTemplateService::findById, EventTemplate::stationId);
         var fields = eventTemplateService.findFields(id);
         var restrictionUserTypes = eventTemplateService.findRestrictions(id);
         var reminderDays = eventTemplateService.findReminderDays(id);
@@ -135,12 +133,8 @@ public class EventTemplateRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void update(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var existing = eventTemplateService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (existing.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        int id = pathInt(ctx, "id");
+        requireOwned(ctx, id, eventTemplateService::findById, EventTemplate::stationId);
         var req = ctx.bodyAsClass(UpdateTemplateRequest.class);
         if (!eventTemplateService.update(
                 id,
@@ -171,12 +165,8 @@ public class EventTemplateRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void delete(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var existing = eventTemplateService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (existing.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        int id = pathInt(ctx, "id");
+        requireOwned(ctx, id, eventTemplateService::findById, EventTemplate::stationId);
         if (eventTemplateService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -196,12 +186,8 @@ public class EventTemplateRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void setFields(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var existing = eventTemplateService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (existing.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        int id = pathInt(ctx, "id");
+        requireOwned(ctx, id, eventTemplateService::findById, EventTemplate::stationId);
         var req = ctx.bodyAsClass(SetFieldsRequest.class);
         eventTemplateService.replaceFields(id, req.fields());
         ctx.json(eventTemplateService.findFields(id));
@@ -219,24 +205,20 @@ public class EventTemplateRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void setRestrictions(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var existing = eventTemplateService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (existing.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        int id = pathInt(ctx, "id");
+        requireOwned(ctx, id, eventTemplateService::findById, EventTemplate::stationId);
         var req = ctx.bodyAsClass(SetRestrictionsRequest.class);
         eventTemplateService.setRestrictions(id, req.userTypes());
         ctx.json(eventTemplateService.findRestrictions(id));
     }
 
     private void getReminders(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         ctx.json(eventTemplateService.findReminderDays(id));
     }
 
     private void setReminders(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         var req = ctx.bodyAsClass(SetRemindersRequest.class);
         eventTemplateService.setReminders(id, req.daysBefore() != null ? req.daysBefore() : List.of());
         ctx.json(eventTemplateService.findReminderDays(id));

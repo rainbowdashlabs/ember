@@ -324,7 +324,7 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
         assertEquals(InventoryCheckScope.CONTAINER, completed.scope());
         assertTrue(completed.deep());
 
-        assertTrue(inventoryRepo.findItemById(deepItem.id()).orElseThrow().lostAt() != null);
+        assertNotNull(inventoryRepo.findItemById(deepItem.id()).orElseThrow().lostAt());
 
         inventoryRepo.deleteItem(loose.id());
         inventoryRepo.deleteItem(deepItem.id());

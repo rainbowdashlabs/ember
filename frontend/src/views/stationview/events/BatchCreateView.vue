@@ -17,6 +17,7 @@ import StepProgressBar from '@/components/display/StepProgressBar.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import EventFormPanel from './eventshared/EventFormPanel.vue'
+import {type RestrictionSelection, emptyRestriction} from '@/components/input/restriction'
 import BatchScheduleStep from './batchcreateview/BatchScheduleStep.vue'
 import BatchEditTable from './batchcreateview/BatchEditTable.vue'
 import type {AttendanceTemplateField, BatchFieldEntry, EventFieldEntry, EventTemplate} from '@/api/types'
@@ -48,9 +49,7 @@ const requiresRegistration = ref(false)
 const requiresConfirmation = ref(false)
 const hasDeadline = ref(false)
 const registrationDeadline = ref('')
-const selectedUserTypes = ref<string[]>([])
-const selectedGroupIds = ref<number[]>([])
-const selectedTagIds = ref<number[]>([])
+const restriction = ref<RestrictionSelection>(emptyRestriction())
 
 const rows = ref<BatchRow[]>([])
 
@@ -118,9 +117,7 @@ async function createBatch() {
       requiresRegistration: requiresRegistration.value,
       requiresConfirmation: requiresConfirmation.value,
       registrationDeadline: registrationDeadline.value || undefined,
-      restrictedUserTypes: selectedUserTypes.value.length > 0 ? selectedUserTypes.value : undefined,
-      restrictedGroupIds: selectedGroupIds.value.length > 0 ? selectedGroupIds.value : undefined,
-      restrictedTagIds: selectedTagIds.value.length > 0 ? selectedTagIds.value : undefined,
+      restriction: restriction.value,
     })
     success.value = t('batchCreate.success', {count: created.length})
     setTimeout(() => router.push({name: 'events'}), 1500)
@@ -162,9 +159,7 @@ async function createBatch() {
             v-model:requires-confirmation="requiresConfirmation"
             v-model:has-deadline="hasDeadline"
             v-model:registration-deadline="registrationDeadline"
-            v-model:selected-user-types="selectedUserTypes"
-            v-model:selected-group-ids="selectedGroupIds"
-            v-model:selected-tag-ids="selectedTagIds"
+            v-model:restriction="restriction"
             v-model:fields="fieldDefs"
             :categories="categories"
             :templates="templates"

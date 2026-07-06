@@ -10,47 +10,53 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.auth.TokenHasher;
-import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Demo;
+import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.account.entity.AccountToken;
 import dev.chojo.ember.feature.account.entity.LoginResult;
 import dev.chojo.ember.feature.account.entity.TokenType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.account.service.AuthRateLimiter;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
 import dev.chojo.ember.feature.twofactor.service.TrustedDeviceService;
+import dev.chojo.ember.feature.twofactor.service.TwoFactorAttemptTracker;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorAuditService;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
 import dev.chojo.ember.feature.twofactor.service.WebAuthnService;
+import dev.chojo.ember.util.ClientIp;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
+import io.javalin.http.HttpResponseException;
+import io.javalin.http.HttpStatus;
 import io.javalin.http.UnauthorizedResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+
+import static dev.chojo.ember.api.RouteSupport.pathInt;
 
 @Singleton
 public class TwoFactorRoutes implements Routes {
-    private static final Logger log = LoggerFactory.getLogger(TwoFactorRoutes.class);
-
     private final TwoFactorService twoFactorService;
     private final TwoFactorAuditService auditService;
     private final AccountRepository accountRepository;
     private final AuthService authService;
-    private final Auth authConfig;
     private final TokenHasher tokenHasher;
     private final WebAuthnService webAuthnService;
     private final Demo demoConfig;
     private final TrustedDeviceService trustedDeviceService;
+    private final AuthRateLimiter rateLimiter;
+    private final TwoFactorAttemptTracker attemptTracker;
+    private final Network network;
 
     @Inject
     public TwoFactorRoutes(
@@ -58,20 +64,50 @@ public class TwoFactorRoutes implements Routes {
             TwoFactorAuditService auditService,
             AccountRepository accountRepository,
             AuthService authService,
-            Auth authConfig,
             TokenHasher tokenHasher,
             WebAuthnService webAuthnService,
             Demo demoConfig,
-            TrustedDeviceService trustedDeviceService) {
+            TrustedDeviceService trustedDeviceService,
+            AuthRateLimiter rateLimiter,
+            TwoFactorAttemptTracker attemptTracker,
+            Network network) {
         this.twoFactorService = twoFactorService;
         this.auditService = auditService;
         this.accountRepository = accountRepository;
         this.authService = authService;
-        this.authConfig = authConfig;
         this.tokenHasher = tokenHasher;
         this.webAuthnService = webAuthnService;
         this.demoConfig = demoConfig;
         this.trustedDeviceService = trustedDeviceService;
+        this.rateLimiter = rateLimiter;
+        this.attemptTracker = attemptTracker;
+        this.network = network;
+    }
+
+    private String clientIp(Context ctx) {
+        return ClientIp.resolve(ctx, network).getHostAddress();
+    }
+
+    private static void enforceLimit(Optional<Long> retryAfter) {
+        if (retryAfter.isEmpty()) return;
+        throw new HttpResponseException(
+                HttpStatus.TOO_MANY_REQUESTS.getCode(),
+                "Too many requests, please try again later",
+                Map.of("Retry-After", Long.toString(retryAfter.get())));
+    }
+
+    /**
+     * Requires the account's password before its first second factor may be enrolled. First-factor
+     * enrollment cannot be gated by step-up (no factor exists yet), so a session-bound password
+     * re-entry is the substitute that stops a hijacked bearer token from silently planting a
+     * factor for persistence. Once a factor exists, further enrollment is gated by step-up.
+     */
+    private void requireReauthForFirstFactor(int accountId, String password) {
+        if (twoFactorService.isEnrolled(accountId)) return;
+        enforceLimit(rateLimiter.tryTwoFactor("enroll", accountId));
+        if (!authService.verifyPassword(accountId, password)) {
+            throw new UnauthorizedResponse("Password confirmation is required to set up two-factor authentication");
+        }
     }
 
     /**
@@ -182,6 +218,7 @@ public class TwoFactorRoutes implements Routes {
         if (request.secret() == null || request.code() == null || request.recoveryCodes() == null) {
             throw new BadRequestResponse("secret, code, and recoveryCodes are required");
         }
+        requireReauthForFirstFactor(session.accountId(), request.password());
         boolean confirmed = twoFactorService.confirmTotpEnrollment(
                 session.accountId(),
                 request.secret(),
@@ -232,6 +269,8 @@ public class TwoFactorRoutes implements Routes {
         }
 
         int accountId = preAuth.accountId();
+        enforceLimit(rateLimiter.tryTwoFactor(clientIp(ctx), accountId));
+        String attemptKey = tokenHasher.hash(request.preAuthToken());
         boolean verified;
 
         if ("BACKUP_CODE".equals(request.factor())) {
@@ -260,9 +299,13 @@ public class TwoFactorRoutes implements Routes {
         }
 
         if (!verified) {
+            if (attemptTracker.recordFailure(attemptKey) >= TwoFactorAttemptTracker.MAX_ATTEMPTS) {
+                accountRepository.deleteToken(request.preAuthToken());
+            }
             throw new UnauthorizedResponse("Invalid verification code");
         }
 
+        attemptTracker.reset(attemptKey);
         accountRepository.deleteToken(request.preAuthToken());
         Integer deviceTrustId = issueTrustedDeviceIfRequested(ctx, accountId, request.rememberDeviceDays());
         LoginResult session = authService.createVerifiedSessionForAccount(
@@ -286,7 +329,7 @@ public class TwoFactorRoutes implements Routes {
 
     private void revokeTrustedDevice(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
         if (!trustedDeviceService.revoke(id, session.accountId())) {
             throw new BadRequestResponse("Trusted device not found");
         }
@@ -322,6 +365,7 @@ public class TwoFactorRoutes implements Routes {
         if (!twoFactorService.isEnrolled(session.accountId())) {
             throw new BadRequestResponse("Not enrolled in 2FA");
         }
+        enforceLimit(rateLimiter.tryTwoFactor(clientIp(ctx), session.accountId()));
 
         boolean verified;
         TwoFactorKind kind;
@@ -365,6 +409,7 @@ public class TwoFactorRoutes implements Routes {
         if (request.challengeToken() == null || request.credentialJson() == null) {
             throw new BadRequestResponse("challengeToken and credentialJson are required");
         }
+        requireReauthForFirstFactor(session.accountId(), request.password());
         var factor = webAuthnService.finishRegistration(
                 session.accountId(),
                 request.challengeToken(),
@@ -385,7 +430,7 @@ public class TwoFactorRoutes implements Routes {
 
     private void removeFactor(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int factorId = ctx.pathParamAsClass("id", Integer.class).get();
+        int factorId = pathInt(ctx, "id");
         if (!twoFactorService.removeFactor(
                 session.accountId(), factorId, ctx.userAgent(), ctx.header("CF-IPCountry"))) {
             throw new BadRequestResponse("Factor not found");
@@ -395,7 +440,7 @@ public class TwoFactorRoutes implements Routes {
 
     private void renameFactor(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int factorId = ctx.pathParamAsClass("id", Integer.class).get();
+        int factorId = pathInt(ctx, "id");
         var request = ctx.bodyAsClass(RenameFactorRequest.class);
         if (!twoFactorService.renameFactor(session.accountId(), factorId, request.label())) {
             throw new BadRequestResponse("Invalid label or factor not found");
@@ -419,6 +464,7 @@ public class TwoFactorRoutes implements Routes {
             throw new BadRequestResponse("preAuthToken, challengeToken, and credentialJson are required");
         }
         int accountId = consumeReadOnlyPreAuth(request.preAuthToken());
+        enforceLimit(rateLimiter.tryTwoFactor(clientIp(ctx), accountId));
         if (!webAuthnService.finishAssertion(accountId, request.challengeToken(), request.credentialJson())) {
             throw new UnauthorizedResponse("WebAuthn verification failed");
         }
@@ -478,6 +524,7 @@ public class TwoFactorRoutes implements Routes {
         if (request.challengeToken() == null || request.credentialJson() == null) {
             throw new BadRequestResponse("challengeToken and credentialJson are required");
         }
+        enforceLimit(rateLimiter.tryTwoFactor(clientIp(ctx), session.accountId()));
         if (!webAuthnService.finishAssertion(session.accountId(), request.challengeToken(), request.credentialJson())) {
             throw new UnauthorizedResponse("WebAuthn verification failed");
         }
@@ -523,7 +570,7 @@ public class TwoFactorRoutes implements Routes {
 
     public record TotpBeginResponse(String secret, String otpauthUri, String qrPng, List<String> recoveryCodes) {}
 
-    public record TotpConfirmRequest(String secret, String code, List<String> recoveryCodes) {}
+    public record TotpConfirmRequest(String secret, String code, List<String> recoveryCodes, String password) {}
 
     public record BackupCodesResponse(List<String> codes) {}
 
@@ -539,7 +586,8 @@ public class TwoFactorRoutes implements Routes {
 
     public record WebAuthnBeginResponse(String challengeToken, String optionsJson) {}
 
-    public record WebAuthnRegisterFinishRequest(String challengeToken, String credentialJson, String label) {}
+    public record WebAuthnRegisterFinishRequest(
+            String challengeToken, String credentialJson, String label, String password) {}
 
     public record WebAuthnRegisterFinishResponse(FactorInfo factor, List<String> recoveryCodes) {}
 

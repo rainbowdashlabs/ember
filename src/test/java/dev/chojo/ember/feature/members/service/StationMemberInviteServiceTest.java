@@ -37,7 +37,6 @@ import static org.mockito.Mockito.mock;
 
 class StationMemberInviteServiceTest extends RepositoryTestBase {
 
-    private static EmailService emailService;
     private static StationMemberInviteService service;
 
     private Station station;
@@ -45,7 +44,7 @@ class StationMemberInviteServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setupServices() {
-        emailService = mock(EmailService.class);
+        EmailService emailService = mock(EmailService.class);
         doNothing()
                 .when(emailService)
                 .sendStationMemberInviteEmail(any(), any(), any(), any(), any(), any(), any(), anyInt());

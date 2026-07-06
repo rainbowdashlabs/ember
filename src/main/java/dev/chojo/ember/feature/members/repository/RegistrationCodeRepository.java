@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.members.repository;
 
-import de.chojo.sadu.queries.api.results.writing.insertion.InsertionResult;
 import dev.chojo.ember.feature.members.entity.RegistrationCode;
 import jakarta.inject.Singleton;
 
@@ -113,8 +112,8 @@ public class RegistrationCodeRepository {
     /**
      * Assigns a group to a registration code.
      */
-    public InsertionResult addGroup(int codeId, int groupId) {
-        return query("INSERT INTO registration_code_group(code_id, group_id) VALUES(:code_id, :group_id);")
+    public void addGroup(int codeId, int groupId) {
+        query("INSERT INTO registration_code_group(code_id, group_id) VALUES(:code_id, :group_id);")
                 .single(call().bind("code_id", codeId).bind("group_id", groupId))
                 .insert();
     }

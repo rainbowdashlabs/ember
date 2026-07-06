@@ -105,7 +105,7 @@ public class PageHitRecorder {
         String normalizedCountry = normalizeCountry(country);
         String normalizedReferer = refererDomain == null || refererDomain.isBlank() ? "direct" : refererDomain;
         var key = new BucketKey(currentHour(), pageId, normalizedCountry, normalizedReferer, isBot);
-        buckets.computeIfAbsent(key, k -> new AtomicLong()).incrementAndGet();
+        buckets.computeIfAbsent(key, _ -> new AtomicLong()).incrementAndGet();
     }
 
     /**

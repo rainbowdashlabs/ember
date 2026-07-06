@@ -231,4 +231,32 @@ class RemoteUrlValidatorTest {
     void strictRejectsDnsFailure() {
         assertFalse(strict().isAllowed("https://this-domain-does-not-exist-982374.invalid"));
     }
+
+    @Test
+    void hostAllowedRejectsPrivateAndLoopback() {
+        assertFalse(strict().isHostAllowed("127.0.0.1"));
+        assertFalse(strict().isHostAllowed("10.0.0.1"));
+        assertFalse(strict().isHostAllowed("localhost"));
+        assertFalse(strict().isHostAllowed("169.254.169.254"));
+    }
+
+    @Test
+    void hostAllowedAcceptsPublicHost() {
+        assertTrue(strict().isHostAllowed("example.com"));
+    }
+
+    @Test
+    void hostAllowedRejectsNullBlankAndUnresolvable() {
+        assertFalse(strict().isHostAllowed(null));
+        assertFalse(strict().isHostAllowed(""));
+        assertFalse(strict().isHostAllowed("   "));
+        assertFalse(strict().isHostAllowed("this-domain-does-not-exist-982374.invalid"));
+    }
+
+    @Test
+    void hostAllowedHonoursPermissiveMode() {
+        assertTrue(permissive().isHostAllowed("127.0.0.1"));
+        assertTrue(demoMode().isHostAllowed("10.0.0.1"));
+        assertTrue(devMode().isHostAllowed("localhost"));
+    }
 }

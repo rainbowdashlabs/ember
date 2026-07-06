@@ -94,7 +94,7 @@ public class DemoBoardSeeder {
                 TicketPriority.MEDIUM,
                 LocalDate.now().plusDays(14),
                 admin.id());
-        var t3 = createTicket(
+        createTicket(
                 board1.id(),
                 lane1Open.id(),
                 3,
@@ -207,7 +207,7 @@ public class DemoBoardSeeder {
                 TicketPriority.HIGH,
                 LocalDate.now().plusDays(30),
                 admin.id());
-        var j2 = createTicket(
+        createTicket(
                 board2.id(),
                 lane2Open.id(),
                 2,

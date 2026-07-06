@@ -122,7 +122,7 @@ public class WaitingListService {
             Integer joinGroupId,
             int attendanceThreshold,
             boolean isPublic) {
-        return repository.create(
+        var list = repository.create(
                 stationId,
                 name,
                 description,
@@ -132,6 +132,8 @@ public class WaitingListService {
                 joinGroupId,
                 attendanceThreshold,
                 isPublic);
+        log.info("Created waiting list {} on station {} (public {})", list.id(), stationId, isPublic);
+        return list;
     }
 
     public Optional<WaitingList> update(
@@ -144,7 +146,7 @@ public class WaitingListService {
             Integer joinGroupId,
             int attendanceThreshold,
             boolean isPublic) {
-        return repository.update(
+        var updated = repository.update(
                 id,
                 name,
                 description,
@@ -154,16 +156,29 @@ public class WaitingListService {
                 joinGroupId,
                 attendanceThreshold,
                 isPublic);
+        if (updated.isPresent()) {
+            log.info("Updated waiting list {}", id);
+        } else {
+            log.warn("Waiting list update affected zero rows for list {}", id);
+        }
+        return updated;
     }
 
     public Optional<WaitingList> updateVisibleFields(int id, String visibleFieldsJson) {
-        return repository.updateVisibleFields(id, visibleFieldsJson);
+        var updated = repository.updateVisibleFields(id, visibleFieldsJson);
+        if (updated.isPresent()) {
+            log.info("Updated visible fields for waiting list {}", id);
+        } else {
+            log.warn("Visible-fields update affected zero rows for waiting list {}", id);
+        }
+        return updated;
     }
 
     // --- Fields ---
 
     public void delete(int id) {
         repository.delete(id);
+        log.info("Deleted waiting list {}", id);
     }
 
     public List<WaitingListField> findFieldsByList(int listId) {
@@ -178,7 +193,9 @@ public class WaitingListService {
             int position,
             boolean required,
             boolean isPublic) {
-        return repository.createField(listId, name, fieldType, config, position, required, isPublic);
+        var field = repository.createField(listId, name, fieldType, config, position, required, isPublic);
+        log.info("Created waiting-list field {} on list {} (type {})", field.id(), listId, fieldType);
+        return field;
     }
 
     public Optional<WaitingListField> updateField(
@@ -189,13 +206,20 @@ public class WaitingListService {
             int position,
             boolean required,
             boolean isPublic) {
-        return repository.updateField(fieldId, name, fieldType, config, position, required, isPublic);
+        var updated = repository.updateField(fieldId, name, fieldType, config, position, required, isPublic);
+        if (updated.isPresent()) {
+            log.info("Updated waiting-list field {}", fieldId);
+        } else {
+            log.warn("Field update affected zero rows for waiting-list field {}", fieldId);
+        }
+        return updated;
     }
 
     // --- Invites ---
 
     public void deleteField(int fieldId) {
         repository.deleteField(fieldId);
+        log.info("Deleted waiting-list field {}", fieldId);
     }
 
     public List<WaitingListInvite> findInvitesByList(int listId) {
@@ -204,7 +228,9 @@ public class WaitingListService {
 
     public WaitingListInvite createInvite(int listId, int maxUses, Instant expiresAt) {
         String code = UUID.randomUUID().toString();
-        return repository.createInvite(listId, code, maxUses, expiresAt);
+        var invite = repository.createInvite(listId, code, maxUses, expiresAt);
+        log.info("Created waiting-list invite {} on list {} (maxUses {})", invite.id(), listId, maxUses);
+        return invite;
     }
 
     public Optional<WaitingListInvite> findInviteByCode(String code) {
@@ -215,6 +241,7 @@ public class WaitingListService {
 
     public void deleteInvite(int inviteId) {
         repository.deleteInvite(inviteId);
+        log.info("Deleted waiting-list invite {}", inviteId);
     }
 
     // --- Public self-service ---
@@ -237,11 +264,8 @@ public class WaitingListService {
             throw new IllegalStateException("Invite code has expired");
         }
 
-        String parentName = guardians != null && !guardians.isEmpty()
-                ? (guardians.getFirst().firstname() + " " + guardians.getFirst().lastname()).trim()
-                : "";
-        String email =
-                guardians != null && !guardians.isEmpty() ? guardians.getFirst().email() : "";
+        String parentName = primaryGuardianName(guardians);
+        String email = primaryGuardianEmail(guardians);
 
         String accessToken = UUID.randomUUID().toString();
         var entry = repository.createEntry(
@@ -294,6 +318,11 @@ public class WaitingListService {
                                 new NotificationParams.WaitlistNewEntry(displayName, list.name()),
                                 new NotificationData.NotificationLink("waiting-lists", Map.of()))));
 
+        log.info(
+                "Registered waiting-list entry {} on list {} (station {}) via invite",
+                entry.id(),
+                invite.listId(),
+                stationId);
         return entry;
     }
 
@@ -308,14 +337,26 @@ public class WaitingListService {
     public void removeByToken(String token) {
         repository
                 .findEntryByToken(token)
-                .ifPresent(entry -> repository.updateEntryStatusWithTimestamp(
-                        entry.id(), WaitingListEntryStatus.WITHDRAWN, "withdrawn_at"));
+                .ifPresentOrElse(
+                        entry -> {
+                            repository.updateEntryStatusWithTimestamp(
+                                    entry.id(), WaitingListEntryStatus.WITHDRAWN, "withdrawn_at");
+                            log.info("Withdrew waiting-list entry {} via self-service token", entry.id());
+                        },
+                        () -> log.warn("Self-service withdrawal skipped: no waiting-list entry for token"));
     }
 
     // --- Entry management ---
 
     public void confirmInterest(String token) {
-        repository.findEntryByToken(token).ifPresent(entry -> repository.updateConfirmedAt(entry.id(), Instant.now()));
+        repository
+                .findEntryByToken(token)
+                .ifPresentOrElse(
+                        entry -> {
+                            repository.updateConfirmedAt(entry.id(), Instant.now());
+                            log.info("Confirmed interest for waiting-list entry {}", entry.id());
+                        },
+                        () -> log.warn("Interest confirmation skipped: no waiting-list entry for token"));
     }
 
     public List<WaitingListEntry> findEntriesByList(int listId) {
@@ -337,11 +378,8 @@ public class WaitingListService {
             List<GuardianInput> guardians,
             Map<Integer, JsonNode> fieldValues,
             String notes) {
-        String parentName = guardians != null && !guardians.isEmpty()
-                ? (guardians.getFirst().firstname() + " " + guardians.getFirst().lastname()).trim()
-                : "";
-        String email =
-                guardians != null && !guardians.isEmpty() ? guardians.getFirst().email() : "";
+        String parentName = primaryGuardianName(guardians);
+        String email = primaryGuardianEmail(guardians);
         String accessToken = UUID.randomUUID().toString();
         var entry = repository.createEntry(
                 listId, firstname, lastname, parentName, email, accessToken, notes != null ? notes : "", null);
@@ -351,6 +389,7 @@ public class WaitingListService {
         for (var e : fieldValues.entrySet()) {
             repository.upsertEntryValue(entry.id(), e.getKey(), e.getValue());
         }
+        log.info("Created waiting-list entry {} on list {}", entry.id(), listId);
         return entry;
     }
 
@@ -361,11 +400,8 @@ public class WaitingListService {
             List<GuardianInput> guardians,
             String notes,
             Map<Integer, JsonNode> fieldValues) {
-        String parentName = guardians != null && !guardians.isEmpty()
-                ? (guardians.getFirst().firstname() + " " + guardians.getFirst().lastname()).trim()
-                : "";
-        String email =
-                guardians != null && !guardians.isEmpty() ? guardians.getFirst().email() : "";
+        String parentName = primaryGuardianName(guardians);
+        String email = primaryGuardianEmail(guardians);
         repository.updateEntry(entryId, firstname, lastname, parentName, email, notes != null ? notes : "");
         if (guardians != null) {
             repository.deleteGuardiansByEntry(entryId);
@@ -376,18 +412,22 @@ public class WaitingListService {
                 repository.upsertEntryValue(entryId, e.getKey(), e.getValue());
             }
         }
+        log.info("Updated waiting-list entry {}", entryId);
     }
 
     public void updateCreatedAt(int entryId, Instant createdAt) {
         repository.updateCreatedAt(entryId, createdAt);
+        log.info("Updated created-at for waiting-list entry {}", entryId);
     }
 
     public void updateEntryStatus(int entryId, WaitingListEntryStatus status) {
         repository.updateEntryStatus(entryId, status);
+        log.info("Set waiting-list entry {} status to {}", entryId, status);
     }
 
     public void deleteEntry(int entryId) {
         repository.deleteEntry(entryId);
+        log.info("Deleted waiting-list entry {}", entryId);
     }
 
     // --- State transitions ---
@@ -422,6 +462,11 @@ public class WaitingListService {
         // Link member to entry and update status
         repository.linkMember(entryId, member.id());
         repository.updateEntryStatusWithTimestamp(entryId, WaitingListEntryStatus.INVITED, "invited_at");
+        log.info(
+                "Invited waiting-list entry {} on station {} (created member {})",
+                entryId,
+                list.stationId(),
+                member.id());
 
         // Send invite email to all guardians
         String stationName = resolveStationName(list.stationId());
@@ -461,6 +506,7 @@ public class WaitingListService {
             throw new IllegalStateException("Entry must be in INVITED status to move to testing");
         }
         repository.updateEntryStatusWithTimestamp(entryId, WaitingListEntryStatus.TESTING, "testing_at");
+        log.info("Moved waiting-list entry {} to testing", entryId);
         return repository.findEntryById(entryId).orElseThrow();
     }
 
@@ -497,6 +543,7 @@ public class WaitingListService {
         }
 
         repository.updateEntryStatusWithTimestamp(entryId, WaitingListEntryStatus.JOINED, "joined_at");
+        log.info("Moved waiting-list entry {} to joined on station {}", entryId, list.stationId());
         return repository.findEntryById(entryId).orElseThrow();
     }
 
@@ -530,6 +577,7 @@ public class WaitingListService {
         }
 
         repository.deleteEntry(entryId);
+        log.info("Withdrew waiting-list entry {} (was {})", entryId, entry.status());
     }
 
     // --- Scoring ---
@@ -648,6 +696,12 @@ public class WaitingListService {
         for (var entry : gracePeriodExpired) {
             repository.updateEntryStatus(entry.id(), WaitingListEntryStatus.WITHDRAWN);
         }
+        if (!gracePeriodExpired.isEmpty()) {
+            log.info(
+                    "Auto-withdrew {} waiting-list entries past grace period on list {}",
+                    gracePeriodExpired.size(),
+                    list.id());
+        }
     }
 
     // --- Guardians ---
@@ -700,6 +754,10 @@ public class WaitingListService {
 
         String stationName = resolveStationName(list.stationId());
         emailService.sendWaitlistVerifyEmail(email, firstname, stationName, token, "de", list.stationId());
+        log.info(
+                "Public waiting-list registration awaiting verification for list {} (station {})",
+                listId,
+                list.stationId());
     }
 
     public boolean verifyPublicRegistration(String token) {
@@ -713,9 +771,7 @@ public class WaitingListService {
         List<GuardianInput> guardians = verification.guardians();
         Map<Integer, JsonNode> fieldValues = verification.fieldValues();
 
-        String parentName = guardians != null && !guardians.isEmpty()
-                ? (guardians.getFirst().firstname() + " " + guardians.getFirst().lastname()).trim()
-                : "";
+        String parentName = primaryGuardianName(guardians);
         String accessToken = UUID.randomUUID().toString();
         var entry = repository.createEntryWithStatus(
                 verification.listId(),
@@ -744,6 +800,10 @@ public class WaitingListService {
                 .ifPresent(list -> eventBus.publish(
                         new WaitlistPublicRegistration(list.stationId(), entry.fullName(), list.name())));
 
+        log.info(
+                "Verified public waiting-list registration: created entry {} on list {}",
+                entry.id(),
+                verification.listId());
         return true;
     }
 
@@ -756,6 +816,7 @@ public class WaitingListService {
             throw new IllegalStateException("Entry is not pending");
         }
         repository.updateEntryStatus(entryId, WaitingListEntryStatus.WAITING);
+        log.info("Approved pending waiting-list entry {}", entryId);
 
         // Send registration confirmation email to guardians
         var list = repository.findById(entry.listId()).orElse(null);
@@ -783,6 +844,7 @@ public class WaitingListService {
             throw new IllegalStateException("Entry is not pending");
         }
         repository.deleteEntry(entryId);
+        log.info("Rejected pending waiting-list entry {}", entryId);
     }
 
     private void checkAllExpiredConfirmations() {
@@ -793,6 +855,30 @@ public class WaitingListService {
         } catch (Exception e) {
             log.warn("Error checking waiting list confirmations", e);
         }
+    }
+
+    /**
+     * Derives the primary guardian's display name from the guardian list, or an empty
+     * string when no guardian is present.
+     *
+     * @param guardians the guardian inputs, may be {@code null}
+     * @return the trimmed primary guardian name, or an empty string
+     */
+    private static String primaryGuardianName(List<GuardianInput> guardians) {
+        return guardians != null && !guardians.isEmpty()
+                ? (guardians.getFirst().firstname() + " " + guardians.getFirst().lastname()).trim()
+                : "";
+    }
+
+    /**
+     * Derives the primary guardian's email from the guardian list, or an empty string
+     * when no guardian is present.
+     *
+     * @param guardians the guardian inputs, may be {@code null}
+     * @return the primary guardian email, or an empty string
+     */
+    private static String primaryGuardianEmail(List<GuardianInput> guardians) {
+        return guardians != null && !guardians.isEmpty() ? guardians.getFirst().email() : "";
     }
 
     private void insertGuardians(int entryId, List<GuardianInput> guardians) {

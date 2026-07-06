@@ -29,7 +29,6 @@ class PageHitRecorderTest extends RepositoryTestBase {
 
     private static Station station;
     private static Account account;
-    private static StationMember member;
     private static StationPage page;
     private static Metrics metrics;
 
@@ -37,7 +36,7 @@ class PageHitRecorderTest extends RepositoryTestBase {
     static void setupClass() {
         station = stationRepo.create("RecorderStation");
         account = accountRepo.create("recorder@test.example", "Rec", "Order");
-        member = stationMemberRepo.create(station.id(), account.id());
+        StationMember member = stationMemberRepo.create(station.id(), account.id());
         page = pageRepo.create(station.id(), "Home", "home", null, member.id());
         metrics = Mockito.mock(Metrics.class);
         Mockito.when(metrics.webStatsEnabled()).thenReturn(true);

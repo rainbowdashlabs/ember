@@ -37,8 +37,9 @@ import javax.imageio.ImageIO;
  * <p>Each write produces:
  * <ul>
  *   <li>{@code original.&lt;ext&gt;} capped at {@link #MAX_PIXEL_SIZE} on the longest side, and</li>
- *   <li>One file per entry in {@link #SIZES} ({@code 1024}, {@code 512}, {@code 256}, {@code 128}),
- *       capped at the source's longest side so a small upload still produces every variant.</li>
+ *   <li>One file per entry in {@link #SIZES} ({@code 1024}, {@code 512}, {@code 256}, {@code 128},
+ *       {@code 64}), capped at the source's longest side so a small upload still produces every
+ *       variant.</li>
  * </ul>
  *
  * <p>The extension is derived from the sniffed MIME type — the client-supplied content-type is
@@ -56,7 +57,7 @@ public class ImageVariantService {
     /**
      * Fixed size variants written for every upload (longest side, in pixels).
      */
-    public static final int[] SIZES = {1024, 512, 256, 128};
+    public static final int[] SIZES = {1024, 512, 256, 128, 64};
 
     /**
      * Variant base name for the (possibly downsized) original.
@@ -206,25 +207,63 @@ public class ImageVariantService {
     }
 
     /**
-     * Reads the requested size from a previously stored image, falling back to the original
-     * when the requested variant does not exist.
+     * Reads the best-fit variant for the requested size from a previously stored image. When
+     * {@code size} does not exactly match a stored variant, the smallest variant at least as
+     * large as {@code size} is served (so a {@code size=64} request is answered by the 128px
+     * variant rather than the full-resolution original); when the request is larger than every
+     * variant, the largest variant is used. Falls back to the original only when no sized
+     * variant exists.
      *
      * @param size requested longest side; {@code 0} returns the original.
      */
     public Optional<ImageData> read(StorageScope scope, StorageCategory category, String key, int size) {
         if (key == null || key.isBlank()) return Optional.empty();
         try {
-            String baseName = size > 0 ? String.valueOf(size) : ORIGINAL_BASE;
-            Optional<Variant> direct = findVariantByBase(scope, category, key, baseName);
-            if (direct.isPresent()) return readVariant(scope, category, key, direct.get());
-            if (!baseName.equals(ORIGINAL_BASE)) {
-                Optional<Variant> fallback = findVariantByBase(scope, category, key, ORIGINAL_BASE);
-                if (fallback.isPresent()) return readVariant(scope, category, key, fallback.get());
+            Optional<Variant> chosen = size > 0
+                    ? chooseVariantForSize(scope, category, key, size)
+                    : findVariantByBase(scope, category, key, ORIGINAL_BASE);
+            if (chosen.isEmpty() && size > 0) {
+                chosen = findVariantByBase(scope, category, key, ORIGINAL_BASE);
             }
+            if (chosen.isPresent()) return readVariant(scope, category, key, chosen.get());
         } catch (IllegalArgumentException e) {
             return Optional.empty();
         }
         return Optional.empty();
+    }
+
+    /**
+     * Picks the stored sized variant that best serves {@code size}: the smallest variant whose
+     * longest side is at least {@code size}, or the largest available when the request exceeds
+     * every variant. Returns empty when the image has no numeric-sized variants.
+     */
+    private Optional<Variant> chooseVariantForSize(StorageScope scope, StorageCategory category, String key, int size) {
+        Variant smallestAtLeast = null;
+        int smallestAtLeastSize = Integer.MAX_VALUE;
+        Variant largest = null;
+        int largestSize = -1;
+        for (String entry : storage.listKeys(scope, category, key)) {
+            int slash = entry.lastIndexOf('/');
+            String filename = slash < 0 ? entry : entry.substring(slash + 1);
+            int dot = filename.lastIndexOf('.');
+            String base = dot < 0 ? filename : filename.substring(0, dot);
+            int variantSize;
+            try {
+                variantSize = Integer.parseInt(base);
+            } catch (NumberFormatException ignored) {
+                continue;
+            }
+            if (variantSize > largestSize) {
+                largestSize = variantSize;
+                largest = new Variant(filename);
+            }
+            if (variantSize >= size && variantSize < smallestAtLeastSize) {
+                smallestAtLeastSize = variantSize;
+                smallestAtLeast = new Variant(filename);
+            }
+        }
+        if (smallestAtLeast != null) return Optional.of(smallestAtLeast);
+        return Optional.ofNullable(largest);
     }
 
     /**

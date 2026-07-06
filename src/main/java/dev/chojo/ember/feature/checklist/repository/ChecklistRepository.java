@@ -369,13 +369,13 @@ public class ChecklistRepository {
         return total;
     }
 
-    public ChecklistCellNoteHistory appendNoteHistory(int cellId, String oldNote, String newNote, int changedBy) {
-        return query("""
-                        INSERT INTO
-                            checklist_cell_note_history(cell_id, old_note, new_note, changed_by)
-                        VALUES
-                            (:cell_id, :old_note, :new_note, :changed_by)
-                        RETURNING *;""")
+    public void appendNoteHistory(int cellId, String oldNote, String newNote, int changedBy) {
+        query("""
+                INSERT INTO
+                    checklist_cell_note_history(cell_id, old_note, new_note, changed_by)
+                VALUES
+                    (:cell_id, :old_note, :new_note, :changed_by)
+                RETURNING *;""")
                 .single(call().bind("cell_id", cellId)
                         .bind("old_note", oldNote)
                         .bind("new_note", newNote)

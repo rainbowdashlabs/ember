@@ -12,6 +12,7 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ConflictResponse;
 import io.javalin.http.Context;
@@ -27,6 +28,8 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import static dev.chojo.ember.api.RouteSupport.pathInt;
+
 /**
  * Routes for member account management including inviting new members,
  * updating account details, and email change confirmation.
@@ -35,15 +38,35 @@ import jakarta.inject.Singleton;
 public class MemberRoutes implements Routes {
     private final AuthService authService;
     private final AccountRepository accountRepository;
+    private final StationMemberRepository stationMemberRepository;
 
     @Inject
-    public MemberRoutes(AuthService authService, AccountRepository accountRepository) {
+    public MemberRoutes(
+            AuthService authService,
+            AccountRepository accountRepository,
+            StationMemberRepository stationMemberRepository) {
         this.authService = authService;
         this.accountRepository = accountRepository;
+        this.stationMemberRepository = stationMemberRepository;
     }
 
     private static boolean isBlank(String s) {
         return s == null || s.isBlank();
+    }
+
+    /**
+     * Asserts the given account belongs to a member of the caller's station. Answers 404
+     * when the caller has no resolved station or the account is not a member of it, so an
+     * account id from another station cannot be updated or reset through these routes.
+     */
+    private void requireStationAccount(int accountId, UserSession session) {
+        Integer stationId = session.stationId();
+        if (stationId == null
+                || stationMemberRepository
+                        .findByStationAndAccount(stationId, accountId)
+                        .isEmpty()) {
+            throw new NotFoundResponse();
+        }
     }
 
     @Override
@@ -65,7 +88,9 @@ public class MemberRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void updateAccount(Context ctx) {
-        int accountId = ctx.pathParamAsClass("accountId", Integer.class).get();
+        UserSession session = UserSession.from(ctx);
+        int accountId = pathInt(ctx, "accountId");
+        requireStationAccount(accountId, session);
         var request = ctx.bodyAsClass(UpdateAccountRequest.class);
         var existing = accountRepository.findById(accountId).orElseThrow(NotFoundResponse::new);
 
@@ -134,10 +159,12 @@ public class MemberRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void resetPassword(Context ctx) {
+        UserSession session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(ResetPasswordRequest.class);
         if (request.accountId() == null) {
             throw new BadRequestResponse("accountId is required");
         }
+        requireStationAccount(request.accountId(), session);
 
         boolean forceChange = request.forceChange() != null && request.forceChange();
         if (authService.adminResetPassword(request.accountId(), forceChange)) {

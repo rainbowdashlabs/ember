@@ -7,6 +7,7 @@
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EventFormPanel from '../eventshared/EventFormPanel.vue'
 import EventReminderEditor from '../eventshared/EventReminderEditor.vue'
+import type {RestrictionSelection} from '@/components/input/restriction'
 import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, EventFieldEntry, MemberGroup, StationMember, UserTag} from '@/api/types'
 
 defineProps<{
@@ -36,9 +37,7 @@ const minRegistrations = defineModel<number | undefined>('minRegistrations')
 const hasThreshold = defineModel<boolean>('hasThreshold', {required: true})
 const thresholdDate = defineModel<string>('thresholdDate', {required: true})
 const registrationCloseDays = defineModel<number | undefined>('registrationCloseDays')
-const selectedUserTypes = defineModel<string[]>('selectedUserTypes', {required: true})
-const selectedGroupIds = defineModel<number[]>('selectedGroupIds', {required: true})
-const selectedTagIds = defineModel<number[]>('selectedTagIds', {required: true})
+const restriction = defineModel<RestrictionSelection>('restriction', {required: true})
 const fields = defineModel<EventFieldEntry[]>('fields', {required: true})
 const reminders = defineModel<number[]>('reminders', {required: true})
 </script>
@@ -63,9 +62,7 @@ const reminders = defineModel<number[]>('reminders', {required: true})
         v-model:has-threshold="hasThreshold"
         v-model:threshold-date="thresholdDate"
         v-model:registration-close-days="registrationCloseDays"
-        v-model:selected-user-types="selectedUserTypes"
-        v-model:selected-group-ids="selectedGroupIds"
-        v-model:selected-tag-ids="selectedTagIds"
+        v-model:restriction="restriction"
         v-model:fields="fields"
         :categories="categories"
         :templates="templates"

@@ -13,6 +13,7 @@ import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Demo;
+import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.insights.service.BotClassifier;
 import dev.chojo.ember.feature.insights.service.PageHitRecorder;
@@ -33,6 +34,7 @@ import dev.chojo.ember.feature.traffic.service.AuthBucketClassifier;
 import dev.chojo.ember.feature.traffic.service.StationResolver;
 import dev.chojo.ember.feature.traffic.service.StationTrafficRecorder;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
+import dev.chojo.ember.util.ClientIp;
 import dev.chojo.ember.util.DevErrorWriter;
 import dev.chojo.ember.util.LogRedaction;
 import io.javalin.Javalin;
@@ -40,6 +42,7 @@ import io.javalin.compression.CompressionStrategy;
 import io.javalin.compression.Gzip;
 import io.javalin.config.JavalinConfig;
 import io.javalin.config.RoutesConfig;
+import io.javalin.config.SizeUnit;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -142,6 +145,8 @@ public class ApiServer {
     private final RefererDomainExtractor refererExtractor;
     private final BotClassifier botClassifier;
     private final TwoFactorService twoFactorService;
+    private final Network network;
+    private final GlobalRateLimiter globalRateLimiter;
 
     @Inject
     public ApiServer(
@@ -164,7 +169,9 @@ public class ApiServer {
             PageHitRecorder pageHitRecorder,
             RefererDomainExtractor refererExtractor,
             BotClassifier botClassifier,
-            TwoFactorService twoFactorService) {
+            TwoFactorService twoFactorService,
+            Network network,
+            GlobalRateLimiter globalRateLimiter) {
         this.routes = routes;
         this.apiConfig = apiConfig;
         this.authConfig = authConfig;
@@ -185,6 +192,8 @@ public class ApiServer {
         this.refererExtractor = refererExtractor;
         this.botClassifier = botClassifier;
         this.twoFactorService = twoFactorService;
+        this.network = network;
+        this.globalRateLimiter = globalRateLimiter;
         this.apiRequestLogger.start();
         this.trafficRecorder.start();
         this.pageHitRecorder.start();
@@ -296,6 +305,10 @@ public class ApiServer {
             config.jsonMapper(jacksonMapper());
             configureCompression(config);
 
+            config.jetty.multipartConfig.maxFileSize(apiConfig.maxUploadSizeBytes(), SizeUnit.BYTES);
+            config.jetty.multipartConfig.maxInMemoryFileSize(1, SizeUnit.MB);
+            config.jetty.multipartConfig.maxTotalRequestSize(apiConfig.maxRequestSizeBytes(), SizeUnit.BYTES);
+
             config.registerPlugin(new OpenApiPlugin(this::configureOpenApi));
             config.registerPlugin(new SwaggerPlugin(this::configureSwagger));
 
@@ -312,6 +325,8 @@ public class ApiServer {
                     rule.allowHost("http://localhost:3001");
                 }
             }));
+
+            config.routes.before(this::enforceGlobalRateLimit);
 
             config.routes.before(ctx -> {
                 if (ctx.method() == HandlerType.OPTIONS) return;
@@ -791,7 +806,7 @@ public class ApiServer {
 
     private void configureOpenApi(OpenApiPluginConfiguration config) {
         config.withDocumentationPath("/docs")
-                .withDefinitionConfiguration((version, definition) -> definition.info(info -> {
+                .withDefinitionConfiguration((_, definition) -> definition.info(info -> {
                     info.title("Ember API");
                     info.version("1.0");
                     info.description("Documentation for the Ember API");
@@ -874,47 +889,90 @@ public class ApiServer {
     }
 
     /**
-     * After-handler that sets appropriate Cache-Control and ETag headers based on the request path.
+     * Coarse per-IP rate limit applied to every non-preflight API request, on top of
+     * the finer auth-endpoint limits. Answers {@code 429 Too Many Requests} with a
+     * {@code Retry-After} header when a client exceeds its budget. Server-to-server
+     * federation traffic under {@code /remote/} is exempt — it is authenticated by
+     * request signature and replay-protected already.
+     */
+    private void enforceGlobalRateLimit(@NotNull Context ctx) {
+        if (ctx.method() == HandlerType.OPTIONS) return;
+        if (ctx.path().startsWith(API_PREFIX + "/remote/")) return;
+
+        String clientIp;
+        try {
+            clientIp = ClientIp.resolve(ctx, network).getHostAddress();
+        } catch (Exception e) {
+            clientIp = ctx.ip();
+        }
+
+        boolean expensivePath = ctx.path().contains("/ai/");
+        Optional<Long> retryAfter = globalRateLimiter.check(clientIp, expensivePath);
+        if (retryAfter.isPresent()) {
+            throw new HttpResponseException(
+                    HttpStatus.TOO_MANY_REQUESTS.getCode(),
+                    "Too many requests, please try again later",
+                    Map.of("Retry-After", Long.toString(retryAfter.get())));
+        }
+    }
+
+    /**
+     * After-handler that sets Cache-Control and ETag headers based on the request path.
+     *
+     * <p>Ordering matters: content-hashed page files get an immutable year-long cache;
+     * everything under {@code /public/} is publicly cacheable; only then are non-public
+     * binary resources given a short private cache. Error responses receive no caching
+     * headers, and the binary-resource match is segment-precise so an authenticated path
+     * that merely contains {@code image}/{@code logo} as a substring (e.g. the logout
+     * endpoint) is not mis-tagged as cacheable.
      */
     private void applyCacheHeaders(@NotNull Context ctx) {
         if (ctx.method() != HandlerType.GET) return;
+        if (ctx.statusCode() >= 400) return;
 
         String path = ctx.path();
 
-        // Content-hashed page files. The hash makes the URL
-        // content-addressed, so a year-long immutable cache is safe; repeat visits drop to
-        // 304 / cache hits with zero body bytes. Must come before the generic /public/
-        // branch so the long max-age sticks.
         if (path.startsWith(API_PREFIX + "/public/pages/") && path.contains("/files/")) {
             ctx.header("Cache-Control", "public, max-age=31536000, immutable");
             ctx.header("Vary", "Accept");
             return;
         }
 
-        // Binary resources (images, avatars, logos) — private short cache
-        if (path.contains("/avatar") || path.contains("/logo") || path.contains("/image")) {
-            ctx.header("Cache-Control", "private, max-age=300");
-            return;
-        }
-
-        // Public legal documents — cache with version-based ETag
         if (path.startsWith(API_PREFIX + "/public/")) {
             ctx.header("Cache-Control", "public, max-age=3600");
             addETag(ctx);
             return;
         }
 
-        // Demo status — rarely changes
+        if (isBinaryResourcePath(path)) {
+            ctx.header("Cache-Control", "private, max-age=300");
+            return;
+        }
+
         if (path.startsWith(API_PREFIX + "/demo/")) {
             ctx.header("Cache-Control", "public, max-age=60");
             return;
         }
 
-        // All other API GET responses — private, use ETag for conditional requests
         if (path.startsWith(API_PREFIX + "/")) {
             ctx.header("Cache-Control", "private, no-cache");
             addETag(ctx);
         }
+    }
+
+    /**
+     * Matches the binary-resource endpoints (avatars, logos, images) by whole path
+     * segment or suffix rather than substring, so unrelated paths that merely contain
+     * {@code avatar}/{@code logo}/{@code image} — such as {@code /auth/logout} — are
+     * excluded.
+     */
+    private static boolean isBinaryResourcePath(String path) {
+        return path.endsWith("/avatar")
+                || path.endsWith("/logo")
+                || path.endsWith("/image")
+                || path.endsWith("/images")
+                || path.contains("/images/")
+                || path.contains("/logo-fragment/");
     }
 
     /**

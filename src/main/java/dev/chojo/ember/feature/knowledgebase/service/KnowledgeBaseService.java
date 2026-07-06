@@ -40,6 +40,7 @@ import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.restriction.Restriction;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionSet;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -180,17 +181,31 @@ public class KnowledgeBaseService {
     }
 
     public KbFolder createFolder(int stationId, Integer parentId, String name, String description, int createdBy) {
-        return repository.createFolder(stationId, parentId, name, description, createdBy);
+        var folder = repository.createFolder(stationId, parentId, name, description, createdBy);
+        log.info("KB folder {} created in station {} by member {}", folder.id(), stationId, createdBy);
+        return folder;
     }
 
     // -- Files --
 
     public boolean updateFolder(int id, String name, String description, String iconUrl, int position) {
-        return repository.updateFolder(id, name, description, iconUrl, position);
+        boolean updated = repository.updateFolder(id, name, description, iconUrl, position);
+        if (updated) {
+            log.info("KB folder {} updated", id);
+        } else {
+            log.warn("KB folder {} update matched no rows", id);
+        }
+        return updated;
     }
 
     public boolean deleteFolder(int id) {
-        return repository.deleteFolder(id);
+        boolean deleted = repository.deleteFolder(id);
+        if (deleted) {
+            log.info("KB folder {} deleted", id);
+        } else {
+            log.warn("KB folder {} delete matched no rows", id);
+        }
+        return deleted;
     }
 
     public List<KbFile> findFiles(int stationId, Integer folderId) {
@@ -224,6 +239,7 @@ public class KnowledgeBaseService {
         // First version stores full content
         repository.createVersion(file.id(), content, true, 1, createdBy);
         updateSearchIndex(file.id(), content);
+        log.info("KB markdown file {} created in station {} by member {}", file.id(), stationId, createdBy);
         return file;
     }
 
@@ -237,6 +253,7 @@ public class KnowledgeBaseService {
             repository.storeTextContent(file.id(), metaText);
         }
         updateSearchIndex(file.id(), metaText);
+        log.info("KB YouTube file {} created in station {} by member {}", file.id(), stationId, createdBy);
         return file;
     }
 
@@ -272,6 +289,13 @@ public class KnowledgeBaseService {
             storeBinaryFile(stationId, file.id(), payload, mimeType);
             updateSearchIndex(file.id(), null);
         }
+        log.info(
+                "KB file {} created in station {} by member {} (type {}, {} bytes)",
+                file.id(),
+                stationId,
+                createdBy,
+                fileType,
+                payload.length);
         return file;
     }
 
@@ -293,6 +317,7 @@ public class KnowledgeBaseService {
         String metaText = (name != null ? name : "") + " " + description + " " + linkUrl;
         repository.storeTextContent(file.id(), metaText.trim());
         updateSearchIndex(file.id(), metaText.trim());
+        log.info("KB link file {} created in station {} by member {}", file.id(), stationId, createdBy);
         return file;
     }
 
@@ -345,24 +370,18 @@ public class KnowledgeBaseService {
 
     // -- Access Restrictions --
 
-    public void setRestrictions(
-            Integer folderId,
-            Integer fileId,
-            List<String> userTypes,
-            List<Integer> groupIds,
-            List<Integer> tagIds,
-            List<Integer> memberIds) {
+    public void setRestrictions(Integer folderId, Integer fileId, RestrictionSelection selection) {
         repository.clearRestrictions(folderId, fileId);
-        for (String userType : userTypes) {
-            repository.addRestriction(folderId, fileId, StationUserType.valueOf(userType), null, null, null);
+        for (StationUserType userType : selection.userTypes()) {
+            repository.addRestriction(folderId, fileId, userType, null, null, null);
         }
-        for (Integer groupId : groupIds) {
+        for (Integer groupId : selection.groupIds()) {
             repository.addRestriction(folderId, fileId, null, groupId, null, null);
         }
-        for (Integer tagId : tagIds) {
+        for (Integer tagId : selection.tagIds()) {
             repository.addRestriction(folderId, fileId, null, null, tagId, null);
         }
-        for (Integer memberId : memberIds) {
+        for (Integer memberId : selection.memberIds()) {
             repository.addRestriction(folderId, fileId, null, null, null, memberId);
         }
     }
@@ -409,7 +428,13 @@ public class KnowledgeBaseService {
     }
 
     public boolean updateFile(int id, String name, String description, String iconUrl, int position) {
-        return repository.updateFile(id, name, description, iconUrl, position);
+        boolean updated = repository.updateFile(id, name, description, iconUrl, position);
+        if (updated) {
+            log.info("KB file {} updated", id);
+        } else {
+            log.warn("KB file {} update matched no rows", id);
+        }
+        return updated;
     }
 
     public void setSourceReference(int fileId, int sourceFileId, int sourceStationId) {
@@ -418,7 +443,13 @@ public class KnowledgeBaseService {
 
     public boolean deleteFile(int id) {
         repository.findFileById(id).ifPresent(f -> fileStorage.delete(f.stationId(), id));
-        return repository.deleteFile(id);
+        boolean deleted = repository.deleteFile(id);
+        if (deleted) {
+            log.info("KB file {} deleted", id);
+        } else {
+            log.warn("KB file {} delete matched no rows", id);
+        }
+        return deleted;
     }
 
     /**
@@ -504,6 +535,7 @@ public class KnowledgeBaseService {
         storeBinaryFile(file.stationId(), fileId, data, mimeType);
         repository.updateConversionStatus(fileId, ConversionStatus.PENDING);
         triggerPresentationConversion(file.stationId(), fileId, data, filename);
+        log.info("KB presentation file {} re-uploaded in station {}", fileId, file.stationId());
     }
 
     public Optional<String> getMarkdownContent(int fileId) {
@@ -538,6 +570,7 @@ public class KnowledgeBaseService {
         // Store diff patch (not full content) to save space
         repository.createVersion(fileId, patch, false, nextVersion, updatedBy);
         updateSearchIndex(fileId, newContent);
+        log.info("KB file {} content updated to version {} by member {}", fileId, nextVersion, updatedBy);
     }
 
     public List<KbFileVersion> findVersions(int fileId) {
@@ -756,6 +789,13 @@ public class KnowledgeBaseService {
         if (isFavourite(createdBy, fileId)) {
             addFavourite(createdBy, copied.id());
         }
+        log.info(
+                "KB file {} copied from file {} (station {}) into station {} by member {}",
+                copied.id(),
+                source.id(),
+                source.stationId(),
+                targetStationId,
+                createdBy);
         return findFile(copied.id()).orElseThrow();
     }
 
@@ -798,6 +838,12 @@ public class KnowledgeBaseService {
             int stationId, int fileId, Integer parentId, int authorId, String authorName, String content) {
         var identity = memberIdentityFactory.fromMemberId(authorId);
         var comment = kbCommentRepository.create(fileId, parentId, identity, content);
+        log.info(
+                "KB comment {} created on file {} in station {} by member {}",
+                comment.id(),
+                fileId,
+                stationId,
+                authorId);
 
         var file = findFile(fileId).orElse(null);
         String fileTitle = file != null ? file.name() : "";
@@ -882,6 +928,7 @@ public class KnowledgeBaseService {
         var identity = partnerStationUid != null ? new MemberIdentity(partnerStationUid, remoteMemberUid) : null;
         var comment = kbCommentRepository.create(fileId, parentId, identity, content);
         eventFederationRepository.cacheName(partnerId, remoteMemberUid, displayName);
+        log.info("KB remote comment {} created on file {} from partner {}", comment.id(), fileId, partnerId);
         return comment;
     }
 

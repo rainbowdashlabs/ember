@@ -33,6 +33,9 @@ import jakarta.inject.Singleton;
 
 import java.time.Instant;
 
+import static dev.chojo.ember.api.RouteSupport.pathInt;
+import static dev.chojo.ember.api.RouteSupport.requireOwned;
+
 /**
  * Routes for procurement request management including creating, fulfilling,
  * and cancelling procurement requests for inventory items.
@@ -127,8 +130,8 @@ public class ProcurementRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void fulfill(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var procurement = procurementService.findById(id).orElseThrow(NotFoundResponse::new);
+        int id = pathInt(ctx, "id");
+        requireOwned(ctx, id, procurementService::findById, Procurement::stationId);
         if (procurementService.fulfill(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -147,7 +150,8 @@ public class ProcurementRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void delete(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        int id = pathInt(ctx, "id");
+        requireOwned(ctx, id, procurementService::findById, Procurement::stationId);
         if (procurementService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {

@@ -110,14 +110,6 @@ public final class ClientIp {
         return parsed.size();
     }
 
-    /**
-     * Returns the number of Cloudflare edge ranges currently loaded. Intended
-     * for diagnostic logging and tests.
-     */
-    public static int cloudflareRangeCount() {
-        return cloudflareRanges.size();
-    }
-
     static boolean isCloudflareEdge(InetAddress address) {
         return matches(address, cloudflareRanges);
     }

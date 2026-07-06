@@ -10,6 +10,7 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AvatarService;
+import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
 import dev.chojo.ember.feature.media.service.ImageVariantService;
 import dev.chojo.ember.feature.members.route.TransferRoutes;
@@ -28,6 +29,7 @@ import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.TestRemoteUrlValidator;
 import dev.chojo.ember.util.WebpEncoder;
 import io.javalin.Javalin;
 import org.junit.jupiter.api.AfterAll;
@@ -57,6 +59,7 @@ import javax.imageio.ImageIO;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -74,12 +77,10 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
             .decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgAAIAAAUAAeImBZsAAAAASUVORK5CYII=");
 
     private static Path sharedDataRoot;
-    private static LocalStorageBackend sharedBackend;
     private static StorageService storageService;
     private static AvatarService avatarService;
     private static PageFileStorageService pageFileStorageService;
     private static PageImageVariantService pageImageVariantService;
-    private static StorageBackendResolver resolver;
     private static StationStorageConfigRepository configRepo;
     private static CredentialCipher credentialCipher;
 
@@ -92,8 +93,8 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
     @BeforeAll
     static void setupTransferHarness() throws Exception {
         sharedDataRoot = Files.createTempDirectory("ember-transfer-acceptance");
-        sharedBackend = new LocalStorageBackend(sharedDataRoot);
-        resolver = new StorageBackendResolver(sharedBackend);
+        LocalStorageBackend sharedBackend = new LocalStorageBackend(sharedDataRoot);
+        StorageBackendResolver resolver = new StorageBackendResolver(sharedBackend);
         storageService = new StorageService(resolver, sharedBackend);
         var imageVariantService = new ImageVariantService(storageService);
         avatarService = new AvatarService(imageVariantService);
@@ -117,15 +118,14 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
                 imageVariantService,
                 pageFileStorageService,
                 pageImageVariantService,
-                new FederationPartnerTransferFixupService(
-                        new dev.chojo.ember.feature.federation.repository.FederationRepository(), null, stationRepo));
+                new FederationPartnerTransferFixupService(new FederationRepository(), null, stationRepo),
+                TestRemoteUrlValidator.permissive());
 
         var transferRoutes = new TransferRoutes(
                 exportService,
                 importService,
                 stationRepo,
-                new FederationPartnerTransferFixupService(
-                        new dev.chojo.ember.feature.federation.repository.FederationRepository(), null, stationRepo));
+                new FederationPartnerTransferFixupService(new FederationRepository(), null, stationRepo));
         var assetRoutes = new StationTransferAssetRoutes(
                 exportService, descriptorService, stationRepo, storageService, avatarService);
 
@@ -237,12 +237,12 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         var destinationRow = configRepo
                 .findOne(importResult.stationId())
                 .orElseThrow(() -> new AssertionError("destination override row missing"));
-        assertTrue(destinationRow.config() instanceof StationStorageBackendConfig.S3Variant);
+        assertInstanceOf(StationStorageBackendConfig.S3Variant.class, destinationRow.config());
         var dst = (StationStorageBackendConfig.S3Variant) destinationRow.config();
         assertEquals("https://s3.example.invalid", dst.endpoint());
         assertEquals("us-east-1", dst.region());
         assertEquals("source-bucket", dst.bucket());
-        assertEquals(true, dst.pathStyle());
+        assertTrue(dst.pathStyle());
         assertEquals(Optional.of("AES256"), dst.sseAlgorithm());
         assertEquals("tenants/foo", dst.basePath());
 
@@ -352,6 +352,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         return out.toByteArray();
     }
 
+    @SuppressWarnings("BusyWait")
     private static void waitForImport(int stationId) throws InterruptedException {
         Duration timeout = Duration.ofSeconds(120);
         long deadline = System.nanoTime() + timeout.toNanos();

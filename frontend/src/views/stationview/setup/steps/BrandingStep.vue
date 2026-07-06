@@ -89,7 +89,7 @@ onMounted(async () => {
 
 async function loadLogoBlob() {
     try {
-        const res = await client.get('/station/manage/logo', {
+        const res = await client.get('/station/manage/logo?size=256', {
             responseType: 'blob',
             validateStatus: (status) => status === 200 || status === 404,
         })

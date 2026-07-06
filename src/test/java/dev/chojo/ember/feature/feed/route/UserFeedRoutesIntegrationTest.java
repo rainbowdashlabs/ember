@@ -61,42 +61,26 @@ class UserFeedRoutesIntegrationTest {
     private static final int MEMBER_ID = 7;
     private static final int STATION_ID = 1;
 
-    private FeedTokenService tokenService;
-    private EventService eventService;
     private NotificationService notificationService;
-    private StationMemberRepository memberRepository;
-    private StationRepository stationRepository;
-    private EmailService emailService;
-    private AccountRepository accountRepository;
-    private IcalEventRenderer icalRenderer;
-    private LostAndFoundService lostAndFoundService;
-    private LostAndFoundImageService imageService;
-    private NotificationFeedRenderer notificationRenderer;
-    private FeedRateLimiter rateLimiter;
-    private FeedMetricsService metricsService;
     private ControllableClock clock;
     private UserFeedRoutes routes;
 
-    private Station station;
-    private StationMember member;
-    private FeedToken token;
-
     @BeforeEach
     void setup() {
-        tokenService = mock(FeedTokenService.class);
-        eventService = mock(EventService.class);
+        FeedTokenService tokenService = mock(FeedTokenService.class);
+        EventService eventService = mock(EventService.class);
         notificationService = mock(NotificationService.class);
-        memberRepository = mock(StationMemberRepository.class);
-        stationRepository = mock(StationRepository.class);
-        emailService = mock(EmailService.class);
-        accountRepository = mock(AccountRepository.class);
-        icalRenderer = mock(IcalEventRenderer.class);
-        lostAndFoundService = mock(LostAndFoundService.class);
-        imageService = mock(LostAndFoundImageService.class);
-        notificationRenderer = mock(NotificationFeedRenderer.class);
+        StationMemberRepository memberRepository = mock(StationMemberRepository.class);
+        StationRepository stationRepository = mock(StationRepository.class);
+        EmailService emailService = mock(EmailService.class);
+        AccountRepository accountRepository = mock(AccountRepository.class);
+        IcalEventRenderer icalRenderer = mock(IcalEventRenderer.class);
+        LostAndFoundService lostAndFoundService = mock(LostAndFoundService.class);
+        LostAndFoundImageService imageService = mock(LostAndFoundImageService.class);
+        NotificationFeedRenderer notificationRenderer = mock(NotificationFeedRenderer.class);
         clock = new ControllableClock(Instant.parse("2026-06-12T10:00:00Z"));
-        rateLimiter = new FeedRateLimiter(clock);
-        metricsService = mock(FeedMetricsService.class);
+        FeedRateLimiter rateLimiter = new FeedRateLimiter(clock);
+        FeedMetricsService metricsService = mock(FeedMetricsService.class);
 
         routes = new UserFeedRoutes(
                 tokenService,
@@ -114,8 +98,8 @@ class UserFeedRoutesIntegrationTest {
                 metricsService);
 
         // Minimal fixture: real token, member, station for the rss/atom handlers to resolve.
-        token = new FeedToken(MEMBER_ID, TOKEN_VALUE, Instant.EPOCH, null, null);
-        member = new StationMember(
+        FeedToken token = new FeedToken(MEMBER_ID, TOKEN_VALUE, Instant.EPOCH, null, null);
+        StationMember member = new StationMember(
                 MEMBER_ID,
                 STATION_ID,
                 UUID.randomUUID(),
@@ -125,7 +109,7 @@ class UserFeedRoutesIntegrationTest {
                 "Test Member",
                 StationUserType.MEMBER,
                 null);
-        station = new Station(
+        Station station = new Station(
                 STATION_ID,
                 UUID.randomUUID(),
                 "Test Station",

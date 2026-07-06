@@ -123,21 +123,7 @@ public class EventReminderChecker {
 
         for (int d = 0; d <= maxDays; d++) {
             LocalDate date = today.plusDays(d);
-            int dow = date.getDayOfWeek().getValue();
-            if (dow != event.dayOfWeek()) continue;
-
-            boolean matches =
-                    switch (event.eventType()) {
-                        case RECURRING -> true;
-                        case MONTHLY_FIRST -> date.getDayOfMonth() <= 7;
-                        case QUARTERLY -> date.getDayOfMonth() <= 7 && (date.getMonthValue() - 1) % 3 == 0;
-                        case YEARLY ->
-                            event.startTime() != null
-                                    && event.startTime().atZone(ZoneOffset.UTC).getMonthValue() == date.getMonthValue()
-                                    && event.startTime().atZone(ZoneOffset.UTC).getDayOfMonth() == date.getDayOfMonth();
-                        default -> false;
-                    };
-            if (matches) result.add(date);
+            if (event.occursOn(date)) result.add(date);
         }
         return result;
     }

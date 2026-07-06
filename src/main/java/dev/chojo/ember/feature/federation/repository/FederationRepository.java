@@ -238,9 +238,9 @@ public class FederationRepository {
                 .orElseThrow();
     }
 
-    public boolean deleteKbShare(int id) {
-        return query("DELETE FROM federation_kb_share WHERE id = :id;")
-                .single(call().bind("id", id))
+    public boolean deleteKbShare(int id, int stationId) {
+        return query("DELETE FROM federation_kb_share WHERE id = :id AND station_id = :station_id;")
+                .single(call().bind("id", id).bind("station_id", stationId))
                 .delete()
                 .changed();
     }
@@ -266,9 +266,9 @@ public class FederationRepository {
                 .orElseThrow();
     }
 
-    public boolean deleteQuizShare(int id) {
-        return query("DELETE FROM federation_quiz_share WHERE id = :id;")
-                .single(call().bind("id", id))
+    public boolean deleteQuizShare(int id, int stationId) {
+        return query("DELETE FROM federation_quiz_share WHERE id = :id AND station_id = :station_id;")
+                .single(call().bind("id", id).bind("station_id", stationId))
                 .delete()
                 .changed();
     }
@@ -294,9 +294,9 @@ public class FederationRepository {
                 .orElseThrow();
     }
 
-    public boolean deleteProtocolShare(int id) {
-        return query("DELETE FROM federation_protocol_share WHERE id = :id;")
-                .single(call().bind("id", id))
+    public boolean deleteProtocolShare(int id, int stationId) {
+        return query("DELETE FROM federation_protocol_share WHERE id = :id AND station_id = :station_id;")
+                .single(call().bind("id", id).bind("station_id", stationId))
                 .delete()
                 .changed();
     }

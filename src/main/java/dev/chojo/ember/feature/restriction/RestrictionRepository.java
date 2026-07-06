@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -57,34 +58,27 @@ public class RestrictionRepository {
     /**
      * Replaces all restrictions for an entity.
      */
-    public void setRestrictions(
-            String table,
-            String fkColumn,
-            int entityId,
-            List<StationUserType> userTypes,
-            List<Integer> groupIds,
-            List<Integer> tagIds,
-            List<Integer> memberIds) {
+    public void setRestrictions(String table, String fkColumn, int entityId, RestrictionSelection selection) {
         query("DELETE FROM %s WHERE %s = :entity_id;", table, fkColumn)
                 .single(call().bind("entity_id", entityId))
                 .delete();
 
-        for (StationUserType userType : userTypes) {
+        for (StationUserType userType : selection.userTypes()) {
             query("INSERT INTO %s (%s, user_type) VALUES (:entity_id, :user_type);", table, fkColumn)
                     .single(call().bind("entity_id", entityId).bind("user_type", userType))
                     .insert();
         }
-        for (int groupId : groupIds) {
+        for (int groupId : selection.groupIds()) {
             query("INSERT INTO %s (%s, group_id) VALUES (:entity_id, :group_id);", table, fkColumn)
                     .single(call().bind("entity_id", entityId).bind("group_id", groupId))
                     .insert();
         }
-        for (int tagId : tagIds) {
+        for (int tagId : selection.tagIds()) {
             query("INSERT INTO %s (%s, tag_id) VALUES (:entity_id, :tag_id);", table, fkColumn)
                     .single(call().bind("entity_id", entityId).bind("tag_id", tagId))
                     .insert();
         }
-        for (int memberId : memberIds) {
+        for (int memberId : selection.memberIds()) {
             query("INSERT INTO %s (%s, member_id) VALUES (:entity_id, :member_id);", table, fkColumn)
                     .single(call().bind("entity_id", entityId).bind("member_id", memberId))
                     .insert();
@@ -103,18 +97,9 @@ public class RestrictionRepository {
         var restrictions = findRestrictions(type.table(), type.fkColumn(), entityId);
         if (restrictions.isEmpty()) return Set.of();
 
-        var groupIds = restrictions.stream()
-                .map(Restriction::groupId)
-                .filter(Objects::nonNull)
-                .toList();
-        var tagIds = restrictions.stream()
-                .map(Restriction::tagId)
-                .filter(Objects::nonNull)
-                .toList();
-        var userTypes = restrictions.stream()
-                .map(Restriction::userType)
-                .filter(Objects::nonNull)
-                .toList();
+        var groupIds = nonNullValues(restrictions, Restriction::groupId);
+        var tagIds = nonNullValues(restrictions, Restriction::tagId);
+        var userTypes = nonNullValues(restrictions, Restriction::userType);
         var memberIds = restrictions.stream()
                 .map(Restriction::memberId)
                 .filter(Objects::nonNull)
@@ -141,6 +126,15 @@ public class RestrictionRepository {
                 .forEach(m -> memberIds.add(m.id()));
 
         return memberIds;
+    }
+
+    /**
+     * Collects the non-null results of applying an extractor to each restriction.
+     *
+     * @param extractor selects a nullable value from a restriction
+     */
+    private static <R> List<R> nonNullValues(List<Restriction> restrictions, Function<Restriction, R> extractor) {
+        return restrictions.stream().map(extractor).filter(Objects::nonNull).toList();
     }
 
     /**

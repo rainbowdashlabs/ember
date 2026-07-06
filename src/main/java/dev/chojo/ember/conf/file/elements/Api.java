@@ -41,6 +41,21 @@ public class Api {
     @Overwrite(env = @Env)
     private int maxImageSizeBytes = 5 * 1024 * 1024;
 
+    /**
+     * Largest single uploaded file accepted, in bytes. Enforced per file before the
+     * upload is read into memory. Raise it for deployments that need to accept large
+     * attachments; keep it comfortably below {@link #maxRequestSizeBytes()}.
+     */
+    @Overwrite(env = @Env)
+    private long maxUploadSizeBytes = 50L * 1024 * 1024;
+
+    /**
+     * Hard ceiling on the total size of a multipart request, in bytes. Enforced at the
+     * container boundary so oversized uploads are rejected before a handler runs.
+     */
+    @Overwrite(env = @Env)
+    private long maxRequestSizeBytes = 60L * 1024 * 1024;
+
     @Overwrite(env = @Env)
     private String privacyPolicyDir = "data/documents/privacy";
 
@@ -107,6 +122,14 @@ public class Api {
 
     public int maxImageSizeBytes() {
         return maxImageSizeBytes;
+    }
+
+    public long maxUploadSizeBytes() {
+        return maxUploadSizeBytes;
+    }
+
+    public long maxRequestSizeBytes() {
+        return maxRequestSizeBytes;
     }
 
     public String privacyPolicyDir() {

@@ -21,6 +21,7 @@ import jakarta.inject.Singleton;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -276,8 +277,8 @@ public class AccountRepository {
                 .single(call().bind("id", accountId))
                 .map(row -> row.getString("locale"))
                 .first()
-                .map(java.util.Locale::forLanguageTag)
-                .map(java.util.Locale::getLanguage)
+                .map(Locale::forLanguageTag)
+                .map(Locale::getLanguage)
                 .filter(s -> !s.isBlank())
                 .orElse("en");
     }
@@ -286,10 +287,9 @@ public class AccountRepository {
      * Replaces the {@code uid} column for the account. Used by the demo seeder to pin
      * deterministic UUIDs so demo data does not accumulate on disk across restarts.
      */
-    public void setUid(int id, java.util.UUID uid) {
+    public void setUid(int id, UUID uid) {
         query("UPDATE account SET uid = :uid::uuid WHERE id = :id;")
-                .single(call().bind("uid", uid, de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING)
-                        .bind("id", id))
+                .single(call().bind("uid", uid, UUID_STRING).bind("id", id))
                 .update();
     }
 
@@ -299,7 +299,7 @@ public class AccountRepository {
     public boolean isAdministrator(int accountId) {
         return query("SELECT 1 FROM account WHERE id = :id AND instance_user_type = 'ADMINISTRATOR';")
                 .single(call().bind("id", accountId))
-                .map(row -> true)
+                .map(_ -> true)
                 .first()
                 .isPresent();
     }
@@ -312,7 +312,7 @@ public class AccountRepository {
     public boolean anyAdministratorExists() {
         return query("SELECT 1 FROM account WHERE instance_user_type = 'ADMINISTRATOR' LIMIT 1;")
                 .single()
-                .map(row -> true)
+                .map(_ -> true)
                 .first()
                 .isPresent();
     }
@@ -320,8 +320,8 @@ public class AccountRepository {
     /**
      * Sets the instance user type for an account.
      */
-    public boolean setInstanceUserType(int accountId, InstanceUserType userType) {
-        return query("UPDATE account SET instance_user_type = :user_type WHERE id = :id;")
+    public void setInstanceUserType(int accountId, InstanceUserType userType) {
+        query("UPDATE account SET instance_user_type = :user_type WHERE id = :id;")
                 .single(call().bind("user_type", userType).bind("id", accountId))
                 .update()
                 .changed();
@@ -357,10 +357,9 @@ public class AccountRepository {
      *
      * @param id    the account identifier
      * @param email the new email address
-     * @return {@code true} if the account was updated
      */
-    public boolean updateEmail(int id, String email) {
-        return query("UPDATE account SET email = :email WHERE id = :id;")
+    public void updateEmail(int id, String email) {
+        query("UPDATE account SET email = :email WHERE id = :id;")
                 .single(call().bind("email", email).bind("id", id))
                 .update()
                 .changed();
@@ -416,10 +415,9 @@ public class AccountRepository {
      *
      * @param accountId    the account identifier
      * @param passwordHash the hashed password
-     * @return the insertion result
      */
-    public InsertionResult createCredential(int accountId, String passwordHash) {
-        return query("""
+    public void createCredential(int accountId, String passwordHash) {
+        query("""
                 INSERT INTO account_credential(account_id, password_hash) VALUES(:account_id, :hash);""")
                 .single(call().bind("account_id", accountId).bind("hash", passwordHash))
                 .insert();
@@ -543,10 +541,9 @@ public class AccountRepository {
      * @param accountId  the account identifier
      * @param provider   the provider name
      * @param externalId the external user identifier
-     * @return the insertion result
      */
-    public InsertionResult createExternalAuth(int accountId, String provider, String externalId) {
-        return query("""
+    public void createExternalAuth(int accountId, String provider, String externalId) {
+        query("""
                 INSERT
                 INTO
                     account_external_auth(account_id, provider, external_id)
@@ -602,8 +599,8 @@ public class AccountRepository {
      * Marks a token as pre-confirmed (one half of a two-sided confirmation flow).
      * The token is not deleted; the partner-side click is what commits the action.
      */
-    public boolean markTokenConfirmed(int tokenId) {
-        return query("UPDATE account_token SET confirmed_at = now() WHERE id = :id;")
+    public void markTokenConfirmed(int tokenId) {
+        query("UPDATE account_token SET confirmed_at = now() WHERE id = :id;")
                 .single(call().bind("id", tokenId))
                 .update()
                 .changed();
@@ -647,10 +644,9 @@ public class AccountRepository {
      * @param token     the token string
      * @param tokenType the type of token
      * @param expiresAt when the token expires
-     * @return the insertion result
      */
-    public InsertionResult createToken(int accountId, String token, TokenType tokenType, Instant expiresAt) {
-        return createToken(accountId, token, tokenType, null, expiresAt);
+    public void createToken(int accountId, String token, TokenType tokenType, Instant expiresAt) {
+        createToken(accountId, token, tokenType, null, expiresAt);
     }
 
     /**
@@ -728,10 +724,9 @@ public class AccountRepository {
      * performing destructive actions through alternate token-consuming endpoints.
      *
      * @param accountId the account identifier
-     * @return {@code true} if any tokens were deleted
      */
-    public boolean deleteAllTokens(int accountId) {
-        return query("DELETE FROM account_token WHERE account_id = :account_id;")
+    public void deleteAllTokens(int accountId) {
+        query("DELETE FROM account_token WHERE account_id = :account_id;")
                 .single(call().bind("account_id", accountId))
                 .delete()
                 .changed();
@@ -798,11 +793,9 @@ public class AccountRepository {
      * @param expiresAt when the session expires
      * @param userAgent the client's user agent string
      * @param location  the client's location (e.g. country code)
-     * @return the insertion result
      */
-    public InsertionResult createSession(
-            int accountId, String token, Instant expiresAt, String userAgent, String location) {
-        return createSession(accountId, token, expiresAt, userAgent, location, null, null);
+    public void createSession(int accountId, String token, Instant expiresAt, String userAgent, String location) {
+        createSession(accountId, token, expiresAt, userAgent, location, null, null);
     }
 
     /**
@@ -963,9 +956,8 @@ public class AccountRepository {
      * @param ipAddress      the client's IP address
      * @param country        the client's country
      * @param userAgent      the client's user agent string
-     * @return the insertion result
      */
-    public InsertionResult recordConsent(
+    public void recordConsent(
             int accountId,
             String consentVersion,
             String privacyVersion,
@@ -973,7 +965,7 @@ public class AccountRepository {
             String ipAddress,
             String country,
             String userAgent) {
-        return query("""
+        query("""
                 INSERT
                         INTO
                             gdpr_consent(account_id, consent_version, privacy_version, tos_version, ip_address, country, user_agent)

@@ -37,12 +37,11 @@ class DataTrackingAdminServiceTest {
     @TempDir
     Path tempDir;
 
-    private Path trackingFile;
     private DataTrackingAdminService service;
 
     @BeforeEach
     void setup() throws IOException {
-        trackingFile = tempDir.resolve("data_tracking.json");
+        Path trackingFile = tempDir.resolve("data_tracking.json");
         DataTrackingLoader.write(trackingFile, sampleTracking());
         service = new DataTrackingAdminService(trackingFile);
     }

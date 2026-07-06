@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:0691bae540088082d670b48c74c8ee3de87968defe72cf8a95334f130a3075eb",
-  "generatedAt" : "2026-06-30T10:29:03Z",
+  "schemaHash" : "sha256:9ac7ece1a49e728efd9b626bd18dff4f316335e004d5af43b4b08aa250f39018",
+  "generatedAt" : "2026-07-05T00:06:28Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -276,7 +276,7 @@
       "description" : "Registry of enrolled 2FA factors per account. TOTP and BACKUP_CODES are singletons; WEBAUTHN may have many rows."
     },
     "account_2fa_totp" : {
-      "tableHash" : "sha256:55880226c539f3f1fa4951e52df45f69cbf271e767393f721886f8a63d983f4d",
+      "tableHash" : "sha256:bf6e675a021ca1af7f5426bc3ebed6c032183d17ba42bf141fd728443a5bab7f",
       "columns" : [ {
         "name" : "factor_id",
         "type" : "int4",
@@ -310,6 +310,12 @@
         "nullable" : false,
         "verified" : true,
         "description" : "HMAC algorithm — SHA1 for Google Authenticator compatibility."
+      }, {
+        "name" : "last_used_step",
+        "type" : "int8",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Highest TOTP time-step already consumed; verification rejects any step at or below it."
       } ],
       "foreignKeys" : [ {
         "column" : "factor_id",

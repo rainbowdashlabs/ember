@@ -91,7 +91,15 @@ public class InventoryService {
      * @return the created inventory
      */
     public Inventory create(int stationId, String name, InventoryType inventoryType, boolean hasSizes) {
-        return inventoryRepository.create(stationId, name, inventoryType, hasSizes);
+        Inventory inventory = inventoryRepository.create(stationId, name, inventoryType, hasSizes);
+        log.info(
+                "Created inventory {} (name='{}', type={}, hasSizes={}) in station {}",
+                inventory.id(),
+                name,
+                inventoryType,
+                hasSizes,
+                stationId);
+        return inventory;
     }
 
     /**
@@ -105,8 +113,10 @@ public class InventoryService {
      */
     public Optional<Inventory> update(int id, String name, InventoryType inventoryType, boolean hasSizes) {
         if (inventoryRepository.update(id, name, inventoryType, hasSizes)) {
+            log.info("Updated inventory {} (name='{}', type={}, hasSizes={})", id, name, inventoryType, hasSizes);
             return inventoryRepository.findById(id);
         }
+        log.warn("Update of inventory {} did not change any row", id);
         return Optional.empty();
     }
 
@@ -117,7 +127,10 @@ public class InventoryService {
      * @return {@code true} if deleted
      */
     public boolean delete(int id) {
-        return inventoryRepository.delete(id);
+        boolean deleted = inventoryRepository.delete(id);
+        if (deleted) log.info("Deleted inventory {}", id);
+        else log.warn("Delete of inventory {} did not change any row", id);
+        return deleted;
     }
 
     // -- Sizes --
@@ -133,6 +146,7 @@ public class InventoryService {
      */
     public List<InventorySize> createSize(int inventoryId, String label, int position, String note) {
         inventoryRepository.createSize(inventoryId, label, position, note);
+        log.info("Created size (label='{}', position={}) in inventory {}", label, position, inventoryId);
         return inventoryRepository.findSizes(inventoryId);
     }
 
@@ -149,8 +163,10 @@ public class InventoryService {
     public Optional<List<InventorySize>> updateSize(
             int inventoryId, int sizeId, String label, int position, String note) {
         if (inventoryRepository.updateSize(sizeId, label, position, note)) {
+            log.info("Updated size {} (label='{}', position={}) in inventory {}", sizeId, label, position, inventoryId);
             return Optional.of(inventoryRepository.findSizes(inventoryId));
         }
+        log.warn("Update of size {} did not change any row", sizeId);
         return Optional.empty();
     }
 
@@ -163,8 +179,10 @@ public class InventoryService {
      */
     public Optional<List<InventorySize>> deleteSize(int inventoryId, int sizeId) {
         if (inventoryRepository.deleteSize(sizeId)) {
+            log.info("Deleted size {} from inventory {}", sizeId, inventoryId);
             return Optional.of(inventoryRepository.findSizes(inventoryId));
         }
+        log.warn("Delete of size {} did not change any row", sizeId);
         return Optional.empty();
     }
 
@@ -395,7 +413,16 @@ public class InventoryService {
      */
     public InventoryRequirement createRequirement(
             int inventoryId, StationUserType userType, int groupId, int quantity) {
-        return inventoryRepository.createRequirement(inventoryId, userType, groupId, quantity);
+        InventoryRequirement requirement =
+                inventoryRepository.createRequirement(inventoryId, userType, groupId, quantity);
+        log.info(
+                "Created requirement {} (userType={}, groupId={}, quantity={}) for inventory {}",
+                requirement.id(),
+                userType,
+                groupId,
+                quantity,
+                inventoryId);
+        return requirement;
     }
 
     /**
@@ -406,7 +433,10 @@ public class InventoryService {
      * @return {@code true} if updated
      */
     public boolean updateRequirement(int id, int quantity) {
-        return inventoryRepository.updateRequirement(id, quantity);
+        boolean updated = inventoryRepository.updateRequirement(id, quantity);
+        if (updated) log.info("Updated requirement {} (quantity={})", id, quantity);
+        else log.warn("Update of requirement {} did not change any row", id);
+        return updated;
     }
 
     /**
@@ -417,7 +447,10 @@ public class InventoryService {
      * @return {@code true} if updated
      */
     public boolean updateRequirementPosition(int id, int position) {
-        return inventoryRepository.updateRequirementPosition(id, position);
+        boolean updated = inventoryRepository.updateRequirementPosition(id, position);
+        if (updated) log.info("Updated requirement {} position to {}", id, position);
+        else log.warn("Position update of requirement {} did not change any row", id);
+        return updated;
     }
 
     /**
@@ -427,6 +460,9 @@ public class InventoryService {
      * @return {@code true} if deleted
      */
     public boolean deleteRequirement(int id) {
-        return inventoryRepository.deleteRequirement(id);
+        boolean deleted = inventoryRepository.deleteRequirement(id);
+        if (deleted) log.info("Deleted requirement {}", id);
+        else log.warn("Delete of requirement {} did not change any row", id);
+        return deleted;
     }
 }

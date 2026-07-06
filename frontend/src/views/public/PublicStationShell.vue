@@ -32,7 +32,7 @@ const error = ref('')
 const publicPages = ref<PublicPageSummary[]>([])
 
 const logoUrl = computed(() =>
-    station.value?.hasLogo ? `/api/v1/public/stations/${station.value.stationUid}/logo` : null)
+    station.value?.hasLogo ? `/api/v1/public/stations/${station.value.stationUid}/logo?size=256` : null)
 
 const basePath = computed(() => {
   const id = station.value?.publicSlug || stationUid.value
@@ -96,7 +96,7 @@ useHead(computed(() => {
   if (!station.value) return {}
   const s = station.value
   const desc = s.description || `Öffentliche Seite von ${s.name}`
-  const stationLogo = s.hasLogo ? `/api/v1/public/stations/${s.stationUid}/logo` : undefined
+  const stationLogo = s.hasLogo ? `/api/v1/public/stations/${s.stationUid}/logo?size=512` : undefined
   return {
     title: s.name,
     meta: [
