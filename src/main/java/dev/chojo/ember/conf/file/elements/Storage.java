@@ -109,7 +109,8 @@ public class Storage {
     /**
      * AES-256 key used to encrypt station-supplied remote-backend credentials at rest. Read
      * from {@code STORAGE_CREDENTIAL_ENCRYPTION_KEY}; required once any station opts into
-     * self-service remote storage.
+     * self-service remote storage. Auto-generated and persisted on first production boot
+     * when left blank.
      */
     @Overwrite(env = @Env)
     private String credentialEncryptionKey = "";
