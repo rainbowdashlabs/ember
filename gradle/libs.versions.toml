@@ -88,7 +88,7 @@ jsoup = { group = "org.jsoup", name = "jsoup", version = "1.22.2" }
 
 # AI SDKs
 openai = { group = "com.openai", name = "openai-java", version = "4.41.0" }
-anthropic = { group = "com.anthropic", name = "anthropic-java", version = "2.42.0" }
+anthropic = { group = "com.anthropic", name = "anthropic-java", version = "2.43.0" }
 google-genai = { group = "com.google.genai", name = "google-genai", version = "1.59.0" }
 
 # CSV
