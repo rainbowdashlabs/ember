@@ -1,5 +1,18 @@
 # Changelog
 
+## v26.11.2
+
+### Security
+
+- **Visitor addresses can no longer be forged behind a proxy.** When the server runs behind a reverse proxy or Cloudflare (`network.trustedProxies`, `network.cloudflare`), the visitor address used for rate limiting and security logs is taken from the nearest hop that is not a trusted proxy, so forwarded-address headers sent by the visitor themselves are ignored.
+
+### Fixes
+
+- **Problem monitoring shows timestamps and stacktraces.** Entries on the admin problems page show their first and last occurrence time and the full stacktrace of the recorded error again instead of an invalid date and empty details.
+- **Setting a station manager works for stations without one.** Entering a manager email when editing a station in the admin panel invites the account if it does not exist yet and grants it station administrator access, also when the station had no manager before.
+- **Everyone can edit their own name and email.** Changing your own first name, last name and email address on the account's profile page works for every signed-in user, without needing the member edit permission. Email changes still take effect only after confirming the link sent to the new address.
+- **Remote-storage credential key generates itself.** A production install with a blank `storage.credentialEncryptionKey` writes a fresh key to the config on first start, so station-supplied storage credentials can be encrypted without manual setup.
+
 ## v26.11.1
 
 ### Security

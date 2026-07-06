@@ -44,7 +44,7 @@ public class ProblemRoutes implements Routes {
             responses =
                     @OpenApiResponse(
                             status = "200",
-                            content = @OpenApiContent(from = ProblemLogAppender.ProblemEntry[].class)))
+                            content = @OpenApiContent(from = ProblemLogAppender.Snapshot[].class)))
     private void listProblems(Context ctx) {
         boolean includeAcknowledged = "true".equals(ctx.queryParam("includeAcknowledged"));
         var appender = ProblemLogAppender.instance();
@@ -52,7 +52,9 @@ public class ProblemRoutes implements Routes {
             ctx.json(List.of());
             return;
         }
-        ctx.json(appender.getProblems(includeAcknowledged).stream().toList());
+        ctx.json(appender.getProblems(includeAcknowledged).stream()
+                .map(ProblemLogAppender.ProblemEntry::snapshot)
+                .toList());
     }
 
     @OpenApi(

@@ -12,7 +12,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,7 +28,11 @@ import java.util.Optional;
  *       {@code X-Forwarded-For} / {@code X-Real-IP} from the configured CIDRs only.</li>
  *   <li>Behind Cloudflare — trust {@code CF-Connecting-IP}, but only when the
  *       immediate hop is in Cloudflare's published edge ranges.</li>
- *   <li>Behind Cloudflare → Traefik — trust both headers, in that order.</li>
+ *   <li>Behind Cloudflare → Traefik — the Cloudflare edge ranges join the
+ *       trusted-hop set and the {@code X-Forwarded-For} chain is walked from
+ *       the right. {@code CF-Connecting-IP} is deliberately NOT honoured here:
+ *       the immediate hop is Traefik, which forwards that header from direct
+ *       (non-Cloudflare) visitors untouched, so it would be forgeable.</li>
  * </ul>
  *
  * <p>Headers from untrusted hops are ignored. This is essential because any
@@ -40,9 +43,18 @@ import java.util.Optional;
  * <ol>
  *   <li>{@code CF-Connecting-IP} — only if {@link Network#cloudflare()} is
  *       {@code true} AND {@link Context#ip()} is a Cloudflare edge address.</li>
- *   <li>Leftmost address in {@code X-Forwarded-For} — only if
- *       {@link Context#ip()} matches one of {@link Network#trustedProxies()}.</li>
- *   <li>{@code X-Real-IP} — same trust check as step 2.</li>
+ *   <li>{@code X-Forwarded-For} — only if {@link Context#ip()} is a trusted
+ *       hop (one of {@link Network#trustedProxies()}, or a Cloudflare edge
+ *       when {@link Network#cloudflare()} is {@code true}). The chain is
+ *       walked right to left and the first address that is not itself a
+ *       trusted hop wins. Left-hand entries beyond that point are
+ *       client-supplied and forgeable (Cloudflare appends to whatever
+ *       {@code X-Forwarded-For} the visitor sends), so they are never
+ *       consulted. An unparseable entry aborts the walk and falls back to
+ *       {@link Context#ip()}; a chain consisting solely of trusted hops
+ *       resolves to its leftmost entry.</li>
+ *   <li>{@code X-Real-IP} — same trust check as step 2, only consulted when
+ *       {@code X-Forwarded-For} is absent.</li>
  *   <li>{@link Context#ip()} as a final fallback. This is the correct value
  *       for a no-proxy deployment.</li>
  * </ol>
@@ -80,10 +92,12 @@ public final class ClientIp {
             if (cf.isPresent()) return cf.get();
         }
 
-        List<Cidr> trusted = parseTrustedProxies(network.trustedProxies());
+        List<Cidr> trusted = trustedHops(network);
         if (!trusted.isEmpty() && matches(immediateHop, trusted)) {
-            Optional<InetAddress> xff = parseHeader(leftmost(ctx.header(HEADER_X_FORWARDED_FOR)));
-            if (xff.isPresent()) return xff.get();
+            String xff = ctx.header(HEADER_X_FORWARDED_FOR);
+            if (xff != null && !xff.isBlank()) {
+                return resolveForwardedChain(xff, trusted, immediateHop);
+            }
             Optional<InetAddress> realIp = parseHeader(ctx.header(HEADER_X_REAL_IP));
             if (realIp.isPresent()) return realIp.get();
         }
@@ -126,22 +140,35 @@ public final class ClientIp {
         String trimmed = value.trim();
         if (trimmed.isEmpty()) return Optional.empty();
         try {
-            return Optional.of(InetAddress.getByName(trimmed));
-        } catch (UnknownHostException e) {
+            return Optional.of(InetAddress.ofLiteral(trimmed));
+        } catch (IllegalArgumentException e) {
             return Optional.empty();
         }
     }
 
-    private static String leftmost(String xff) {
-        if (xff == null) return null;
-        int comma = xff.indexOf(',');
-        return comma == -1 ? xff : xff.substring(0, comma);
+    private static List<Cidr> trustedHops(Network network) {
+        List<Cidr> trusted = new ArrayList<>(parseTrustedProxies(network.trustedProxies()));
+        if (network.cloudflare()) trusted.addAll(cloudflareRanges);
+        return trusted;
+    }
+
+    private static InetAddress resolveForwardedChain(String xff, List<Cidr> trusted, InetAddress fallback) {
+        String[] entries = xff.split(",");
+        InetAddress leftmostTrusted = null;
+        for (int i = entries.length - 1; i >= 0; i--) {
+            Optional<InetAddress> parsed = parseHeader(entries[i]);
+            if (parsed.isEmpty()) return fallback;
+            InetAddress address = parsed.get();
+            if (!matches(address, trusted)) return address;
+            leftmostTrusted = address;
+        }
+        return leftmostTrusted != null ? leftmostTrusted : fallback;
     }
 
     private static InetAddress parseOrThrow(String ip) {
         try {
-            return InetAddress.getByName(ip);
-        } catch (UnknownHostException e) {
+            return InetAddress.ofLiteral(ip);
+        } catch (IllegalArgumentException e) {
             throw new IllegalStateException("ctx.ip() returned an unparseable value: " + ip, e);
         }
     }
@@ -185,8 +212,8 @@ public final class ClientIp {
             if (parts.length != 2) return Optional.empty();
             InetAddress address;
             try {
-                address = InetAddress.getByName(parts[0]);
-            } catch (UnknownHostException e) {
+                address = InetAddress.ofLiteral(parts[0]);
+            } catch (IllegalArgumentException e) {
                 return Optional.empty();
             }
             int prefix;

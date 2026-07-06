@@ -8,6 +8,7 @@ package dev.chojo.ember.auth;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Demo;
+import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +26,9 @@ import java.util.Base64;
  * refuses to boot (production) or substitutes a deterministic dev placeholder
  * (demo / dev). Running this initializer first means a fresh production install
  * never trips the boot guard — the first start generates a strong secret,
- * persists it to disk, and subsequent boots reuse it.
+ * persists it to disk, and subsequent boots reuse it. The remote-storage
+ * credential key is covered the same way so self-service remote backends work
+ * without manual key setup.
  *
  * <p>Demo / dev runs are skipped intentionally: tests and demo containers expect
  * the placeholder values so config files committed into images stay diff-free.
@@ -57,6 +60,14 @@ public final class SecretsInitializer {
             setField(TwoFactorSettings.class, twoFactor, "secretKey", generateBase64(32));
             log.warn(
                     "auth.twoFactor.secretKey was empty — generated a fresh 32-byte value and persisted it to config.yaml.");
+            dirty = true;
+        }
+        Storage storage = conf.main().storage();
+        if (storage.credentialEncryptionKey() == null
+                || storage.credentialEncryptionKey().isBlank()) {
+            setField(Storage.class, storage, "credentialEncryptionKey", generateBase64(32));
+            log.warn(
+                    "storage.credentialEncryptionKey was empty — generated a fresh 32-byte value and persisted it to config.yaml.");
             dirty = true;
         }
         if (dirty) {

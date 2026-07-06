@@ -1406,6 +1406,8 @@ export default {
         email: 'E-Mail',
         saveAccount: 'Kontodaten speichern',
         accountSaved: 'Kontodaten gespeichert.',
+        emailChangePending:
+            'Eine Bestätigungs-E-Mail wurde an die neue Adresse gesendet. Die E-Mail-Adresse ändert sich erst nach der Bestätigung.',
         passwordTitle: 'Passwort ändern',
         currentPassword: 'Aktuelles Passwort',
         newPassword: 'Neues Passwort',
