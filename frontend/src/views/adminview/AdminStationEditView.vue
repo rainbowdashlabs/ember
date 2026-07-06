@@ -43,7 +43,7 @@ const {loading, error} = useAsyncLoader(async () => {
 async function save() {
   error.value = ''
   try {
-    const emailToSend = editingManager.value ? managerEmail.value : undefined
+    const emailToSend = managerEmail.value.trim() || undefined
     if (isEdit.value) {
       const detail = await stations.updateStation(stationId.value!, {name: name.value, managerEmail: emailToSend})
       manager.value = detail.manager ?? null
