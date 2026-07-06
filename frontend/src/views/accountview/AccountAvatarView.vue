@@ -57,16 +57,21 @@ async function removeAvatar() {
   }
 }
 
+const emailChangePending = ref(false)
+
 async function saveAccount() {
   error.value = ''
-  const accountId = sessionInfo.value?.account?.id
-  if (!accountId) return
+  const account = sessionInfo.value?.account
+  if (!account) return
+  const emailChanged = editEmail.value.trim().toLowerCase() !== (account.email ?? '').toLowerCase()
   try {
-    await members.updateAccount(accountId, {
+    await members.updateAccount(account.id, {
       email: editEmail.value,
       firstName: editFirstName.value,
       lastName: editLastName.value,
     })
+    emailChangePending.value = emailChanged
+    await load()
   } catch (e) {
     error.value = t('common.error')
     throw e
@@ -137,6 +142,7 @@ onMounted(() => {
               <TextInput v-model="editEmail"/>
             </div>
           </div>
+          <Alert v-if="emailChangePending" variant="info">{{ t('profile.emailChangePending') }}</Alert>
           <SaveButton :action="saveAccount">{{ t('profile.saveAccount') }}</SaveButton>
         </NeutralContainer>
       </template>

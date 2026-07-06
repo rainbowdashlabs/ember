@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ConflictResponse;
 import io.javalin.http.Context;
+import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
@@ -72,7 +73,7 @@ public class MemberRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.post(prefix + "/members/invite", this::invite, StationPermission.MEMBER_EDIT);
-        routes.put(prefix + "/members/{accountId}", this::updateAccount, StationPermission.MEMBER_EDIT);
+        routes.put(prefix + "/members/{accountId}", this::updateAccount, StationPermission.LOGIN);
         routes.post(prefix + "/members/reset-password", this::resetPassword, StationPermission.MEMBER_EDIT);
     }
 
@@ -80,17 +81,25 @@ public class MemberRoutes implements Routes {
             path = "/api/v1/members/{accountId}",
             methods = HttpMethod.PUT,
             summary = "Update account name and email",
+            description =
+                    "Every signed-in user may update their own account. Updating another account requires the MEMBER_EDIT permission and the target being a member of the caller's station.",
             tags = {"Members"},
             pathParams = @OpenApiParam(name = "accountId", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = UpdateAccountRequest.class)),
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
+                @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void updateAccount(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int accountId = pathInt(ctx, "accountId");
-        requireStationAccount(accountId, session);
+        if (session.accountId() != accountId) {
+            if (!session.hasPermission(StationPermission.MEMBER_EDIT)) {
+                throw new ForbiddenResponse("Updating another account requires the member edit permission");
+            }
+            requireStationAccount(accountId, session);
+        }
         var request = ctx.bodyAsClass(UpdateAccountRequest.class);
         var existing = accountRepository.findById(accountId).orElseThrow(NotFoundResponse::new);
 
