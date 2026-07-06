@@ -5,10 +5,10 @@ jackson = "3.2.0"
 junit = "6.1.0"
 javalin = "7.2.2"
 testcontainers = "2.0.5"
-commonmark = "0.28.0"
+commonmark = "0.29.0"
 
 [plugins]
-spotless = { id = "com.diffplug.spotless", version = "8.6.0" }
+spotless = { id = "com.diffplug.spotless", version = "8.7.0" }
 idea = { id = "org.jetbrains.gradle.plugin.idea-ext", version = "1.4.1" }
 pitest = { id = "info.solidsoft.pitest", version = "1.19.0" }
 
@@ -87,9 +87,9 @@ aws-s3 = { group = "software.amazon.awssdk", name = "s3", version = "2.46.17" }
 jsoup = { group = "org.jsoup", name = "jsoup", version = "1.22.2" }
 
 # AI SDKs
-openai = { group = "com.openai", name = "openai-java", version = "4.39.1" }
-anthropic = { group = "com.anthropic", name = "anthropic-java", version = "2.40.1" }
-google-genai = { group = "com.google.genai", name = "google-genai", version = "1.58.0" }
+openai = { group = "com.openai", name = "openai-java", version = "4.41.0" }
+anthropic = { group = "com.anthropic", name = "anthropic-java", version = "2.42.0" }
+google-genai = { group = "com.google.genai", name = "google-genai", version = "1.59.0" }
 
 # CSV
 commons-csv = { group = "org.apache.commons", name = "commons-csv", version = "1.14.1" }
