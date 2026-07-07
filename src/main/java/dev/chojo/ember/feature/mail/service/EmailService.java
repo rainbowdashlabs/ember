@@ -654,8 +654,10 @@ public class EmailService {
             return;
         }
         if (currentGlobalProvider() == null) {
-            log.warn("Mail not configured. Would send to={} subject={}", to, subject);
-            return;
+            log.warn(
+                    "Mail is not configured; queueing email to={} subject={} until a mail provider is set up",
+                    to,
+                    subject);
         }
         queueRepository.enqueue(to, subject, htmlBody, null);
         log.debug("Email queued to={} subject={}", to, subject);
@@ -665,7 +667,8 @@ public class EmailService {
 
     private void processQueue() {
         try {
-            var batch = queueRepository.fetchPending(20);
+            boolean globalConfigured = currentGlobalProvider() != null;
+            var batch = queueRepository.fetchPending(20, globalConfigured);
             if (batch.isEmpty()) return;
 
             log.debug("Processing batch of {} pending emails", batch.size());
@@ -705,9 +708,11 @@ public class EmailService {
                 } else {
                     MailProvider current = currentGlobalProvider();
                     if (current == null) {
-                        log.warn("Email {} failed: global mail provider not configured", email.id());
-                        queueRepository.markFailed(email.id());
-                        failed++;
+                        log.debug(
+                                "Email {} deferred: global mail provider not configured; keeping it queued",
+                                email.id());
+                        queueRepository.requeue(email.id());
+                        requeued++;
                         continue;
                     }
                     int remaining = remainingToday();

@@ -49,7 +49,7 @@ class EmailQueueRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(3)
     void fetchPending() {
-        var pending = emailQueueRepo.fetchPending(10);
+        var pending = emailQueueRepo.fetchPending(10, true);
         assertEquals(2, pending.size());
         assertEquals("test@example.com", pending.getFirst().recipient());
         // After fetch, status is SENDING, so pending count is 0
@@ -61,7 +61,7 @@ class EmailQueueRepositoryTest extends RepositoryTestBase {
     void markSent() {
         // Re-enqueue to test markSent
         emailQueueRepo.enqueue("sent@example.com", "Sent Test", "Body");
-        var pending = emailQueueRepo.fetchPending(1);
+        var pending = emailQueueRepo.fetchPending(1, true);
         assertFalse(pending.isEmpty());
         emailQueueRepo.markSent(pending.getFirst().id());
         assertEquals(0, emailQueueRepo.pendingCount());
@@ -71,7 +71,7 @@ class EmailQueueRepositoryTest extends RepositoryTestBase {
     @Order(5)
     void markFailed() {
         emailQueueRepo.enqueue("fail@example.com", "Fail Test", "Body");
-        var pending = emailQueueRepo.fetchPending(1);
+        var pending = emailQueueRepo.fetchPending(1, true);
         emailQueueRepo.markFailed(pending.getFirst().id());
         assertEquals(0, emailQueueRepo.pendingCount());
     }
@@ -80,13 +80,27 @@ class EmailQueueRepositoryTest extends RepositoryTestBase {
     @Order(6)
     void requeue() {
         emailQueueRepo.enqueue("requeue@example.com", "Requeue Test", "Body");
-        var pending = emailQueueRepo.fetchPending(1);
+        var pending = emailQueueRepo.fetchPending(1, true);
         emailQueueRepo.markFailed(pending.getFirst().id());
         emailQueueRepo.requeue(pending.getFirst().id());
         assertEquals(1, emailQueueRepo.pendingCount());
         // Clean up by fetching and marking sent
-        var refetched = emailQueueRepo.fetchPending(1);
+        var refetched = emailQueueRepo.fetchPending(1, true);
         emailQueueRepo.markSent(refetched.getFirst().id());
+    }
+
+    @Test
+    @Order(7)
+    void fetchPendingWithoutGlobalFetchesOnlyStationMails() {
+        emailQueueRepo.enqueue("global@example.com", "Global", "Body");
+        emailQueueRepo.enqueue("station@example.com", "Station", "Body", station.id());
+        var stationOnly = emailQueueRepo.fetchPending(10, false);
+        assertEquals(1, stationOnly.size());
+        assertEquals("station@example.com", stationOnly.getFirst().recipient());
+        assertEquals(1, emailQueueRepo.pendingCount());
+        var rest = emailQueueRepo.fetchPending(10, true);
+        assertEquals(1, rest.size());
+        assertEquals("global@example.com", rest.getFirst().recipient());
     }
 
     @Test

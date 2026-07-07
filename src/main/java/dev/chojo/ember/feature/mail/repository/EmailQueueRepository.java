@@ -51,18 +51,23 @@ public class EmailQueueRepository {
 
     /**
      * Atomically fetches pending emails and marks them as SENDING to prevent double-processing.
+     * Global emails (no station) can be excluded while the instance-wide mail provider is not
+     * configured, so they stay queued untouched until an operator sets one up.
      *
-     * @param limit the maximum number of emails to fetch
+     * @param limit         the maximum number of emails to fetch
+     * @param includeGlobal whether emails without a station association are fetched
      * @return the list of emails now in SENDING state
      */
-    public List<QueuedEmail> fetchPending(int limit) {
+    public List<QueuedEmail> fetchPending(int limit, boolean includeGlobal) {
         return query("""
                 UPDATE email_queue SET status = 'SENDING'
                 WHERE id IN (
-                    SELECT id FROM email_queue WHERE status = 'PENDING' ORDER BY created_at LIMIT :limit
+                    SELECT id FROM email_queue
+                    WHERE status = 'PENDING' AND (:include_global OR station_id IS NOT NULL)
+                    ORDER BY created_at LIMIT :limit
                 )
                 RETURNING id, recipient, subject, body, station_id;""")
-                .single(call().bind("limit", limit))
+                .single(call().bind("limit", limit).bind("include_global", includeGlobal))
                 .map(row -> new QueuedEmail(
                         row.getInt("id"),
                         row.getString("recipient"),
