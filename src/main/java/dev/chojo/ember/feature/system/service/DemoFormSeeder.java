@@ -130,7 +130,7 @@ public class DemoFormSeeder {
                 "",
                 false,
                 false,
-                new FormQuestionConfig.Unknown());
+                new FormQuestionConfig.Date());
         formRepository.createQuestion(
                 survey.id(),
                 4,
@@ -148,9 +148,7 @@ public class DemoFormSeeder {
                 "",
                 false,
                 false,
-                FormQuestionConfig.parse(
-                        FormQuestionType.LIKERT,
-                        "{\"statements\":[\"Ausrüstung\",\"Betreuung\",\"Abwechslung\"],\"scaleMin\":1,\"scaleMax\":5,\"scaleLabels\":[]}"));
+                new FormQuestionConfig.Likert(List.of("Ausrüstung", "Betreuung", "Abwechslung"), 1, 5, List.of()));
 
         // Re-fetch questions after adding more
         surveyQuestions = formRepository.findQuestions(survey.id());
@@ -195,9 +193,13 @@ public class DemoFormSeeder {
                 "",
                 true,
                 false,
-                FormQuestionConfig.parse(
-                        FormQuestionType.CHOICE,
-                        "{\"multiSelect\":false,\"dropdown\":false,\"allowOther\":false,\"options\":[\"Ja\",\"Vielleicht\",\"Nein\"],\"multiLimitType\":\"NONE\"}"));
+                new FormQuestionConfig.Choice(
+                        List.of("Ja", "Vielleicht", "Nein"),
+                        false,
+                        false,
+                        false,
+                        FormQuestionConfig.MultiLimitType.NONE,
+                        null));
         formRepository.createQuestion(
                 feedback.id(),
                 1,
@@ -224,7 +226,7 @@ public class DemoFormSeeder {
                 "",
                 false,
                 false,
-                new FormQuestionConfig.Unknown());
+                new FormQuestionConfig.Date());
         formRepository.createQuestion(
                 feedback.id(),
                 4,
@@ -242,9 +244,8 @@ public class DemoFormSeeder {
                 "",
                 true,
                 false,
-                FormQuestionConfig.parse(
-                        FormQuestionType.LIKERT,
-                        "{\"statements\":[\"Organisation\",\"Lerninhalte\",\"Spaßfaktor\",\"Zeitdauer\"],\"scaleMin\":1,\"scaleMax\":5,\"scaleLabels\":[]}"));
+                new FormQuestionConfig.Likert(
+                        List.of("Organisation", "Lerninhalte", "Spaßfaktor", "Zeitdauer"), 1, 5, List.of()));
 
         var feedbackQuestions = formRepository.findQuestions(feedback.id());
         String[] feedbackTexts = {
@@ -323,9 +324,13 @@ public class DemoFormSeeder {
                 "",
                 true,
                 false,
-                FormQuestionConfig.parse(
-                        FormQuestionType.CHOICE,
-                        "{\"multiSelect\":false,\"dropdown\":false,\"allowOther\":false,\"options\":[\"Ja, unbedingt!\",\"Vielleicht\",\"Nein, lieber nicht\"],\"multiLimitType\":\"NONE\"}"));
+                new FormQuestionConfig.Choice(
+                        List.of("Ja, unbedingt", "Nein, lieber nicht", "Vielleicht"),
+                        false,
+                        false,
+                        false,
+                        FormQuestionConfig.MultiLimitType.NONE,
+                        0));
         restrictionRepository.setRestrictions(
                 RestrictionType.FORM.table(),
                 RestrictionType.FORM.fkColumn(),
@@ -353,7 +358,7 @@ public class DemoFormSeeder {
                 "",
                 true,
                 false,
-                new FormQuestionConfig.Unknown());
+                new FormQuestionConfig.Date());
         formRepository.createQuestion(
                 bothRoles.id(),
                 1,
@@ -362,9 +367,13 @@ public class DemoFormSeeder {
                 "",
                 false,
                 false,
-                FormQuestionConfig.parse(
-                        FormQuestionType.CHOICE,
-                        "{\"multiSelect\":false,\"dropdown\":false,\"allowOther\":false,\"options\":[\"Ja\",\"Nein\",\"Vielleicht\"],\"multiLimitType\":\"NONE\"}"));
+                new FormQuestionConfig.Choice(
+                        List.of("Ja", "Nein", "Vielleicht"),
+                        false,
+                        false,
+                        false,
+                        FormQuestionConfig.MultiLimitType.NONE,
+                        null));
         restrictionRepository.setRestrictions(
                 RestrictionType.FORM.table(),
                 RestrictionType.FORM.fkColumn(),
@@ -436,9 +445,11 @@ public class DemoFormSeeder {
                 "",
                 true,
                 false,
-                FormQuestionConfig.parse(
-                        FormQuestionType.LIKERT,
-                        "{\"statements\":[\"Ich verstehe die Übungen\",\"Ich fühle mich willkommen\",\"Ich lerne viel Neues\"],\"scaleMin\":1,\"scaleMax\":5,\"scaleLabels\":[]}"));
+                new FormQuestionConfig.Likert(
+                        List.of("Ich verstehe die Übungen", "Ich fühle mich willkommen", "Ich lerne viel Neues"),
+                        1,
+                        5,
+                        List.of()));
         formRepository.createQuestion(
                 anfaengerForm.id(),
                 1,
