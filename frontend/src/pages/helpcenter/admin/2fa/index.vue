@@ -7,7 +7,7 @@
 import TwoFactorHelp from '~/views/helpcenter/adminview/TwoFactorHelp'
 
 definePageMeta({
-  layout: 'helpcenter',
+  layout: 'helpcenter-admin',
   name: 'help-admin-two-factor',
 })
 </script>

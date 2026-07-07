@@ -1,5 +1,23 @@
 # Changelog
 
+## v26.11.3
+
+### New Features
+
+- **Step-by-step mail provider guides.** The help center has a dedicated page for each supported mail provider — Brevo, RapidMail, Sweego and Twilio SendGrid — that walks through creating the SMTP credentials and shows which fields to fill in. The mail settings help articles link to them.
+
+### Changes
+
+- **Bundled database upgraded to PostgreSQL 18.** The compose files now mount the database volume at `/var/lib/postgresql` as the new version requires. Existing installations must migrate their data when upgrading, for example with a dump before and a restore after, because the old data directory format is not compatible.
+- **Emails wait for mail setup instead of being lost.** On an instance without a configured mail provider, sign-up, invite and password emails stay queued and are delivered automatically once the mail settings are configured. Before, such emails were only written to the server log.
+- **Mail settings adapt to the chosen provider.** The mail forms in the admin area, the station settings and the station setup show each provider's own fields with matching labels and guidance — Brevo asks for the account login email and an SMTP key, RapidMail and Sweego for their generated SMTP credentials, Twilio SendGrid only for an API key. Failed connection tests explain which credentials the provider expects.
+
+### Fixes
+
+- **Admin help articles are reachable from the help sidebar.** The admin help area mirrors the admin navigation with sections for settings including mail and security, two-factor, monitoring and developer tools, so articles like the mail settings help show up in the sidebar again.
+- **Admin help pages stay in the admin help area.** The help pages for security settings, two-factor and storage monitoring open with the admin help navigation instead of switching to the station help center.
+- **Seeded demo forms keep their question settings.** Choice, date and Likert questions on demo instances carry their answer options and scales again instead of falling back to empty settings.
+
 ## v26.11.2
 
 ### Security

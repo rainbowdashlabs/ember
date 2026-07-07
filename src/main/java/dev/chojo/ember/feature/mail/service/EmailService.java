@@ -163,7 +163,40 @@ public class EmailService {
         MailProvider mailProvider =
                 buildProvider(provider, smtpHost, smtpPort, smtpSsl, user, password, apiKey, senderAddress, senderName);
         if (mailProvider == null) return "No mail provider configured";
-        return mailProvider.testConnection();
+        var result = mailProvider.testConnection();
+        if (result.success()) return null;
+        if (!result.authFailure()) return result.error();
+        return result.error() + authGuidance(provider);
+    }
+
+    /**
+     * Provider-specific advice appended to authentication failures, pointing at the credential
+     * kind each relay actually expects.
+     */
+    private static String authGuidance(MailProviderType provider) {
+        return switch (provider) {
+            case BREVO ->
+                " Brevo expects your Brevo account login email as user and an SMTP key (starts with 'xsmtpsib-') from Settings > SMTP & API. The regular API key ('xkeysib-') does not work for sending mail.";
+            case TWILIO -> " Twilio SendGrid expects an API key starting with 'SG.' as the key.";
+            case RAPIDMAIL ->
+                " RapidMail expects the SMTP username and password generated for a project under Transactional emails > Manage projects.";
+            case SWEEGO -> " Sweego expects the SMTP login and password generated in the Sweego dashboard.";
+            case SMTP -> " Check the SMTP username and password.";
+            case NONE -> "";
+        };
+    }
+
+    /**
+     * Attempts a real connection against the station's persisted mail configuration.
+     *
+     * @param stationId the station ID, may be {@code null}
+     * @return {@code null} on success, or the underlying error message on failure
+     */
+    public String testStationMailConnection(Integer stationId) {
+        if (stationId == null) return "No mail provider configured";
+        var config = mailConfigRepository.findByStation(stationId);
+        if (config.isEmpty() || !config.get().isConfigured()) return "No mail provider configured";
+        return testMailConnection(config.get());
     }
 
     /**
@@ -621,8 +654,10 @@ public class EmailService {
             return;
         }
         if (currentGlobalProvider() == null) {
-            log.warn("Mail not configured. Would send to={} subject={}", to, subject);
-            return;
+            log.warn(
+                    "Mail is not configured; queueing email to={} subject={} until a mail provider is set up",
+                    to,
+                    subject);
         }
         queueRepository.enqueue(to, subject, htmlBody, null);
         log.debug("Email queued to={} subject={}", to, subject);
@@ -632,7 +667,8 @@ public class EmailService {
 
     private void processQueue() {
         try {
-            var batch = queueRepository.fetchPending(20);
+            boolean globalConfigured = currentGlobalProvider() != null;
+            var batch = queueRepository.fetchPending(20, globalConfigured);
             if (batch.isEmpty()) return;
 
             log.debug("Processing batch of {} pending emails", batch.size());
@@ -672,9 +708,11 @@ public class EmailService {
                 } else {
                     MailProvider current = currentGlobalProvider();
                     if (current == null) {
-                        log.warn("Email {} failed: global mail provider not configured", email.id());
-                        queueRepository.markFailed(email.id());
-                        failed++;
+                        log.debug(
+                                "Email {} deferred: global mail provider not configured; keeping it queued",
+                                email.id());
+                        queueRepository.requeue(email.id());
+                        requeued++;
                         continue;
                     }
                     int remaining = remainingToday();

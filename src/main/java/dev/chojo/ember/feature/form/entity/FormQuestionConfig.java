@@ -14,6 +14,7 @@ import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.SerializationFeature;
 import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,12 +47,17 @@ public sealed interface FormQuestionConfig {
             .build();
 
     /**
-     * Parses a JSON string into the appropriate config for the given question type.
+     * Parses a JSON string into the appropriate config for the given question type. The
+     * {@code questionType} discriminator is stamped from the given type before parsing, so
+     * configs stored without one — or with a stale value — resolve to the type the question
+     * row declares.
      */
     static FormQuestionConfig parse(FormQuestionType formQuestionType, String json) {
         if (json == null || json.isBlank() || "{}".equals(json)) return new Unknown();
         try {
-            return MAPPER.readValue(json, formQuestionType.questionClass());
+            if (!(MAPPER.readTree(json) instanceof ObjectNode node)) return new Unknown();
+            node.put("questionType", formQuestionType.name());
+            return MAPPER.treeToValue(node, FormQuestionConfig.class);
         } catch (Exception e) {
             log.error("Failed to parse form question config for type {}: {}", formQuestionType, json, e);
             return new Unknown();
@@ -213,7 +219,13 @@ public sealed interface FormQuestionConfig {
     }
 
     /**
-     * Fallback for unknown or empty configs.
+     * Fallback for unknown or empty configs. Serializes to an empty object so a fallback is
+     * never persisted with a discriminator that no real config type can parse.
      */
-    record Unknown() implements FormQuestionConfig {}
+    record Unknown() implements FormQuestionConfig {
+        @Override
+        public String toJson() {
+            return "{}";
+        }
+    }
 }

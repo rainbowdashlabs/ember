@@ -7,7 +7,7 @@
 import StorageBackendHelp from '~/views/helpcenter/adminview/StorageBackendHelp.vue'
 
 definePageMeta({
-  layout: 'helpcenter',
+  layout: 'helpcenter-admin',
   name: 'help-admin-storage-backend',
 })
 </script>

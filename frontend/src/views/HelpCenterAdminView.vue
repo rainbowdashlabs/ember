@@ -51,29 +51,84 @@ watch(() => t('helpCenter.title'), v => { headerSubtitle.value = v }, {immediate
                      to="/helpcenter/admin/stations/applications" @navigate="close">
           {{ t('sidebar.applications') }}
         </SidebarLink>
-        <SidebarLink :icon="['fas', 'gear']" name="help-admin-settings"
+      </SidebarGroup>
+
+      <SidebarGroup :icon="['fas', 'gear']" :label="t('sidebar.settings')" prefix="/helpcenter/admin/settings">
+        <SidebarLink :icon="['fas', 'sliders']" name="help-admin-settings"
                      to="/helpcenter/admin/settings" @navigate="close">
-          {{ t('sidebar.settings') }}
+          {{ t('sidebar.general') }}
         </SidebarLink>
-        <SidebarLink :icon="['fas', 'shield']" name="help-admin-security"
-                     to="/helpcenter/admin/settings/security" @navigate="close">
-          {{ t('helpCenter.adminSecurity.sidebarLabel') }}
+        <SidebarLink :icon="['fas', 'envelope']" name="help-admin-mailing"
+                     to="/helpcenter/admin/settings/mailing" @navigate="close">
+          {{ t('sidebar.mailing') }}
+        </SidebarLink>
+        <SidebarGroup :icon="['fas', 'shield']" :label="t('sidebar.security')"
+                      prefix="/helpcenter/admin/settings/security" to="/helpcenter/admin/settings/security"
+                      name="help-admin-security" @navigate="close">
+          <SidebarLink :icon="['fas', 'key']" name="help-admin-security-tokens"
+                       to="/helpcenter/admin/settings/security/tokens" @navigate="close">
+            {{ t('sidebar.securityTokens') }}
+          </SidebarLink>
+          <SidebarLink :icon="['fas', 'user-shield']" name="help-admin-security-hibp"
+                       to="/helpcenter/admin/settings/security/hibp" @navigate="close">
+            {{ t('sidebar.securityHibp') }}
+          </SidebarLink>
+          <SidebarLink :icon="['fas', 'mobile-screen']" name="help-admin-security-two-factor"
+                       to="/helpcenter/admin/settings/security/two-factor" @navigate="close">
+            {{ t('sidebar.securityTwoFactor') }}
+          </SidebarLink>
+        </SidebarGroup>
+        <SidebarLink :icon="['fas', 'scale-balanced']" name="help-admin-legal"
+                     to="/helpcenter/admin/settings/legal" @navigate="close">
+          {{ t('sidebar.legal') }}
+        </SidebarLink>
+      </SidebarGroup>
+
+      <SidebarGroup :icon="['fas', 'mobile-screen']" :label="t('sidebar.twoFactor')" prefix="/helpcenter/admin/2fa"
+                    to="/helpcenter/admin/2fa" name="help-admin-two-factor" @navigate="close">
+      </SidebarGroup>
+
+      <SidebarGroup :icon="['fas', 'triangle-exclamation']" :label="t('sidebar.monitoring')"
+                    prefix="/helpcenter/admin/monitoring" group-key="monitoring">
+        <SidebarLink :icon="['fas', 'hard-drive']" name="help-admin-storage"
+                     to="/helpcenter/admin/monitoring/storage" @navigate="close">
+          {{ t('sidebar.storageDashboard') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'bug']" name="help-admin-problems"
+                     to="/helpcenter/admin/monitoring/problems" @navigate="close">
+          {{ t('sidebar.problemLog') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'flag']" name="help-admin-problem-reports"
+                     to="/helpcenter/admin/monitoring/problem-reports" @navigate="close">
+          {{ t('sidebar.problemReports') }}
         </SidebarLink>
         <SidebarLink :icon="['fas', 'chart-line']" name="help-admin-api-status"
                      to="/helpcenter/admin/monitoring/api-status" @navigate="close">
-          {{ t('helpCenter.adminApiStatus.sidebarLabel') }}
+          {{ t('sidebar.apiStatus') }}
         </SidebarLink>
         <SidebarLink :icon="['fas', 'rss']" name="help-admin-feed-metrics"
                      to="/helpcenter/admin/monitoring/feed-metrics" @navigate="close">
-          {{ t('helpCenter.adminFeedMetrics.sidebarLabel') }}
+          {{ t('sidebar.feedMetrics') }}
         </SidebarLink>
         <SidebarLink :icon="['fas', 'tower-broadcast']" name="help-admin-traffic"
                      to="/helpcenter/admin/monitoring/traffic" @navigate="close">
-          {{ t('helpCenter.adminTraffic.sidebarLabel') }}
+          {{ t('sidebar.adminTraffic') }}
         </SidebarLink>
-        <SidebarLink :icon="['fas', 'triangle-exclamation']" name="help-admin-problems"
-                     to="/helpcenter/admin/monitoring/problems" @navigate="close">
-          {{ t('helpCenter.adminProblems.sidebarLabel') }}
+        <SidebarLink :icon="['fas', 'compass']" name="help-admin-discovery"
+                     to="/helpcenter/admin/monitoring/discovery" @navigate="close">
+          {{ t('sidebar.adminDiscovery') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'map-location-dot']" name="help-admin-maps"
+                     to="/helpcenter/admin/monitoring/maps" @navigate="close">
+          {{ t('sidebar.maps') }}
+        </SidebarLink>
+      </SidebarGroup>
+
+      <SidebarGroup :icon="['fas', 'code']" :label="t('sidebar.devTools')" prefix="/helpcenter/admin/dev"
+                    group-key="dev">
+        <SidebarLink :icon="['fas', 'database']" name="help-admin-data-tracking"
+                     to="/helpcenter/admin/dev/data-tracking" @navigate="close">
+          {{ t('sidebar.dataTracking') }}
         </SidebarLink>
       </SidebarGroup>
     </template>

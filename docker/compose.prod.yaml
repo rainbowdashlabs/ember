@@ -6,7 +6,7 @@ services:
       POSTGRES_USER: ember
       POSTGRES_PASSWORD: ember
     volumes:
-      - ember-data:/var/lib/postgresql/data
+      - ember-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ember"]
       interval: 5s

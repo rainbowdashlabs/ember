@@ -16,6 +16,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import {RELAY_PROVIDER_NAMES} from '@/util/mailProviders'
 
 const {t} = useI18n()
 </script>
@@ -28,6 +29,17 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.adminMailing.fieldsTitle')">
       <p>{{ t('helpCenter.adminMailing.fieldsText') }}</p>
+      <p>{{ t('helpCenter.mailConfig.providerKeysNote') }}</p>
+      <p class="flex flex-wrap gap-x-4">
+        <router-link
+            v-for="(name, key) in RELAY_PROVIDER_NAMES"
+            :key="key"
+            :to="{name: 'help-station-mailing-vendor', params: {vendor: String(key).toLowerCase()}}"
+            class="underline"
+        >
+          {{ name }}
+        </router-link>
+      </p>
     </HelpSection>
 
     <!-- Dummy: Mailing config form -->

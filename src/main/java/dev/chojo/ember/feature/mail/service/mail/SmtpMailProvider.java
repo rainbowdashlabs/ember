@@ -91,15 +91,17 @@ public class SmtpMailProvider implements MailProvider {
     }
 
     @Override
-    public String testConnection() {
+    public TestResult testConnection() {
         try {
             Session session = createSession();
             Transport transport = session.getTransport("smtp");
             transport.connect(host, port, user, password);
             transport.close();
-            return null;
+            return TestResult.ok();
+        } catch (AuthenticationFailedException e) {
+            return new TestResult("The mail server rejected the login credentials (" + e.getMessage() + ").", true);
         } catch (Exception e) {
-            return e.getMessage();
+            return new TestResult(e.getMessage(), false);
         }
     }
 

@@ -20,6 +20,8 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
+import MailProviderCredentialFields from '@/components/mail/MailProviderCredentialFields.vue'
+import {RELAY_PROVIDER_NAMES} from '@/util/mailProviders'
 import {stationManage} from '@/api'
 
 const emit = defineEmits<{
@@ -81,12 +83,6 @@ async function saveMailConfig() {
   mailTestResult.value = null
   try {
     const prov = mailProvider.value
-    const providerNameMap: Record<string, string> = {
-      RAPIDMAIL: 'RapidMail',
-      TWILIO: 'Twilio',
-      SWEEGO: 'Sweego',
-      BREVO: 'Brevo',
-    }
     const providerUrlMap: Record<string, string> = {
       RAPIDMAIL: 'https://www.rapidmail.com/data-protection',
       TWILIO: 'https://www.twilio.com/en-us/legal/privacy',
@@ -103,7 +99,7 @@ async function saveMailConfig() {
       senderAddress: mailSenderAddress.value,
       senderName: mailSenderName.value,
       apiKey: mailApiKey.value || undefined,
-      providerName: providerNameMap[prov] ?? mailProviderName.value,
+      providerName: RELAY_PROVIDER_NAMES[prov] ?? mailProviderName.value,
       providerUrl: providerUrlMap[prov] ?? mailProviderUrl.value,
       dailyLimit: mailDailyLimit.value,
       monthlyLimit: mailMonthlyLimit.value,
@@ -231,62 +227,15 @@ onMounted(loadMailConfig)
         </div>
       </template>
 
-      <!-- RapidMail settings -->
-      <template v-if="mailProvider === 'RAPIDMAIL'">
-        <SubHeader>RapidMail</SubHeader>
-        <p class="text-xs text-(--text-muted)">{{ t('stationManage.mailRapidmailHint') }}</p>
-        <div class="grid gap-4 sm:grid-cols-2">
-          <div class="space-y-1">
-            <FieldLabel>{{ t('stationManage.mailSmtpUser') }}</FieldLabel>
-            <TextInput v-model="mailSmtpUser" placeholder="user@example.com" />
-          </div>
-          <div class="space-y-1">
-            <FieldLabel>API Key</FieldLabel>
-            <TextInput v-model="mailApiKey" :placeholder="mailHasApiKey ? t('stationManage.mailApiKeyPlaceholder') : ''" type="password" />
-          </div>
-        </div>
-      </template>
-
-      <!-- Brevo settings -->
-      <template v-if="mailProvider === 'BREVO'">
-        <SubHeader>Brevo</SubHeader>
-        <p class="text-xs text-(--text-muted)">{{ t('stationManage.mailBrevoHint') }}</p>
-        <div class="grid gap-4 sm:grid-cols-2">
-          <div class="space-y-1">
-            <FieldLabel>{{ t('stationManage.mailSmtpUser') }}</FieldLabel>
-            <TextInput v-model="mailSmtpUser" placeholder="user@example.com" />
-          </div>
-          <div class="space-y-1">
-            <FieldLabel>API Key</FieldLabel>
-            <TextInput v-model="mailApiKey" :placeholder="mailHasApiKey ? t('stationManage.mailApiKeyPlaceholder') : ''" type="password" />
-          </div>
-        </div>
-      </template>
-
-      <!-- Sweego settings -->
-      <template v-if="mailProvider === 'SWEEGO'">
-        <SubHeader>Sweego</SubHeader>
-        <p class="text-xs text-(--text-muted)">{{ t('stationManage.mailSweegoHint') }}</p>
-        <div class="grid gap-4 sm:grid-cols-2">
-          <div class="space-y-1">
-            <FieldLabel>{{ t('stationManage.mailSmtpUser') }}</FieldLabel>
-            <TextInput v-model="mailSmtpUser" placeholder="user@example.com" />
-          </div>
-          <div class="space-y-1">
-            <FieldLabel>API Key</FieldLabel>
-            <TextInput v-model="mailApiKey" :placeholder="mailHasApiKey ? t('stationManage.mailApiKeyPlaceholder') : ''" type="password" />
-          </div>
-        </div>
-      </template>
-
-      <!-- Twilio settings -->
-      <template v-if="mailProvider === 'TWILIO'">
-        <SubHeader>Twilio</SubHeader>
-        <p class="text-xs text-(--text-muted)">{{ t('stationManage.mailTwilioHint') }}</p>
-        <div class="space-y-1">
-          <FieldLabel>API Key</FieldLabel>
-          <TextInput v-model="mailApiKey" :placeholder="mailHasApiKey ? t('stationManage.mailApiKeyPlaceholder') : 'SG.xxxxx'" type="password" />
-        </div>
+      <!-- Relay provider credentials -->
+      <template v-if="RELAY_PROVIDER_NAMES[mailProvider]">
+        <SubHeader>{{ RELAY_PROVIDER_NAMES[mailProvider] }}</SubHeader>
+        <MailProviderCredentialFields
+            v-model:user="mailSmtpUser"
+            v-model:secret="mailApiKey"
+            :provider="mailProvider"
+            :secret-placeholder="mailHasApiKey ? t('stationManage.mailApiKeyPlaceholder') : undefined"
+        />
       </template>
     </template>
 

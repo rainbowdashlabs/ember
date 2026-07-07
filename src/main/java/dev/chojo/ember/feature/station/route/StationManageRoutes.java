@@ -474,12 +474,7 @@ public class StationManageRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MailTestResponse.class)))
     private void testMailConfig(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        var provider = emailService.resolveStationProvider(session.stationId());
-        if (provider.isEmpty()) {
-            ctx.json(new MailTestResponse(false, "No mail provider configured"));
-            return;
-        }
-        String error = provider.get().testConnection();
+        String error = emailService.testStationMailConnection(session.stationId());
         ctx.json(new MailTestResponse(error == null, error));
     }
 

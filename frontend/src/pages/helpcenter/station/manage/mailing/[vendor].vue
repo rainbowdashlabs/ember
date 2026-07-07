@@ -4,14 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import StorageAuditHelp from '~/views/helpcenter/adminview/StorageAuditHelp.vue'
+import MailVendorHelp from '~/views/helpcenter/stationview/manage/MailVendorHelp'
 
 definePageMeta({
-  layout: 'helpcenter-admin',
-  name: 'help-admin-storage-audit',
+  layout: 'helpcenter',
+  name: 'help-station-mailing-vendor',
 })
 </script>
 
 <template>
-  <StorageAuditHelp />
+  <MailVendorHelp />
 </template>

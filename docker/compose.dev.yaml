@@ -17,7 +17,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ember-dev-data:/var/lib/postgresql/data
+      - ember-dev-data:/var/lib/postgresql
     profiles:
       - storage
       - full
@@ -213,7 +213,7 @@ services:
       POSTGRES_USER: ember
       POSTGRES_PASSWORD: ember
     volumes:
-      - ember-dev-target-data:/var/lib/postgresql/data
+      - ember-dev-target-data:/var/lib/postgresql
     ports:
       - 5433:5432
     profiles:
