@@ -61,6 +61,7 @@ export default {
             lede: 'Ember ist eine offene Plattform für Jugendfeuerwehren. Termine, Anwesenheit, Material — an einem Ort, ohne Abo.',
             ctaCreate: 'Wache anlegen',
             ctaHost: 'Selbst hosten',
+            ctaDemo: 'Demo ansehen',
             linkDemo: 'oder Demo ansehen →',
             linkLoginDemo: 'oder direkt anmelden →',
             linkLogin: 'oder anmelden →',

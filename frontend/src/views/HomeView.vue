@@ -6,9 +6,9 @@
 <script lang="ts" setup>
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import HeroSection from '@/views/homeview/HeroSection.vue'
+import LandingCta from '@/views/homeview/LandingCta.vue'
 import MittwochAbend from '@/views/homeview/MittwochAbend.vue'
 import MaterialSpotlight from '@/views/homeview/MaterialSpotlight.vue'
 import FeaturesGrid from '@/views/homeview/FeaturesGrid.vue'
@@ -68,16 +68,7 @@ useHead({
         {{ t('landing.closing.title') }}
       </SectionHeader>
       <div class="closing-actions mt-6">
-        <router-link v-if="registrationEnabled" to="/apply">
-          <PrimaryButton :icon="['fas', 'building']" class="cta">
-            {{ t('landing.hero.ctaCreate') }}
-          </PrimaryButton>
-        </router-link>
-        <router-link v-else to="/helpcenter/station/basics/hosting">
-          <PrimaryButton :icon="['fas', 'server']" class="cta">
-            {{ t('landing.hero.ctaHost') }}
-          </PrimaryButton>
-        </router-link>
+        <LandingCta :registration-enabled="registrationEnabled" :demo-url="demoUrl" :is-demo="isDemo"/>
         <router-link to="/helpcenter/station/basics" class="link-quiet">
           {{ t('landing.closing.linkHelp') }}
         </router-link>
@@ -112,10 +103,6 @@ useHead({
   justify-content: center;
   gap: 1.5rem;
   flex-wrap: wrap;
-}
-.cta {
-  padding: 0.85rem 1.5rem;
-  font-size: 1rem;
 }
 .link-quiet {
   font-size: 0.95rem;

@@ -4,10 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {onMounted, ref} from 'vue'
+import {computed, onMounted} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import client from '@/api/client'
 import {getItem} from '@/api/storage'
 import {useSession} from '@/composables/useSession'
 import {useStations} from '@/composables/useStations'
@@ -24,18 +23,20 @@ const {sessionInfo, loaded, load} = useSession()
 const {loaded: stationsLoaded, load: loadStations} = useStations()
 const {prideActive, prideVariant} = usePride()
 const logo = emberLogo()
-const isDemo = ref(false)
 
-onMounted(async () => {
+const {data: publicConfig} = await useAsyncData(
+    'home-public-config',
+    () => $fetch<{demoUrl?: string; demo?: boolean}>('/api/v1/public/config').catch(() => ({} as {demoUrl?: string; demo?: boolean})),
+    {default: () => ({demoUrl: '', demo: false})},
+)
+const isDemo = computed(() => publicConfig.value?.demo ?? false)
+
+onMounted(() => {
   const token = getItem('session_token')
   if (token) {
     if (!loaded.value) load()
     if (!stationsLoaded.value) loadStations()
   }
-  try {
-    const res = await client.get<{ demo?: boolean }>('/public/config')
-    isDemo.value = res.data.demo ?? false
-  } catch { /* ignore */ }
 })
 </script>
 
