@@ -14,6 +14,7 @@ import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +34,7 @@ import static org.slf4j.LoggerFactory.getLogger;
  * @param email                the account email address
  * @param accountSetupPending  {@code true} when the linked account has never been logged into; flagged in the
  *                             member list so managers can chase the recipient or resend the setup mail
+ * @param setupMailExpiresAt   when the most recent password-setup link expires, or null when none was sent
  * @param former               whether this member has been marked as a former member
  * @param userType             the station user type (e.g. MEMBER, TEAM, MANAGER)
  * @param roles                the list of role names assigned to this member
@@ -48,6 +50,7 @@ public record RichMember(
         String name,
         String email,
         boolean accountSetupPending,
+        Instant setupMailExpiresAt,
         boolean former,
         StationUserType userType,
         LocalDate joinDate,
@@ -76,6 +79,7 @@ public record RichMember(
                 row.getString("name"),
                 row.getString("email"),
                 row.getBoolean("account_setup_pending"),
+                row.get("setup_mail_expires_at", StandardValueConverter.INSTANT_TIMESTAMP),
                 row.getBoolean("former"),
                 row.getEnum("user_type", StationUserType.class),
                 row.getDate("join_date") != null ? row.getDate("join_date").toLocalDate() : null,
@@ -108,6 +112,7 @@ public record RichMember(
                 name,
                 email,
                 accountSetupPending,
+                setupMailExpiresAt,
                 former,
                 userType,
                 joinDate,

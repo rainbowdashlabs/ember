@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
+import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
@@ -35,7 +36,12 @@ class StationServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         service = new StationService(
-                stationRepo, stationMemberRepo, accountRepo, mock(AuthService.class), mock(FederationService.class));
+                stationRepo,
+                stationMemberRepo,
+                accountRepo,
+                mock(FederationService.class),
+                new StationMemberInviteService(
+                        stationMemberRepo, memberGroupRepo, accountRepo, mock(AuthService.class)));
     }
 
     @Test
@@ -160,6 +166,22 @@ class StationServiceTest extends RepositoryTestBase {
         var results = service.findDiscoverable(stationId);
         assertTrue(results.stream().anyMatch(s -> s.id() == other.id()));
         stationRepo.delete(other.id());
+    }
+
+    @Test
+    @Order(28)
+    void findPubliclyDiscoverableExcludesInstanceVisibility() {
+        var publicStation = stationRepo.create("Publicly Discoverable SvcTest");
+        stationRepo.updateDiscoverySettings(publicStation.id(), DiscoveryVisibility.PUBLIC, "Public", false);
+        var instanceStation = stationRepo.create("Instance Discoverable SvcTest");
+        stationRepo.updateDiscoverySettings(instanceStation.id(), DiscoveryVisibility.INSTANCE, "Instance", false);
+
+        var results = service.findPubliclyDiscoverable(stationId);
+
+        assertTrue(results.stream().anyMatch(s -> s.id() == publicStation.id()));
+        assertFalse(results.stream().anyMatch(s -> s.id() == instanceStation.id()));
+        stationRepo.delete(publicStation.id());
+        stationRepo.delete(instanceStation.id());
     }
 
     @Test

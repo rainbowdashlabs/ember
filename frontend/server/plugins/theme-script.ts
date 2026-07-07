@@ -10,7 +10,7 @@ import {contrastTextColor, ensureContrast} from '../../src/theme/contrast'
 
 const THEME_SCRIPT = `<script>try{var m=localStorage.getItem('dark_mode')||localStorage.getItem('theme');if(m==='LIGHT'||m==='light'){document.documentElement.classList.add('light')}else if(m==='DARK'||m==='dark'){document.documentElement.classList.add('dark')}else{document.documentElement.classList.add(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light')}}catch(e){}</script>`
 
-const BACKEND_URL = process.env.EMBER_BACKEND_URL || 'http://localhost:8080'
+const BACKEND_URL = process.env.EMBER_BACKEND_URL || process.env.NUXT_BACKEND_URL || 'http://localhost:8080'
 const CACHE_TTL_MS = 60_000
 const PUBLIC_STATION_RE = /^\/public\/station\/([^/]+)/
 

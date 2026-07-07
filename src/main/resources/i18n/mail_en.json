@@ -11,7 +11,6 @@
     "reset-password": "Reset your password",
     "email-change": "Confirm your new email address",
     "station-delete": "Confirm station deletion",
-    "station-member-invite": "You have been invited to {stationName}",
     "application-verify": "Confirm your application for {stationName}",
     "application-accepted": "Your application for {stationName} has been accepted",
     "application-denied": "Your application for {stationName}",
@@ -19,7 +18,8 @@
     "waitlist-verify": "Confirm waiting list registration{stationSuffix}",
     "waitlist-registered": "Waiting list registration{stationSuffix}",
     "waitlist-confirm-reminder": "Please confirm your interest{stationSuffix}",
-    "waitlist-removal-warning": "Waiting list removal in 2 weeks{stationSuffix}"
+    "waitlist-removal-warning": "Waiting list removal in 2 weeks{stationSuffix}",
+    "test-mail": "Test email from Ember"
   },
   "body": {
     "twoFactorReset.defaultActor": "an administrator"

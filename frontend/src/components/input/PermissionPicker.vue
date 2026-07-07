@@ -237,6 +237,7 @@ const GROUP_ICONS: Record<string, string[]> = {
   NEWS_MANAGER: ['fas', 'newspaper'],
   POLL_MANAGER: ['fas', 'square-poll-vertical'],
   LOST_AND_FOUND_MANAGER: ['fas', 'magnifying-glass'],
+  CHECKLIST_MANAGER: ['fas', 'square-check'],
   TEST_MANAGER: ['fas', 'graduation-cap'],
   PROTOCOL_MANAGER: ['fas', 'clipboard-list'],
   BOARD_MANAGER: ['fas', 'table-columns'],

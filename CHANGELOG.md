@@ -1,5 +1,31 @@
 # Changelog
 
+## v26.11.4
+
+### Security
+
+- **Visitors only see publicly listed stations.** The station directory at /discovery shows instance-visible stations and stations with public content only to signed-in users; without signing in, only stations that opted into public visibility appear.
+
+### New Features
+
+- **Send a test email from the mail settings.** The station mail settings and the instance mail settings offer a "Send test mail" button that delivers a real test message to your own address, so delivery can be verified end to end.
+
+### Changes
+
+- **Start page links to the demo when sign-up is closed.** On instances where station registration is disabled and a demo address is configured, the start page's main button opens the demo instead of the station application. Without a demo address it keeps pointing to the self-hosting guide.
+- **Inviting a member creates the account right away.** Invited people appear in the member list immediately and can be assigned to groups, events and attendance before their first sign-in; the invite email asks them to set a password.
+- **Invites to existing accounts join the station.** Inviting an email address that already belongs to an account adds that account as a member of the station instead of failing.
+- **Pending invites convert on upgrade.** Invitations that were not yet accepted become member accounts during the upgrade and the previous acceptance page is removed; such members can be sent a fresh password link via the resend button in the member list.
+- **Member list shows when a setup link expires.** For members who have not set their password yet, the pending marker shows until when the emailed setup link is valid.
+
+### Fixes
+
+- **Station applications confirm only after submitting.** The application page at /apply shows the form first and the "application received" confirmation only once an application has actually been sent.
+- **Pages open in the configured theme.** Public pages paint in the instance's configured theme from the first moment, without briefly flashing the stock colors. The server-side theme also respects the `NUXT_BACKEND_URL` variable, so it works on installations that only set that one.
+- **The location map shows its pin.** Picking a station address on the map during station setup or in the station settings shows the draggable pin again.
+- **Every permission has a readable name.** The permission picker shows proper German names and descriptions for the checklist, item hand-out, storage location, form submission and poll result permissions instead of raw technical keys, and the checklist group shows its own icon.
+- **Page titles follow navigation.** In the station and admin areas, the browser tab title and the page heading with its description update when moving between pages, not only after a full reload.
+
 ## v26.11.3
 
 ### New Features

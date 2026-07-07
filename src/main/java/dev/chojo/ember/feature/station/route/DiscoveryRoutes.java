@@ -56,8 +56,12 @@ public class DiscoveryRoutes implements Routes {
         routes.post(prefix + "/discovery/request", this::requestFederation, StationPermission.STATION_FEDERATION);
     }
 
+    /**
+     * Lists stations for the discovery page. Visitors without a session only see stations that
+     * opted into public visibility; signed-in users additionally see instance-visible stations
+     * and stations exposing public content.
+     */
     private void listDiscoverable(Context ctx) {
-        // Determine exclude station and partner set (if authenticated)
         int excludeStationId = 0;
         Set<UUID> partnerStationUids = Collections.emptySet();
 
@@ -70,9 +74,11 @@ public class DiscoveryRoutes implements Routes {
                     .toList());
         }
 
-        // Merge discoverable stations + stations with public content (deduplicated)
-        var discoverable = stationService.findDiscoverable(excludeStationId);
-        var publicStations = stationService.findWithPublicContent(excludeStationId);
+        var discoverable = session != null
+                ? stationService.findDiscoverable(excludeStationId)
+                : stationService.findPubliclyDiscoverable(excludeStationId);
+        var publicStations =
+                session != null ? stationService.findWithPublicContent(excludeStationId) : List.<Station>of();
         var seen = new HashSet<Integer>();
         Set<UUID> finalPartnerStationUids = partnerStationUids;
 
@@ -100,8 +106,10 @@ public class DiscoveryRoutes implements Routes {
             throw new BadRequestResponse("stationUid is required");
         }
 
-        // Verify the station is discoverable
-        var targetStation = stationService.findDiscoverable(0).stream()
+        UserSession session = ctx.attribute(ApiServer.ATTR_SESSION);
+        var candidates =
+                session != null ? stationService.findDiscoverable(0) : stationService.findPubliclyDiscoverable(0);
+        var targetStation = candidates.stream()
                 .filter(s -> s.uid().equals(body.stationUid()))
                 .findFirst()
                 .orElseThrow(() -> new NotFoundResponse("Station not found or not discoverable"));

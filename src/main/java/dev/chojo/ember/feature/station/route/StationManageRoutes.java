@@ -10,6 +10,7 @@ import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.mail.service.EmailService;
@@ -65,6 +66,7 @@ public class StationManageRoutes implements Routes {
             Set.of("image/png", "image/jpeg", "image/webp", "image/gif");
 
     private final StationService stationService;
+    private final AccountRepository accountRepository;
     private final StationMailConfigRepository mailConfigRepository;
     private final EmailService emailService;
     private final AuthService authService;
@@ -76,6 +78,7 @@ public class StationManageRoutes implements Routes {
     @Inject
     public StationManageRoutes(
             StationService stationService,
+            AccountRepository accountRepository,
             StationMailConfigRepository mailConfigRepository,
             EmailService emailService,
             AuthService authService,
@@ -84,6 +87,7 @@ public class StationManageRoutes implements Routes {
             StationRepository stationRepository,
             StationLogoService logoService) {
         this.stationService = stationService;
+        this.accountRepository = accountRepository;
         this.mailConfigRepository = mailConfigRepository;
         this.emailService = emailService;
         this.authService = authService;
@@ -111,6 +115,7 @@ public class StationManageRoutes implements Routes {
         routes.put(prefix + "/station/manage/mail", this::updateMailConfig, StationPermission.STATION_MAIL);
         routes.delete(prefix + "/station/manage/mail", this::clearMailConfig, StationPermission.STATION_MAIL);
         routes.post(prefix + "/station/manage/mail/test", this::testMailConfig, StationPermission.STATION_MAIL);
+        routes.post(prefix + "/station/manage/mail/test-mail", this::sendTestMail, StationPermission.STATION_MAIL);
         routes.get(prefix + "/station/manage/modules", this::getDisabledModules, StationPermission.STATION_MODULES);
         routes.put(prefix + "/station/manage/modules", this::setDisabledModules, StationPermission.STATION_MODULES);
         routes.post(prefix + "/station/manage/import", this::importInto, StationPermission.STATION_IMPORT_EXPORT);
@@ -476,6 +481,30 @@ public class StationManageRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         String error = emailService.testStationMailConnection(session.stationId());
         ctx.json(new MailTestResponse(error == null, error));
+    }
+
+    @OpenApi(
+            path = "/api/v1/station/manage/mail/test-mail",
+            methods = HttpMethod.POST,
+            summary = "Send a test email to the signed-in account via the station mail configuration",
+            tags = {"Station Manage"},
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
+                @OpenApiResponse(status = "400")
+            })
+    private void sendTestMail(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var config = mailConfigRepository.findByStation(session.stationId());
+        if (config.isEmpty() || !config.get().isConfigured()) {
+            throw new BadRequestResponse("No mail provider configured");
+        }
+        var account = session.account();
+        emailService.sendTestEmail(
+                account.email(),
+                account.firstName(),
+                accountRepository.findMailLocale(account.id()),
+                session.stationId());
+        ctx.json(new MessageResponse("Test email queued"));
     }
 
     @OpenApi(

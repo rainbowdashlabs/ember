@@ -222,11 +222,6 @@ const router = createRouter({
             ],
         },
         {
-            path: '/invite/:token',
-            name: 'public-station-invite',
-            component: () => import('@/views/public/StationInviteView.vue'),
-        },
-        {
             path: '/station',
             component: DashboardView,
             children: [

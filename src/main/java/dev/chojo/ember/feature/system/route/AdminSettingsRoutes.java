@@ -5,7 +5,9 @@
  */
 package dev.chojo.ember.feature.system.route;
 
+import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.conf.Conf;
@@ -15,6 +17,7 @@ import dev.chojo.ember.conf.file.elements.MailSettings;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.conf.file.elements.Theming;
 import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
+import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.legal.entity.LegalDocumentType;
 import dev.chojo.ember.feature.legal.service.LegalDocumentService;
 import dev.chojo.ember.feature.mail.service.EmailService;
@@ -81,6 +84,7 @@ public class AdminSettingsRoutes implements Routes {
     private final LogoFragmentService logoFragmentService;
     private final Conf conf;
     private final EmailService emailService;
+    private final AccountRepository accountRepository;
     private final LegalDocumentService documentService;
 
     @Inject
@@ -88,11 +92,13 @@ public class AdminSettingsRoutes implements Routes {
             ApplicationSettingRepository settingRepository,
             LogoFragmentService logoFragmentService,
             Conf conf,
-            EmailService emailService) {
+            EmailService emailService,
+            AccountRepository accountRepository) {
         this.settingRepository = settingRepository;
         this.logoFragmentService = logoFragmentService;
         this.conf = conf;
         this.emailService = emailService;
+        this.accountRepository = accountRepository;
         this.documentService = new LegalDocumentService();
         initializeLogoFragments();
     }
@@ -213,6 +219,7 @@ public class AdminSettingsRoutes implements Routes {
                 InstancePermission.ADMINISTRATOR,
                 StepUpCategory.INSTANCE_CONFIG);
         routes.get(prefix + "/admin/config/mailing", this::getMailingConfig, InstancePermission.ADMINISTRATOR);
+        routes.post(prefix + "/admin/config/mailing/test-mail", this::sendTestMail, InstancePermission.ADMINISTRATOR);
         routes.put(
                 prefix + "/admin/config/mailing",
                 this::updateMailingConfig,
@@ -630,6 +637,26 @@ public class AdminSettingsRoutes implements Routes {
                 webauthn.attestation(),
                 webauthn.timeoutSeconds(),
                 webauthn.requireResidentKey());
+    }
+
+    @OpenApi(
+            path = "/api/v1/admin/config/mailing/test-mail",
+            methods = HttpMethod.POST,
+            summary = "Send a test email to the signed-in account via the instance mail relay",
+            tags = {"Admin Settings"},
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
+                @OpenApiResponse(status = "400")
+            })
+    private void sendTestMail(Context ctx) {
+        if (!emailService.isGlobalMailConfigured()) {
+            throw new BadRequestResponse("No mail provider configured");
+        }
+        UserSession session = UserSession.from(ctx);
+        var account = session.account();
+        emailService.sendTestEmail(
+                account.email(), account.firstName(), accountRepository.findMailLocale(account.id()), null);
+        ctx.json(new MessageResponse("Test email queued"));
     }
 
     private void getMailingConfig(Context ctx) {

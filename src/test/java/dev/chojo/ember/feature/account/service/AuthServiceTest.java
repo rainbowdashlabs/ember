@@ -36,7 +36,6 @@ import static org.mockito.Mockito.*;
 class AuthServiceTest extends RepositoryTestBase {
     private static AuthService service;
     private static final String EMAIL = "auth-test@test.com";
-    private static final String EMAIL_INVITED = "auth-invited@test.com";
     private static final String PASSWORD = "TestPassword123!";
     private static int accountId;
     private static String verifyToken;
@@ -169,31 +168,6 @@ class AuthServiceTest extends RepositoryTestBase {
     @Order(9)
     void logoutInvalidToken() {
         assertFalse(service.logout("invalid-session-token-xyz"));
-    }
-
-    @Test
-    @Order(10)
-    void createInvitedAccountSuccess() {
-        // No stationRepo.delete here: the orphan-account sweep on station delete would also
-        // remove the freshly-invited account, breaking the duplicate-email assertion in
-        // createInvitedAccountDuplicate that follows.
-        var station = stationRepo.create("Invited Station");
-        var result = service.createInvitedAccount(EMAIL_INVITED, "Invited", "User", station.id());
-        assertTrue(result.success());
-        assertNotNull(result.account());
-        assertEquals(EMAIL_INVITED, result.account().email());
-        assertTrue(result.account().emailVerified());
-    }
-
-    @Test
-    @Order(11)
-    void createInvitedAccountDuplicate() {
-        var station = stationRepo.create("Invited Station 2");
-        var result = service.createInvitedAccount(EMAIL_INVITED, "Invited", "User2", station.id());
-        assertFalse(result.success());
-        assertEquals("Email already in use", result.message());
-        // Likewise no station delete — keep the duplicate-account state stable for any test
-        // further down the @Order chain that depends on it.
     }
 
     @Test
@@ -775,6 +749,5 @@ class AuthServiceTest extends RepositoryTestBase {
     @Order(99)
     void cleanup() {
         accountRepo.delete(accountId);
-        accountRepo.findByEmail(EMAIL_INVITED).ifPresent(a -> accountRepo.delete(a.id()));
     }
 }

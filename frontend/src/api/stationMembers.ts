@@ -38,6 +38,7 @@ export interface RichMember {
     name: string
     email: string
     accountSetupPending: boolean
+    setupMailExpiresAt: string | null
     former: boolean
     userType: string
     roles: string[]

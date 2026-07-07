@@ -24,57 +24,28 @@ export interface CreateInvitesRequest {
     invites: InviteEntry[]
 }
 
-export interface StationMemberInviteResponse {
-    id: number
-    stationId: number
-    email: string
-    firstName: string
-    lastName: string
-    userType: string
-    groupId: number | null
-    guardianOfInviteId: number | null
-    invitedByMemberId: number
-    expiresAt: string
-    acceptedAt: string | null
-    createdAt: string
-}
-
-export interface PublicStationMemberInviteResponse {
-    firstName: string
-    lastName: string
-    email: string
-    userType: string
-    stationName: string
-    accepted: boolean
-    expired: boolean
-}
-
-export interface AcceptResult {
-    accountId: number
+export interface ProvisionedMemberResponse {
     memberId: number
-    stationId: number
+    accountId: number
+    email: string
+    firstName: string
+    lastName: string
+    userType: string
+    accountCreated: boolean
+    membershipCreated: boolean
 }
 
-export async function createInvites(body: CreateInvitesRequest): Promise<StationMemberInviteResponse[]> {
-    const res = await client.post<StationMemberInviteResponse[]>('/station-members/invites', body)
-    return res.data
+export interface FailedInviteResponse {
+    email: string
+    reason: string
 }
 
-export async function listInvites(): Promise<StationMemberInviteResponse[]> {
-    const res = await client.get<StationMemberInviteResponse[]>('/station-members/invites')
-    return res.data
+export interface CreateInvitesResponse {
+    provisioned: ProvisionedMemberResponse[]
+    failed: FailedInviteResponse[]
 }
 
-export async function deleteInvite(id: number): Promise<void> {
-    await client.delete(`/station-members/invites/${id}`)
-}
-
-export async function publicLookup(token: string): Promise<PublicStationMemberInviteResponse> {
-    const res = await client.get<PublicStationMemberInviteResponse>(`/public/station-invite/${token}`)
-    return res.data
-}
-
-export async function publicAccept(token: string, password: string): Promise<AcceptResult> {
-    const res = await client.post<AcceptResult>(`/public/station-invite/${token}/accept`, {password})
+export async function createInvites(body: CreateInvitesRequest): Promise<CreateInvitesResponse> {
+    const res = await client.post<CreateInvitesResponse>('/station-members/invites', body)
     return res.data
 }

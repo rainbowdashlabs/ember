@@ -6,15 +6,16 @@
 package dev.chojo.ember.feature.station.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
-import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.ManagerInfo;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -44,21 +45,21 @@ public class StationService {
     private final StationRepository stationRepository;
     private final StationMemberRepository memberRepository;
     private final AccountRepository accountRepository;
-    private final AuthService authService;
     private final FederationService federationService;
+    private final StationMemberInviteService inviteService;
 
     @Inject
     public StationService(
             StationRepository stationRepository,
             StationMemberRepository memberRepository,
             AccountRepository accountRepository,
-            AuthService authService,
-            FederationService federationService) {
+            FederationService federationService,
+            StationMemberInviteService inviteService) {
         this.stationRepository = stationRepository;
         this.memberRepository = memberRepository;
         this.accountRepository = accountRepository;
-        this.authService = authService;
         this.federationService = federationService;
+        this.inviteService = inviteService;
     }
 
     /**
@@ -343,41 +344,35 @@ public class StationService {
     }
 
     /**
-     * Assigns the MANAGER role to the given email and sets them as station owner if no owner exists yet.
+     * Finds stations discoverable without being signed in — only stations that opted into
+     * public visibility.
+     */
+    public List<Station> findPubliclyDiscoverable(int excludeStationId) {
+        return stationRepository.findDiscoverable(
+                excludeStationId, DiscoveryVisibility.PUBLIC, DiscoveryVisibility.PUBLIC);
+    }
+
+    /**
+     * Assigns the MANAGER role to the given email and sets them as station owner if no owner
+     * exists yet. The account and membership are provisioned immediately when missing; a new
+     * account receives a password-setup email.
      */
     private void assignManager(int stationId, String managerEmail) {
         Permission managerRole = memberRepository
                 .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
                 .orElseThrow(() -> new IllegalStateException("manager role not found"));
 
-        // Find or invite account
-        Optional<Account> accountOpt = accountRepository.findByEmail(managerEmail);
-        Account account;
-        if (accountOpt.isPresent()) {
-            account = accountOpt.get();
-        } else {
-            var result = authService.createInvitedAccount(managerEmail, "", "", stationId);
-            if (!result.success()) {
-                throw new IllegalStateException("Failed to invite account: " + result.message());
-            }
-            account = result.account();
-        }
+        var provisioned = inviteService.provision(stationId, managerEmail, "", "", StationUserType.MANAGER, null);
+        int memberId = provisioned.memberId();
 
-        // Ensure membership
-        StationMember member = memberRepository
-                .findByStationAndAccount(stationId, account.id())
-                .orElseGet(() -> memberRepository.create(stationId, account.id()));
-
-        // Assign manager role
-        List<Permission> currentRoles = memberRepository.findPermissions(member.id());
+        List<Permission> currentRoles = memberRepository.findPermissions(memberId);
         if (currentRoles.stream().noneMatch(r -> r.id() == managerRole.id())) {
-            memberRepository.grantPermission(member.id(), managerRole.id());
+            memberRepository.grantPermission(memberId, managerRole.id());
         }
 
-        // Set as owner if no owner exists yet
         var station = stationRepository.findById(stationId).orElse(null);
         if (station != null && station.ownerMemberId() == null) {
-            stationRepository.setOwner(stationId, member.id());
+            stationRepository.setOwner(stationId, memberId);
         }
     }
 }

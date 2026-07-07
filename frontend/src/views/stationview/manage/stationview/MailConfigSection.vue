@@ -155,6 +155,20 @@ async function testMail() {
   }
 }
 
+const sendingTestMail = ref(false)
+
+async function sendTestMail() {
+  sendingTestMail.value = true
+  try {
+    await stationManage.sendTestMail()
+    emit('success', t('stationManage.mailTestMailSent'))
+  } catch {
+    emit('error', t('common.error'))
+  } finally {
+    sendingTestMail.value = false
+  }
+}
+
 onMounted(loadMailConfig)
 </script>
 
@@ -261,6 +275,9 @@ onMounted(loadMailConfig)
       <SuccessButton :icon="['fas', 'plug']" v-if="mailProvider !== 'NONE'" :disabled="mailTesting" @click="testMail">
         {{ mailTesting ? t('common.loading') : t('stationManage.mailTest') }}
       </SuccessButton>
+      <SecondaryButton :icon="['fas', 'paper-plane']" v-if="mailProvider !== 'NONE'" :disabled="sendingTestMail" @click="sendTestMail">
+        {{ sendingTestMail ? t('common.loading') : t('stationManage.mailTestMail') }}
+      </SecondaryButton>
       <ErrorButton :icon="['fas', 'trash']" :disabled="clearing" @click="showClearModal = true">
         {{ t('stationManage.mailClear') }}
       </ErrorButton>

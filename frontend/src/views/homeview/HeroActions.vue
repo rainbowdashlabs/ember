@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import LandingCta from '@/views/homeview/LandingCta.vue'
 
 defineProps<{
   registrationEnabled: boolean
@@ -19,17 +19,8 @@ const {t} = useI18n()
 
 <template>
   <div class="actions" :class="{'actions--center': center}">
-    <router-link v-if="registrationEnabled" to="/apply">
-      <PrimaryButton :icon="['fas', 'building']" class="cta">
-        {{ t('landing.hero.ctaCreate') }}
-      </PrimaryButton>
-    </router-link>
-    <router-link v-else to="/helpcenter/station/basics/hosting">
-      <PrimaryButton :icon="['fas', 'server']" class="cta">
-        {{ t('landing.hero.ctaHost') }}
-      </PrimaryButton>
-    </router-link>
-    <a v-if="demoUrl && !isDemo" :href="demoUrl" target="_blank" rel="noopener noreferrer" class="link-quiet">
+    <LandingCta :registration-enabled="registrationEnabled" :demo-url="demoUrl" :is-demo="isDemo"/>
+    <a v-if="registrationEnabled && demoUrl && !isDemo" :href="demoUrl" target="_blank" rel="noopener noreferrer" class="link-quiet">
       {{ t('landing.hero.linkDemo') }}
     </a>
     <router-link v-else-if="isDemo" to="/login" class="link-quiet">
@@ -50,10 +41,6 @@ const {t} = useI18n()
 }
 .actions--center {
   justify-content: center;
-}
-.cta {
-  padding: 0.85rem 1.5rem;
-  font-size: 1rem;
 }
 .link-quiet {
   font-size: 0.95rem;
