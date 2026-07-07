@@ -40,9 +40,32 @@ public interface MailProvider {
     SendResult send(String to, String subject, String htmlBody);
 
     /**
+     * Outcome of a connection test.
+     *
+     * @param error       human-readable error, or {@code null} when the connection succeeded
+     * @param authFailure whether the server rejected the login credentials
+     */
+    record TestResult(String error, boolean authFailure) {
+
+        /**
+         * Creates a successful result.
+         */
+        public static TestResult ok() {
+            return new TestResult(null, false);
+        }
+
+        /**
+         * Whether the connection test succeeded.
+         */
+        public boolean success() {
+            return error == null;
+        }
+    }
+
+    /**
      * Test the connection/configuration.
      *
-     * @return null if OK, error message otherwise
+     * @return the outcome of the connection attempt
      */
-    String testConnection();
+    TestResult testConnection();
 }

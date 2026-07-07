@@ -76,7 +76,7 @@ async function clearMailingConfig() {
       <template v-if="!loading">
         <NeutralContainer class="space-y-4">
           <GeneralFieldsPanel v-model="mailingConfig"/>
-          <SmtpPanel v-model="mailingConfig"/>
+          <SmtpPanel v-if="mailingConfig.provider === 'SMTP'" v-model="mailingConfig"/>
           <div class="flex justify-end gap-2 flex-wrap">
             <ErrorButton :icon="['fas', 'trash']" :disabled="clearing" @click="showClearModal = true">
               {{ t('adminSettings.mailing.clear') }}

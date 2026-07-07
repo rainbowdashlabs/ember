@@ -4,6 +4,34 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 export default {
+    mailProviders: {
+        BREVO: {
+            intro: 'Brevo vergibt eigene SMTP-Zugangsdaten. Du findest sie in Brevo rechts oben unter deinem Kontonamen → „SMTP & API“.',
+            userLabel: 'Anmelde-E-Mail',
+            userHint: 'Die E-Mail-Adresse, die Brevo auf der Seite „SMTP & API“ als Login anzeigt — in der Regel die E-Mail-Adresse deines Brevo-Kontos.',
+            secretLabel: 'SMTP-Schlüssel',
+            secretHint: 'Ein SMTP-Schlüssel beginnt mit „xsmtpsib-“. Der reguläre API-Schlüssel („xkeysib-“) funktioniert für den Versand nicht.',
+        },
+        RAPIDMAIL: {
+            intro: 'RapidMail erstellt SMTP-Zugangsdaten pro Projekt. Du findest sie unter Transaktionsmails → Projekte verwalten → Bearbeiten.',
+            userLabel: 'SMTP-Benutzername',
+            userHint: 'Der generierte Benutzername aus deinem Transaktionsmail-Projekt — nicht dein RapidMail-Login.',
+            secretLabel: 'SMTP-Passwort',
+            secretHint: 'Das generierte Passwort aus demselben Transaktionsmail-Projekt.',
+        },
+        SWEEGO: {
+            intro: 'Sweego erstellt SMTP-Zugangsdaten im Dashboard, sobald deine Domain verifiziert ist.',
+            userLabel: 'SMTP-Login',
+            userHint: 'Der generierte SMTP-Login aus dem Sweego-Dashboard.',
+            secretLabel: 'SMTP-Passwort',
+            secretHint: 'Das generierte SMTP-Passwort aus dem Sweego-Dashboard.',
+        },
+        TWILIO: {
+            intro: 'Twilio SendGrid nutzt einen API-Schlüssel für den SMTP-Versand. Als Benutzername wird automatisch „apikey“ verwendet.',
+            secretLabel: 'API-Schlüssel',
+            secretHint: 'Erstelle den Schlüssel in SendGrid unter Settings → API Keys; er beginnt mit „SG.“.',
+        },
+    },
     transferImport: {
         completed: 'Import abgeschlossen.',
         failed: 'Import fehlgeschlagen: {error}',
@@ -2957,10 +2985,6 @@ export default {
         mailProviderName: 'Anbieter-Name',
         mailProviderNamePlaceholder: 'z.B. Eigener Server',
         mailProviderUrl: 'Datenschutz-URL des Anbieters',
-        mailRapidmailHint: 'Verwende die SMTP-Relay-Zugangsdaten aus deinem RapidMail-Konto.',
-        mailBrevoHint: 'Verwende die SMTP-Zugangsdaten aus deinem Brevo-Konto.',
-        mailSweegoHint: 'Verwende die SMTP-Zugangsdaten aus deinem Sweego-Konto.',
-        mailTwilioHint: 'Verwende einen API Key aus deinem Twilio-Konto.',
         mailSenderAddress: 'Absender-Adresse',
         mailSenderName: 'Absender-Name',
         mailSmtpHost: 'SMTP-Host',

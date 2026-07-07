@@ -9,6 +9,8 @@ import TextInput from '@/components/input/text/TextInput.vue'
 
 defineProps<{
   label: string
+  type?: string
+  hint?: string
 }>()
 
 const value = defineModel<string>({required: true})
@@ -17,6 +19,7 @@ const value = defineModel<string>({required: true})
 <template>
   <div>
     <FieldLabel class="mb-1">{{ label }}</FieldLabel>
-    <TextInput v-model="value"/>
+    <TextInput v-model="value" :type="type"/>
+    <p v-if="hint" class="text-xs text-(--text-muted) mt-1">{{ hint }}</p>
   </div>
 </template>

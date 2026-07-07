@@ -14,6 +14,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
+import MailProviderCredentialFields from '@/components/mail/MailProviderCredentialFields.vue'
 import {stationManage} from '@/api'
 import type {MailConfigRequest} from '@/api/stationManage'
 import {useSetupStatus} from '@/composables/useSetupStatus'
@@ -120,10 +121,11 @@ async function save() {
         </label>
       </template>
       <template v-else-if="cfg.provider !== 'NONE'">
-        <label class="block text-sm">
-          {{ t('setup.steps.mail.apiKey') }}
-          <TextInput v-model="cfg.apiKey" type="password"/>
-        </label>
+        <MailProviderCredentialFields
+            v-model:user="cfg.smtpUser"
+            v-model:secret="cfg.apiKey"
+            :provider="cfg.provider"
+        />
       </template>
     </div>
   </SetupLayout>
