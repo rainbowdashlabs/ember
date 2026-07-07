@@ -1532,6 +1532,7 @@ export default {
     },
     membersList: {
         accountPending: 'Konto noch nicht eingerichtet — die Person hat sich noch nicht das erste Mal angemeldet.',
+        accountPendingExpires: 'Der zugesendete Link ist gültig bis {date}.',
         accountPendingResend: 'Einrichtungs-Mail erneut senden',
         resendConfirm: 'Die Einrichtungs-Mail an {name} wird erneut versendet. Fortfahren?',
         resendAction: 'Erneut senden',
@@ -6984,7 +6985,7 @@ export default {
             invites: {
                 label: 'Einladungen',
                 title: 'Mitglieder einladen',
-                hint: 'Optional — versende Einladungs-Mails an deine zukünftigen Mitglieder.',
+                hint: 'Optional — lege deine Mitglieder direkt an. Jedes Mitglied erhält eine E-Mail, um sein Passwort zu setzen.',
                 tabBulk: 'Schnell-Liste',
                 tabRich: 'Detail-Formular',
                 tabCsv: 'CSV-Import',
@@ -6996,7 +6997,7 @@ export default {
                 userType: 'Mitgliedstyp',
                 group: 'Gruppe',
                 groupNone: '— keine Zuordnung —',
-                expandedCount: '{n} Einladungen werden erzeugt.',
+                expandedCount: '{n} Mitglieder werden angelegt.',
                 firstName: 'Vorname',
                 lastName: 'Nachname',
                 email: 'E-Mail',
@@ -7013,15 +7014,5 @@ export default {
                 mailReminder: 'Hinweis: Die Mailing-Anbindung der Wache ist noch nicht eingerichtet — Benachrichtigungen werden bis dahin nicht versendet.',
             },
         },
-    },
-    publicStationInvite: {
-        title: 'Einladung annehmen',
-        notFound: 'Diese Einladung wurde nicht gefunden.',
-        expired: 'Diese Einladung ist abgelaufen. Bitte sprich die Wache an.',
-        alreadyAccepted: 'Diese Einladung wurde bereits angenommen.',
-        expiredOrUsed: 'Diese Einladung kann nicht mehr verwendet werden.',
-        weakPassword: 'Das Passwort erfüllt nicht die Sicherheitsanforderungen.',
-        greeting: 'Hallo {name}, du wurdest in die Wache {station} eingeladen.',
-        accept: 'Einladung annehmen',
     },
 }

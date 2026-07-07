@@ -285,32 +285,26 @@ public class EmailService {
     }
 
     /**
-     * Sends a station-member invite email to a freshly invited recipient. Routed through the
-     * instance-wide mail relay because it is mandatory transactional mail and must work even
-     * when the station has not configured its own outbound notification relay yet.
+     * Whether the instance-wide mail relay has a configured provider.
      */
-    public void sendStationMemberInviteEmail(
-            String email,
-            String name,
-            String inviterName,
-            String stationName,
-            String token,
-            String expiresAt,
-            String locale,
-            Integer stationId) {
-        String url = api.baseUrl() + "/invite/" + token;
+    public boolean isGlobalMailConfigured() {
+        return currentGlobalProvider() != null;
+    }
+
+    /**
+     * Sends a test email so an administrator can verify mail delivery end to end. A station id
+     * routes the mail through that station's own outbound mailbox, including its send caps;
+     * {@code null} routes it through the instance-wide relay.
+     */
+    public void sendTestEmail(String to, String name, String locale, Integer stationId) {
         var vars = baseVars(name, stationId);
-        vars.put("url", url);
-        vars.put("inviterName", inviterName != null ? inviterName : "");
-        vars.put("stationName", stationName != null ? stationName : "");
-        vars.put("expiresAt", expiresAt != null ? expiresAt : "");
+        String subjectLine = subject("test-mail", locale, null);
+        String body = loadTemplate("test-mail.html", locale, vars);
         if (stationId != null) {
-            vars.put("logoUrl", api.baseUrl() + "/api/v1/stations/" + stationId + "/logo");
+            queueStationEmail(stationId, to, subjectLine, body);
+        } else {
+            enqueueGlobal(to, subjectLine, body);
         }
-        enqueueGlobal(
-                email,
-                subject("station-member-invite", locale, Map.of("stationName", stationName != null ? stationName : "")),
-                loadTemplate("station-member-invite.html", locale, vars));
     }
 
     /**

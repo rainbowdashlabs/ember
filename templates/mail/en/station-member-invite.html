@@ -1,8 +1,0 @@
-{% extends '_layout.html' %}
-{% block body %}
-      <h2>Hello {{ name }},</h2>
-      <p><strong>{{ inviterName }}</strong> has invited you to join the station <strong>{{ stationName }}</strong>.</p>
-      <p>To accept the invitation, set up your account and password:</p>
-      <div class="btn-wrap"><a class="btn-green" href="{{ url }}">Accept Invitation</a></div>
-      <p class="hint">This link expires on {{ expiresAt }}.</p>
-{% endblock %}

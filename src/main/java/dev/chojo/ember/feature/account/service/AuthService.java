@@ -170,38 +170,6 @@ public class AuthService {
     }
 
     /**
-     * Creates an account for an invited user. The email is pre-verified, and a password setup token
-     * is sent via email. A station membership is created automatically.
-     *
-     * @param email     the email address
-     * @param firstName the first name
-     * @param lastName  the last name
-     * @param stationId the station to create a membership for
-     * @return the registration result indicating success or failure
-     */
-    public RegistrationResult createInvitedAccount(String email, String firstName, String lastName, int stationId) {
-        if (accountRepository.findByEmail(email).isPresent()) {
-            return RegistrationResult.failure("Email already in use");
-        }
-
-        var account = accountRepository.create(email, firstName, lastName, true, stationId);
-        int accountId = account.id();
-
-        stationMemberRepository.create(stationId, accountId);
-
-        String token = generateToken();
-        accountRepository.createToken(
-                accountId,
-                token,
-                TokenType.SET_PASSWORD,
-                Instant.now().plus(authConfig.passwordTokenHours(), ChronoUnit.HOURS));
-        emailService.sendPasswordSetupEmail(email, firstName, token, accountRepository.findMailLocale(accountId));
-
-        log.info("Invited account created: account {} ({}) for station {}", accountId, email, stationId);
-        return RegistrationResult.success(accountRepository.findById(accountId).orElseThrow());
-    }
-
-    /**
      * Sends a password setup email to an existing account that has no credentials yet.
      * Creates a SET_PASSWORD token and sends the setup email.
      *

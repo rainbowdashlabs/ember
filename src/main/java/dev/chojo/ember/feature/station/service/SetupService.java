@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.station.service;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
-import dev.chojo.ember.feature.members.repository.StationMemberInviteRepository;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationMailConfig;
 import dev.chojo.ember.feature.station.entity.StationModule;
@@ -75,7 +75,7 @@ public class SetupService {
     private final MemberGroupRepository memberGroupRepository;
     private final EventRepository eventRepository;
     private final KnowledgeBaseRepository knowledgeBaseRepository;
-    private final StationMemberInviteRepository inviteRepository;
+    private final StationMemberRepository stationMemberRepository;
     private final StationService stationService;
 
     @Inject
@@ -85,14 +85,14 @@ public class SetupService {
             MemberGroupRepository memberGroupRepository,
             EventRepository eventRepository,
             KnowledgeBaseRepository knowledgeBaseRepository,
-            StationMemberInviteRepository inviteRepository,
+            StationMemberRepository stationMemberRepository,
             StationService stationService) {
         this.stationRepository = stationRepository;
         this.mailConfigRepository = mailConfigRepository;
         this.memberGroupRepository = memberGroupRepository;
         this.eventRepository = eventRepository;
         this.knowledgeBaseRepository = knowledgeBaseRepository;
-        this.inviteRepository = inviteRepository;
+        this.stationMemberRepository = stationMemberRepository;
         this.stationService = stationService;
     }
 
@@ -176,7 +176,12 @@ public class SetupService {
                 new StepState(
                         STEP_KB_SEED, kbEnabled && knowledgeBaseRepository.existsForStation(stationId), kbEnabled));
         map.put(STEP_FEDERATION, new StepState(STEP_FEDERATION, isFederationComplete(station), true));
-        map.put(STEP_INVITES, new StepState(STEP_INVITES, inviteRepository.existsForStation(stationId), true));
+        map.put(
+                STEP_INVITES,
+                new StepState(
+                        STEP_INVITES,
+                        stationMemberRepository.findByStation(stationId).size() > 1,
+                        true));
         return OPTIONAL_STEP_IDS.stream().map(map::get).toList();
     }
 

@@ -5,13 +5,12 @@
  */
 package dev.chojo.ember.feature.station.service;
 
-import de.chojo.sadu.queries.api.call.Call;
-import de.chojo.sadu.queries.api.query.Query;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -50,14 +49,19 @@ class SetupServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setupServices() {
         StationService stationService = new StationService(
-                stationRepo, stationMemberRepo, accountRepo, mock(AuthService.class), mock(FederationService.class));
+                stationRepo,
+                stationMemberRepo,
+                accountRepo,
+                mock(FederationService.class),
+                new StationMemberInviteService(
+                        stationMemberRepo, memberGroupRepo, accountRepo, mock(AuthService.class)));
         setupService = new SetupService(
                 stationRepo,
                 stationMailConfigRepo,
                 memberGroupRepo,
                 eventRepo,
                 knowledgeBaseRepo,
-                stationMemberInviteRepo,
+                stationMemberRepo,
                 stationService);
     }
 
@@ -170,9 +174,10 @@ class SetupServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    void invites_step_completes_when_at_least_one_invite_exists() {
+    void invites_step_completes_when_another_member_exists() {
         assertFalse(optionalComplete(SetupService.STEP_INVITES));
-        insertInvite(station.id(), inviterMemberId);
+        Account invited = accountRepo.create("invited-" + System.nanoTime() + "@test.com", "Invited", "User");
+        stationMemberRepo.create(station.id(), invited.id());
         assertTrue(optionalComplete(SetupService.STEP_INVITES));
     }
 
@@ -232,21 +237,6 @@ class SetupServiceTest extends RepositoryTestBase {
 
     private static Map<String, Boolean> byId(List<StepState> steps) {
         return steps.stream().collect(Collectors.toMap(StepState::id, StepState::complete));
-    }
-
-    private static void insertInvite(int stationId, int memberId) {
-        Query.query("""
-                INSERT INTO station_member_invite(
-                    station_id, token, email, first_name, last_name, user_type,
-                    invited_by_member_id, expires_at)
-                VALUES (
-                    :station_id, :token, 'new@example.com', 'New', 'User', 'MEMBER',
-                    :member_id, now() + interval '14 days');""")
-                .single(Call.call()
-                        .bind("station_id", stationId)
-                        .bind("token", "tok-" + System.nanoTime())
-                        .bind("member_id", memberId))
-                .insert();
     }
 
     private void satisfyAllRequired() {

@@ -110,8 +110,8 @@ async function save() {
     }
     saving.value = true
     try {
-        const created = await stationMemberInvites.createInvites({invites: payload})
-        successCount.value = created.length
+        const result = await stationMemberInvites.createInvites({invites: payload})
+        successCount.value = result.provisioned.length
         await reload()
         const next = nextStep('invites')
         if (next) router.push({name: stepRouteName(next)})

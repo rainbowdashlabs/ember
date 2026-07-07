@@ -50,7 +50,6 @@ import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.RegistrationCodeRepository;
 import dev.chojo.ember.feature.members.repository.SavedFilterRepository;
-import dev.chojo.ember.feature.members.repository.StationMemberInviteRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserSettingsRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
@@ -142,7 +141,6 @@ public abstract class RepositoryTestBase {
     protected static NotificationSettingsRepository notificationSettingsRepo;
     protected static StationApplicationRepository stationApplicationRepo;
     protected static StationMailConfigRepository stationMailConfigRepo;
-    protected static StationMemberInviteRepository stationMemberInviteRepo;
     protected static WaitingListRepository waitingListRepo;
     protected static EventCommentRepository eventCommentRepo;
     protected static NoteRepository noteRepo;
@@ -256,7 +254,6 @@ public abstract class RepositoryTestBase {
         notificationSettingsRepo = new NotificationSettingsRepository();
         stationApplicationRepo = new StationApplicationRepository();
         stationMailConfigRepo = new StationMailConfigRepository();
-        stationMemberInviteRepo = new StationMemberInviteRepository();
         waitingListRepo = new WaitingListRepository();
         eventCommentRepo = new EventCommentRepository();
         noteRepo = new NoteRepository();

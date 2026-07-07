@@ -10,9 +10,12 @@ import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.StationMemberInviteService;
+import dev.chojo.ember.feature.members.service.StationMemberInviteService.ProvisionException;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ConflictResponse;
 import io.javalin.http.Context;
@@ -40,15 +43,18 @@ public class MemberRoutes implements Routes {
     private final AuthService authService;
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
+    private final StationMemberInviteService inviteService;
 
     @Inject
     public MemberRoutes(
             AuthService authService,
             AccountRepository accountRepository,
-            StationMemberRepository stationMemberRepository) {
+            StationMemberRepository stationMemberRepository,
+            StationMemberInviteService inviteService) {
         this.authService = authService;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
+        this.inviteService = inviteService;
     }
 
     private static boolean isBlank(String s) {
@@ -126,7 +132,7 @@ public class MemberRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Invite a new user to a station",
             description =
-                    "Creates a pre-verified account associated with the station from X-Station-Id and sends a password setup email. Requires MEMBER_MANAGER role.",
+                    "Provisions a pre-verified account and station membership immediately and sends a password setup email. An email that already belongs to an account attaches that account to the station instead.",
             tags = {"Members"},
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = InviteRequest.class)),
             responses = {
@@ -141,18 +147,23 @@ public class MemberRoutes implements Routes {
         }
 
         UserSession session = UserSession.from(ctx);
-        var result = authService.createInvitedAccount(
-                request.email(), request.firstName(), request.lastName(), session.stationId());
-        if (!result.success()) {
-            throw new ConflictResponse(result.message());
+        try {
+            var provisioned = inviteService.provision(
+                    session.stationId(),
+                    request.email(),
+                    request.firstName(),
+                    request.lastName(),
+                    StationUserType.MEMBER,
+                    null);
+            ctx.status(HttpStatus.CREATED)
+                    .json(new InviteResponse(
+                            provisioned.accountId(),
+                            provisioned.email(),
+                            provisioned.firstName(),
+                            provisioned.lastName()));
+        } catch (ProvisionException e) {
+            throw new ConflictResponse(e.getMessage());
         }
-
-        ctx.status(HttpStatus.CREATED)
-                .json(new InviteResponse(
-                        result.account().id(),
-                        result.account().email(),
-                        result.account().firstName(),
-                        result.account().lastName()));
     }
 
     @OpenApi(

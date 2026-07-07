@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import EditButton from '@/components/button/EditButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
@@ -14,11 +15,12 @@ import FieldValueDisplay from '@/components/display/FieldValueDisplay.vue'
 import Td from '@/components/table/Td.vue'
 import TRow from '@/components/table/TRow.vue'
 import MemberTypeBadge from './MemberTypeBadge.vue'
+import {formatDate} from '@/util/format'
 import type {ProfileField, StationMember} from '@/api/types'
 
 const {t} = useI18n()
 
-defineProps<{
+const props = defineProps<{
   member: StationMember
   visibleColumns: ProfileField[]
   memberGroups: string[]
@@ -38,6 +40,12 @@ const emit = defineEmits<{
   navigateEdit: [event: Event]
   resendSetup: [event: Event]
 }>()
+
+const pendingTitle = computed(() => {
+  const base = t('membersList.accountPending')
+  if (!props.member.setupMailExpiresAt) return base
+  return `${base} ${t('membersList.accountPendingExpires', {date: formatDate(props.member.setupMailExpiresAt)})}`
+})
 </script>
 
 <template>
@@ -65,7 +73,7 @@ const emit = defineEmits<{
         <IconButton
             v-if="member.accountSetupPending && canEdit"
             :icon="['fas', 'paper-plane']"
-            :title="t('membersList.accountPendingResend')"
+            :title="pendingTitle"
             :label="t('membersList.accountPendingResend')"
             class="ml-auto text-warning hover:bg-warning/15"
             @click.stop="emit('resendSetup', $event)"
@@ -73,7 +81,7 @@ const emit = defineEmits<{
         <font-awesome-icon
             v-else-if="member.accountSetupPending"
             :icon="['fas', 'hourglass-half']"
-            :title="t('membersList.accountPending')"
+            :title="pendingTitle"
             class="ml-auto text-warning w-3.5 h-3.5"
         />
       </div>

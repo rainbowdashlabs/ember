@@ -1089,7 +1089,7 @@ volumes:
             roleMemberManager: 'Erziehungsberechtigter — Jemand, der andere Mitglieder verwaltet (z.B. ein Elternteil).',
             roleTeam: 'Team — Ein Teammitglied mit erweiterten Rechten (z.B. ein Betreuer).',
             step2: 'Schritt 2: Persönliche Daten',
-            step2Text: 'Trage Vorname, Nachname und E-Mail ein. Eine Einladung wird an die E-Mail gesendet.',
+            step2Text: 'Trage Vorname, Nachname und E-Mail ein. Das Konto wird sofort angelegt und die Person bekommt eine E-Mail mit einem Link, um ihr Passwort zu setzen. Bis dahin zeigt die Mitgliederliste eine Sanduhr neben dem Namen — dort kannst du die E-Mail auch erneut senden.',
             step2NoLogin: 'Für Mitglieder ohne eigenen Zugang (z.B. kleine Kinder) kannst du „Kann sich anmelden" deaktivieren. Diese Mitglieder werden dann über ihren Erziehungsberechtigter verwaltet.',
             step3: 'Schritt 3: Profilfelder',
             step3Text: 'Fülle die Profilfelder aus. Pflichtfelder sind mit einem * markiert.',

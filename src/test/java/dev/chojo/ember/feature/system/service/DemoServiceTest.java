@@ -47,6 +47,7 @@ import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
 import dev.chojo.ember.feature.media.service.ImageVariantService;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.news.repository.NewsFederationRepository;
@@ -155,8 +156,12 @@ class DemoServiceTest extends RepositoryTestBase {
         var avatarService = new AvatarService(imageVariantWriter);
         var quizImageService = new QuizQuestionImageService(imageVariantWriter, stationRepo);
         var authService = mock(AuthService.class);
-        var stationService =
-                new StationService(stationRepo, stationMemberRepo, accountRepo, authService, federationService);
+        var stationService = new StationService(
+                stationRepo,
+                stationMemberRepo,
+                accountRepo,
+                federationService,
+                new StationMemberInviteService(stationMemberRepo, memberGroupRepo, accountRepo, authService));
 
         var groupService =
                 new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo, new DomainEventBus(Set.of()));
