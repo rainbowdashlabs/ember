@@ -18,6 +18,7 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
+import {RELAY_PROVIDER_NAMES} from '@/util/mailProviders'
 
 const {t} = useI18n()
 </script>
@@ -37,6 +38,17 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.mailConfig.providerBrevo') }}</p>
       <p>{{ t('helpCenter.mailConfig.providerSweego') }}</p>
       <p>{{ t('helpCenter.mailConfig.providerTwilio') }}</p>
+      <p>{{ t('helpCenter.mailConfig.providerKeysNote') }}</p>
+      <p class="flex flex-wrap gap-x-4">
+        <router-link
+            v-for="(name, key) in RELAY_PROVIDER_NAMES"
+            :key="key"
+            :to="{name: 'help-station-mailing-vendor', params: {vendor: String(key).toLowerCase()}}"
+            class="underline"
+        >
+          {{ name }}
+        </router-link>
+      </p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.mailConfig.euTitle')">
@@ -90,15 +102,17 @@ const {t} = useI18n()
       </div>
 
       <SubHeader>Brevo</SubHeader>
-      <p class="text-xs text-(--text-muted)">{{ t('stationManage.mailBrevoHint') }}</p>
+      <p class="text-xs text-(--text-muted)">{{ t('mailProviders.BREVO.intro') }}</p>
       <div class="grid gap-4 sm:grid-cols-2">
         <div class="space-y-1">
-          <FieldLabel>{{ t('stationManage.mailSmtpUser') }}</FieldLabel>
+          <FieldLabel>{{ t('mailProviders.BREVO.userLabel') }}</FieldLabel>
           <TextInput model-value="user@example.com" disabled/>
+          <p class="text-xs text-(--text-muted)">{{ t('mailProviders.BREVO.userHint') }}</p>
         </div>
         <div class="space-y-1">
-          <FieldLabel>API Key</FieldLabel>
-          <TextInput model-value="" :placeholder="t('stationManage.mailApiKeyPlaceholder')" type="password" disabled/>
+          <FieldLabel>{{ t('mailProviders.BREVO.secretLabel') }}</FieldLabel>
+          <TextInput model-value="" placeholder="xsmtpsib-…" type="password" disabled/>
+          <p class="text-xs text-(--text-muted)">{{ t('mailProviders.BREVO.secretHint') }}</p>
         </div>
       </div>
     </NeutralContainer>

@@ -4,14 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import MailConfigHelp from '~/views/helpcenter/stationview/manage/MailConfigHelp'
+import MailVendorHelp from '~/views/helpcenter/stationview/manage/MailVendorHelp'
 
 definePageMeta({
   layout: 'helpcenter',
-  name: 'help-station-mailing',
+  name: 'help-station-mailing-vendor',
 })
 </script>
 
 <template>
-  <MailConfigHelp />
+  <MailVendorHelp />
 </template>

@@ -959,6 +959,8 @@ volumes:
             providerBrevo: 'Brevo — Ein internationaler Anbieter mit kostenlosem Einsteigertarif.',
             providerSweego: 'Sweego — Ein französischer Anbieter mit kostenlosem Starttarif.',
             providerTwilio: 'Twilio (SendGrid) — Ein US-Anbieter mit großem Freikontingent.',
+            providerKeysNote:
+                'Wichtig: Diese Anbieter brauchen ihre SMTP-Zugangsdaten, nicht den normalen API-Schlüssel. Eine Schritt-für-Schritt-Anleitung für jeden Anbieter findest du hier:',
             euTitle: 'Welche Anbieter hosten in der EU?',
             euText: 'Wenn dir Datenschutz wichtig ist, achte darauf, wo deine E-Mails verarbeitet werden:',
             euRapidmail: 'RapidMail — Hostet komplett in Deutschland. Ideal für maximalen Datenschutz.',
@@ -991,6 +993,42 @@ volumes:
             testTitle: 'Verbindung testen',
             testText: 'Mit dem Button „Verbindung testen" kannst du prüfen, ob alles richtig eingerichtet ist. Es wird eine Test-E-Mail an den Eigentümer der Wache gesendet.',
             tip: 'Für kleine Wachen reicht oft der kostenlose Tarif von Brevo oder Sweego. Beide hosten in der EU und sind DSGVO-konform.',
+        },
+        mailVendor: {
+            title: '{vendor} einrichten',
+            subtitle: 'So richtest du den E-Mail-Versand über {vendor} ein.',
+            stepsTitle: 'Schritt für Schritt',
+            formTitle: 'Diese Felder füllst du aus',
+            senderTip:
+                'Die Absender-Adresse sollte zu einer Domain gehören, die du beim Anbieter bestätigt hast. Sonst landen die E-Mails oft im Spam-Ordner.',
+            BREVO: {
+                step1: 'Melde dich auf brevo.com an.',
+                step2: 'Klicke rechts oben auf deinen Kontonamen und wähle „SMTP & API“.',
+                step3: 'Wechsle auf den Reiter „SMTP“ und klicke auf „Neuen SMTP-Schlüssel erstellen“.',
+                step4: 'Kopiere den Schlüssel (beginnt mit „xsmtpsib-“). Er wird nur einmal angezeigt.',
+                step5: 'Trage hier deine Brevo-Anmelde-E-Mail und den kopierten SMTP-Schlüssel ein.',
+            },
+            RAPIDMAIL: {
+                step1: 'Melde dich bei RapidMail an.',
+                step2: 'Öffne Transaktionsmails → Projekte verwalten.',
+                step3: 'Lege ein Projekt an oder öffne ein bestehendes über „Bearbeiten“.',
+                step4: 'Dort werden dir Benutzername und Passwort für den Versand angezeigt.',
+                step5: 'Trage beide Werte hier ein.',
+            },
+            SWEEGO: {
+                step1: 'Melde dich im Sweego-Dashboard an.',
+                step2: 'Füge deine Domain hinzu und bestätige sie über die angezeigten DNS-Einträge.',
+                step3: 'Erstelle danach SMTP-Zugangsdaten für die Domain.',
+                step4: 'Kopiere Login und Passwort — sie werden nur einmal angezeigt.',
+                step5: 'Trage beide Werte hier ein.',
+            },
+            TWILIO: {
+                step1: 'Melde dich bei SendGrid an.',
+                step2: 'Öffne Settings → API Keys und klicke auf „Create API Key“.',
+                step3: 'Wähle mindestens die Berechtigung zum E-Mail-Versand.',
+                step4: 'Kopiere den Schlüssel (beginnt mit „SG.“). Er wird nur einmal angezeigt.',
+                step5: 'Trage den Schlüssel hier ein — ein Benutzername ist nicht nötig.',
+            },
         },
         attendanceConfig: {
             title: 'Anwesenheits-Konfiguration',

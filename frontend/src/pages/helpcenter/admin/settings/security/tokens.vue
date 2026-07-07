@@ -7,7 +7,7 @@
 import SecurityTokensHelp from '~/views/helpcenter/adminview/SecurityTokensHelp'
 
 definePageMeta({
-  layout: 'helpcenter',
+  layout: 'helpcenter-admin',
   name: 'help-admin-security-tokens',
 })
 </script>

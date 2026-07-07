@@ -1413,6 +1413,11 @@ const router = createRouter({
                     component: () => import('@/views/helpcenter/stationview/manage/MailConfigHelp.vue')
                 },
                 {
+                    path: 'manage/mailing/:vendor',
+                    name: 'help-station-mailing-vendor',
+                    component: () => import('@/views/helpcenter/stationview/manage/MailVendorHelp.vue')
+                },
+                {
                     path: 'manage/modules',
                     name: 'help-station-modules',
                     component: () => import('@/views/helpcenter/stationview/manage/ModulesHelp.vue')

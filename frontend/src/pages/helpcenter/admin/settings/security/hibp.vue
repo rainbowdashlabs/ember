@@ -7,7 +7,7 @@
 import SecurityHibpHelp from '~/views/helpcenter/adminview/SecurityHibpHelp'
 
 definePageMeta({
-  layout: 'helpcenter',
+  layout: 'helpcenter-admin',
   name: 'help-admin-security-hibp',
 })
 </script>
