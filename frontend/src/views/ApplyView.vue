@@ -71,12 +71,12 @@ async function submit() {
 
       <Spinner v-if="loading" size="md" />
 
-      <template v-if="!loading && !registrationEnabled">
+      <template v-else-if="!registrationEnabled">
         <Alert variant="info">{{ t('apply.disabled') }}</Alert>
         <BackToLoginLink/>
       </template>
 
-      <template v-if="!loading && registrationEnabled && !submitted">
+      <template v-else-if="!submitted">
         <p class="text-sm text-(--text-muted)">{{ t('apply.hint') }}</p>
         <Alert v-if="error" variant="error">{{ error }}</Alert>
         <ApplyForm v-model:first-name="firstName" v-model:last-name="lastName" v-model:email="email"

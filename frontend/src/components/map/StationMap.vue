@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import {nextTick, onBeforeUnmount, onMounted, ref, watch} from 'vue'
 import {useMapsConfig} from '@/composables/useMapsConfig'
+import {loadLeaflet} from '@/util/leaflet'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
@@ -56,7 +57,7 @@ let markers: Map<string, any> = new Map()
 
 async function init() {
   if (!mapEl.value || typeof window === 'undefined') return
-  const L = (await import('leaflet')).default
+  const L = await loadLeaflet()
   if (props.cluster) {
     await import('leaflet.markercluster')
   }
@@ -131,7 +132,7 @@ watch(
     () => props.stations,
     async () => {
       if (!mapInstance) return
-      const L = (await import('leaflet')).default
+      const L = await loadLeaflet()
       renderMarkers(L)
     },
     {deep: true},

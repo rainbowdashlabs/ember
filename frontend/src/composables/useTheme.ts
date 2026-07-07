@@ -91,7 +91,7 @@ function resolveEffectiveFeel(feel: FeelValue, themeKey: string): FeelValue {
     return feel
 }
 
-function applyDarkMode(mode: DarkModeValue) {
+function applyDarkModeClass(mode: DarkModeValue) {
     const html = document.documentElement
     html.classList.remove('dark', 'light')
     if (mode === DarkMode.DARK) {
@@ -102,25 +102,26 @@ function applyDarkMode(mode: DarkModeValue) {
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
         html.classList.add(prefersDark ? 'dark' : 'light')
     }
+}
+
+function applyDarkMode(mode: DarkModeValue) {
+    applyDarkModeClass(mode)
     applyModeColors()
 }
 
+/**
+ * Applies the theme available from local storage (user theme, falling back to the cached
+ * instance theme) and refreshes the instance theme from the server. When nothing is stored
+ * locally, no inline styles are written so the server-rendered theme style stays visible
+ * until the instance theme arrives — avoiding a stock-theme flash on first paint.
+ */
 function initFromLocalStorage() {
     const hasSession = !!getItem('session_token')
     const savedTheme = hasSession ? getItem('theme_name') : null
     const savedDarkMode = (hasSession ? getItem('dark_mode') : null) as DarkModeValue | null
     const savedFeel = (hasSession ? getItem('feel') : null) as FeelValue | null
-    if (savedTheme && THEMES[savedTheme]) {
-        activeTheme.value = savedTheme
-    }
-    applyTheme(activeTheme.value)
-
-    if (savedFeel && Object.values(Feel).includes(savedFeel)) {
-        activeFeel.value = savedFeel
-    }
-    const effectiveFeel = resolveEffectiveFeel(activeFeel.value, activeTheme.value)
-    activeFeel.value = effectiveFeel
-    applyFeel(effectiveFeel)
+    const cachedTheme = getItem('instance_theme')
+    const cachedFeel = getItem('instance_feel') as FeelValue | null
 
     if (savedDarkMode) {
         darkMode.value = savedDarkMode
@@ -130,7 +131,27 @@ function initFromLocalStorage() {
             darkMode.value = old
         }
     }
-    applyDarkMode(darkMode.value)
+    applyDarkModeClass(darkMode.value)
+
+    if (savedFeel && Object.values(Feel).includes(savedFeel)) {
+        activeFeel.value = savedFeel
+    } else if (cachedFeel && Object.values(Feel).includes(cachedFeel)) {
+        activeFeel.value = cachedFeel
+    }
+
+    const knownTheme =
+        savedTheme && THEMES[savedTheme]
+            ? savedTheme
+            : cachedTheme && THEMES[cachedTheme]
+                ? cachedTheme
+                : null
+    if (knownTheme) {
+        activeTheme.value = knownTheme
+        applyTheme(knownTheme)
+        const effectiveFeel = resolveEffectiveFeel(activeFeel.value, knownTheme)
+        activeFeel.value = effectiveFeel
+        applyFeel(effectiveFeel)
+    }
 
     return fetchPublicTheme()
 }
@@ -143,19 +164,6 @@ async function fetchPublicTheme() {
     publicThemeFetched = true
 
     const hasSession = !!getItem('session_token')
-    const cachedTheme = getItem('instance_theme')
-    const cachedFeel = getItem('instance_feel') as FeelValue | null
-    const userSavedTheme = hasSession ? getItem('theme_name') : null
-    if (!stationOverrideActive && cachedTheme && !userSavedTheme) {
-        activeTheme.value = cachedTheme
-        applyTheme(cachedTheme)
-        if (cachedFeel) {
-            const feel = resolveEffectiveFeel(cachedFeel, cachedTheme)
-            activeFeel.value = feel
-            applyFeel(feel)
-        }
-    }
-
     try {
         const { getPublicTheme } = await import('@/api/adminSettings')
         const pub = await getPublicTheme()

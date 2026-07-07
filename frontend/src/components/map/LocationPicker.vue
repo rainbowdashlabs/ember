@@ -7,6 +7,7 @@
 import {nextTick, onBeforeUnmount, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useMapsConfig} from '@/composables/useMapsConfig'
+import {loadLeaflet} from '@/util/leaflet'
 import DecimalInput from '@/components/input/number/DecimalInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -59,13 +60,13 @@ watch([latInput, lonInput], async ([lat, lon]) => {
   emit('update:latitude', lat ?? null)
   emit('update:longitude', lon ?? null)
   if (!mapInstance || typeof lat !== 'number' || typeof lon !== 'number') return
-  const L = (await import('leaflet')).default
+  const L = await loadLeaflet()
   setOrMoveMarker(L, lat, lon, false)
 })
 
 async function init() {
   if (!mapEl.value || typeof window === 'undefined') return
-  const L = (await import('leaflet')).default
+  const L = await loadLeaflet()
   const config = await load()
   if (!mapEl.value) return
 
@@ -126,7 +127,7 @@ defineExpose({
    * {@code GeolocateButton} when "use my position" succeeds.
    */
   async setCoordinates(lat: number, lng: number) {
-    const L = (await import('leaflet')).default
+    const L = await loadLeaflet()
     if (mapInstance) {
       mapInstance.setView([lat, lng], 13)
     }
