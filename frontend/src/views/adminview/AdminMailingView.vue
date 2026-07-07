@@ -48,9 +48,24 @@ const {config: mailingConfig, loading, error, runWith, reload} = useConfigPanel<
 
 const showClearModal = ref(false)
 const clearing = ref(false)
+const sendingTestMail = ref(false)
+const testMailSent = ref(false)
 
 async function saveMailingConfig() {
   await runWith(() => adminSettings.updateMailingConfig(mailingConfig.value), {rethrow: true})
+}
+
+async function sendTestMail() {
+  sendingTestMail.value = true
+  testMailSent.value = false
+  try {
+    await adminSettings.sendTestMail()
+    testMailSent.value = true
+  } catch (e) {
+    error.value = describeAxiosError(e)
+  } finally {
+    sendingTestMail.value = false
+  }
 }
 
 async function clearMailingConfig() {
@@ -81,8 +96,16 @@ async function clearMailingConfig() {
             <ErrorButton :icon="['fas', 'trash']" :disabled="clearing" @click="showClearModal = true">
               {{ t('adminSettings.mailing.clear') }}
             </ErrorButton>
+            <SecondaryButton
+                v-if="mailingConfig.provider !== 'NONE'"
+                :icon="['fas', 'paper-plane']"
+                :disabled="sendingTestMail"
+                @click="sendTestMail">
+              {{ sendingTestMail ? t('common.loading') : t('adminSettings.mailing.testMail') }}
+            </SecondaryButton>
             <SaveButton :action="saveMailingConfig"/>
           </div>
+          <Alert v-if="testMailSent" variant="success">{{ t('adminSettings.mailing.testMailSent') }}</Alert>
         </NeutralContainer>
       </template>
 

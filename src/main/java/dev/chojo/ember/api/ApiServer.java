@@ -109,6 +109,7 @@ public class ApiServer {
             "/api/v1/session/gdpr-export",
             "/api/v1/session/avatar",
             "/api/v1/station/manage/mail/test",
+            "/api/v1/station/manage/mail/test-mail",
             "/api/v1/station/manage/request-delete",
             "/api/v1/station/manage/import",
             "/api/v1/station/manage/logo",

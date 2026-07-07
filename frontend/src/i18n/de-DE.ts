@@ -3026,6 +3026,8 @@ export default {
         mailTest: 'Verbindung testen',
         mailTestSuccess: 'Verbindung erfolgreich!',
         mailTestFailed: 'Verbindungstest fehlgeschlagen',
+        mailTestMail: 'Test-Mail an mich senden',
+        mailTestMailSent: 'Test-Mail wurde versendet. Prüfe dein Postfach.',
         mailLimits: 'Sendelimits',
         mailDailyLimit: 'Tägliches Limit',
         mailMonthlyLimit: 'Monatliches Limit',
@@ -3560,6 +3562,8 @@ export default {
             clearConfirm: 'Die instanzweite E-Mail-Konfiguration wird vollständig entfernt. Fortfahren?',
             cleared: 'E-Mail-Konfiguration entfernt.',
             saveFailed: 'Speichern fehlgeschlagen: {error}',
+            testMail: 'Test-Mail an mich senden',
+            testMailSent: 'Test-Mail wurde versendet. Prüfe dein Postfach.',
         },
         legal: {
             title: 'Rechtliche Dokumente',

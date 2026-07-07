@@ -93,6 +93,10 @@ export async function clearMailConfig(): Promise<void> {
     await client.delete('/station/manage/mail')
 }
 
+export async function sendTestMail(): Promise<void> {
+    await client.post('/station/manage/mail/test-mail')
+}
+
 // -- Modules --
 
 export interface ModulesResponse {
