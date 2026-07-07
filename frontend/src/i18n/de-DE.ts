@@ -2151,6 +2151,14 @@ export default {
             label: 'Inventar bearbeiten',
             desc: 'Kann Gegenstände zuweisen, bearbeiten und als verloren markieren.',
         },
+        INVENTORY_ASSIGN: {
+            label: 'Gegenstände ausgeben',
+            desc: 'Kann Gegenstände an Mitglieder ausgeben und Rückgaben annehmen.',
+        },
+        INVENTORY_STORAGE: {
+            label: 'Lagerorte verwalten',
+            desc: 'Kann Lagerorte anlegen, umbenennen, verschieben und Gegenstände einlagern.',
+        },
         INVENTORY_PROCUREMENT: {
             label: 'Beschaffung',
             desc: 'Kann Beschaffungsanfragen erstellen und verwalten.',
@@ -2287,6 +2295,18 @@ export default {
             label: 'Fundstücke verwalten',
             desc: 'Kann Fundstücke bearbeiten und als erledigt markieren.',
         },
+        CHECKLIST_MANAGER: {
+            label: 'Checklisten',
+            desc: 'Vollzugriff auf alle Checklistenfunktionen.',
+        },
+        CHECKLIST_READ: {
+            label: 'Checklisten einsehen',
+            desc: 'Kann Checklisten öffnen und Einträge einsehen.',
+        },
+        CHECKLIST_MANAGE: {
+            label: 'Checklisten verwalten',
+            desc: 'Kann Checklisten erstellen, bearbeiten und Einträge pflegen.',
+        },
         TEST_MANAGER: {
             label: 'Tests verwalten',
             desc: 'Vollzugriff auf alle Testfunktionen.',
@@ -2398,6 +2418,14 @@ export default {
         PAGE_EDIT: {
             label: 'Seiten bearbeiten',
             desc: 'Kann öffentliche Seiten erstellen und bearbeiten.',
+        },
+        PAGE_FORMS_VIEW: {
+            label: 'Formulareinsendungen einsehen',
+            desc: 'Kann Einsendungen von Kontaktformularen auf Seiten einsehen und bestätigen.',
+        },
+        PAGE_POLLS_VIEW: {
+            label: 'Umfrageergebnisse einsehen',
+            desc: 'Kann Ergebnisse und Antworten von Umfragen auf Seiten einsehen.',
         },
         PROCEDURE_MANAGER: {
             label: 'Abläufe verwalten',
