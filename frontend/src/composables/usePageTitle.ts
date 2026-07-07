@@ -3,20 +3,19 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {watch} from 'vue'
 import {usePageHeader} from '@/composables/usePageHeader'
 
 /**
  * Mirrors the shared page header state into the browser tab title. The header
  * itself is populated by whichever {@code ViewContent} instance is currently
- * mounted (via its {@code title} prop).
+ * mounted (via its {@code title} prop). Registered once as a reactive head
+ * binding — repeated {@code useHead} calls from a watcher would stack head
+ * entries and keep the previous title alive when the header becomes empty.
  */
 export function usePageTitle() {
     if (typeof window === 'undefined') return
 
     const {title} = usePageHeader()
 
-    watch(title, (val) => {
-        useHead({title: val || undefined})
-    }, {immediate: true})
+    useHead({title: () => title.value || null})
 }

@@ -5,34 +5,22 @@
  */
 <script lang="ts" setup>
 import {onBeforeUnmount, watch} from 'vue'
-import {usePageHeader} from '@/composables/usePageHeader'
+import {claimPageHeader} from '@/composables/usePageHeader'
 
 const props = defineProps<{
   title: string
   subtitle?: string
 }>()
 
-const {title: headerTitle, subtitle: headerSubtitle} = usePageHeader()
+const {set, release} = claimPageHeader()
 
 watch(
-    () => props.title,
-    v => {
-      headerTitle.value = v
-    },
-    {immediate: true},
-)
-watch(
-    () => props.subtitle ?? '',
-    v => {
-      headerSubtitle.value = v
-    },
+    () => [props.title, props.subtitle ?? ''] as const,
+    ([titleValue, subtitleValue]) => set(titleValue, subtitleValue),
     {immediate: true},
 )
 
-onBeforeUnmount(() => {
-  headerTitle.value = ''
-  headerSubtitle.value = ''
-})
+onBeforeUnmount(release)
 </script>
 
 <template>
