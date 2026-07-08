@@ -22,6 +22,7 @@ import {useConfigPanel} from '@/composables/useConfigPanel'
 const {t} = useI18n()
 
 const showAcknowledged = ref(false)
+const levelFilter = ref<string | null>(null)
 const expandedId = ref<number | null>(null)
 
 const {config: entries, loading, error, reload: loadData} = useConfigPanel<ProblemEntry[]>({
@@ -32,14 +33,30 @@ const {config: entries, loading, error, reload: loadData} = useConfigPanel<Probl
 const errorCount = computed(() => entries.value.filter(e => e.level === 'ERROR' && !e.acknowledged).length)
 const warnCount = computed(() => entries.value.filter(e => e.level === 'WARN' && !e.acknowledged).length)
 
+const visibleEntries = computed(() =>
+    levelFilter.value == null ? entries.value : entries.value.filter(e => e.level === levelFilter.value))
+
+function toggleLevelFilter(level: string) {
+    levelFilter.value = levelFilter.value === level ? null : level
+}
+
 async function ack(id: number) {
     await problems.acknowledge(id)
-    await loadData()
+    if (showAcknowledged.value) {
+        const entry = entries.value.find(e => e.id === id)
+        if (entry) entry.acknowledged = true
+    } else {
+        entries.value = entries.value.filter(e => e.id !== id)
+    }
 }
 
 async function ackAll() {
     await problems.acknowledgeAll()
-    await loadData()
+    if (showAcknowledged.value) {
+        for (const entry of entries.value) entry.acknowledged = true
+    } else {
+        entries.value = []
+    }
 }
 
 function toggleExpand(id: number) {
@@ -53,6 +70,12 @@ function toggleExpand(id: number) {
             <div class="flex items-center gap-2">
                 <SelectionToggleButton :selected="showAcknowledged" @toggle="showAcknowledged = !showAcknowledged; loadData()">
                     {{ t('adminProblems.showAcknowledged') }}
+                </SelectionToggleButton>
+                <SelectionToggleButton :selected="levelFilter === 'ERROR'" @toggle="toggleLevelFilter('ERROR')">
+                    {{ t('adminProblems.errors') }}
+                </SelectionToggleButton>
+                <SelectionToggleButton :selected="levelFilter === 'WARN'" @toggle="toggleLevelFilter('WARN')">
+                    {{ t('adminProblems.warnings') }}
                 </SelectionToggleButton>
                 <SecondaryButton :icon="['fas', 'check-double']" v-if="entries.some(e => !e.acknowledged)" @click="ackAll">
                     {{ t('adminProblems.acknowledgeAll') }}
@@ -81,7 +104,7 @@ function toggleExpand(id: number) {
 
         <div v-else class="space-y-2">
             <ProblemEntryCard
-                v-for="entry in entries"
+                v-for="entry in visibleEntries"
                 :key="entry.id"
                 :entry="entry"
                 :expanded="expandedId === entry.id"

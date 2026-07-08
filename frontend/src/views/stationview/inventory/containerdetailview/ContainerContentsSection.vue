@@ -10,7 +10,6 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import ScanButton from '@/components/scanner/ScanButton.vue'
 import ContainerContentsTree from '@/views/stationview/inventory/storageview/ContainerContentsTree.vue'
 import type {ContainerContents, InventoryContainerKind} from '@/api/inventoryContainers'
 
@@ -20,11 +19,10 @@ const props = defineProps<{
   contents: ContainerContents | null
   rootContainerId: number
   kindById: Map<number, InventoryContainerKind>
-  scanBusy: boolean
 }>()
 
 const emit = defineEmits<{
-  scan: [value: string]
+  addItems: []
   addChild: []
   openContainer: [id: number]
   openItem: [id: number]
@@ -37,17 +35,19 @@ const {t} = useI18n()
   <div>
     <div class="flex items-center justify-between mb-2">
       <SubHeader>{{ t('inventory.storage.contents') }}</SubHeader>
-      <div class="flex items-center gap-2 text-sm">
-        <label class="flex items-center gap-1">
-          <ToggleInput v-model="recursive" />
-          <span>{{ t('inventory.storage.recursive') }}</span>
-        </label>
-        <ScanButton mode="continuous" :disabled="props.scanBusy" @decoded="(v: string) => emit('scan', v)" />
-        <PrimaryButton size="sm" @click="emit('addChild')">
-          <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
-          {{ t('inventory.storage.addChild') }}
-        </PrimaryButton>
-      </div>
+      <label class="flex items-center gap-1 text-sm">
+        <ToggleInput v-model="recursive" />
+        <span>{{ t('inventory.storage.recursive') }}</span>
+      </label>
+    </div>
+
+    <div class="flex gap-2 mb-2">
+      <PrimaryButton full-width class="flex-1" :icon="['fas', 'plus']" @click="emit('addItems')">
+        {{ t('inventory.storage.addItems.button') }}
+      </PrimaryButton>
+      <PrimaryButton full-width class="flex-1" :icon="['fas', 'plus']" @click="emit('addChild')">
+        {{ t('inventory.storage.addChild') }}
+      </PrimaryButton>
     </div>
 
     <NeutralContainer class="mb-6">

@@ -43,6 +43,7 @@ const {title: pageTitle, subtitle: pageSubtitle} = usePageHeader()
 const {
   sessionInfo,
   loaded,
+  loadFailed,
   load,
   isAdmin,
   isManager,
@@ -142,6 +143,7 @@ watch(
 
 watch(loaded, (isLoaded) => {
   if (!isLoaded) return
+  if (loadFailed.value) return
   if (!sessionInfo.value?.member) {
     if (isAdmin()) {
       router.replace('/admin/dashboard/overview')

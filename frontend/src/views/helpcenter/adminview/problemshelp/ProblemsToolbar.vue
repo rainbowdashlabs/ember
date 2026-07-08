@@ -19,6 +19,12 @@ const {t} = useI18n()
       <SelectionToggleButton :selected="false">
         {{ t('adminProblems.showAcknowledged') }}
       </SelectionToggleButton>
+      <SelectionToggleButton :selected="true">
+        {{ t('adminProblems.errors') }}
+      </SelectionToggleButton>
+      <SelectionToggleButton :selected="false">
+        {{ t('adminProblems.warnings') }}
+      </SelectionToggleButton>
       <SecondaryButton :icon="['fas', 'check-double']">
         {{ t('adminProblems.acknowledgeAll') }}
       </SecondaryButton>

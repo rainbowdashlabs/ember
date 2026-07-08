@@ -29,6 +29,7 @@ import {inventory, inventoryContainers} from '@/api'
 import type {ContainerDetail, ContainerCheckItemResult, ItemLastCheck, InventoryContainer} from '@/api/inventoryContainers'
 import type {InventoryItem} from '@/api/types'
 import {formatDate} from '@/util/format'
+import {containerPathFor} from '@/util/containerPath'
 
 interface ExpectedRow {
   item: InventoryItem
@@ -113,17 +114,7 @@ const currentRows = computed<ExpectedRow[]>(() => {
 })
 
 function pathFor(c: InventoryContainer): string {
-  const segments: string[] = []
-  let cursor: number | null | undefined = c.id
-  const seen = new Set<number>()
-  while (cursor != null && !seen.has(cursor)) {
-    seen.add(cursor)
-    const node = containerById.value.get(cursor)
-    if (!node) break
-    segments.unshift(node.name)
-    cursor = node.parentId ?? null
-  }
-  return segments.join(' / ')
+  return containerPathFor(containerById.value, c.id)
 }
 
 const counts = computed(() => {

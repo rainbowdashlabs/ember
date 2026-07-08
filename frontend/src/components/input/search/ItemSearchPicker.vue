@@ -10,6 +10,7 @@ import EntitySearchPicker from './EntitySearchPicker.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
+import {containerPathFor} from '@/util/containerPath'
 import {inventory, inventoryContainers, stationMembers} from '@/api'
 import type {InventoryItem, InventorySize, Inventory, StationMember} from '@/api/types'
 import type {InventoryContainer} from '@/api/inventoryContainers'
@@ -47,18 +48,7 @@ const sizeById = computed(() => new Map(sizes.value.map(s => [s.id, s])))
 const itemById = computed(() => new Map(items.value.map(i => [i.id, i])))
 
 function pathFor(containerId: number | null | undefined): string {
-  if (containerId == null) return ''
-  const segments: string[] = []
-  let cursor: number | null | undefined = containerId
-  const seen = new Set<number>()
-  while (cursor != null && !seen.has(cursor)) {
-    seen.add(cursor)
-    const node = containerById.value.get(cursor)
-    if (!node) break
-    segments.unshift(node.name)
-    cursor = node.parentId ?? null
-  }
-  return segments.join(' / ')
+  return containerPathFor(containerById.value, containerId)
 }
 
 function inventoryName(id: number): string {

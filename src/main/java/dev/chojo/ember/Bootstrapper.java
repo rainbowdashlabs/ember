@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.events.service.RegistrationDeadlineChecker;
 import dev.chojo.ember.feature.legal.service.ConsentService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.TransferTimeoutWatchdog;
 import dev.chojo.ember.feature.system.service.DataInitializer;
 import dev.chojo.ember.feature.system.service.DemoService;
 import dev.chojo.ember.util.CloudflareRangesService;
@@ -93,6 +94,7 @@ public class Bootstrapper {
         injector.getInstance(RegistrationDeadlineChecker.class);
         // Start board due date reminder checker (daemon thread)
         injector.getInstance(DueDateReminderChecker.class);
+        injector.getInstance(TransferTimeoutWatchdog.class);
 
         // Initialize data directory from templates if empty
         injector.getInstance(DataInitializer.class).initialize();

@@ -34,7 +34,7 @@ defineExpose({focus})
 </script>
 
 <template>
-  <div class="relative w-full">
+  <div class="relative w-full min-w-0">
     <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-primary">
       <font-awesome-icon :icon="['fas', 'magnifying-glass']" class="h-4 w-4"/>
     </span>

@@ -18,6 +18,7 @@ import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { getLentOutByInventory, type LentOutItem } from '@/api/lending'
 import { useStations } from '@/composables/useStations'
+import { containerPathFor } from '@/util/containerPath'
 import DetailHeader from './detailview/DetailHeader.vue'
 import DetailLoadedContent from './detailview/DetailLoadedContent.vue'
 import DetailViewModals from './detailview/DetailViewModals.vue'
@@ -40,20 +41,8 @@ const modals = ref<InstanceType<typeof DetailViewModals> | null>(null)
 const containerPathById = computed(() => {
   const byId = new Map<number, InventoryContainer>()
   for (const c of containers.value) byId.set(c.id, c)
-  const cache = new Map<number, string>()
-  function pathOf(id: number, seen: Set<number>): string {
-    if (cache.has(id)) return cache.get(id)!
-    const c = byId.get(id)
-    if (!c) return ''
-    if (seen.has(id)) return c.name
-    seen.add(id)
-    const parent = c.parentId ? pathOf(c.parentId, seen) : ''
-    const path = parent ? `${parent} / ${c.name}` : c.name
-    cache.set(id, path)
-    return path
-  }
   const out = new Map<number, string>()
-  for (const c of containers.value) out.set(c.id, pathOf(c.id, new Set()))
+  for (const c of containers.value) out.set(c.id, containerPathFor(byId, c.id))
   return out
 })
 

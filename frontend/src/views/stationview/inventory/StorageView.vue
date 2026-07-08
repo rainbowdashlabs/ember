@@ -20,6 +20,7 @@ import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import ContainerNewModal from '@/views/stationview/inventory/storageview/ContainerNewModal.vue'
 import ContainerTree from '@/views/stationview/inventory/storageview/ContainerTree.vue'
 import {inventory, inventoryContainers} from '@/api'
+import {containerPathFor} from '@/util/containerPath'
 import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
 import type {InventoryItem} from '@/api/types'
 
@@ -47,18 +48,7 @@ const containerById = computed(() => {
 })
 
 function pathFor(containerId: number | null | undefined): string {
-  if (containerId == null) return ''
-  const segments: string[] = []
-  let cursor: number | null | undefined = containerId
-  const seen = new Set<number>()
-  while (cursor != null && !seen.has(cursor)) {
-    seen.add(cursor)
-    const node = containerById.value.get(cursor)
-    if (!node) break
-    segments.unshift(node.name)
-    cursor = node.parentId ?? null
-  }
-  return segments.join(' / ')
+  return containerPathFor(containerById.value, containerId)
 }
 
 const containerMatches = computed(() => {

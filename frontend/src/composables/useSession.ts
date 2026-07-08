@@ -11,14 +11,29 @@ import {useTheme} from '@/composables/useTheme'
 
 const sessionInfo = ref<SessionInfo | null>(null)
 const loaded = ref(false)
+const loadFailed = ref(false)
+
+function isTransientError(error: unknown): boolean {
+    const status = (error as {response?: {status?: number}})?.response?.status
+    return status == null || status >= 500
+}
 
 export function useSession() {
     async function load() {
-        try {
-            sessionInfo.value = await session.getSessionInfo()
-            useTheme().initFromSession(sessionInfo.value?.theme)
-        } catch {
-            sessionInfo.value = null
+        for (let attempt = 1; ; attempt++) {
+            try {
+                sessionInfo.value = await session.getSessionInfo()
+                useTheme().initFromSession(sessionInfo.value?.theme)
+                loadFailed.value = false
+                break
+            } catch (error) {
+                if (!isTransientError(error) || attempt >= 3) {
+                    sessionInfo.value = null
+                    loadFailed.value = true
+                    break
+                }
+                await new Promise(resolve => setTimeout(resolve, 500 * attempt))
+            }
         }
         loaded.value = true
     }
@@ -26,6 +41,7 @@ export function useSession() {
     function clear() {
         sessionInfo.value = null
         loaded.value = false
+        loadFailed.value = false
     }
 
     function hasPermission(permission: string): boolean {
@@ -209,6 +225,7 @@ export function useSession() {
     return {
         sessionInfo: readonly(sessionInfo),
         loaded: readonly(loaded),
+        loadFailed: readonly(loadFailed),
         load,
         clear,
         hasPermission,
