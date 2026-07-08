@@ -1,5 +1,22 @@
 # Changelog
 
+## v26.11.5
+
+### New Features
+
+- **Add several items to a storage container at once.** The scan button on the storage container page becomes an add button that opens a dialog to scan barcodes or search items by name or code, optionally showing only items without a storage place. Multiple items can be selected and placed in the container together.
+
+### Changes
+
+- **Filter the problem log by level.** The problem log in the admin area offers error and warning filter buttons, and acknowledging entries updates the list in place without a reload.
+- **Member permissions show where they come from.** When editing a member, permissions already granted by the member type or one of the member's groups appear pre-selected and locked, labelled with their source. Selecting the station administrator permission marks all other permissions as granted.
+
+### Fixes
+
+- **All listed permissions can be granted.** The item hand-out, storage location, form submission, poll result and checklist permissions can be enabled in the permission picker.
+- **Opening a station no longer bounces back to the overview.** Picking a station on the cross-station overview reliably lands on the station dashboard instead of occasionally returning to the overview right away.
+- **Startup cleanup sweeps run reliably.** The orphaned-account sweep and the stale-transfer cleanup run on every server start instead of logging a warning and being skipped.
+
 ## v26.11.4
 
 ### Security

@@ -13,19 +13,17 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import ContainerNewModal from '@/views/stationview/inventory/storageview/ContainerNewModal.vue'
 import ContainerEditPanel from '@/views/stationview/inventory/storageview/ContainerEditPanel.vue'
 import AddExistingContainerModal from '@/views/stationview/inventory/storageview/AddExistingContainerModal.vue'
 import {mapContainerError} from '@/views/stationview/inventory/storageview/containerErrors'
 import AddChildChoiceModal from '@/views/stationview/inventory/storageview/AddChildChoiceModal.vue'
-import UnknownScanModal from '@/views/stationview/inventory/UnknownScanModal.vue'
 import ContainerHeader from '@/views/stationview/inventory/containerdetailview/ContainerHeader.vue'
 import ContainerContentsSection from '@/views/stationview/inventory/containerdetailview/ContainerContentsSection.vue'
 import ContainerHistorySection from '@/views/stationview/inventory/containerdetailview/ContainerHistorySection.vue'
+import AddItemsModal from '@/views/stationview/inventory/containerdetailview/AddItemsModal.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import {inventory, inventoryContainers} from '@/api'
-import type {InventoryItem} from '@/api/types'
+import {inventoryContainers} from '@/api'
 import type {
   ContainerDetail,
   ContainerContents,
@@ -50,6 +48,7 @@ const editing = ref(false)
 const showNewChildModal = ref(false)
 const showAddExistingModal = ref(false)
 const showAddChoiceModal = ref(false)
+const showAddItemsModal = ref(false)
 const showDeleteConfirm = ref(false)
 
 function onAddChildChoice(target: 'existing' | 'new') {
@@ -57,87 +56,6 @@ function onAddChildChoice(target: 'existing' | 'new') {
   else showNewChildModal.value = true
 }
 const submitting = ref(false)
-
-const scanBusy = ref(false)
-const scanError = ref('')
-const scanSuccess = ref('')
-const unknownScanCode = ref<string | null>(null)
-
-function flashScanError(msg: string) {
-  scanError.value = msg
-  setTimeout(() => (scanError.value = ''), 3500)
-}
-
-function flashScanSuccess(msg: string) {
-  scanSuccess.value = msg
-  setTimeout(() => (scanSuccess.value = ''), 2500)
-}
-
-async function onCameraScan(value: string) {
-  if (scanBusy.value || !detail.value) return
-  const term = normaliseScannedPayload(value).trim()
-  if (!term) return
-  scanBusy.value = true
-  try {
-    const container = await inventoryContainers.resolveContainerByScan(term)
-    if (container) {
-      if (container.id === detail.value.container.id) {
-        flashScanError(t('inventory.storage.scan.selfTarget'))
-        return
-      }
-      if (container.parentId === detail.value.container.id) {
-        flashScanSuccess(t('inventory.storage.scan.containerAlreadyHere', {name: container.name}))
-        return
-      }
-      try {
-        await inventoryContainers.updateContainer(container.id, {
-          parentId: detail.value.container.id,
-          internalId: container.internalId ?? null,
-          name: container.name,
-          kindId: container.kindId,
-          description: container.description ?? '',
-        })
-      } catch (e: any) {
-        flashScanError(mapContainerError(t, e, 'inventory.storage.scan.containerFailed'))
-        return
-      }
-      flashScanSuccess(t('inventory.storage.scan.containerMoved', {name: container.name}))
-      await Promise.all([loadContents(), loadHistory()])
-      return
-    }
-    const item = await inventory.findByInternalId(term)
-    if (item) {
-      if (item.containerId === detail.value.container.id) {
-        flashScanSuccess(t('inventory.storage.scan.itemAlreadyHere', {name: item.name ?? ''}))
-        return
-      }
-      try {
-        await inventoryContainers.setItemContainer(item.id, detail.value.container.id)
-      } catch (e: any) {
-        flashScanError(e?.response?.data?.message ?? t('inventory.storage.scan.itemFailed'))
-        return
-      }
-      flashScanSuccess(t('inventory.storage.scan.itemPlaced', {name: item.name ?? ''}))
-      await loadContents()
-      return
-    }
-    unknownScanCode.value = term
-  } finally {
-    scanBusy.value = false
-  }
-}
-
-async function onUnknownScanCreated(item: InventoryItem) {
-  unknownScanCode.value = null
-  if (!detail.value) return
-  try {
-    await inventoryContainers.setItemContainer(item.id, detail.value.container.id)
-    flashScanSuccess(t('inventory.storage.scan.itemCreatedAndPlaced', {name: item.name ?? ''}))
-    await loadContents()
-  } catch (e: any) {
-    flashScanError(e?.response?.data?.message ?? t('inventory.storage.scan.itemFailed'))
-  }
-}
 
 const containerId = computed(() => Number(route.params.id))
 const kindById = computed(() => {
@@ -252,16 +170,12 @@ onMounted(load)
         {{ detail.container.description }}
       </p>
 
-      <Alert v-if="scanError" variant="error" class="mb-3">{{ scanError }}</Alert>
-      <Alert v-if="scanSuccess" variant="success" class="mb-3">{{ scanSuccess }}</Alert>
-
       <ContainerContentsSection
           :contents="contents"
           :root-container-id="detail.container.id"
           :kind-by-id="kindById"
           v-model:recursive="recursive"
-          :scan-busy="scanBusy"
-          @scan="onCameraScan"
+          @add-items="showAddItemsModal = true"
           @add-child="showAddChoiceModal = true"
           @open-container="navigateToContainer"
           @open-item="navigateToItem"
@@ -302,12 +216,12 @@ onMounted(load)
           @close="showAddExistingModal = false"
       />
 
-      <UnknownScanModal
-          v-if="unknownScanCode"
-          :scanned-code="unknownScanCode"
-          context="container"
-          @created="onUnknownScanCreated"
-          @close="unknownScanCode = null"
+      <AddItemsModal
+          v-if="showAddItemsModal"
+          :target-container-id="detail.container.id"
+          :containers="allContainers"
+          @added="loadContents"
+          @close="showAddItemsModal = false"
       />
     </template>
     <Alert v-else variant="error">{{ error }}</Alert>

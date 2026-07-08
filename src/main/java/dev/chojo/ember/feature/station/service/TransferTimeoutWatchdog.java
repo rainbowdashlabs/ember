@@ -22,6 +22,11 @@ import java.util.concurrent.TimeUnit;
  * {@link #IDLE_TIMEOUT_MINUTES} minutes, marks them used, and clears the source station's
  * read-only-for-transfer flag — so a destination that crashes or hangs mid-pull cannot
  * leave the source station locked until the 24-hour token expiry.
+ *
+ * <p>The constructor immediately aborts in-flight transfers and sweeps orphaned accounts,
+ * so this class must be instantiated from the bootstrapper after the database configuration
+ * is initialised — never bound as an eager singleton, which would construct it during
+ * injector creation before {@code QueryConfiguration.setDefault()} has run.
  */
 @Singleton
 public class TransferTimeoutWatchdog {

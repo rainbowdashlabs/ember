@@ -42,7 +42,9 @@ const editValues = ref<Map<number, string>>(new Map())
 const editRoleIds = ref<Set<number>>(new Set())
 const editGroupIds = ref<Set<number>>(new Set())
 const editTagIds = ref<Set<number>>(new Set())
-const typeGrantedPermissions = ref<Set<string>>(new Set())
+const typeLockedPermissions = ref<Map<string, string>>(new Map())
+const groupLockedPermissions = ref<Map<string, string>>(new Map())
+const lockedPermissions = computed(() => new Map([...groupLockedPermissions.value, ...typeLockedPermissions.value]))
 const editUserType = ref('')
 const memberInventory = ref<MyInventoryItem[]>([])
 const activeTab = ref('profile')
@@ -59,14 +61,31 @@ const tabs = computed(() => [
 async function loadTypePermissions(userType: string) {
   try {
     const effective = await stationMembers.getEffectiveUserTypePermissions(userType)
-    if (effective.includes('STATION_ADMINISTRATOR')) {
-      typeGrantedPermissions.value = new Set()
-    } else {
-      typeGrantedPermissions.value = new Set(effective)
-    }
+    typeLockedPermissions.value = new Map(effective.map(p => [p, t('permissions.grantedByUserType')]))
   } catch {
-    typeGrantedPermissions.value = new Set()
+    typeLockedPermissions.value = new Map()
   }
+}
+
+async function loadGroupPermissions(groupIds: Set<number>) {
+  try {
+    const groups = allGroups.value.filter(g => groupIds.has(g.id))
+    const grants = await Promise.all(groups.map(g => memberGroups.getGroupPermissions(g.id)))
+    const map = new Map<string, string>()
+    groups.forEach((group, i) => {
+      for (const grant of grants[i]) {
+        if (!map.has(grant.permission)) map.set(grant.permission, t('permissions.grantedByGroup', {name: group.name}))
+      }
+    })
+    groupLockedPermissions.value = map
+  } catch {
+    groupLockedPermissions.value = new Map()
+  }
+}
+
+async function onGroupsChanged(groupIds: Set<number>) {
+  editGroupIds.value = groupIds
+  await loadGroupPermissions(groupIds)
 }
 
 async function onUserTypeChanged(userType: string) {
@@ -98,7 +117,7 @@ const {loading, error} = useAsyncLoader(async () => {
   member.value = allMembers_.find(m => m.id === memberId.value) ?? null
   editUserType.value = memberData.userType ?? StationUserType.MEMBER
   editRoleIds.value = new Set(memberPermissions.map(r => r.id))
-  await loadTypePermissions(editUserType.value)
+  await Promise.all([loadTypePermissions(editUserType.value), loadGroupPermissions(editGroupIds.value)])
 
   editValues.value = decodeProfileValues(profileValues)
 
@@ -152,9 +171,10 @@ function goBack() {
             :initial-role-ids="editRoleIds"
             :initial-group-ids="editGroupIds"
             :initial-tag-ids="editTagIds"
-            :type-granted-permissions="typeGrantedPermissions"
+            :locked-permissions="lockedPermissions"
             :member-inventory="memberInventory"
             @user-type-changed="onUserTypeChanged"
+            @groups-changed="onGroupsChanged"
         />
 
         <RelationsTab

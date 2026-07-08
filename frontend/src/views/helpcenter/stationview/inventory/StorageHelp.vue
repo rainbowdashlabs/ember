@@ -29,6 +29,15 @@ const { t } = useI18n()
       </p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.inventoryStorageHelp.addItemsTitle')">
+      <p>
+        {{ t('helpCenter.inventoryStorageHelp.addItemsText') }}
+      </p>
+      <HelpTip>
+        {{ t('helpCenter.inventoryStorageHelp.addItemsTip') }}
+      </HelpTip>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.inventoryStorageHelp.scanTitle')">
       <p>
         {{ t('helpCenter.inventoryStorageHelp.scanText') }}

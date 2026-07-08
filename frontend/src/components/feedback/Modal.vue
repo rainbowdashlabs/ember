@@ -10,8 +10,10 @@ const model = defineModel<boolean>({default: false})
 
 const props = withDefaults(defineProps<{
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full'
+  mobileFull?: boolean
 }>(), {
   size: 'md',
+  mobileFull: false,
 })
 
 const sizeClass = computed(() => {
@@ -41,7 +43,11 @@ const sizeClass = computed(() => {
         />
         <!-- Content -->
         <div
-            :class="['relative z-10 w-full mx-4 rounded-theme border border-bg-light-accent bg-bg-light p-6 shadow-xl dark:border-bg-dark-accent dark:bg-bg-dark', sizeClass]">
+            :class="[
+              'relative z-10 w-full mx-4 rounded-theme border border-bg-light-accent bg-bg-light p-6 shadow-xl dark:border-bg-dark-accent dark:bg-bg-dark',
+              sizeClass,
+              props.mobileFull ? 'max-sm:h-full max-sm:mx-0 max-sm:rounded-none max-sm:border-0 max-sm:overflow-y-auto max-sm:flex max-sm:flex-col' : '',
+            ]">
           <button
               class="absolute top-3 right-3 p-1 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
               @click="model = false"

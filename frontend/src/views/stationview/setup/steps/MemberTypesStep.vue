@@ -59,8 +59,8 @@ const selectedIds = computed<Set<number>>({
     },
 })
 
-const lockedNames = computed<Set<string>>(
-    () => new Set(USER_TYPE_BUILTIN_DEFAULTS[selectedType.value] ?? []),
+const lockedNames = computed<Map<string, string>>(
+    () => new Map((USER_TYPE_BUILTIN_DEFAULTS[selectedType.value] ?? []).map((n) => [n, t('permissions.lockedByUserType')])),
 )
 
 onMounted(async () => {

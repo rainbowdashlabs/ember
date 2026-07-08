@@ -14,8 +14,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 const props = defineProps<{
   allRoles: PermissionGrant[]
   modelValue: Set<number>
-  hiddenPermissions?: Set<string>
-  lockedPermissions?: Set<string>
+  lockedPermissions?: Map<string, string>
 }>()
 
 const emit = defineEmits<{
@@ -54,12 +53,9 @@ const tree = computed<TreeNode[]>(() => {
   const admin = nodeMap.get('STATION_ADMINISTRATOR')
   if (!admin) return []
 
-  // USER is always implicit; additionally hide permissions granted by the user's type
-  const hidden = new Set(['USER', ...(props.hiddenPermissions ?? [])])
-
   function filterHidden(nodes: TreeNode[]): TreeNode[] {
     return nodes
-        .filter(n => !hidden.has(n.name))
+        .filter(n => n.name !== 'USER')
         .map(n => ({...n, children: filterHidden(n.children)}))
   }
 
@@ -81,6 +77,14 @@ function isDirectlySelected(name: string): boolean {
   return role ? props.modelValue.has(role.id) : false
 }
 
+function isLocked(name: string): boolean {
+  return props.lockedPermissions?.has(name) ?? false
+}
+
+function lockedLabel(name: string): string {
+  return props.lockedPermissions?.get(name) ?? ''
+}
+
 // Map: permission name -> name of the ancestor that implicitly grants it
 const implicitlyGrantedBy = computed<Map<string, string>>(() => {
   const map = new Map<string, string>()
@@ -92,17 +96,24 @@ const implicitlyGrantedBy = computed<Map<string, string>>(() => {
   }
   function walk(nodes: TreeNode[]) {
     for (const node of nodes) {
-      if (isDirectlySelected(node.name)) markChildren(node, node.name)
+      if (isDirectlySelected(node.name) || isLocked(node.name)) markChildren(node, node.name)
       walk(node.children)
     }
   }
   walk(tree.value)
+  if (isDirectlySelected('STATION_ADMINISTRATOR') || isLocked('STATION_ADMINISTRATOR')) {
+    function markAll(nodes: TreeNode[]) {
+      for (const node of nodes) {
+        if (node.name !== 'STATION_ADMINISTRATOR' && !map.has(node.name)) {
+          map.set(node.name, 'STATION_ADMINISTRATOR')
+        }
+        markAll(node.children)
+      }
+    }
+    markAll(tree.value)
+  }
   return map
 })
-
-function isLocked(name: string): boolean {
-  return props.lockedPermissions?.has(name) ?? false
-}
 
 function isEffectivelyEnabled(name: string): boolean {
   return isDirectlySelected(name) || implicitlyGrantedBy.value.has(name) || isLocked(name)
@@ -280,11 +291,11 @@ const GROUP_ICONS: Record<string, string[]> = {
           <div class="flex-1 min-w-0">
             <div class="font-medium text-sm">{{ t(`permissions.${node.name}.label`) }}</div>
             <div class="text-xs text-(--text-muted) leading-tight">{{ t(`permissions.${node.name}.desc`) }}</div>
-            <div v-if="isImplicit(node.name)" class="text-[10px] text-primary italic mt-0.5">
-              {{ t('permissions.grantedBy', { name: grantedByLabel(node.name) }) }}
+            <div v-if="isLocked(node.name)" class="text-[10px] text-primary italic mt-0.5">
+              {{ lockedLabel(node.name) }}
             </div>
-            <div v-else-if="isLocked(node.name)" class="text-[10px] text-primary italic mt-0.5">
-              {{ t('permissions.lockedByUserType') }}
+            <div v-else-if="isImplicit(node.name)" class="text-[10px] text-primary italic mt-0.5">
+              {{ t('permissions.grantedBy', { name: grantedByLabel(node.name) }) }}
             </div>
           </div>
           <span
@@ -314,11 +325,11 @@ const GROUP_ICONS: Record<string, string[]> = {
             <div class="min-w-0">
               <div class="text-sm" :class="item.node.children.length > 0 ? 'font-medium' : ''">{{ t(`permissions.${item.name}.label`) }}</div>
               <div class="text-xs text-(--text-muted) leading-tight">{{ t(`permissions.${item.name}.desc`) }}</div>
-              <div v-if="isImplicit(item.name)" class="text-[10px] text-primary italic mt-0.5">
-                {{ t('permissions.grantedBy', { name: grantedByLabel(item.name) }) }}
+              <div v-if="isLocked(item.name)" class="text-[10px] text-primary italic mt-0.5">
+                {{ lockedLabel(item.name) }}
               </div>
-              <div v-else-if="isLocked(item.name)" class="text-[10px] text-primary italic mt-0.5">
-                {{ t('permissions.lockedByUserType') }}
+              <div v-else-if="isImplicit(item.name)" class="text-[10px] text-primary italic mt-0.5">
+                {{ t('permissions.grantedBy', { name: grantedByLabel(item.name) }) }}
               </div>
             </div>
           </div>

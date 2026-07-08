@@ -32,12 +32,13 @@ const props = defineProps<{
   initialRoleIds: Set<number>
   initialGroupIds: Set<number>
   initialTagIds: Set<number>
-  typeGrantedPermissions: Set<string>
+  lockedPermissions: Map<string, string>
   memberInventory: MyInventoryItem[]
 }>()
 
 const emit = defineEmits<{
   userTypeChanged: [userType: string]
+  groupsChanged: [groupIds: Set<number>]
 }>()
 
 const error = ref('')
@@ -89,6 +90,7 @@ async function toggleGroup(groupId: number) {
         ? currentMembers.filter(m => m.id !== props.memberId).map(m => m.id)
         : [...currentMembers.map(m => m.id), props.memberId]
     await memberGroups.setGroupMembers(groupId, {memberIds})
+    emit('groupsChanged', new Set(editGroupIds.value))
   } catch {
     // Revert on error
     if (wasIn) editGroupIds.value.add(groupId)
@@ -177,7 +179,7 @@ async function confirmMarkFormer() {
     <!-- Permissions -->
     <NeutralContainer class="space-y-3">
       <SubHeader class="text-sm">{{ t('memberEdit.permissions') }}</SubHeader>
-      <PermissionPicker :model-value="editRoleIds" :all-roles="allRoles" :hidden-permissions="typeGrantedPermissions"
+      <PermissionPicker :model-value="editRoleIds" :all-roles="allRoles" :locked-permissions="lockedPermissions"
                         @update:model-value="onPermissionsChange"/>
     </NeutralContainer>
 
