@@ -206,8 +206,8 @@ public class StorageReconciliationService {
      */
     private void reconcileAvatars(int stationId) {
         var accountUids = query("""
-                SELECT DISTINCT a.uid FROM ember_schema.account a
-                JOIN ember_schema.station_member sm ON sm.account_id = a.id
+                SELECT DISTINCT a.uid FROM account a
+                JOIN station_member sm ON sm.account_id = a.id
                 WHERE sm.station_id = :station_id AND a.uid IS NOT NULL;
                 """)
                 .single(call().bind("station_id", stationId))
