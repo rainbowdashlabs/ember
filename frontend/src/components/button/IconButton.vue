@@ -17,6 +17,7 @@ defineEmits<{
 
 <template>
   <button
+      type="button"
       :aria-label="label"
       :disabled="disabled"
       :title="label"

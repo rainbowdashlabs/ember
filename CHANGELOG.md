@@ -1,5 +1,16 @@
 # Changelog
 
+## v26.11.6
+
+### Changes
+
+- **Faster barcode recognition.** The scanner camera records at a higher resolution and keeps focusing continuously, so QR codes and barcodes sharpen and are recognised more quickly.
+
+### Fixes
+
+- **The scan button only opens the scanner.** Tapping the scan button inside an add or edit dialog starts the camera without saving the dialog in the background, so no more entries are created with an empty code.
+- **The camera turns off when scanning is cancelled.** Closing the scan dialog while the camera is still starting releases the camera immediately instead of leaving it running in the background and disturbing the next scan.
+
 ## v26.11.5
 
 ### New Features

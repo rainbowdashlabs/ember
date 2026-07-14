@@ -142,9 +142,15 @@ export function useBarcodeScanner() {
 
     async function openCameraStream(options: StartScanOptions): Promise<MediaStream> {
         try {
-            return await navigator.mediaDevices.getUserMedia({
-                video: {facingMode: {ideal: 'environment'}},
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: {ideal: 'environment'},
+                    width: {ideal: 1920},
+                    height: {ideal: 1080},
+                },
             })
+            await enableContinuousFocus(stream)
+            return stream
         } catch (e) {
             const err = e as Error
             if (err.name === 'NotFoundError' || err.name === 'OverconstrainedError') {
@@ -153,6 +159,21 @@ export function useBarcodeScanner() {
             options.onError?.(err)
             throw err
         }
+    }
+
+    /**
+     * Switches the camera track to continuous autofocus where the device supports it, so
+     * close-up barcodes sharpen without waiting for a manual tap-to-focus. Failures are
+     * swallowed because focus tuning is a best-effort improvement, never a requirement.
+     */
+    async function enableContinuousFocus(stream: MediaStream) {
+        const track = stream.getVideoTracks()[0]
+        if (!track || typeof track.getCapabilities !== 'function') return
+        const capabilities = track.getCapabilities() as MediaTrackCapabilities & {focusMode?: string[]}
+        if (!capabilities.focusMode?.includes('continuous')) return
+        await track
+            .applyConstraints({advanced: [{focusMode: 'continuous'} as MediaTrackConstraintSet]})
+            .catch(() => undefined)
     }
 
     async function attachStreamToVideo(stream: MediaStream, options: StartScanOptions) {
