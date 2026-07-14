@@ -15,6 +15,7 @@ defineEmits<{
 
 <template>
   <button
+      type="button"
       :disabled="disabled"
       class="text-xs text-primary hover:underline cursor-pointer font-normal transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       @click="$emit('click', $event)"

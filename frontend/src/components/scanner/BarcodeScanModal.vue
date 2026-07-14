@@ -38,25 +38,32 @@ const lastPayload = ref<string | null>(null)
 const lastPayloadAt = ref<number>(0)
 
 let session: ScannerSession | null = null
+let attempt = 0
 
 async function begin() {
   if (!videoEl.value) return
+  const token = ++attempt
   status.value = 'requesting'
   errorKey.value = null
   try {
-    session = await startScan({
+    const started = await startScan({
       videoEl: videoEl.value,
       formats: props.formats,
       onDecode: handleDecode,
-      onError: handleError,
     })
+    if (token !== attempt) {
+      started.stop()
+      return
+    }
+    session = started
     status.value = 'scanning'
   } catch (e) {
-    handleError(e as Error)
+    if (token === attempt) handleError(e as Error)
   }
 }
 
 function handleDecode(value: string) {
+  if (!open.value) return
   const now = Date.now()
   if (props.mode === 'continuous' && lastPayload.value === value && now - lastPayloadAt.value < 1500) {
     return
@@ -97,6 +104,7 @@ function handleError(e: Error) {
 }
 
 function resetState() {
+  attempt++
   if (session) {
     session.stop()
     session = null
