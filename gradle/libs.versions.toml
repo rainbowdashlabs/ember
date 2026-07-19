@@ -8,14 +8,14 @@ testcontainers = "2.0.5"
 commonmark = "0.29.0"
 
 [plugins]
-spotless = { id = "com.diffplug.spotless", version = "8.7.0" }
+spotless = { id = "com.diffplug.spotless", version = "8.8.0" }
 idea = { id = "org.jetbrains.gradle.plugin.idea-ext", version = "1.4.1" }
 pitest = { id = "info.solidsoft.pitest", version = "1.19.0" }
 
 [libraries]
 # Database
 hikari = { group = "com.zaxxer", name = "HikariCP", version = "7.1.0" }
-postgres = { group = "org.postgresql", name = "postgresql", version = "42.7.11" }
+postgres = { group = "org.postgresql", name = "postgresql", version = "42.7.12" }
 sadu-postgresql = { group = "de.chojo.sadu", name = "sadu-postgresql", version.ref = "sadu" }
 sadu-datasource = { group = "de.chojo.sadu", name = "sadu-datasource", version.ref = "sadu" }
 sadu-queries = { group = "de.chojo.sadu", name = "sadu-queries", version.ref = "sadu" }
@@ -79,16 +79,16 @@ imageio-webp = { group = "com.twelvemonkeys.imageio", name = "imageio-webp", ver
 
 # Storage backends
 smbj = { group = "com.hierynomus", name = "smbj", version = "0.14.0" }
-sshd-core = { group = "org.apache.sshd", name = "sshd-core", version = "2.18.0" }
-sshd-sftp = { group = "org.apache.sshd", name = "sshd-sftp", version = "2.18.0" }
-aws-s3 = { group = "software.amazon.awssdk", name = "s3", version = "2.46.17" }
+sshd-core = { group = "org.apache.sshd", name = "sshd-core", version = "2.19.0" }
+sshd-sftp = { group = "org.apache.sshd", name = "sshd-sftp", version = "2.19.0" }
+aws-s3 = { group = "software.amazon.awssdk", name = "s3", version = "2.46.21" }
 
 # HTML sanitization
 jsoup = { group = "org.jsoup", name = "jsoup", version = "1.22.2" }
 
 # AI SDKs
 openai = { group = "com.openai", name = "openai-java", version = "4.41.0" }
-anthropic = { group = "com.anthropic", name = "anthropic-java", version = "2.44.1" }
+anthropic = { group = "com.anthropic", name = "anthropic-java", version = "2.48.0" }
 google-genai = { group = "com.google.genai", name = "google-genai", version = "1.60.0" }
 
 # CSV
