@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
@@ -59,11 +60,9 @@ function resumeWizard() {
       <PrimaryButton @click="resumeWizard">{{ t('setup.checklist.resume') }}</PrimaryButton>
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-1">
-      <button
+      <DropdownMenuItem
           v-for="step in requiredSteps"
           :key="step.id"
-          type="button"
-          class="flex items-center gap-2 text-sm text-left px-2 py-1 hover:bg-(--bg-accent) rounded"
           @click="goStep(step.id)"
       >
         <span :class="step.complete ? 'text-(--success)' : 'text-(--text-muted)'">
@@ -71,12 +70,10 @@ function resumeWizard() {
         </span>
         <span class="flex-1">{{ t(`setup.steps.${backendToFrontend(step.id)}.label`) }}</span>
         <span class="text-xs text-(--text-muted)">{{ t('setup.checklist.required') }}</span>
-      </button>
-      <button
+      </DropdownMenuItem>
+      <DropdownMenuItem
           v-for="step in optionalSteps"
           :key="step.id"
-          type="button"
-          :class="['flex items-center gap-2 text-sm text-left px-2 py-1 hover:bg-(--bg-accent) rounded', !step.applicable ? 'opacity-40' : '']"
           :disabled="!step.applicable"
           @click="goStep(step.id)"
       >
@@ -85,7 +82,7 @@ function resumeWizard() {
         </span>
         <span class="flex-1">{{ t(`setup.steps.${backendToFrontend(step.id)}.label`) }}</span>
         <span class="text-xs text-(--text-muted)">{{ t('setup.checklist.optional') }}</span>
-      </button>
+      </DropdownMenuItem>
     </div>
   </InfoContainer>
 </template>

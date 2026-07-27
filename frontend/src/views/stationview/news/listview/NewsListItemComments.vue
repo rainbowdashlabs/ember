@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
 import NewsCommentSection from '@/components/comment/NewsCommentSection.vue'
+import LinkButton from '@/components/button/LinkButton.vue'
 
 defineProps<{
   newsId: number
@@ -21,9 +22,8 @@ const {t} = useI18n()
 
 <template>
   <div class="pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent" @click.stop>
-    <button
-      type="button"
-      class="text-sm text-(--text-muted) hover:text-primary transition-colors flex items-center gap-1.5"
+    <LinkButton
+      class="!text-sm !text-(--text-muted) hover:!text-primary hover:!no-underline flex items-center gap-1.5"
       @click="emit('toggle')"
     >
       <font-awesome-icon :icon="['fas', 'comment']" class="h-3.5 w-3.5"/>
@@ -37,7 +37,7 @@ const {t} = useI18n()
         :icon="['fas', open ? 'chevron-up' : 'chevron-down']"
         class="h-2.5 w-2.5 ml-0.5"
       />
-    </button>
+    </LinkButton>
     <div v-if="open" class="mt-3">
       <NewsCommentSection :news-id="newsId" :station-uid="stationUid"/>
     </div>

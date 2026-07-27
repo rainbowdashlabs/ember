@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import BaseButton from '@/components/button/BaseButton.vue'
 import type { TestProtocolItem } from '@/api/protocol'
 
 defineProps<{
@@ -17,9 +18,9 @@ defineEmits<{
 </script>
 
 <template>
-  <button
-    type="button"
-    class="w-full flex items-center gap-2 p-3 rounded-lg border-2 transition-all text-left cursor-pointer"
+  <BaseButton
+    full-width
+    class="!flex items-center gap-2 !p-3 !rounded-lg border-2 !font-normal text-left cursor-pointer"
     :class="checked
       ? 'border-[var(--success)] bg-[color-mix(in_srgb,var(--success)_10%,transparent)]'
       : 'border-[var(--border)] hover:border-[var(--text-muted)]'"
@@ -31,5 +32,5 @@ defineEmits<{
     />
     <span class="flex-1 text-sm">{{ item.label }}</span>
     <span class="text-xs text-[var(--text-muted)] font-mono">{{ item.points }}P</span>
-  </button>
+  </BaseButton>
 </template>

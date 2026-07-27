@@ -7,6 +7,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ContainerParentPickerNode from '@/views/stationview/inventory/storageview/ContainerParentPickerNode.vue'
+import TreeNodeButton from '@/components/button/TreeNodeButton.vue'
 import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
 
 const props = defineProps<{
@@ -81,15 +82,15 @@ function selectNone() {
 
 <template>
   <div class="border border-bg-light-accent dark:border-bg-dark-accent rounded-theme bg-(--bg) max-h-72 overflow-auto p-2">
-    <div
-        class="flex items-center gap-2 px-2 py-1.5 rounded-theme cursor-pointer transition-colors hover:bg-(--bg-accent)"
+    <TreeNodeButton
+        class="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-(--bg-accent)"
         :class="model === null ? 'bg-primary/15 text-primary' : ''"
         @click="selectNone"
     >
       <span class="w-5 h-5 inline-block" />
       <font-awesome-icon :icon="['fas', 'minus']" class="w-4 text-(--text-muted)" />
       <span class="font-medium">{{ t('inventory.storage.fields.parentNone') }}</span>
-    </div>
+    </TreeNodeButton>
     <ul v-if="roots.length > 0" class="mt-1 flex flex-col gap-1">
       <li v-for="root in roots" :key="root.id">
         <ContainerParentPickerNode

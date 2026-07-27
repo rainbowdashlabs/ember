@@ -7,6 +7,7 @@
 import { computed } from 'vue'
 import { DarkMode } from '@/theme/themes'
 import { useTheme } from '@/composables/useTheme'
+import IconButton from '@/components/button/IconButton.vue'
 
 const { darkMode, setDarkMode } = useTheme()
 
@@ -39,11 +40,12 @@ function cycle() {
 </script>
 
 <template>
-    <button
-        aria-label="Toggle theme"
-        class="p-2 rounded-lg text-[var(--text)] transition-colors duration-150 hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent"
+    <IconButton
+        :icon="['fas', icon]"
+        label="Toggle theme"
+        class="text-[var(--text)] hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent"
         @click="cycle"
     >
         <font-awesome-icon :icon="['fas', icon]" class="h-5 w-5" />
-    </button>
+    </IconButton>
 </template>

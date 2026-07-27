@@ -11,6 +11,7 @@ import LayeredEmberLogo from '@/components/display/LayeredEmberLogo.vue'
 import {usePride} from '@/composables/usePride'
 import {emberLogo} from '@/composables/useEmberLogo'
 import {SIDEBAR_COLLAPSIBLE, useSidebarCollapse} from '@/composables/useSidebarCollapse'
+import IconButton from '@/components/button/IconButton.vue'
 
 const props = withDefaults(defineProps<{
   open: boolean
@@ -65,29 +66,27 @@ const desktopWidthClass = computed(() => collapsed.value ? 'lg:w-16' : 'lg:w-64'
           <span v-if="stationName" class="text-xs text-(--text-muted) leading-tight truncate">{{ stationName }}</span>
         </div>
       </router-link>
-      <button
+      <IconButton
           v-if="collapsible"
-          type="button"
-          :title="collapsed ? t('sidebar.expand') : t('sidebar.collapse')"
-          :aria-label="collapsed ? t('sidebar.expand') : t('sidebar.collapse')"
-          class="hidden lg:flex items-center justify-center w-8 h-8 mr-2 rounded-theme text-(--text-muted) hover:text-(--text) hover:bg-(--bg-accent) transition-colors shrink-0"
+          :icon="['fas', 'chevron-left']"
+          :label="collapsed ? t('sidebar.expand') : t('sidebar.collapse')"
+          class="hidden lg:inline-flex w-8 h-8 mr-2 text-(--text-muted) hover:text-(--text) hover:bg-(--bg-accent) shrink-0"
           :class="collapsed ? 'lg:hidden' : ''"
           @click="toggle"
       >
         <font-awesome-icon :icon="['fas', 'chevron-left']" class="h-3.5 w-3.5"/>
-      </button>
+      </IconButton>
     </div>
 
-    <button
+    <IconButton
         v-if="collapsible && collapsed"
-        type="button"
-        :title="t('sidebar.expand')"
-        :aria-label="t('sidebar.expand')"
-        class="hidden lg:flex items-center justify-center h-8 mx-2 mt-2 rounded-theme text-(--text-muted) hover:text-(--text) hover:bg-(--bg-accent) transition-colors shrink-0"
+        :icon="['fas', 'chevron-right']"
+        :label="t('sidebar.expand')"
+        class="hidden lg:inline-flex h-8 mx-2 mt-2 text-(--text-muted) hover:text-(--text) hover:bg-(--bg-accent) shrink-0"
         @click="toggle"
     >
       <font-awesome-icon :icon="['fas', 'chevron-right']" class="h-3.5 w-3.5"/>
-    </button>
+    </IconButton>
 
     <nav class="flex flex-col gap-1 p-3 overflow-y-auto overflow-x-hidden flex-1">
       <slot/>

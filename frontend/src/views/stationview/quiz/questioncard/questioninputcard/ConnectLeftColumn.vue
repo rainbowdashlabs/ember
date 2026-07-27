@@ -4,6 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import BaseButton from '@/components/button/BaseButton.vue'
+
 defineProps<{
   items: string[]
   disabled: boolean
@@ -21,13 +23,12 @@ const emit = defineEmits<{
 
 <template>
   <div class="flex flex-col gap-2 flex-1">
-    <button
+    <BaseButton
       v-for="(left, leftIdx) in items"
       :key="leftIdx"
-      type="button"
       :data-connect-left="leftIdx"
       :draggable="!disabled"
-      class="px-3 py-2 rounded-lg border-2 text-sm font-medium text-left transition-colors cursor-pointer"
+      class="!py-2 !rounded-lg border-2 text-left cursor-pointer"
       :class="[
         selectedLeftIdx === leftIdx
           ? 'border-primary bg-primary/10'
@@ -47,6 +48,6 @@ const emit = defineEmits<{
         class="ml-1 text-xs text-(--text-muted) hover:text-error"
         @click.stop="emit('removeConnection', leftIdx)"
       />
-    </button>
+    </BaseButton>
   </div>
 </template>

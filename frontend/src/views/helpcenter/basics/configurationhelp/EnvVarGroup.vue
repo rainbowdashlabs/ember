@@ -7,6 +7,7 @@
 import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 
 const props = defineProps<{
   title: string
@@ -21,15 +22,11 @@ const open = ref(props.defaultOpen ?? true)
 
 <template>
   <div class="mt-4">
-    <button
-        type="button"
-        class="flex w-full items-center gap-2 text-left font-semibold text-sm py-1.5 rounded-theme hover:bg-(--bg-accent) transition-colors"
-        @click="open = !open"
-    >
+    <DropdownMenuItem class="font-semibold rounded-theme" @click="open = !open">
       <font-awesome-icon :icon="['fas', open ? 'chevron-down' : 'chevron-right']" class="h-3 w-3 text-(--text-muted)"/>
       <span class="flex-1">{{ title }}</span>
       <span class="text-xs font-normal text-(--text-muted)">{{ vars.length }}</span>
-    </button>
+    </DropdownMenuItem>
     <div v-if="open" class="mt-2">
       <p v-if="note" class="text-sm mb-2">{{ note }}</p>
       <div class="space-y-2">

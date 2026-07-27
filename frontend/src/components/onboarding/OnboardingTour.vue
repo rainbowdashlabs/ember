@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import {useOnboardingTour} from '@/composables/useOnboardingTour'
 
 const {t} = useI18n()
@@ -53,13 +54,12 @@ const {isActive, currentStep, currentStepData, totalSteps, nextStep, prevStep, s
                 {{ currentStep === totalSteps - 1 ? t('tour.finish') : t('tour.next') }}
                 <font-awesome-icon v-if="currentStep < totalSteps - 1" :icon="['fas', 'chevron-right']" class="ml-1"/>
               </PrimaryButton>
-              <button
-                  class="text-xs text-(--text-muted) hover:text-(--text) transition-colors px-1"
-                  :title="t('tour.skip')"
+              <MutedIconButton
+                  :icon="['fas', 'xmark']"
+                  :label="t('tour.skip')"
+                  hover="text"
                   @click="skipTour"
-              >
-                <font-awesome-icon :icon="['fas', 'xmark']" class="h-4 w-4"/>
-              </button>
+              />
             </div>
           </div>
         </div>

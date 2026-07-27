@@ -47,11 +47,11 @@ function inventoryTypeLabel(type?: string | null): string {
       <CheckboxInput :model-value="selected" @update:model-value="emit('toggle-export')" />
     </td>
     <Td v-if="showMemberColumn">
-      <button
+      <SecondaryButton
         v-if="canManageExchanges"
-        class="text-primary hover:underline cursor-pointer"
+        class="!bg-transparent !p-0 text-primary font-normal hover:underline cursor-pointer"
         @click="router.push({ name: 'inventory-member', params: { memberId: request.memberId } })"
-      ><MemberName :identity="request.memberIdentity ?? null"/></button>
+      ><MemberName :identity="request.memberIdentity ?? null"/></SecondaryButton>
       <MemberName v-else :identity="request.memberIdentity ?? null"/>
     </Td>
     <Td class="font-medium">{{ request.inventoryName }}</Td>
