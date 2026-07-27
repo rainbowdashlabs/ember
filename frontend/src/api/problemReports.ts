@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client, {getRequestHistory} from './client'
+import {createCrudResource} from './crud'
 
 export interface ProblemReport {
     id: number
@@ -33,11 +34,10 @@ export async function submitReport(message: string, sessionInfo: any): Promise<P
     return res.data
 }
 
+const reports = createCrudResource<ProblemReport>('/admin/problem-reports')
+
 export async function listReports(includeAcknowledged = false): Promise<ProblemReport[]> {
-    const res = await client.get<ProblemReport[]>('/admin/problem-reports', {
-        params: includeAcknowledged ? {includeAcknowledged: 'true'} : {},
-    })
-    return res.data
+    return reports.list({includeAcknowledged: includeAcknowledged ? 'true' : undefined})
 }
 
 export async function acknowledgeReport(id: number): Promise<void> {
@@ -49,6 +49,4 @@ export async function acknowledgeAllReports(): Promise<{acknowledged: number}> {
     return res.data
 }
 
-export async function deleteReport(id: number): Promise<void> {
-    await client.delete(`/admin/problem-reports/${id}`)
-}
+export const deleteReport = reports.remove

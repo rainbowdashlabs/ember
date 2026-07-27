@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import {createCrudResource} from './crud'
 import type {
     Form,
     FormAnalytics,
@@ -20,9 +21,10 @@ import type {
 
 // -- Form CRUD --
 
+const forms = createCrudResource<Form, FormRequest>('/forms')
+
 export async function listForms(purpose?: FormPurposeName): Promise<Form[]> {
-    const res = await client.get<Form[]>('/forms', purpose ? { params: { purpose } } : undefined)
-    return res.data
+    return forms.list(purpose ? {purpose} : undefined)
 }
 
 export async function listAvailableForms(): Promise<FormListEntry[]> {
@@ -60,24 +62,10 @@ export async function getFormPickerByUid(purpose: FormPurposeName, uid: string):
     return res.data[0] ?? null
 }
 
-export async function getForm(id: number): Promise<Form> {
-    const res = await client.get<Form>(`/forms/${id}`)
-    return res.data
-}
-
-export async function createForm(data: FormRequest): Promise<Form> {
-    const res = await client.post<Form>('/forms', data)
-    return res.data
-}
-
-export async function updateForm(id: number, data: FormRequest): Promise<Form> {
-    const res = await client.put<Form>(`/forms/${id}`, data)
-    return res.data
-}
-
-export async function deleteForm(id: number): Promise<void> {
-    await client.delete(`/forms/${id}`)
-}
+export const getForm = forms.get
+export const createForm = forms.create
+export const updateForm = forms.update
+export const deleteForm = forms.remove
 
 export async function publishForm(id: number): Promise<Form> {
     const res = await client.post<Form>(`/forms/${id}/publish`)

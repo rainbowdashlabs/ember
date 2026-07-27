@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import {createCrudResource, createScopedCrudResource} from './crud'
 import type {
     ChecklistAddMembersResult,
     ChecklistBulkSetResult,
@@ -17,54 +18,45 @@ import type {
     ChecklistUpdateRequest,
 } from './types'
 
-export async function listChecklists(): Promise<ChecklistSummary[]> {
-    const res = await client.get<ChecklistSummary[]>('/checklist')
-    return res.data
+interface ColumnCreateRequest {
+    label: string
+    description?: string
+    position?: number
 }
 
-export async function getChecklist(id: number): Promise<ChecklistDetail> {
-    const res = await client.get<ChecklistDetail>(`/checklist/${id}`)
-    return res.data
+interface ColumnUpdateRequest {
+    label?: string
+    description?: string
+    position?: number
 }
 
-export async function createChecklist(body: ChecklistCreateRequest): Promise<ChecklistDetail> {
-    const res = await client.post<ChecklistDetail>('/checklist', body)
-    return res.data
-}
+const checklists = createCrudResource<
+    ChecklistSummary,
+    ChecklistCreateRequest,
+    ChecklistUpdateRequest,
+    ChecklistDetail,
+    ChecklistDetail
+>('/checklist', {updateMethod: 'patch'})
 
-export async function updateChecklist(id: number, body: ChecklistUpdateRequest): Promise<ChecklistDetail> {
-    const res = await client.patch<ChecklistDetail>(`/checklist/${id}`, body)
-    return res.data
-}
+const columns = createScopedCrudResource<
+    ChecklistColumnDto,
+    ColumnCreateRequest,
+    ColumnUpdateRequest
+>((id: number) => `/checklist/${id}/column`, {updateMethod: 'patch'})
 
-export async function deleteChecklist(id: number): Promise<void> {
-    await client.delete(`/checklist/${id}`)
-}
+export const listChecklists = checklists.list
+export const getChecklist = checklists.get
+export const createChecklist = checklists.create
+export const updateChecklist = checklists.update
+export const deleteChecklist = checklists.remove
+
+export const addColumn = columns.create
+export const updateColumn = columns.update
+export const deleteColumn = columns.remove
 
 export async function refreshChecklist(id: number): Promise<ChecklistRefreshResult> {
     const res = await client.post<ChecklistRefreshResult>(`/checklist/${id}/refresh`)
     return res.data
-}
-
-export async function addColumn(
-    id: number,
-    body: {label: string; description?: string; position?: number},
-): Promise<ChecklistColumnDto> {
-    const res = await client.post<ChecklistColumnDto>(`/checklist/${id}/column`, body)
-    return res.data
-}
-
-export async function updateColumn(
-    id: number,
-    columnId: number,
-    body: {label?: string; description?: string; position?: number},
-): Promise<ChecklistColumnDto> {
-    const res = await client.patch<ChecklistColumnDto>(`/checklist/${id}/column/${columnId}`, body)
-    return res.data
-}
-
-export async function deleteColumn(id: number, columnId: number): Promise<void> {
-    await client.delete(`/checklist/${id}/column/${columnId}`)
 }
 
 export async function reorderColumns(id: number, orderedIds: number[]): Promise<void> {

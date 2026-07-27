@@ -4,10 +4,12 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import {pageParams} from './crud'
 import type {
     AcknowledgeRequest,
     MemberChangeSummary,
     MemberIdentity,
+    PageMeta,
     ProfileFieldChange,
     ProfileFieldChangeAcknowledgement,
 } from './types'
@@ -17,18 +19,12 @@ interface EnrichedProfileFieldChange {
     memberIdentity?: MemberIdentity | null
 }
 
-interface RawPagedChangesResponse {
+interface RawPagedChangesResponse extends PageMeta {
     changes: EnrichedProfileFieldChange[]
-    total: number
-    offset: number
-    limit: number
 }
 
-export interface PagedChangesResponse {
+export interface PagedChangesResponse extends PageMeta {
     changes: ProfileFieldChange[]
-    total: number
-    offset: number
-    limit: number
 }
 
 function flatten(enriched: EnrichedProfileFieldChange): ProfileFieldChange {
@@ -36,7 +32,9 @@ function flatten(enriched: EnrichedProfileFieldChange): ProfileFieldChange {
 }
 
 export async function getAllChanges(offset = 0, limit = 20): Promise<PagedChangesResponse> {
-    const res = await client.get<RawPagedChangesResponse>('/profile-changes/all', { params: { offset, limit } })
+    const res = await client.get<RawPagedChangesResponse>('/profile-changes/all', {
+        params: pageParams({offset, limit}),
+    })
     return {
         ...res.data,
         changes: res.data.changes.map(flatten),

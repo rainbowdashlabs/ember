@@ -3,29 +3,21 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import client from './client'
+import {createCrudResource} from './crud'
 import type {Station, StationDetail, StationRequest} from './types'
 
-export async function listStations(): Promise<Station[]> {
-    const res = await client.get<Station[]>('/stations')
-    return res.data
-}
+const stations = createCrudResource<
+    Station,
+    StationRequest,
+    StationRequest,
+    StationDetail,
+    StationDetail,
+    StationDetail,
+    string
+>('/stations')
 
-export async function getStation(id: string): Promise<StationDetail> {
-    const res = await client.get<StationDetail>(`/stations/${id}`)
-    return res.data
-}
-
-export async function createStation(data: StationRequest): Promise<StationDetail> {
-    const res = await client.post<StationDetail>('/stations', data)
-    return res.data
-}
-
-export async function updateStation(id: string, data: StationRequest): Promise<StationDetail> {
-    const res = await client.put<StationDetail>(`/stations/${id}`, data)
-    return res.data
-}
-
-export async function deleteStation(id: string): Promise<void> {
-    await client.delete(`/stations/${id}`)
-}
+export const listStations = stations.list
+export const getStation = stations.get
+export const createStation = stations.create
+export const updateStation = stations.update
+export const deleteStation = stations.remove

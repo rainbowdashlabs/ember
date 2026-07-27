@@ -4,25 +4,22 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import { createCrudResource } from './crud'
 import type { StationMember, UserTag } from './types'
 
-export async function listTags(): Promise<UserTag[]> {
-    const res = await client.get<UserTag[]>('/tags')
-    return res.data
+interface TagRequest {
+    name: string
+    color?: string | null
+    visible?: boolean
+    position?: number
 }
 
-export async function createTag(data: { name: string; color?: string | null; visible?: boolean; position?: number }): Promise<UserTag> {
-    const res = await client.post<UserTag>('/tags', data)
-    return res.data
-}
+const tags = createCrudResource<UserTag, TagRequest, TagRequest, UserTag, UserTag, void>('/tags')
 
-export async function updateTag(id: number, data: { name: string; color?: string | null; visible?: boolean; position?: number }): Promise<void> {
-    await client.put(`/tags/${id}`, data)
-}
-
-export async function deleteTag(id: number): Promise<void> {
-    await client.delete(`/tags/${id}`)
-}
+export const listTags = tags.list
+export const createTag = tags.create
+export const updateTag = tags.update
+export const deleteTag = tags.remove
 
 export async function getTagMembers(tagId: number): Promise<StationMember[]> {
     const res = await client.get<StationMember[]>(`/tags/${tagId}/members`)

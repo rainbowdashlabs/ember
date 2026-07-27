@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import {createCrudResource} from './crud'
 import type {InventoryItem} from './types'
 
 export interface InventoryContainerKind {
@@ -88,52 +89,29 @@ export interface ItemLocationResponse {
     pathDisplay: string
 }
 
-export async function listKinds(): Promise<InventoryContainerKind[]> {
-    const res = await client.get<InventoryContainerKind[]>('/inventory-container-kinds')
-    return res.data
-}
+const kinds = createCrudResource<InventoryContainerKind, KindRequest>('/inventory-container-kinds')
 
-export async function createKind(data: KindRequest): Promise<InventoryContainerKind> {
-    const res = await client.post<InventoryContainerKind>('/inventory-container-kinds', data)
-    return res.data
-}
+const containers = createCrudResource<
+    InventoryContainer,
+    ContainerRequest,
+    ContainerRequest,
+    ContainerDetail
+>('/inventory-containers')
 
-export async function updateKind(id: number, data: KindRequest): Promise<InventoryContainerKind> {
-    const res = await client.put<InventoryContainerKind>(`/inventory-container-kinds/${id}`, data)
-    return res.data
-}
+export const listKinds = kinds.list
+export const createKind = kinds.create
+export const updateKind = kinds.update
+export const deleteKind = kinds.remove
 
-export async function deleteKind(id: number): Promise<void> {
-    await client.delete(`/inventory-container-kinds/${id}`)
-}
-
-export async function listContainers(): Promise<InventoryContainer[]> {
-    const res = await client.get<InventoryContainer[]>('/inventory-containers')
-    return res.data
-}
+export const listContainers = containers.list
+export const getContainer = containers.get
+export const createContainer = containers.create
+export const updateContainer = containers.update
+export const deleteContainer = containers.remove
 
 export async function listRoots(): Promise<InventoryContainer[]> {
     const res = await client.get<InventoryContainer[]>('/inventory-containers/roots')
     return res.data
-}
-
-export async function getContainer(id: number): Promise<ContainerDetail> {
-    const res = await client.get<ContainerDetail>(`/inventory-containers/${id}`)
-    return res.data
-}
-
-export async function createContainer(data: ContainerRequest): Promise<InventoryContainer> {
-    const res = await client.post<InventoryContainer>('/inventory-containers', data)
-    return res.data
-}
-
-export async function updateContainer(id: number, data: ContainerRequest): Promise<InventoryContainer> {
-    const res = await client.put<InventoryContainer>(`/inventory-containers/${id}`, data)
-    return res.data
-}
-
-export async function deleteContainer(id: number): Promise<void> {
-    await client.delete(`/inventory-containers/${id}`)
 }
 
 export async function getContainerContents(id: number, recursive = false): Promise<ContainerContents> {

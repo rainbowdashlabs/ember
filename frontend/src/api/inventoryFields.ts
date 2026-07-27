@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import client from './client'
+import {createScopedCrudResource} from './crud'
 
 export const FieldType = {
     DATE: 'DATE',
@@ -82,34 +82,16 @@ export interface FieldUpdateRequest {
     config: FieldConfig
 }
 
-export async function listFields(inventoryId: number): Promise<InventoryFieldDefinition[]> {
-    const res = await client.get<InventoryFieldDefinition[]>(`/inventories/${inventoryId}/fields`)
-    return res.data
-}
+const fields = createScopedCrudResource<
+    InventoryFieldDefinition,
+    FieldDefinitionRequest,
+    FieldUpdateRequest
+>((inventoryId: number) => `/inventories/${inventoryId}/fields`)
 
-export async function createField(
-    inventoryId: number,
-    data: FieldDefinitionRequest,
-): Promise<InventoryFieldDefinition> {
-    const res = await client.post<InventoryFieldDefinition>(`/inventories/${inventoryId}/fields`, data)
-    return res.data
-}
-
-export async function updateField(
-    inventoryId: number,
-    fieldId: number,
-    data: FieldUpdateRequest,
-): Promise<InventoryFieldDefinition> {
-    const res = await client.put<InventoryFieldDefinition>(
-        `/inventories/${inventoryId}/fields/${fieldId}`,
-        data,
-    )
-    return res.data
-}
-
-export async function deleteField(inventoryId: number, fieldId: number): Promise<void> {
-    await client.delete(`/inventories/${inventoryId}/fields/${fieldId}`)
-}
+export const listFields = fields.list
+export const createField = fields.create
+export const updateField = fields.update
+export const deleteField = fields.remove
 
 export interface NumberFieldViolation {
     limit: 'min' | 'max'

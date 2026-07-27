@@ -4,26 +4,17 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import {createCrudResource} from './crud'
 import type {CodeDetail, CreateCodeRequest, RegistrationCode, SetGroupsRequest,} from './types'
 
-export async function listCodes(): Promise<RegistrationCode[]> {
-    const res = await client.get<RegistrationCode[]>('/registration-codes')
-    return res.data
-}
+const codes = createCrudResource<RegistrationCode, CreateCodeRequest, CreateCodeRequest, CodeDetail>(
+    '/registration-codes',
+)
 
-export async function getCode(id: number): Promise<CodeDetail> {
-    const res = await client.get<CodeDetail>(`/registration-codes/${id}`)
-    return res.data
-}
-
-export async function createCode(data: CreateCodeRequest): Promise<RegistrationCode> {
-    const res = await client.post<RegistrationCode>('/registration-codes', data)
-    return res.data
-}
-
-export async function deleteCode(id: number): Promise<void> {
-    await client.delete(`/registration-codes/${id}`)
-}
+export const listCodes = codes.list
+export const getCode = codes.get
+export const createCode = codes.create
+export const deleteCode = codes.remove
 
 export async function getCodeGroups(codeId: number): Promise<number[]> {
     const res = await client.get<number[]>(`/registration-codes/${codeId}/groups`)

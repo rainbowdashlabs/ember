@@ -4,33 +4,18 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import {createCrudResource} from './crud'
 import type {ProfileField, ProfileFieldRequest, ProfileFieldValue, SetValuesRequest,} from './types'
 
 // -- Field Definitions --
 
-export async function listFields(): Promise<ProfileField[]> {
-    const res = await client.get<ProfileField[]>('/profile-fields')
-    return res.data
-}
+const fields = createCrudResource<ProfileField, ProfileFieldRequest>('/profile-fields')
 
-export async function getField(id: number): Promise<ProfileField> {
-    const res = await client.get<ProfileField>(`/profile-fields/${id}`)
-    return res.data
-}
-
-export async function createField(data: ProfileFieldRequest): Promise<ProfileField> {
-    const res = await client.post<ProfileField>('/profile-fields', data)
-    return res.data
-}
-
-export async function updateField(id: number, data: ProfileFieldRequest): Promise<ProfileField> {
-    const res = await client.put<ProfileField>(`/profile-fields/${id}`, data)
-    return res.data
-}
-
-export async function deleteField(id: number): Promise<void> {
-    await client.delete(`/profile-fields/${id}`)
-}
+export const listFields = fields.list
+export const getField = fields.get
+export const createField = fields.create
+export const updateField = fields.update
+export const deleteField = fields.remove
 
 export async function getMemberFields(memberId: number): Promise<ProfileField[]> {
     const res = await client.get<ProfileField[]>(`/station-members/${memberId}/fields`)
