@@ -16,9 +16,12 @@ import java.util.List;
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
+import static dev.chojo.ember.util.sql.SqlSupport.alias;
 
 @Singleton
 public class DiscoveryStationCacheRepository {
+    private static final String DISCOVERY_STATION_CACHE_COLUMNS =
+            "instance_public_key, station_uid, payload, fetched_at";
 
     /**
      * Inserts or refreshes a cached station card for a peer.
@@ -60,16 +63,20 @@ public class DiscoveryStationCacheRepository {
 
     public List<CachedDiscoveryStation> findAll() {
         return query("""
-                SELECT c.*
+                SELECT %s
                 FROM discovery_station_cache c
                 JOIN discovery_peer p ON p.public_key = c.instance_public_key
                 WHERE p.reachable = TRUE AND p.blocked = FALSE
-                ORDER BY c.fetched_at DESC;""").single(call()).map(CachedDiscoveryStation.map()).all();
+                ORDER BY c.fetched_at DESC;""", alias("c", DISCOVERY_STATION_CACHE_COLUMNS))
+                .single(call())
+                .map(CachedDiscoveryStation.map())
+                .all();
     }
 
     public List<CachedDiscoveryStation> findForPeer(String instancePublicKey) {
         return query(
-                        "SELECT * FROM discovery_station_cache WHERE instance_public_key = :instance_public_key ORDER BY fetched_at DESC;")
+                        "SELECT %s FROM discovery_station_cache WHERE instance_public_key = :instance_public_key ORDER BY fetched_at DESC;",
+                        DISCOVERY_STATION_CACHE_COLUMNS)
                 .single(call().bind("instance_public_key", instancePublicKey))
                 .map(CachedDiscoveryStation.map())
                 .all();
@@ -81,11 +88,11 @@ public class DiscoveryStationCacheRepository {
     public List<CachedDiscoveryStation> findByStationUids(List<String> stationUids) {
         if (stationUids == null || stationUids.isEmpty()) return List.of();
         return query("""
-                SELECT c.*
+                SELECT %s
                 FROM discovery_station_cache c
                 JOIN discovery_peer p ON p.public_key = c.instance_public_key
                 WHERE p.reachable = TRUE AND p.blocked = FALSE
-                  AND c.station_uid = ANY(:uids);""")
+                  AND c.station_uid = ANY(:uids);""", alias("c", DISCOVERY_STATION_CACHE_COLUMNS))
                 .single(call().bind("uids", stationUids, PostgreSqlTypes.VARCHAR))
                 .map(CachedDiscoveryStation.map())
                 .all();
@@ -102,13 +109,16 @@ public class DiscoveryStationCacheRepository {
             c = c.bind("q", "%" + search.trim().toLowerCase() + "%");
         }
         return query("""
-                SELECT c.*
+                SELECT %s
                 FROM discovery_station_cache c
                 JOIN discovery_peer p ON p.public_key = c.instance_public_key
                 WHERE p.reachable = TRUE
                   AND p.blocked = FALSE
                   %s
                 ORDER BY C.fetched_at DESC
-                LIMIT :limit;""", predicate).single(c).map(CachedDiscoveryStation.map()).all();
+                LIMIT :limit;""", alias("c", DISCOVERY_STATION_CACHE_COLUMNS), predicate)
+                .single(c)
+                .map(CachedDiscoveryStation.map())
+                .all();
     }
 }

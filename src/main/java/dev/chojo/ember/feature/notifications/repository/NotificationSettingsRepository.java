@@ -15,12 +15,15 @@ import java.util.Map;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
+import static dev.chojo.ember.util.sql.SqlSupport.insertReturning;
 
 /**
  * Repository for managing per-member notification preferences (app and email toggles per notification type).
  */
 @Singleton
 public class NotificationSettingsRepository {
+    private static final String USER_NOTIFICATION_SETTINGS_COLUMNS =
+            "member_id, notification_type, app_enabled, email_enabled, feed_enabled";
 
     /**
      * Retrieves all notification settings for a member.
@@ -29,7 +32,9 @@ public class NotificationSettingsRepository {
      * @return list of notification settings
      */
     public List<NotificationSetting> findByMember(int memberId) {
-        return query("SELECT * FROM user_notification_settings WHERE member_id = :member_id;")
+        return query(
+                        "SELECT %s FROM user_notification_settings WHERE member_id = :member_id;",
+                        USER_NOTIFICATION_SETTINGS_COLUMNS)
                 .single(call().bind("member_id", memberId))
                 .map(NotificationSetting.map())
                 .all();
@@ -61,22 +66,22 @@ public class NotificationSettingsRepository {
      */
     public NotificationSetting upsert(
             int memberId, NotificationType type, boolean appEnabled, boolean emailEnabled, boolean feedEnabled) {
-        return query("""
+        return insertReturning(
+                """
                 INSERT INTO user_notification_settings(member_id, notification_type, app_enabled, email_enabled, feed_enabled)
                 VALUES(:member_id, :type, :app_enabled, :email_enabled, :feed_enabled)
                 ON CONFLICT (member_id, notification_type) DO UPDATE SET
                     app_enabled = :app_enabled,
                     email_enabled = :email_enabled,
                     feed_enabled = :feed_enabled
-                RETURNING *;""")
-                .single(call().bind("member_id", memberId)
+                RETURNING %s;""",
+                call().bind("member_id", memberId)
                         .bind("type", type)
                         .bind("app_enabled", appEnabled)
                         .bind("email_enabled", emailEnabled)
-                        .bind("feed_enabled", feedEnabled))
-                .map(NotificationSetting.map())
-                .first()
-                .orElseThrow();
+                        .bind("feed_enabled", feedEnabled),
+                NotificationSetting.map(),
+                USER_NOTIFICATION_SETTINGS_COLUMNS);
     }
 
     /**
@@ -107,7 +112,7 @@ public class NotificationSettingsRepository {
                 .single(call().bind("member_id", memberId).bind("type", type))
                 .map(row -> row.getBoolean("app_enabled"))
                 .first()
-                .orElse(true); // default: app notifications enabled
+                .orElse(true);
     }
 
     /**
@@ -125,6 +130,6 @@ public class NotificationSettingsRepository {
                 .single(call().bind("member_id", memberId).bind("type", type))
                 .map(row -> row.getBoolean("email_enabled"))
                 .first()
-                .orElse(false); // default: email notifications disabled
+                .orElse(false);
     }
 }

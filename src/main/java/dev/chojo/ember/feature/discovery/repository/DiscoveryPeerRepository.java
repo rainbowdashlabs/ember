@@ -17,15 +17,19 @@ import java.util.Optional;
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
+import static dev.chojo.ember.util.sql.SqlSupport.insertReturning;
 
 @Singleton
 public class DiscoveryPeerRepository {
+    private static final String DISCOVERY_PEER_COLUMNS = """
+            public_key, base_url, instance_id, first_seen_at, last_seen_at, last_pinged_at, \
+            last_reached_at, reachable, source, introduced_by, reputation, blocked""";
 
     /**
      * Returns every peer regardless of reachability. Used by the admin UI.
      */
     public List<DiscoveryPeer> findAll() {
-        return query("SELECT * FROM discovery_peer ORDER BY last_seen_at DESC;")
+        return query("SELECT %s FROM discovery_peer ORDER BY last_seen_at DESC;", DISCOVERY_PEER_COLUMNS)
                 .single(call())
                 .map(DiscoveryPeer.map())
                 .all();
@@ -37,7 +41,8 @@ public class DiscoveryPeerRepository {
      */
     public List<DiscoveryPeer> findUsable() {
         return query(
-                        "SELECT * FROM discovery_peer WHERE blocked = FALSE AND reputation > -50 ORDER BY last_seen_at DESC;")
+                        "SELECT %s FROM discovery_peer WHERE blocked = FALSE AND reputation > -50 ORDER BY last_seen_at DESC;",
+                        DISCOVERY_PEER_COLUMNS)
                 .single(call())
                 .map(DiscoveryPeer.map())
                 .all();
@@ -49,21 +54,22 @@ public class DiscoveryPeerRepository {
      */
     public List<DiscoveryPeer> findReachable() {
         return query(
-                        "SELECT * FROM discovery_peer WHERE reachable = TRUE AND blocked = FALSE ORDER BY last_seen_at DESC;")
+                        "SELECT %s FROM discovery_peer WHERE reachable = TRUE AND blocked = FALSE ORDER BY last_seen_at DESC;",
+                        DISCOVERY_PEER_COLUMNS)
                 .single(call())
                 .map(DiscoveryPeer.map())
                 .all();
     }
 
     public Optional<DiscoveryPeer> findByPublicKey(String publicKey) {
-        return query("SELECT * FROM discovery_peer WHERE public_key = :public_key;")
+        return query("SELECT %s FROM discovery_peer WHERE public_key = :public_key;", DISCOVERY_PEER_COLUMNS)
                 .single(call().bind("public_key", publicKey))
                 .map(DiscoveryPeer.map())
                 .first();
     }
 
     public Optional<DiscoveryPeer> findByBaseUrl(String baseUrl) {
-        return query("SELECT * FROM discovery_peer WHERE base_url = :base_url;")
+        return query("SELECT %s FROM discovery_peer WHERE base_url = :base_url;", DISCOVERY_PEER_COLUMNS)
                 .single(call().bind("base_url", baseUrl))
                 .map(DiscoveryPeer.map())
                 .first();
@@ -75,22 +81,22 @@ public class DiscoveryPeerRepository {
      */
     public DiscoveryPeer upsert(
             String publicKey, String baseUrl, String instanceId, PeerSource source, String introducedBy) {
-        return query("""
+        return insertReturning(
+                """
                 INSERT INTO discovery_peer (public_key, base_url, instance_id, source, introduced_by)
                 VALUES (:public_key, :base_url, :instance_id, :source, :introduced_by)
                 ON CONFLICT (public_key) DO UPDATE
                 SET base_url     = excluded.base_url,
                     instance_id  = excluded.instance_id,
                     last_seen_at = now()
-                RETURNING *;""")
-                .single(call().bind("public_key", publicKey)
+                RETURNING %s;""",
+                call().bind("public_key", publicKey)
                         .bind("base_url", baseUrl)
                         .bind("instance_id", instanceId)
                         .bind("source", source.name())
-                        .bind("introduced_by", introducedBy))
-                .map(DiscoveryPeer.map())
-                .first()
-                .orElseThrow();
+                        .bind("introduced_by", introducedBy),
+                DiscoveryPeer.map(),
+                DISCOVERY_PEER_COLUMNS);
     }
 
     public void markPinged(String publicKey, Instant when) {
@@ -144,7 +150,7 @@ public class DiscoveryPeerRepository {
 
     public List<DiscoveryPeer> findManyByKeys(List<String> publicKeys) {
         if (publicKeys.isEmpty()) return List.of();
-        return query("SELECT * FROM discovery_peer WHERE public_key = ANY(:keys);")
+        return query("SELECT %s FROM discovery_peer WHERE public_key = ANY(:keys);", DISCOVERY_PEER_COLUMNS)
                 .single(call().bind("keys", publicKeys, PostgreSqlTypes.VARCHAR))
                 .map(DiscoveryPeer.map())
                 .all();

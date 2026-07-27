@@ -18,6 +18,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 
 @Singleton
 public class DiscoveryPingRepository {
+    private static final String DISCOVERY_PING_COLUMNS = "nonce, direction, peer_key, issued_at, expires_at";
 
     /**
      * Records a nonce. Returns {@code false} if the nonce was already present (replay or
@@ -39,7 +40,7 @@ public class DiscoveryPingRepository {
     }
 
     public Optional<DiscoveryPing> findByNonce(String nonce) {
-        return query("SELECT * FROM discovery_ping WHERE nonce = :nonce;")
+        return query("SELECT %s FROM discovery_ping WHERE nonce = :nonce;", DISCOVERY_PING_COLUMNS)
                 .single(call().bind("nonce", nonce))
                 .map(DiscoveryPing.map())
                 .first();

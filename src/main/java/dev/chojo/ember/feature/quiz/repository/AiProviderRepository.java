@@ -16,16 +16,21 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 
 @Singleton
 public class AiProviderRepository {
+    private static final String STATION_AI_PROVIDER_COLUMNS = "id, station_id, provider, api_key, model";
 
     public List<StationAiProvider> findByStation(int stationId) {
-        return query("SELECT * FROM station_ai_provider WHERE station_id = :station_id ORDER BY provider;")
+        return query(
+                        "SELECT %s FROM station_ai_provider WHERE station_id = :station_id ORDER BY provider;",
+                        STATION_AI_PROVIDER_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(StationAiProvider.map())
                 .all();
     }
 
     public Optional<StationAiProvider> findByProvider(int stationId, String provider) {
-        return query("SELECT * FROM station_ai_provider WHERE station_id = :station_id AND provider = :provider;")
+        return query(
+                        "SELECT %s FROM station_ai_provider WHERE station_id = :station_id AND provider = :provider;",
+                        STATION_AI_PROVIDER_COLUMNS)
                 .single(call().bind("station_id", stationId).bind("provider", provider))
                 .map(StationAiProvider.map())
                 .first();

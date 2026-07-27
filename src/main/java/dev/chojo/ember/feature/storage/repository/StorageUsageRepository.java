@@ -21,13 +21,16 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  */
 @Singleton
 public class StorageUsageRepository {
+    private static final String STATION_STORAGE_USAGE_COLUMNS =
+            "station_id, category, total_bytes, file_count, updated_at";
 
     /**
      * Returns all storage usage records for a station.
      */
     public List<StorageUsage> findByStation(int stationId) {
         return query(
-                        "SELECT station_id, category, total_bytes, file_count, updated_at FROM station_storage_usage WHERE station_id = :station_id;")
+                        "SELECT %s FROM station_storage_usage WHERE station_id = :station_id;",
+                        STATION_STORAGE_USAGE_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(StorageUsage.map())
                 .all();
@@ -38,7 +41,8 @@ public class StorageUsageRepository {
      */
     public Optional<StorageUsage> findByStationAndCategory(int stationId, StorageCategory category) {
         return query(
-                        "SELECT station_id, category, total_bytes, file_count, updated_at FROM station_storage_usage WHERE station_id = :station_id AND category = :category;")
+                        "SELECT %s FROM station_storage_usage WHERE station_id = :station_id AND category = :category;",
+                        STATION_STORAGE_USAGE_COLUMNS)
                 .single(call().bind("station_id", stationId).bind("category", category.name()))
                 .map(StorageUsage.map())
                 .first();
@@ -118,7 +122,8 @@ public class StorageUsageRepository {
      */
     public List<StorageUsage> findAll() {
         return query(
-                        "SELECT station_id, category, total_bytes, file_count, updated_at FROM station_storage_usage ORDER BY station_id, category;")
+                        "SELECT %s FROM station_storage_usage ORDER BY station_id, category;",
+                        STATION_STORAGE_USAGE_COLUMNS)
                 .single(call())
                 .map(StorageUsage.map())
                 .all();

@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.notifications.repository;
 import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
@@ -16,12 +17,15 @@ import java.util.List;
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
+import static dev.chojo.ember.util.sql.SqlSupport.count;
+import static dev.chojo.ember.util.sql.SqlSupport.insertReturning;
 
 /**
  * Repository for persisting and querying notifications, including acknowledgement and email digest tracking.
  */
 @Singleton
 public class NotificationRepository {
+    private static final String NOTIFICATION_COLUMNS = "id, member_id, type, data, created_at, acknowledged_at";
 
     /**
      * Creates a new notification for a member.
@@ -32,14 +36,14 @@ public class NotificationRepository {
      * @return the persisted notification
      */
     public Notification create(int memberId, NotificationType type, NotificationData data) {
-        return query("""
+        return insertReturning(
+                """
                 INSERT INTO notification(member_id, type, data)
                 VALUES(:member_id, :type, :data::JSONB)
-                RETURNING *;""")
-                .single(call().bind("member_id", memberId).bind("type", type).bind("data", data.toJson()))
-                .map(Notification.map())
-                .first()
-                .orElseThrow();
+                RETURNING %s;""".formatted(NOTIFICATION_COLUMNS),
+                call().bind("member_id", memberId).bind("type", type).bind("data", data.toJson()),
+                Notification.map(),
+                NOTIFICATION_COLUMNS);
     }
 
     /**
@@ -51,16 +55,13 @@ public class NotificationRepository {
      * @return {@code true} if a matching unacknowledged notification exists
      */
     public boolean exists(int memberId, NotificationType type, String dataJson) {
-        return query("""
+        return SqlSupport.exists(
+                """
                 SELECT 1 FROM notification
                 WHERE member_id = :member_id
                   AND type = :type
                   AND data = :data::JSONB
-                  AND acknowledged_at IS NULL;""")
-                .single(call().bind("member_id", memberId).bind("type", type).bind("data", dataJson))
-                .map(_ -> true)
-                .first()
-                .orElse(false);
+                  AND acknowledged_at IS NULL;""", call().bind("member_id", memberId).bind("type", type).bind("data", dataJson));
     }
 
     /**
@@ -71,7 +72,8 @@ public class NotificationRepository {
      */
     public List<Notification> findUnacknowledged(int memberId) {
         return query(
-                        "SELECT * FROM notification WHERE member_id = :member_id AND acknowledged_at IS NULL ORDER BY created_at DESC;")
+                        "SELECT %s FROM notification WHERE member_id = :member_id AND acknowledged_at IS NULL ORDER BY created_at DESC;",
+                        NOTIFICATION_COLUMNS)
                 .single(call().bind("member_id", memberId))
                 .map(Notification.map())
                 .all();
@@ -84,7 +86,9 @@ public class NotificationRepository {
      * @return list of notifications
      */
     public List<Notification> findAll(int memberId) {
-        return query("SELECT * FROM notification WHERE member_id = :member_id ORDER BY created_at DESC LIMIT 50;")
+        return query(
+                        "SELECT %s FROM notification WHERE member_id = :member_id ORDER BY created_at DESC LIMIT 50;",
+                        NOTIFICATION_COLUMNS)
                 .single(call().bind("member_id", memberId))
                 .map(Notification.map())
                 .all();
@@ -115,12 +119,9 @@ public class NotificationRepository {
      * @return count of unacknowledged notifications
      */
     public int countUnacknowledged(int memberId) {
-        return query(
-                        "SELECT count(*) AS cnt FROM notification WHERE member_id = :member_id AND acknowledged_at IS NULL;")
-                .single(call().bind("member_id", memberId))
-                .map(row -> row.getInt("cnt"))
-                .first()
-                .orElse(0);
+        return count(
+                "SELECT count(*) AS cnt FROM notification WHERE member_id = :member_id AND acknowledged_at IS NULL;",
+                call().bind("member_id", memberId));
     }
 
     /**
@@ -188,9 +189,9 @@ public class NotificationRepository {
      */
     public List<Notification> findUnemailed() {
         return query("""
-                SELECT * FROM notification
+                SELECT %s FROM notification
                 WHERE emailed_at IS NULL
-                ORDER BY member_id, created_at;""").single().map(Notification.map()).all();
+                ORDER BY member_id, created_at;""", NOTIFICATION_COLUMNS).single().map(Notification.map()).all();
     }
 
     /**

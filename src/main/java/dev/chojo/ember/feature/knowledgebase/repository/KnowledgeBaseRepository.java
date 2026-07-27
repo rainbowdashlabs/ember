@@ -130,7 +130,9 @@ public class KnowledgeBaseRepository {
                         .bind("name", name)
                         .bind("description", description)
                         .bind("created_by", createdBy),
-                KbFolder.map(), FOLDER_COLUMNS, FOLDER_RESTRICTED);
+                KbFolder.map(),
+                FOLDER_COLUMNS,
+                FOLDER_RESTRICTED);
     }
 
     public boolean updateFolder(int id, String name, String description, String iconUrl, int position) {
@@ -230,7 +232,9 @@ public class KnowledgeBaseRepository {
                         .bind("youtube_url", youtubeUrl)
                         .bind("link_url", linkUrl)
                         .bind("created_by", createdBy),
-                KbFile.map(), FILE_COLUMNS, FILE_RESTRICTED);
+                KbFile.map(),
+                FILE_COLUMNS,
+                FILE_RESTRICTED);
     }
 
     // -- File Content --
@@ -331,7 +335,8 @@ public class KnowledgeBaseRepository {
                         .bind("is_full", isFull)
                         .bind("version", version)
                         .bind("created_by", createdBy),
-                KbFileVersion.map(), FILE_VERSION_COLUMNS);
+                KbFileVersion.map(),
+                FILE_VERSION_COLUMNS);
     }
 
     public void updateSearchIndex(int fileId, String plainText, String tsConfig) {
@@ -429,7 +434,8 @@ public class KnowledgeBaseRepository {
                         .bind("group_id", groupId)
                         .bind("tag_id", tagId)
                         .bind("member_id", memberId),
-                KbAccessRestriction.map(), RESTRICTION_COLUMNS);
+                KbAccessRestriction.map(),
+                RESTRICTION_COLUMNS);
     }
 
     public boolean removeRestriction(int id) {
@@ -467,9 +473,7 @@ public class KnowledgeBaseRepository {
                     (:station_id, lower(:name))
                 ON CONFLICT (station_id, name) DO UPDATE SET
                     name = excluded.name
-                RETURNING %s;""",
-                call().bind("station_id", stationId).bind("name", name.toLowerCase()),
-                KbTag.map(), TAG_COLUMNS);
+                RETURNING %s;""", call().bind("station_id", stationId).bind("name", name.toLowerCase()), KbTag.map(), TAG_COLUMNS);
     }
 
     // Not yet exposed via routes — tag management UI not implemented

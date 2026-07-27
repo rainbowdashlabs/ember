@@ -12,6 +12,7 @@ import java.util.List;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
+import static dev.chojo.ember.util.sql.SqlSupport.count;
 
 /**
  * Repository for the email queue, managing enqueuing, fetching, status updates, rate limiting,
@@ -116,11 +117,7 @@ public class EmailQueueRepository {
      * @return the pending email count
      */
     public int pendingCount() {
-        return query("SELECT count(*) FROM email_queue WHERE status = 'PENDING';")
-                .single()
-                .map(row -> row.getInt(1))
-                .first()
-                .orElse(0);
+        return count("SELECT count(*) FROM email_queue WHERE status = 'PENDING';", call());
     }
 
     /**
@@ -130,11 +127,7 @@ public class EmailQueueRepository {
      * @return the count of emails sent on that day
      */
     public int getDailyCount(LocalDate day) {
-        return query("SELECT count FROM email_daily_count WHERE day = :day;")
-                .single(call().bind("day", day))
-                .map(row -> row.getInt("count"))
-                .first()
-                .orElse(0);
+        return count("SELECT count FROM email_daily_count WHERE day = :day;", call().bind("day", day));
     }
 
     /**

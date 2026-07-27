@@ -12,9 +12,14 @@ import java.util.List;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
+import static dev.chojo.ember.util.sql.SqlSupport.deleteById;
+import static dev.chojo.ember.util.sql.SqlSupport.insertReturning;
 
 @Singleton
 public class ProblemReportRepository {
+    private static final String PROBLEM_REPORT_COLUMNS = """
+            id, station_id, member_id, reporter_name, message, page_url, user_roles, recent_requests, \
+            browser_info, screen_size, acknowledged, created_at""";
 
     public ProblemReport create(
             int stationId,
@@ -26,11 +31,12 @@ public class ProblemReportRepository {
             String recentRequests,
             String browserInfo,
             String screenSize) {
-        return query("""
+        return insertReturning(
+                """
                 INSERT INTO problem_report(station_id, member_id, reporter_name, message, page_url, user_roles, recent_requests, browser_info, screen_size)
                 VALUES(:station_id, :member_id, :reporter_name, :message, :page_url, :user_roles, :recent_requests::JSONB, :browser_info, :screen_size)
-                RETURNING *;""")
-                .single(call().bind("station_id", stationId)
+                RETURNING %s;""".formatted(PROBLEM_REPORT_COLUMNS),
+                call().bind("station_id", stationId)
                         .bind("member_id", memberId)
                         .bind("reporter_name", reporterName)
                         .bind("message", message)
@@ -38,15 +44,15 @@ public class ProblemReportRepository {
                         .bind("user_roles", userRoles)
                         .bind("recent_requests", recentRequests)
                         .bind("browser_info", browserInfo)
-                        .bind("screen_size", screenSize))
-                .map(ProblemReport.map())
-                .first()
-                .orElseThrow();
+                        .bind("screen_size", screenSize),
+                ProblemReport.map(),
+                PROBLEM_REPORT_COLUMNS);
     }
 
     public List<ProblemReport> findAll(boolean includeAcknowledged) {
         return query(
-                        "SELECT * FROM problem_report WHERE (acknowledged = FALSE OR :include_acknowledged) ORDER BY created_at DESC;")
+                        "SELECT %s FROM problem_report WHERE (acknowledged = FALSE OR :include_acknowledged) ORDER BY created_at DESC;",
+                        PROBLEM_REPORT_COLUMNS)
                 .single(call().bind("include_acknowledged", includeAcknowledged))
                 .map(ProblemReport.map())
                 .all();
@@ -67,9 +73,6 @@ public class ProblemReportRepository {
     }
 
     public boolean delete(int id) {
-        return query("DELETE FROM problem_report WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return deleteById("problem_report", id);
     }
 }

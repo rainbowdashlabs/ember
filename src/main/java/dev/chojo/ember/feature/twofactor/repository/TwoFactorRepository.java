@@ -27,27 +27,45 @@ import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING;
+import static dev.chojo.ember.util.sql.SqlSupport.alias;
+import static dev.chojo.ember.util.sql.SqlSupport.count;
+import static dev.chojo.ember.util.sql.SqlSupport.deleteById;
+import static dev.chojo.ember.util.sql.SqlSupport.insertReturning;
 
 @Singleton
 public class TwoFactorRepository {
+    private static final String ACCOUNT_2FA_FACTOR_COLUMNS =
+            "id, account_id, kind, label, created_at, last_used_at, disabled_at";
+    private static final String ACCOUNT_2FA_TOTP_COLUMNS =
+            "factor_id, secret_encrypted, secret_kid, digits, period_seconds, algorithm, last_used_step";
+    private static final String ACCOUNT_2FA_WEBAUTHN_COLUMNS = """
+            factor_id, credential_id, public_key_cose, signature_counter, aaguid, transports, \
+            attestation_format, user_handle""";
+    private static final String ACCOUNT_2FA_BACKUP_CODE_COLUMNS = "id, factor_id, code_hash, used_at, used_via_ip";
+    private static final String ACCOUNT_2FA_TRUSTED_DEVICE_COLUMNS =
+            "id, account_id, token_hash, user_agent, created_at, trusted_until, last_seen_at, revoked_at";
+    private static final String TWO_FACTOR_POLICY_COLUMNS =
+            "id, scope, station_id, user_type, required, grace_days, created_by, created_at";
+    private static final String ACCOUNT_2FA_AUDIT_COLUMNS =
+            "id, account_id, actor_id, event, factor_kind, user_agent, country, created_at";
 
     // -- Factor CRUD --
 
     public TwoFactorFactor createFactor(int accountId, TwoFactorKind kind, String label) {
-        return query("""
+        return insertReturning(
+                """
                 INSERT INTO account_2fa_factor (account_id, kind, label)
                 VALUES (:account_id, CAST(:kind AS two_factor_kind), :label)
-                RETURNING *;""")
-                .single(call().bind("account_id", accountId)
-                        .bind("kind", kind.name())
-                        .bind("label", label))
-                .map(TwoFactorFactor.map())
-                .first()
-                .orElseThrow();
+                RETURNING %s;""".formatted(ACCOUNT_2FA_FACTOR_COLUMNS),
+                call().bind("account_id", accountId).bind("kind", kind.name()).bind("label", label),
+                TwoFactorFactor.map(),
+                ACCOUNT_2FA_FACTOR_COLUMNS);
     }
 
     public List<TwoFactorFactor> findActiveFactors(int accountId) {
-        return query("SELECT * FROM account_2fa_factor WHERE account_id = :account_id AND disabled_at IS NULL;")
+        return query(
+                        "SELECT %s FROM account_2fa_factor WHERE account_id = :account_id AND disabled_at IS NULL;",
+                        ACCOUNT_2FA_FACTOR_COLUMNS)
                 .single(call().bind("account_id", accountId))
                 .map(TwoFactorFactor.map())
                 .all();
@@ -55,8 +73,8 @@ public class TwoFactorRepository {
 
     public Optional<TwoFactorFactor> findActiveFactor(int accountId, TwoFactorKind kind) {
         return query("""
-                SELECT * FROM account_2fa_factor
-                WHERE account_id = :account_id AND kind = CAST(:kind AS two_factor_kind) AND disabled_at IS NULL;""")
+                SELECT %s FROM account_2fa_factor
+                WHERE account_id = :account_id AND kind = CAST(:kind AS two_factor_kind) AND disabled_at IS NULL;""", ACCOUNT_2FA_FACTOR_COLUMNS)
                 .single(call().bind("account_id", accountId).bind("kind", kind.name()))
                 .map(TwoFactorFactor.map())
                 .first();
@@ -114,7 +132,7 @@ public class TwoFactorRepository {
     }
 
     public Optional<TotpFactor> findTotp(int factorId) {
-        return query("SELECT * FROM account_2fa_totp WHERE factor_id = :factor_id;")
+        return query("SELECT %s FROM account_2fa_totp WHERE factor_id = :factor_id;", ACCOUNT_2FA_TOTP_COLUMNS)
                 .single(call().bind("factor_id", factorId))
                 .map(TotpFactor.map())
                 .first();
@@ -163,14 +181,16 @@ public class TwoFactorRepository {
     }
 
     public Optional<WebAuthnCredential> findWebAuthnByCredentialId(byte[] credentialId) {
-        return query("SELECT * FROM account_2fa_webauthn WHERE credential_id = :credential_id;")
+        return query(
+                        "SELECT %s FROM account_2fa_webauthn WHERE credential_id = :credential_id;",
+                        ACCOUNT_2FA_WEBAUTHN_COLUMNS)
                 .single(call().bind("credential_id", credentialId))
                 .map(WebAuthnCredential.map())
                 .first();
     }
 
     public Optional<WebAuthnCredential> findWebAuthnByFactor(int factorId) {
-        return query("SELECT * FROM account_2fa_webauthn WHERE factor_id = :factor_id;")
+        return query("SELECT %s FROM account_2fa_webauthn WHERE factor_id = :factor_id;", ACCOUNT_2FA_WEBAUTHN_COLUMNS)
                 .single(call().bind("factor_id", factorId))
                 .map(WebAuthnCredential.map())
                 .first();
@@ -178,10 +198,10 @@ public class TwoFactorRepository {
 
     public List<WebAuthnCredential> findActiveWebAuthnForAccount(int accountId) {
         return query("""
-                SELECT w.*
+                SELECT %s
                 FROM account_2fa_webauthn w
                 JOIN account_2fa_factor f ON f.id = w.factor_id
-                WHERE f.account_id = :account_id AND f.disabled_at IS NULL;""")
+                WHERE f.account_id = :account_id AND f.disabled_at IS NULL;""", alias("w", ACCOUNT_2FA_WEBAUTHN_COLUMNS))
                 .single(call().bind("account_id", accountId))
                 .map(WebAuthnCredential.map())
                 .all();
@@ -246,19 +266,18 @@ public class TwoFactorRepository {
     }
 
     public List<BackupCode> findUnusedBackupCodes(int factorId) {
-        return query("SELECT * FROM account_2fa_backup_code WHERE factor_id = :factor_id AND used_at IS NULL;")
+        return query(
+                        "SELECT %s FROM account_2fa_backup_code WHERE factor_id = :factor_id AND used_at IS NULL;",
+                        ACCOUNT_2FA_BACKUP_CODE_COLUMNS)
                 .single(call().bind("factor_id", factorId))
                 .map(BackupCode.map())
                 .all();
     }
 
     public int countUnusedBackupCodes(int factorId) {
-        return query(
-                        "SELECT COUNT(*) AS cnt FROM account_2fa_backup_code WHERE factor_id = :factor_id AND used_at IS NULL;")
-                .single(call().bind("factor_id", factorId))
-                .map(row -> row.getInt("cnt"))
-                .first()
-                .orElse(0);
+        return count(
+                "SELECT COUNT(*) AS cnt FROM account_2fa_backup_code WHERE factor_id = :factor_id AND used_at IS NULL;",
+                call().bind("factor_id", factorId));
     }
 
     public boolean markBackupCodeUsed(int codeId, String ip) {
@@ -286,22 +305,23 @@ public class TwoFactorRepository {
     // -- Trusted devices --
 
     public TrustedDevice createTrustedDevice(int accountId, String tokenHash, String userAgent, Instant trustedUntil) {
-        return query("""
+        return insertReturning(
+                """
                 INSERT INTO account_2fa_trusted_device (account_id, token_hash, user_agent, trusted_until)
                 VALUES (:account_id, :token_hash, :user_agent, :trusted_until)
-                RETURNING *;""")
-                .single(call().bind("account_id", accountId)
+                RETURNING %s;""",
+                call().bind("account_id", accountId)
                         .bind("token_hash", tokenHash)
                         .bind("user_agent", userAgent)
-                        .bind("trusted_until", trustedUntil, INSTANT_TIMESTAMP))
-                .map(TrustedDevice.map())
-                .first()
-                .orElseThrow();
+                        .bind("trusted_until", trustedUntil, INSTANT_TIMESTAMP),
+                TrustedDevice.map(),
+                ACCOUNT_2FA_TRUSTED_DEVICE_COLUMNS);
     }
 
     public List<TrustedDevice> findActiveTrustedDevices(int accountId) {
         return query(
-                        "SELECT * FROM account_2fa_trusted_device WHERE account_id = :account_id AND revoked_at IS NULL AND trusted_until > now();")
+                        "SELECT %s FROM account_2fa_trusted_device WHERE account_id = :account_id AND revoked_at IS NULL AND trusted_until > now();",
+                        ACCOUNT_2FA_TRUSTED_DEVICE_COLUMNS)
                 .single(call().bind("account_id", accountId))
                 .map(TrustedDevice.map())
                 .all();
@@ -309,8 +329,8 @@ public class TwoFactorRepository {
 
     public Optional<TrustedDevice> findTrustedDeviceByHash(String tokenHash) {
         return query("""
-                SELECT * FROM account_2fa_trusted_device
-                WHERE token_hash = :token_hash AND revoked_at IS NULL AND trusted_until > now();""")
+                SELECT %s FROM account_2fa_trusted_device
+                WHERE token_hash = :token_hash AND revoked_at IS NULL AND trusted_until > now();""", ACCOUNT_2FA_TRUSTED_DEVICE_COLUMNS)
                 .single(call().bind("token_hash", tokenHash))
                 .map(TrustedDevice.map())
                 .first();
@@ -341,7 +361,9 @@ public class TwoFactorRepository {
     // -- Policy --
 
     public List<TwoFactorPolicy> findInstancePolicies() {
-        return query("SELECT * FROM two_factor_policy WHERE scope = 'INSTANCE' ORDER BY user_type NULLS FIRST;")
+        return query(
+                        "SELECT %s FROM two_factor_policy WHERE scope = 'INSTANCE' ORDER BY user_type NULLS FIRST;",
+                        TWO_FACTOR_POLICY_COLUMNS)
                 .single(call())
                 .map(TwoFactorPolicy.map())
                 .all();
@@ -349,9 +371,9 @@ public class TwoFactorRepository {
 
     public List<TwoFactorPolicy> findStationPolicies(int stationId) {
         return query("""
-                SELECT * FROM two_factor_policy
+                SELECT %s FROM two_factor_policy
                 WHERE scope = 'STATION' AND station_id = :station_id
-                ORDER BY user_type NULLS FIRST;""")
+                ORDER BY user_type NULLS FIRST;""", TWO_FACTOR_POLICY_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(TwoFactorPolicy.map())
                 .all();
@@ -365,10 +387,10 @@ public class TwoFactorRepository {
     public Optional<TwoFactorPolicy> findPolicy(
             TwoFactorPolicy.Scope scope, Integer stationId, StationUserType userType) {
         return query("""
-                SELECT * FROM two_factor_policy
+                SELECT %s FROM two_factor_policy
                 WHERE scope = CAST(:scope AS TEXT)
                   AND COALESCE(station_id, 0) = COALESCE(:station_id, 0)
-                  AND COALESCE(user_type, '') = COALESCE(:user_type, '');""")
+                  AND COALESCE(user_type, '') = COALESCE(:user_type, '');""", TWO_FACTOR_POLICY_COLUMNS)
                 .single(call().bind("scope", scope.name())
                         .bind("station_id", stationId)
                         .bind("user_type", userType == null ? null : userType.name()))
@@ -386,7 +408,8 @@ public class TwoFactorRepository {
             boolean required,
             short graceDays,
             Integer createdBy) {
-        return query("""
+        return insertReturning(
+                """
                 INSERT INTO two_factor_policy (scope, station_id, user_type, required, grace_days, created_by)
                 VALUES (:scope, :station_id, :user_type, :required, :grace_days, :created_by)
                 ON CONFLICT (COALESCE(station_id, 0), COALESCE(user_type, ''))
@@ -394,23 +417,19 @@ public class TwoFactorRepository {
                               grace_days = EXCLUDED.grace_days,
                               created_by = EXCLUDED.created_by,
                               created_at = now()
-                RETURNING *;""")
-                .single(call().bind("scope", scope.name())
+                RETURNING %s;""",
+                call().bind("scope", scope.name())
                         .bind("station_id", stationId)
                         .bind("user_type", userType == null ? null : userType.name())
                         .bind("required", required)
                         .bind("grace_days", graceDays)
-                        .bind("created_by", createdBy))
-                .map(TwoFactorPolicy.map())
-                .first()
-                .orElseThrow();
+                        .bind("created_by", createdBy),
+                TwoFactorPolicy.map(),
+                TWO_FACTOR_POLICY_COLUMNS);
     }
 
     public boolean deletePolicy(int id) {
-        return query("DELETE FROM two_factor_policy WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return deleteById("two_factor_policy", id);
     }
 
     // -- Session 2FA timestamp --
@@ -445,7 +464,9 @@ public class TwoFactorRepository {
     }
 
     public List<TwoFactorAuditEntry> findRecentAudit(int limit, int offset) {
-        return query("SELECT * FROM account_2fa_audit ORDER BY created_at DESC LIMIT :limit OFFSET :offset;")
+        return query(
+                        "SELECT %s FROM account_2fa_audit ORDER BY created_at DESC LIMIT :limit OFFSET :offset;",
+                        ACCOUNT_2FA_AUDIT_COLUMNS)
                 .single(call().bind("limit", limit).bind("offset", offset))
                 .map(TwoFactorAuditEntry.map())
                 .all();
@@ -453,7 +474,8 @@ public class TwoFactorRepository {
 
     public List<TwoFactorAuditEntry> findAuditLog(int accountId, int limit, int offset) {
         return query(
-                        "SELECT * FROM account_2fa_audit WHERE account_id = :account_id ORDER BY created_at DESC LIMIT :limit OFFSET :offset;")
+                        "SELECT %s FROM account_2fa_audit WHERE account_id = :account_id ORDER BY created_at DESC LIMIT :limit OFFSET :offset;",
+                        ACCOUNT_2FA_AUDIT_COLUMNS)
                 .single(call().bind("account_id", accountId)
                         .bind("limit", limit)
                         .bind("offset", offset))

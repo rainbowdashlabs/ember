@@ -28,14 +28,32 @@ import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING;
+import static dev.chojo.ember.util.sql.SqlSupport.alias;
+import static dev.chojo.ember.util.sql.SqlSupport.count;
+import static dev.chojo.ember.util.sql.SqlSupport.deleteById;
+import static dev.chojo.ember.util.sql.SqlSupport.findById;
+import static dev.chojo.ember.util.sql.SqlSupport.insertReturning;
 
 @Singleton
 public class FederationRepository {
+    private static final String FEDERATION_PARTNER_COLUMNS = """
+            id, station_id, partner_station_id, invite_code, public_key, partner_public_key, status, \
+            federation_version, created_at, updated_at, remote_host, partner_station_name""";
+    private static final String FEDERATION_CAPABILITY_COLUMNS = "id, partner_id, capability, direction, enabled";
+    private static final String FEDERATION_KB_SHARE_COLUMNS = "id, station_id, file_id, folder_id, share_scope";
+    private static final String FEDERATION_QUIZ_SHARE_COLUMNS = "id, station_id, catalog_id, share_scope";
+    private static final String FEDERATION_PROTOCOL_SHARE_COLUMNS = "id, station_id, protocol_id, share_scope";
+    private static final String FEDERATION_METADATA_CACHE_COLUMNS =
+            "id, partner_id, content_type, remote_id, title, description, cached_at";
+    private static final String FEDERATION_CHANGE_LOG_COLUMNS =
+            "id, station_id, content_type, content_id, change_type, changed_at";
 
     // -- Partners --
 
     public List<FederationPartner> findPartners(int stationId) {
-        return query("SELECT * FROM federation_partner WHERE station_id = :station_id ORDER BY created_at DESC;")
+        return query(
+                        "SELECT %s FROM federation_partner WHERE station_id = :station_id ORDER BY created_at DESC;",
+                        FEDERATION_PARTNER_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(FederationPartner.map())
                 .all();
@@ -73,14 +91,11 @@ public class FederationRepository {
     }
 
     public Optional<FederationPartner> findPartnerById(int id) {
-        return query("SELECT * FROM federation_partner WHERE id = :id;")
-                .single(call().bind("id", id))
-                .map(FederationPartner.map())
-                .first();
+        return findById("federation_partner", FEDERATION_PARTNER_COLUMNS, id, FederationPartner.map());
     }
 
     public Optional<FederationPartner> findByInviteCode(String code) {
-        return query("SELECT * FROM federation_partner WHERE invite_code = :code;")
+        return query("SELECT %s FROM federation_partner WHERE invite_code = :code;", FEDERATION_PARTNER_COLUMNS)
                 .single(call().bind("code", code))
                 .map(FederationPartner.map())
                 .first();
@@ -101,7 +116,8 @@ public class FederationRepository {
 
     public List<FederationPartner> findPendingRequestsForStation(UUID targetStationUid) {
         return query(
-                        "SELECT * FROM federation_partner WHERE partner_station_id = :target_id::UUID AND status = 'PENDING';")
+                        "SELECT %s FROM federation_partner WHERE partner_station_id = :target_id::UUID AND status = 'PENDING';",
+                        FEDERATION_PARTNER_COLUMNS)
                 .single(call().bind("target_id", targetStationUid, UUID_STRING))
                 .map(FederationPartner.map())
                 .all();
@@ -109,20 +125,20 @@ public class FederationRepository {
 
     public FederationPartner createPartner(
             int stationId, UUID partnerStationUid, String inviteCode, String publicKey, String remoteHost) {
-        return query("""
+        return insertReturning(
+                """
                 INSERT INTO federation_partner(station_id, partner_station_id, invite_code, public_key, status, remote_host, federation_version, partner_station_name)
                 VALUES (:station_id, :partner_station_id::UUID, :invite_code, :public_key, 'PENDING', :remote_host, :federation_version,
                         (SELECT name FROM station WHERE uid = :partner_station_id::UUID))
-                RETURNING *;""")
-                .single(call().bind("station_id", stationId)
+                RETURNING %s;""",
+                call().bind("station_id", stationId)
                         .bind("partner_station_id", partnerStationUid, UUID_STRING)
                         .bind("invite_code", inviteCode)
                         .bind("public_key", publicKey)
                         .bind("remote_host", remoteHost)
-                        .bind("federation_version", FederationService.FEDERATION_VERSION))
-                .map(FederationPartner.map())
-                .first()
-                .orElseThrow();
+                        .bind("federation_version", FederationService.FEDERATION_VERSION),
+                FederationPartner.map(),
+                FEDERATION_PARTNER_COLUMNS);
     }
 
     public boolean updateRemoteHost(int id, String remoteHost) {
@@ -150,7 +166,9 @@ public class FederationRepository {
      * Returns all active remote partners (across all stations) for version broadcasting.
      */
     public List<FederationPartner> findAllActiveRemotePartners() {
-        return query("SELECT * FROM federation_partner WHERE status = 'ACTIVE' AND remote_host IS NOT NULL;")
+        return query(
+                        "SELECT %s FROM federation_partner WHERE status = 'ACTIVE' AND remote_host IS NOT NULL;",
+                        FEDERATION_PARTNER_COLUMNS)
                 .single(call())
                 .map(FederationPartner.map())
                 .all();
@@ -178,10 +196,7 @@ public class FederationRepository {
     }
 
     public boolean deletePartner(int id) {
-        return query("DELETE FROM federation_partner WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return deleteById("federation_partner", id);
     }
 
     /**
@@ -196,7 +211,9 @@ public class FederationRepository {
     }
 
     public List<FederationCapability> findCapabilities(int partnerId) {
-        return query("SELECT * FROM federation_capability WHERE partner_id = :partner_id;")
+        return query(
+                        "SELECT %s FROM federation_capability WHERE partner_id = :partner_id;",
+                        FEDERATION_CAPABILITY_COLUMNS)
                 .single(call().bind("partner_id", partnerId))
                 .map(FederationCapability.map())
                 .all();
@@ -217,7 +234,7 @@ public class FederationRepository {
     }
 
     public List<FederationShare> findKbShares(int stationId) {
-        return query("SELECT * FROM federation_kb_share WHERE station_id = :station_id;")
+        return query("SELECT %s FROM federation_kb_share WHERE station_id = :station_id;", FEDERATION_KB_SHARE_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(FederationShare.mapKb())
                 .all();
@@ -226,16 +243,16 @@ public class FederationRepository {
     // -- KB Shares --
 
     public FederationShare createKbShare(int stationId, Integer fileId, Integer folderId, ShareScope shareScope) {
-        return query("""
+        return insertReturning(
+                """
                 INSERT INTO federation_kb_share(station_id, file_id, folder_id, share_scope)
-                VALUES (:station_id, :file_id, :folder_id, :share_scope) RETURNING *;""")
-                .single(call().bind("station_id", stationId)
+                VALUES (:station_id, :file_id, :folder_id, :share_scope) RETURNING %s;""",
+                call().bind("station_id", stationId)
                         .bind("file_id", fileId)
                         .bind("folder_id", folderId)
-                        .bind("share_scope", shareScope))
-                .map(FederationShare.mapKb())
-                .first()
-                .orElseThrow();
+                        .bind("share_scope", shareScope),
+                FederationShare.mapKb(),
+                FEDERATION_KB_SHARE_COLUMNS);
     }
 
     public boolean deleteKbShare(int id, int stationId) {
@@ -246,7 +263,9 @@ public class FederationRepository {
     }
 
     public List<FederationShare> findQuizShares(int stationId) {
-        return query("SELECT * FROM federation_quiz_share WHERE station_id = :station_id;")
+        return query(
+                        "SELECT %s FROM federation_quiz_share WHERE station_id = :station_id;",
+                        FEDERATION_QUIZ_SHARE_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(FederationShare.mapQuiz())
                 .all();
@@ -255,15 +274,15 @@ public class FederationRepository {
     // -- Quiz Shares --
 
     public FederationShare createQuizShare(int stationId, int catalogId, ShareScope shareScope) {
-        return query("""
+        return insertReturning(
+                """
                 INSERT INTO federation_quiz_share(station_id, catalog_id, share_scope)
-                VALUES (:station_id, :catalog_id, :share_scope) RETURNING *;""")
-                .single(call().bind("station_id", stationId)
+                VALUES (:station_id, :catalog_id, :share_scope) RETURNING %s;""",
+                call().bind("station_id", stationId)
                         .bind("catalog_id", catalogId)
-                        .bind("share_scope", shareScope))
-                .map(FederationShare.mapQuiz())
-                .first()
-                .orElseThrow();
+                        .bind("share_scope", shareScope),
+                FederationShare.mapQuiz(),
+                FEDERATION_QUIZ_SHARE_COLUMNS);
     }
 
     public boolean deleteQuizShare(int id, int stationId) {
@@ -274,7 +293,9 @@ public class FederationRepository {
     }
 
     public List<FederationShare> findProtocolShares(int stationId) {
-        return query("SELECT * FROM federation_protocol_share WHERE station_id = :station_id;")
+        return query(
+                        "SELECT %s FROM federation_protocol_share WHERE station_id = :station_id;",
+                        FEDERATION_PROTOCOL_SHARE_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(FederationShare.mapProtocol())
                 .all();
@@ -283,15 +304,15 @@ public class FederationRepository {
     // -- Protocol Shares --
 
     public FederationShare createProtocolShare(int stationId, int protocolId, ShareScope shareScope) {
-        return query("""
+        return insertReturning(
+                """
                 INSERT INTO federation_protocol_share(station_id, protocol_id, share_scope)
-                VALUES (:station_id, :protocol_id, :share_scope) RETURNING *;""")
-                .single(call().bind("station_id", stationId)
+                VALUES (:station_id, :protocol_id, :share_scope) RETURNING %s;""",
+                call().bind("station_id", stationId)
                         .bind("protocol_id", protocolId)
-                        .bind("share_scope", shareScope))
-                .map(FederationShare.mapProtocol())
-                .first()
-                .orElseThrow();
+                        .bind("share_scope", shareScope),
+                FederationShare.mapProtocol(),
+                FEDERATION_PROTOCOL_SHARE_COLUMNS);
     }
 
     public boolean deleteProtocolShare(int id, int stationId) {
@@ -303,7 +324,8 @@ public class FederationRepository {
 
     public List<FederationMetadataCache> findCachedMetadata(int partnerId, ContentType contentType) {
         return query(
-                        "SELECT * FROM federation_metadata_cache WHERE partner_id = :partner_id AND content_type = :content_type ORDER BY title;")
+                        "SELECT %s FROM federation_metadata_cache WHERE partner_id = :partner_id AND content_type = :content_type ORDER BY title;",
+                        FEDERATION_METADATA_CACHE_COLUMNS)
                 .single(call().bind("partner_id", partnerId).bind("content_type", contentType))
                 .map(FederationMetadataCache.map())
                 .all();
@@ -334,7 +356,8 @@ public class FederationRepository {
 
     public Optional<FederationPartner> findPartnerByRemoteStationUid(UUID remoteStationUid) {
         return query(
-                        "SELECT * FROM federation_partner WHERE partner_station_id = :partner_station_id::UUID AND status = 'ACTIVE' LIMIT 1;")
+                        "SELECT %s FROM federation_partner WHERE partner_station_id = :partner_station_id::UUID AND status = 'ACTIVE' LIMIT 1;",
+                        FEDERATION_PARTNER_COLUMNS)
                 .single(call().bind("partner_station_id", remoteStationUid, UUID_STRING))
                 .map(FederationPartner.map())
                 .first();
@@ -349,13 +372,13 @@ public class FederationRepository {
     public Optional<FederationPartner> findPartnerByLocalAndRemoteStationUid(
             UUID localStationUid, UUID remoteStationUid) {
         return query("""
-                        SELECT fp.* FROM federation_partner fp
+                        SELECT %s FROM federation_partner fp
                         JOIN station s ON s.id = fp.station_id
                         WHERE s.uid = :local_station_uid::UUID
                           AND fp.partner_station_id = :remote_station_uid::UUID
                           AND fp.status = 'ACTIVE'
                         LIMIT 1;
-                        """)
+                        """, alias("fp", FEDERATION_PARTNER_COLUMNS))
                 .single(call().bind("local_station_uid", localStationUid, UUID_STRING)
                         .bind("remote_station_uid", remoteStationUid, UUID_STRING))
                 .map(FederationPartner.map())
@@ -366,7 +389,8 @@ public class FederationRepository {
 
     public Optional<FederationPartner> findPartnerByStationAndRemoteUid(int stationId, UUID remoteStationUid) {
         return query(
-                        "SELECT * FROM federation_partner WHERE station_id = :station_id AND partner_station_id = :partner_station_id::uuid LIMIT 1;")
+                        "SELECT %s FROM federation_partner WHERE station_id = :station_id AND partner_station_id = :partner_station_id::uuid LIMIT 1;",
+                        FEDERATION_PARTNER_COLUMNS)
                 .single(call().bind("station_id", stationId).bind("partner_station_id", remoteStationUid, UUID_STRING))
                 .map(FederationPartner.map())
                 .first();
@@ -411,19 +435,17 @@ public class FederationRepository {
 
     public List<FederationChangeLog> findChangesSince(int stationId, Instant since) {
         return query(
-                        "SELECT * FROM federation_change_log WHERE station_id = :station_id AND changed_at > :since ORDER BY changed_at;")
+                        "SELECT %s FROM federation_change_log WHERE station_id = :station_id AND changed_at > :since ORDER BY changed_at;",
+                        FEDERATION_CHANGE_LOG_COLUMNS)
                 .single(call().bind("station_id", stationId).bind("since", since, INSTANT_TIMESTAMP))
                 .map(FederationChangeLog.map())
                 .all();
     }
 
     public int countPendingRequests(UUID stationUid) {
-        return query(
-                        "SELECT count(*) AS cnt FROM federation_partner WHERE partner_station_id = :uid::UUID AND status = 'PENDING';")
-                .single(call().bind("uid", stationUid, UUID_STRING))
-                .map(row -> row.getInt("cnt"))
-                .first()
-                .orElse(0);
+        return count(
+                "SELECT count(*) AS cnt FROM federation_partner WHERE partner_station_id = :uid::UUID AND status = 'PENDING';",
+                call().bind("uid", stationUid, UUID_STRING));
     }
 
     public record PublicPartnerSummary(UUID uid, String name, String slug, Double distanceKm) {}
