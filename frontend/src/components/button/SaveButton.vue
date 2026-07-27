@@ -64,7 +64,7 @@ watch(state, (s) => {
       :class="[
         state === 'saved'
           ? 'bg-success text-success-text hover:brightness-110'
-          : 'bg-primary text-primary-text hover:bg-primary-accent hover:text-primary-accent-text',
+          : 'bg-primary text-primary-text hover:brightness-110',
         pulse ? 'save-pulse' : '',
         'save-button',
       ]"

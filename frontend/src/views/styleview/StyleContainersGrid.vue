@@ -19,4 +19,6 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
   <ErrorContainer>Error container</ErrorContainer>
   <InfoContainer>Info container</InfoContainer>
   <NeutralContainer>Neutral container</NeutralContainer>
+  <NeutralContainer clickable>Neutral container (clickable)</NeutralContainer>
+  <PrimaryContainer :padded="false">Primary container (unpadded)</PrimaryContainer>
 </template>

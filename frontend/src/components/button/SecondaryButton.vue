@@ -5,28 +5,10 @@
  */
 <script lang="ts" setup>
 import BaseButton from './BaseButton.vue'
-
-defineProps<{
-  disabled?: boolean
-  fullWidth?: boolean
-  icon?: string[]
-  compact?: boolean
-}>()
-
-defineEmits<{
-  click: [event: MouseEvent]
-}>()
 </script>
 
 <template>
-  <BaseButton
-      :disabled="disabled"
-      :full-width="fullWidth"
-      :icon="icon"
-      :compact="compact"
-      class="bg-secondary text-secondary-text hover:bg-secondary-accent hover:text-secondary-accent-text"
-      @click="$emit('click', $event)"
-  >
+  <BaseButton class="bg-secondary text-secondary-text hover:brightness-110">
     <slot/>
   </BaseButton>
 </template>
