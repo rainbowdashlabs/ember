@@ -129,6 +129,18 @@ export interface MessageResponse {
     message?: string
 }
 
+/** Slice metadata every offset-paginated response carries alongside its rows. */
+export interface PageMeta {
+    total: number
+    offset: number
+    limit: number
+}
+
+/** Standard pagination envelope: one slice of rows plus the metadata describing it. */
+export interface Page<T> extends PageMeta {
+    items: T[]
+}
+
 // -- Auth --
 
 export interface LoginRequest {
