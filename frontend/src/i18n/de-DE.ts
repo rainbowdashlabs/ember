@@ -2723,6 +2723,8 @@ export default {
             type: 'Typ',
             sortOrder: 'Sortierung',
             required: 'Pflichtfeld',
+            moveUp: 'Nach oben',
+            moveDown: 'Nach unten',
             confirmDelete: 'Feld "{label}" wirklich löschen?',
             types: {
                 DATE: 'Datum',

@@ -4,6 +4,7 @@
 
 ### Changes
 
+- **Custom item fields are easier to set up.** The technical key is suggested automatically from the field name while typing, and fields can be reordered by dragging them (on phones, with up and down arrows).
 - **One item edit dialog everywhere.** Editing an inventory item from the edit page now opens the same dialog as the detail page, including custom fields, storage container, and ownership. Custom field values are kept when saving.
 
 ### Fixes
