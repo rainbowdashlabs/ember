@@ -45,10 +45,11 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+
+import static dev.chojo.ember.api.RouteSupport.pathUuid;
 
 @Singleton
 public class TestProtocolRoutes implements Routes {
@@ -570,7 +571,7 @@ public class TestProtocolRoutes implements Routes {
 
     private void federatedGetProtocol(Context ctx) {
         var session = UserSession.from(ctx);
-        var stationUid = UUID.fromString(ctx.pathParam("stationuid"));
+        var stationUid = pathUuid(ctx, "stationuid");
         int protocolId = ctx.pathParamAsClass("id", Integer.class).get();
         ctx.json(service.getFederatedProtocol(session.stationId(), stationUid, protocolId));
     }

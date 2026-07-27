@@ -5,13 +5,13 @@
  */
 package dev.chojo.ember.feature.system.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
 import dev.chojo.ember.feature.quiz.repository.QuizTestRepository;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionImageService;
 import dev.chojo.ember.feature.quiz.service.QuizService;
+import dev.chojo.ember.util.Json;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -882,7 +882,7 @@ public class DemoQuizSeeder {
                                     pairs.get(wrongIdx).get("right").asString());
                         }
                     }
-                    yield new ObjectMapper().writeValueAsString(Map.of("pairs", map));
+                    yield Json.MAPPER.writeValueAsString(Map.of("pairs", map));
                 }
                 case ORDERING -> {
                     var items = cfg.get("items");

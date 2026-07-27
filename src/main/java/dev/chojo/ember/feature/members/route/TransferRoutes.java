@@ -35,6 +35,8 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.UUID;
 
+import static dev.chojo.ember.api.RouteSupport.pathUuid;
+
 /**
  * Routes for station data transfer including token-authenticated public export endpoints
  * for paginated table data and admin import/progress endpoints.
@@ -283,12 +285,7 @@ public class TransferRoutes implements Routes {
                 @OpenApiResponse(status = "404")
             })
     private void importProgress(Context ctx) {
-        UUID stationUid;
-        try {
-            stationUid = UUID.fromString(ctx.pathParam("stationUid"));
-        } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse("Invalid stationUid");
-        }
+        UUID stationUid = pathUuid(ctx, "stationUid");
         var progress = importService.getProgressByUid(stationUid);
         if (progress == null) {
             throw new NotFoundResponse("No active import for station " + stationUid);
@@ -317,12 +314,7 @@ public class TransferRoutes implements Routes {
                 @OpenApiResponse(status = "404")
             })
     private void retryImport(Context ctx) {
-        UUID stationUid;
-        try {
-            stationUid = UUID.fromString(ctx.pathParam("stationUid"));
-        } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse("Invalid stationUid");
-        }
+        UUID stationUid = pathUuid(ctx, "stationUid");
         var result = importService.retryFailedImport(stationUid);
         ctx.status(HttpStatus.CREATED).json(new ImportStartResponse(result.stationId(), result.stationName()));
     }

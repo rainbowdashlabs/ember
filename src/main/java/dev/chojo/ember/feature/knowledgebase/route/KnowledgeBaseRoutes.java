@@ -71,6 +71,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
+import static dev.chojo.ember.api.RouteSupport.pathUuid;
+import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 import static org.slf4j.LoggerFactory.getLogger;
 
 @Singleton
@@ -132,27 +134,19 @@ public class KnowledgeBaseRoutes implements Routes {
 
     /**
      * Loads a knowledge-base file and asserts it belongs to the caller's station, returning it.
-     * Answers 404 when the file is absent and 403 when owned by another station, so a file id
-     * from one station cannot expose its content, metadata, or comments to another.
+     * Answers 404 when the file is absent or owned by another station, so a file id from one
+     * station cannot expose its content, metadata, comments, or existence to another.
      */
-    private KbFile requireOwnedFile(int fileId, UserSession session) {
-        var file = service.findFile(fileId).orElseThrow(NotFoundResponse::new);
-        if (file.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
-        return file;
+    private KbFile requireOwnedFile(Context ctx, int fileId) {
+        return requireOwnedOrNotFound(ctx, fileId, service::findFile, KbFile::stationId);
     }
 
     /**
      * Loads a knowledge-base folder and asserts it belongs to the caller's station, returning it.
-     * Answers 404 when the folder is absent and 403 when owned by another station.
+     * Answers 404 when the folder is absent or owned by another station.
      */
-    private KbFolder requireOwnedFolder(int folderId, UserSession session) {
-        var folder = service.findFolder(folderId).orElseThrow(NotFoundResponse::new);
-        if (folder.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
-        return folder;
+    private KbFolder requireOwnedFolder(Context ctx, int folderId) {
+        return requireOwnedOrNotFound(ctx, folderId, service::findFolder, KbFolder::stationId);
     }
 
     private static String detectPandocFormat(String filename, String mimeType) {
@@ -389,14 +383,13 @@ public class KnowledgeBaseRoutes implements Routes {
     }
 
     private void getFolder(Context ctx) {
-        var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        ctx.json(requireOwnedFolder(id, session));
+        ctx.json(requireOwnedFolder(ctx, id));
     }
 
     private void updateFolder(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedFolder(id, UserSession.from(ctx));
+        requireOwnedFolder(ctx, id);
         var req = ctx.bodyAsClass(FolderRequest.class);
         if (!service.updateFolder(
                 id,
@@ -415,7 +408,7 @@ public class KnowledgeBaseRoutes implements Routes {
 
     private void deleteFolder(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedFolder(id, UserSession.from(ctx));
+        requireOwnedFolder(ctx, id);
         if (!service.deleteFolder(id)) throw new NotFoundResponse();
         ctx.status(204);
     }
@@ -431,15 +424,14 @@ public class KnowledgeBaseRoutes implements Routes {
     }
 
     private void getFile(Context ctx) {
-        var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var file = requireOwnedFile(id, session);
+        var file = requireOwnedFile(ctx, id);
         ctx.json(new FileResponse(file, resolveMemberName(file.createdBy())));
     }
 
     private void updateFile(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedFile(id, UserSession.from(ctx));
+        requireOwnedFile(ctx, id);
         var req = ctx.bodyAsClass(FileUpdateRequest.class);
         if (!service.updateFile(
                 id,
@@ -458,7 +450,7 @@ public class KnowledgeBaseRoutes implements Routes {
 
     private void deleteFile(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedFile(id, UserSession.from(ctx));
+        requireOwnedFile(ctx, id);
         if (!service.deleteFile(id)) throw new NotFoundResponse();
         ctx.status(204);
     }
@@ -570,9 +562,8 @@ public class KnowledgeBaseRoutes implements Routes {
     // -- Content --
 
     private void getFileContent(Context ctx) {
-        var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var file = requireOwnedFile(id, session);
+        var file = requireOwnedFile(ctx, id);
 
         switch (file.fileType()) {
             case MARKDOWN, TEXT -> {
@@ -607,9 +598,8 @@ public class KnowledgeBaseRoutes implements Routes {
     }
 
     private void getMarkdownHtml(Context ctx) {
-        var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        requireOwnedFile(id, session);
+        requireOwnedFile(ctx, id);
         var text = service.getMarkdownContent(id);
         if (text.isEmpty()) throw new NotFoundResponse();
         String html = service.renderMarkdown(text.get());
@@ -619,7 +609,7 @@ public class KnowledgeBaseRoutes implements Routes {
     private void updateMarkdownContent(Context ctx) {
         int id = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
-        requireOwnedFile(id, session);
+        requireOwnedFile(ctx, id);
         var req = ctx.bodyAsClass(ContentUpdateRequest.class);
         service.updateMarkdownContent(
                 id, req.content() != null ? req.content() : "", session.member().id());
@@ -629,9 +619,8 @@ public class KnowledgeBaseRoutes implements Routes {
     // -- Presentation Original --
 
     private void getOriginalFile(Context ctx) {
-        var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var file = requireOwnedFile(id, session);
+        var file = requireOwnedFile(ctx, id);
         if (file.fileType() != KbFileType.PRESENTATION) {
             throw new BadRequestResponse("Only presentation files have an original");
         }
@@ -645,14 +634,10 @@ public class KnowledgeBaseRoutes implements Routes {
     }
 
     private void reuploadOriginal(Context ctx) {
-        var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var file = service.findFile(id).orElseThrow(NotFoundResponse::new);
+        var file = requireOwnedFile(ctx, id);
         if (file.fileType() != KbFileType.PRESENTATION) {
             throw new BadRequestResponse("Only presentation files support re-upload");
-        }
-        if (file.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
         }
         var uploaded = requireUpload(ctx);
         try (var content = uploaded.content()) {
@@ -668,9 +653,8 @@ public class KnowledgeBaseRoutes implements Routes {
     // -- Versions --
 
     private void listVersions(Context ctx) {
-        var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        requireOwnedFile(id, session);
+        requireOwnedFile(ctx, id);
         var versions = service.findVersions(id);
         ctx.json(versions.stream()
                 .map(v -> new VersionResponse(
@@ -684,10 +668,9 @@ public class KnowledgeBaseRoutes implements Routes {
     }
 
     private void getVersion(Context ctx) {
-        var session = UserSession.from(ctx);
         int fileId = pathInt(ctx, "id");
         int version = pathInt(ctx, "version");
-        requireOwnedFile(fileId, session);
+        requireOwnedFile(ctx, fileId);
         service.findVersion(fileId, version).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
         });
@@ -697,10 +680,7 @@ public class KnowledgeBaseRoutes implements Routes {
         int fileId = pathInt(ctx, "id");
         int version = pathInt(ctx, "version");
         var session = UserSession.from(ctx);
-        var file = service.findFile(fileId).orElseThrow(NotFoundResponse::new);
-        if (file.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        requireOwnedFile(ctx, fileId);
         service.revertToVersion(fileId, version, session.member().id());
         ctx.status(204);
     }
@@ -708,15 +688,14 @@ public class KnowledgeBaseRoutes implements Routes {
     // -- Related Files --
 
     private void getRelatedFiles(Context ctx) {
-        var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        requireOwnedFile(id, session);
+        requireOwnedFile(ctx, id);
         ctx.json(service.findRelatedFiles(id));
     }
 
     private void setRelatedFiles(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedFile(id, UserSession.from(ctx));
+        requireOwnedFile(ctx, id);
         var req = ctx.bodyAsClass(RelatedFilesRequest.class);
         service.setRelatedFiles(id, req.fileIds() != null ? req.fileIds() : List.of());
         ctx.json(service.findRelatedFiles(id));
@@ -799,16 +778,15 @@ public class KnowledgeBaseRoutes implements Routes {
     // -- Access Restrictions --
 
     private void getFolderRestrictions(Context ctx) {
-        var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        requireOwnedFolder(id, session);
+        requireOwnedFolder(ctx, id);
         var restrictions = service.findRestrictions(id, null);
         ctx.json(toRestrictionResponse(restrictions));
     }
 
     private void setFolderRestrictions(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedFolder(id, UserSession.from(ctx));
+        requireOwnedFolder(ctx, id);
         var req = ctx.bodyAsClass(RestrictionRequest.class);
         service.setRestrictions(
                 id,
@@ -827,16 +805,15 @@ public class KnowledgeBaseRoutes implements Routes {
     }
 
     private void getFileRestrictions(Context ctx) {
-        var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        requireOwnedFile(id, session);
+        requireOwnedFile(ctx, id);
         var restrictions = service.findRestrictions(null, id);
         ctx.json(toRestrictionResponse(restrictions));
     }
 
     private void setFileRestrictions(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedFile(id, UserSession.from(ctx));
+        requireOwnedFile(ctx, id);
         var req = ctx.bodyAsClass(RestrictionRequest.class);
         service.setRestrictions(
                 null,
@@ -873,16 +850,15 @@ public class KnowledgeBaseRoutes implements Routes {
     // -- Public Visibility --
 
     private void getFilePublicVisibility(Context ctx) {
-        var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        requireOwnedFile(id, session);
+        requireOwnedFile(ctx, id);
         var visible = service.findPublicVisibility(null, id).orElse(null);
         ctx.json(new PublicVisibilityResponse(visible));
     }
 
     private void setFilePublicVisibility(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedFile(id, UserSession.from(ctx));
+        requireOwnedFile(ctx, id);
         var req = ctx.bodyAsClass(PublicVisibilityRequest.class);
         if (req.visible() == null) {
             service.removePublicVisibility(null, id);
@@ -893,16 +869,15 @@ public class KnowledgeBaseRoutes implements Routes {
     }
 
     private void getFolderPublicVisibility(Context ctx) {
-        var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        requireOwnedFolder(id, session);
+        requireOwnedFolder(ctx, id);
         var visible = service.findPublicVisibility(id, null).orElse(null);
         ctx.json(new PublicVisibilityResponse(visible));
     }
 
     private void setFolderPublicVisibility(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedFolder(id, UserSession.from(ctx));
+        requireOwnedFolder(ctx, id);
         var req = ctx.bodyAsClass(PublicVisibilityRequest.class);
         if (req.visible() == null) {
             service.removePublicVisibility(id, null);
@@ -932,7 +907,7 @@ public class KnowledgeBaseRoutes implements Routes {
     private void uploadFolderIcon(Context ctx) {
         int id = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
-        var folder = requireOwnedFolder(id, session);
+        var folder = requireOwnedFolder(ctx, id);
         var file = ctx.uploadedFile("icon");
         if (file == null) throw new BadRequestResponse("No file uploaded");
         if (!ALLOWED_IMAGE_TYPES.contains(file.contentType())) {
@@ -956,7 +931,7 @@ public class KnowledgeBaseRoutes implements Routes {
     private void uploadKbImage(Context ctx) {
         int fileId = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
-        requireOwnedFile(fileId, session);
+        requireOwnedFile(ctx, fileId);
         var file = ctx.uploadedFile("image");
         if (file == null) throw new BadRequestResponse("No image uploaded");
         if (!ALLOWED_IMAGE_TYPES.contains(file.contentType())) {
@@ -997,24 +972,22 @@ public class KnowledgeBaseRoutes implements Routes {
     }
 
     private void getFileTags(Context ctx) {
-        var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        requireOwnedFile(id, session);
+        requireOwnedFile(ctx, id);
         ctx.json(service.findFileTags(id));
     }
 
     private void setFileTags(Context ctx) {
         var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        requireOwnedFile(id, session);
+        requireOwnedFile(ctx, id);
         var req = ctx.bodyAsClass(TagRequest.class);
         ctx.json(service.setFileTags(id, req.tags(), session.stationId()));
     }
 
     private void getFolderTags(Context ctx) {
-        var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        requireOwnedFolder(id, session);
+        requireOwnedFolder(ctx, id);
         ctx.json(service.findFolderTags(id));
     }
 
@@ -1064,7 +1037,7 @@ public class KnowledgeBaseRoutes implements Routes {
     private void setFolderTags(Context ctx) {
         var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        requireOwnedFolder(id, session);
+        requireOwnedFolder(ctx, id);
         var req = ctx.bodyAsClass(TagRequest.class);
         ctx.json(service.setFolderTags(id, req.tags(), session.stationId()));
     }
@@ -1090,14 +1063,14 @@ public class KnowledgeBaseRoutes implements Routes {
 
     private void federatedGetFile(Context ctx) {
         var session = UserSession.from(ctx);
-        var stationUid = UUID.fromString(ctx.pathParam("stationuid"));
+        var stationUid = pathUuid(ctx, "stationuid");
         int fileId = pathInt(ctx, "id");
         ctx.json(service.getFederatedKbFile(session.stationId(), stationUid, fileId));
     }
 
     private void federatedGetFileContent(Context ctx) {
         var session = UserSession.from(ctx);
-        var stationUid = UUID.fromString(ctx.pathParam("stationuid"));
+        var stationUid = pathUuid(ctx, "stationuid");
         int fileId = pathInt(ctx, "id");
         var content = service.getFederatedKbFileContent(session.stationId(), stationUid, fileId);
         ctx.json(new FileContentResponse(fileId, content));
@@ -1179,9 +1152,8 @@ public class KnowledgeBaseRoutes implements Routes {
     // -- Tags --
 
     private void listComments(Context ctx) {
-        var session = UserSession.from(ctx);
         int fileId = pathInt(ctx, "fileId");
-        requireOwnedFile(fileId, session);
+        requireOwnedFile(ctx, fileId);
         var comments = kbCommentRepository.findByFile(fileId);
         ctx.json(comments.stream().map(this::toCommentResponse).toList());
     }
@@ -1189,7 +1161,7 @@ public class KnowledgeBaseRoutes implements Routes {
     private void createComment(Context ctx) {
         int fileId = pathInt(ctx, "fileId");
         UserSession session = UserSession.from(ctx);
-        requireOwnedFile(fileId, session);
+        requireOwnedFile(ctx, fileId);
         var req = ctx.bodyAsClass(CreateKbCommentRequest.class);
         if (req.content() == null || req.content().isBlank()) {
             throw new BadRequestResponse("content is required");
@@ -1202,11 +1174,11 @@ public class KnowledgeBaseRoutes implements Routes {
 
     /**
      * Loads a comment and asserts the caller's station owns the file it belongs to, returning the
-     * comment. Answers 404 when the comment is absent and 403 when the file belongs to another station.
+     * comment. Answers 404 when the comment is absent or the file belongs to another station.
      */
-    private KbComment requireOwnedComment(int commentId, UserSession session) {
+    private KbComment requireOwnedComment(Context ctx, int commentId) {
         var comment = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
-        requireOwnedFile(comment.fileId(), session);
+        requireOwnedFile(ctx, comment.fileId());
         return comment;
     }
 
@@ -1228,7 +1200,7 @@ public class KnowledgeBaseRoutes implements Routes {
     private void updateComment(Context ctx) {
         int commentId = pathInt(ctx, "commentId");
         UserSession session = UserSession.from(ctx);
-        var comment = requireOwnedComment(commentId, session);
+        var comment = requireOwnedComment(ctx, commentId);
         var memberIdentity = memberIdentityFactory.local(
                 session.stationId(), session.member().id());
         if (comment.author() == null || !comment.author().sameMember(memberIdentity)) {
@@ -1246,7 +1218,7 @@ public class KnowledgeBaseRoutes implements Routes {
     private void deleteComment(Context ctx) {
         int commentId = pathInt(ctx, "commentId");
         UserSession session = UserSession.from(ctx);
-        var comment = requireOwnedComment(commentId, session);
+        var comment = requireOwnedComment(ctx, commentId);
         var authorIdentity = memberIdentityFactory.local(
                 session.stationId(), session.member().id());
         boolean isAuthor = comment.author() != null && comment.author().sameMember(authorIdentity);
@@ -1436,7 +1408,7 @@ public class KnowledgeBaseRoutes implements Routes {
     }
 
     private FederationPartner resolvePartner(Context ctx, int stationId) {
-        var partnerUid = UUID.fromString(ctx.pathParam("stationuid"));
+        var partnerUid = pathUuid(ctx, "stationuid");
         return federationRepository
                 .findPartnerByStationAndRemoteUid(stationId, partnerUid)
                 .orElseThrow(() -> new NotFoundResponse("Unknown partner"));

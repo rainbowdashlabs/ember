@@ -35,6 +35,7 @@ import jakarta.inject.Singleton;
 import java.util.List;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
+import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 
 /**
  * Routes for profile field definition management including CRUD operations,
@@ -73,24 +74,18 @@ public class ProfileFieldRoutes implements Routes {
      * Answers with 404 (rather than 403) when the field is absent or owned by another
      * station, so foreign field ids cannot be probed for existence.
      */
-    private ProfileField requireOwnedField(int fieldId, UserSession session) {
-        var field = profileFieldService.findById(fieldId).orElseThrow(NotFoundResponse::new);
-        if (field.stationId() != requireStation(session)) {
-            throw new NotFoundResponse();
-        }
-        return field;
+    private ProfileField requireOwnedField(Context ctx, int fieldId) {
+        requireStation(UserSession.from(ctx));
+        return requireOwnedOrNotFound(ctx, fieldId, profileFieldService::findById, ProfileField::stationId);
     }
 
     /**
      * Loads a station member and asserts they belong to the caller's station.
      * Answers with 404 when the member is absent or owned by another station.
      */
-    private StationMember requireOwnedMember(int memberId, UserSession session) {
-        var member = stationMemberRepository.findById(memberId).orElseThrow(NotFoundResponse::new);
-        if (member.stationId() != requireStation(session)) {
-            throw new NotFoundResponse();
-        }
-        return member;
+    private StationMember requireOwnedMember(Context ctx, int memberId) {
+        requireStation(UserSession.from(ctx));
+        return requireOwnedOrNotFound(ctx, memberId, stationMemberRepository::findById, StationMember::stationId);
     }
 
     // -- Field Definitions --
@@ -158,9 +153,8 @@ public class ProfileFieldRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void get(Context ctx) {
-        UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        ctx.json(requireOwnedField(id, session));
+        ctx.json(requireOwnedField(ctx, id));
     }
 
     @OpenApi(
@@ -175,13 +169,12 @@ public class ProfileFieldRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void update(Context ctx) {
-        UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
         var request = ctx.bodyAsClass(ProfileFieldRequest.class);
         if (isBlank(request.name()) || request.fieldType() == null) {
             throw new BadRequestResponse("name and fieldType are required");
         }
-        requireOwnedField(id, session);
+        requireOwnedField(ctx, id);
         profileFieldService
                 .update(
                         id,
@@ -208,9 +201,8 @@ public class ProfileFieldRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void delete(Context ctx) {
-        UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        requireOwnedField(id, session);
+        requireOwnedField(ctx, id);
         if (profileFieldService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -226,9 +218,8 @@ public class ProfileFieldRoutes implements Routes {
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProfileField[].class)))
     private void getApplicableFields(Context ctx) {
-        UserSession session = UserSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
-        requireOwnedMember(memberId, session);
+        requireOwnedMember(ctx, memberId);
         ctx.json(profileFieldService.findApplicableFields(memberId));
     }
 
@@ -240,9 +231,8 @@ public class ProfileFieldRoutes implements Routes {
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProfileFieldValue[].class)))
     private void getValues(Context ctx) {
-        UserSession session = UserSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
-        requireOwnedMember(memberId, session);
+        requireOwnedMember(ctx, memberId);
         ctx.json(profileFieldService.findValues(memberId));
     }
 
@@ -257,20 +247,15 @@ public class ProfileFieldRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProfileFieldValue[].class)))
     private void setValues(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int stationId = requireStation(session);
         int memberId = pathInt(ctx, "memberId");
-        requireOwnedMember(memberId, session);
+        requireOwnedMember(ctx, memberId);
         var request = ctx.bodyAsClass(SetValuesRequest.class);
         boolean canEditReadonly = session.hasPermission(StationPermission.MEMBER_EDIT);
 
         List<FieldValueEntry> entries = request.values() != null
                 ? request.values().stream()
                         .filter(v -> {
-                            var field =
-                                    profileFieldService.findById(v.fieldId()).orElseThrow(NotFoundResponse::new);
-                            if (field.stationId() != stationId) {
-                                throw new NotFoundResponse();
-                            }
+                            var field = requireOwnedField(ctx, v.fieldId());
                             return canEditReadonly || !field.config().readonly();
                         })
                         .map(v -> new FieldValueEntry(v.fieldId(), v.value()))

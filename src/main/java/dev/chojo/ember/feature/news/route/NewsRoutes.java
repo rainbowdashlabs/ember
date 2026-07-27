@@ -58,6 +58,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
+import static dev.chojo.ember.api.RouteSupport.pathUuid;
 import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 
 /**
@@ -259,10 +260,7 @@ public class NewsRoutes implements Routes {
     private void update(Context ctx) {
         int id = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
-        var news = newsService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (news.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot modify news from another station");
-        }
+        requireOwnedOrNotFound(ctx, id, newsService::findById, News::stationId);
         var request = ctx.bodyAsClass(NewsRequest.class);
         newsService
                 .update(
@@ -299,11 +297,7 @@ public class NewsRoutes implements Routes {
             })
     private void delete(Context ctx) {
         int id = pathInt(ctx, "id");
-        UserSession session = UserSession.from(ctx);
-        var news = newsService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (news.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot delete news from another station");
-        }
+        requireOwnedOrNotFound(ctx, id, newsService::findById, News::stationId);
         if (newsService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -571,17 +565,14 @@ public class NewsRoutes implements Routes {
 
     /**
      * Reads the news id path parameter and confirms the news belongs to the caller's
-     * station, throwing {@code 404} when it is absent and {@code 403} when it belongs to
-     * another station.
+     * station, throwing {@code 404} when it is absent or belongs to another station.
      *
      * @param ctx the request context
      * @return the owned news id
      */
     private int requireOwnedNewsId(Context ctx) {
-        UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var news = newsService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (news.stationId() != session.stationId()) throw new ForbiddenResponse();
+        requireOwnedOrNotFound(ctx, id, newsService::findById, News::stationId);
         return id;
     }
 
@@ -737,7 +728,7 @@ public class NewsRoutes implements Routes {
 
     private void federatedGetNews(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        var stationUid = UUID.fromString(ctx.pathParam("stationuid"));
+        var stationUid = pathUuid(ctx, "stationuid");
         int newsId = pathInt(ctx, "newsId");
         var news = newsFederationService.getFederatedNews(session.stationId(), stationUid, newsId);
         ctx.json(news);
@@ -870,7 +861,7 @@ public class NewsRoutes implements Routes {
     // -- Federation helpers --
 
     private FederationPartner resolvePartner(Context ctx, int stationId) {
-        var partnerUid = UUID.fromString(ctx.pathParam("stationuid"));
+        var partnerUid = pathUuid(ctx, "stationuid");
         return federationRepository
                 .findPartnerByStationAndRemoteUid(stationId, partnerUid)
                 .orElseThrow(() -> new NotFoundResponse("Unknown partner"));

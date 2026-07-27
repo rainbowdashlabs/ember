@@ -38,6 +38,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
+import static dev.chojo.ember.api.RouteSupport.pathUuid;
+
 /**
  * Token-authenticated source-side endpoints that hand the station's storage descriptor, the
  * raw bytes of station-scoped files, and the avatar bytes of accounts the destination created
@@ -240,12 +242,7 @@ public class StationTransferAssetRoutes implements Routes {
     private void streamAvatar(Context ctx) {
         String token = ctx.pathParam("token");
         exportService.validateToken(token).orElseThrow(() -> new ForbiddenResponse("Invalid or expired token"));
-        UUID accountUid;
-        try {
-            accountUid = UUID.fromString(ctx.pathParam("accountUid"));
-        } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse("Invalid accountUid");
-        }
+        UUID accountUid = pathUuid(ctx, "accountUid");
         var avatar = avatarService.read(accountUid, 0).orElseThrow(() -> new NotFoundResponse("Avatar not found"));
         log.info("[export] streaming avatar for account {} ({} bytes)", accountUid, avatar.data().length);
         ctx.contentType(avatar.contentType());

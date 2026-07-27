@@ -28,7 +28,6 @@ import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
@@ -51,6 +50,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
+import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 
 /**
  * Routes for station member management including listing, creating, deleting members,
@@ -95,15 +95,12 @@ public class StationMemberRoutes implements Routes {
 
     /**
      * Loads a station member and asserts they belong to the caller's station, returning them.
-     * Answers 404 when the member is absent and 403 when owned by another station, so a member
-     * id from another station cannot be read or modified through these routes.
+     * Answers 404 when the member is absent or owned by another station, so a member id from
+     * another station cannot be read, modified, or probed for existence through these routes.
      */
-    private StationMember requireOwnedMember(int memberId, UserSession session) {
-        var member = stationMemberRepository.findById(memberId).orElseThrow(NotFoundResponse::new);
-        if (session.stationId() == null || member.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access a member from another station");
-        }
-        return member;
+    private StationMember requireOwnedMember(Context ctx, int memberId) {
+        if (UserSession.from(ctx).stationId() == null) throw new NotFoundResponse();
+        return requireOwnedOrNotFound(ctx, memberId, stationMemberRepository::findById, StationMember::stationId);
     }
 
     /**
@@ -111,9 +108,9 @@ public class StationMemberRoutes implements Routes {
      * manager/managed member ids supplied in relationship-editing request bodies so a foreign
      * member cannot be linked across the station boundary.
      */
-    private void requireOwnedMembers(List<Integer> memberIds, UserSession session) {
+    private void requireOwnedMembers(Context ctx, List<Integer> memberIds) {
         for (int memberId : memberIds) {
-            requireOwnedMember(memberId, session);
+            requireOwnedMember(ctx, memberId);
         }
     }
 
@@ -329,9 +326,8 @@ public class StationMemberRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void get(Context ctx) {
-        UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var member = requireOwnedMember(id, session);
+        var member = requireOwnedMember(ctx, id);
         ctx.json(toMemberWithName(member));
     }
 
@@ -370,11 +366,7 @@ public class StationMemberRoutes implements Routes {
             })
     private void delete(Context ctx) {
         int id = pathInt(ctx, "id");
-        UserSession session = UserSession.from(ctx);
-        var member = stationMemberRepository.findById(id).orElseThrow(NotFoundResponse::new);
-        if (member.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot delete a member from another station");
-        }
+        requireOwnedMember(ctx, id);
         gdprDeletionService.anonymizeMember(id);
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -397,9 +389,8 @@ public class StationMemberRoutes implements Routes {
     }
 
     private void getPermissions(Context ctx) {
-        UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        requireOwnedMember(id, session);
+        requireOwnedMember(ctx, id);
         ctx.json(memberService.findPermissions(id));
     }
 
@@ -416,7 +407,7 @@ public class StationMemberRoutes implements Routes {
     private void setPermissions(Context ctx) {
         int memberId = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
-        requireOwnedMember(memberId, session);
+        requireOwnedMember(ctx, memberId);
         var request = ctx.bodyAsClass(SetPermissionsRequest.class);
         List<Integer> permissionIds = request.permissionIds() != null ? request.permissionIds() : List.of();
         Integer callerMemberId = session.member() != null ? session.member().id() : null;
@@ -431,9 +422,8 @@ public class StationMemberRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationMember[].class)))
     private void getManaged(Context ctx) {
-        UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        requireOwnedMember(id, session);
+        requireOwnedMember(ctx, id);
         ctx.json(memberService.findManaged(id).stream()
                 .map(this::toMemberWithName)
                 .toList());
@@ -447,9 +437,8 @@ public class StationMemberRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationMember[].class)))
     private void getManagers(Context ctx) {
-        UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        requireOwnedMember(id, session);
+        requireOwnedMember(ctx, id);
         ctx.json(memberService.findManagers(id).stream()
                 .map(this::toMemberWithName)
                 .toList());
@@ -474,22 +463,20 @@ public class StationMemberRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetManagersRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationMember[].class)))
     private void setManagers(Context ctx) {
-        UserSession session = UserSession.from(ctx);
         int managedId = pathInt(ctx, "id");
-        requireOwnedMember(managedId, session);
+        requireOwnedMember(ctx, managedId);
         var request = ctx.bodyAsClass(SetManagersRequest.class);
         List<Integer> managerIds = request.managerIds() != null ? request.managerIds() : List.of();
-        requireOwnedMembers(managerIds, session);
+        requireOwnedMembers(ctx, managerIds);
         ctx.json(memberService.setManagers(managedId, managerIds));
     }
 
     private void setManaged(Context ctx) {
-        UserSession session = UserSession.from(ctx);
         int managerId = pathInt(ctx, "id");
-        requireOwnedMember(managerId, session);
+        requireOwnedMember(ctx, managerId);
         var request = ctx.bodyAsClass(SetManagedRequest.class);
         List<Integer> managedIds = request.managedIds() != null ? request.managedIds() : List.of();
-        requireOwnedMembers(managedIds, session);
+        requireOwnedMembers(ctx, managedIds);
         ctx.json(memberService.setManaged(managerId, managedIds).stream()
                 .map(this::toMemberWithName)
                 .toList());
@@ -519,9 +506,8 @@ public class StationMemberRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void markFormer(Context ctx) {
-        UserSession session = UserSession.from(ctx);
         int memberId = pathInt(ctx, "id");
-        requireOwnedMember(memberId, session);
+        requireOwnedMember(ctx, memberId);
         String check = formerMemberService.canMarkFormer(memberId);
         if (check != null) {
             throw new BadRequestResponse(check);
@@ -541,9 +527,8 @@ public class StationMemberRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void reactivate(Context ctx) {
-        UserSession session = UserSession.from(ctx);
         int memberId = pathInt(ctx, "id");
-        requireOwnedMember(memberId, session);
+        requireOwnedMember(ctx, memberId);
         formerMemberService.reactivate(memberId);
         ctx.json(new FormerCheckResponse(true, null));
     }
@@ -560,9 +545,8 @@ public class StationMemberRoutes implements Routes {
                 @OpenApiResponse(status = "404")
             })
     private void resendSetupMail(Context ctx) {
-        UserSession session = UserSession.from(ctx);
         int memberId = pathInt(ctx, "id");
-        var member = requireOwnedMember(memberId, session);
+        var member = requireOwnedMember(ctx, memberId);
         if (member.accountId() == null) {
             throw new BadRequestResponse("Member has no linked account");
         }
@@ -588,9 +572,8 @@ public class StationMemberRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetUserTypeRequest.class)),
             responses = @OpenApiResponse(status = "204"))
     private void setUserType(Context ctx) {
-        UserSession session = UserSession.from(ctx);
         int memberId = pathInt(ctx, "id");
-        requireOwnedMember(memberId, session);
+        requireOwnedMember(ctx, memberId);
         var request = ctx.bodyAsClass(SetUserTypeRequest.class);
         if (request.userType() == null) {
             throw new BadRequestResponse("userType is required");
@@ -610,9 +593,8 @@ public class StationMemberRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetJoinDateRequest.class)),
             responses = @OpenApiResponse(status = "204"))
     private void setJoinDate(Context ctx) {
-        UserSession session = UserSession.from(ctx);
         int memberId = pathInt(ctx, "id");
-        requireOwnedMember(memberId, session);
+        requireOwnedMember(ctx, memberId);
         var request = ctx.bodyAsClass(SetJoinDateRequest.class);
         if (request.joinDate() == null) {
             throw new BadRequestResponse("joinDate is required");

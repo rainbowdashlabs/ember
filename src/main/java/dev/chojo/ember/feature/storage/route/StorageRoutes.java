@@ -51,6 +51,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
+import static dev.chojo.ember.api.RouteSupport.pathUuid;
 
 @Singleton
 public class StorageRoutes implements Routes {
@@ -255,7 +256,7 @@ public class StorageRoutes implements Routes {
     }
 
     private void recalculateStation(Context ctx) {
-        UUID uid = UUID.fromString(ctx.pathParam("stationUid"));
+        UUID uid = pathUuid(ctx, "stationUid");
         var stationId = stationRepository.resolveId(uid);
         if (stationId.isEmpty()) {
             ctx.status(HttpStatus.NOT_FOUND);
@@ -692,7 +693,7 @@ public class StorageRoutes implements Routes {
     // -- Station quota management --
 
     private void updateStationQuotas(Context ctx) {
-        UUID uid = UUID.fromString(ctx.pathParam("stationUid"));
+        UUID uid = pathUuid(ctx, "stationUid");
         var stationId = stationRepository.resolveId(uid);
         if (stationId.isEmpty()) {
             ctx.status(HttpStatus.NOT_FOUND);
@@ -712,7 +713,7 @@ public class StorageRoutes implements Routes {
     }
 
     private void resetStationQuotas(Context ctx) {
-        UUID uid = UUID.fromString(ctx.pathParam("stationUid"));
+        UUID uid = pathUuid(ctx, "stationUid");
         var stationId = stationRepository.resolveId(uid);
         if (stationId.isEmpty()) {
             ctx.status(HttpStatus.NOT_FOUND);

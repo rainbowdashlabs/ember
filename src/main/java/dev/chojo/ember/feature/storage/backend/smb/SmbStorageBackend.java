@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.storage.backend.smb;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileAttributes;
@@ -28,8 +27,10 @@ import dev.chojo.ember.feature.storage.backend.StorageBackend;
 import dev.chojo.ember.feature.storage.backend.StorageBackendType;
 import dev.chojo.ember.feature.storage.backend.StorageException;
 import dev.chojo.ember.feature.storage.backend.StoredStream;
+import dev.chojo.ember.util.Json;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.core.JacksonException;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -63,7 +64,6 @@ public class SmbStorageBackend implements StorageBackend, AutoCloseable {
     private static final String PROBE_PREFIX = "_probe";
     private static final int TRANSFER_BUFFER_BYTES = 8 * 1024;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
     private final SmbBackendConfig config;
     private final SMBClient client;
     private final String basePath;
@@ -317,7 +317,7 @@ public class SmbStorageBackend implements StorageBackend, AutoCloseable {
     }
 
     private void writeMetadataSidecar(DiskShare share, String target, ObjectMetadata metadata) throws IOException {
-        byte[] bytes = objectMapper.writeValueAsBytes(MetadataSidecar.from(metadata));
+        byte[] bytes = Json.MAPPER.writeValueAsBytes(MetadataSidecar.from(metadata));
         String meta = target + META_SUFFIX;
         try (File file = openForWrite(share, meta);
                 OutputStream out = file.getOutputStream()) {
@@ -330,10 +330,10 @@ public class SmbStorageBackend implements StorageBackend, AutoCloseable {
         if (!share.fileExists(meta)) return ObjectMetadata.of("application/octet-stream");
         try (File file = openForRead(share, meta);
                 InputStream in = file.getInputStream()) {
-            return objectMapper
+            return Json.MAPPER
                     .readValue(in.readAllBytes(), MetadataSidecar.class)
                     .toObjectMetadata();
-        } catch (IOException | SMBApiException e) {
+        } catch (IOException | SMBApiException | JacksonException e) {
             log.warn("Failed to read SMB metadata sidecar {}", meta, e);
             return ObjectMetadata.of("application/octet-stream");
         }

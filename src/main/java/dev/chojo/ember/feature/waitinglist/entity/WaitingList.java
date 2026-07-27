@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.waitinglist.entity;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.util.Json;
+import tools.jackson.core.type.TypeReference;
 
 import java.time.Instant;
 import java.util.List;
@@ -30,8 +30,6 @@ public record WaitingList(
         int attendanceThreshold,
         boolean isPublic) {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
     public static RowMapping<WaitingList> map() {
         return row -> new WaitingList(
                 row.getInt("id"),
@@ -52,7 +50,7 @@ public record WaitingList(
     private static List<Integer> parseVisibleFields(String json) {
         if (json == null || json.isBlank()) return List.of();
         try {
-            return MAPPER.readValue(json, new TypeReference<>() {});
+            return Json.MAPPER.readValue(json, new TypeReference<>() {});
         } catch (Exception e) {
             return List.of();
         }

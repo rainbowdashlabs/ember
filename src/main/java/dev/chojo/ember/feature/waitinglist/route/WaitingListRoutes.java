@@ -51,7 +51,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
-import static dev.chojo.ember.api.RouteSupport.requireOwned;
+import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 
 @Singleton
 public class WaitingListRoutes implements Routes {
@@ -176,11 +176,8 @@ public class WaitingListRoutes implements Routes {
                 StationPermission.WAITLIST_EDIT);
     }
 
-    private void verifyListOwnership(int listId, UserSession session) {
-        var list = service.findById(listId).orElseThrow(NotFoundResponse::new);
-        if (list.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+    private void verifyListOwnership(Context ctx, int listId) {
+        requireOwnedOrNotFound(ctx, listId, service::findById, WaitingList::stationId);
     }
 
     /**
@@ -363,7 +360,7 @@ public class WaitingListRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true))
     private void getById(Context ctx) {
         int id = pathInt(ctx, "id");
-        verifyListOwnership(id, UserSession.from(ctx));
+        verifyListOwnership(ctx, id);
         var list = service.findById(id).orElseThrow(NotFoundResponse::new);
         ctx.json(list);
     }
@@ -377,7 +374,7 @@ public class WaitingListRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ListRequest.class)))
     private void update(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwned(ctx, id, service::findById, WaitingList::stationId);
+        requireOwnedOrNotFound(ctx, id, service::findById, WaitingList::stationId);
         var request = ctx.bodyAsClass(ListRequest.class);
         var fieldNames = service.findFieldsByList(id).stream()
                 .map(WaitingListField::name)
@@ -405,7 +402,7 @@ public class WaitingListRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true))
     private void deleteList(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwned(ctx, id, service::findById, WaitingList::stationId);
+        requireOwnedOrNotFound(ctx, id, service::findById, WaitingList::stationId);
         service.delete(id);
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -414,7 +411,7 @@ public class WaitingListRoutes implements Routes {
 
     private void updateVisibleFields(Context ctx) {
         int id = pathInt(ctx, "id");
-        verifyListOwnership(id, UserSession.from(ctx));
+        verifyListOwnership(ctx, id);
         var request = ctx.bodyAsClass(VisibleFieldsRequest.class);
         var list = service.updateVisibleFields(id, toJson(request.fieldIds())).orElseThrow(NotFoundResponse::new);
         ctx.json(list);
@@ -422,13 +419,13 @@ public class WaitingListRoutes implements Routes {
 
     private void listFields(Context ctx) {
         int listId = pathInt(ctx, "id");
-        verifyListOwnership(listId, UserSession.from(ctx));
+        verifyListOwnership(ctx, listId);
         ctx.json(service.findFieldsByList(listId));
     }
 
     private void createField(Context ctx) {
         int listId = pathInt(ctx, "id");
-        verifyListOwnership(listId, UserSession.from(ctx));
+        verifyListOwnership(ctx, listId);
         var request = ctx.bodyAsClass(FieldRequest.class);
         var field = service.createField(
                 listId,
@@ -443,7 +440,7 @@ public class WaitingListRoutes implements Routes {
 
     private void updateField(Context ctx) {
         int listId = pathInt(ctx, "id");
-        verifyListOwnership(listId, UserSession.from(ctx));
+        verifyListOwnership(ctx, listId);
         int fieldId = pathInt(ctx, "fieldId");
         verifyFieldInList(listId, fieldId);
         var request = ctx.bodyAsClass(FieldRequest.class);
@@ -463,7 +460,7 @@ public class WaitingListRoutes implements Routes {
 
     private void deleteField(Context ctx) {
         int listId = pathInt(ctx, "id");
-        verifyListOwnership(listId, UserSession.from(ctx));
+        verifyListOwnership(ctx, listId);
         int fieldId = pathInt(ctx, "fieldId");
         verifyFieldInList(listId, fieldId);
         service.deleteField(fieldId);
@@ -472,13 +469,13 @@ public class WaitingListRoutes implements Routes {
 
     private void listInvites(Context ctx) {
         int listId = pathInt(ctx, "id");
-        verifyListOwnership(listId, UserSession.from(ctx));
+        verifyListOwnership(ctx, listId);
         ctx.json(service.findInvitesByList(listId));
     }
 
     private void createInvite(Context ctx) {
         int listId = pathInt(ctx, "id");
-        verifyListOwnership(listId, UserSession.from(ctx));
+        verifyListOwnership(ctx, listId);
         var request = ctx.bodyAsClass(InviteRequest.class);
         Instant expiresAt = null;
         if (request.expiresAt() != null && !request.expiresAt().isBlank()) {
@@ -500,7 +497,7 @@ public class WaitingListRoutes implements Routes {
 
     private void deleteInvite(Context ctx) {
         int listId = pathInt(ctx, "id");
-        verifyListOwnership(listId, UserSession.from(ctx));
+        verifyListOwnership(ctx, listId);
         int inviteId = pathInt(ctx, "inviteId");
         verifyInviteInList(listId, inviteId);
         service.deleteInvite(inviteId);
@@ -509,7 +506,7 @@ public class WaitingListRoutes implements Routes {
 
     private void listEntries(Context ctx) {
         int listId = pathInt(ctx, "id");
-        verifyListOwnership(listId, UserSession.from(ctx));
+        verifyListOwnership(ctx, listId);
         var entries = service.findEntriesByList(listId);
         var list = service.findById(listId).orElseThrow(NotFoundResponse::new);
         var fields = service.findFieldsByList(listId);
@@ -531,7 +528,7 @@ public class WaitingListRoutes implements Routes {
 
     private void createEntry(Context ctx) {
         int listId = pathInt(ctx, "id");
-        verifyListOwnership(listId, UserSession.from(ctx));
+        verifyListOwnership(ctx, listId);
         var request = ctx.bodyAsClass(EntryRequest.class);
         var guardians = resolveGuardians(request.guardians(), request.parentName(), request.email());
         var entry = service.createEntry(
@@ -546,7 +543,7 @@ public class WaitingListRoutes implements Routes {
 
     private void updateEntry(Context ctx) {
         int listId = pathInt(ctx, "id");
-        verifyListOwnership(listId, UserSession.from(ctx));
+        verifyListOwnership(ctx, listId);
         int entryId = pathInt(ctx, "entryId");
         verifyEntryInList(listId, entryId);
         var request = ctx.bodyAsClass(EntryRequest.class);
@@ -564,7 +561,7 @@ public class WaitingListRoutes implements Routes {
 
     private void updateCreatedAt(Context ctx) {
         int listId = pathInt(ctx, "id");
-        verifyListOwnership(listId, UserSession.from(ctx));
+        verifyListOwnership(ctx, listId);
         int entryId = pathInt(ctx, "entryId");
         verifyEntryInList(listId, entryId);
         var request = ctx.bodyAsClass(CreatedAtRequest.class);
@@ -577,7 +574,7 @@ public class WaitingListRoutes implements Routes {
 
     private void deleteEntry(Context ctx) {
         int listId = pathInt(ctx, "id");
-        verifyListOwnership(listId, UserSession.from(ctx));
+        verifyListOwnership(ctx, listId);
         int entryId = pathInt(ctx, "entryId");
         verifyEntryInList(listId, entryId);
         service.deleteEntry(entryId);
@@ -586,7 +583,7 @@ public class WaitingListRoutes implements Routes {
 
     private void inviteEntry(Context ctx) {
         int listId = pathInt(ctx, "id");
-        verifyListOwnership(listId, UserSession.from(ctx));
+        verifyListOwnership(ctx, listId);
         int entryId = pathInt(ctx, "entryId");
         verifyEntryInList(listId, entryId);
         try {
@@ -603,7 +600,7 @@ public class WaitingListRoutes implements Routes {
 
     private void moveToTesting(Context ctx) {
         int listId = pathInt(ctx, "id");
-        verifyListOwnership(listId, UserSession.from(ctx));
+        verifyListOwnership(ctx, listId);
         int entryId = pathInt(ctx, "entryId");
         verifyEntryInList(listId, entryId);
         try {
@@ -620,7 +617,7 @@ public class WaitingListRoutes implements Routes {
 
     private void moveToJoined(Context ctx) {
         int listId = pathInt(ctx, "id");
-        verifyListOwnership(listId, UserSession.from(ctx));
+        verifyListOwnership(ctx, listId);
         int entryId = pathInt(ctx, "entryId");
         verifyEntryInList(listId, entryId);
         try {
@@ -637,7 +634,7 @@ public class WaitingListRoutes implements Routes {
 
     private void withdrawEntry(Context ctx) {
         int listId = pathInt(ctx, "id");
-        verifyListOwnership(listId, UserSession.from(ctx));
+        verifyListOwnership(ctx, listId);
         int entryId = pathInt(ctx, "entryId");
         verifyEntryInList(listId, entryId);
         try {
@@ -743,7 +740,7 @@ public class WaitingListRoutes implements Routes {
 
     private void approveEntry(Context ctx) {
         int listId = pathInt(ctx, "id");
-        verifyListOwnership(listId, UserSession.from(ctx));
+        verifyListOwnership(ctx, listId);
         int entryId = pathInt(ctx, "entryId");
         verifyEntryInList(listId, entryId);
         var entry = service.approvePendingEntry(entryId);
@@ -752,7 +749,7 @@ public class WaitingListRoutes implements Routes {
 
     private void rejectEntry(Context ctx) {
         int listId = pathInt(ctx, "id");
-        verifyListOwnership(listId, UserSession.from(ctx));
+        verifyListOwnership(ctx, listId);
         int entryId = pathInt(ctx, "entryId");
         verifyEntryInList(listId, entryId);
         service.rejectPendingEntry(entryId);

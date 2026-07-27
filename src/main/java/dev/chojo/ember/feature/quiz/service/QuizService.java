@@ -37,14 +37,13 @@ import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.system.service.RequirementsService;
+import dev.chojo.ember.util.Json;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -62,7 +61,6 @@ import java.util.stream.Collectors;
 @Singleton
 public class QuizService {
     private static final Logger log = LoggerFactory.getLogger(QuizService.class);
-    private static final ObjectMapper MAPPER = JsonMapper.builder().build();
 
     private final QuizCatalogRepository catalogRepository;
     private final QuizTestRepository testRepository;
@@ -738,7 +736,7 @@ public class QuizService {
     private String serializeConfig(QuestionConfig config) {
         if (config == null) return "{}";
         try {
-            return MAPPER.writeValueAsString(config);
+            return Json.MAPPER.writeValueAsString(config);
         } catch (Exception e) {
             return "{}";
         }
@@ -826,24 +824,23 @@ public class QuizService {
 
     private void autoGradeAnswers(int attemptId) {
         var answers = testRepository.findAnswers(attemptId);
-        var mapper = new ObjectMapper();
 
         for (var answer : answers) {
             var question = catalogRepository.findQuestionById(answer.questionId());
             if (question.isEmpty()) continue;
             var q = question.get();
-            double autoPoints = autoGradeQuestion(q, answer.answer(), mapper);
+            double autoPoints = autoGradeQuestion(q, answer.answer());
             if (autoPoints >= 0) {
                 testRepository.gradeAnswer(answer.id(), autoPoints);
             }
         }
     }
 
-    private double autoGradeQuestion(QuizQuestion q, String answerJson, ObjectMapper mapper) {
+    private double autoGradeQuestion(QuizQuestion q, String answerJson) {
         if (answerJson == null || answerJson.isBlank()) return 0;
         try {
             var config = q.configNode();
-            var answer = mapper.readTree(answerJson);
+            var answer = Json.MAPPER.readTree(answerJson);
             return switch (q.quizQuestionType()) {
                 case MULTIPLE_CHOICE -> gradeMultipleChoice(config, answer, q.points());
                 case TRUE_FALSE -> gradeTrueFalse(config, answer, q.points());
