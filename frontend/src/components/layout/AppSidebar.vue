@@ -32,6 +32,7 @@ const sidebarLogo = emberLogo()
 const {collapsed, toggle} = useSidebarCollapse()
 
 const desktopWidthClass = computed(() => collapsed.value ? 'lg:w-16' : 'lg:w-64')
+const logoSizeClass = computed(() => collapsed.value ? 'h-8 w-8 lg:h-10 lg:w-10 shrink-0' : 'h-8 w-8 shrink-0')
 </script>
 
 <template>
@@ -52,9 +53,9 @@ const desktopWidthClass = computed(() => collapsed.value ? 'lg:w-16' : 'lg:w-64'
           class="flex items-center gap-3 flex-1 min-w-0 px-4 py-2 no-underline hover:bg-(--bg-accent) transition-colors"
       >
         <LayeredEmberLogo v-if="!stationLogoUrl" :layers="sidebarLogo.layers"
-                          :active-layers="sidebarLogo.activeLayers" :auto-blink="true" size="h-8 w-8 shrink-0"
+                          :active-layers="sidebarLogo.activeLayers" :auto-blink="true" :size="logoSizeClass"
                           :pixel-size="64"/>
-        <img v-else :src="stationLogoUrl" alt="" class="h-8 w-8 rounded object-contain shrink-0"/>
+        <img v-else :src="stationLogoUrl" alt="" :class="logoSizeClass" class="rounded object-contain"/>
         <div
             :class="collapsed ? 'lg:hidden' : ''"
             class="flex flex-col justify-center min-w-0"
@@ -65,24 +66,18 @@ const desktopWidthClass = computed(() => collapsed.value ? 'lg:w-16' : 'lg:w-64'
           <span v-if="stationName" class="text-xs text-(--text-muted) leading-tight line-clamp-2">{{ stationName }}</span>
         </div>
       </router-link>
-      <SidebarCollapseToggle
-          v-if="collapsible"
-          :collapsed="collapsed"
-          class="hidden lg:inline-flex w-8 h-8 mr-2 self-center"
-          :class="collapsed ? 'lg:hidden' : ''"
-          @click="toggle"
-      />
     </div>
-
-    <SidebarCollapseToggle
-        v-if="collapsible && collapsed"
-        :collapsed="collapsed"
-        class="hidden lg:inline-flex h-8 mx-2 mt-2"
-        @click="toggle"
-    />
 
     <nav class="flex flex-col gap-1 p-3 overflow-y-auto overflow-x-hidden flex-1">
       <slot/>
     </nav>
   </aside>
+
+  <SidebarCollapseToggle
+      v-if="collapsible"
+      :collapsed="collapsed"
+      :class="collapsed ? 'lg:left-16' : 'lg:left-64'"
+      class="hidden lg:inline-flex fixed top-7 z-50 -translate-x-1/4 -translate-y-1/2 transition-[left] duration-300 ease-in-out"
+      @click="toggle"
+  />
 </template>

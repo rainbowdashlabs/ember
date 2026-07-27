@@ -22,7 +22,7 @@ const {t} = useI18n()
   <IconButton
       :icon="['fas', 'chevron-left']"
       :label="collapsed ? t('sidebar.expand') : t('sidebar.collapse')"
-      class="text-(--text-muted) hover:text-(--text) hover:bg-(--bg-accent) shrink-0"
+      class="rounded-full! border border-bg-light-accent dark:border-bg-dark bg-(--bg) text-(--text-muted) shadow-md hover:text-(--text) hover:bg-(--bg-accent) shrink-0"
       @click="$emit('click', $event)"
   >
     <font-awesome-icon
