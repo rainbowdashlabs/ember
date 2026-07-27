@@ -17,7 +17,6 @@ import dev.chojo.ember.feature.inventory.service.InventoryFieldDefinitionService
 import dev.chojo.ember.feature.inventory.service.InventoryService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
@@ -65,7 +64,7 @@ public class InventoryFieldDefinitionRoutes implements Routes {
     private void ownedInventory(int inventoryId, UserSession session) {
         Inventory inventory = inventoryService.findById(inventoryId).orElseThrow(NotFoundResponse::new);
         if (inventory.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Inventory belongs to a different station");
+            throw new NotFoundResponse();
         }
     }
 

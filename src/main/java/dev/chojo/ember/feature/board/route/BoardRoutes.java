@@ -66,6 +66,8 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.UUID;
 
+import static dev.chojo.ember.api.RouteSupport.pathUuid;
+
 @SuppressWarnings("DefaultAnnotationParam")
 @Singleton
 public class BoardRoutes implements Routes {
@@ -816,7 +818,7 @@ public class BoardRoutes implements Routes {
 
     private int resolvePartnerId(Context ctx) {
         var session = UserSession.from(ctx);
-        UUID partnerUid = UUID.fromString(ctx.pathParam("partnerUid"));
+        UUID partnerUid = pathUuid(ctx, "partnerUid");
         return federationRepository
                 .findPartnerByStationAndRemoteUid(session.stationId(), partnerUid)
                 .orElseThrow(() -> new NotFoundResponse("Unknown partner"))

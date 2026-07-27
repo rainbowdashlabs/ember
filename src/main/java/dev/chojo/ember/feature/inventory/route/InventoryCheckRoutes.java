@@ -20,7 +20,6 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
@@ -70,7 +69,7 @@ public class InventoryCheckRoutes implements Routes {
     private void verifyContainerInStation(int containerId, UserSession session) {
         var container = containerService.findById(containerId).orElseThrow(NotFoundResponse::new);
         if (container.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
+            throw new NotFoundResponse();
         }
     }
 
@@ -81,7 +80,7 @@ public class InventoryCheckRoutes implements Routes {
         var item = inventoryService.findItemById(itemId).orElseThrow(NotFoundResponse::new);
         var inventory = inventoryService.findById(item.inventoryId()).orElseThrow(NotFoundResponse::new);
         if (inventory.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
+            throw new NotFoundResponse();
         }
     }
 
@@ -91,7 +90,7 @@ public class InventoryCheckRoutes implements Routes {
     private void verifyMemberInStation(int memberId, UserSession session) {
         var member = stationMemberRepository.findById(memberId).orElseThrow(NotFoundResponse::new);
         if (member.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
+            throw new NotFoundResponse();
         }
     }
 

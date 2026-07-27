@@ -14,7 +14,6 @@ import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
@@ -43,6 +42,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
+import static dev.chojo.ember.api.RouteSupport.pathUuid;
 
 @SuppressWarnings("DefaultAnnotationParam")
 @Singleton
@@ -69,13 +69,7 @@ public class PublicEventRoutes implements Routes {
     }
 
     private Station resolveStation(Context ctx) {
-        String uidParam = ctx.pathParam("stationUid");
-        UUID uid;
-        try {
-            uid = UUID.fromString(uidParam);
-        } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse("Invalid station ID");
-        }
+        UUID uid = pathUuid(ctx, "stationUid");
         var station = stationRepository.findByUid(uid).orElseThrow(NotFoundResponse::new);
         if (!station.publicCalendarEnabled()) {
             throw new NotFoundResponse();

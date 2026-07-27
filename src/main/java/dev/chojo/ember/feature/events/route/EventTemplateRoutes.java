@@ -33,7 +33,7 @@ import jakarta.inject.Singleton;
 import java.util.List;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
-import static dev.chojo.ember.api.RouteSupport.requireOwned;
+import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 
 @Singleton
 public class EventTemplateRoutes implements Routes {
@@ -114,7 +114,7 @@ public class EventTemplateRoutes implements Routes {
             })
     private void get(Context ctx) {
         int id = pathInt(ctx, "id");
-        var template = requireOwned(ctx, id, eventTemplateService::findById, EventTemplate::stationId);
+        var template = requireOwnedOrNotFound(ctx, id, eventTemplateService::findById, EventTemplate::stationId);
         var fields = eventTemplateService.findFields(id);
         var restrictionUserTypes = eventTemplateService.findRestrictions(id);
         var reminderDays = eventTemplateService.findReminderDays(id);
@@ -134,7 +134,7 @@ public class EventTemplateRoutes implements Routes {
             })
     private void update(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwned(ctx, id, eventTemplateService::findById, EventTemplate::stationId);
+        requireOwnedOrNotFound(ctx, id, eventTemplateService::findById, EventTemplate::stationId);
         var req = ctx.bodyAsClass(UpdateTemplateRequest.class);
         if (!eventTemplateService.update(
                 id,
@@ -166,7 +166,7 @@ public class EventTemplateRoutes implements Routes {
             })
     private void delete(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwned(ctx, id, eventTemplateService::findById, EventTemplate::stationId);
+        requireOwnedOrNotFound(ctx, id, eventTemplateService::findById, EventTemplate::stationId);
         if (eventTemplateService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -187,7 +187,7 @@ public class EventTemplateRoutes implements Routes {
             })
     private void setFields(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwned(ctx, id, eventTemplateService::findById, EventTemplate::stationId);
+        requireOwnedOrNotFound(ctx, id, eventTemplateService::findById, EventTemplate::stationId);
         var req = ctx.bodyAsClass(SetFieldsRequest.class);
         eventTemplateService.replaceFields(id, req.fields());
         ctx.json(eventTemplateService.findFields(id));
@@ -206,7 +206,7 @@ public class EventTemplateRoutes implements Routes {
             })
     private void setRestrictions(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwned(ctx, id, eventTemplateService::findById, EventTemplate::stationId);
+        requireOwnedOrNotFound(ctx, id, eventTemplateService::findById, EventTemplate::stationId);
         var req = ctx.bodyAsClass(SetRestrictionsRequest.class);
         eventTemplateService.setRestrictions(id, req.userTypes());
         ctx.json(eventTemplateService.findRestrictions(id));

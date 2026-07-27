@@ -19,7 +19,6 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -249,7 +248,7 @@ public class FederationRoutes implements Routes {
                 .map(Station::uid)
                 .orElse(null);
         if (!partner.partnerStationId().equals(sessionStationUid)) {
-            throw new ForbiddenResponse("This request is not for your station");
+            throw new NotFoundResponse();
         }
         var result = service.acceptPairRequest(requestId);
         ctx.json(result);
@@ -264,7 +263,7 @@ public class FederationRoutes implements Routes {
                 .map(Station::uid)
                 .orElse(null);
         if (!partner.partnerStationId().equals(sessionStationUid)) {
-            throw new ForbiddenResponse("This request is not for your station");
+            throw new NotFoundResponse();
         }
         service.declinePairRequest(requestId);
         ctx.json(new MessageResponse("Request declined"));
@@ -280,7 +279,7 @@ public class FederationRoutes implements Routes {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var partner = service.findPartner(id).orElseThrow(NotFoundResponse::new);
         if (session.stationId() == null || partner.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("This partner is not for your station");
+            throw new NotFoundResponse();
         }
         return partner;
     }

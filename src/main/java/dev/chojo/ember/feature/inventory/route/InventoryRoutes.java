@@ -148,18 +148,18 @@ public class InventoryRoutes implements Routes {
         var item = inventoryService.findItemById(itemId).orElseThrow(NotFoundResponse::new);
         var inventory = inventoryService.findById(item.inventoryId()).orElseThrow(NotFoundResponse::new);
         if (inventory.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
+            throw new NotFoundResponse();
         }
     }
 
     /**
      * Loads an inventory and asserts it belongs to the caller's station, returning it. Answers
-     * 404 when absent and 403 when owned by another station.
+     * 404 both when absent and when owned by another station.
      */
     private Inventory requireOwnedInventory(int inventoryId, UserSession session) {
         var inventory = inventoryService.findById(inventoryId).orElseThrow(NotFoundResponse::new);
         if (inventory.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
+            throw new NotFoundResponse();
         }
         return inventory;
     }

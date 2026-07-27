@@ -80,13 +80,13 @@ public class FormRoutes implements Routes {
 
     /**
      * Loads a form and asserts it belongs to the caller's station, returning it. Answers 404
-     * when the form is absent and 403 when owned by another station, so a form id from one
-     * station cannot be read, answered, or have its analytics and responses exposed to another.
+     * both when the form is absent and when it is owned by another station, so a form id from
+     * one station cannot be read, answered, or have its analytics and responses exposed to another.
      */
     private Form requireOwnedForm(int formId, UserSession session) {
         var form = formService.findById(formId).orElseThrow(NotFoundResponse::new);
         if (form.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
+            throw new NotFoundResponse();
         }
         return form;
     }

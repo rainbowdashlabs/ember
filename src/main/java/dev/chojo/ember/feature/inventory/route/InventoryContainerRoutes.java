@@ -17,7 +17,6 @@ import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
@@ -74,7 +73,7 @@ public class InventoryContainerRoutes implements Routes {
     private InventoryContainer verifyContainerOwnership(int id, UserSession session) {
         InventoryContainer container = containerService.findById(id).orElseThrow(NotFoundResponse::new);
         if (container.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Container belongs to a different station");
+            throw new NotFoundResponse();
         }
         return container;
     }

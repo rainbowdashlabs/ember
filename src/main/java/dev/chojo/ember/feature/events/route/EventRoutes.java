@@ -81,7 +81,8 @@ import java.util.Objects;
 import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
-import static dev.chojo.ember.api.RouteSupport.requireOwned;
+import static dev.chojo.ember.api.RouteSupport.pathUuid;
+import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 
 /**
  * Routes for event management including CRUD operations on events, categories, breaks,
@@ -131,14 +132,14 @@ public class EventRoutes implements Routes {
     }
 
     /**
-     * Loads an event and asserts it belongs to the caller's station. Answers 404 when the
-     * event is absent and 403 when it is owned by another station, so an event id from one
-     * station cannot be used to read or act on another station's event.
+     * Loads an event and asserts it belongs to the caller's station. Answers 404 both when
+     * the event is absent and when it is owned by another station, so an event id from one
+     * station cannot be used to probe or act on another station's event.
      */
     private StationEvent requireOwnedEvent(int eventId, UserSession session) {
         var event = eventService.findById(eventId).orElseThrow(NotFoundResponse::new);
         if (event.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
+            throw new NotFoundResponse();
         }
         return event;
     }
@@ -639,7 +640,7 @@ public class EventRoutes implements Routes {
             })
     private void updateBreak(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwned(ctx, id, eventService::findBreakById, EventBreak::stationId);
+        requireOwnedOrNotFound(ctx, id, eventService::findBreakById, EventBreak::stationId);
         var req = ctx.bodyAsClass(BreakRequest.class);
         eventService.updateBreak(id, req.name(), req.startDate(), req.endDate()).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
@@ -658,7 +659,7 @@ public class EventRoutes implements Routes {
             })
     private void deleteBreak(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwned(ctx, id, eventService::findBreakById, EventBreak::stationId);
+        requireOwnedOrNotFound(ctx, id, eventService::findBreakById, EventBreak::stationId);
         if (eventService.deleteBreak(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -875,16 +876,12 @@ public class EventRoutes implements Routes {
             })
     private void updateRegistrationStatus(Context ctx) {
         int id = pathInt(ctx, "id");
-        UserSession session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(StatusUpdateRequest.class);
         if (req.status() != RegistrationStatus.ACCEPTED && req.status() != RegistrationStatus.DENIED) {
             throw new BadRequestResponse("status must be ACCEPTED or DENIED");
         }
         var registration = eventService.findRegistrationById(id).orElseThrow(NotFoundResponse::new);
-        var regEvent = eventService.findById(registration.eventId()).orElseThrow(NotFoundResponse::new);
-        if (regEvent.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        requireOwnedOrNotFound(ctx, registration.eventId(), eventService::findById, StationEvent::stationId);
         if (!eventService.updateRegistrationStatus(id, req.status())) {
             throw new NotFoundResponse();
         }
@@ -970,7 +967,7 @@ public class EventRoutes implements Routes {
             })
     private void updateCategory(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwned(ctx, id, eventService::findCategoryById, EventCategory::stationId);
+        requireOwnedOrNotFound(ctx, id, eventService::findCategoryById, EventCategory::stationId);
         var req = ctx.bodyAsClass(CategoryRequest.class);
         if (!eventService.updateCategory(
                 id,
@@ -997,12 +994,8 @@ public class EventRoutes implements Routes {
     private void reorderCategories(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(ReorderCategoriesRequest.class);
-        // Verify all categories belong to this station
         for (int id : req.orderedIds()) {
-            var cat = eventService.findCategoryById(id).orElseThrow(NotFoundResponse::new);
-            if (cat.stationId() != session.stationId()) {
-                throw new ForbiddenResponse("Cannot reorder categories from another station");
-            }
+            requireOwnedOrNotFound(ctx, id, eventService::findCategoryById, EventCategory::stationId);
         }
         eventService.reorderCategories(req.orderedIds());
         ctx.json(eventService.findCategoriesByStation(session.stationId()));
@@ -1010,7 +1003,7 @@ public class EventRoutes implements Routes {
 
     private void deleteCategory(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwned(ctx, id, eventService::findCategoryById, EventCategory::stationId);
+        requireOwnedOrNotFound(ctx, id, eventService::findCategoryById, EventCategory::stationId);
         if (eventService.deleteCategory(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -1382,10 +1375,8 @@ public class EventRoutes implements Routes {
     }
 
     private void getFederationShare(Context ctx) {
-        UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var event = eventService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (event.stationId() != session.stationId()) throw new ForbiddenResponse();
+        requireOwnedOrNotFound(ctx, id, eventService::findById, StationEvent::stationId);
         var share = eventFederationService.findShareByEvent(id);
         if (share.isEmpty()) {
             ctx.json(new FederationShareResponse(false, null, null));
@@ -1396,29 +1387,23 @@ public class EventRoutes implements Routes {
     }
 
     private void setFederationShare(Context ctx) {
-        UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var event = eventService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (event.stationId() != session.stationId()) throw new ForbiddenResponse();
+        requireOwnedOrNotFound(ctx, id, eventService::findById, StationEvent::stationId);
         var req = ctx.bodyAsClass(SetFederationShareRequest.class);
         eventFederationService.setShare(id, req.scope(), req.partnerIds() != null ? req.partnerIds() : List.of());
         ctx.json(new FederationShareResponse(true, req.scope(), null));
     }
 
     private void removeFederationShare(Context ctx) {
-        UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var event = eventService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (event.stationId() != session.stationId()) throw new ForbiddenResponse();
+        requireOwnedOrNotFound(ctx, id, eventService::findById, StationEvent::stationId);
         eventFederationService.removeShare(id);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
     private void listFederationRegistrations(Context ctx) {
-        UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var event = eventService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (event.stationId() != session.stationId()) throw new ForbiddenResponse();
+        requireOwnedOrNotFound(ctx, id, eventService::findById, StationEvent::stationId);
         String dateParam = ctx.queryParam("date");
         LocalDate date = dateParam != null ? LocalDate.parse(dateParam) : null;
         var registrations = date != null
@@ -1473,7 +1458,7 @@ public class EventRoutes implements Routes {
 
     private void federatedGetEvent(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        var stationUid = UUID.fromString(ctx.pathParam("stationuid"));
+        var stationUid = pathUuid(ctx, "stationuid");
         int eventId = pathInt(ctx, "id");
         var event = eventFederationService.getFederatedEvent(session.stationId(), stationUid, eventId);
         var fields = eventFieldService.findByEvent(eventId).stream()
@@ -1524,9 +1509,7 @@ public class EventRoutes implements Routes {
         int id = pathInt(ctx, "id");
         var req = ctx.bodyAsClass(StatusUpdateRequest.class);
         var reg = eventFederationService.findRegistrationById(id).orElseThrow(NotFoundResponse::new);
-        var event = eventService.findById(reg.eventId()).orElseThrow(NotFoundResponse::new);
-        UserSession session = UserSession.from(ctx);
-        if (event.stationId() != session.stationId()) throw new ForbiddenResponse();
+        requireOwnedOrNotFound(ctx, reg.eventId(), eventService::findById, StationEvent::stationId);
         eventFederationService.updateRegistrationStatus(id, req.status());
         ctx.json(new MessageResponse("Status updated"));
     }
@@ -1629,7 +1612,7 @@ public class EventRoutes implements Routes {
 
     private void remoteListMemberRegistrations(Context ctx) {
         var partner = requireFederationPartner(ctx);
-        var memberUid = UUID.fromString(ctx.pathParam("memberUid"));
+        var memberUid = pathUuid(ctx, "memberUid");
         var registrations = eventFederationService.findRegistrationsByRemoteMember(memberUid).stream()
                 .filter(r -> r.partnerId() == partner.id())
                 .toList();
@@ -1649,7 +1632,7 @@ public class EventRoutes implements Routes {
     }
 
     private FederationPartner resolvePartner(Context ctx, int stationId) {
-        var partnerUid = UUID.fromString(ctx.pathParam("stationuid"));
+        var partnerUid = pathUuid(ctx, "stationuid");
         return federationRepository
                 .findPartnerByStationAndRemoteUid(stationId, partnerUid)
                 .orElseThrow(() -> new NotFoundResponse("Unknown partner"));
@@ -1766,7 +1749,7 @@ public class EventRoutes implements Routes {
 
     private void federatedListComments(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        var partnerUid = UUID.fromString(ctx.pathParam("stationuid"));
+        var partnerUid = pathUuid(ctx, "stationuid");
         int eventId = pathInt(ctx, "eventId");
         var result = eventFederationService.listFederatedComments(session.stationId(), partnerUid, eventId);
         switch (result) {
@@ -1779,7 +1762,7 @@ public class EventRoutes implements Routes {
 
     private void federatedCreateComment(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        var partnerUid = UUID.fromString(ctx.pathParam("stationuid"));
+        var partnerUid = pathUuid(ctx, "stationuid");
         int eventId = pathInt(ctx, "eventId");
         var req = ctx.bodyAsClass(EventCommentRoutes.CreateCommentRequest.class);
         if (req.content() == null || req.content().isBlank()) {
@@ -1804,7 +1787,7 @@ public class EventRoutes implements Routes {
 
     private void federatedUpdateComment(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        var partnerUid = UUID.fromString(ctx.pathParam("stationuid"));
+        var partnerUid = pathUuid(ctx, "stationuid");
         int commentId = pathInt(ctx, "commentId");
         var req = ctx.bodyAsClass(EventCommentRoutes.UpdateCommentRequest.class);
         if (req.content() == null || req.content().isBlank()) {
@@ -1820,7 +1803,7 @@ public class EventRoutes implements Routes {
 
     private void federatedDeleteComment(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        var partnerUid = UUID.fromString(ctx.pathParam("stationuid"));
+        var partnerUid = pathUuid(ctx, "stationuid");
         int commentId = pathInt(ctx, "commentId");
         eventFederationService.deleteFederatedComment(
                 session.stationId(), partnerUid, commentId, session.member().uid());

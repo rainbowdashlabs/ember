@@ -39,6 +39,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static dev.chojo.ember.api.RouteSupport.pathUuid;
+
 /**
  * Public, unauthenticated routes for the form feature.
  *
@@ -73,14 +75,6 @@ public class PublicFormRoutes implements Routes {
         this.rateLimiter = rateLimiter;
         this.consentService = consentService;
         this.network = network;
-    }
-
-    private static UUID parseUid(String raw) {
-        try {
-            return UUID.fromString(raw);
-        } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse("Invalid UUID: " + raw);
-        }
     }
 
     @Override
@@ -162,8 +156,8 @@ public class PublicFormRoutes implements Routes {
     }
 
     private Form resolvePublicForm(Context ctx) {
-        UUID stationUid = parseUid(ctx.pathParam("stationUid"));
-        UUID formUid = parseUid(ctx.pathParam("publicUid"));
+        UUID stationUid = pathUuid(ctx, "stationUid");
+        UUID formUid = pathUuid(ctx, "publicUid");
         var station = stationRepository
                 .findByUid(stationUid)
                 .orElseThrow(() -> new NotFoundResponse("Unknown station: " + stationUid));

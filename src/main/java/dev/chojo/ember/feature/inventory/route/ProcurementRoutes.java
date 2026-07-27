@@ -34,7 +34,7 @@ import jakarta.inject.Singleton;
 import java.time.Instant;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
-import static dev.chojo.ember.api.RouteSupport.requireOwned;
+import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 
 /**
  * Routes for procurement request management including creating, fulfilling,
@@ -131,7 +131,7 @@ public class ProcurementRoutes implements Routes {
             })
     private void fulfill(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwned(ctx, id, procurementService::findById, Procurement::stationId);
+        requireOwnedOrNotFound(ctx, id, procurementService::findById, Procurement::stationId);
         if (procurementService.fulfill(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -151,7 +151,7 @@ public class ProcurementRoutes implements Routes {
             })
     private void delete(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwned(ctx, id, procurementService::findById, Procurement::stationId);
+        requireOwnedOrNotFound(ctx, id, procurementService::findById, Procurement::stationId);
         if (procurementService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {

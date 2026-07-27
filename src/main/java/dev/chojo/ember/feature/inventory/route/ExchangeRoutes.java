@@ -75,12 +75,12 @@ public class ExchangeRoutes implements Routes {
 
     /**
      * Loads an exchange request and asserts it belongs to the caller's station, returning it.
-     * Answers 404 when absent and 403 when owned by another station.
+     * Answers 404 both when absent and when owned by another station.
      */
     private ExchangeRequest requireOwnedExchange(int exchangeId, UserSession session) {
         var exchange = exchangeService.findById(exchangeId).orElseThrow(NotFoundResponse::new);
         if (exchange.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
+            throw new NotFoundResponse();
         }
         return exchange;
     }

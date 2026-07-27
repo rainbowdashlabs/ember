@@ -68,6 +68,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
+import static dev.chojo.ember.api.RouteSupport.pathUuid;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
@@ -463,13 +464,7 @@ public class SessionRoutes implements Routes {
      * membership, no federation partnership, no admin role).
      */
     private void getAvatarByAccount(Context ctx) {
-        UUID accountUid;
-        try {
-            accountUid = UUID.fromString(ctx.pathParam("accountUid"));
-        } catch (IllegalArgumentException e) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            return;
-        }
+        UUID accountUid = pathUuid(ctx, "accountUid");
         var target = accountRepository.findByUid(accountUid).orElse(null);
         if (target == null) {
             ctx.status(HttpStatus.NOT_FOUND);
@@ -491,15 +486,8 @@ public class SessionRoutes implements Routes {
      * resolves the underlying account UUID and falls through to the same disk lookup.
      */
     private void getAvatarByMember(Context ctx) {
-        UUID stationUid;
-        UUID memberUid;
-        try {
-            stationUid = UUID.fromString(ctx.pathParam("stationUid"));
-            memberUid = UUID.fromString(ctx.pathParam("memberUid"));
-        } catch (IllegalArgumentException e) {
-            ctx.status(HttpStatus.NOT_FOUND);
-            return;
-        }
+        UUID stationUid = pathUuid(ctx, "stationUid");
+        UUID memberUid = pathUuid(ctx, "memberUid");
 
         var targetStation = stationRepository.findByUid(stationUid).orElse(null);
         if (targetStation == null) {

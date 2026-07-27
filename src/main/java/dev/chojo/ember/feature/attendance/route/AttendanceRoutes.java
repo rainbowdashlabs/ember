@@ -53,7 +53,7 @@ import java.util.List;
 import java.util.Set;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
-import static dev.chojo.ember.api.RouteSupport.requireOwned;
+import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 
 /**
  * HTTP route definitions for the attendance feature, handling templates, sessions, entries,
@@ -218,7 +218,7 @@ public class AttendanceRoutes implements Routes {
         var template =
                 attendanceService.findTemplateById(attSession.templateId()).orElseThrow(NotFoundResponse::new);
         if (template.stationId() != userSession.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
+            throw new NotFoundResponse();
         }
     }
 
@@ -228,7 +228,7 @@ public class AttendanceRoutes implements Routes {
     private void verifyTemplateOwnership(int templateId, UserSession userSession) {
         var template = attendanceService.findTemplateById(templateId).orElseThrow(NotFoundResponse::new);
         if (template.stationId() != userSession.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
+            throw new NotFoundResponse();
         }
     }
 
@@ -246,7 +246,7 @@ public class AttendanceRoutes implements Routes {
     private void verifyMemberInStation(int memberId, UserSession userSession) {
         var member = stationMemberRepository.findById(memberId).orElseThrow(NotFoundResponse::new);
         if (member.stationId() != userSession.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
+            throw new NotFoundResponse();
         }
     }
 
@@ -355,7 +355,7 @@ public class AttendanceRoutes implements Routes {
             })
     private void updateTemplate(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwned(ctx, id, attendanceService::findTemplateById, AttendanceTemplate::stationId);
+        requireOwnedOrNotFound(ctx, id, attendanceService::findTemplateById, AttendanceTemplate::stationId);
         var request = ctx.bodyAsClass(TemplateRequest.class);
         if (isBlank(request.name())) {
             throw new BadRequestResponse("name is required");
@@ -379,7 +379,7 @@ public class AttendanceRoutes implements Routes {
             })
     private void deleteTemplate(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwned(ctx, id, attendanceService::findTemplateById, AttendanceTemplate::stationId);
+        requireOwnedOrNotFound(ctx, id, attendanceService::findTemplateById, AttendanceTemplate::stationId);
         if (attendanceService.deleteTemplate(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -399,7 +399,7 @@ public class AttendanceRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TemplateGroupEntry[].class)))
     private void setTemplateGroups(Context ctx) {
         int templateId = pathInt(ctx, "templateId");
-        requireOwned(ctx, templateId, attendanceService::findTemplateById, AttendanceTemplate::stationId);
+        requireOwnedOrNotFound(ctx, templateId, attendanceService::findTemplateById, AttendanceTemplate::stationId);
         var request = ctx.bodyAsClass(SetTemplateGroupsRequest.class);
         var groups = request.groups() != null
                 ? request.groups().stream()
@@ -439,7 +439,7 @@ public class AttendanceRoutes implements Routes {
                     @OpenApiResponse(status = "201", content = @OpenApiContent(from = AttendanceTemplateField[].class)))
     private void createTemplateField(Context ctx) {
         int templateId = pathInt(ctx, "templateId");
-        requireOwned(ctx, templateId, attendanceService::findTemplateById, AttendanceTemplate::stationId);
+        requireOwnedOrNotFound(ctx, templateId, attendanceService::findTemplateById, AttendanceTemplate::stationId);
         var request = ctx.bodyAsClass(TemplateFieldRequest.class);
         if (isBlank(request.name()) || request.fieldType() == null) {
             throw new BadRequestResponse("name and fieldType are required");
@@ -466,7 +466,7 @@ public class AttendanceRoutes implements Routes {
     private void updateTemplateField(Context ctx) {
         int templateId = pathInt(ctx, "templateId");
         int fieldId = pathInt(ctx, "fieldId");
-        requireOwned(ctx, templateId, attendanceService::findTemplateById, AttendanceTemplate::stationId);
+        requireOwnedOrNotFound(ctx, templateId, attendanceService::findTemplateById, AttendanceTemplate::stationId);
         var request = ctx.bodyAsClass(TemplateFieldRequest.class);
         if (isBlank(request.name()) || request.fieldType() == null) {
             throw new BadRequestResponse("name and fieldType are required");
@@ -497,7 +497,7 @@ public class AttendanceRoutes implements Routes {
     private void deleteTemplateField(Context ctx) {
         int templateId = pathInt(ctx, "templateId");
         int fieldId = pathInt(ctx, "fieldId");
-        requireOwned(ctx, templateId, attendanceService::findTemplateById, AttendanceTemplate::stationId);
+        requireOwnedOrNotFound(ctx, templateId, attendanceService::findTemplateById, AttendanceTemplate::stationId);
         attendanceService.deleteTemplateField(templateId, fieldId).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
         });
@@ -532,7 +532,7 @@ public class AttendanceRoutes implements Routes {
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = AttendanceSession.class)))
     private void createSession(Context ctx) {
         int templateId = pathInt(ctx, "templateId");
-        requireOwned(ctx, templateId, attendanceService::findTemplateById, AttendanceTemplate::stationId);
+        requireOwnedOrNotFound(ctx, templateId, attendanceService::findTemplateById, AttendanceTemplate::stationId);
         var request = ctx.bodyAsClass(SessionRequest.class);
         ctx.status(HttpStatus.CREATED)
                 .json(attendanceService.createSession(

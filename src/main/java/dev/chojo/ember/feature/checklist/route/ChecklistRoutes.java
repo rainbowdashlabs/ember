@@ -55,6 +55,7 @@ import java.util.List;
 import java.util.Objects;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
+import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 
 /**
  * HTTP routes for the checklist feature. Read endpoints require CHECKLIST_READ; every
@@ -466,13 +467,8 @@ public class ChecklistRoutes implements Routes {
     }
 
     private Checklist loadOwned(Context ctx) {
-        UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var checklist = checklistService.findById(id).orElseThrow(() -> new NotFoundResponse("Checklist not found"));
-        if (checklist.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Checklist belongs to another station");
-        }
-        return checklist;
+        return requireOwnedOrNotFound(ctx, id, checklistService::findById, Checklist::stationId);
     }
 
     private ChecklistColumn loadColumn(Context ctx, Checklist checklist) {
