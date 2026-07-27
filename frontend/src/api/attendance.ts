@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import {createCrudResource, createScopedCrudResource} from './crud'
 import type {
     AttendanceEntry,
     AttendanceSession,
@@ -23,48 +24,34 @@ import type {
     TimestampResponse,
 } from './types'
 
+const templates = createCrudResource<
+    AttendanceTemplate,
+    TemplateRequest,
+    TemplateRequest,
+    TemplateDetail
+>('/attendance/templates')
+
+const templateFields = createScopedCrudResource<
+    AttendanceTemplateField,
+    TemplateFieldRequest,
+    TemplateFieldRequest,
+    AttendanceTemplateField,
+    AttendanceTemplateField[]
+>((templateId: number) => `/attendance/templates/${templateId}/fields`)
+
 // -- Templates --
 
-export async function listTemplates(): Promise<AttendanceTemplate[]> {
-    const res = await client.get<AttendanceTemplate[]>('/attendance/templates')
-    return res.data
-}
-
-export async function getTemplate(id: number): Promise<TemplateDetail> {
-    const res = await client.get<TemplateDetail>(`/attendance/templates/${id}`)
-    return res.data
-}
-
-export async function createTemplate(data: TemplateRequest): Promise<AttendanceTemplate> {
-    const res = await client.post<AttendanceTemplate>('/attendance/templates', data)
-    return res.data
-}
-
-export async function updateTemplate(id: number, data: TemplateRequest): Promise<AttendanceTemplate> {
-    const res = await client.put<AttendanceTemplate>(`/attendance/templates/${id}`, data)
-    return res.data
-}
-
-export async function deleteTemplate(id: number): Promise<void> {
-    await client.delete(`/attendance/templates/${id}`)
-}
+export const listTemplates = templates.list
+export const getTemplate = templates.get
+export const createTemplate = templates.create
+export const updateTemplate = templates.update
+export const deleteTemplate = templates.remove
 
 // -- Template Fields --
 
-export async function listTemplateFields(templateId: number): Promise<AttendanceTemplateField[]> {
-    const res = await client.get<AttendanceTemplateField[]>(`/attendance/templates/${templateId}/fields`)
-    return res.data
-}
-
-export async function createTemplateField(templateId: number, data: TemplateFieldRequest): Promise<AttendanceTemplateField[]> {
-    const res = await client.post<AttendanceTemplateField[]>(`/attendance/templates/${templateId}/fields`, data)
-    return res.data
-}
-
-export async function updateTemplateField(templateId: number, fieldId: number, data: TemplateFieldRequest): Promise<AttendanceTemplateField[]> {
-    const res = await client.put<AttendanceTemplateField[]>(`/attendance/templates/${templateId}/fields/${fieldId}`, data)
-    return res.data
-}
+export const listTemplateFields = templateFields.list
+export const createTemplateField = templateFields.create
+export const updateTemplateField = templateFields.update
 
 export async function deleteTemplateField(templateId: number, fieldId: number): Promise<AttendanceTemplateField[]> {
     const res = await client.delete<AttendanceTemplateField[]>(`/attendance/templates/${templateId}/fields/${fieldId}`)
@@ -94,34 +81,25 @@ export interface SessionSummary {
     unconfirmedCount: number
 }
 
-export async function listSessionSummaries(): Promise<SessionSummary[]> {
-    const res = await client.get<SessionSummary[]>('/attendance/sessions')
-    return res.data
-}
+const sessions = createCrudResource<
+    SessionSummary,
+    SessionRequest,
+    SessionRequest,
+    SessionDetail,
+    AttendanceSession
+>('/attendance/sessions')
 
-export async function listSessions(templateId: number): Promise<AttendanceSession[]> {
-    const res = await client.get<AttendanceSession[]>(`/attendance/templates/${templateId}/sessions`)
-    return res.data
-}
+const templateSessions = createScopedCrudResource<
+    AttendanceSession,
+    SessionRequest
+>((templateId: number) => `/attendance/templates/${templateId}/sessions`)
 
-export async function getSession(id: number): Promise<SessionDetail> {
-    const res = await client.get<SessionDetail>(`/attendance/sessions/${id}`)
-    return res.data
-}
-
-export async function createSession(templateId: number, data: SessionRequest): Promise<AttendanceSession> {
-    const res = await client.post<AttendanceSession>(`/attendance/templates/${templateId}/sessions`, data)
-    return res.data
-}
-
-export async function updateSession(id: number, data: SessionRequest): Promise<AttendanceSession> {
-    const res = await client.put<AttendanceSession>(`/attendance/sessions/${id}`, data)
-    return res.data
-}
-
-export async function deleteSession(id: number): Promise<void> {
-    await client.delete(`/attendance/sessions/${id}`)
-}
+export const listSessionSummaries = sessions.list
+export const listSessions = templateSessions.list
+export const getSession = sessions.get
+export const createSession = templateSessions.create
+export const updateSession = sessions.update
+export const deleteSession = sessions.remove
 
 // -- Session Fields --
 
@@ -137,19 +115,19 @@ export async function setSessionFields(sessionId: number, data: SetSessionFields
 
 // -- Entries --
 
-export async function listEntries(sessionId: number): Promise<AttendanceEntry[]> {
-    const res = await client.get<AttendanceEntry[]>(`/attendance/sessions/${sessionId}/entries`)
-    return res.data
-}
+const sessionEntries = createScopedCrudResource<
+    AttendanceEntry,
+    CreateEntryRequest,
+    CreateEntryRequest,
+    AttendanceEntry,
+    AttendanceEntry[]
+>((sessionId: number) => `/attendance/sessions/${sessionId}/entries`)
 
-export async function createEntry(sessionId: number, data: CreateEntryRequest): Promise<AttendanceEntry[]> {
-    const res = await client.post<AttendanceEntry[]>(`/attendance/sessions/${sessionId}/entries`, data)
-    return res.data
-}
+const entries = createCrudResource<AttendanceEntry>('/attendance/entries')
 
-export async function deleteEntry(id: number): Promise<void> {
-    await client.delete(`/attendance/entries/${id}`)
-}
+export const listEntries = sessionEntries.list
+export const createEntry = sessionEntries.create
+export const deleteEntry = entries.remove
 
 export async function checkIn(entryId: number, data: TimestampRequest): Promise<TimestampResponse> {
     const res = await client.post<TimestampResponse>(`/attendance/entries/${entryId}/check-in`, data)
@@ -243,22 +221,16 @@ export async function reportExport(params: URLSearchParams): Promise<Blob> {
     return res.data as Blob
 }
 
-export async function listPresets(): Promise<ReportPreset[]> {
-    const res = await client.get<ReportPreset[]>('/attendance/report/presets')
-    return res.data
-}
-
-export async function createPreset(data: {
-    name: string;
-    roleName?: string;
-    groupId?: number | null;
-    period: string;
+interface PresetRequest {
+    name: string
+    roleName?: string
+    groupId?: number | null
+    period: string
     rounding: string
-}): Promise<ReportPreset> {
-    const res = await client.post<ReportPreset>('/attendance/report/presets', data)
-    return res.data
 }
 
-export async function deletePreset(id: number): Promise<void> {
-    await client.delete(`/attendance/report/presets/${id}`)
-}
+const presets = createCrudResource<ReportPreset, PresetRequest>('/attendance/report/presets')
+
+export const listPresets = presets.list
+export const createPreset = presets.create
+export const deletePreset = presets.remove

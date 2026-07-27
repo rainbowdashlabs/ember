@@ -4,9 +4,33 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import { createCrudResource, createScopedCrudResource } from './crud'
 import type { Comment, EntityNote, NoteVersion } from './types'
 
 // -- Event Comments --
+
+interface CommentCreateRequest {
+    parentId?: number | null
+    content: string
+    eventDate?: string | null
+}
+
+interface CommentUpdateRequest {
+    content: string
+}
+
+const eventComments = createScopedCrudResource<Comment, CommentCreateRequest>(
+    (eventId: number) => `/events/${eventId}/comments`,
+)
+
+const comments = createCrudResource<
+    Comment,
+    CommentUpdateRequest,
+    CommentUpdateRequest,
+    Comment,
+    Comment,
+    void
+>('/events/comments')
 
 /**
  * Lists comments for an event. When `eventDate` is provided, the list is filtered to
@@ -15,27 +39,12 @@ import type { Comment, EntityNote, NoteVersion } from './types'
  * backend) are returned. Omitted → all comments.
  */
 export async function listEventComments(eventId: number, eventDate?: string | null): Promise<Comment[]> {
-    const params: Record<string, string> = {}
-    if (eventDate !== undefined && eventDate !== null) params.date = eventDate
-    const res = await client.get<Comment[]>(`/events/${eventId}/comments`, {params})
-    return res.data
+    return eventComments.list(eventId, {date: eventDate})
 }
 
-export async function createEventComment(
-    eventId: number,
-    data: { parentId?: number | null; content: string; eventDate?: string | null },
-): Promise<Comment> {
-    const res = await client.post<Comment>(`/events/${eventId}/comments`, data)
-    return res.data
-}
-
-export async function updateComment(commentId: number, data: { content: string }): Promise<void> {
-    await client.put(`/events/comments/${commentId}`, data)
-}
-
-export async function deleteComment(commentId: number): Promise<void> {
-    await client.delete(`/events/comments/${commentId}`)
-}
+export const createEventComment = eventComments.create
+export const updateComment = comments.update
+export const deleteComment = comments.remove
 
 // -- Federated Event Comments --
 

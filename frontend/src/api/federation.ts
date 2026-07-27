@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import { createCrudResource } from './crud'
 
 export interface FederationPartner {
     id: number
@@ -100,47 +101,37 @@ export async function setCapabilities(partnerId: number, capabilities: { capabil
 
 // -- Shares --
 
-export async function listKbShares(): Promise<FederationShare[]> {
-    const res = await client.get<FederationShare[]>('/federation/shares/kb')
-    return res.data
+interface KbShareRequest {
+    fileId?: number
+    folderId?: number
+    shareScope?: string
 }
 
-export async function createKbShare(data: { fileId?: number; folderId?: number; shareScope?: string }): Promise<FederationShare> {
-    const res = await client.post<FederationShare>('/federation/shares/kb', data)
-    return res.data
+interface QuizShareRequest {
+    catalogId: number
+    shareScope?: string
 }
 
-export async function deleteKbShare(id: number): Promise<void> {
-    await client.delete(`/federation/shares/kb/${id}`)
+interface ProtocolShareRequest {
+    protocolId: number
+    shareScope?: string
 }
 
-export async function listQuizShares(): Promise<FederationShare[]> {
-    const res = await client.get<FederationShare[]>('/federation/shares/quiz')
-    return res.data
-}
+const kbShares = createCrudResource<FederationShare, KbShareRequest>('/federation/shares/kb')
+const quizShares = createCrudResource<FederationShare, QuizShareRequest>('/federation/shares/quiz')
+const protocolShares = createCrudResource<FederationShare, ProtocolShareRequest>('/federation/shares/protocol')
 
-export async function createQuizShare(data: { catalogId: number; shareScope?: string }): Promise<FederationShare> {
-    const res = await client.post<FederationShare>('/federation/shares/quiz', data)
-    return res.data
-}
+export const listKbShares = kbShares.list
+export const createKbShare = kbShares.create
+export const deleteKbShare = kbShares.remove
 
-export async function deleteQuizShare(id: number): Promise<void> {
-    await client.delete(`/federation/shares/quiz/${id}`)
-}
+export const listQuizShares = quizShares.list
+export const createQuizShare = quizShares.create
+export const deleteQuizShare = quizShares.remove
 
-export async function listProtocolShares(): Promise<FederationShare[]> {
-    const res = await client.get<FederationShare[]>('/federation/shares/protocol')
-    return res.data
-}
-
-export async function createProtocolShare(data: { protocolId: number; shareScope?: string }): Promise<FederationShare> {
-    const res = await client.post<FederationShare>('/federation/shares/protocol', data)
-    return res.data
-}
-
-export async function deleteProtocolShare(id: number): Promise<void> {
-    await client.delete(`/federation/shares/protocol/${id}`)
-}
+export const listProtocolShares = protocolShares.list
+export const createProtocolShare = protocolShares.create
+export const deleteProtocolShare = protocolShares.remove
 
 // -- Browse shared content --
 

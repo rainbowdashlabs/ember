@@ -4,7 +4,16 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import { createCrudResource, createScopedCrudResource, pageParams } from './crud'
 import type { CommentRequest, NewsComment, NewsEntry, NewsRequest, PublicBlogEntry } from './types'
+
+const news = createCrudResource<NewsEntry, NewsRequest>('/news')
+
+const newsComments = createScopedCrudResource<NewsComment, CommentRequest>(
+    (newsId: number) => `/news/${newsId}/comments`,
+)
+
+const comments = createCrudResource<NewsComment, CommentRequest>('/news/comments')
 
 // -- Page-editor picker. PAGE_EDIT-gated. --
 
@@ -123,47 +132,18 @@ export async function deleteFederatedNewsComment(stationUid: string, commentId: 
 }
 
 export async function listNews(offset = 0, limit = 20): Promise<NewsEntry[]> {
-    const res = await client.get<NewsEntry[]>('/news', { params: { offset, limit } })
-    return res.data
+    return news.list(pageParams({offset, limit}))
 }
 
-export async function getNews(id: number): Promise<NewsEntry> {
-    const res = await client.get<NewsEntry>(`/news/${id}`)
-    return res.data
-}
+export const getNews = news.get
+export const createNews = news.create
+export const updateNews = news.update
+export const deleteNews = news.remove
 
-export async function createNews(data: NewsRequest): Promise<NewsEntry> {
-    const res = await client.post<NewsEntry>('/news', data)
-    return res.data
-}
-
-export async function updateNews(id: number, data: NewsRequest): Promise<NewsEntry> {
-    const res = await client.put<NewsEntry>(`/news/${id}`, data)
-    return res.data
-}
-
-export async function deleteNews(id: number): Promise<void> {
-    await client.delete(`/news/${id}`)
-}
-
-export async function listComments(newsId: number): Promise<NewsComment[]> {
-    const res = await client.get<NewsComment[]>(`/news/${newsId}/comments`)
-    return res.data
-}
-
-export async function createComment(newsId: number, data: CommentRequest): Promise<NewsComment> {
-    const res = await client.post<NewsComment>(`/news/${newsId}/comments`, data)
-    return res.data
-}
-
-export async function updateComment(commentId: number, data: CommentRequest): Promise<NewsComment> {
-    const res = await client.put<NewsComment>(`/news/comments/${commentId}`, data)
-    return res.data
-}
-
-export async function deleteComment(commentId: number): Promise<void> {
-    await client.delete(`/news/comments/${commentId}`)
-}
+export const listComments = newsComments.list
+export const createComment = newsComments.create
+export const updateComment = comments.update
+export const deleteComment = comments.remove
 
 // --- View tracking ---
 
@@ -194,7 +174,9 @@ export async function getNewsViewCount(newsId: number): Promise<number> {
 // --- Public Blog ---
 
 export async function listPublicBlog(stationUid: string, offset = 0, limit = 20): Promise<PublicBlogEntry[]> {
-    const res = await client.get<PublicBlogEntry[]>(`/public/station/${stationUid}/blog`, {params: {offset, limit}})
+    const res = await client.get<PublicBlogEntry[]>(`/public/station/${stationUid}/blog`, {
+        params: pageParams({offset, limit}),
+    })
     return res.data
 }
 

@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import {createCrudResource} from './crud'
 import {uploadFile} from './upload'
 
 export const CellContentType = {
@@ -482,6 +483,60 @@ export interface PagesListResponse {
     landingPageId: number | null
 }
 
+interface PageCreateRequest {
+    title: string
+    parentId: number | null
+}
+
+interface FolderRequest {
+    name: string
+    parentId: number | null
+    sortOrder: number
+}
+
+interface TagRequest {
+    name: string
+    color: string | null
+}
+
+interface FileMetaRequest {
+    altText: string | null
+    description: string | null
+}
+
+const pages = createCrudResource<
+    StationPage,
+    PageCreateRequest,
+    SavePageRequest
+>('/pages')
+
+const files = createCrudResource<
+    PageFileListing,
+    FileMetaRequest,
+    FileMetaRequest,
+    PageFileListing,
+    PageFileListing,
+    void
+>('/pages/files')
+
+const folders = createCrudResource<
+    PageFileFolder,
+    FolderRequest,
+    FolderRequest,
+    PageFileFolder,
+    PageFileFolder,
+    void
+>('/pages/folders')
+
+const tags = createCrudResource<
+    PageFileTag,
+    TagRequest,
+    TagRequest,
+    PageFileTag,
+    PageFileTag,
+    void
+>('/pages/tags')
+
 export async function listPages(): Promise<PagesListResponse> {
     const res = await client.get<PagesListResponse>('/pages')
     return res.data
@@ -519,27 +574,16 @@ export async function resolveMemberListSource(
 }
 
 export async function createPage(title: string, parentId?: number | null): Promise<StationPage> {
-    const res = await client.post<StationPage>('/pages', {title, parentId: parentId ?? null})
-    return res.data
+    return pages.create({title, parentId: parentId ?? null})
 }
 
-export async function getPage(id: number): Promise<StationPage> {
-    const res = await client.get<StationPage>(`/pages/${id}`)
-    return res.data
-}
-
-export async function savePage(id: number, data: SavePageRequest): Promise<StationPage> {
-    const res = await client.put<StationPage>(`/pages/${id}`, data)
-    return res.data
-}
+export const getPage = pages.get
+export const savePage = pages.update
+export const deletePage = pages.remove
 
 export async function duplicatePage(id: number): Promise<StationPage> {
     const res = await client.post<StationPage>(`/pages/${id}/duplicate`)
     return res.data
-}
-
-export async function deletePage(id: number): Promise<void> {
-    await client.delete(`/pages/${id}`)
 }
 
 export async function setPublished(id: number, published: boolean): Promise<StationPage> {
@@ -565,9 +609,7 @@ export async function deletePageFile(pageId: number, fileId: number): Promise<vo
  * Deletes a station-scoped page file directly (no page context). Used by the
  * file browser at /station/pages/files for single and bulk delete.
  */
-export async function deleteStationPageFile(fileId: number): Promise<void> {
-    await client.delete(`/pages/files/${fileId}`)
-}
+export const deleteStationPageFile = files.remove
 
 /** Public URL for a page-file, addressed by its content hash. */
 export function pageFileUrl(stationUid: string, contentHash: string): string {
@@ -595,14 +637,11 @@ export function pageImageSrcset(stationUid: string, contentHash: string, width1x
 export const pageImageUrl = pageFileUrl
 
 /** Lists every page-file with an `inUse` flag (true when still referenced from some cell). */
-export async function listStationPageFiles(): Promise<PageFileListing[]> {
-    const res = await client.get<PageFileListing[]>('/pages/files')
-    return res.data
-}
+export const listStationPageFiles = files.list
 
 export async function updatePageFileMeta(
     fileId: number, altText: string | null, description: string | null): Promise<void> {
-    await client.put(`/pages/files/${fileId}`, {altText, description})
+    return files.update(fileId, {altText, description})
 }
 
 export async function prunePageFiles(): Promise<{removed: number}> {
@@ -614,43 +653,31 @@ export async function moveFileToFolder(fileId: number, folderId: number | null):
     await client.put(`/pages/files/${fileId}/folder`, {folderId})
 }
 
-export async function listPageFolders(): Promise<PageFileFolder[]> {
-    const res = await client.get<PageFileFolder[]>('/pages/folders')
-    return res.data
-}
+export const listPageFolders = folders.list
 
 export async function createPageFolder(
     name: string, parentId: number | null = null, sortOrder = 0): Promise<PageFileFolder> {
-    const res = await client.post<PageFileFolder>('/pages/folders', {name, parentId, sortOrder})
-    return res.data
+    return folders.create({name, parentId, sortOrder})
 }
 
 export async function updatePageFolder(
     id: number, name: string, parentId: number | null, sortOrder: number): Promise<void> {
-    await client.put(`/pages/folders/${id}`, {name, parentId, sortOrder})
+    return folders.update(id, {name, parentId, sortOrder})
 }
 
-export async function deletePageFolder(id: number): Promise<void> {
-    await client.delete(`/pages/folders/${id}`)
-}
+export const deletePageFolder = folders.remove
 
-export async function listPageTags(): Promise<PageFileTag[]> {
-    const res = await client.get<PageFileTag[]>('/pages/tags')
-    return res.data
-}
+export const listPageTags = tags.list
 
 export async function createPageTag(name: string, color: string | null = null): Promise<PageFileTag> {
-    const res = await client.post<PageFileTag>('/pages/tags', {name, color})
-    return res.data
+    return tags.create({name, color})
 }
 
 export async function updatePageTag(id: number, name: string, color: string | null): Promise<void> {
-    await client.put(`/pages/tags/${id}`, {name, color})
+    return tags.update(id, {name, color})
 }
 
-export async function deletePageTag(id: number): Promise<void> {
-    await client.delete(`/pages/tags/${id}`)
-}
+export const deletePageTag = tags.remove
 
 export async function assignPageTag(fileId: number, tagId: number): Promise<void> {
     await client.post(`/pages/files/${fileId}/tags/${tagId}`)

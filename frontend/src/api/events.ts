@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import {createCrudResource} from './crud'
 import type {
     AllEventRestrictions,
     BatchFieldEntry,
@@ -43,14 +44,53 @@ export interface UpcomingEventOccurrence {
     date: string
 }
 
+interface TemplateCreateRequest {
+    name: string
+}
+
+interface TemplateUpdateRequest {
+    name?: string
+    title?: string | null
+    description?: string | null
+    categoryId?: number | null
+    eventType?: string | null
+    requiresRegistration?: boolean | null
+    registrationDeadlineOffset?: string | null
+    requiresConfirmation?: boolean | null
+    restrictionMode?: string | null
+    attendanceTemplateId?: number | null
+    registrationLimit?: number | null
+}
+
+const events = createCrudResource<StationEvent, EventRequest>('/events')
+
+const categories = createCrudResource<
+    EventCategory,
+    CategoryRequest,
+    CategoryRequest,
+    EventCategory,
+    EventCategory,
+    unknown
+>('/events/categories')
+
+const breaks = createCrudResource<EventBreak, BreakRequest>('/events/breaks')
+
+const templates = createCrudResource<
+    EventTemplate,
+    TemplateCreateRequest,
+    TemplateUpdateRequest,
+    EventTemplateDetail,
+    EventTemplate,
+    void
+>('/event-templates')
+
 export async function listUpcomingOccurrences(params?: UpcomingParams): Promise<UpcomingEventOccurrence[]> {
     const res = await client.get<UpcomingEventOccurrence[]>('/events/upcoming', { params })
     return res.data
 }
 
 export async function listEvents(params?: EventListParams): Promise<StationEvent[]> {
-    const res = await client.get<StationEvent[]>('/events', { params })
-    return res.data
+    return events.list(params ? {...params} : undefined)
 }
 
 export async function listTodayEvents(): Promise<StationEvent[]> {
@@ -58,24 +98,10 @@ export async function listTodayEvents(): Promise<StationEvent[]> {
     return res.data
 }
 
-export async function getEvent(id: number): Promise<StationEvent> {
-    const res = await client.get<StationEvent>(`/events/${id}`)
-    return res.data
-}
-
-export async function createEvent(data: EventRequest): Promise<StationEvent> {
-    const res = await client.post<StationEvent>('/events', data)
-    return res.data
-}
-
-export async function updateEvent(id: number, data: EventRequest): Promise<StationEvent> {
-    const res = await client.put<StationEvent>(`/events/${id}`, data)
-    return res.data
-}
-
-export async function deleteEvent(id: number): Promise<void> {
-    await client.delete(`/events/${id}`)
-}
+export const getEvent = events.get
+export const createEvent = events.create
+export const updateEvent = events.update
+export const deleteEvent = events.remove
 
 export async function cancelEvent(eventId: number, reason?: string): Promise<void> {
     await client.post(`/events/${eventId}/cancel`, { reason: reason ?? null })
@@ -83,24 +109,10 @@ export async function cancelEvent(eventId: number, reason?: string): Promise<voi
 
 // -- Categories --
 
-export async function listCategories(): Promise<EventCategory[]> {
-    const res = await client.get<EventCategory[]>('/events/categories')
-    return res.data
-}
-
-export async function createCategory(data: CategoryRequest): Promise<EventCategory> {
-    const res = await client.post<EventCategory>('/events/categories', data)
-    return res.data
-}
-
-export async function updateCategory(id: number, data: CategoryRequest): Promise<unknown> {
-    const res = await client.put(`/events/categories/${id}`, data)
-    return res.data
-}
-
-export async function deleteCategory(id: number): Promise<void> {
-    await client.delete(`/events/categories/${id}`)
-}
+export const listCategories = categories.list
+export const createCategory = categories.create
+export const updateCategory = categories.update
+export const deleteCategory = categories.remove
 
 export async function reorderCategories(orderedIds: number[]): Promise<EventCategory[]> {
     const res = await client.put<EventCategory[]>('/events/categories/reorder', {orderedIds})
@@ -238,24 +250,10 @@ export async function setFieldDefaults(eventId: number, data: FieldDefaultEntry[
 
 // -- Breaks --
 
-export async function listBreaks(): Promise<EventBreak[]> {
-    const res = await client.get<EventBreak[]>('/events/breaks')
-    return res.data
-}
-
-export async function createBreak(data: BreakRequest): Promise<EventBreak> {
-    const res = await client.post<EventBreak>('/events/breaks', data)
-    return res.data
-}
-
-export async function updateBreak(id: number, data: BreakRequest): Promise<EventBreak> {
-    const res = await client.put<EventBreak>(`/events/breaks/${id}`, data)
-    return res.data
-}
-
-export async function deleteBreak(id: number): Promise<void> {
-    await client.delete(`/events/breaks/${id}`)
-}
+export const listBreaks = breaks.list
+export const createBreak = breaks.create
+export const updateBreak = breaks.update
+export const deleteBreak = breaks.remove
 
 export async function listFieldNames(): Promise<string[]> {
     const res = await client.get<string[]>('/events/field-names')
@@ -300,33 +298,11 @@ export async function getOverviewFields(): Promise<Record<number, EventField[]>>
 
 // -- Templates --
 
-export async function listTemplates(): Promise<EventTemplate[]> {
-    const res = await client.get<EventTemplate[]>('/event-templates')
-    return res.data
-}
-
-export async function createTemplate(data: { name: string }): Promise<EventTemplate> {
-    const res = await client.post<EventTemplate>('/event-templates', data)
-    return res.data
-}
-
-export async function getTemplate(id: number): Promise<EventTemplateDetail> {
-    const res = await client.get<EventTemplateDetail>(`/event-templates/${id}`)
-    return res.data
-}
-
-export async function updateTemplate(id: number, data: {
-    name?: string, title?: string | null, description?: string | null, categoryId?: number | null,
-    eventType?: string | null, requiresRegistration?: boolean | null,
-    registrationDeadlineOffset?: string | null, requiresConfirmation?: boolean | null,
-    restrictionMode?: string | null, attendanceTemplateId?: number | null, registrationLimit?: number | null
-}): Promise<void> {
-    await client.put(`/event-templates/${id}`, data)
-}
-
-export async function deleteTemplate(id: number): Promise<void> {
-    await client.delete(`/event-templates/${id}`)
-}
+export const listTemplates = templates.list
+export const createTemplate = templates.create
+export const getTemplate = templates.get
+export const updateTemplate = templates.update
+export const deleteTemplate = templates.remove
 
 export async function setTemplateFields(id: number, data: { fields: EventTemplateFieldEntry[] }): Promise<void> {
     await client.put(`/event-templates/${id}/fields`, data)

@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import {createCrudResource, createScopedCrudResource} from './crud'
 import type {
     QuizCatalog,
     QuizCatalogDetail,
@@ -34,6 +35,57 @@ export interface CatalogListResponse {
     sharedCatalogs: SharedCatalogEntry[]
 }
 
+interface CatalogRequest {
+    name: string
+    description?: string
+    trainingEnabled?: boolean
+}
+
+interface CategoryRequest {
+    name: string
+    description?: string
+    position?: number
+}
+
+interface TestCreateRequest {
+    title: string
+    description?: string
+    timeLimit?: number | null
+    shuffle?: boolean
+    forced?: boolean
+}
+
+const catalogs = createCrudResource<
+    QuizCatalog,
+    CatalogRequest,
+    CatalogRequest,
+    QuizCatalogDetail
+>('/quiz/catalogs')
+
+const categories = createCrudResource<
+    QuizCategory,
+    CategoryRequest,
+    CategoryRequest,
+    QuizCategory,
+    QuizCategory,
+    void
+>('/quiz/categories')
+
+const catalogQuestions = createScopedCrudResource<
+    QuizQuestion,
+    Record<string, unknown>
+>((catalogId: number) => `/quiz/catalogs/${catalogId}/questions`)
+
+const questions = createCrudResource<QuizQuestion, Record<string, unknown>>('/quiz/questions')
+
+const tests = createCrudResource<
+    QuizTestSummary,
+    TestCreateRequest,
+    Record<string, unknown>,
+    QuizTestDetail,
+    QuizTest
+>('/quiz/tests')
+
 // -- Catalogs --
 
 export async function listCatalogs(): Promise<CatalogListResponse> {
@@ -48,100 +100,37 @@ export async function searchCatalogs(query: string, federated: boolean): Promise
     return res.data
 }
 
-export async function getCatalog(id: number): Promise<QuizCatalogDetail> {
-    const res = await client.get<QuizCatalogDetail>(`/quiz/catalogs/${id}`)
-    return res.data
-}
-
-export async function createCatalog(data: { name: string; description?: string; trainingEnabled?: boolean }): Promise<QuizCatalog> {
-    const res = await client.post<QuizCatalog>('/quiz/catalogs', data)
-    return res.data
-}
-
-export async function updateCatalog(id: number, data: { name: string; description?: string; trainingEnabled?: boolean }): Promise<QuizCatalog> {
-    const res = await client.put<QuizCatalog>(`/quiz/catalogs/${id}`, data)
-    return res.data
-}
-
-export async function deleteCatalog(id: number): Promise<void> {
-    await client.delete(`/quiz/catalogs/${id}`)
-}
+export const getCatalog = catalogs.get
+export const createCatalog = catalogs.create
+export const updateCatalog = catalogs.update
+export const deleteCatalog = catalogs.remove
 
 // -- Categories (station-scoped) --
 
-export async function listCategories(): Promise<QuizCategory[]> {
-    const res = await client.get<QuizCategory[]>('/quiz/categories')
-    return res.data
-}
-
-export async function createCategory(data: { name: string; description?: string; position?: number }): Promise<QuizCategory> {
-    const res = await client.post<QuizCategory>('/quiz/categories', data)
-    return res.data
-}
-
-export async function updateCategory(id: number, data: { name: string; description?: string; position?: number }): Promise<void> {
-    await client.put(`/quiz/categories/${id}`, data)
-}
-
-export async function deleteCategory(id: number): Promise<void> {
-    await client.delete(`/quiz/categories/${id}`)
-}
+export const listCategories = categories.list
+export const createCategory = categories.create
+export const updateCategory = categories.update
+export const deleteCategory = categories.remove
 
 // -- Questions --
 
-export async function listQuestions(catalogId: number): Promise<QuizQuestion[]> {
-    const res = await client.get<QuizQuestion[]>(`/quiz/catalogs/${catalogId}/questions`)
-    return res.data
-}
-
-export async function getQuestion(id: number): Promise<QuizQuestion> {
-    const res = await client.get<QuizQuestion>(`/quiz/questions/${id}`)
-    return res.data
-}
-
-export async function createQuestion(catalogId: number, data: Record<string, unknown>): Promise<QuizQuestion> {
-    const res = await client.post<QuizQuestion>(`/quiz/catalogs/${catalogId}/questions`, data)
-    return res.data
-}
-
-export async function updateQuestion(id: number, data: Record<string, unknown>): Promise<QuizQuestion> {
-    const res = await client.put<QuizQuestion>(`/quiz/questions/${id}`, data)
-    return res.data
-}
-
-export async function deleteQuestion(id: number): Promise<void> {
-    await client.delete(`/quiz/questions/${id}`)
-}
+export const listQuestions = catalogQuestions.list
+export const createQuestion = catalogQuestions.create
+export const getQuestion = questions.get
+export const updateQuestion = questions.update
+export const deleteQuestion = questions.remove
 
 // -- Tests --
 
-export async function listTests(): Promise<QuizTestSummary[]> {
-    const res = await client.get<QuizTestSummary[]>('/quiz/tests')
-    return res.data
-}
+export const listTests = tests.list
+export const getTest = tests.get
+export const createTest = tests.create
+export const updateTest = tests.update
+export const deleteTest = tests.remove
 
 export async function listAvailableTests(): Promise<QuizAvailableTest[]> {
     const res = await client.get<QuizAvailableTest[]>('/quiz/tests/available')
     return res.data
-}
-
-export async function getTest(id: number): Promise<QuizTestDetail> {
-    const res = await client.get<QuizTestDetail>(`/quiz/tests/${id}`)
-    return res.data
-}
-
-export async function createTest(data: { title: string; description?: string; timeLimit?: number | null; shuffle?: boolean; forced?: boolean }): Promise<QuizTest> {
-    const res = await client.post<QuizTest>('/quiz/tests', data)
-    return res.data
-}
-
-export async function updateTest(id: number, data: Record<string, unknown>): Promise<QuizTest> {
-    const res = await client.put<QuizTest>(`/quiz/tests/${id}`, data)
-    return res.data
-}
-
-export async function deleteTest(id: number): Promise<void> {
-    await client.delete(`/quiz/tests/${id}`)
 }
 
 export async function activateTest(id: number): Promise<QuizTest> {
