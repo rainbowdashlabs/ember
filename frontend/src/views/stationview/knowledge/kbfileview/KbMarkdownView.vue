@@ -4,8 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {onMounted, onUnmounted, ref, watch} from 'vue'
-import client from '@/api/client'
+import {onMounted, ref, watch} from 'vue'
+import {useAuthImages} from '@/composables/useAuthImage'
 import {isKbImageSrc} from '@/util/normalizeAuthSrc'
 
 const props = defineProps<{
@@ -13,29 +13,24 @@ const props = defineProps<{
 }>()
 
 const container = ref<HTMLDivElement | null>(null)
-const blobUrls = new Set<string>()
-
-function revokeAll() {
-  for (const url of blobUrls) URL.revokeObjectURL(url)
-  blobUrls.clear()
-}
+const {load, srcFor, revokeAll} = useAuthImages<string>()
 
 async function loadAuthImages() {
   if (!container.value) return
   const images = Array.from(container.value.querySelectorAll<HTMLImageElement>('img'))
-  await Promise.all(images.map(async (img) => {
-    const originalSrc = img.getAttribute('src') ?? ''
-    if (!isKbImageSrc(originalSrc)) return
-    try {
-      const res = await client.get(originalSrc, {responseType: 'blob'})
-      const blobUrl = URL.createObjectURL(res.data as Blob)
-      blobUrls.add(blobUrl)
+  const targets = images
+      .map(img => ({img, src: img.getAttribute('src') ?? ''}))
+      .filter(({src}) => isKbImageSrc(src))
+  const uniqueSrcs = [...new Set(targets.map(target => target.src))]
+  await Promise.all(uniqueSrcs.map(src => load(src, src)))
+  for (const {img, src} of targets) {
+    const blobUrl = srcFor(src)
+    if (blobUrl) {
       img.src = blobUrl
-    } catch {
+    } else {
       img.removeAttribute('src')
-      img.alt = img.alt || ''
     }
-  }))
+  }
 }
 
 watch(() => props.html, async () => {
@@ -44,7 +39,6 @@ watch(() => props.html, async () => {
 })
 
 onMounted(loadAuthImages)
-onUnmounted(revokeAll)
 </script>
 
 <template>

@@ -16,6 +16,8 @@ import { LinkType } from '@/api/boards'
 import type { BoardTicketLink, BoardTicket, BoardLane, BoardWeblink, BoardTicketAttachment, LinkTypeName } from '@/api/boards'
 import type { MemberCompletion } from '@/api/stationMembers'
 import { useBoardApi } from '@/composables/useBoardApi'
+import { useAuthImages } from '@/composables/useAuthImage'
+import { downloadAuthed } from '@/util/downloadAuthed'
 
 const props = defineProps<{
     boardKey: string
@@ -116,7 +118,7 @@ async function handleAddWeblink() {
 }
 async function removeWeblink(id: number) { await boards.deleteWeblink(props.boardKey, props.ticketNumber, id); emit('reload') }
 async function removeAttachment(id: number) { await boards.deleteAttachment(props.boardKey, props.ticketNumber, id); emit('reload') }
-// -- Attachment preview --
+
 const previewOverlayRef = ref<HTMLElement | null>(null)
 const previewUrl = ref<string | null>(null)
 const previewName = ref('')
@@ -136,12 +138,16 @@ function fileIcon(att: BoardTicketAttachment): string[] {
     return ['fas', 'file']
 }
 
-// Load thumbnail URLs for images
-const thumbnails = ref<Record<number, string>>({})
+const {srcFor, load: loadAttachmentBlob} = useAuthImages<number>()
+
+function attachmentUrl(attachmentId: number): string {
+    return `/boards/${props.boardKey}/tickets/${props.ticketNumber}/attachments/${attachmentId}/download`
+}
+
 async function loadThumbnails() {
     for (const att of props.attachments) {
-        if (isImage(att.contentType) && !thumbnails.value[att.id]) {
-            try { thumbnails.value[att.id] = await boards.getAttachmentBlobUrl(props.boardKey, props.ticketNumber, att.id) } catch { /* ignore */ }
+        if (isImage(att.contentType) && !srcFor(att.id)) {
+            await loadAttachmentBlob(att.id, attachmentUrl(att.id))
         }
     }
 }
@@ -157,9 +163,10 @@ watch(showPreview, (v) => { if (v) nextTick(() => previewOverlayRef.value?.focus
 async function loadPreview(att: BoardTicketAttachment) {
     previewName.value = att.originalName; previewCsv.value = null; previewUrl.value = null
     showPreview.value = true
-    if (isImage(att.contentType)) { previewUrl.value = thumbnails.value[att.id] ?? await boards.getAttachmentBlobUrl(props.boardKey, props.ticketNumber, att.id) }
-    else if (isPdf(att.contentType)) { previewUrl.value = await boards.getAttachmentBlobUrl(props.boardKey, props.ticketNumber, att.id) }
-    else if (isCsv(att.originalName)) { previewCsv.value = parseCsv(await boards.getAttachmentText(props.boardKey, props.ticketNumber, att.id)) }
+    if (isImage(att.contentType) || isPdf(att.contentType)) {
+        if (!srcFor(att.id)) await loadAttachmentBlob(att.id, attachmentUrl(att.id))
+        previewUrl.value = srcFor(att.id)
+    } else if (isCsv(att.originalName)) { previewCsv.value = parseCsv(await boards.getAttachmentText(props.boardKey, props.ticketNumber, att.id)) }
 }
 
 function previewPrev() { if (previewIndex.value > 0) { previewIndex.value--; loadPreview(props.attachments[previewIndex.value]) } }
@@ -175,7 +182,7 @@ function parseCsv(text: string): string[][] {
 }
 
 async function handleDownload(att: BoardTicketAttachment) {
-    await boards.downloadAttachmentBlob(props.boardKey, props.ticketNumber, att.id, att.originalName)
+    await downloadAuthed(attachmentUrl(att.id), att.originalName)
 }
 
 function formatFileSize(bytes: number): string {
@@ -262,7 +269,7 @@ const hasAnyContent = computed(() => props.links.length > 0 || props.weblinks.le
             <div class="grid grid-cols-3 sm:grid-cols-4 gap-2">
                 <div v-for="att in attachments" :key="att.id" class="relative group rounded-lg border border-(--border) overflow-hidden bg-(--bg-accent) cursor-pointer" style="aspect-ratio: 3/4" @click="canPreview(att) ? openPreview(att) : handleDownload(att)">
                     <!-- Image thumbnail -->
-                    <img v-if="isImage(att.contentType) && thumbnails[att.id]" :src="thumbnails[att.id]" :alt="att.originalName" class="w-full h-full object-contain" />
+                    <img v-if="isImage(att.contentType) && srcFor(att.id)" :src="srcFor(att.id) ?? undefined" :alt="att.originalName" class="w-full h-full object-contain" />
                     <!-- File type icon fallback -->
                     <div v-else class="w-full h-full flex items-center justify-center">
                         <font-awesome-icon :icon="fileIcon(att)" class="text-3xl text-(--text-muted)" />
