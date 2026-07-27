@@ -10,6 +10,7 @@
  *  5. .vue files in src/views/ must not exceed 500 lines (error)
  *  6. .vue files > 300 lines get a warning
  *  7. Repeated element+class patterns (>5 occurrences)
+ *  8. No inline toLocale date/time formatting in src/views/ — use util/format helpers (warning)
  *
  * Exit code 1 if any errors are found.
  */
@@ -25,6 +26,7 @@ const CAT_RAW_ELEMENTS = 'Raw element usage'
 const CAT_CSS_CLASSES = 'CSS class count'
 const CAT_FILE_SIZE = 'File size'
 const CAT_REPEATED = 'Repeated patterns'
+const CAT_INLINE_FORMAT = 'Inline date formatting'
 
 const vueFiles = walk(SRC, '.vue')
 
@@ -111,6 +113,14 @@ for (const file of vueFiles) {
     // ── Rule 5 & 6: File size limits ──
     const isView = relative(SRC, file).startsWith(`views${sep}`)
     const lineCount = lines.length
+
+    if (isView) {
+        for (let i = 0; i < lines.length; i++) {
+            if (/\.toLocale(Date|Time)?String\(/.test(lines[i])) {
+                warn(file, i + 1, `Inline toLocale date formatting — use the helpers in util/format.ts.`, CAT_INLINE_FORMAT)
+            }
+        }
+    }
 
     if (isView && lineCount > 500) {
         error(file, 0, `View has ${lineCount} lines (max 500). Split into smaller components.`, CAT_FILE_SIZE)
