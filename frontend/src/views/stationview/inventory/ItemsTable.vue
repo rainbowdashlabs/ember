@@ -21,6 +21,7 @@ import { useBreakpoint } from '@/composables/useBreakpoint'
 import ItemActions from './itemstable/ItemActions.vue'
 import ItemsTableDesktop from './itemstable/ItemsTableDesktop.vue'
 import type { InventoryItemActionEmits } from './itemEmits'
+import type { ItemTableApi } from './itemtable/useItemTable'
 import { formatDate } from '@/util/format'
 
 const { isMobile } = useBreakpoint()
@@ -39,11 +40,14 @@ const props = withDefaults(defineProps<{
   lentOutItems?: LentOutItem[]
   lentItemMap?: Map<number, string>
   containerPathById?: Map<number, string>
+  tableApi?: ItemTableApi
 }>(), {
   showActions: false,
   showHistory: false,
   inventoryType: InventoryTypes.INTERNAL,
 })
+
+const displayItems = computed(() => props.tableApi ? props.tableApi.filteredItems : props.items)
 
 function locationLabel(containerId: number | null | undefined): string {
   if (!containerId) return ''
@@ -77,7 +81,7 @@ function getMemberIdentity(memberId: number | null | undefined) {
 
 <template>
   <div v-if="isMobile && items.length > 0" class="space-y-3">
-    <NeutralContainer v-for="item in items" :key="item.id" :class="item.lostAt ? 'opacity-60' : ''" class="space-y-2">
+    <NeutralContainer v-for="item in displayItems" :key="item.id" :class="item.lostAt ? 'opacity-60' : ''" class="space-y-2">
       <div class="flex items-center justify-between">
         <div>
           <router-link :to="{ name: 'inventory-item-detail', params: { id: item.id } }" class="font-medium hover:text-primary hover:underline">{{ item.name }}</router-link>
@@ -124,7 +128,8 @@ function getMemberIdentity(memberId: number | null | undefined) {
   </div>
 
   <ItemsTableDesktop v-else-if="items.length > 0"
-                     :items="items" :has-sizes="hasSizes" :is-mixed="isMixed"
+                     :items="displayItems" :has-sizes="hasSizes" :is-mixed="isMixed"
+                     :table-api="tableApi"
                      :show-actions="showActions" :show-history="showHistory"
                      :lent-item-map="lentItemMap"
                      :container-path-by-id="containerPathById"

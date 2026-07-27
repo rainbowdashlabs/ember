@@ -2,6 +2,10 @@
 
 ## v26.11.8
 
+### New Features
+
+- **Sortable and filterable item lists.** The item tables on the inventory detail and edit pages can show custom fields as columns, sort by any column, and filter by specific values — including by source and assignment state (assigned, not assigned, in storage, not in storage). A column picker shows or hides additional columns.
+
 ### Changes
 
 - **Item actions in one menu.** The action buttons on each inventory item row are collected in a single menu with labelled entries.
