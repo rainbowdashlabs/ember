@@ -22,7 +22,6 @@ import dev.chojo.ember.feature.news.entity.NewsVisibilityRole;
 import dev.chojo.ember.feature.news.repository.NewsFederationRepository;
 import dev.chojo.ember.feature.news.service.NewsFederationService.FederatedNewsData;
 import dev.chojo.ember.feature.news.service.NewsFederationService.FederatedNewsItem;
-import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.BadRequestResponse;
@@ -70,12 +69,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         federationService = new FederationService(federationRepo, stationRepo, new Api());
         httpClient = mock(FederationHttpClient.class);
         var eventBus = new DomainEventBus(Set.of());
-        newsService = new NewsService(
-                newsRepo,
-                new RestrictionRepository(stationMemberRepo, memberGroupRepo, userTagRepo),
-                eventBus,
-                stationMemberRepo,
-                accountRepo);
+        newsService = new NewsService(newsRepo, restrictionService, eventBus, stationMemberRepo, accountRepo);
 
         service = new NewsFederationService(
                 fedRepo,
