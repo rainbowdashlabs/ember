@@ -150,16 +150,16 @@ public class StationRepository {
      */
     public Station create(String name) {
         return SqlSupport.insertReturning(
-                "INSERT INTO station(name) VALUES(:name) RETURNING %s;".formatted(STATION_COLUMNS),
-                call().bind("name", name),
-                Station.map());
+                "INSERT INTO station(name) VALUES(:name) RETURNING %s;",
+                call().bind("name", name), Station.map(), STATION_COLUMNS);
     }
 
     public Station create(String name, UUID uid) {
         return SqlSupport.insertReturning(
-                "INSERT INTO station(name, uid) VALUES(:name, :uid::UUID) RETURNING %s;".formatted(STATION_COLUMNS),
+                "INSERT INTO station(name, uid) VALUES(:name, :uid::UUID) RETURNING %s;",
                 call().bind("name", name).bind("uid", uid, StandardValueConverter.UUID_STRING),
-                Station.map());
+                Station.map(),
+                STATION_COLUMNS);
     }
 
     /**

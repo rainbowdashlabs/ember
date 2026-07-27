@@ -56,12 +56,13 @@ public class BoardRepository {
                 """
                 INSERT INTO board(station_id, name, description, short_key)
                 VALUES (:station_id, :name, :description, :short_key)
-                RETURNING %s;""".formatted(BOARD_COLUMNS),
+                RETURNING %s;""",
                 call().bind("station_id", stationId)
                         .bind("name", name)
                         .bind("description", description)
                         .bind("short_key", shortKey),
-                Board.map());
+                Board.map(),
+                BOARD_COLUMNS);
     }
 
     public boolean update(int id, String name, String description, int hideDoneAfterDays) {
@@ -129,12 +130,13 @@ public class BoardRepository {
                 """
                 INSERT INTO board_lane(board_id, name, color, position)
                 VALUES (:board_id, :name, :color, :position)
-                RETURNING %s;""".formatted(LANE_COLUMNS),
+                RETURNING %s;""",
                 call().bind("board_id", boardId)
                         .bind("name", name)
                         .bind("color", color)
                         .bind("position", position),
-                BoardLane.map());
+                BoardLane.map(),
+                LANE_COLUMNS);
     }
 
     public boolean updateLane(int id, String name, String color, int position) {
@@ -175,9 +177,10 @@ public class BoardRepository {
     public BoardLabel createLabel(int boardId, String name, String color) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO board_label(board_id, name, color) VALUES (:board_id, :name, :color) RETURNING %s;""".formatted(LABEL_COLUMNS),
+                INSERT INTO board_label(board_id, name, color) VALUES (:board_id, :name, :color) RETURNING %s;""",
                 call().bind("board_id", boardId).bind("name", name).bind("color", color),
-                BoardLabel.map());
+                BoardLabel.map(),
+                LABEL_COLUMNS);
     }
 
     public boolean updateLabel(int id, String name, String color) {
@@ -238,13 +241,14 @@ public class BoardRepository {
                 """
                 INSERT INTO board_field(board_id, name, field_type, config, position)
                 VALUES (:board_id, :name, :field_type, :config::JSONB, :position)
-                RETURNING %s;""".formatted(FIELD_COLUMNS),
+                RETURNING %s;""",
                 call().bind("board_id", boardId)
                         .bind("name", name)
                         .bind("field_type", fieldType)
                         .bind("config", config.toJson())
                         .bind("position", position),
-                BoardField.map());
+                BoardField.map(),
+                FIELD_COLUMNS);
     }
 
     public void deleteAllFields(int boardId) {

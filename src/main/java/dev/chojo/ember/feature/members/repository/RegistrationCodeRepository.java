@@ -72,9 +72,10 @@ public class RegistrationCodeRepository {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO registration_code(station_id, code, max_uses) VALUES(:station_id, :code, :max_uses)
-                RETURNING %s;""".formatted(REGISTRATION_CODE_COLUMNS),
+                RETURNING %s;""",
                 call().bind("station_id", stationId).bind("code", code).bind("max_uses", maxUses),
-                RegistrationCode.map());
+                RegistrationCode.map(),
+                REGISTRATION_CODE_COLUMNS);
     }
 
     /**

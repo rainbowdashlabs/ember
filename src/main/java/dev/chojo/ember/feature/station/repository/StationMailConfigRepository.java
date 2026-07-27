@@ -72,7 +72,7 @@ public class StationMailConfigRepository {
                         daily_limit    = :daily_limit,
                         monthly_limit  = :monthly_limit,
                         updated_at     = now()
-                RETURNING %s;""".formatted(MAIL_CONFIG_COLUMNS),
+                RETURNING %s;""",
                 call().bind("station_id", config.stationId())
                         .bind("provider", config.provider())
                         .bind("smtp_host", config.smtpHost())
@@ -87,7 +87,8 @@ public class StationMailConfigRepository {
                         .bind("provider_url", config.providerUrl())
                         .bind("daily_limit", config.dailyLimit())
                         .bind("monthly_limit", config.monthlyLimit()),
-                StationMailConfig.map());
+                StationMailConfig.map(),
+                MAIL_CONFIG_COLUMNS);
     }
 
     /**

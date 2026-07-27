@@ -66,7 +66,7 @@ public class InventoryFieldDefinitionRepository {
                 """
                 INSERT INTO inventory_field_definition(inventory_id, key, label, field_type, required, sort_order, config)
                 VALUES(:inventory_id, :key, :label, :field_type, :required, :sort_order, :config::jsonb)
-                RETURNING %s, config::text AS config;""".formatted(INVENTORY_FIELD_DEFINITION_COLUMNS),
+                RETURNING %s, config::text AS config;""",
                 call().bind("inventory_id", inventoryId)
                         .bind("key", key)
                         .bind("label", label)
@@ -74,7 +74,8 @@ public class InventoryFieldDefinitionRepository {
                         .bind("required", required)
                         .bind("sort_order", sortOrder)
                         .bind("config", configJson == null || configJson.isBlank() ? "{}" : configJson),
-                InventoryFieldDefinition.map());
+                InventoryFieldDefinition.map(),
+                INVENTORY_FIELD_DEFINITION_COLUMNS);
     }
 
     /**

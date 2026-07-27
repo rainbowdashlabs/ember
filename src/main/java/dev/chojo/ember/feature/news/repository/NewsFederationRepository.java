@@ -52,9 +52,10 @@ public class NewsFederationRepository {
                 INSERT INTO news_federation_share(news_id, scope, visibility_role)
                 VALUES (:news_id, :scope, :visibility_role)
                 ON CONFLICT (news_id) DO UPDATE SET scope = :scope, visibility_role = :visibility_role
-                RETURNING %s;""".formatted(SHARE_COLUMNS),
+                RETURNING %s;""",
                 call().bind("news_id", newsId).bind("scope", scope).bind("visibility_role", visibilityRole),
-                NewsFederationShare.map());
+                NewsFederationShare.map(),
+                SHARE_COLUMNS);
     }
 
     /**

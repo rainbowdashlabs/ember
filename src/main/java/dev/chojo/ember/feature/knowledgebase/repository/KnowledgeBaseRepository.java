@@ -124,13 +124,13 @@ public class KnowledgeBaseRepository {
                 """
                 INSERT INTO kb_folder AS fo(station_id, parent_id, name, description, created_by)
                 VALUES (:station_id, :parent_id, :name, :description, :created_by)
-                RETURNING %s, %s;""".formatted(FOLDER_COLUMNS, FOLDER_RESTRICTED),
+                RETURNING %s, %s;""",
                 call().bind("station_id", stationId)
                         .bind("parent_id", parentId)
                         .bind("name", name)
                         .bind("description", description)
                         .bind("created_by", createdBy),
-                KbFolder.map());
+                KbFolder.map(), FOLDER_COLUMNS, FOLDER_RESTRICTED);
     }
 
     public boolean updateFolder(int id, String name, String description, String iconUrl, int position) {
@@ -219,7 +219,7 @@ public class KnowledgeBaseRepository {
                 """
                 INSERT INTO kb_file AS f(station_id, folder_id, name, description, file_type, mime_type, file_size, youtube_url, link_url, created_by)
                 VALUES (:station_id, :folder_id, :name, :description, :file_type, :mime_type, :file_size, :youtube_url, :link_url, :created_by)
-                RETURNING %s, %s;""".formatted(FILE_COLUMNS, FILE_RESTRICTED),
+                RETURNING %s, %s;""",
                 call().bind("station_id", stationId)
                         .bind("folder_id", folderId)
                         .bind("name", name)
@@ -230,7 +230,7 @@ public class KnowledgeBaseRepository {
                         .bind("youtube_url", youtubeUrl)
                         .bind("link_url", linkUrl)
                         .bind("created_by", createdBy),
-                KbFile.map());
+                KbFile.map(), FILE_COLUMNS, FILE_RESTRICTED);
     }
 
     // -- File Content --
@@ -325,13 +325,13 @@ public class KnowledgeBaseRepository {
                 """
                 INSERT INTO kb_file_version(file_id, patch, is_full, version, created_by)
                 VALUES (:file_id, :patch, :is_full, :version, :created_by)
-                RETURNING %s;""".formatted(FILE_VERSION_COLUMNS),
+                RETURNING %s;""",
                 call().bind("file_id", fileId)
                         .bind("patch", patch)
                         .bind("is_full", isFull)
                         .bind("version", version)
                         .bind("created_by", createdBy),
-                KbFileVersion.map());
+                KbFileVersion.map(), FILE_VERSION_COLUMNS);
     }
 
     public void updateSearchIndex(int fileId, String plainText, String tsConfig) {
@@ -422,14 +422,14 @@ public class KnowledgeBaseRepository {
                     kb_access_restriction(folder_id, file_id, user_type, group_id, tag_id, member_id)
                 VALUES
                     (:folder_id, :file_id, :user_type, :group_id, :tag_id, :member_id)
-                RETURNING %s;""".formatted(RESTRICTION_COLUMNS),
+                RETURNING %s;""",
                 call().bind("folder_id", folderId)
                         .bind("file_id", fileId)
                         .bind("user_type", userType)
                         .bind("group_id", groupId)
                         .bind("tag_id", tagId)
                         .bind("member_id", memberId),
-                KbAccessRestriction.map());
+                KbAccessRestriction.map(), RESTRICTION_COLUMNS);
     }
 
     public boolean removeRestriction(int id) {
@@ -467,9 +467,9 @@ public class KnowledgeBaseRepository {
                     (:station_id, lower(:name))
                 ON CONFLICT (station_id, name) DO UPDATE SET
                     name = excluded.name
-                RETURNING %s;""".formatted(TAG_COLUMNS),
+                RETURNING %s;""",
                 call().bind("station_id", stationId).bind("name", name.toLowerCase()),
-                KbTag.map());
+                KbTag.map(), TAG_COLUMNS);
     }
 
     // Not yet exposed via routes — tag management UI not implemented

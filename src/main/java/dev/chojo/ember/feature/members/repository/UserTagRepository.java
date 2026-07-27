@@ -37,9 +37,7 @@ public class UserTagRepository {
                 """
                 INSERT INTO user_tag(station_id, name, position)
                 VALUES(:station_id, :name, coalesce((SELECT max(position) + 1 FROM user_tag WHERE station_id = :station_id), 0))
-                RETURNING %s;""".formatted(USER_TAG_COLUMNS),
-                call().bind("station_id", stationId).bind("name", name),
-                UserTag.map());
+                RETURNING %s;""", call().bind("station_id", stationId).bind("name", name), UserTag.map(), USER_TAG_COLUMNS);
     }
 
     /**

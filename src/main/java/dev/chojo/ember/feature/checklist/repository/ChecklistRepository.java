@@ -245,7 +245,7 @@ public class ChecklistRepository {
                         SELECT *
                           FROM checklist_entry
                          WHERE checklist_id = :checklist_id %s
-                         ORDER BY added_at, id;""".formatted(predicate))
+                         ORDER BY added_at, id;""", predicate)
                 .single(call().bind("checklist_id", checklistId))
                 .map(ChecklistEntry.map())
                 .all();

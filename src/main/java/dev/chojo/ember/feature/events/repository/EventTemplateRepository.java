@@ -49,9 +49,8 @@ public class EventTemplateRepository {
                 """
                 INSERT INTO event_template(station_id, name)
                 VALUES (:station_id, :name)
-                RETURNING %s;""".formatted(EVENT_TEMPLATE_COLUMNS),
-                call().bind("station_id", stationId).bind("name", name),
-                EventTemplate.map());
+                RETURNING %s;""",
+                call().bind("station_id", stationId).bind("name", name), EventTemplate.map(), EVENT_TEMPLATE_COLUMNS);
     }
 
     public boolean update(

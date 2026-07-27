@@ -39,13 +39,14 @@ public class PageRepository {
                 """
                 INSERT INTO station_page(station_id, title, slug, parent_id, created_by)
                 VALUES(:station_id, :title, :slug, :parent_id, :created_by)
-                RETURNING %s;""".formatted(STATION_PAGE_COLUMNS),
+                RETURNING %s;""",
                 call().bind("station_id", stationId)
                         .bind("title", title)
                         .bind("slug", slug)
                         .bind("parent_id", parentId)
                         .bind("created_by", createdBy),
-                StationPage.mapFlat());
+                StationPage.mapFlat(),
+                STATION_PAGE_COLUMNS);
     }
 
     public Optional<StationPage> findById(int id) {
@@ -274,14 +275,15 @@ public class PageRepository {
                         default_alt_text, default_description, folder_id)
                 VALUES
                     (:page_id, :station_id, :content_hash, :file_name, :mime_type, :file_size, NULL, NULL, NULL)
-                RETURNING %s;""".formatted(PAGE_FILE_COLUMNS),
+                RETURNING %s;""",
                 call().bind("page_id", pageId)
                         .bind("station_id", stationId)
                         .bind("content_hash", contentHash)
                         .bind("file_name", fileName)
                         .bind("mime_type", mimeType)
                         .bind("file_size", fileSize),
-                PageFile.map());
+                PageFile.map(),
+                PAGE_FILE_COLUMNS);
     }
 
     // --- Image operations ---

@@ -35,13 +35,14 @@ public class SavedFilterRepository {
                 """
                 INSERT INTO saved_filter(account_id, table_type, name, filter_data, position)
                 VALUES(:accountId, :tableType, :name, :filterData::JSONB, :position)
-                RETURNING %s;""".formatted(SAVED_FILTER_COLUMNS),
+                RETURNING %s;""",
                 call().bind("accountId", accountId)
                         .bind("tableType", tableType)
                         .bind("name", name)
                         .bind("filterData", filterData)
                         .bind("position", position),
-                SavedFilter.map());
+                SavedFilter.map(),
+                SAVED_FILTER_COLUMNS);
     }
 
     public boolean delete(int id, int accountId) {

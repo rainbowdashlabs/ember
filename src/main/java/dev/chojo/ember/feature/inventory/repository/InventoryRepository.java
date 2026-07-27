@@ -115,12 +115,13 @@ public class InventoryRepository {
                 """
                 INSERT INTO inventory(station_id, name, inventory_type, has_sizes)
                 VALUES(:station_id, :name, :inventory_type, :has_sizes)
-                RETURNING %s;""".formatted(INVENTORY_COLUMNS),
+                RETURNING %s;""",
                 call().bind("station_id", stationId)
                         .bind("name", name)
                         .bind("inventory_type", inventoryType)
                         .bind("has_sizes", hasSizes),
-                Inventory.map());
+                Inventory.map(),
+                INVENTORY_COLUMNS);
     }
 
     /**
@@ -356,14 +357,15 @@ public class InventoryRepository {
                 """
                 INSERT INTO inventory_item(inventory_id, internal_id, name, size_id, metadata, item_source)
                 VALUES (:inventory_id, :internal_id, :name, :size_id, :metadata::JSONB, :item_source)
-                RETURNING %s;""".formatted(INVENTORY_ITEM_COLUMNS),
+                RETURNING %s;""",
                 call().bind("inventory_id", inventoryId)
                         .bind("internal_id", internalId)
                         .bind("name", name)
                         .bind("size_id", sizeId)
                         .bind("metadata", (metadata != null ? metadata : InventoryItemMetadata.empty()).toJson())
                         .bind("item_source", itemSource),
-                InventoryItem.map());
+                InventoryItem.map(),
+                INVENTORY_ITEM_COLUMNS);
     }
 
     /**
@@ -514,9 +516,10 @@ public class InventoryRepository {
                 """
                 INSERT INTO inventory_item_history(item_id, member_id, member_name)
                 VALUES(:itemId, :memberId, :memberName)
-                RETURNING %s;""".formatted(INVENTORY_ITEM_HISTORY_COLUMNS),
+                RETURNING %s;""",
                 call().bind("itemId", itemId).bind("memberId", memberId).bind("memberName", memberName),
-                InventoryItemHistory.map());
+                InventoryItemHistory.map(),
+                INVENTORY_ITEM_HISTORY_COLUMNS);
     }
 
     /**
@@ -585,12 +588,13 @@ public class InventoryRepository {
                 """
                 INSERT INTO inventory_requirement(inventory_id, user_type, group_id, quantity)
                 VALUES(:inventoryId, :userType, :groupId, :quantity)
-                RETURNING %s;""".formatted(INVENTORY_REQUIREMENT_COLUMNS),
+                RETURNING %s;""",
                 call().bind("inventoryId", inventoryId)
                         .bind("userType", userType)
                         .bind("groupId", groupId == 0 ? null : groupId)
                         .bind("quantity", quantity),
-                InventoryRequirement.map());
+                InventoryRequirement.map(),
+                INVENTORY_REQUIREMENT_COLUMNS);
     }
 
     /**

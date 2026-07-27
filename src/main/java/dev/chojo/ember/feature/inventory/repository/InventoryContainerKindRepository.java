@@ -85,14 +85,15 @@ public class InventoryContainerKindRepository {
                 """
                 INSERT INTO inventory_container_kind(station_id, key, label, icon, sort_order, enabled)
                 VALUES(:station_id, :key, :label, :icon, :sort_order, :enabled)
-                RETURNING %s;""".formatted(INVENTORY_CONTAINER_KIND_COLUMNS),
+                RETURNING %s;""",
                 call().bind("station_id", stationId)
                         .bind("key", key)
                         .bind("label", label)
                         .bind("icon", icon)
                         .bind("sort_order", sortOrder)
                         .bind("enabled", enabled),
-                InventoryContainerKind.map());
+                InventoryContainerKind.map(),
+                INVENTORY_CONTAINER_KIND_COLUMNS);
     }
 
     /**

@@ -50,9 +50,10 @@ public class InventoryCheckRepository {
                 """
                 INSERT INTO inventory_check(station_id, member_id, checked_by, scope)
                 VALUES (:station_id, :member_id, :checked_by, 'MEMBER')
-                RETURNING %s;""".formatted(INVENTORY_CHECK_COLUMNS),
+                RETURNING %s;""",
                 call().bind("station_id", stationId).bind("member_id", memberId).bind("checked_by", checkedBy),
-                InventoryCheck.map());
+                InventoryCheck.map(),
+                INVENTORY_CHECK_COLUMNS);
     }
 
     /**
@@ -69,12 +70,13 @@ public class InventoryCheckRepository {
                 """
                 INSERT INTO inventory_check(station_id, container_id, checked_by, scope, deep)
                 VALUES (:station_id, :container_id, :checked_by, 'CONTAINER', :deep)
-                RETURNING %s;""".formatted(INVENTORY_CHECK_COLUMNS),
+                RETURNING %s;""",
                 call().bind("station_id", stationId)
                         .bind("container_id", containerId)
                         .bind("checked_by", checkedBy)
                         .bind("deep", deep),
-                InventoryCheck.map());
+                InventoryCheck.map(),
+                INVENTORY_CHECK_COLUMNS);
     }
 
     /**
@@ -208,13 +210,14 @@ public class InventoryCheckRepository {
                 """
                 INSERT INTO inventory_check_item(check_id, item_id, inventory_id, result, note)
                 VALUES (:check_id, :item_id, :inventory_id, :result, :note)
-                RETURNING %s;""".formatted(INVENTORY_CHECK_ITEM_COLUMNS),
+                RETURNING %s;""",
                 call().bind("check_id", checkId)
                         .bind("item_id", itemId)
                         .bind("inventory_id", inventoryId)
                         .bind("result", result)
                         .bind("note", note != null ? note : ""),
-                InventoryCheckItem.map());
+                InventoryCheckItem.map(),
+                INVENTORY_CHECK_ITEM_COLUMNS);
     }
 
     /**

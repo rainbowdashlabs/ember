@@ -24,14 +24,14 @@ public class StorageQuotaPresetRepository {
     private static final String PRESET_COLUMNS = "id, name, total, kb, board, images, pages, per_file, per_image";
 
     public List<StorageQuotaPreset> findAll() {
-        return query("SELECT %s FROM storage_quota_preset ORDER BY name;".formatted(PRESET_COLUMNS))
+        return query("SELECT %s FROM storage_quota_preset ORDER BY name;", PRESET_COLUMNS)
                 .single(call())
                 .map(StorageQuotaPreset.map())
                 .all();
     }
 
     public Optional<StorageQuotaPreset> findById(int id) {
-        return query("SELECT %s FROM storage_quota_preset WHERE id = :id;".formatted(PRESET_COLUMNS))
+        return query("SELECT %s FROM storage_quota_preset WHERE id = :id;", PRESET_COLUMNS)
                 .single(call().bind("id", id))
                 .map(StorageQuotaPreset.map())
                 .first();
@@ -43,7 +43,7 @@ public class StorageQuotaPresetRepository {
                 INSERT INTO storage_quota_preset (name, total, kb, board, images, pages, per_file, per_image)
                 VALUES (:name, :total, :kb, :board, :images, :pages, :per_file, :per_image)
                 RETURNING %s;
-                """.formatted(PRESET_COLUMNS))
+                """, PRESET_COLUMNS)
                 .single(call().bind("name", name)
                         .bind("total", total)
                         .bind("kb", kb)
@@ -73,7 +73,7 @@ public class StorageQuotaPresetRepository {
                     images = :images, pages = :pages, per_file = :per_file, per_image = :per_image
                 WHERE id = :id
                 RETURNING %s;
-                """.formatted(PRESET_COLUMNS))
+                """, PRESET_COLUMNS)
                 .single(call().bind("id", id)
                         .bind("name", name)
                         .bind("total", total)

@@ -34,12 +34,13 @@ public class PageFileMetaRepository {
                 """
                 INSERT INTO page_file_folder(station_id, parent_id, name, sort_order)
                 VALUES (:station_id, :parent_id, :name, :sort_order)
-                RETURNING %s;""".formatted(FOLDER_COLUMNS),
+                RETURNING %s;""",
                 call().bind("station_id", stationId)
                         .bind("parent_id", parentId)
                         .bind("name", name)
                         .bind("sort_order", sortOrder),
-                PageFileFolder.map());
+                PageFileFolder.map(),
+                FOLDER_COLUMNS);
     }
 
     public Optional<PageFileFolder> findFolder(int folderId) {
@@ -87,9 +88,10 @@ public class PageFileMetaRepository {
                 """
                 INSERT INTO page_file_tag(station_id, name, color)
                 VALUES (:station_id, :name, :color)
-                RETURNING %s;""".formatted(TAG_COLUMNS),
+                RETURNING %s;""",
                 call().bind("station_id", stationId).bind("name", name).bind("color", color),
-                PageFileTag.map());
+                PageFileTag.map(),
+                TAG_COLUMNS);
     }
 
     public Optional<PageFileTag> findTag(int tagId) {

@@ -101,7 +101,7 @@ public class EventCommentRepository {
                     (event_id, parent_id, author_station_uid, author_member_uid, content, event_date)
                 VALUES
                     (:event_id, :parent_id, :author_station_uid::UUID, :author_member_uid::UUID, :content, :event_date)
-                RETURNING %s;""".formatted(COMMENT_COLUMNS),
+                RETURNING %s;""",
                 call().bind("event_id", eventId)
                         .bind("parent_id", parentId)
                         .bind(
@@ -114,7 +114,8 @@ public class EventCommentRepository {
                                 StandardValueConverter.UUID_STRING)
                         .bind("content", content)
                         .bind("event_date", eventDate),
-                Comment.map());
+                Comment.map(),
+                COMMENT_COLUMNS);
     }
 
     /**

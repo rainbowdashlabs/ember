@@ -50,14 +50,15 @@ public class StationApplicationRepository {
                     station_application(first_name, last_name, email, station_name, introduction, verification_token)
                 VALUES
                     (:first_name, :last_name, :email, :station_name, :introduction, :verification_token)
-                RETURNING %s;""".formatted(STATION_APPLICATION_COLUMNS),
+                RETURNING %s;""",
                 call().bind("first_name", firstName)
                         .bind("last_name", lastName)
                         .bind("email", email)
                         .bind("station_name", stationName)
                         .bind("introduction", introduction != null ? introduction : "")
                         .bind("verification_token", verificationToken),
-                StationApplication.map());
+                StationApplication.map(),
+                STATION_APPLICATION_COLUMNS);
     }
 
     /**

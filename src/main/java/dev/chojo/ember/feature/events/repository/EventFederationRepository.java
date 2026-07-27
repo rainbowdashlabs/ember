@@ -57,9 +57,10 @@ public class EventFederationRepository {
                 INSERT INTO event_federation_share(event_id, scope)
                 VALUES (:event_id, :scope)
                 ON CONFLICT (event_id) DO UPDATE SET scope = :scope
-                RETURNING %s;""".formatted(EVENT_FEDERATION_SHARE_COLUMNS),
+                RETURNING %s;""",
                 call().bind("event_id", eventId).bind("scope", scope),
-                EventFederationShare.map());
+                EventFederationShare.map(),
+                EVENT_FEDERATION_SHARE_COLUMNS);
     }
 
     /**
@@ -146,12 +147,13 @@ public class EventFederationRepository {
                 """
                 INSERT INTO event_federation_registration(event_id, partner_id, remote_member_id, event_date)
                 VALUES (:event_id, :partner_id, :remote_member_id::UUID, :event_date)
-                RETURNING %s;""".formatted(EVENT_FEDERATION_REGISTRATION_COLUMNS),
+                RETURNING %s;""",
                 call().bind("event_id", eventId)
                         .bind("partner_id", partnerId)
                         .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING)
                         .bind("event_date", eventDate),
-                EventFederationRegistration.map());
+                EventFederationRegistration.map(),
+                EVENT_FEDERATION_REGISTRATION_COLUMNS);
     }
 
     /**

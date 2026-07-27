@@ -68,7 +68,7 @@ public class KbCommentRepository {
                 """
                 INSERT INTO kb_comment (file_id, parent_id, author_station_uid, author_member_uid, content)
                 VALUES (:file_id, :parent_id, :author_station_uid::UUID, :author_member_uid::UUID, :content)
-                RETURNING %s;""".formatted(KB_COMMENT_COLUMNS),
+                RETURNING %s;""",
                 call().bind("file_id", fileId)
                         .bind("parent_id", parentId)
                         .bind(
@@ -80,7 +80,8 @@ public class KbCommentRepository {
                                 author != null ? author.memberUid() : null,
                                 StandardValueConverter.UUID_STRING)
                         .bind("content", content),
-                KbComment.map());
+                KbComment.map(),
+                KB_COMMENT_COLUMNS);
     }
 
     /**

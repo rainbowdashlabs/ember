@@ -34,10 +34,8 @@ public class FederatedBoardRepository {
 
     public FederationBoardShare createShare(int boardId) {
         return SqlSupport.insertReturning(
-                "INSERT INTO federation_board_share(board_id) VALUES (:board_id) RETURNING %s;"
-                        .formatted(SHARE_COLUMNS),
-                call().bind("board_id", boardId),
-                FederationBoardShare.map());
+                "INSERT INTO federation_board_share(board_id) VALUES (:board_id) RETURNING %s;",
+                call().bind("board_id", boardId), FederationBoardShare.map(), SHARE_COLUMNS);
     }
 
     public Optional<FederationBoardShare> findShare(int boardId) {
@@ -173,14 +171,15 @@ public class FederatedBoardRepository {
                                               share_mode)
                 VALUES
                     (:member_id, :partner_id, :remote_board_uid::UUID, :remote_board_name, :remote_board_short_key, :share_mode)
-                RETURNING %s;""".formatted(BOOKMARK_COLUMNS),
+                RETURNING %s;""",
                 call().bind("member_id", memberId)
                         .bind("partner_id", partnerId)
                         .bind("remote_board_uid", remoteBoardUid, StandardValueConverter.UUID_STRING)
                         .bind("remote_board_name", remoteBoardName)
                         .bind("remote_board_short_key", remoteBoardShortKey)
                         .bind("share_mode", shareMode),
-                FederationBoardBookmark.map());
+                FederationBoardBookmark.map(),
+                BOOKMARK_COLUMNS);
     }
 
     public void deleteBookmark(int bookmarkId) {

@@ -78,14 +78,15 @@ public class ProfileFieldRepository {
                 """
                 INSERT INTO profile_field(station_id, name, field_type, config, position, scope)
                 VALUES (:station_id, :name, :field_type, :config::JSONB, :position, :scope)
-                RETURNING %s;""".formatted(PROFILE_FIELD_COLUMNS),
+                RETURNING %s;""",
                 call().bind("station_id", stationId)
                         .bind("name", name)
                         .bind("field_type", fieldType)
                         .bind("config", config.toJson())
                         .bind("position", position)
                         .bind("scope", scope),
-                ProfileField.map());
+                ProfileField.map(),
+                PROFILE_FIELD_COLUMNS);
     }
 
     /**

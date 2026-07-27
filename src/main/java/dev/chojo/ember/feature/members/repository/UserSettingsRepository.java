@@ -61,9 +61,10 @@ public class UserSettingsRepository {
                 """
                 INSERT INTO user_settings(member_id, email_enabled) VALUES(:member_id, :email_enabled)
                 ON CONFLICT (member_id) DO UPDATE SET email_enabled = :email_enabled
-                RETURNING %s;""".formatted(USER_SETTINGS_COLUMNS),
+                RETURNING %s;""",
                 call().bind("member_id", memberId).bind("email_enabled", emailEnabled),
-                UserSettings.map());
+                UserSettings.map(),
+                USER_SETTINGS_COLUMNS);
     }
 
     public UserSettings updateTheme(int memberId, String theme, String darkMode, String feel) {
@@ -71,11 +72,12 @@ public class UserSettingsRepository {
                 """
                 INSERT INTO user_settings(member_id, theme, dark_mode, feel) VALUES(:member_id, :theme, :dark_mode, :feel)
                 ON CONFLICT (member_id) DO UPDATE SET theme = :theme, dark_mode = :dark_mode, feel = :feel
-                RETURNING %s;""".formatted(USER_SETTINGS_COLUMNS),
+                RETURNING %s;""",
                 call().bind("member_id", memberId)
                         .bind("theme", theme)
                         .bind("dark_mode", darkMode)
                         .bind("feel", feel),
-                UserSettings.map());
+                UserSettings.map(),
+                USER_SETTINGS_COLUMNS);
     }
 }

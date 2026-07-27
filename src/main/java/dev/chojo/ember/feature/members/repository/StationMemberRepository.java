@@ -372,9 +372,10 @@ public class StationMemberRepository {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO station_member(station_id, account_id) VALUES(:station_id, :account_id)
-                RETURNING %s;""".formatted(STATION_MEMBER_COLUMNS),
+                RETURNING %s;""",
                 call().bind("station_id", stationId).bind("account_id", accountId),
-                StationMember.map());
+                StationMember.map(),
+                STATION_MEMBER_COLUMNS);
     }
 
     /**

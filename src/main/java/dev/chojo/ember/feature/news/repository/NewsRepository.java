@@ -51,7 +51,7 @@ public class NewsRepository {
                 """
                 INSERT INTO news AS n(station_id, title, content_markdown, content_html, author_station_uid, author_member_uid, published_at)
                 VALUES (:station_id, :title, :content_markdown, :content_html, :author_station_uid::UUID, :author_member_uid::UUID, :published_at)
-                RETURNING %s, %s;""".formatted(NEWS_COLUMNS, NEWS_RESTRICTED),
+                RETURNING %s, %s;""",
                 call().bind("station_id", stationId)
                         .bind("title", title)
                         .bind("content_markdown", contentMarkdown)
@@ -65,7 +65,9 @@ public class NewsRepository {
                                 author != null ? author.memberUid() : null,
                                 StandardValueConverter.UUID_STRING)
                         .bind("published_at", Instant.now(), INSTANT_TIMESTAMP),
-                News.map());
+                News.map(),
+                NEWS_COLUMNS,
+                NEWS_RESTRICTED);
     }
 
     /**
@@ -257,7 +259,7 @@ public class NewsRepository {
                 """
                 INSERT INTO news_comment(news_id, parent_id, author_station_uid, author_member_uid, content)
                 VALUES(:news_id, :parent_id, :author_station_uid::UUID, :author_member_uid::UUID, :content)
-                RETURNING %s;""".formatted(NEWS_COMMENT_COLUMNS),
+                RETURNING %s;""",
                 call().bind("news_id", newsId)
                         .bind("parent_id", parentId)
                         .bind(
@@ -269,7 +271,8 @@ public class NewsRepository {
                                 author != null ? author.memberUid() : null,
                                 StandardValueConverter.UUID_STRING)
                         .bind("content", content),
-                NewsComment.map());
+                NewsComment.map(),
+                NEWS_COMMENT_COLUMNS);
     }
 
     /**

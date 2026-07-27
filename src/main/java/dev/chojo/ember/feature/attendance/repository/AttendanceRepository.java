@@ -78,9 +78,10 @@ public class AttendanceRepository {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO attendance_template(station_id, name) VALUES(:station_id, :name)
-                RETURNING %s;""".formatted(ATTENDANCE_TEMPLATE_COLUMNS),
+                RETURNING %s;""",
                 call().bind("station_id", stationId).bind("name", name),
-                AttendanceTemplate.map());
+                AttendanceTemplate.map(),
+                ATTENDANCE_TEMPLATE_COLUMNS);
     }
 
     /**
@@ -311,13 +312,14 @@ public class AttendanceRepository {
                 """
                 INSERT INTO attendance_session(template_id, start_time, end_time, event_id, title)
                 VALUES(:template_id, :start_time, :end_time, :event_id, :title)
-                RETURNING %s;""".formatted(ATTENDANCE_SESSION_COLUMNS),
+                RETURNING %s;""",
                 call().bind("template_id", templateId)
                         .bind("start_time", startTime, INSTANT_TIMESTAMP)
                         .bind("end_time", endTime, INSTANT_TIMESTAMP)
                         .bind("event_id", eventId)
                         .bind("title", title),
-                AttendanceSession.map());
+                AttendanceSession.map(),
+                ATTENDANCE_SESSION_COLUMNS);
     }
 
     /**
@@ -642,14 +644,15 @@ public class AttendanceRepository {
                 """
                 INSERT INTO attendance_report_preset(station_id, name, role_name, group_id, period, rounding)
                 VALUES(:station_id, :name, :role_name, :group_id, :period, :rounding)
-                RETURNING %s;""".formatted(ATTENDANCE_REPORT_PRESET_COLUMNS),
+                RETURNING %s;""",
                 call().bind("station_id", stationId)
                         .bind("name", name)
                         .bind("role_name", userType)
                         .bind("group_id", groupId)
                         .bind("period", period)
                         .bind("rounding", rounding),
-                AttendanceReportPreset.map());
+                AttendanceReportPreset.map(),
+                ATTENDANCE_REPORT_PRESET_COLUMNS);
     }
 
     /**
@@ -678,13 +681,14 @@ public class AttendanceRepository {
                 """
                 INSERT INTO member_absence(member_id, absent_from, absent_until, reason, created_by)
                 VALUES(:member_id, :absent_from, :absent_until, :reason, :created_by)
-                RETURNING %s;""".formatted(MEMBER_ABSENCE_COLUMNS),
+                RETURNING %s;""",
                 call().bind("member_id", memberId)
                         .bind("absent_from", absentFrom)
                         .bind("absent_until", absentUntil)
                         .bind("reason", reason)
                         .bind("created_by", createdBy),
-                MemberAbsence.map());
+                MemberAbsence.map(),
+                MEMBER_ABSENCE_COLUMNS);
     }
 
     /**

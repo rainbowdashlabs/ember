@@ -73,13 +73,14 @@ public class NoteRepository {
                         content    = :content,
                         updated_by = :updated_by,
                         updated_at = now()
-                RETURNING %s;""".formatted(NOTE_COLUMNS),
+                RETURNING %s;""",
                 call().bind("entity_type", entityType)
                         .bind("entity_id", entityId)
                         .bind("station_id", stationId)
                         .bind("content", content)
                         .bind("updated_by", updatedBy),
-                EntityNote.map());
+                EntityNote.map(),
+                NOTE_COLUMNS);
     }
 
     /**

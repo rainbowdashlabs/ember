@@ -40,13 +40,14 @@ public class ProcurementRepository {
                 """
                 INSERT INTO equipment_procurement(station_id, inventory_id, member_id, size_id, notes)
                 VALUES(:station_id, :inventory_id, :member_id, :size_id, :notes)
-                RETURNING %s;""".formatted(EQUIPMENT_PROCUREMENT_COLUMNS),
+                RETURNING %s;""",
                 call().bind("station_id", stationId)
                         .bind("inventory_id", inventoryId)
                         .bind("member_id", memberId)
                         .bind("size_id", sizeId)
                         .bind("notes", notes != null ? notes : ""),
-                Procurement.map());
+                Procurement.map(),
+                EQUIPMENT_PROCUREMENT_COLUMNS);
     }
 
     /**

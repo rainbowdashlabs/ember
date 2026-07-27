@@ -43,10 +43,11 @@ public final class SqlSupport {
 
     /**
      * Runs an {@code INSERT ... RETURNING} (or any single-row-returning statement) and maps
-     * the returned row, throwing when the database unexpectedly returns nothing.
+     * the returned row, throwing when the database unexpectedly returns nothing. Trailing
+     * arguments are format parameters for {@code %s} fragments in the statement.
      */
-    public static <T> T insertReturning(String sql, Call call, RowMapping<T> mapper) {
-        return query(sql).single(call).map(mapper).first().orElseThrow();
+    public static <T> T insertReturning(String sql, Call call, RowMapping<T> mapper, Object... sqlFormat) {
+        return query(sql, sqlFormat).single(call).map(mapper).first().orElseThrow();
     }
 
     /**
@@ -63,16 +64,20 @@ public final class SqlSupport {
      * Evaluates an existence query — any statement of the shape {@code SELECT 1 ... LIMIT 1} —
      * to a boolean without the per-repository {@code map(row -> true)} idiom.
      */
-    public static boolean exists(String sql, Call call) {
-        return query(sql).single(call).map(row -> true).first().orElse(false);
+    public static boolean exists(String sql, Call call, Object... sqlFormat) {
+        return query(sql, sqlFormat).single(call).map(row -> true).first().orElse(false);
     }
 
     /**
      * Evaluates a scalar count query. The statement must select exactly one integer column;
      * the value is read by position, so no column alias is required. Absent rows count as zero.
      */
-    public static int count(String sql, Call call) {
-        return query(sql).single(call).map(row -> row.getInt(1)).first().orElse(0);
+    public static int count(String sql, Call call, Object... sqlFormat) {
+        return query(sql, sqlFormat)
+                .single(call)
+                .map(row -> row.getInt(1))
+                .first()
+                .orElse(0);
     }
 
     /**

@@ -189,7 +189,7 @@ public class InventoryContainerRepository {
                 """
                 INSERT INTO inventory_container(station_id, parent_id, internal_id, name, kind_id, description, created_by)
                 VALUES(:station_id, :parent_id, :internal_id, :name, :kind_id, :description, :created_by)
-                RETURNING %s;""".formatted(INVENTORY_CONTAINER_COLUMNS),
+                RETURNING %s;""",
                 call().bind("station_id", stationId)
                         .bind("parent_id", parentId)
                         .bind("internal_id", internalId)
@@ -197,7 +197,8 @@ public class InventoryContainerRepository {
                         .bind("kind_id", kindId)
                         .bind("description", description != null ? description : "")
                         .bind("created_by", createdBy),
-                InventoryContainer.map());
+                InventoryContainer.map(),
+                INVENTORY_CONTAINER_COLUMNS);
     }
 
     /**

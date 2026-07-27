@@ -63,9 +63,7 @@ public class MemberGroupRepository {
                 """
                 INSERT INTO member_group(station_id, name, position)
                 VALUES(:station_id, :name, coalesce((SELECT max(position) + 1 FROM member_group WHERE station_id = :station_id), 0))
-                RETURNING %s;""".formatted(MEMBER_GROUP_COLUMNS),
-                call().bind("station_id", stationId).bind("name", name),
-                MemberGroup.map());
+                RETURNING %s;""", call().bind("station_id", stationId).bind("name", name), MemberGroup.map(), MEMBER_GROUP_COLUMNS);
     }
 
     /**

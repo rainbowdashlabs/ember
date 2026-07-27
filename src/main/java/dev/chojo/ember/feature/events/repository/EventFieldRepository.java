@@ -84,7 +84,7 @@ public class EventFieldRepository {
                 """
                 INSERT INTO event_field(event_id, name, field_type, config, value, position, overview, attendance_field_id, public)
                 VALUES (:event_id, :name, :field_type, :config::JSONB, :value, :position, :overview, :attendance_field_id, :public)
-                RETURNING %s;""".formatted(EVENT_FIELD_COLUMNS),
+                RETURNING %s;""",
                 call().bind("event_id", eventId)
                         .bind("name", name)
                         .bind("field_type", fieldType)
@@ -94,7 +94,8 @@ public class EventFieldRepository {
                         .bind("overview", overview)
                         .bind("attendance_field_id", attendanceFieldId)
                         .bind("public", isPublic),
-                EventField.map());
+                EventField.map(),
+                EVENT_FIELD_COLUMNS);
     }
 
     public void deleteByEvent(int eventId) {

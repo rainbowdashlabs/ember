@@ -398,12 +398,13 @@ public class EventRepository {
                 """
                 INSERT INTO station_event_break(station_id, name, start_date, end_date)
                 VALUES (:station_id, :name, :start_date, :end_date)
-                RETURNING %s;""".formatted(EVENT_BREAK_COLUMNS),
+                RETURNING %s;""",
                 call().bind("station_id", stationId)
                         .bind("name", name)
                         .bind("start_date", startDate)
                         .bind("end_date", endDate),
-                EventBreak.map());
+                EventBreak.map(),
+                EVENT_BREAK_COLUMNS);
     }
 
     /**
@@ -479,12 +480,13 @@ public class EventRepository {
                     event_category(station_id, name, position, color)
                 VALUES
                     (:station_id, :name, :position, :color)
-                RETURNING %s;""".formatted(EVENT_CATEGORY_COLUMNS),
+                RETURNING %s;""",
                 call().bind("station_id", stationId)
                         .bind("name", name)
                         .bind("position", position)
                         .bind("color", color),
-                EventCategory.map());
+                EventCategory.map(),
+                EVENT_CATEGORY_COLUMNS);
     }
 
     /**
@@ -842,13 +844,14 @@ public class EventRepository {
                         status     = :status,
                         created_at = now(),
                         created_by = :created_by
-                RETURNING %s;""".formatted(EVENT_REGISTRATION_COLUMNS),
+                RETURNING %s;""",
                 call().bind("event_id", eventId)
                         .bind("member_id", memberId)
                         .bind("event_date", eventDate)
                         .bind("status", status)
                         .bind("created_by", createdBy),
-                EventRegistration.map());
+                EventRegistration.map(),
+                EVENT_REGISTRATION_COLUMNS);
     }
 
     /**

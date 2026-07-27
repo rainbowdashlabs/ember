@@ -203,12 +203,13 @@ public class AccountRepository {
                     account(email, first_name, last_name, creating_station_id)
                 VALUES
                     (:email, :first_name, :last_name, :creating_station_id)
-                RETURNING %s;""".formatted(ACCOUNT_COLUMNS),
+                RETURNING %s;""",
                 call().bind("email", email)
                         .bind("first_name", firstName)
                         .bind("last_name", lastName)
                         .bind("creating_station_id", creatingStationId),
-                Account.map());
+                Account.map(),
+                ACCOUNT_COLUMNS);
     }
 
     /**
@@ -243,13 +244,14 @@ public class AccountRepository {
                     account(email, first_name, last_name, email_verified, creating_station_id)
                 VALUES
                     (:email, :first_name, :last_name, :verified, :creating_station_id)
-                RETURNING %s;""".formatted(ACCOUNT_COLUMNS),
+                RETURNING %s;""",
                 call().bind("email", email)
                         .bind("first_name", firstName)
                         .bind("last_name", lastName)
                         .bind("verified", emailVerified)
                         .bind("creating_station_id", creatingStationId),
-                Account.map());
+                Account.map(),
+                ACCOUNT_COLUMNS);
     }
 
     /**

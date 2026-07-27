@@ -156,7 +156,7 @@ public class BoardTicketRepository {
                     0 AS checklist_total,
                     0 AS checklist_checked,
                     0 AS attachment_count
-                FROM ins;""".formatted(TICKET_COLUMNS, SqlSupport.alias("ins", TICKET_COLUMNS)),
+                FROM ins;""",
                 call().bind("board_id", boardId)
                         .bind("lane_id", laneId)
                         .bind("ticket_number", ticketNumber)
@@ -181,7 +181,9 @@ public class BoardTicketRepository {
                                 "creator_member_uid",
                                 creator != null ? creator.memberUid() : null,
                                 StandardValueConverter.UUID_STRING),
-                BoardTicket.map());
+                BoardTicket.map(),
+                TICKET_COLUMNS,
+                SqlSupport.alias("ins", TICKET_COLUMNS));
     }
 
     public boolean updateTicket(
@@ -349,9 +351,10 @@ public class BoardTicketRepository {
                 """
                 INSERT INTO board_ticket_checklist_item(ticket_id, title, position)
                 VALUES (:ticket_id, :title, :position)
-                RETURNING %s;""".formatted(CHECKLIST_ITEM_COLUMNS),
+                RETURNING %s;""",
                 call().bind("ticket_id", ticketId).bind("title", title).bind("position", position),
-                BoardChecklistItem.map());
+                BoardChecklistItem.map(),
+                CHECKLIST_ITEM_COLUMNS);
     }
 
     public boolean updateChecklistItem(int id, String title, boolean checked) {
@@ -385,7 +388,7 @@ public class BoardTicketRepository {
                 """
                 INSERT INTO board_ticket_comment(ticket_id, parent_id, author_station_uid, author_member_uid, content)
                 VALUES (:ticket_id, :parent_id, :author_station_uid::UUID, :author_member_uid::UUID, :content)
-                RETURNING %s;""".formatted(COMMENT_COLUMNS),
+                RETURNING %s;""",
                 call().bind("ticket_id", ticketId)
                         .bind("parent_id", parentId)
                         .bind(
@@ -397,7 +400,8 @@ public class BoardTicketRepository {
                                 author != null ? author.memberUid() : null,
                                 StandardValueConverter.UUID_STRING)
                         .bind("content", content),
-                BoardComment.map());
+                BoardComment.map(),
+                COMMENT_COLUMNS);
     }
 
     public boolean updateComment(int id, String content) {
@@ -535,12 +539,13 @@ public class BoardTicketRepository {
                 """
                 INSERT INTO board_ticket_weblink(ticket_id, url, title, position)
                 VALUES (:ticket_id, :url, :title, :position)
-                RETURNING %s;""".formatted(WEBLINK_COLUMNS),
+                RETURNING %s;""",
                 call().bind("ticket_id", ticketId)
                         .bind("url", url)
                         .bind("title", title)
                         .bind("position", position),
-                BoardWeblink.map());
+                BoardWeblink.map(),
+                WEBLINK_COLUMNS);
     }
 
     // -- Attachments --
@@ -572,7 +577,7 @@ public class BoardTicketRepository {
                     uploader_station_uid, uploader_member_uid)
                 VALUES (:ticket_id, :filename, :original_name, :content_type, :size_bytes,
                     :uploader_station_uid::UUID, :uploader_member_uid::UUID)
-                RETURNING %s;""".formatted(ATTACHMENT_COLUMNS),
+                RETURNING %s;""",
                 call().bind("ticket_id", ticketId)
                         .bind("filename", filename)
                         .bind("original_name", originalName)
@@ -580,7 +585,8 @@ public class BoardTicketRepository {
                         .bind("size_bytes", sizeBytes)
                         .bind("uploader_station_uid", uploader.stationUid(), StandardValueConverter.UUID_STRING)
                         .bind("uploader_member_uid", uploader.memberUid(), StandardValueConverter.UUID_STRING),
-                BoardTicketAttachment.map());
+                BoardTicketAttachment.map(),
+                ATTACHMENT_COLUMNS);
     }
 
     public Optional<BoardTicketAttachment> findAttachmentById(int id) {

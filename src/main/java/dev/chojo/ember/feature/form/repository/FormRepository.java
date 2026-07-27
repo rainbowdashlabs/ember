@@ -187,7 +187,7 @@ public class FormRepository {
                 """
                 INSERT INTO form AS f(station_id, title, description, shuffle_questions, allow_edit, forced, start_at, end_at, created_by, purpose)
                 VALUES (:station_id, :title, :description, :shuffle_questions, :allow_edit, :forced, :start_at, :end_at, :created_by, :purpose)
-                RETURNING %s, %s;""".formatted(FORM_COLUMNS, FORM_COMPUTED),
+                RETURNING %s, %s;""",
                 call().bind("station_id", stationId)
                         .bind("title", title)
                         .bind("description", description)
@@ -198,7 +198,9 @@ public class FormRepository {
                         .bind("end_at", endAt, INSTANT_TIMESTAMP)
                         .bind("created_by", createdBy)
                         .bind("purpose", purpose.name()),
-                Form.map());
+                Form.map(),
+                FORM_COLUMNS,
+                FORM_COMPUTED);
     }
 
     /**
@@ -312,7 +314,7 @@ public class FormRepository {
                 """
                 INSERT INTO form_question(form_id, position, question_type, title, description, required, shuffle, config)
                 VALUES (:form_id, :position, :question_type, :title, :description, :required, :shuffle, :config::JSONB)
-                RETURNING %s;""".formatted(QUESTION_COLUMNS),
+                RETURNING %s;""",
                 call().bind("form_id", formId)
                         .bind("position", position)
                         .bind("question_type", formQuestionType.name())
@@ -321,7 +323,8 @@ public class FormRepository {
                         .bind("required", required)
                         .bind("shuffle", shuffle)
                         .bind("config", config.toJson()),
-                FormQuestion.map());
+                FormQuestion.map(),
+                QUESTION_COLUMNS);
     }
 
     /**
@@ -457,9 +460,10 @@ public class FormRepository {
                     SET
                         submitted_by = :submitted_by,
                         updated_at   = now()
-                RETURNING %s;""".formatted(RESPONSE_COLUMNS),
+                RETURNING %s;""",
                 call().bind("form_id", formId).bind("member_id", memberId).bind("submitted_by", submittedBy),
-                FormResponse.map());
+                FormResponse.map(),
+                RESPONSE_COLUMNS);
     }
 
     /**
@@ -474,11 +478,12 @@ public class FormRepository {
                 """
                 INSERT INTO form_response(form_id, member_id, submitted_by, submitter_hash, consent_proof)
                 VALUES (:form_id, NULL, NULL, :submitter_hash, :consent_proof::JSONB)
-                RETURNING %s;""".formatted(RESPONSE_COLUMNS),
+                RETURNING %s;""",
                 call().bind("form_id", formId)
                         .bind("submitter_hash", submitterHash)
                         .bind("consent_proof", consent.toJson()),
-                FormResponse.map());
+                FormResponse.map(),
+                RESPONSE_COLUMNS);
     }
 
     /**

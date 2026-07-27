@@ -55,7 +55,7 @@ public class ExchangeRepository {
                 """
                 INSERT INTO equipment_exchange_request(station_id, member_id, item_id, inventory_id, old_size_id, new_size_id, reason, created_by)
                 VALUES(:station_id, :member_id, :item_id, :inventory_id, :old_size_id, :new_size_id, :reason, :created_by)
-                RETURNING %s;""".formatted(EXCHANGE_REQUEST_COLUMNS),
+                RETURNING %s;""",
                 call().bind("station_id", stationId)
                         .bind("member_id", memberId)
                         .bind("item_id", itemId)
@@ -64,7 +64,8 @@ public class ExchangeRepository {
                         .bind("new_size_id", newSizeId)
                         .bind("reason", reason != null ? reason : "")
                         .bind("created_by", createdBy),
-                ExchangeRequest.map());
+                ExchangeRequest.map(),
+                EXCHANGE_REQUEST_COLUMNS);
     }
 
     /**
@@ -156,13 +157,14 @@ public class ExchangeRepository {
                 """
                 INSERT INTO equipment_exchange_log(request_id, old_status, new_status, changed_by, note)
                 VALUES(:request_id, :old_status, :new_status, :changed_by, :note)
-                RETURNING %s;""".formatted(EXCHANGE_LOG_COLUMNS),
+                RETURNING %s;""",
                 call().bind("request_id", requestId)
                         .bind("old_status", oldStatus)
                         .bind("new_status", newStatus)
                         .bind("changed_by", changedBy)
                         .bind("note", note != null ? note : ""),
-                ExchangeLog.map());
+                ExchangeLog.map(),
+                EXCHANGE_LOG_COLUMNS);
     }
 
     /**
