@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.inventory.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -79,9 +80,7 @@ public class ExchangeRoutes implements Routes {
      */
     private ExchangeRequest requireOwnedExchange(int exchangeId, UserSession session) {
         var exchange = exchangeService.findById(exchangeId).orElseThrow(NotFoundResponse::new);
-        if (exchange.stationId() != session.stationId()) {
-            throw new NotFoundResponse();
-        }
+        RouteSupport.requireSameStation(session, exchange.stationId());
         return exchange;
     }
 

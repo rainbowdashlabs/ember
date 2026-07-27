@@ -9,6 +9,7 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.FederationSession;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.MessageResponse;
+import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -138,9 +139,7 @@ public class EventRoutes implements Routes {
      */
     private StationEvent requireOwnedEvent(int eventId, UserSession session) {
         var event = eventService.findById(eventId).orElseThrow(NotFoundResponse::new);
-        if (event.stationId() != session.stationId()) {
-            throw new NotFoundResponse();
-        }
+        RouteSupport.requireSameStation(session, event.stationId());
         return event;
     }
 

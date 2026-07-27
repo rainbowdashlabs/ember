@@ -53,6 +53,18 @@ public final class RouteSupport {
     }
 
     /**
+     * Confirms an already-loaded entity's owning station matches the caller's, answering
+     * {@code 404} on mismatch so cross-station resource existence is not revealed. For
+     * helpers that hold the entity and session directly, where
+     * {@link #requireOwnedOrNotFound} does not fit.
+     */
+    public static void requireSameStation(UserSession session, int entityStationId) {
+        if (session.stationId() == null || entityStationId != session.stationId()) {
+            throw new NotFoundResponse();
+        }
+    }
+
+    /**
      * Loads an entity by id and confirms it belongs to the caller's station, returning
      * it. Answers {@code 404} when the entity is absent and {@code 403} when it belongs
      * to another station — the predominant ownership pattern across the API.

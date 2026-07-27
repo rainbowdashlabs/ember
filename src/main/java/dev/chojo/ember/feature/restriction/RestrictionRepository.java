@@ -143,12 +143,10 @@ public class RestrictionRepository {
      */
     public boolean checkRestriction(
             RestrictionType type, int entityId, int memberId, Set<StationPermission> memberPermissions) {
-        // Manager bypass in Java
         if (memberPermissions.contains(type.managerPermission())) {
             return true;
         }
 
-        // Resolve member identity for DB function
         StationMember member = stationMemberRepository.findById(memberId).orElse(null);
         if (member == null) return false;
 
@@ -160,20 +158,19 @@ public class RestrictionRepository {
                 .map(UserTag::id)
                 .toList();
 
-        // Resolve mode from entity table
-        String mode = query(
+        RestrictionMode mode = query(
                         "SELECT restriction_mode FROM %s WHERE %s = :id;", type.entityTable(), type.entityIdColumn())
                 .single(call().bind("id", entityId))
-                .map(row -> row.getString("restriction_mode"))
+                .map(row -> RestrictionMode.valueOf(row.getString("restriction_mode")))
                 .first()
-                .orElse("AND");
+                .orElse(RestrictionMode.AND);
 
         return query(
                         "SELECT check_restriction(:rtable, :fk_column, :entity_id, :mode, :member_id, :user_type, :group_ids, :tag_ids) AS result;")
                 .single(call().bind("rtable", type.table())
                         .bind("fk_column", type.fkColumn())
                         .bind("entity_id", entityId)
-                        .bind("mode", mode)
+                        .bind("mode", mode.name())
                         .bind("member_id", memberId)
                         .bind("user_type", userType)
                         .bind("group_ids", groupIds, PostgreSqlTypes.INTEGER)

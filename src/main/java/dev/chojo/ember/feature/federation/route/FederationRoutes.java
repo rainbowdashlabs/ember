@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.federation.route;
 
+import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -278,9 +279,7 @@ public class FederationRoutes implements Routes {
         var session = UserSession.from(ctx);
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         var partner = service.findPartner(id).orElseThrow(NotFoundResponse::new);
-        if (session.stationId() == null || partner.stationId() != session.stationId()) {
-            throw new NotFoundResponse();
-        }
+        RouteSupport.requireSameStation(session, partner.stationId());
         return partner;
     }
 

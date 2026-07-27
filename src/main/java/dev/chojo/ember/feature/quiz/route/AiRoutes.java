@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.entity.StationAiProvider;
 import dev.chojo.ember.feature.quiz.service.AiService;
 import dev.chojo.ember.feature.quiz.service.QuizService;
+import dev.chojo.ember.util.Json;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -32,7 +33,6 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -44,7 +44,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Singleton
 public class AiRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(AiRoutes.class);
-    private static final ObjectMapper MAPPER = JsonMapper.builder().build();
+    private static final ObjectMapper MAPPER = Json.MAPPER;
     private final ConcurrentHashMap<String, GenerationJob> generationJobs = new ConcurrentHashMap<>();
 
     private final AiService aiService;

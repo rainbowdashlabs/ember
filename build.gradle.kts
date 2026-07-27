@@ -78,6 +78,7 @@ dependencies {
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.bundles.junit)
     testImplementation(libs.mockito)
+    testImplementation(libs.archunit)
 }
 
 tasks {

@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.route;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -68,9 +69,7 @@ public class InventoryCheckRoutes implements Routes {
      */
     private void verifyContainerInStation(int containerId, UserSession session) {
         var container = containerService.findById(containerId).orElseThrow(NotFoundResponse::new);
-        if (container.stationId() != session.stationId()) {
-            throw new NotFoundResponse();
-        }
+        RouteSupport.requireSameStation(session, container.stationId());
     }
 
     /**
@@ -79,9 +78,7 @@ public class InventoryCheckRoutes implements Routes {
     private void verifyItemInStation(int itemId, UserSession session) {
         var item = inventoryService.findItemById(itemId).orElseThrow(NotFoundResponse::new);
         var inventory = inventoryService.findById(item.inventoryId()).orElseThrow(NotFoundResponse::new);
-        if (inventory.stationId() != session.stationId()) {
-            throw new NotFoundResponse();
-        }
+        RouteSupport.requireSameStation(session, inventory.stationId());
     }
 
     /**
@@ -89,9 +86,7 @@ public class InventoryCheckRoutes implements Routes {
      */
     private void verifyMemberInStation(int memberId, UserSession session) {
         var member = stationMemberRepository.findById(memberId).orElseThrow(NotFoundResponse::new);
-        if (member.stationId() != session.stationId()) {
-            throw new NotFoundResponse();
-        }
+        RouteSupport.requireSameStation(session, member.stationId());
     }
 
     @Override

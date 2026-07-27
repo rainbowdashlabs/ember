@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.form.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -85,9 +86,7 @@ public class FormRoutes implements Routes {
      */
     private Form requireOwnedForm(int formId, UserSession session) {
         var form = formService.findById(formId).orElseThrow(NotFoundResponse::new);
-        if (form.stationId() != session.stationId()) {
-            throw new NotFoundResponse();
-        }
+        RouteSupport.requireSameStation(session, form.stationId());
         return form;
     }
 

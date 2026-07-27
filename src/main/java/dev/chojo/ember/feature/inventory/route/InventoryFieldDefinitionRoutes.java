@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -63,9 +64,7 @@ public class InventoryFieldDefinitionRoutes implements Routes {
 
     private void ownedInventory(int inventoryId, UserSession session) {
         Inventory inventory = inventoryService.findById(inventoryId).orElseThrow(NotFoundResponse::new);
-        if (inventory.stationId() != session.stationId()) {
-            throw new NotFoundResponse();
-        }
+        RouteSupport.requireSameStation(session, inventory.stationId());
     }
 
     /**
