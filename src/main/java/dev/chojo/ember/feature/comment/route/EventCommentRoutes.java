@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.comment.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -24,7 +23,6 @@ import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
-import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
@@ -32,7 +30,6 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
-import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -200,31 +197,7 @@ public class EventCommentRoutes implements Routes {
     }
 
     private CommentResponse toResponse(Comment comment) {
-        if (comment.deleted()) {
-            return new CommentResponse(
-                    comment.id(),
-                    comment.parentId(),
-                    null,
-                    null,
-                    "",
-                    true,
-                    comment.createdAt(),
-                    null,
-                    comment.eventDate());
-        }
-
-        var resolved = memberNameResolver.resolveDisplay(comment.author());
-        String authorName = resolved.name() != null ? resolved.name() : "";
-        return new CommentResponse(
-                comment.id(),
-                comment.parentId(),
-                resolved.identity(),
-                authorName,
-                comment.content(),
-                false,
-                comment.createdAt(),
-                comment.updatedAt(),
-                comment.eventDate());
+        return CommentResponseMapper.fromEvent(memberNameResolver, comment);
     }
 
     /**
@@ -239,22 +212,4 @@ public class EventCommentRoutes implements Routes {
      * Request body for updating a comment.
      */
     public record UpdateCommentRequest(String content) {}
-
-    /**
-     * API response representing a comment with resolved author information.
-     *
-     * @param eventDate Occurrence date for date-scoped comments on recurring events; {@code null}
-     *                  for whole-event comments. Serialised as ISO {@code yyyy-MM-dd}.
-     */
-    @OpenApiName("EventCommentResponse")
-    public record CommentResponse(
-            int id,
-            Integer parentId,
-            MemberIdentity author,
-            String authorName,
-            String content,
-            boolean deleted,
-            Instant createdAt,
-            Instant updatedAt,
-            LocalDate eventDate) {}
 }

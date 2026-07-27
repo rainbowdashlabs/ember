@@ -8,7 +8,8 @@ package dev.chojo.ember.feature.events.service;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.repository.EventCommentRepository;
-import dev.chojo.ember.feature.comment.route.EventCommentRoutes;
+import dev.chojo.ember.feature.comment.route.CommentResponse;
+import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.EventFederationShare;
@@ -360,37 +361,14 @@ public class EventFederationService {
     /**
      * Converts a comment to an enriched response with federated author information.
      */
-    public EventCommentRoutes.CommentResponse toCommentResponse(Comment comment) {
-        if (comment.deleted()) {
-            return new EventCommentRoutes.CommentResponse(
-                    comment.id(),
-                    comment.parentId(),
-                    null,
-                    null,
-                    "",
-                    true,
-                    comment.createdAt(),
-                    null,
-                    comment.eventDate());
-        }
-        var resolved = memberNameResolver.resolveDisplay(comment.author());
-        String displayName = resolved.name() != null ? resolved.name() : "";
-        return new EventCommentRoutes.CommentResponse(
-                comment.id(),
-                comment.parentId(),
-                resolved.identity(),
-                displayName,
-                comment.content(),
-                false,
-                comment.createdAt(),
-                comment.updatedAt(),
-                comment.eventDate());
+    public CommentResponse toCommentResponse(Comment comment) {
+        return CommentResponseMapper.fromEvent(memberNameResolver, comment);
     }
 
     /**
      * Lists comments for an event, enriched with federated author info.
      */
-    public List<EventCommentRoutes.CommentResponse> listComments(int eventId) {
+    public List<CommentResponse> listComments(int eventId) {
         return commentService.findByEvent(eventId).stream()
                 .map(this::toCommentResponse)
                 .toList();
@@ -399,7 +377,7 @@ public class EventFederationService {
     /**
      * Creates a comment from a remote federated partner.
      */
-    public EventCommentRoutes.CommentResponse createRemoteComment(
+    public CommentResponse createRemoteComment(
             FederationPartner partner,
             int eventId,
             UUID remoteMemberUid,
@@ -416,7 +394,7 @@ public class EventFederationService {
     /**
      * Updates a comment from a remote federated partner after verifying ownership.
      */
-    public EventCommentRoutes.CommentResponse updateRemoteComment(
+    public CommentResponse updateRemoteComment(
             FederationPartner partner, int commentId, UUID remoteMemberUid, String content) {
         requireCommentAuthor(commentId, partner, remoteMemberUid, "edit");
         commentRepository.update(commentId, content);
@@ -447,7 +425,7 @@ public class EventFederationService {
                     partner.partnerStationId(),
                     station.id(),
                     station.federationPrivateKey(),
-                    EventCommentRoutes.CommentResponse.class);
+                    CommentResponse.class);
             return FederatedCommentResult.ofList(result);
         }
         return FederatedCommentResult.ofList(listComments(eventId));
@@ -481,7 +459,7 @@ public class EventFederationService {
                     partner.partnerStationId(),
                     station.id(),
                     station.federationPrivateKey(),
-                    EventCommentRoutes.CommentResponse.class);
+                    CommentResponse.class);
             if (result == null) throw new IllegalStateException("Failed to create comment on partner");
             return FederatedCommentResult.ofSingle(result);
         }
@@ -507,7 +485,7 @@ public class EventFederationService {
                     partner.partnerStationId(),
                     station.id(),
                     station.federationPrivateKey(),
-                    EventCommentRoutes.CommentResponse.class);
+                    CommentResponse.class);
             if (result == null) throw new IllegalStateException("Failed to update comment on partner");
             return FederatedCommentResult.ofSingle(result);
         }
@@ -652,17 +630,17 @@ public class EventFederationService {
      * Contains typed response objects for both local and remote partners.
      */
     public sealed interface FederatedCommentResult {
-        static FederatedCommentResult ofList(List<EventCommentRoutes.CommentResponse> comments) {
+        static FederatedCommentResult ofList(List<CommentResponse> comments) {
             return new ListResult(comments);
         }
 
-        static FederatedCommentResult ofSingle(EventCommentRoutes.CommentResponse comment) {
+        static FederatedCommentResult ofSingle(CommentResponse comment) {
             return new SingleResult(comment);
         }
 
-        record ListResult(List<EventCommentRoutes.CommentResponse> comments) implements FederatedCommentResult {}
+        record ListResult(List<CommentResponse> comments) implements FederatedCommentResult {}
 
-        record SingleResult(EventCommentRoutes.CommentResponse comment) implements FederatedCommentResult {}
+        record SingleResult(CommentResponse comment) implements FederatedCommentResult {}
     }
 
     public record MyFederatedRegistration(

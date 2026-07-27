@@ -16,6 +16,8 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.comment.route.CommentResponse;
+import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationShare;
@@ -1291,7 +1293,7 @@ public class KnowledgeBaseRoutes implements Routes {
                     partner.partnerStationId(),
                     station.id(),
                     station.federationPrivateKey(),
-                    KbCommentResponse.class);
+                    CommentResponse.class);
             ctx.json(result);
         } else {
             var comments = kbCommentRepository.findByFile(fileId);
@@ -1321,7 +1323,7 @@ public class KnowledgeBaseRoutes implements Routes {
                     partner.partnerStationId(),
                     station.id(),
                     station.federationPrivateKey(),
-                    KbCommentResponse.class);
+                    CommentResponse.class);
             if (result == null) throw new InternalServerErrorResponse("Failed to create comment on partner");
             ctx.status(HttpStatus.CREATED).json(result);
         } else {
@@ -1353,7 +1355,7 @@ public class KnowledgeBaseRoutes implements Routes {
                     partner.partnerStationId(),
                     station.id(),
                     station.federationPrivateKey(),
-                    KbCommentResponse.class);
+                    CommentResponse.class);
             if (result == null) throw new InternalServerErrorResponse("Failed to update comment on partner");
             ctx.json(result);
         } else {
@@ -1414,38 +1416,8 @@ public class KnowledgeBaseRoutes implements Routes {
                 .orElseThrow(() -> new NotFoundResponse("Unknown partner"));
     }
 
-    private KbCommentResponse toCommentResponse(KbComment comment) {
-        if (comment.deleted()) {
-            return new KbCommentResponse(
-                    comment.id(),
-                    comment.fileId(),
-                    comment.parentId(),
-                    null,
-                    null,
-                    "",
-                    true,
-                    comment.createdAt(),
-                    null);
-        }
-
-        // Resolve author name and display metadata from inline identity
-        var identity = comment.author();
-        String authorName = "";
-        if (identity != null) {
-            var resolved = memberNameResolver.resolveDisplay(identity);
-            identity = resolved.identity();
-            authorName = resolved.name() != null ? resolved.name() : "";
-        }
-        return new KbCommentResponse(
-                comment.id(),
-                comment.fileId(),
-                comment.parentId(),
-                identity,
-                authorName,
-                comment.content(),
-                false,
-                comment.createdAt(),
-                comment.updatedAt());
+    private CommentResponse toCommentResponse(KbComment comment) {
+        return CommentResponseMapper.fromKb(memberNameResolver, comment);
     }
 
     public record FolderRequest(Integer parentId, String name, String description, String iconUrl, Integer position) {}
@@ -1530,15 +1502,4 @@ public class KnowledgeBaseRoutes implements Routes {
     public record RemoteKbCommentUpdateRequest(UUID remoteMemberUid, String content) {}
 
     public record RemoteKbCommentDeleteRequest(UUID remoteMemberUid) {}
-
-    public record KbCommentResponse(
-            int id,
-            int fileId,
-            Integer parentId,
-            MemberIdentity author,
-            String authorName,
-            String content,
-            boolean deleted,
-            Instant createdAt,
-            Instant updatedAt) {}
 }

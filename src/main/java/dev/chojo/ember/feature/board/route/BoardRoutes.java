@@ -32,6 +32,8 @@ import dev.chojo.ember.feature.board.service.BoardService;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
 import dev.chojo.ember.feature.board.service.FederatedBoardProxyService;
 import dev.chojo.ember.feature.board.service.FederatedBoardService;
+import dev.chojo.ember.feature.comment.route.CommentResponse;
+import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
@@ -2526,36 +2528,13 @@ public class BoardRoutes implements Routes {
         ctx.status(204);
     }
 
-    private BoardCommentResponse toCommentResponse(BoardComment comment) {
-        if (comment.deleted()) {
-            return new BoardCommentResponse(
-                    comment.id(), comment.ticketId(), comment.parentId(), null, "", true, comment.createdAt(), null);
-        }
-        var enriched = memberNameResolver.enrichDisplay(comment.author());
-        return new BoardCommentResponse(
-                comment.id(),
-                comment.ticketId(),
-                comment.parentId(),
-                enriched,
-                comment.content(),
-                false,
-                comment.createdAt(),
-                comment.updatedAt());
+    private CommentResponse toCommentResponse(BoardComment comment) {
+        return CommentResponseMapper.fromBoard(memberNameResolver, comment);
     }
 
     // -- Comment enrichment --
 
     record RemoteDeleteLinkRequest(UUID remoteMemberUid, String displayName) {}
-
-    public record BoardCommentResponse(
-            int id,
-            int ticketId,
-            Integer parentId,
-            MemberIdentity author,
-            String content,
-            boolean deleted,
-            Instant createdAt,
-            Instant updatedAt) {}
 
     // ==================== Request/Response records ====================
 

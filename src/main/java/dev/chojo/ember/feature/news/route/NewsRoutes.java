@@ -19,6 +19,8 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.feature.comment.route.CommentResponse;
+import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
@@ -543,22 +545,7 @@ public class NewsRoutes implements Routes {
      * @return the comment response DTO
      */
     private CommentResponse toCommentResponse(NewsComment comment) {
-        if (comment.deleted()) {
-            return new CommentResponse(
-                    comment.id(), comment.newsId(), comment.parentId(), null, null, "", true, comment.createdAt());
-        }
-
-        var resolved = comment.author() != null ? memberNameResolver.resolveDisplay(comment.author()) : null;
-        String authorName = resolved != null && resolved.name() != null ? resolved.name() : "";
-        return new CommentResponse(
-                comment.id(),
-                comment.newsId(),
-                comment.parentId(),
-                resolved != null ? resolved.identity() : null,
-                authorName,
-                comment.content(),
-                false,
-                comment.createdAt());
+        return CommentResponseMapper.fromNews(memberNameResolver, comment);
     }
 
     // -- Federation sharing management --
@@ -1025,19 +1012,6 @@ public class NewsRoutes implements Routes {
      * Request body for creating or updating a comment.
      */
     public record CommentRequest(Integer parentId, String content) {}
-
-    /**
-     * API response representing a comment with resolved author information.
-     */
-    public record CommentResponse(
-            int id,
-            int newsId,
-            Integer parentId,
-            MemberIdentity author,
-            String authorName,
-            String content,
-            boolean deleted,
-            Instant createdAt) {}
 
     public record NewsFederationShareResponse(
             boolean shared, ShareScope scope, NewsVisibilityRole visibilityRole, List<Integer> partnerIds) {}

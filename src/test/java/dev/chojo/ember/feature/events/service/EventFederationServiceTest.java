@@ -11,7 +11,7 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.comment.entity.Comment;
-import dev.chojo.ember.feature.comment.route.EventCommentRoutes;
+import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -76,7 +76,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         federationService = new FederationService(federationRepo, stationRepo, new Api());
         httpClient = mock(FederationHttpClient.class);
         var eventBus = new DomainEventBus(Set.of());
-        EventService eventService = new EventService(eventRepo, restrictionRepo, eventBus);
+        EventService eventService = new EventService(eventRepo, restrictionService, eventBus);
         var memberSvc = new StationMemberService(stationMemberRepo, stationRepo, accountRepo, mock(AuthService.class));
         commentService = new CommentService(eventCommentRepo, eventBus, memberSvc, stationRepo);
         service = new EventFederationService(
@@ -711,8 +711,11 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(71)
     void listFederatedCommentsRemote() {
-        var mockResponses = List.of(new EventCommentRoutes.CommentResponse(
+        var mockResponses = List.of(new CommentResponse(
                 1,
+                null,
+                null,
+                null,
                 null,
                 new MemberIdentity(stationC.uid(), REMOTE_MEMBER_1),
                 "Remote User",
@@ -727,7 +730,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         any(),
                         eq(stationA.id()),
                         any(),
-                        eq(EventCommentRoutes.CommentResponse.class)))
+                        eq(CommentResponse.class)))
                 .thenReturn(mockResponses);
 
         var result = service.listFederatedComments(stationA.id(), stationC.uid(), eventId);
@@ -762,8 +765,11 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(74)
     void createFederatedCommentRemote() {
-        var mockResponse = new EventCommentRoutes.CommentResponse(
+        var mockResponse = new CommentResponse(
                 99,
+                null,
+                null,
+                null,
                 null,
                 new MemberIdentity(stationC.uid(), REMOTE_MEMBER_1),
                 "Remote Author",
@@ -779,7 +785,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         any(),
                         eq(stationA.id()),
                         any(),
-                        eq(EventCommentRoutes.CommentResponse.class)))
+                        eq(CommentResponse.class)))
                 .thenReturn(mockResponse);
 
         var result = service.createFederatedComment(
@@ -800,7 +806,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         any(),
                         eq(stationA.id()),
                         any(),
-                        eq(EventCommentRoutes.CommentResponse.class)))
+                        eq(CommentResponse.class)))
                 .thenReturn(null);
 
         assertThrows(
@@ -844,8 +850,11 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(78)
     void updateFederatedCommentRemote() {
-        var mockResponse = new EventCommentRoutes.CommentResponse(
+        var mockResponse = new CommentResponse(
                 100,
+                null,
+                null,
+                null,
                 null,
                 new MemberIdentity(stationC.uid(), REMOTE_MEMBER_1),
                 "Remote",
@@ -861,7 +870,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         any(),
                         eq(stationA.id()),
                         any(),
-                        eq(EventCommentRoutes.CommentResponse.class)))
+                        eq(CommentResponse.class)))
                 .thenReturn(mockResponse);
 
         var result =
@@ -880,7 +889,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         any(),
                         eq(stationA.id()),
                         any(),
-                        eq(EventCommentRoutes.CommentResponse.class)))
+                        eq(CommentResponse.class)))
                 .thenReturn(null);
 
         assertThrows(
@@ -1043,8 +1052,11 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(95)
     void federatedCommentResultOfList() {
-        var comments = List.of(new EventCommentRoutes.CommentResponse(
+        var comments = List.of(new CommentResponse(
                 1,
+                null,
+                null,
+                null,
                 null,
                 new MemberIdentity(stationA.uid(), REMOTE_MEMBER_1),
                 "Name",
@@ -1065,8 +1077,11 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(96)
     void federatedCommentResultOfSingle() {
-        var comment = new EventCommentRoutes.CommentResponse(
+        var comment = new CommentResponse(
                 1,
+                null,
+                null,
+                null,
                 null,
                 new MemberIdentity(stationA.uid(), REMOTE_MEMBER_1),
                 "Name",

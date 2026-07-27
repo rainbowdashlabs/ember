@@ -31,6 +31,8 @@ import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.board.entity.TicketSummary;
 import dev.chojo.ember.feature.board.service.BoardService;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
+import dev.chojo.ember.feature.comment.route.CommentResponse;
+import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.util.SafeContentDisposition;
@@ -54,7 +56,6 @@ import jakarta.inject.Singleton;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -1237,32 +1238,9 @@ public class BoardTicketRoutes implements Routes {
 
     // -- Comment enrichment --
 
-    private BoardCommentResponse toCommentResponse(BoardComment comment) {
-        if (comment.deleted()) {
-            return new BoardCommentResponse(
-                    comment.id(), comment.ticketId(), comment.parentId(), null, "", true, comment.createdAt(), null);
-        }
-        var enriched = memberNameResolver.enrichDisplay(comment.author());
-        return new BoardCommentResponse(
-                comment.id(),
-                comment.ticketId(),
-                comment.parentId(),
-                enriched,
-                comment.content(),
-                false,
-                comment.createdAt(),
-                comment.updatedAt());
+    private CommentResponse toCommentResponse(BoardComment comment) {
+        return CommentResponseMapper.fromBoard(memberNameResolver, comment);
     }
-
-    public record BoardCommentResponse(
-            int id,
-            int ticketId,
-            Integer parentId,
-            MemberIdentity author,
-            String content,
-            boolean deleted,
-            Instant createdAt,
-            Instant updatedAt) {}
 
     // -- Request records --
 
