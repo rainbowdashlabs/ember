@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.inventory.entity.ContainerPath;
 import dev.chojo.ember.feature.inventory.entity.InventoryContainer;
 import dev.chojo.ember.feature.inventory.entity.InventoryContainerHistory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.util.ArrayList;
@@ -27,8 +28,12 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 @Singleton
 public class InventoryContainerRepository {
 
-    private static final String CONTAINER_COLUMNS =
+    private static final String INVENTORY_CONTAINER_COLUMNS =
             "id, station_id, parent_id, internal_id, name, kind_id, description, created_at, created_by";
+    private static final String INVENTORY_ITEM_COLUMNS =
+            "id, inventory_id, internal_id, name, size_id, metadata, assigned_to, lost_at, item_source, container_id";
+    private static final String INVENTORY_CONTAINER_HISTORY_COLUMNS =
+            "id, container_id, station_id, event_kind, event_ts, actor_id";
 
     /**
      * Finds a container by its ID.
@@ -37,11 +42,7 @@ public class InventoryContainerRepository {
      * @return the container, or empty if not found
      */
     public Optional<InventoryContainer> findById(int id) {
-        return query("""
-                SELECT %s FROM inventory_container WHERE id = :id;""", CONTAINER_COLUMNS)
-                .single(call().bind("id", id))
-                .map(InventoryContainer.map())
-                .first();
+        return SqlSupport.findById("inventory_container", INVENTORY_CONTAINER_COLUMNS, id, InventoryContainer.map());
     }
 
     /**
@@ -54,7 +55,7 @@ public class InventoryContainerRepository {
     public Optional<InventoryContainer> findByInternalId(int stationId, String internalId) {
         return query("""
                 SELECT %s FROM inventory_container
-                WHERE station_id = :station_id AND internal_id = :internal_id LIMIT 1;""", CONTAINER_COLUMNS)
+                WHERE station_id = :station_id AND internal_id = :internal_id LIMIT 1;""", INVENTORY_CONTAINER_COLUMNS)
                 .single(call().bind("station_id", stationId).bind("internal_id", internalId))
                 .map(InventoryContainer.map())
                 .first();
@@ -66,7 +67,7 @@ public class InventoryContainerRepository {
     public List<InventoryContainer> findByStation(int stationId) {
         return query("""
                 SELECT %s FROM inventory_container
-                WHERE station_id = :station_id ORDER BY name;""", CONTAINER_COLUMNS)
+                WHERE station_id = :station_id ORDER BY name;""", INVENTORY_CONTAINER_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(InventoryContainer.map())
                 .all();
@@ -78,7 +79,7 @@ public class InventoryContainerRepository {
     public List<InventoryContainer> findRoots(int stationId) {
         return query("""
                 SELECT %s FROM inventory_container
-                WHERE station_id = :station_id AND parent_id IS NULL ORDER BY name;""", CONTAINER_COLUMNS)
+                WHERE station_id = :station_id AND parent_id IS NULL ORDER BY name;""", INVENTORY_CONTAINER_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(InventoryContainer.map())
                 .all();
@@ -90,7 +91,7 @@ public class InventoryContainerRepository {
     public List<InventoryContainer> findChildren(int parentId) {
         return query("""
                 SELECT %s FROM inventory_container
-                WHERE parent_id = :parent_id ORDER BY name;""", CONTAINER_COLUMNS)
+                WHERE parent_id = :parent_id ORDER BY name;""", INVENTORY_CONTAINER_COLUMNS)
                 .single(call().bind("parent_id", parentId))
                 .map(InventoryContainer.map())
                 .all();
@@ -163,16 +164,14 @@ public class InventoryContainerRepository {
      * supplied internal id, excluding optionally one container by id.
      */
     public boolean internalIdExists(int stationId, String internalId, Integer excludeContainerId) {
-        return query("""
+        return SqlSupport.exists(
+                """
                 SELECT 1 FROM inventory_container
                 WHERE station_id = :station_id AND internal_id = :internal_id
-                  AND (:exclude_id::int IS NULL OR id <> :exclude_id) LIMIT 1;""")
-                .single(call().bind("station_id", stationId)
+                  AND (:exclude_id::int IS NULL OR id <> :exclude_id) LIMIT 1;""",
+                call().bind("station_id", stationId)
                         .bind("internal_id", internalId)
-                        .bind("exclude_id", excludeContainerId))
-                .map(row -> row.getInt(1))
-                .first()
-                .isPresent();
+                        .bind("exclude_id", excludeContainerId));
     }
 
     /**
@@ -186,20 +185,19 @@ public class InventoryContainerRepository {
             Integer kindId,
             String description,
             Integer createdBy) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT INTO inventory_container(station_id, parent_id, internal_id, name, kind_id, description, created_by)
                 VALUES(:station_id, :parent_id, :internal_id, :name, :kind_id, :description, :created_by)
-                RETURNING %s;""", CONTAINER_COLUMNS)
-                .single(call().bind("station_id", stationId)
+                RETURNING %s;""".formatted(INVENTORY_CONTAINER_COLUMNS),
+                call().bind("station_id", stationId)
                         .bind("parent_id", parentId)
                         .bind("internal_id", internalId)
                         .bind("name", name)
                         .bind("kind_id", kindId)
                         .bind("description", description != null ? description : "")
-                        .bind("created_by", createdBy))
-                .map(InventoryContainer.map())
-                .first()
-                .orElseThrow();
+                        .bind("created_by", createdBy),
+                InventoryContainer.map());
     }
 
     /**
@@ -230,10 +228,7 @@ public class InventoryContainerRepository {
      * roots and clears {@code container_id} on items via {@code ON DELETE SET NULL}.
      */
     public boolean delete(int id) {
-        return query("DELETE FROM inventory_container WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("inventory_container", id);
     }
 
     /**
@@ -241,8 +236,8 @@ public class InventoryContainerRepository {
      */
     public List<InventoryItem> findItemsInContainer(int containerId) {
         return query("""
-                SELECT * FROM inventory_item
-                WHERE container_id = :container_id ORDER BY name;""")
+                SELECT %s FROM inventory_item
+                WHERE container_id = :container_id ORDER BY name;""", INVENTORY_ITEM_COLUMNS)
                 .single(call().bind("container_id", containerId))
                 .map(InventoryItem.map())
                 .all();
@@ -261,9 +256,9 @@ public class InventoryContainerRepository {
                     SELECT c.id, subtree.sort_path || c.name
                     FROM inventory_container c JOIN subtree ON c.parent_id = subtree.id
                 )
-                SELECT ii.* FROM inventory_item ii
+                SELECT %s FROM inventory_item ii
                 JOIN subtree ON subtree.id = ii.container_id
-                ORDER BY subtree.sort_path, ii.name;""")
+                ORDER BY subtree.sort_path, ii.name;""", SqlSupport.alias("ii", INVENTORY_ITEM_COLUMNS))
                 .single(call().bind("id", containerId))
                 .map(InventoryItem.map())
                 .all();
@@ -274,10 +269,10 @@ public class InventoryContainerRepository {
      */
     public List<InventoryContainerHistory> findHistory(int containerId) {
         return query("""
-                SELECT id, container_id, station_id, event_kind, event_ts, actor_id, details::text AS details
+                SELECT %s, details::text AS details
                 FROM inventory_container_history
                 WHERE container_id = :container_id
-                ORDER BY event_ts DESC;""")
+                ORDER BY event_ts DESC;""", INVENTORY_CONTAINER_HISTORY_COLUMNS)
                 .single(call().bind("container_id", containerId))
                 .map(InventoryContainerHistory.map())
                 .all();
@@ -289,10 +284,10 @@ public class InventoryContainerRepository {
      */
     public List<InventoryContainerHistory> findRecentHistory(int stationId, int limit) {
         return query("""
-                SELECT id, container_id, station_id, event_kind, event_ts, actor_id, details::text AS details
+                SELECT %s, details::text AS details
                 FROM inventory_container_history
                 WHERE station_id = :station_id
-                ORDER BY event_ts DESC LIMIT :limit;""")
+                ORDER BY event_ts DESC LIMIT :limit;""", INVENTORY_CONTAINER_HISTORY_COLUMNS)
                 .single(call().bind("station_id", stationId).bind("limit", limit))
                 .map(InventoryContainerHistory.map())
                 .all();

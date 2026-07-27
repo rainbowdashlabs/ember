@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.events.entity.EventTemplateField;
 import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -23,7 +24,7 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 @Singleton
 public class EventTemplateRepository {
 
-    private static final String TEMPLATE_COLUMNS = """
+    private static final String EVENT_TEMPLATE_COLUMNS = """
             id, station_id, name, title, description, category_id, event_type,
             requires_registration, registration_deadline_offset, requires_confirmation,
             restriction_mode, attendance_template_id, registration_limit""";
@@ -33,31 +34,24 @@ public class EventTemplateRepository {
                 SELECT %s
                 FROM event_template
                 WHERE station_id = :station_id
-                ORDER BY name;""", TEMPLATE_COLUMNS)
+                ORDER BY name;""", EVENT_TEMPLATE_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(EventTemplate.map())
                 .all();
     }
 
     public Optional<EventTemplate> findById(int id) {
-        return query("""
-                SELECT %s
-                FROM event_template
-                WHERE id = :id;""", TEMPLATE_COLUMNS)
-                .single(call().bind("id", id))
-                .map(EventTemplate.map())
-                .first();
+        return SqlSupport.findById("event_template", EVENT_TEMPLATE_COLUMNS, id, EventTemplate.map());
     }
 
     public EventTemplate create(int stationId, String name) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT INTO event_template(station_id, name)
                 VALUES (:station_id, :name)
-                RETURNING %s;""", TEMPLATE_COLUMNS)
-                .single(call().bind("station_id", stationId).bind("name", name))
-                .map(EventTemplate.map())
-                .first()
-                .orElseThrow();
+                RETURNING %s;""".formatted(EVENT_TEMPLATE_COLUMNS),
+                call().bind("station_id", stationId).bind("name", name),
+                EventTemplate.map());
     }
 
     public boolean update(
@@ -104,10 +98,7 @@ public class EventTemplateRepository {
     }
 
     public boolean delete(int id) {
-        return query("DELETE FROM event_template WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("event_template", id);
     }
 
     public List<EventTemplateField> findFields(int templateId) {
@@ -158,8 +149,6 @@ public class EventTemplateRepository {
                     .insert();
         }
     }
-
-    // --- Reminders ---
 
     public List<Integer> findReminderDays(int templateId) {
         return query("""

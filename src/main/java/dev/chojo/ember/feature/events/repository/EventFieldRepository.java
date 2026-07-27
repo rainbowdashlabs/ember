@@ -9,6 +9,7 @@ import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -20,17 +21,11 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 @Singleton
 public class EventFieldRepository {
 
-    private static final String ALL_COLUMNS =
+    private static final String EVENT_FIELD_COLUMNS =
             "id, event_id, name, field_type, config, value, position, overview, attendance_field_id, \"public\"";
 
     public Optional<EventField> findById(int fieldId) {
-        return query("""
-                SELECT %s
-                FROM event_field
-                WHERE id = :id;""", ALL_COLUMNS)
-                .single(call().bind("id", fieldId))
-                .map(EventField.map())
-                .first();
+        return SqlSupport.findById("event_field", EVENT_FIELD_COLUMNS, fieldId, EventField.map());
     }
 
     public void updateValue(int fieldId, String value) {
@@ -45,7 +40,7 @@ public class EventFieldRepository {
                 SELECT %s
                 FROM event_field
                 WHERE event_id = :event_id
-                ORDER BY position;""", ALL_COLUMNS)
+                ORDER BY position;""", EVENT_FIELD_COLUMNS)
                 .single(call().bind("event_id", eventId))
                 .map(EventField.map())
                 .all();
@@ -57,7 +52,7 @@ public class EventFieldRepository {
                 SELECT %s
                 FROM event_field
                 WHERE event_id = ANY(:event_ids) AND overview
-                ORDER BY event_id, position;""", ALL_COLUMNS)
+                ORDER BY event_id, position;""", EVENT_FIELD_COLUMNS)
                 .single(call().bind("event_ids", eventIds, PostgreSqlTypes.INTEGER))
                 .map(EventField.map())
                 .all();
@@ -85,11 +80,12 @@ public class EventFieldRepository {
             boolean overview,
             Integer attendanceFieldId,
             boolean isPublic) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT INTO event_field(event_id, name, field_type, config, value, position, overview, attendance_field_id, public)
                 VALUES (:event_id, :name, :field_type, :config::JSONB, :value, :position, :overview, :attendance_field_id, :public)
-                RETURNING %s;""", ALL_COLUMNS)
-                .single(call().bind("event_id", eventId)
+                RETURNING %s;""".formatted(EVENT_FIELD_COLUMNS),
+                call().bind("event_id", eventId)
                         .bind("name", name)
                         .bind("field_type", fieldType)
                         .bind("config", config.toJson())
@@ -97,10 +93,8 @@ public class EventFieldRepository {
                         .bind("position", position)
                         .bind("overview", overview)
                         .bind("attendance_field_id", attendanceFieldId)
-                        .bind("public", isPublic))
-                .map(EventField.map())
-                .first()
-                .orElseThrow();
+                        .bind("public", isPublic),
+                EventField.map());
     }
 
     public void deleteByEvent(int eventId) {

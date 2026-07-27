@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.members.repository;
 
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -20,6 +21,9 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  */
 @Singleton
 public class UserTagRepository {
+    private static final String USER_TAG_COLUMNS = "id, station_id, name, color, visible, position";
+    private static final String STATION_MEMBER_COLUMNS =
+            "id, station_id, uid, account_id, former, former_at, display_name, user_type, join_date";
 
     /**
      * Creates a new tag for a station.
@@ -29,31 +33,28 @@ public class UserTagRepository {
      * @return the created tag
      */
     public UserTag create(int stationId, String name) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT INTO user_tag(station_id, name, position)
                 VALUES(:station_id, :name, coalesce((SELECT max(position) + 1 FROM user_tag WHERE station_id = :station_id), 0))
-                RETURNING *;""")
-                .single(call().bind("station_id", stationId).bind("name", name))
-                .map(UserTag.map())
-                .first()
-                .orElseThrow();
+                RETURNING %s;""".formatted(USER_TAG_COLUMNS),
+                call().bind("station_id", stationId).bind("name", name),
+                UserTag.map());
     }
 
     /**
      * Finds a tag by its identifier.
      */
     public Optional<UserTag> findById(int id) {
-        return query("SELECT * FROM user_tag WHERE id = :id;")
-                .single(call().bind("id", id))
-                .map(UserTag.map())
-                .first();
+        return SqlSupport.findById("user_tag", USER_TAG_COLUMNS, id, UserTag.map());
     }
 
     /**
      * Finds all tags for a station, ordered by name.
      */
     public List<UserTag> findByStation(int stationId) {
-        return query("SELECT * FROM user_tag WHERE station_id = :station_id ORDER BY position DESC, name;")
+        return query("""
+                SELECT %s FROM user_tag WHERE station_id = :station_id ORDER BY position DESC, name;""", USER_TAG_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(UserTag.map())
                 .all();
@@ -84,22 +85,17 @@ public class UserTagRepository {
      * Deletes a tag by its identifier.
      */
     public boolean delete(int id) {
-        return query("DELETE FROM user_tag WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("user_tag", id);
     }
-
-    // -- Tag entries --
 
     /**
      * Finds all members assigned to a tag.
      */
     public List<StationMember> findMembers(int tagId) {
         return query("""
-                SELECT sm.*
+                SELECT %s
                 FROM station_member sm JOIN user_tag_entry ute ON sm.id = ute.member_id
-                WHERE ute.tag_id = :tag_id;""")
+                WHERE ute.tag_id = :tag_id;""", SqlSupport.alias("sm", STATION_MEMBER_COLUMNS))
                 .single(call().bind("tag_id", tagId))
                 .map(StationMember.map())
                 .all();
@@ -110,9 +106,9 @@ public class UserTagRepository {
      */
     public List<UserTag> findTagsForMember(int memberId) {
         return query("""
-                SELECT ut.* FROM user_tag ut
+                SELECT %s FROM user_tag ut
                 JOIN user_tag_entry ute ON ut.id = ute.tag_id
-                WHERE ute.member_id = :member_id;""")
+                WHERE ute.member_id = :member_id;""", SqlSupport.alias("ut", USER_TAG_COLUMNS))
                 .single(call().bind("member_id", memberId))
                 .map(UserTag.map())
                 .all();

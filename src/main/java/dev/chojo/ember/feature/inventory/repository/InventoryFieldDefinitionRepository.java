@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.inventory.repository;
 
 import dev.chojo.ember.feature.inventory.entity.FieldType;
 import dev.chojo.ember.feature.inventory.entity.InventoryFieldDefinition;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -21,7 +22,8 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 @Singleton
 public class InventoryFieldDefinitionRepository {
 
-    private static final String COLUMNS = "id, inventory_id, key, label, field_type, required, sort_order, config";
+    private static final String INVENTORY_FIELD_DEFINITION_COLUMNS =
+            "id, inventory_id, key, label, field_type, required, sort_order";
 
     /**
      * Finds a field definition by id.
@@ -29,7 +31,7 @@ public class InventoryFieldDefinitionRepository {
     public Optional<InventoryFieldDefinition> findById(int id) {
         return query("""
                 SELECT %s, config::text AS config
-                FROM inventory_field_definition WHERE id = :id;""", COLUMNS)
+                FROM inventory_field_definition WHERE id = :id;""", INVENTORY_FIELD_DEFINITION_COLUMNS)
                 .single(call().bind("id", id))
                 .map(InventoryFieldDefinition.map())
                 .first();
@@ -43,7 +45,7 @@ public class InventoryFieldDefinitionRepository {
                 SELECT %s, config::text AS config
                 FROM inventory_field_definition
                 WHERE inventory_id = :inventory_id
-                ORDER BY sort_order, key;""", COLUMNS)
+                ORDER BY sort_order, key;""", INVENTORY_FIELD_DEFINITION_COLUMNS)
                 .single(call().bind("inventory_id", inventoryId))
                 .map(InventoryFieldDefinition.map())
                 .all();
@@ -60,20 +62,19 @@ public class InventoryFieldDefinitionRepository {
             boolean required,
             int sortOrder,
             String configJson) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT INTO inventory_field_definition(inventory_id, key, label, field_type, required, sort_order, config)
                 VALUES(:inventory_id, :key, :label, :field_type, :required, :sort_order, :config::jsonb)
-                RETURNING %s, config::text AS config;""", COLUMNS)
-                .single(call().bind("inventory_id", inventoryId)
+                RETURNING %s, config::text AS config;""".formatted(INVENTORY_FIELD_DEFINITION_COLUMNS),
+                call().bind("inventory_id", inventoryId)
                         .bind("key", key)
                         .bind("label", label)
                         .bind("field_type", fieldType)
                         .bind("required", required)
                         .bind("sort_order", sortOrder)
-                        .bind("config", configJson == null || configJson.isBlank() ? "{}" : configJson))
-                .map(InventoryFieldDefinition.map())
-                .first()
-                .orElseThrow();
+                        .bind("config", configJson == null || configJson.isBlank() ? "{}" : configJson),
+                InventoryFieldDefinition.map());
     }
 
     /**
@@ -100,10 +101,7 @@ public class InventoryFieldDefinitionRepository {
      * item's metadata JSONB until the operator edits the item.
      */
     public boolean delete(int id) {
-        return query("DELETE FROM inventory_field_definition WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("inventory_field_definition", id);
     }
 
     /**
@@ -111,14 +109,10 @@ public class InventoryFieldDefinitionRepository {
      * given field key. Used to gate field-type changes.
      */
     public boolean fieldHasAnyValue(int inventoryId, String key) {
-        return query("""
+        return SqlSupport.exists("""
                 SELECT 1 FROM inventory_item
                 WHERE inventory_id = :inventory_id
                   AND jsonb_exists(metadata -> 'fields', :key)
-                LIMIT 1;""")
-                .single(call().bind("inventory_id", inventoryId).bind("key", key))
-                .map(row -> row.getInt(1))
-                .first()
-                .isPresent();
+                LIMIT 1;""", call().bind("inventory_id", inventoryId).bind("key", key));
     }
 }

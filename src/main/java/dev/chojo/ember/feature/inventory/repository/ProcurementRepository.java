@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.repository;
 
 import dev.chojo.ember.feature.inventory.entity.Procurement;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
@@ -21,6 +22,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  */
 @Singleton
 public class ProcurementRepository {
+    private static final String EQUIPMENT_PROCUREMENT_COLUMNS =
+            "id, station_id, inventory_id, member_id, size_id, notes, requested_at, fulfilled_at";
 
     /**
      * Creates a new procurement request.
@@ -33,18 +36,17 @@ public class ProcurementRepository {
      * @return the created procurement
      */
     public Procurement create(int stationId, int inventoryId, int memberId, Integer sizeId, String notes) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT INTO equipment_procurement(station_id, inventory_id, member_id, size_id, notes)
                 VALUES(:station_id, :inventory_id, :member_id, :size_id, :notes)
-                RETURNING *;""")
-                .single(call().bind("station_id", stationId)
+                RETURNING %s;""".formatted(EQUIPMENT_PROCUREMENT_COLUMNS),
+                call().bind("station_id", stationId)
                         .bind("inventory_id", inventoryId)
                         .bind("member_id", memberId)
                         .bind("size_id", sizeId)
-                        .bind("notes", notes != null ? notes : ""))
-                .map(Procurement.map())
-                .first()
-                .orElseThrow();
+                        .bind("notes", notes != null ? notes : ""),
+                Procurement.map());
     }
 
     /**
@@ -54,10 +56,7 @@ public class ProcurementRepository {
      * @return the procurement, or empty if not found
      */
     public Optional<Procurement> findById(int id) {
-        return query("SELECT * FROM equipment_procurement WHERE id = :id;")
-                .single(call().bind("id", id))
-                .map(Procurement.map())
-                .first();
+        return SqlSupport.findById("equipment_procurement", EQUIPMENT_PROCUREMENT_COLUMNS, id, Procurement.map());
     }
 
     /**
@@ -67,7 +66,8 @@ public class ProcurementRepository {
      * @return list of procurements
      */
     public List<Procurement> findByStation(int stationId) {
-        return query("SELECT * FROM equipment_procurement WHERE station_id = :station_id ORDER BY requested_at DESC;")
+        return query("""
+                SELECT %s FROM equipment_procurement WHERE station_id = :station_id ORDER BY requested_at DESC;""", EQUIPMENT_PROCUREMENT_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(Procurement.map())
                 .all();
@@ -80,8 +80,8 @@ public class ProcurementRepository {
      * @return list of open procurements
      */
     public List<Procurement> findOpen(int stationId) {
-        return query(
-                        "SELECT * FROM equipment_procurement WHERE station_id = :station_id AND fulfilled_at IS NULL ORDER BY requested_at ASC;")
+        return query("""
+                SELECT %s FROM equipment_procurement WHERE station_id = :station_id AND fulfilled_at IS NULL ORDER BY requested_at ASC;""", EQUIPMENT_PROCUREMENT_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(Procurement.map())
                 .all();
@@ -107,9 +107,6 @@ public class ProcurementRepository {
      * @return {@code true} if the procurement was deleted
      */
     public boolean delete(int id) {
-        return query("DELETE FROM equipment_procurement WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("equipment_procurement", id);
     }
 }

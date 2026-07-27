@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.members.repository;
 
 import dev.chojo.ember.feature.members.entity.ProfileFieldChange;
 import dev.chojo.ember.feature.members.entity.ProfileFieldChangeAcknowledgement;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
@@ -22,16 +23,21 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  */
 @Singleton
 public class ProfileFieldChangeRepository {
+    private static final String ENRICHED_CHANGE_COLUMNS = """
+            c.id, c.field_id, c.member_id, c.old_value, c.new_value,
+            c.changed_by, c.changed_at, c.requires_acknowledgement,
+            a.full_name AS changed_by_name,
+            pf.name AS field_name""";
+    private static final String ENRICHED_ACKNOWLEDGEMENT_COLUMNS = """
+            ack.id, ack.change_id, ack.acknowledged_by, ack.acknowledged_at, ack.comment,
+            a.full_name AS acknowledged_by_name""";
 
     /**
      * Find a recent change for the same field+member+changedBy within the merge window.
      */
     public Optional<ProfileFieldChange> findRecentChange(int fieldId, int memberId, int changedBy, Instant cutoff) {
         return query("""
-                SELECT c.id, c.field_id, c.member_id, c.old_value, c.new_value,
-                       c.changed_by, c.changed_at, c.requires_acknowledgement,
-                       a.full_name AS changed_by_name,
-                       pf.name AS field_name
+                SELECT %s
                 FROM profile_field_change c
                 JOIN station_member sm ON sm.id = c.changed_by
                 JOIN account a ON a.id = sm.account_id
@@ -41,7 +47,7 @@ public class ProfileFieldChangeRepository {
                   AND c.changed_by = :changed_by
                   AND c.changed_at >= :cutoff
                 ORDER BY c.changed_at DESC
-                LIMIT 1;""")
+                LIMIT 1;""", ENRICHED_CHANGE_COLUMNS)
                 .single(call().bind("field_id", fieldId)
                         .bind("member_id", memberId)
                         .bind("changed_by", changedBy)
@@ -72,20 +78,19 @@ public class ProfileFieldChangeRepository {
             String newValue,
             int changedBy,
             boolean requiresAcknowledgement) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT INTO profile_field_change(field_id, member_id, old_value, new_value, changed_by, requires_acknowledgement)
                 VALUES (:field_id, :member_id, :old_value::JSONB, :new_value::JSONB, :changed_by, :requires_acknowledgement)
                 RETURNING id, field_id, member_id, old_value, new_value, changed_by, changed_at, requires_acknowledgement,
-                          '' AS changed_by_name, '' AS field_name;""")
-                .single(call().bind("field_id", fieldId)
+                          '' AS changed_by_name, '' AS field_name;""",
+                call().bind("field_id", fieldId)
                         .bind("member_id", memberId)
                         .bind("old_value", oldValue)
                         .bind("new_value", newValue)
                         .bind("changed_by", changedBy)
-                        .bind("requires_acknowledgement", requiresAcknowledgement))
-                .map(ProfileFieldChange.map())
-                .first()
-                .orElseThrow();
+                        .bind("requires_acknowledgement", requiresAcknowledgement),
+                ProfileFieldChange.map());
     }
 
     /**
@@ -93,16 +98,13 @@ public class ProfileFieldChangeRepository {
      */
     public List<ProfileFieldChange> findByMember(int memberId) {
         return query("""
-                SELECT c.id, c.field_id, c.member_id, c.old_value, c.new_value,
-                       c.changed_by, c.changed_at, c.requires_acknowledgement,
-                       a.full_name AS changed_by_name,
-                       pf.name AS field_name
+                SELECT %s
                 FROM profile_field_change c
                 JOIN station_member sm ON sm.id = c.changed_by
                 JOIN account a ON a.id = sm.account_id
                 JOIN profile_field pf ON pf.id = c.field_id
                 WHERE c.member_id = :member_id
-                ORDER BY c.changed_at DESC;""")
+                ORDER BY c.changed_at DESC;""", ENRICHED_CHANGE_COLUMNS)
                 .single(call().bind("member_id", memberId))
                 .map(ProfileFieldChange.map())
                 .all();
@@ -113,13 +115,12 @@ public class ProfileFieldChangeRepository {
      */
     public List<ProfileFieldChangeAcknowledgement> findAcknowledgements(int changeId) {
         return query("""
-                SELECT ack.id, ack.change_id, ack.acknowledged_by, ack.acknowledged_at, ack.comment,
-                       a.full_name AS acknowledged_by_name
+                SELECT %s
                 FROM profile_field_change_acknowledgement ack
                 JOIN station_member sm ON sm.id = ack.acknowledged_by
                 JOIN account a ON a.id = sm.account_id
                 WHERE ack.change_id = :change_id
-                ORDER BY ack.acknowledged_at;""")
+                ORDER BY ack.acknowledged_at;""", ENRICHED_ACKNOWLEDGEMENT_COLUMNS)
                 .single(call().bind("change_id", changeId))
                 .map(ProfileFieldChangeAcknowledgement.map())
                 .all();
@@ -130,14 +131,13 @@ public class ProfileFieldChangeRepository {
      */
     public List<ProfileFieldChangeAcknowledgement> findAcknowledgementsForMember(int memberId) {
         return query("""
-                SELECT ack.id, ack.change_id, ack.acknowledged_by, ack.acknowledged_at, ack.comment,
-                       a.full_name AS acknowledged_by_name
+                SELECT %s
                 FROM profile_field_change_acknowledgement ack
                 JOIN profile_field_change c ON c.id = ack.change_id
                 JOIN station_member sm ON sm.id = ack.acknowledged_by
                 JOIN account a ON a.id = sm.account_id
                 WHERE c.member_id = :member_id
-                ORDER BY ack.acknowledged_at;""")
+                ORDER BY ack.acknowledged_at;""", ENRICHED_ACKNOWLEDGEMENT_COLUMNS)
                 .single(call().bind("member_id", memberId))
                 .map(ProfileFieldChangeAcknowledgement.map())
                 .all();
@@ -147,20 +147,19 @@ public class ProfileFieldChangeRepository {
      * Acknowledge a change with optional comment.
      */
     public ProfileFieldChangeAcknowledgement acknowledge(int changeId, int acknowledgedBy, String comment) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT INTO profile_field_change_acknowledgement(change_id, acknowledged_by, comment)
                 VALUES (:change_id, :acknowledged_by, :comment)
                 ON CONFLICT (change_id, acknowledged_by) DO UPDATE SET
                     acknowledged_at = now(),
                     comment = coalesce(excluded.comment, profile_field_change_acknowledgement.comment)
                 RETURNING id, change_id, acknowledged_by, acknowledged_at, comment,
-                          '' AS acknowledged_by_name;""")
-                .single(call().bind("change_id", changeId)
+                          '' AS acknowledged_by_name;""",
+                call().bind("change_id", changeId)
                         .bind("acknowledged_by", acknowledgedBy)
-                        .bind("comment", comment))
-                .map(ProfileFieldChangeAcknowledgement.map())
-                .first()
-                .orElseThrow();
+                        .bind("comment", comment),
+                ProfileFieldChangeAcknowledgement.map());
     }
 
     /**
@@ -221,10 +220,7 @@ public class ProfileFieldChangeRepository {
      */
     public List<ProfileFieldChange> findByStation(int stationId, int limit, int offset) {
         return query("""
-                SELECT c.id, c.field_id, c.member_id, c.old_value, c.new_value,
-                       c.changed_by, c.changed_at, c.requires_acknowledgement,
-                       a.full_name AS changed_by_name,
-                       pf.name AS field_name
+                SELECT %s
                 FROM profile_field_change c
                 JOIN station_member sm ON sm.id = c.member_id
                 JOIN station_member sm2 ON sm2.id = c.changed_by
@@ -232,7 +228,7 @@ public class ProfileFieldChangeRepository {
                 JOIN profile_field pf ON pf.id = c.field_id
                 WHERE sm.station_id = :station_id
                 ORDER BY c.changed_at DESC
-                LIMIT :limit OFFSET :offset;""")
+                LIMIT :limit OFFSET :offset;""", ENRICHED_CHANGE_COLUMNS)
                 .single(call().bind("station_id", stationId)
                         .bind("limit", limit)
                         .bind("offset", offset))
@@ -247,19 +243,15 @@ public class ProfileFieldChangeRepository {
      * @return the total change count
      */
     public int countByStation(int stationId) {
-        return query("""
+        return SqlSupport.count("""
                 SELECT count(*) AS cnt
                 FROM profile_field_change c
                 JOIN station_member sm ON sm.id = c.member_id
-                WHERE sm.station_id = :station_id;""")
-                .single(call().bind("station_id", stationId))
-                .map(row -> row.getInt("cnt"))
-                .first()
-                .orElse(0);
+                WHERE sm.station_id = :station_id;""", call().bind("station_id", stationId));
     }
 
     public int countPendingChanges(int stationId, int acknowledgedBy) {
-        return query("""
+        return SqlSupport.count("""
                 SELECT count(*) AS cnt FROM profile_field_change c
                 JOIN station_member sm ON sm.id = c.member_id
                 WHERE sm.station_id = :station_id
@@ -267,11 +259,7 @@ public class ProfileFieldChangeRepository {
                   AND NOT exists (
                       SELECT 1 FROM profile_field_change_acknowledgement ack
                       WHERE ack.change_id = c.id AND ack.acknowledged_by = :acknowledged_by
-                  );""")
-                .single(call().bind("station_id", stationId).bind("acknowledged_by", acknowledgedBy))
-                .map(row -> row.getInt("cnt"))
-                .first()
-                .orElse(0);
+                  );""", call().bind("station_id", stationId).bind("acknowledged_by", acknowledgedBy));
     }
 
     /**

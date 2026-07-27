@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.EventFederationShare;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.time.LocalDate;
@@ -25,8 +26,9 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  */
 @Singleton
 public class EventFederationRepository {
-
-    // -- Share management --
+    private static final String EVENT_FEDERATION_SHARE_COLUMNS = "id, event_id, scope";
+    private static final String EVENT_FEDERATION_REGISTRATION_COLUMNS =
+            "id, event_id, partner_id, remote_member_id, event_date, status, created_at";
 
     /**
      * Finds the federation share configuration for an event.
@@ -35,7 +37,8 @@ public class EventFederationRepository {
      * @return the share, if configured
      */
     public Optional<EventFederationShare> findShareByEvent(int eventId) {
-        return query("SELECT id, event_id, scope FROM event_federation_share WHERE event_id = :event_id;")
+        return query("""
+                SELECT %s FROM event_federation_share WHERE event_id = :event_id;""", EVENT_FEDERATION_SHARE_COLUMNS)
                 .single(call().bind("event_id", eventId))
                 .map(EventFederationShare.map())
                 .first();
@@ -49,15 +52,14 @@ public class EventFederationRepository {
      * @return the created or updated share
      */
     public EventFederationShare setShare(int eventId, ShareScope scope) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT INTO event_federation_share(event_id, scope)
                 VALUES (:event_id, :scope)
                 ON CONFLICT (event_id) DO UPDATE SET scope = :scope
-                RETURNING id, event_id, scope;""")
-                .single(call().bind("event_id", eventId).bind("scope", scope))
-                .map(EventFederationShare.map())
-                .first()
-                .orElseThrow();
+                RETURNING %s;""".formatted(EVENT_FEDERATION_SHARE_COLUMNS),
+                call().bind("event_id", eventId).bind("scope", scope),
+                EventFederationShare.map());
     }
 
     /**
@@ -106,8 +108,6 @@ public class EventFederationRepository {
                 .delete();
     }
 
-    // -- Finding shared events for a partner --
-
     /**
      * Finds event IDs shared with a partner for a given station.
      * An event is shared if it has scope='ALL_PARTNERS', or scope='SPECIFIC' with the partner in targets.
@@ -131,8 +131,6 @@ public class EventFederationRepository {
                 .all();
     }
 
-    // -- Registration --
-
     /**
      * Creates a federated registration.
      *
@@ -144,17 +142,16 @@ public class EventFederationRepository {
      */
     public EventFederationRegistration createRegistration(
             int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT INTO event_federation_registration(event_id, partner_id, remote_member_id, event_date)
                 VALUES (:event_id, :partner_id, :remote_member_id::UUID, :event_date)
-                RETURNING id, event_id, partner_id, remote_member_id, event_date, status, created_at;""")
-                .single(call().bind("event_id", eventId)
+                RETURNING %s;""".formatted(EVENT_FEDERATION_REGISTRATION_COLUMNS),
+                call().bind("event_id", eventId)
                         .bind("partner_id", partnerId)
                         .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING)
-                        .bind("event_date", eventDate))
-                .map(EventFederationRegistration.map())
-                .first()
-                .orElseThrow();
+                        .bind("event_date", eventDate),
+                EventFederationRegistration.map());
     }
 
     /**
@@ -178,21 +175,11 @@ public class EventFederationRepository {
      * @return the registration, if found
      */
     public Optional<EventFederationRegistration> findRegistrationById(int id) {
-        return query("""
-                SELECT
-                    id,
-                    event_id,
-                    partner_id,
-                    remote_member_id,
-                    event_date,
-                    status,
-                    created_at
-                FROM
-                    event_federation_registration
-                WHERE id = :id;""")
-                .single(call().bind("id", id))
-                .map(EventFederationRegistration.map())
-                .first();
+        return SqlSupport.findById(
+                "event_federation_registration",
+                EVENT_FEDERATION_REGISTRATION_COLUMNS,
+                id,
+                EventFederationRegistration.map());
     }
 
     /**
@@ -205,36 +192,20 @@ public class EventFederationRepository {
     public List<EventFederationRegistration> findRegistrations(int eventId, LocalDate eventDate) {
         if (eventDate == null) {
             return query("""
-                    SELECT
-                        id,
-                        event_id,
-                        partner_id,
-                        remote_member_id,
-                        event_date,
-                        status,
-                        created_at
-                    FROM
-                        event_federation_registration
+                    SELECT %s
+                    FROM event_federation_registration
                     WHERE event_id = :event_id
-                    ORDER BY created_at;""")
+                    ORDER BY created_at;""", EVENT_FEDERATION_REGISTRATION_COLUMNS)
                     .single(call().bind("event_id", eventId))
                     .map(EventFederationRegistration.map())
                     .all();
         }
         return query("""
-                SELECT
-                    id,
-                    event_id,
-                    partner_id,
-                    remote_member_id,
-                    event_date,
-                    status,
-                    created_at
-                FROM
-                    event_federation_registration
+                SELECT %s
+                FROM event_federation_registration
                 WHERE event_id = :event_id
                   AND event_date = :event_date
-                ORDER BY created_at;""")
+                ORDER BY created_at;""", EVENT_FEDERATION_REGISTRATION_COLUMNS)
                 .single(call().bind("event_id", eventId).bind("event_date", eventDate))
                 .map(EventFederationRegistration.map())
                 .all();
@@ -248,18 +219,10 @@ public class EventFederationRepository {
      */
     public List<EventFederationRegistration> findRegistrationsByRemoteMember(UUID remoteMemberId) {
         return query("""
-                SELECT
-                    id,
-                    event_id,
-                    partner_id,
-                    remote_member_id,
-                    event_date,
-                    status,
-                    created_at
-                FROM
-                    event_federation_registration
+                SELECT %s
+                FROM event_federation_registration
                 WHERE remote_member_id = :remote_member_id::UUID
-                ORDER BY event_date;""")
+                ORDER BY event_date;""", EVENT_FEDERATION_REGISTRATION_COLUMNS)
                 .single(call().bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING))
                 .map(EventFederationRegistration.map())
                 .all();
@@ -267,19 +230,10 @@ public class EventFederationRepository {
 
     public List<EventFederationRegistration> findRegistrationsByPartner(int partnerId) {
         return query("""
-
-                SELECT
-                            event_federation_registration.id,
-                            event_id,
-                            partner_id,
-                            remote_member_id,
-                            event_date,
-                            status,
-                            created_at
-                        FROM
-                            event_federation_registration
-                        WHERE partner_id = :partner_id
-                        ORDER BY event_date;""")
+                SELECT %s
+                FROM event_federation_registration
+                WHERE partner_id = :partner_id
+                ORDER BY event_date;""", EVENT_FEDERATION_REGISTRATION_COLUMNS)
                 .single(call().bind("partner_id", partnerId))
                 .map(EventFederationRegistration.map())
                 .all();
@@ -310,8 +264,6 @@ public class EventFederationRepository {
                 .delete()
                 .changed();
     }
-
-    // -- Name cache --
 
     /**
      * Caches the display name for a federated member.
