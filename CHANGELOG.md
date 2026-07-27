@@ -2,6 +2,10 @@
 
 ## v26.11.8
 
+### Changes
+
+- **One item edit dialog everywhere.** Editing an inventory item from the edit page now opens the same dialog as the detail page, including custom fields, storage container, and ownership. Custom field values are kept when saving.
+
 ### Fixes
 
 - **Public blog article links work.** Opening a single article from a station's public blog loads the article instead of failing.

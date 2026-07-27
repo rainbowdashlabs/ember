@@ -23,6 +23,7 @@ import type {InventoryDetail, InventoryItem, InventoryItemHistory, StationMember
 import {ItemSource} from '@/api/types'
 import {inventory} from '@/api'
 import {useModalTarget} from '@/composables/useModalTarget'
+import EditItemModal from '../detailview/EditItemModal.vue'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {formatDate} from '@/util/format'
 
@@ -45,7 +46,6 @@ function getMemberName(memberId: number | null | undefined): string {
 }
 
 const showItemModal = ref(false)
-const editingItem = ref<InventoryItem | null>(null)
 const itemName = ref('')
 const itemInternalId = ref('')
 const itemInternalIdInput = ref<InstanceType<typeof TextInput> | null>(null)
@@ -53,7 +53,6 @@ const itemSizeId = ref('')
 const itemQuantity = ref(1)
 
 function openAdd() {
-  editingItem.value = null
   itemName.value = props.detail.name ?? ''
   itemInternalId.value = ''
   itemSizeId.value = ''
@@ -62,14 +61,7 @@ function openAdd() {
   nextTick(() => itemInternalIdInput.value?.$el?.focus())
 }
 
-function openEdit(item: InventoryItem) {
-  editingItem.value = item
-  itemName.value = item.name ?? ''
-  itemInternalId.value = item.internalId ?? ''
-  itemSizeId.value = item.sizeId != null ? String(item.sizeId) : ''
-  showItemModal.value = true
-  nextTick(() => itemInternalIdInput.value?.$el?.focus())
-}
+const {isOpen: showEditModal, target: editTarget, open: openEdit} = useModalTarget<InventoryItem>()
 
 const {running: itemSaving, run: saveItem} = useAsyncAction(async () => {
   try {
@@ -82,13 +74,9 @@ const {running: itemSaving, run: saveItem} = useAsyncAction(async () => {
       sizeId: itemSizeId.value ? Number(itemSizeId.value) : undefined,
       metadata: {owned: false, fields: {}},
     }
-    if (editingItem.value) {
-      await inventory.updateItem(editingItem.value.id, data)
-    } else {
-      const count = Math.max(1, Math.min(itemQuantity.value, 100))
-      for (let i = 0; i < count; i++) {
-        await inventory.createItem(props.detail.id, data)
-      }
+    const count = Math.max(1, Math.min(itemQuantity.value, 100))
+    for (let i = 0; i < count; i++) {
+      await inventory.createItem(props.detail.id, data)
     }
     showItemModal.value = false
     emit('itemsChanged')
@@ -181,7 +169,7 @@ defineExpose({openAdd, openEdit, openAssign, openQuickAssign, openHistory, reque
 <template>
   <Modal v-model="showItemModal">
     <form class="space-y-4" @submit.prevent="saveItem">
-      <SectionHeader>{{ editingItem ? t('inventory.edit.editItem') : t('inventory.edit.addItem') }}</SectionHeader>
+      <SectionHeader>{{ t('inventory.edit.addItem') }}</SectionHeader>
       <div class="space-y-1">
         <FieldLabel>{{ t('inventory.edit.itemInternalId') }}</FieldLabel>
         <div class="flex items-center gap-2">
@@ -202,7 +190,7 @@ defineExpose({openAdd, openEdit, openAssign, openQuickAssign, openHistory, reque
           <option v-for="size in detail.sizes ?? []" :key="size.id" :value="String(size.id)">{{ size.label }}</option>
         </SelectInput>
       </div>
-      <div v-if="!editingItem" class="space-y-1">
+      <div class="space-y-1">
         <FieldLabel>{{ t('inventory.edit.itemQuantity') }}</FieldLabel>
         <NumberInput v-model="itemQuantity" :max="100" :min="1"/>
         <p class="text-xs text-(--text-muted)">{{ t('inventory.edit.itemQuantityHint') }}</p>
@@ -215,6 +203,14 @@ defineExpose({openAdd, openEdit, openAssign, openQuickAssign, openHistory, reque
       </div>
     </form>
   </Modal>
+
+  <EditItemModal
+      v-model="showEditModal"
+      :item="editTarget"
+      :has-sizes="detail.hasSizes"
+      :sizes="detail.sizes ?? []"
+      @saved="emit('itemsChanged')"
+  />
 
   <Modal v-model="showAssignModal">
     <div class="space-y-4">
