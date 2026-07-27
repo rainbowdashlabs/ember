@@ -49,11 +49,7 @@ export function useAuthImage(url: Ref<string | null | undefined> | (() => string
         loading.value = false
     }
 
-    if (typeof url === 'function') {
-        watch(url, (newUrl) => load(newUrl), {immediate: true})
-    } else {
-        watch(url, (newUrl) => load(newUrl), {immediate: true})
-    }
+    watch(url, (newUrl) => load(newUrl), {immediate: true})
 
     onUnmounted(revoke)
 
@@ -68,21 +64,11 @@ export function useAuthImageById(
     urlBuilder: (id: number) => string,
     id: Ref<number | null | undefined> | (() => number | null | undefined),
 ) {
-    const computedUrl = typeof id === 'function'
-        ? ref(id() != null ? urlBuilder(id()!) : null)
-        : ref(id.value != null ? urlBuilder(id.value!) : null)
-
-    if (typeof id === 'function') {
-        watch(id, (newId) => {
-            computedUrl.value = newId != null ? urlBuilder(newId) : null
-        })
-    } else {
-        watch(id, (newId) => {
-            computedUrl.value = newId != null ? urlBuilder(newId) : null
-        })
-    }
-
-    return useAuthImage(computedUrl)
+    const resolve = typeof id === 'function' ? id : () => id.value
+    return useAuthImage(() => {
+        const value = resolve()
+        return value != null ? urlBuilder(value) : null
+    })
 }
 
 /**
