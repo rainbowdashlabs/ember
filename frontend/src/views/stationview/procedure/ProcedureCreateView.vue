@@ -22,6 +22,7 @@ import AssigneesSection from '@/views/stationview/procedure/procedurecreateview/
 import ItemsSection from '@/views/stationview/procedure/procedurecreateview/ItemsSection.vue'
 import type {EditableItem} from '@/views/stationview/procedure/procedurecreateview/types'
 import {useSession} from '@/composables/useSession'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {procedures, stationMembers} from '@/api'
 import type {ProcedureTemplate, TemplateDetail} from '@/api/procedures'
@@ -37,8 +38,6 @@ const editId = computed(() => {
   return id ? Number(id) : null
 })
 const isEditMode = computed(() => editId.value != null)
-
-const saving = ref(false)
 
 const name = ref('')
 const description = ref('')
@@ -218,21 +217,21 @@ function buildDependencies(tempToReal: Map<number, number>): { itemId: number; d
   return deps
 }
 
-async function handleSubmit() {
+const {running: saving, error: saveError, run: runSubmit} = useAsyncAction(
+    async () => {
+      if (isEditMode.value) {
+        await submitEdit(editId.value!)
+      } else {
+        await submitCreate()
+      }
+    },
+    {formatError: () => t('common.error')},
+)
+
+function handleSubmit() {
   if (!name.value.trim()) return
-  saving.value = true
   error.value = ''
-  try {
-    if (isEditMode.value) {
-      await submitEdit(editId.value!)
-    } else {
-      await submitCreate()
-    }
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    saving.value = false
-  }
+  return runSubmit()
 }
 
 async function submitEdit(pid: number) {
@@ -315,7 +314,7 @@ watch(loaded, (v) => {
       :subtitle="t('pages.procedure-create.subtitle')"
   >
     <Spinner v-if="loading"/>
-    <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
+    <Alert v-if="error || saveError" variant="error" class="mb-4">{{ error || saveError }}</Alert>
 
     <template v-if="!loading">
       <div class="space-y-6">

@@ -13,6 +13,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import {stationManage} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useSetupStatus} from '@/composables/useSetupStatus'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import {nextStep, stepRouteName} from '@/views/stationview/setup/steps'
 
 const {t} = useI18n()
@@ -36,8 +37,6 @@ const allModules = [
 ]
 const disabled = ref<Set<string>>(new Set(['INVENTORY', 'ATTENDANCE', 'FORMS', 'LOST_AND_FOUND', 'WAITING_LIST', 'QUIZ', 'TEST_PROTOCOL', 'BOARDS', 'PROCEDURES']))
 const loading = ref(true)
-const saving = ref(false)
-const error = ref('')
 
 onMounted(async () => {
   try {
@@ -58,21 +57,13 @@ function toggle(key: string) {
   disabled.value = next
 }
 
-async function save() {
-  saving.value = true
-  error.value = ''
-  try {
-    await stationManage.setDisabledModules([...disabled.value])
-    await reloadSession()
-    await reload()
-    const next = nextStep('modules')
-    if (next) router.push({name: stepRouteName(next)})
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    saving.value = false
-  }
-}
+const {running: saving, error, run: save} = useAsyncAction(async () => {
+  await stationManage.setDisabledModules([...disabled.value])
+  await reloadSession()
+  await reload()
+  const next = nextStep('modules')
+  if (next) router.push({name: stepRouteName(next)})
+})
 </script>
 
 <template>

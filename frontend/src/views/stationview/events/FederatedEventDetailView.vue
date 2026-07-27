@@ -17,6 +17,7 @@ import {comments as commentsApi, events, stationMembers} from '@/api'
 import type {FederatedEventDetail, FederatedRegistration} from '@/api/events'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import HeaderCard from './federatedeventdetailview/HeaderCard.vue'
 import RegistrationCard from './federatedeventdetailview/RegistrationCard.vue'
 import CommentsCard from './federatedeventdetailview/CommentsCard.vue'
@@ -31,7 +32,6 @@ const eventId = ref(Number(route.params.eventId))
 
 const detail = ref<FederatedEventDetail | null>(null)
 const myRegistrations = ref<FederatedRegistration[]>([])
-const registering = ref(false)
 const selectedMemberUid = ref('')
 
 const currentMemberUid = computed(() => sessionInfo.value?.member?.uid ?? '')
@@ -60,31 +60,30 @@ function selectedUidForRegister(): string | null {
   return selectedMemberUid.value || null
 }
 
-async function registerForEvent() {
+const {running: registering, error: registrationError, run: runRegistration} = useAsyncAction(
+    async (kind: 'register' | 'withdraw', uid: string) => {
+      if (kind === 'register') {
+        await events.registerForFederatedEvent(stationUid.value, eventId.value, getEventDate(), uid)
+        myRegistrations.value.push({
+          eventId: eventId.value, remoteMemberId: uid,
+          eventDate: getEventDate(), status: 'PENDING', partnerId: 0,
+        })
+      } else {
+        await events.withdrawFederatedRegistration(stationUid.value, eventId.value, getEventDate(), uid)
+        myRegistrations.value = myRegistrations.value.filter(r => !(r.eventId === eventId.value && r.remoteMemberId === uid))
+      }
+    },
+    {formatError: () => t('common.error')},
+)
+
+function registerForEvent() {
   const uid = selectedUidForRegister()
   if (!uid) return
-  registering.value = true
-  try {
-    await events.registerForFederatedEvent(stationUid.value, eventId.value, getEventDate(), uid)
-    myRegistrations.value.push({
-      eventId: eventId.value, remoteMemberId: uid,
-      eventDate: getEventDate(), status: 'PENDING', partnerId: 0,
-    })
-  } catch {
-    error.value = t('common.error')
-  }
-  registering.value = false
+  return runRegistration('register', uid)
 }
 
-async function withdrawRegistration(uid: string) {
-  registering.value = true
-  try {
-    await events.withdrawFederatedRegistration(stationUid.value, eventId.value, getEventDate(), uid)
-    myRegistrations.value = myRegistrations.value.filter(r => !(r.eventId === eventId.value && r.remoteMemberId === uid))
-  } catch {
-    error.value = t('common.error')
-  }
-  registering.value = false
+function withdrawRegistration(uid: string) {
+  return runRegistration('withdraw', uid)
 }
 
 const commentsList = ref<Comment[]>([])
@@ -162,7 +161,7 @@ watch(() => [route.params.stationUid, route.params.eventId], () => {
       </SecondaryButton>
 
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <Alert v-if="error || registrationError" variant="error">{{ error || registrationError }}</Alert>
 
       <template v-if="eventData && !loading">
         <HeaderCard :event="eventData" :public-fields="publicFields"/>

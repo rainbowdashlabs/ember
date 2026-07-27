@@ -13,12 +13,14 @@ import Alert from '@/components/feedback/Alert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type {MemberGroup, PermissionGrant, StationMember, UserTag} from '@/api/types'
 import {StationUserType} from '@/api/types'
 import {stationMembers, memberGroups, userTags} from '@/api'
 import type {MyInventoryItem} from '@/api/inventory'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 
 const {t} = useI18n()
 
@@ -44,7 +46,6 @@ const emit = defineEmits<{
 const error = ref('')
 const success = ref('')
 
-// -- User Type --
 const editUserType = ref(props.initialUserType)
 
 async function onUserTypeChange(value: string) {
@@ -59,7 +60,6 @@ async function onUserTypeChange(value: string) {
   }
 }
 
-// -- Permissions --
 const editRoleIds = ref(new Set(props.initialRoleIds))
 
 async function onPermissionsChange(newIds: Set<number>) {
@@ -72,7 +72,6 @@ async function onPermissionsChange(newIds: Set<number>) {
   }
 }
 
-// -- Groups --
 const editGroupIds = ref(new Set(props.initialGroupIds))
 
 async function toggleGroup(groupId: number) {
@@ -92,7 +91,6 @@ async function toggleGroup(groupId: number) {
     await memberGroups.setGroupMembers(groupId, {memberIds})
     emit('groupsChanged', new Set(editGroupIds.value))
   } catch {
-    // Revert on error
     if (wasIn) editGroupIds.value.add(groupId)
     else editGroupIds.value.delete(groupId)
     editGroupIds.value = new Set(editGroupIds.value)
@@ -100,7 +98,6 @@ async function toggleGroup(groupId: number) {
   }
 }
 
-// -- Tags --
 const editTagIds = ref(new Set(props.initialTagIds))
 
 async function toggleTag(tagId: number) {
@@ -126,9 +123,7 @@ async function toggleTag(tagId: number) {
   }
 }
 
-// -- Former member --
 const showFormerModal = ref(false)
-const markingFormer = ref(false)
 const formerSuccess = ref(false)
 
 const formerBlockReasons = computed(() => {
@@ -144,27 +139,19 @@ const formerBlockReasons = computed(() => {
 })
 const canMarkFormer = computed(() => formerBlockReasons.value.length === 0)
 
-async function confirmMarkFormer() {
-  markingFormer.value = true
+const {running: markingFormer, error: formerError, run: confirmMarkFormer} = useAsyncAction(async () => {
   error.value = ''
-  try {
-    await stationMembers.markFormer(props.memberId)
-    formerSuccess.value = true
-    showFormerModal.value = false
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    markingFormer.value = false
-  }
-}
+  await stationMembers.markFormer(props.memberId)
+  formerSuccess.value = true
+  showFormerModal.value = false
+}, {formatError: () => t('common.error')})
 </script>
 
 <template>
   <div class="space-y-6">
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <Alert v-if="error || formerError" variant="error">{{ error || formerError }}</Alert>
     <Alert v-if="success" variant="success">{{ success }}</Alert>
 
-    <!-- User type -->
     <NeutralContainer class="space-y-3">
       <SubHeader class="text-sm">{{ t('memberEdit.userType') }}</SubHeader>
       <SelectInput :model-value="editUserType" @update:model-value="v => { if (v) onUserTypeChange(v) }" class="max-w-xs">
@@ -176,48 +163,42 @@ async function confirmMarkFormer() {
       </SelectInput>
     </NeutralContainer>
 
-    <!-- Permissions -->
     <NeutralContainer class="space-y-3">
       <SubHeader class="text-sm">{{ t('memberEdit.permissions') }}</SubHeader>
       <PermissionPicker :model-value="editRoleIds" :all-roles="allRoles" :locked-permissions="lockedPermissions"
                         @update:model-value="onPermissionsChange"/>
     </NeutralContainer>
 
-    <!-- Groups -->
     <NeutralContainer class="space-y-3">
       <SubHeader class="text-sm">{{ t('memberEdit.groups') }}</SubHeader>
       <div class="flex flex-wrap gap-2">
-        <button
+        <SelectionToggleButton
             v-for="group in allGroups"
             :key="group.id"
-            :class="editGroupIds.has(group.id) ? 'border-primary bg-primary/10 text-primary' : 'border-bg-light-accent dark:border-bg-dark-accent text-(--text-muted) hover:border-primary'"
-            class="px-2.5 py-1 text-xs rounded-full border transition-colors"
-            @click="toggleGroup(group.id)"
+            :selected="editGroupIds.has(group.id)"
+            @toggle="toggleGroup(group.id)"
         >
           {{ group.name }}
-        </button>
+        </SelectionToggleButton>
         <span v-if="allGroups.length === 0" class="text-xs text-(--text-muted)">{{ t('memberEdit.noGroups') }}</span>
       </div>
     </NeutralContainer>
 
-    <!-- Tags -->
     <NeutralContainer class="space-y-3">
       <SubHeader class="text-sm">{{ t('memberEdit.tags') }}</SubHeader>
       <div class="flex flex-wrap gap-2">
-        <button
+        <SelectionToggleButton
             v-for="tag in allTags"
             :key="tag.id"
-            :class="editTagIds.has(tag.id) ? 'border-primary bg-primary/10 text-primary' : 'border-bg-light-accent dark:border-bg-dark-accent text-(--text-muted) hover:border-primary'"
-            class="px-2.5 py-1 text-xs rounded-full border transition-colors"
-            @click="toggleTag(tag.id)"
+            :selected="editTagIds.has(tag.id)"
+            @toggle="toggleTag(tag.id)"
         >
           {{ tag.name }}
-        </button>
+        </SelectionToggleButton>
         <span v-if="allTags.length === 0" class="text-xs text-(--text-muted)">{{ t('memberEdit.noTags') }}</span>
       </div>
     </NeutralContainer>
 
-    <!-- Former member -->
     <div class="flex items-center justify-end">
       <ErrorButton v-if="!formerSuccess" :icon="['fas', 'user-slash']" @click="showFormerModal = true">
         {{ t('memberDetail.markFormer') }}

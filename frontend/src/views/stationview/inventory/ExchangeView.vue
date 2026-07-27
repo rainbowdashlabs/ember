@@ -28,6 +28,8 @@ import { exchanges, inventory, profileFields, stationMembers, managedMembers } f
 import { useSession } from '@/composables/useSession'
 import { useStations } from '@/composables/useStations'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { useAsyncAction } from '@/composables/useAsyncAction'
+import { saveBlob } from '@/util/downloadAuthed'
 
 const { t } = useI18n()
 const { canManageExchanges, isGuardian, sessionInfo, loaded } = useSession()
@@ -42,7 +44,6 @@ const exportMode = ref(false)
 const selectedForExport = ref<Set<number>>(new Set())
 const selectedExportFields = ref<Set<number>>(new Set())
 const allFields = ref<ProfileField[]>([])
-const exporting = ref(false)
 
 const showMemberColumn = computed(() => canManageExchanges() || isGuardian())
 const showCreateModal = ref(false)
@@ -174,21 +175,12 @@ function toggleSelectAll() {
   }
 }
 
-async function exportSelected() {
-  exporting.value = true
-  try {
-    const blob = await exchanges.exportPdf([...selectedForExport.value], [...selectedExportFields.value])
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'exchange-requests.pdf'
-    a.click()
-    URL.revokeObjectURL(url)
-    exportMode.value = false
-    selectedForExport.value = new Set()
-  } catch { error.value = t('common.error') }
-  finally { exporting.value = false }
-}
+const {running: exporting, error: exportError, run: exportSelected} = useAsyncAction(async () => {
+  const blob = await exchanges.exportPdf([...selectedForExport.value], [...selectedExportFields.value])
+  saveBlob(blob, 'exchange-requests.pdf')
+  exportMode.value = false
+  selectedForExport.value = new Set()
+}, {formatError: () => t('common.error')})
 
 async function onCreated() {
   requests.value = await exchanges.listExchanges()
@@ -217,7 +209,7 @@ watch(loaded, (isLoaded) => {
       />
 
       <Spinner v-if="loading" size="lg" />
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <Alert v-if="error || exportError" variant="error">{{ error || exportError }}</Alert>
 
       <ExchangeExportFieldPicker
         v-if="exportMode"

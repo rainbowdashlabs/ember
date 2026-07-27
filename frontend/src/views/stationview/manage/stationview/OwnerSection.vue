@@ -13,6 +13,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import {stationManage, stationMembers} from '@/api'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 
 const props = defineProps<{
   stationId: string
@@ -27,7 +28,6 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-// -- Owner handover --
 interface ManagerOption {
   id: number
   name: string
@@ -35,7 +35,6 @@ interface ManagerOption {
 
 const managerMembers = ref<ManagerOption[]>([])
 const newOwnerId = ref('')
-const transferringOwnership = ref(false)
 
 async function loadManagers() {
   try {
@@ -52,44 +51,40 @@ async function loadManagers() {
       }
     }
     managerMembers.value = result
-  } catch { /* ignore */ }
+  } catch {
+    return
+  }
 }
+
+const {running: transferringOwnership, error: transferError, run: runTransferOwnership} = useAsyncAction(
+    async (id: number) => {
+      await stationManage.transferOwnership(id)
+      emit('success', t('stationManage.ownerHandoverSuccess'))
+      emit('ownerChanged')
+    },
+)
 
 async function transferOwnershipAction() {
   const id = Number(newOwnerId.value)
   if (!id) return
-  transferringOwnership.value = true
-  try {
-    await stationManage.transferOwnership(id)
-    emit('success', t('stationManage.ownerHandoverSuccess'))
-    emit('ownerChanged')
-  } catch {
-    emit('error', t('common.error'))
-  } finally {
-    transferringOwnership.value = false
-  }
+  await runTransferOwnership(id)
+  if (transferError.value) emit('error', transferError.value)
 }
 
-// -- Station deletion --
-const requestingDelete = ref(false)
+const {running: requestingDelete, error: deleteError, run: runRequestDelete} = useAsyncAction(async () => {
+  await stationManage.requestStationDeletion()
+  emit('success', t('stationManage.deleteRequested'))
+})
 
 async function requestDelete() {
-  requestingDelete.value = true
-  try {
-    await stationManage.requestStationDeletion()
-    emit('success', t('stationManage.deleteRequested'))
-  } catch {
-    emit('error', t('common.error'))
-  } finally {
-    requestingDelete.value = false
-  }
+  await runRequestDelete()
+  if (deleteError.value) emit('error', deleteError.value)
 }
 
 onMounted(loadManagers)
 </script>
 
 <template>
-  <!-- Owner handover -->
   <NeutralContainer class="space-y-4">
     <SectionHeader>{{ t('stationManage.ownerHandoverTitle') }}</SectionHeader>
     <p class="text-sm text-(--text-muted)">{{ t('stationManage.ownerHandoverHint') }}</p>
@@ -105,7 +100,6 @@ onMounted(loadManagers)
     <p v-else class="text-sm text-(--text-muted)">{{ t('stationManage.ownerHandoverNone') }}</p>
   </NeutralContainer>
 
-  <!-- Station deletion -->
   <ErrorContainer class="space-y-4">
     <SectionHeader>{{ t('stationManage.deleteTitle') }}</SectionHeader>
     <p class="text-sm text-(--text-muted)">{{ t('stationManage.deleteHint') }}</p>

@@ -24,6 +24,7 @@ import ContainerHistorySection from '@/views/stationview/inventory/containerdeta
 import AddItemsModal from '@/views/stationview/inventory/containerdetailview/AddItemsModal.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import {inventoryContainers} from '@/api'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import type {
   ContainerDetail,
   ContainerContents,
@@ -55,7 +56,6 @@ function onAddChildChoice(target: 'existing' | 'new') {
   if (target === 'existing') showAddExistingModal.value = true
   else showNewChildModal.value = true
 }
-const submitting = ref(false)
 
 const containerId = computed(() => Number(route.params.id))
 const kindById = computed(() => {
@@ -102,18 +102,16 @@ function onEditError(message: string) {
   error.value = message
 }
 
-async function confirmDelete() {
+const {run: confirmDelete} = useAsyncAction(async () => {
   if (!detail.value) return
-  submitting.value = true
   try {
     await inventoryContainers.deleteContainer(detail.value.container.id)
     router.push({name: 'inventory-storage'})
   } catch (e: any) {
     error.value = mapContainerError(t, e, 'inventory.storage.errors.deleteFailed')
-    submitting.value = false
     showDeleteConfirm.value = false
   }
-}
+})
 
 function navigateToContainer(id: number) {
   router.push({name: 'inventory-container-detail', params: {id: String(id)}})

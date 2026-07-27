@@ -23,6 +23,8 @@ import type {InventoryDetail, InventoryItem, InventoryItemHistory, StationMember
 import {ItemSource} from '@/api/types'
 import {inventory} from '@/api'
 import {useModalTarget} from '@/composables/useModalTarget'
+import {useAsyncAction} from '@/composables/useAsyncAction'
+import {formatDate} from '@/util/format'
 
 const {t} = useI18n()
 
@@ -42,12 +44,6 @@ function getMemberName(memberId: number | null | undefined): string {
   return m ? (m.name && m.name.trim() ? m.name : m.email ?? `#${m.id}`) : `#${memberId}`
 }
 
-function formatDate(iso: string | null | undefined): string {
-  if (!iso) return '\u2013'
-  return new Date(iso).toLocaleDateString('de-DE', {day: '2-digit', month: '2-digit', year: 'numeric'})
-}
-
-// Item modal
 const showItemModal = ref(false)
 const editingItem = ref<InventoryItem | null>(null)
 const itemName = ref('')
@@ -55,7 +51,6 @@ const itemInternalId = ref('')
 const itemInternalIdInput = ref<InstanceType<typeof TextInput> | null>(null)
 const itemSizeId = ref('')
 const itemQuantity = ref(1)
-const itemSaving = ref(false)
 
 function openAdd() {
   editingItem.value = null
@@ -76,8 +71,7 @@ function openEdit(item: InventoryItem) {
   nextTick(() => itemInternalIdInput.value?.$el?.focus())
 }
 
-async function saveItem() {
-  itemSaving.value = true
+const {running: itemSaving, run: saveItem} = useAsyncAction(async () => {
   try {
     const normalisedInternalId = itemInternalId.value
         ? normaliseScannedPayload(itemInternalId.value)
@@ -100,12 +94,9 @@ async function saveItem() {
     emit('itemsChanged')
   } catch {
     emit('error', t('common.error'))
-  } finally {
-    itemSaving.value = false
   }
-}
+})
 
-// Assign modal
 const assignMemberId = ref('')
 const {isOpen: showAssignModal, target: assignTarget, open: openAssign} = useModalTarget<InventoryItem>(() => {
   assignMemberId.value = ''
@@ -124,7 +115,6 @@ async function submitAssign() {
   }
 }
 
-// Quick assign modal
 const quickAssignMemberId = ref('')
 const quickAssignSizeId = ref('')
 const {isOpen: showQuickAssignModal, open: openQuickAssign} = useModalTarget<null>(() => {
@@ -152,7 +142,6 @@ async function submitQuickAssign() {
   }
 }
 
-// History modal
 const showHistoryModal = ref(false)
 const historyTarget = ref<InventoryItem | null>(null)
 const historyEntries = ref<InventoryItemHistory[]>([])
@@ -172,7 +161,6 @@ async function openHistory(item: InventoryItem) {
   }
 }
 
-// Delete
 const {isOpen: showDeleteModal, target: deleteTarget, open: requestDelete} = useModalTarget<InventoryItem>()
 
 async function confirmDelete() {
@@ -191,7 +179,6 @@ defineExpose({openAdd, openEdit, openAssign, openQuickAssign, openHistory, reque
 </script>
 
 <template>
-  <!-- Item modal -->
   <Modal v-model="showItemModal">
     <form class="space-y-4" @submit.prevent="saveItem">
       <SectionHeader>{{ editingItem ? t('inventory.edit.editItem') : t('inventory.edit.addItem') }}</SectionHeader>
@@ -229,7 +216,6 @@ defineExpose({openAdd, openEdit, openAssign, openQuickAssign, openHistory, reque
     </form>
   </Modal>
 
-  <!-- Assign modal -->
   <Modal v-model="showAssignModal">
     <div class="space-y-4">
       <SectionHeader>{{ t('inventory.edit.assignTitle') }}</SectionHeader>
@@ -245,7 +231,6 @@ defineExpose({openAdd, openEdit, openAssign, openQuickAssign, openHistory, reque
     </div>
   </Modal>
 
-  <!-- History modal -->
   <Modal v-model="showHistoryModal">
     <div class="space-y-4">
       <SectionHeader>{{ t('inventory.edit.historyTitle') }}</SectionHeader>
@@ -257,7 +242,7 @@ defineExpose({openAdd, openEdit, openAssign, openQuickAssign, openHistory, reque
              class="flex items-center justify-between rounded-lg px-3 py-2 border border-bg-light-accent dark:border-bg-dark-accent">
           <span class="text-sm font-medium">{{ entry.memberName || getMemberName(entry.memberId) }}</span>
           <div class="text-xs text-(--text-muted) text-right">
-            <div>{{ t('inventory.edit.givenOut') }}: {{ formatDate(entry.givenOut) }}</div>
+            <div>{{ t('inventory.edit.givenOut') }}: {{ formatDate(entry.givenOut) || '–' }}</div>
             <div v-if="entry.returned">{{ t('inventory.edit.returned') }}: {{ formatDate(entry.returned) }}</div>
             <div v-else class="text-primary font-medium">{{ t('inventory.edit.currentlyAssigned') }}</div>
           </div>
@@ -269,7 +254,6 @@ defineExpose({openAdd, openEdit, openAssign, openQuickAssign, openHistory, reque
     </div>
   </Modal>
 
-  <!-- Quick assign modal -->
   <Modal v-model="showQuickAssignModal">
     <div class="space-y-4">
       <SectionHeader>{{ t('inventory.edit.quickAssign') }}</SectionHeader>

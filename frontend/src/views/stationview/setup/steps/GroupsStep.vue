@@ -24,6 +24,7 @@ import PermissionPicker from '@/components/input/PermissionPicker.vue'
 import {memberGroups, stationMembers} from '@/api'
 import type {MemberGroup, PermissionGrant} from '@/api/types'
 import {useSetupStatus} from '@/composables/useSetupStatus'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import {nextStep, stepRouteName} from '@/views/stationview/setup/steps'
 
 const {t} = useI18n()
@@ -33,7 +34,6 @@ const {reload} = useSetupStatus()
 const groups = ref<MemberGroup[]>([])
 const draft = ref('')
 const loading = ref(true)
-const saving = ref(false)
 const error = ref('')
 
 const allRoles = ref<PermissionGrant[]>([])
@@ -64,22 +64,21 @@ function sortByPosition(list: MemberGroup[]): MemberGroup[] {
     return [...list].sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
 }
 
-async function addGroup() {
+const {running: adding, error: addError, run: runAddGroup} = useAsyncAction(async () => {
+    const nextPosition = (groups.value[groups.value.length - 1]?.position ?? -1) + 1
+    const created = await memberGroups.createGroup({name: draft.value.trim(), position: nextPosition})
+    groups.value = sortByPosition([...groups.value, created])
+    permissionsByGroup[created.id] = new Set()
+    draft.value = ''
+    await selectGroup(created.id)
+})
+
+const displayError = computed(() => error.value || addError.value)
+
+function addGroup() {
     if (!draft.value.trim()) return
-    saving.value = true
     error.value = ''
-    try {
-        const nextPosition = (groups.value[groups.value.length - 1]?.position ?? -1) + 1
-        const created = await memberGroups.createGroup({name: draft.value.trim(), position: nextPosition})
-        groups.value = sortByPosition([...groups.value, created])
-        permissionsByGroup[created.id] = new Set()
-        draft.value = ''
-        await selectGroup(created.id)
-    } catch {
-        error.value = t('common.error')
-    } finally {
-        saving.value = false
-    }
+    return runAddGroup()
 }
 
 async function removeGroup(id: number) {
@@ -154,21 +153,16 @@ async function onPermissionsChange(groupId: number, newIds: Set<number>) {
     }
 }
 
-async function save() {
-    saving.value = true
-    try {
-        await reload()
-        const next = nextStep('groups')
-        if (next) router.push({name: stepRouteName(next)})
-    } finally {
-        saving.value = false
-    }
-}
+const {running: saving, run: save} = useAsyncAction(async () => {
+    await reload()
+    const next = nextStep('groups')
+    if (next) router.push({name: stepRouteName(next)})
+})
 </script>
 
 <template>
-  <SetupLayout step-id="groups" skippable :saving="saving" @save="save">
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+  <SetupLayout step-id="groups" skippable :saving="saving || adding" @save="save">
+    <Alert v-if="displayError" variant="error">{{ displayError }}</Alert>
 
     <InfoContainer class="space-y-2">
       <p class="font-medium text-sm">{{ t('setup.steps.groups.aboutTitle') }}</p>

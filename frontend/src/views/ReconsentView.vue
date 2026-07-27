@@ -4,12 +4,13 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {onMounted, ref} from 'vue'
+import {computed, onMounted, ref} from 'vue'
 import {useRouter} from 'vue-router'
 import {useI18n} from 'vue-i18n'
 import {session} from '@/api'
 import {acceptStorage} from '@/api/storage'
 import {useConsentGuard} from '@/composables/useConsentGuard'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import type {ConsentChangesResponse} from '@/api/types'
 import Spinner from '@/components/feedback/Spinner.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
@@ -22,8 +23,7 @@ const {t} = useI18n()
 const router = useRouter()
 
 const loading = ref(true)
-const submitting = ref(false)
-const error = ref('')
+const loadError = ref('')
 const changes = ref<ConsentChangesResponse | null>(null)
 
 onMounted(async () => {
@@ -35,34 +35,29 @@ onMounted(async () => {
     }
     changes.value = await session.getConsentChanges()
   } catch {
-    error.value = t('common.error')
+    loadError.value = t('common.error')
   }
   loading.value = false
 })
 
-async function handleAccept() {
+const {running: submitting, error: submitError, run: handleAccept} = useAsyncAction(async () => {
   if (!changes.value) return
-  submitting.value = true
-  error.value = ''
-  try {
-    await session.recordConsent({
-      consentVersion: changes.value.currentConsentVersion,
-      privacyVersion: changes.value.currentPrivacyVersion,
-      tosVersion: changes.value.currentTosVersion,
-    })
-    acceptStorage({
-      consent: changes.value.currentConsentVersion,
-      privacy: changes.value.currentPrivacyVersion,
-      tos: changes.value.currentTosVersion,
-    })
-    const {setNeedsReconsent} = useConsentGuard()
-    setNeedsReconsent(false)
-    await router.replace({name: 'dashboard-overview'})
-  } catch {
-    error.value = t('common.error')
-  }
-  submitting.value = false
-}
+  await session.recordConsent({
+    consentVersion: changes.value.currentConsentVersion,
+    privacyVersion: changes.value.currentPrivacyVersion,
+    tosVersion: changes.value.currentTosVersion,
+  })
+  acceptStorage({
+    consent: changes.value.currentConsentVersion,
+    privacy: changes.value.currentPrivacyVersion,
+    tos: changes.value.currentTosVersion,
+  })
+  const {setNeedsReconsent} = useConsentGuard()
+  setNeedsReconsent(false)
+  await router.replace({name: 'dashboard-overview'})
+})
+
+const error = computed(() => loadError.value || submitError.value)
 </script>
 
 <template>

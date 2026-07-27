@@ -27,6 +27,8 @@ import {
     type PageFileTag,
 } from '@/api/pageManage'
 import type {AxiosError} from 'axios'
+import {useAsyncAction} from '@/composables/useAsyncAction'
+import {formatSize} from '@/util/format'
 
 const open = defineModel<boolean>('open', {default: false})
 
@@ -46,13 +48,11 @@ const entries = ref<PageFileListing[]>([])
 const folders = ref<PageFileFolder[]>([])
 const tags = ref<PageFileTag[]>([])
 const loading = ref(false)
-const uploading = ref(false)
 const uploadError = ref<string | null>(null)
 const search = ref('')
 const editing = ref<number | null>(null)
 const editAlt = ref('')
 const editDesc = ref('')
-const pruning = ref(false)
 const activeFolder = ref<number | null>(null)
 const activeTagFilter = ref<number | null>(null)
 
@@ -124,12 +124,8 @@ async function onUploadMany(files: File[]) {
     await uploadBatch(files)
 }
 
-async function uploadBatch(picked: File[]) {
-    uploading.value = true
+const {running: uploading, run: uploadBatch} = useAsyncAction(async (picked: File[]) => {
     uploadError.value = null
-    // The native file picker's `accept` attribute is only a hint — the user can still pick "All
-    // files" in the OS dialog. Enforce the expected MIME prefix here so an audio cell never
-    // ends up with a PDF (or worse). Rejected files surface in the error banner.
     let rejected = 0
     const accepted: File[] = []
     for (const f of picked) {
@@ -155,7 +151,6 @@ async function uploadBatch(picked: File[]) {
             lastErr = err
         }
     }
-    uploading.value = false
     if (lastErr) {
         const axiosErr = lastErr as AxiosError<{message?: string}>
         uploadError.value = axiosErr.response?.data?.message ?? t('stationPages.editor.uploadFailed')
@@ -167,7 +162,7 @@ async function uploadBatch(picked: File[]) {
     } else {
         pick(stored[0])
     }
-}
+})
 
 function startEdit(f: PageFile) {
     editing.value = f.id
@@ -192,21 +187,10 @@ function cancelEdit() {
     editing.value = null
 }
 
-async function runPrune() {
-    pruning.value = true
-    try {
-        await prunePageFiles()
-        await load()
-    } finally {
-        pruning.value = false
-    }
-}
-
-function formatSize(bytes: number): string {
-    if (bytes < 1024) return `${bytes} B`
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-    return `${(bytes / 1024 / 1024).toFixed(1)} MB`
-}
+const {running: pruning, run: runPrune} = useAsyncAction(async () => {
+    await prunePageFiles()
+    await load()
+})
 </script>
 
 <template>

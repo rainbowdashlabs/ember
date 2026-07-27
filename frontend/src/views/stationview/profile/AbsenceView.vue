@@ -15,6 +15,7 @@ import {absences, managedMembers as managedMembersApi} from '@/api'
 import type {MemberAbsence} from '@/api/absences'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import AbsenceAddForm from './absenceview/AbsenceAddForm.vue'
 import AbsenceListItem from './absenceview/AbsenceListItem.vue'
 
@@ -26,7 +27,6 @@ const managedMembers = ref<StationMember[]>([])
 const success = ref('')
 
 const showAddAbsence = ref(false)
-const savingAbsence = ref(false)
 
 const currentMemberId = computed(() => sessionInfo.value?.member?.id ?? 0)
 
@@ -45,36 +45,26 @@ const {loading, error, reload} = useAsyncLoader(async () => {
   }
 })
 
-async function addAbsence(payload: {
-  absentFrom: string;
-  absentUntil: string;
-  reason?: string;
-  memberIds?: number[]
-}) {
-  savingAbsence.value = true
-  error.value = ''
-  success.value = ''
-  try {
-    await absences.createAbsence(payload)
-    myAbsences.value = await absences.listMyAbsences()
-    showAddAbsence.value = false
-    success.value = t('profile.absenceCreated')
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    savingAbsence.value = false
-  }
-}
+const {running: savingAbsence, error: addError, run: addAbsence} = useAsyncAction(
+    async (payload: {absentFrom: string; absentUntil: string; reason?: string; memberIds?: number[]}) => {
+      success.value = ''
+      await absences.createAbsence(payload)
+      myAbsences.value = await absences.listMyAbsences()
+      showAddAbsence.value = false
+      success.value = t('profile.absenceCreated')
+    },
+    {formatError: () => t('common.error')},
+)
 
-async function removeAbsence(id: number) {
-  error.value = ''
-  try {
-    await absences.deleteAbsence(id)
-    myAbsences.value = await absences.listMyAbsences()
-  } catch {
-    error.value = t('common.error')
-  }
-}
+const {error: removeError, run: removeAbsence} = useAsyncAction(
+    async (id: number) => {
+      await absences.deleteAbsence(id)
+      myAbsences.value = await absences.listMyAbsences()
+    },
+    {formatError: () => t('common.error')},
+)
+
+const pageError = computed(() => error.value || addError.value || removeError.value)
 
 watch(loaded, (isLoaded) => {
   if (isLoaded) reload()
@@ -88,7 +78,7 @@ watch(loaded, (isLoaded) => {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <Alert v-if="pageError" variant="error">{{ pageError }}</Alert>
       <Alert v-if="success" variant="success">{{ success }}</Alert>
 
       <template v-if="!loading">

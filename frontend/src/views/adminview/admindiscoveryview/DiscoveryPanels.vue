@@ -8,7 +8,11 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useFlashMessage} from '@/composables/useFlashMessage'
+import {useConfirmAction} from '@/composables/useConfirmAction'
 import {discovery} from '@/api'
 import type {
   BlocklistKind,
@@ -27,7 +31,7 @@ import BlocklistCard from './BlocklistCard.vue'
 
 const {t} = useI18n()
 
-const flash = ref('')
+const {message: flash, flash: showFlash} = useFlashMessage()
 
 const identity = ref<DiscoveryIdentity | null>(null)
 const settings = ref<DiscoverySettings | null>(null)
@@ -41,8 +45,6 @@ const draftInterval = ref(60)
 const probeBaseUrl = ref('')
 const probeExpectedKey = ref('')
 const probeResult = ref<DiscoveryInfoProbe | null>(null)
-const probing = ref(false)
-const probeError = ref('')
 
 const blocklistValue = ref('')
 const blocklistKind = ref<BlocklistKind>('BASE_URL')
@@ -74,7 +76,6 @@ const {loading, error} = useAsyncLoader(async () => {
 
 async function saveSettings() {
   if (!settings.value) return
-  flash.value = ''
   try {
     settings.value = await discovery.updateDiscoverySettings({
       enabled: draftEnabled.value,
@@ -87,28 +88,19 @@ async function saveSettings() {
   }
 }
 
-async function probe() {
-  probing.value = true
-  probeError.value = ''
+const {running: probing, error: probeError, run: probe} = useAsyncAction(async () => {
   probeResult.value = null
-  try {
-    probeResult.value = await discovery.probeDiscoveryPeer(probeBaseUrl.value.trim())
-  } catch {
-    probeError.value = t('adminDiscovery.probeFailed')
-  } finally {
-    probing.value = false
-  }
-}
+  probeResult.value = await discovery.probeDiscoveryPeer(probeBaseUrl.value.trim())
+}, {formatError: () => t('adminDiscovery.probeFailed')})
 
 async function addPeer() {
   if (!probeBaseUrl.value.trim()) return
-  flash.value = ''
   try {
     await discovery.addDiscoveryPeer(probeBaseUrl.value.trim(), probeExpectedKey.value.trim() || undefined)
     probeBaseUrl.value = ''
     probeExpectedKey.value = ''
     probeResult.value = null
-    flash.value = t('adminDiscovery.added')
+    showFlash(t('adminDiscovery.added'))
     peers.value = await discovery.listDiscoveryPeers()
   } catch {
     error.value = t('common.error')
@@ -127,19 +119,18 @@ async function runPeerAction(p: DiscoveryPeer, action: () => Promise<unknown>) {
   }
 }
 
-async function deletePeer(p: DiscoveryPeer) {
-  if (!confirm(t('adminDiscovery.confirmDeletePeer'))) return
-  await runPeerAction(p, () => discovery.deleteDiscoveryPeer(p.publicKey))
-}
+const {show: showDeletePeer, request: requestDeletePeer, confirm: confirmDeletePeer} = useConfirmAction<DiscoveryPeer>({
+  onConfirm: (p) => runPeerAction(p, () => discovery.deleteDiscoveryPeer(p.publicKey)),
+  error,
+})
 
 async function discoverNow() {
-  flash.value = ''
   try {
     const result = await discovery.discoverNow()
-    flash.value = t('adminDiscovery.discoverNowResult', {
+    showFlash(t('adminDiscovery.discoverNowResult', {
       pings: result.pingsDispatched,
       stations: result.stationsFetched,
-    })
+    }))
     peers.value = await discovery.listDiscoveryPeers()
   } catch {
     error.value = t('common.error')
@@ -147,10 +138,9 @@ async function discoverNow() {
 }
 
 async function seedFederation() {
-  flash.value = ''
   try {
     const count = await discovery.seedFromFederation()
-    flash.value = t('adminDiscovery.seedFederationResult', {count})
+    showFlash(t('adminDiscovery.seedFederationResult', {count}))
     peers.value = await discovery.listDiscoveryPeers()
   } catch {
     error.value = t('common.error')
@@ -176,14 +166,6 @@ async function removeFromBlocklist(entry: DiscoveryBlocklistEntry) {
   } catch {
     error.value = t('common.error')
   }
-}
-
-function formatTimestamp(ts: string | null): string {
-  if (!ts) return '-'
-  return new Date(ts).toLocaleString('de-DE', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  })
 }
 
 const sortedPeers = computed(() =>
@@ -225,13 +207,18 @@ const sortedPeers = computed(() =>
         :peers="sortedPeers"
         :source-label="sourceLabel"
         :in-flight-key="peerActionInFlight"
-        :format-timestamp="formatTimestamp"
         @upvote="(p) => runPeerAction(p, () => discovery.upvoteDiscoveryPeer(p.publicKey))"
         @downvote="(p) => runPeerAction(p, () => discovery.downvoteDiscoveryPeer(p.publicKey))"
         @block="(p) => runPeerAction(p, () => discovery.blockDiscoveryPeer(p.publicKey))"
         @unblock="(p) => runPeerAction(p, () => discovery.unblockDiscoveryPeer(p.publicKey))"
         @ping="(p) => runPeerAction(p, () => discovery.pingDiscoveryPeerNow(p.publicKey))"
-        @remove="deletePeer"
+        @remove="requestDeletePeer"
+    />
+
+    <ConfirmDeleteModal
+        v-model="showDeletePeer"
+        :message="t('adminDiscovery.confirmDeletePeer')"
+        @confirm="confirmDeletePeer"
     />
 
     <BlocklistCard

@@ -12,6 +12,7 @@ import CreateInventoryBasicStep from './CreateInventoryBasicStep.vue'
 import CreateInventorySizesStep from './CreateInventorySizesStep.vue'
 import {InventoryTypes, type InventoryTypeName} from '@/api/types'
 import {inventory} from '@/api'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 
 const show = defineModel<boolean>({default: false})
 
@@ -27,7 +28,6 @@ const name = ref('')
 const type = ref<InventoryTypeName>(InventoryTypes.INTERNAL)
 const hasSizes = ref(false)
 const sizes = ref<string[]>([])
-const saving = ref(false)
 
 function reset() {
   step.value = 'basic'
@@ -49,26 +49,25 @@ function nextStep() {
   }
 }
 
-async function submit() {
-  saving.value = true
-  try {
-    const inv = await inventory.createInventory({
-      name: name.value,
-      inventoryType: type.value,
-      hasSizes: hasSizes.value,
-    })
-    if (hasSizes.value && sizes.value.length > 0) {
-      for (let i = 0; i < sizes.value.length; i++) {
-        await inventory.createSize(inv.id, {label: sizes.value[i], position: i})
-      }
+const {running: saving, run: runCreate} = useAsyncAction(async () => {
+  const inv = await inventory.createInventory({
+    name: name.value,
+    inventoryType: type.value,
+    hasSizes: hasSizes.value,
+  })
+  if (hasSizes.value && sizes.value.length > 0) {
+    for (let i = 0; i < sizes.value.length; i++) {
+      await inventory.createSize(inv.id, {label: sizes.value[i], position: i})
     }
-    show.value = false
-    emit('created')
-  } catch {
-    emit('error')
-  } finally {
-    saving.value = false
   }
+  show.value = false
+  emit('created')
+  return true
+})
+
+async function submit() {
+  const ok = await runCreate()
+  if (!ok) emit('error')
 }
 </script>
 

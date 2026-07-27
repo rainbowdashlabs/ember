@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -26,6 +26,7 @@ import type { Board, LanePresetName } from '@/api/boards'
 import { LanePreset } from '@/api/boards'
 import { useConfirmDelete } from '@/composables/useConfirmDelete'
 import { useConfigPanel } from '@/composables/useConfigPanel'
+import { useAsyncAction } from '@/composables/useAsyncAction'
 const { t } = useI18n()
 const router = useRouter()
 
@@ -39,7 +40,7 @@ const createName = ref('')
 const createDescription = ref('')
 const createShortKey = ref('')
 const createPreset = ref<LanePresetName | ''>(LanePreset.SIMPLE)
-const createError = ref('')
+const createValidationError = ref('')
 
 const {
     show: showDeleteModal,
@@ -52,28 +53,30 @@ const {
     error,
 })
 
-async function handleCreate() {
-    createError.value = ''
+const {error: createApiError, run: runCreate} = useAsyncAction(async () => {
+    const board = await boards.createBoard({
+        name: createName.value.trim(),
+        description: createDescription.value.trim() || undefined,
+        shortKey: createShortKey.value.trim().toUpperCase(),
+        preset: createPreset.value || undefined,
+    })
+    showCreateModal.value = false
+    createName.value = ''
+    createDescription.value = ''
+    createShortKey.value = ''
+    createPreset.value = LanePreset.SIMPLE
+    await router.push(`/station/boards/${board.shortKey}`)
+}, {formatError: () => t('common.error')})
+
+const createError = computed(() => createValidationError.value || createApiError.value)
+
+function handleCreate() {
+    createValidationError.value = ''
     if (!createName.value.trim() || !createShortKey.value.trim()) {
-        createError.value = t('common.requiredField')
+        createValidationError.value = t('common.requiredField')
         return
     }
-    try {
-        const board = await boards.createBoard({
-            name: createName.value.trim(),
-            description: createDescription.value.trim() || undefined,
-            shortKey: createShortKey.value.trim().toUpperCase(),
-            preset: createPreset.value || undefined,
-        })
-        showCreateModal.value = false
-        createName.value = ''
-        createDescription.value = ''
-        createShortKey.value = ''
-        createPreset.value = LanePreset.SIMPLE
-        await router.push(`/station/boards/${board.shortKey}`)
-    } catch {
-        createError.value = t('common.error')
-    }
+    void runCreate()
 }
 
 </script>

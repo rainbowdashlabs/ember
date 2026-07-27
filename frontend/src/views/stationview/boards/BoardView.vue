@@ -33,6 +33,7 @@ import { TicketPriority } from '@/api/boards'
 import { priorityIcon, priorityColor } from '@/util/ticketPriority'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { useAsyncAction } from '@/composables/useAsyncAction'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -55,7 +56,7 @@ const createLaneId = ref('')
 const createPriority = ref<TicketPriorityName>(TicketPriority.MEDIUM)
 const createAssignee = ref('')
 const createDueDate = ref('')
-const createError = ref('')
+const createValidationError = ref('')
 const searchQuery = ref('')
 const searchResults = ref<BoardTicket[] | null>(null)
 const searching = ref(false)
@@ -142,31 +143,33 @@ const assignees = computed(() => {
     const i = list.findIndex(m => m.memberUid === sessionInfo.value?.member?.uid)
     return i <= 0 ? list : [list[i], ...list.slice(0, i), ...list.slice(i + 1)]
 })
-async function handleCreateTicket() {
-    createError.value = ''
+const {error: createApiError, run: runCreateTicket} = useAsyncAction(async () => {
+    const created = await boards.createTicket(boardKey.value, {
+        laneId: Number(createLaneId.value),
+        title: createTitle.value.trim(),
+        description: createDescription.value.trim() || undefined,
+        priority: createPriority.value,
+        assignedMemberId: createAssignee.value ? Number(createAssignee.value) : undefined,
+        dueDate: createDueDate.value || undefined,
+    })
+    showCreateModal.value = false
+    createTitle.value = ''
+    createDescription.value = ''
+    createPriority.value = TicketPriority.MEDIUM
+    createAssignee.value = ''
+    createDueDate.value = ''
+    router.push(`/station/boards/${boardKey.value}/tickets/${created.ticketNumber}`)
+}, {formatError: () => t('common.error')})
+
+const createError = computed(() => createValidationError.value || createApiError.value)
+
+function handleCreateTicket() {
+    createValidationError.value = ''
     if (!createTitle.value.trim()) {
-        createError.value = t('common.requiredField')
+        createValidationError.value = t('common.requiredField')
         return
     }
-    try {
-        const created = await boards.createTicket(boardKey.value, {
-            laneId: Number(createLaneId.value),
-            title: createTitle.value.trim(),
-            description: createDescription.value.trim() || undefined,
-            priority: createPriority.value,
-            assignedMemberId: createAssignee.value ? Number(createAssignee.value) : undefined,
-            dueDate: createDueDate.value || undefined,
-        })
-        showCreateModal.value = false
-        createTitle.value = ''
-        createDescription.value = ''
-        createPriority.value = TicketPriority.MEDIUM
-        createAssignee.value = ''
-        createDueDate.value = ''
-        router.push(`/station/boards/${boardKey.value}/tickets/${created.ticketNumber}`)
-    } catch {
-        createError.value = t('common.error')
-    }
+    void runCreateTicket()
 }
 
 function toggleAssigneeFilter(memberUid: string) {
@@ -186,7 +189,7 @@ function onSearchInput() {
         searching.value = true
         try {
             searchResults.value = await boards.searchTickets(boardKey.value, searchQuery.value.trim())
-        } catch { /* ignore */ }
+        } catch { void 0 }
         finally { searching.value = false }
     }, 300)
 }
@@ -199,8 +202,6 @@ function laneName(laneId: number): string {
     return lanes.value.find(l => l.id === laneId)?.name ?? ''
 }
 
-
-// -- Drag and drop --
 const dragTicket = ref<BoardTicket | null>(null)
 const dropLaneId = ref<number | null>(null)
 const dropPosition = ref<number | null>(null)
@@ -243,10 +244,8 @@ async function onLaneDrop(laneId: number) {
     dropLaneId.value = null
     dropPosition.value = null
 
-    // Optimistic update: apply changes locally first to avoid flicker
     const otherTickets = tickets.value.filter(t => t.laneId === laneId && t.id !== ticket.id).sort((a, b) => a.position - b.position)
     otherTickets.splice(pos, 0, ticket)
-    // Update positions and lane assignment in local state
     const updatedTicket = { ...ticket, laneId, laneEnteredAt: ticket.laneId !== laneId ? new Date().toISOString() : ticket.laneEnteredAt }
     tickets.value = tickets.value.filter(t => t.id !== ticket.id).map(t => {
         const idx = otherTickets.findIndex(ot => ot.id === t.id)

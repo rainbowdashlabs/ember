@@ -20,6 +20,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { useAsyncAction } from '@/composables/useAsyncAction'
 import type { QuizCategory, QuizQuestionTypeName } from '@/api/types'
 import { QuizQuestionTypes } from '@/api/types'
 import { quiz, ai, util } from '@/api'
@@ -39,13 +40,11 @@ const catalogId = computed(() => Number(route.params.id))
 const categories = ref<QuizCategory[]>([])
 const catalogName = ref('')
 
-// CSV parsing
 const csvFile = ref<File | null>(null)
 const headers = ref<string[]>([])
 const rows = ref<string[][]>([])
 const separator = ref(',')
 
-// Column mappings
 const questionCol = ref('')
 const answerCol = ref('')
 const categoryCol = ref('')
@@ -56,14 +55,12 @@ const defaultType = ref<QuizQuestionTypeName>(QuizQuestionTypes.MULTIPLE_CHOICE)
 
 const questions = ref<ImportQuestion[]>([])
 
-// AI wrong answer generation
 const generateWrongAnswers = ref(false)
 const wrongAnswerCount = ref(3)
 const aiPrompt = ref('')
 const aiStatus = ref('')
 const hasAiKey = computed(() => !!(getItem('ai_api_key')))
 
-// Import state
 const importing = ref(false)
 const importProgress = ref(0)
 const importDone = ref(false)
@@ -93,8 +90,6 @@ const { loading, error, reload: loadData } = useAsyncLoader(async () => {
   categories.value = detail.categories
 }, { autoLoad: false })
 
-const parsing = ref(false)
-
 async function onFileSelected(file: File) {
   csvFile.value = file
   error.value = ''
@@ -102,28 +97,24 @@ async function onFileSelected(file: File) {
   await parseCsvFromBackend()
 }
 
-async function parseCsvFromBackend() {
-  if (!csvFile.value) return
-  parsing.value = true
-  error.value = ''
-  try {
-    const result = await util.parseCsv(csvFile.value, separator.value)
-    headers.value = result.headers
-    rows.value = result.rows
-    if (headers.value.length > 0) {
-      questionCol.value = headers.value[0]
-      answerCol.value = headers.value.length > 1 ? headers.value[1] : ''
-      categoryCol.value = ''
-      typeCol.value = ''
-      pointsCol.value = ''
-    }
-    rebuildQuestions()
-  } catch {
-    error.value = 'CSV konnte nicht gelesen werden.'
-  } finally {
-    parsing.value = false
-  }
-}
+const {error: parseError, run: parseCsvFromBackend} = useAsyncAction(
+    async () => {
+      if (!csvFile.value) return
+      error.value = ''
+      const result = await util.parseCsv(csvFile.value, separator.value)
+      headers.value = result.headers
+      rows.value = result.rows
+      if (headers.value.length > 0) {
+        questionCol.value = headers.value[0]
+        answerCol.value = headers.value.length > 1 ? headers.value[1] : ''
+        categoryCol.value = ''
+        typeCol.value = ''
+        pointsCol.value = ''
+      }
+      rebuildQuestions()
+    },
+    {formatError: () => 'CSV konnte nicht gelesen werden.'},
+)
 
 function colIndex(name: string): number {
   return headers.value.indexOf(name)
@@ -318,7 +309,9 @@ async function doImport() {
               options.push({ text: wrong, correct: false })
             }
             await quiz.updateQuestion(questionId, { config: { ...existingConfig, options } })
-          } catch { /* skip AI errors */ }
+          } catch {
+            continue
+          }
         }
         aiStatus.value = ''
       }
@@ -351,7 +344,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
     </div>
 
     <Spinner v-if="loading" />
-    <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
+    <Alert v-if="error || parseError" variant="error" class="mb-4">{{ error || parseError }}</Alert>
     <Alert v-if="importDone" variant="success" class="mb-4">
       {{ t('quiz.csv.importSuccess', { count: importCount }) }}
     </Alert>

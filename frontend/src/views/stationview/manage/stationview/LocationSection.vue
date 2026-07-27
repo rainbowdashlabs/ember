@@ -18,6 +18,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import LocationPicker from '@/components/map/LocationPicker.vue'
 import GeolocateButton from '@/components/map/GeolocateButton.vue'
 import {stationManage} from '@/api'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 
 const emit = defineEmits<{
   (e: 'error', message: string): void
@@ -35,7 +36,6 @@ const longitude = ref<number | null>(null)
 const localError = ref('')
 
 const loading = ref(true)
-const saving = ref(false)
 
 const picker = ref<InstanceType<typeof LocationPicker> | null>(null)
 
@@ -99,22 +99,20 @@ async function save() {
   }
 }
 
+const {running: clearing, error: clearError, run: runClear} = useAsyncAction(async () => {
+  await stationManage.clearStationLocation()
+  addressLine.value = ''
+  postalCode.value = ''
+  city.value = ''
+  country.value = ''
+  latitude.value = null
+  longitude.value = null
+  emit('success', t('geolocation.cleared'))
+})
+
 async function clear() {
-  saving.value = true
-  try {
-    await stationManage.clearStationLocation()
-    addressLine.value = ''
-    postalCode.value = ''
-    city.value = ''
-    country.value = ''
-    latitude.value = null
-    longitude.value = null
-    emit('success', t('geolocation.cleared'))
-  } catch {
-    emit('error', t('common.error'))
-  } finally {
-    saving.value = false
-  }
+  await runClear()
+  if (clearError.value) emit('error', clearError.value)
 }
 
 async function onLocated(lat: number, lng: number) {
@@ -174,7 +172,7 @@ onMounted(load)
       </LocationPicker>
 
       <div class="flex flex-wrap gap-2 justify-end pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">
-        <DeleteButton :disabled="saving" @click="clear">
+        <DeleteButton :disabled="clearing" @click="clear">
           {{ t('geolocation.clear') }}
         </DeleteButton>
         <SaveButton :action="save"/>

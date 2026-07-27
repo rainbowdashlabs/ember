@@ -24,6 +24,7 @@ import { TicketPriority } from '@/api/boards'
 import type { TicketPriorityName, LinkTypeName } from '@/api/boards'
 import { LinkType } from '@/api/boards'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { useAsyncAction } from '@/composables/useAsyncAction'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -37,7 +38,6 @@ const members = ref<MemberCompletion[]>([])
 const allLabels = ref<BoardLabel[]>([])
 
 const allTickets = ref<TicketOption[]>([])
-const submitting = ref(false)
 
 const title = ref('')
 const description = ref('')
@@ -155,45 +155,42 @@ const {loading, error} = useAsyncLoader(async () => {
     }
 })
 
-async function handleSubmit() {
+const {running: submitting, error: submitError, run: runSubmit} = useAsyncAction(async () => {
+    const created = await boards.createTicket(boardKey.value, {
+        laneId: Number(laneId.value),
+        title: title.value.trim(),
+        description: description.value.trim() || undefined,
+        priority: priority.value,
+        assignedMemberId: assignee.value ? Number(assignee.value) : undefined,
+        dueDate: dueDate.value || undefined,
+    })
+    const ticketNumber = created.ticketNumber
+
+    const ops: Promise<unknown>[] = []
+    for (const item of checklistItems.value) {
+        ops.push(boards.addChecklistItem(boardKey.value, ticketNumber, { title: item.title }))
+    }
+    for (const labelId of selectedLabelIds.value) {
+        ops.push(boards.addTicketLabel(boardKey.value, ticketNumber, labelId))
+    }
+    for (const wl of weblinks.value) {
+        ops.push(boards.addWeblink(boardKey.value, ticketNumber, { url: wl.url, title: wl.title || undefined }))
+    }
+    for (const link of ticketLinks.value) {
+        ops.push(boards.createLink(boardKey.value, ticketNumber, { linkedTicketId: link.linkedTicketId, linkType: link.linkType }))
+    }
+
+    await Promise.all(ops)
+    await router.push(`/station/boards/${boardKey.value}/tickets/${ticketNumber}`)
+}, {formatError: () => t('common.error')})
+
+function handleSubmit() {
     if (!title.value.trim()) {
         error.value = t('common.requiredField')
         return
     }
-    submitting.value = true
     error.value = ''
-    try {
-        const created = await boards.createTicket(boardKey.value, {
-            laneId: Number(laneId.value),
-            title: title.value.trim(),
-            description: description.value.trim() || undefined,
-            priority: priority.value,
-            assignedMemberId: assignee.value ? Number(assignee.value) : undefined,
-            dueDate: dueDate.value || undefined,
-        })
-        const ticketNumber = created.ticketNumber
-
-        const ops: Promise<unknown>[] = []
-        for (const item of checklistItems.value) {
-            ops.push(boards.addChecklistItem(boardKey.value, ticketNumber, { title: item.title }))
-        }
-        for (const labelId of selectedLabelIds.value) {
-            ops.push(boards.addTicketLabel(boardKey.value, ticketNumber, labelId))
-        }
-        for (const wl of weblinks.value) {
-            ops.push(boards.addWeblink(boardKey.value, ticketNumber, { url: wl.url, title: wl.title || undefined }))
-        }
-        for (const link of ticketLinks.value) {
-            ops.push(boards.createLink(boardKey.value, ticketNumber, { linkedTicketId: link.linkedTicketId, linkType: link.linkType }))
-        }
-
-        await Promise.all(ops)
-        await router.push(`/station/boards/${boardKey.value}/tickets/${ticketNumber}`)
-    } catch {
-        error.value = t('common.error')
-    } finally {
-        submitting.value = false
-    }
+    void runSubmit()
 }
 
 function goBack() {
@@ -246,7 +243,7 @@ function goBack() {
                     :members="members"
                     :all-labels="allLabels"
                     :selected-labels="selectedLabels"
-                    :error="error"
+                    :error="error || submitError"
                     :submitting="submitting"
                     :cancel-to="`/station/boards/${board.shortKey}`"
                     @toggle-label="toggleLabel"

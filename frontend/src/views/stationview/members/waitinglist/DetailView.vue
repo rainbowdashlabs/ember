@@ -26,7 +26,9 @@ import { useBreakpoint } from '@/composables/useBreakpoint'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useConfirmAction } from '@/composables/useConfirmAction'
+import { useFlashMessage } from '@/composables/useFlashMessage'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -47,15 +49,13 @@ const entries = ref<WaitingListEntryWithScore[]>([])
 const invites = ref<WaitingListInvite[]>([])
 const fields = ref<WaitingListField[]>([])
 const groups = ref<MemberGroup[]>([])
-const success = ref('')
+const { message: success, flash } = useFlashMessage(3000)
 
 const showInviteModal = ref(false)
 const inviteMaxUses = ref<number | undefined>(undefined)
 const inviteExpiresAt = ref('')
-const creatingInvite = ref(false)
 
 const showDeleteModal = ref(false)
-const deletingList = ref(false)
 
 type TransitionKind = 'invite' | 'testing' | 'join' | 'approve' | 'reject' | 'withdraw'
 
@@ -65,7 +65,6 @@ interface PendingTransition {
 }
 
 const pendingTransition = ref<PendingTransition | null>(null)
-const runningTransition = ref(false)
 
 const sortedEntries = computed(() =>
   [...entries.value].sort((a, b) => b.score - a.score),
@@ -154,22 +153,15 @@ function openInviteModal() {
   showInviteModal.value = true
 }
 
-async function createInvite() {
-  creatingInvite.value = true
+const { running: creatingInvite, error: createInviteError, run: createInvite } = useAsyncAction(async () => {
   error.value = ''
-  try {
-    await waitingList.createInvite(listId.value, {
-      maxUses: inviteMaxUses.value || undefined,
-      expiresAt: inviteExpiresAt.value || undefined,
-    })
-    invites.value = await waitingList.listInvites(listId.value)
-    showInviteModal.value = false
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    creatingInvite.value = false
-  }
-}
+  await waitingList.createInvite(listId.value, {
+    maxUses: inviteMaxUses.value || undefined,
+    expiresAt: inviteExpiresAt.value || undefined,
+  })
+  invites.value = await waitingList.listInvites(listId.value)
+  showInviteModal.value = false
+})
 
 async function deleteInvite(inviteId: number) {
   error.value = ''
@@ -184,8 +176,7 @@ async function deleteInvite(inviteId: number) {
 async function copyInviteLink(code: string) {
   const url = `${window.location.origin}/waiting-list/register?code=${code}`
   await navigator.clipboard.writeText(url)
-  success.value = t('waitingList.linkCopied')
-  setTimeout(() => { success.value = '' }, 3000)
+  flash(t('waitingList.linkCopied'))
 }
 
 function navigateToCreateEntry() {
@@ -204,41 +195,34 @@ const doApproveEntry = (id: number) => requestTransition(id, 'approve')
 const doRejectEntry = (id: number) => requestTransition(id, 'reject')
 const doWithdrawEntry = (id: number) => requestTransition(id, 'withdraw')
 
-async function confirmTransition() {
-  if (!pendingTransition.value || runningTransition.value) return
+const { running: runningTransition, error: transitionError, run: confirmTransition } = useAsyncAction(async () => {
+  if (!pendingTransition.value) return
   const { entry, kind } = pendingTransition.value
   const entryId = entry.entry.id
-  runningTransition.value = true
   error.value = ''
-  try {
-    if (kind === 'invite') {
-      await waitingList.inviteEntry(listId.value, entryId)
-    } else if (kind === 'testing') {
-      await waitingList.moveToTesting(listId.value, entryId)
-    } else if (kind === 'join') {
-      const result = await waitingList.moveToJoined(listId.value, entryId)
-      refreshSidebarCounts()
-      pendingTransition.value = null
-      if (result.memberId && hasPermission(StationPermission.MEMBER_EDIT)) {
-        router.push({ name: 'members-edit', params: { id: result.memberId } })
-        return
-      }
-    } else if (kind === 'approve') {
-      await waitingList.approveEntry(listId.value, entryId)
-    } else if (kind === 'reject') {
-      await waitingList.rejectEntry(listId.value, entryId)
-    } else if (kind === 'withdraw') {
-      await waitingList.withdrawEntry(listId.value, entryId)
-    }
-    entries.value = await waitingList.listEntries(listId.value)
+  if (kind === 'invite') {
+    await waitingList.inviteEntry(listId.value, entryId)
+  } else if (kind === 'testing') {
+    await waitingList.moveToTesting(listId.value, entryId)
+  } else if (kind === 'join') {
+    const result = await waitingList.moveToJoined(listId.value, entryId)
     refreshSidebarCounts()
     pendingTransition.value = null
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    runningTransition.value = false
+    if (result.memberId && hasPermission(StationPermission.MEMBER_EDIT)) {
+      router.push({ name: 'members-edit', params: { id: result.memberId } })
+      return
+    }
+  } else if (kind === 'approve') {
+    await waitingList.approveEntry(listId.value, entryId)
+  } else if (kind === 'reject') {
+    await waitingList.rejectEntry(listId.value, entryId)
+  } else if (kind === 'withdraw') {
+    await waitingList.withdrawEntry(listId.value, entryId)
   }
-}
+  entries.value = await waitingList.listEntries(listId.value)
+  refreshSidebarCounts()
+  pendingTransition.value = null
+})
 
 const {
   show: showDeleteEntryModal,
@@ -270,26 +254,22 @@ function goBack() {
   router.push({ name: 'waiting-lists' })
 }
 
-async function confirmDeleteList() {
-  deletingList.value = true
+const { running: deletingList, error: deleteListError, run: confirmDeleteList } = useAsyncAction(async () => {
   error.value = ''
-  try {
-    await waitingList.deleteList(listId.value)
-    router.push({ name: 'waiting-lists' })
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    deletingList.value = false
-  }
-}
+  await waitingList.deleteList(listId.value)
+  router.push({ name: 'waiting-lists' })
+})
+
+const actionError = computed(() =>
+  createInviteError.value || transitionError.value || deleteListError.value,
+)
 
 function handleListUpdated(updated: WaitingList) {
   list.value = updated
 }
 
 function showSuccessMessage(msg: string) {
-  success.value = msg
-  setTimeout(() => { success.value = '' }, 3000)
+  flash(msg)
 }
 
 function showErrorMessage(msg: string) {
@@ -313,7 +293,7 @@ function showErrorMessage(msg: string) {
       />
 
       <Spinner v-if="loading" size="lg" />
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <Alert v-if="error || actionError" variant="error">{{ error || actionError }}</Alert>
       <Alert v-if="success" variant="success">{{ success }}</Alert>
 
       <LoadedSections

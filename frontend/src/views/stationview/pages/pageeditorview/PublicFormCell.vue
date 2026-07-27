@@ -16,6 +16,7 @@ import EmptyHint from '@/components/typography/EmptyHint.vue'
 import {publicForms} from '@/api'
 import type {PublicForm, PublicFormQuestion} from '@/api/publicForms'
 import {QuestionTypes} from '@/api/types'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 
 const props = defineProps<{
   stationUid: string | null
@@ -30,7 +31,6 @@ const props = defineProps<{
 const {t} = useI18n()
 
 const loading = ref(false)
-const submitting = ref(false)
 const submitted = ref(false)
 const error = ref('')
 const form = ref<PublicForm | null>(null)
@@ -79,28 +79,24 @@ function toggleChoice(q: PublicFormQuestion, optionIndex: number) {
   }
 }
 
-async function submit() {
+const {running: submitting, error: submitError, run: submit} = useAsyncAction(async () => {
   if (!form.value || !props.stationUid || !props.formPublicUid) return
-  submitting.value = true
-  error.value = ''
-  try {
-    const answerMap: Record<number, Record<string, unknown>> = {}
-    for (const q of form.value.questions) {
-      const value = answers.value[q.id]
-      if (value === undefined) continue
-      answerMap[q.id] = {type: q.questionType, ...value}
-    }
-    await publicForms.submitPublicResponse(props.stationUid, props.formPublicUid, {answers: answerMap})
-    submitted.value = true
-  } catch (e: unknown) {
-    const status = (e as {response?: {status?: number}}).response?.status
-    if (status === 409) error.value = t('publicForm.alreadyAnswered')
-    else if (status === 429) error.value = t('publicForm.rateLimited')
-    else error.value = t('publicForm.submitError')
-  } finally {
-    submitting.value = false
+  const answerMap: Record<number, Record<string, unknown>> = {}
+  for (const q of form.value.questions) {
+    const value = answers.value[q.id]
+    if (value === undefined) continue
+    answerMap[q.id] = {type: q.questionType, ...value}
   }
-}
+  await publicForms.submitPublicResponse(props.stationUid, props.formPublicUid, {answers: answerMap})
+  submitted.value = true
+}, {
+  formatError: e => {
+    const status = (e as {response?: {status?: number}}).response?.status
+    if (status === 409) return t('publicForm.alreadyAnswered')
+    if (status === 429) return t('publicForm.rateLimited')
+    return t('publicForm.submitError')
+  },
+})
 
 onMounted(load)
 watch(() => [props.stationUid, props.formPublicUid], load)
@@ -123,7 +119,7 @@ watch(() => [props.stationUid, props.formPublicUid], load)
                 <p v-if="form.description" class="text-sm text-(--text-muted)">{{ form.description }}</p>
             </div>
 
-            <Alert v-if="error" variant="error">{{ error }}</Alert>
+            <Alert v-if="error || submitError" variant="error">{{ error || submitError }}</Alert>
 
             <template v-if="!submitted">
                 <div v-for="q in form.questions" :key="q.id" class="space-y-2">

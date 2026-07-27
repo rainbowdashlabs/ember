@@ -18,6 +18,7 @@ import {stationMembers} from '@/api'
 import type {PermissionGrant} from '@/api/types'
 import {StationUserType} from '@/api/types'
 import {useSetupStatus} from '@/composables/useSetupStatus'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import {nextStep, stepRouteName} from '@/views/stationview/setup/steps'
 
 const {t} = useI18n()
@@ -49,7 +50,6 @@ const allRoles = ref<PermissionGrant[]>([])
 const permissionCache = reactive<Record<string, Set<number>>>({})
 const selectedType = ref<string>(StationUserType.MEMBER)
 const loading = ref(true)
-const saving = ref(false)
 const error = ref('')
 
 const selectedIds = computed<Set<number>>({
@@ -94,16 +94,11 @@ async function onPermissionChange(newIds: Set<number>) {
     }
 }
 
-async function proceed() {
-    saving.value = true
-    try {
-        await reload()
-        const next = nextStep('member-types')
-        if (next) router.push({name: stepRouteName(next)})
-    } finally {
-        saving.value = false
-    }
-}
+const {running: saving, run: proceed} = useAsyncAction(async () => {
+    await reload()
+    const next = nextStep('member-types')
+    if (next) router.push({name: stepRouteName(next)})
+})
 </script>
 
 <template>

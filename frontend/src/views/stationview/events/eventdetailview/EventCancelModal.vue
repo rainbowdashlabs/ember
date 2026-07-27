@@ -7,10 +7,12 @@
 import {ref, computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
+import Alert from '@/components/feedback/Alert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import {events} from '@/api'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 
 const props = defineProps<{
   show: boolean
@@ -28,18 +30,12 @@ const visible = computed({
   set: (v: boolean) => { if (!v) emit('close') },
 })
 const cancelReason = ref('')
-const cancelling = ref(false)
 
-async function cancelEvent() {
-  cancelling.value = true
-  try {
-    await events.cancelEvent(props.eventId, cancelReason.value || undefined)
-    cancelReason.value = ''
-    emit('cancelled')
-  } finally {
-    cancelling.value = false
-  }
-}
+const {running: cancelling, error: cancelError, run: cancelEvent} = useAsyncAction(async () => {
+  await events.cancelEvent(props.eventId, cancelReason.value || undefined)
+  cancelReason.value = ''
+  emit('cancelled')
+})
 </script>
 
 <template>
@@ -48,6 +44,7 @@ async function cancelEvent() {
     <div class="space-y-4">
       <p>{{ t('events.cancelConfirm') }}</p>
       <TextAreaInput v-model="cancelReason" :placeholder="t('events.cancelReason')" :rows="3"/>
+      <Alert v-if="cancelError" variant="error">{{ cancelError }}</Alert>
       <div class="flex justify-end gap-2">
         <SecondaryButton @click="emit('close')">{{ t('common.cancel') }}</SecondaryButton>
         <ErrorButton :disabled="cancelling" @click="cancelEvent">

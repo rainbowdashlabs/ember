@@ -30,6 +30,8 @@ import type {ContainerDetail, ContainerCheckItemResult, ItemLastCheck, Inventory
 import type {InventoryItem} from '@/api/types'
 import {formatDate} from '@/util/format'
 import {containerPathFor} from '@/util/containerPath'
+import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useFlashMessage} from '@/composables/useFlashMessage'
 
 interface ExpectedRow {
   item: InventoryItem
@@ -54,9 +56,9 @@ const deep = ref(false)
 const loading = ref(true)
 const error = ref('')
 const scanValue = ref('')
-const submitting = ref(false)
 const finishedCheck = ref<unknown | null>(null)
-const scanFlash = ref('')
+const {message: scanFlash, flash: flashScan} = useFlashMessage()
+const {message: scanError, flash: flashScanError} = useFlashMessage(3000)
 const walkIdx = ref(0)
 
 const containerById = computed(() => {
@@ -162,11 +164,6 @@ async function onCameraScan(value: string) {
   await handleScan()
 }
 
-function flashScan(msg: string) {
-  scanFlash.value = msg
-  setTimeout(() => (scanFlash.value = ''), 2500)
-}
-
 async function handleScan() {
   const term = scanValue.value.trim()
   if (!term) return
@@ -191,10 +188,8 @@ async function handleScan() {
       return
     }
   } catch {
-    // fall through
   }
-  error.value = t('inventory.checkContainer.scanNoMatch', {scan: term})
-  setTimeout(() => (error.value = ''), 3000)
+  flashScanError(t('inventory.checkContainer.scanNoMatch', {scan: term}), 'error')
 }
 
 function markMissing(row: ExpectedRow) {
@@ -221,39 +216,33 @@ function prevContainer() {
   if (walkIdx.value > 0) walkIdx.value--
 }
 
-async function finishCheck() {
+const {running: submitting, error: finishError, run: finishCheck} = useAsyncAction(async () => {
   if (!detail.value) return
-  submitting.value = true
-  error.value = ''
-  try {
-    const items: ContainerCheckItemResult[] = []
-    for (const row of expectedRows.value) {
-      const resolved = row.result === 'PENDING' ? 'NOT_IN_POSSESSION' : row.result
-      items.push({
-        itemId: row.item.id,
-        inventoryId: row.item.inventoryId,
-        result: resolved,
-        note: '',
-      })
-    }
-    for (const extra of extraRows.value) {
-      items.push({
-        itemId: extra.item.id,
-        inventoryId: extra.item.inventoryId,
-        result: 'EXTRA',
-        note: '',
-      })
-    }
-    finishedCheck.value = await inventoryContainers.completeContainerCheck(containerId.value, {
-      deep: deep.value,
-      items,
+  const items: ContainerCheckItemResult[] = []
+  for (const row of expectedRows.value) {
+    const resolved = row.result === 'PENDING' ? 'NOT_IN_POSSESSION' : row.result
+    items.push({
+      itemId: row.item.id,
+      inventoryId: row.item.inventoryId,
+      result: resolved,
+      note: '',
     })
-  } catch (e: any) {
-    error.value = e?.response?.data?.message ?? t('inventory.checkContainer.completeError')
-  } finally {
-    submitting.value = false
   }
-}
+  for (const extra of extraRows.value) {
+    items.push({
+      itemId: extra.item.id,
+      inventoryId: extra.item.inventoryId,
+      result: 'EXTRA',
+      note: '',
+    })
+  }
+  finishedCheck.value = await inventoryContainers.completeContainerCheck(containerId.value, {
+    deep: deep.value,
+    items,
+  })
+}, {formatError: (e: any) => e?.response?.data?.message ?? t('inventory.checkContainer.completeError')})
+
+const displayError = computed(() => scanError.value || finishError.value || error.value)
 
 function backToOverview() {
   router.push({name: 'inventory-check-container-overview'})
@@ -288,8 +277,8 @@ onMounted(load)
         </label>
       </div>
 
-      <div v-if="error" class="mb-4">
-        <Alert variant="error">{{ error }}</Alert>
+      <div v-if="displayError" class="mb-4">
+        <Alert variant="error">{{ displayError }}</Alert>
       </div>
 
       <NeutralContainer v-if="finishedCheck" class="mb-4">

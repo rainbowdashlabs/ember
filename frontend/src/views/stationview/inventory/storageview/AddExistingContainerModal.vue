@@ -16,6 +16,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import {mapContainerError} from '@/views/stationview/inventory/storageview/containerErrors'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import {inventoryContainers} from '@/api'
 import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
 
@@ -34,8 +35,7 @@ const {t} = useI18n()
 
 const open = ref(true)
 const search = ref('')
-const submitting = ref(false)
-const error = ref('')
+const scanError = ref('')
 const movedIds = ref<Set<number>>(new Set())
 
 const descendantIds = ref<Set<number>>(new Set())
@@ -85,24 +85,26 @@ async function loadDescendants() {
   }
 }
 
+const {running: submitting, error: moveError, run: runMove, clearError: clearMoveError} = useAsyncAction(
+    async (c: InventoryContainer) => {
+      await inventoryContainers.updateContainer(c.id, {
+        parentId: props.targetContainerId,
+        internalId: c.internalId ?? null,
+        name: c.name,
+        kindId: c.kindId,
+        description: c.description ?? '',
+      })
+      movedIds.value.add(c.id)
+      emit('moved')
+    },
+    {formatError: (e) => mapContainerError(t, e, 'inventory.storage.addExisting.moveFailed')},
+)
+
+const error = computed(() => scanError.value || moveError.value)
+
 async function moveHere(c: InventoryContainer) {
-  submitting.value = true
-  error.value = ''
-  try {
-    await inventoryContainers.updateContainer(c.id, {
-      parentId: props.targetContainerId,
-      internalId: c.internalId ?? null,
-      name: c.name,
-      kindId: c.kindId,
-      description: c.description ?? '',
-    })
-    movedIds.value.add(c.id)
-    emit('moved')
-  } catch (e: any) {
-    error.value = mapContainerError(t, e, 'inventory.storage.addExisting.moveFailed')
-  } finally {
-    submitting.value = false
-  }
+  scanError.value = ''
+  await runMove(c)
 }
 
 function isEligible(c: InventoryContainer): boolean {
@@ -115,22 +117,23 @@ function isEligible(c: InventoryContainer): boolean {
 async function onScan(value: string) {
   const term = normaliseScannedPayload(value).trim()
   if (!term || submitting.value) return
-  error.value = ''
+  scanError.value = ''
+  clearMoveError()
   const container = await inventoryContainers.resolveContainerByScan(term)
   if (!container) {
-    error.value = t('inventory.storage.addExisting.scanNotFound', {scan: term})
+    scanError.value = t('inventory.storage.addExisting.scanNotFound', {scan: term})
     return
   }
   if (container.id === props.targetContainerId) {
-    error.value = t('inventory.storage.scan.selfTarget')
+    scanError.value = t('inventory.storage.scan.selfTarget')
     return
   }
   if (container.parentId === props.targetContainerId) {
-    error.value = t('inventory.storage.scan.containerAlreadyHere', {name: container.name})
+    scanError.value = t('inventory.storage.scan.containerAlreadyHere', {name: container.name})
     return
   }
   if (!isEligible(container)) {
-    error.value = t('inventory.storage.addExisting.scanIneligible', {name: container.name})
+    scanError.value = t('inventory.storage.addExisting.scanIneligible', {name: container.name})
     return
   }
   await moveHere(container)

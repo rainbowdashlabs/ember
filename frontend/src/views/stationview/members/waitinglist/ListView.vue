@@ -18,6 +18,7 @@ import type { WaitingListWithCount } from '@/api/types'
 import { StationPermission } from '@/api/types'
 import { waitingList } from '@/api'
 import { useSession } from '@/composables/useSession'
+import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useConfigPanel } from '@/composables/useConfigPanel'
 
 const { t } = useI18n()
@@ -33,7 +34,6 @@ const { config: lists, loading, error } = useConfigPanel<WaitingListWithCount[]>
 const showCreateModal = ref(false)
 const newName = ref('')
 const newDescription = ref('')
-const creating = ref(false)
 
 function openCreate() {
   newName.value = ''
@@ -41,23 +41,16 @@ function openCreate() {
   showCreateModal.value = true
 }
 
-async function createList() {
+const { running: creating, error: createError, run: createList } = useAsyncAction(async () => {
   if (!newName.value.trim()) return
-  creating.value = true
   error.value = ''
-  try {
-    const created = await waitingList.create({
-      name: newName.value.trim(),
-      description: newDescription.value.trim(),
-    })
-    showCreateModal.value = false
-    router.push({ name: 'waiting-list-detail', params: { id: created.id } })
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    creating.value = false
-  }
-}
+  const created = await waitingList.create({
+    name: newName.value.trim(),
+    description: newDescription.value.trim(),
+  })
+  showCreateModal.value = false
+  router.push({ name: 'waiting-list-detail', params: { id: created.id } })
+})
 
 function navigateToDetail(id: number) {
   router.push({ name: 'waiting-list-detail', params: { id } })
@@ -77,7 +70,7 @@ function navigateToDetail(id: number) {
       </div>
 
       <Spinner v-if="loading" size="lg" />
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <Alert v-if="error || createError" variant="error">{{ error || createError }}</Alert>
 
       <template v-if="!loading">
         <EmptyState v-if="lists.length === 0">{{ t('waitingList.noLists') }}</EmptyState>

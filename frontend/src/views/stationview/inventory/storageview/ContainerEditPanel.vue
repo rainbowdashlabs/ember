@@ -19,6 +19,7 @@ import {mapContainerError} from '@/views/stationview/inventory/storageview/conta
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import {inventoryContainers} from '@/api'
 import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 
 const props = defineProps<{
   container: InventoryContainer
@@ -39,7 +40,6 @@ const internalId = ref(props.container.internalId ?? '')
 const description = ref(props.container.description ?? '')
 const kindId = ref<number | null>(props.container.kindId ?? null)
 const parentId = ref<number | null>(props.container.parentId ?? null)
-const submitting = ref(false)
 const kindPicker = ref<InstanceType<typeof ContainerKindPicker> | null>(null)
 
 watch(() => props.container, (c) => {
@@ -50,23 +50,21 @@ watch(() => props.container, (c) => {
   parentId.value = c.parentId ?? null
 }, {deep: true})
 
+const {running: submitting, error: saveError, run: runSave} = useAsyncAction(async () => {
+  const resolvedKindId = (await kindPicker.value?.resolve()) ?? null
+  await inventoryContainers.updateContainer(props.container.id, {
+    parentId: parentId.value,
+    internalId: internalId.value.trim() || null,
+    name: name.value.trim(),
+    kindId: resolvedKindId,
+    description: description.value,
+  })
+  emit('saved')
+}, {formatError: (e: any) => mapContainerError(t, e, 'inventory.storage.errors.updateFailed')})
+
 async function save() {
-  submitting.value = true
-  try {
-    const resolvedKindId = (await kindPicker.value?.resolve()) ?? null
-    await inventoryContainers.updateContainer(props.container.id, {
-      parentId: parentId.value,
-      internalId: internalId.value.trim() || null,
-      name: name.value.trim(),
-      kindId: resolvedKindId,
-      description: description.value,
-    })
-    emit('saved')
-  } catch (e: any) {
-    emit('error', mapContainerError(t, e, 'inventory.storage.errors.updateFailed'))
-  } finally {
-    submitting.value = false
-  }
+  await runSave()
+  if (saveError.value) emit('error', saveError.value)
 }
 </script>
 

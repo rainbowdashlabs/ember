@@ -12,6 +12,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import type {ProfileFieldChange} from '@/api/types'
 import {profileFieldChanges} from '@/api'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import HistoryEntry from './changehistory/HistoryEntry.vue'
@@ -30,10 +31,17 @@ const emit = defineEmits<{
 const {t} = useI18n()
 const {refresh: refreshSidebarCounts} = useSidebarCounts()
 
-const error = ref('')
 const acknowledgeComment = ref('')
 const showCommentForChangeId = ref<number | null>(null)
-const acknowledging = ref(false)
+
+const {running: acknowledging, error, run: runAcknowledge} = useAsyncAction(
+    async (work: () => Promise<void>) => {
+      await work()
+      refreshSidebarCounts()
+      emit('reload')
+    },
+    {formatError: () => t('common.error')},
+)
 
 const unacknowledgedCount = computed(() => {
   return props.changes.filter(c =>
@@ -45,36 +53,20 @@ function isAcknowledgedByMe(change: ProfileFieldChange): boolean {
   return change.acknowledgements.some(a => a.acknowledgedBy === props.currentMemberId)
 }
 
-async function acknowledgeChange(changeId: number) {
-  acknowledging.value = true
-  error.value = ''
-  try {
+function acknowledgeChange(changeId: number) {
+  return runAcknowledge(async () => {
     const comment = showCommentForChangeId.value === changeId ? acknowledgeComment.value : undefined
     await profileFieldChanges.acknowledge(changeId, {comment})
     showCommentForChangeId.value = null
     acknowledgeComment.value = ''
-    refreshSidebarCounts()
-    emit('reload')
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    acknowledging.value = false
-  }
+  })
 }
 
-async function acknowledgeAllChanges() {
-  acknowledging.value = true
-  error.value = ''
-  try {
+function acknowledgeAllChanges() {
+  return runAcknowledge(async () => {
     await profileFieldChanges.acknowledgeAll(props.memberId, {comment: acknowledgeComment.value || undefined})
     acknowledgeComment.value = ''
-    refreshSidebarCounts()
-    emit('reload')
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    acknowledging.value = false
-  }
+  })
 }
 
 function toggleComment(changeId: number) {

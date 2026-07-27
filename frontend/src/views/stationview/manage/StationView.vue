@@ -11,6 +11,8 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useAuthImages} from '@/composables/useAuthImage'
 
 const {hasPermission, loaded} = useSession()
 const router = useRouter()
@@ -22,7 +24,6 @@ watch(loaded, (isLoaded) => {
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {stationManage} from '@/api'
-import client from '@/api/client'
 import OwnerSection from './stationview/OwnerSection.vue'
 import LocationSection from './stationview/LocationSection.vue'
 import GeneralSection from './stationview/GeneralSection.vue'
@@ -54,9 +55,8 @@ const hasLogo = ref(false)
 const isOwner = ref(false)
 const stationId = ref('')
 const ownerMemberId = ref<number | null>(null)
-const uploading = ref(false)
 const success = ref('')
-const logoObjectUrl = ref<string | null>(null)
+const {srcFor, load: loadLogoImage, revokeAll: revokeLogo} = useAuthImages<string>()
 
 const {loading, error} = useAsyncLoader(async () => {
   const info = await stationManage.getStationInfo()
@@ -72,21 +72,8 @@ const {loading, error} = useAsyncLoader(async () => {
   }
 })
 
-async function loadLogoBlob() {
-  try {
-    const res = await client.get('/station/manage/logo?size=256', {
-      responseType: 'blob',
-      validateStatus: (status) => status === 200 || status === 404,
-    })
-    if (res.status === 404) {
-      logoObjectUrl.value = null
-      return
-    }
-    if (logoObjectUrl.value) URL.revokeObjectURL(logoObjectUrl.value)
-    logoObjectUrl.value = URL.createObjectURL(res.data)
-  } catch {
-    logoObjectUrl.value = null
-  }
+function loadLogoBlob() {
+  return loadLogoImage('logo', '/station/manage/logo?size=256')
 }
 
 async function saveName() {
@@ -105,23 +92,17 @@ async function saveName() {
 }
 
 const LOGO_MAX_SIZE = 2 * 1024 * 1024
-const logoError = ref<string | null>(null)
 
-async function handleLogoUpload(file: File) {
-  uploading.value = true
-  logoError.value = null
-  success.value = ''
-  try {
-    await stationManage.uploadLogo(file)
-    hasLogo.value = true
-    await loadLogoBlob()
-    success.value = t('stationManage.logoUploaded')
-  } catch {
-    logoError.value = t('fileUpload.uploadFailed')
-  } finally {
-    uploading.value = false
-  }
-}
+const {running: uploading, error: logoError, run: handleLogoUpload} = useAsyncAction(
+    async (file: File) => {
+      success.value = ''
+      await stationManage.uploadLogo(file)
+      hasLogo.value = true
+      await loadLogoBlob()
+      success.value = t('stationManage.logoUploaded')
+    },
+    {formatError: () => t('fileUpload.uploadFailed')},
+)
 
 async function removeLogo() {
   error.value = ''
@@ -129,10 +110,7 @@ async function removeLogo() {
   try {
     await stationManage.deleteLogo()
     hasLogo.value = false
-    if (logoObjectUrl.value) {
-      URL.revokeObjectURL(logoObjectUrl.value)
-      logoObjectUrl.value = null
-    }
+    revokeLogo()
     success.value = t('stationManage.logoDeleted')
   } catch {
     error.value = t('common.error')
@@ -175,7 +153,7 @@ function handleSuccess(msg: string) {
       <LogoSection
           v-if="!loading"
           :has-logo="hasLogo"
-          :logo-object-url="logoObjectUrl"
+          :logo-object-url="srcFor('logo')"
           :uploading="uploading"
           :logo-error="logoError"
           :max-size="LOGO_MAX_SIZE"

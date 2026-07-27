@@ -13,38 +13,29 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import Alert from './Alert.vue'
 import {submitReport} from '@/api/problemReports'
 import {useSession} from '@/composables/useSession'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 
 const {t} = useI18n()
 const {sessionInfo} = useSession()
 
 const showModal = ref(false)
 const message = ref('')
-const sending = ref(false)
 const sent = ref(false)
-const error = ref('')
 
-async function send() {
+const {running: sending, error, run: send, clearError} = useAsyncAction(async () => {
   if (!message.value.trim()) return
-  sending.value = true
-  error.value = ''
-  try {
-    await submitReport(message.value.trim(), sessionInfo.value)
-    sent.value = true
-    message.value = ''
-    setTimeout(() => {
-      showModal.value = false
-      sent.value = false
-    }, 2000)
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    sending.value = false
-  }
-}
+  await submitReport(message.value.trim(), sessionInfo.value)
+  sent.value = true
+  message.value = ''
+  setTimeout(() => {
+    showModal.value = false
+    sent.value = false
+  }, 2000)
+})
 
 function open() {
   sent.value = false
-  error.value = ''
+  clearError()
   showModal.value = true
 }
 </script>

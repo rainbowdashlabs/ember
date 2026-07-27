@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import SetupLayout from '@/views/stationview/setup/SetupLayout.vue'
@@ -16,6 +16,7 @@ import InfoContainer from '@/components/container/InfoContainer.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {knowledgeBase} from '@/api'
 import {useSetupStatus} from '@/composables/useSetupStatus'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import {nextStep, stepRouteName} from '@/views/stationview/setup/steps'
 
 const {t} = useI18n()
@@ -26,36 +27,34 @@ const pageName = ref('')
 const pageDescription = ref('')
 const pageContent = ref('')
 const createdFileId = ref<number | null>(null)
-const saving = ref(false)
-const error = ref('')
+const nameError = ref('')
 
-async function save() {
+const {running: saving, error: saveError, run: runSave} = useAsyncAction(async () => {
+    if (createdFileId.value == null) {
+        const file = await knowledgeBase.createMarkdownFile({
+            folderId: null,
+            name: pageName.value.trim(),
+            description: pageDescription.value,
+            content: pageContent.value,
+        })
+        createdFileId.value = file.id
+    } else if (pageContent.value) {
+        await knowledgeBase.updateMarkdownContent(createdFileId.value, pageContent.value)
+    }
+    await reload()
+    const next = nextStep('kb-seed')
+    if (next) router.push({name: stepRouteName(next)})
+})
+
+const displayError = computed(() => nameError.value || saveError.value)
+
+function save() {
     if (!pageName.value.trim()) {
-        error.value = t('setup.steps.kb-seed.missing')
+        nameError.value = t('setup.steps.kb-seed.missing')
         return
     }
-    saving.value = true
-    error.value = ''
-    try {
-        if (createdFileId.value == null) {
-            const file = await knowledgeBase.createMarkdownFile({
-                folderId: null,
-                name: pageName.value.trim(),
-                description: pageDescription.value,
-                content: pageContent.value,
-            })
-            createdFileId.value = file.id
-        } else if (pageContent.value) {
-            await knowledgeBase.updateMarkdownContent(createdFileId.value, pageContent.value)
-        }
-        await reload()
-        const next = nextStep('kb-seed')
-        if (next) router.push({name: stepRouteName(next)})
-    } catch {
-        error.value = t('common.error')
-    } finally {
-        saving.value = false
-    }
+    nameError.value = ''
+    return runSave()
 }
 </script>
 
@@ -67,7 +66,7 @@ async function save() {
       :saving="saving"
       @save="save"
   >
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <Alert v-if="displayError" variant="error">{{ displayError }}</Alert>
     <InfoContainer class="space-y-1">
       <p class="font-medium text-sm">{{ t('setup.steps.kb-seed.aboutTitle') }}</p>
       <p class="text-sm">{{ t('setup.steps.kb-seed.aboutBody') }}</p>

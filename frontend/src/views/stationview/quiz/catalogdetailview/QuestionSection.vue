@@ -4,9 +4,11 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import { useAsyncAction } from '@/composables/useAsyncAction'
+import { useConfirmAction } from '@/composables/useConfirmAction'
 import ReadonlyQuestionList from './ReadonlyQuestionList.vue'
 import QuestionCard from './QuestionCard.vue'
 import QuestionInlineEditor from './QuestionInlineEditor.vue'
@@ -53,10 +55,6 @@ const questionImagePreview = ref<string | null>(null)
 const questionAuthImageSrc = ref<string | null>(null)
 const questionHasImage = ref(false)
 const questionConfig = ref<Record<string, unknown>>({})
-const savingQuestion = ref(false)
-
-const showDeleteQuestionModal = ref(false)
-const questionToDelete = ref<QuizQuestion | null>(null)
 
 function getDefaultConfig(type: QuizQuestionTypeName): Record<string, unknown> {
   switch (type) {
@@ -147,7 +145,7 @@ async function removeImage() {
     try {
       await quiz.deleteQuestionImage(editingQuestion.value.id)
     } catch {
-      /* ignore */
+      void 0
     }
   }
   questionImageFile.value = null
@@ -156,9 +154,7 @@ async function removeImage() {
   questionHasImage.value = false
 }
 
-async function saveQuestion() {
-  if (!questionTitle.value.trim() || savingQuestion.value) return
-  savingQuestion.value = true
+const {running: savingQuestion, run: runSaveQuestion} = useAsyncAction(async () => {
   const data: Record<string, unknown> = {
     title: questionTitle.value.trim(),
     description: questionDescription.value.trim(),
@@ -169,45 +165,48 @@ async function saveQuestion() {
     imageUrl: questionHasImage.value ? 'uploaded' : null,
     config: questionConfig.value,
   }
-  try {
-    let questionId: number
-    if (editingQuestion.value) {
-      const updated = await quiz.updateQuestion(editingQuestion.value.id, data)
-      questionId = updated.id
-    } else {
-      const created = await quiz.createQuestion(props.catalogId, data)
-      questionId = created.id
-    }
-    if (questionImageFile.value) {
-      await quiz.uploadQuestionImage(questionId, questionImageFile.value)
-    }
-    expandedQuestion.value = null
-    emit('updated')
-  } catch {
-    emit('error', t('common.error'))
-  } finally {
-    savingQuestion.value = false
+  let questionId: number
+  if (editingQuestion.value) {
+    const updated = await quiz.updateQuestion(editingQuestion.value.id, data)
+    questionId = updated.id
+  } else {
+    const created = await quiz.createQuestion(props.catalogId, data)
+    questionId = created.id
   }
+  if (questionImageFile.value) {
+    await quiz.uploadQuestionImage(questionId, questionImageFile.value)
+  }
+  expandedQuestion.value = null
+  emit('updated')
+  return true
+})
+
+async function saveQuestion() {
+  if (!questionTitle.value.trim() || savingQuestion.value) return
+  const saved = await runSaveQuestion()
+  if (!saved) emit('error', t('common.error'))
 }
 
-function confirmDeleteQuestion(q: QuizQuestion) {
-  questionToDelete.value = q
-  showDeleteQuestionModal.value = true
-}
+const deleteError = ref('')
 
-async function deleteQuestion() {
-  if (!questionToDelete.value) return
-  try {
-    const deletedId = questionToDelete.value.id
-    await quiz.deleteQuestion(deletedId)
-    showDeleteQuestionModal.value = false
-    questionToDelete.value = null
-    if (expandedQuestion.value === deletedId) expandedQuestion.value = null
+const {
+  show: showDeleteQuestionModal,
+  request: confirmDeleteQuestion,
+  confirm: deleteQuestion,
+} = useConfirmAction<QuizQuestion>({
+  onConfirm: q => quiz.deleteQuestion(q.id),
+  onSuccess: q => {
+    if (expandedQuestion.value === q.id) expandedQuestion.value = null
     emit('updated')
-  } catch {
-    emit('error', t('common.error'))
-  }
-}
+  },
+  error: deleteError,
+})
+
+watch(deleteError, message => {
+  if (!message) return
+  deleteError.value = ''
+  emit('error', message)
+})
 
 function getCategoryName(catId: number | null): string {
   if (!catId) return t('quiz.questions.noCategory')

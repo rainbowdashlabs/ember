@@ -13,6 +13,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import type { CheckResult, InventoryItem, MemberCheckState, RequiredInventoryItem } from '@/api/types'
 import { inventoryCheck, procurement } from '@/api'
 import { useConfigPanel } from '@/composables/useConfigPanel'
+import { useAsyncAction } from '@/composables/useAsyncAction'
 import type { CheckEntry } from './checkmemberview/RapidCheckMode.vue'
 import CheckMemberBody from './checkmemberview/CheckMemberBody.vue'
 
@@ -29,7 +30,6 @@ const {config: state, loading, error, reload: loadData} = useConfigPanel<MemberC
   fetch: () => inventoryCheck.startCheck(memberId.value),
   formatError: (e: any) => e?.response?.status === 409 ? t('inventory.check.locked') : t('common.error'),
 })
-const submitting = ref(false)
 
 const itemResults = ref<Map<number, CheckResult>>(new Map())
 const itemNotes = ref<Map<number, string>>(new Map())
@@ -260,12 +260,12 @@ async function createProcurementForItem(item: InventoryItem) {
       notes: itemNotes.value.get(item.id) || undefined,
     })
     procurementCreated.value = new Set([...procurementCreated.value, item.id])
-  } catch { /* ignore */ }
+  } catch {
+  }
 }
 
-async function submit() {
+const {running: submitting, run: submit} = useAsyncAction(async () => {
   if (!state.value || !allMarked.value) return
-  submitting.value = true
   error.value = ''
   try {
     const items: import('@/api/types').CheckItemResult[] = state.value.assigned.map(item => ({
@@ -298,15 +298,14 @@ async function submit() {
     }
   } catch {
     error.value = t('common.error')
-  } finally {
-    submitting.value = false
   }
-}
+})
 
 async function cancel() {
   try {
     await inventoryCheck.cancelCheck(memberId.value)
-  } catch { /* ignore */ }
+  } catch {
+  }
   router.push({ name: 'inventory-checks' })
 }
 

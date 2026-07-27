@@ -18,6 +18,7 @@ import type {StorageConsent} from '@/api/storage'
 import {acceptStorage, denyStorage, getConsent, getStoredLegalVersions, getItem, removeItem} from '@/api/storage'
 import {useStations} from '@/composables/useStations'
 import {useConsentGuard} from '@/composables/useConsentGuard'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import {StationUserType, StationUserTypeLabels} from '@/api/types'
 import DemoLogin from '@/views/loginview/DemoLogin.vue'
 import ConsentGate from '@/views/loginview/ConsentGate.vue'
@@ -144,8 +145,6 @@ async function resolveStationAndRedirect() {
 
 const email = ref('')
 const password = ref('')
-const error = ref('')
-const loading = ref(false)
 const consent = ref<StorageConsent | null>(getConsent())
 const consentHtml = ref('')
 const consentVersion = ref('')
@@ -227,49 +226,37 @@ function handleDeny() {
   consent.value = 'denied'
 }
 
-async function handleLogin() {
-  error.value = ''
-
+const {running: loggingIn, error: loginError, run: handleLogin} = useAsyncAction(async () => {
   if (!email.value || !password.value) {
     return
   }
 
-  loading.value = true
-  try {
-    const result = await auth.login({email: email.value, password: password.value})
+  const result = await auth.login({email: email.value, password: password.value})
 
-    if (result.passwordChangeRequired && result.passwordChangeToken) {
-      await navigateTo({
-        path: '/set-password',
-        query: {token: result.passwordChangeToken},
-      })
-      return
-    }
-
-    if (result.twoFactorRequired && result.preAuthToken) {
-      const query: Record<string, string> = {token: result.preAuthToken}
-      const redirect = route.query.redirect as string | undefined
-      if (redirect) query.redirect = redirect
-      await navigateTo({path: '/2fa-verify', query})
-      return
-    }
-
-    await checkAndRecordConsent()
-
-    await resolveStationAndRedirect()
-  } catch (e) {
-    if (e instanceof StorageDeniedError) {
-      error.value = t('login.storageDenied')
-    } else if (e instanceof Error && 'response' in e) {
-      const axiosErr = e as any
-      error.value = axiosErr.response?.data?.message || t('common.error')
-    } else {
-      error.value = t('common.error')
-    }
-  } finally {
-    loading.value = false
+  if (result.passwordChangeRequired && result.passwordChangeToken) {
+    await navigateTo({
+      path: '/set-password',
+      query: {token: result.passwordChangeToken},
+    })
+    return
   }
-}
+
+  if (result.twoFactorRequired && result.preAuthToken) {
+    const query: Record<string, string> = {token: result.preAuthToken}
+    const redirect = route.query.redirect as string | undefined
+    if (redirect) query.redirect = redirect
+    await navigateTo({path: '/2fa-verify', query})
+    return
+  }
+
+  await checkAndRecordConsent()
+
+  await resolveStationAndRedirect()
+}, {formatError: (e) => {
+  if (e instanceof StorageDeniedError) return t('login.storageDenied')
+  const message = (e as {response?: {data?: {message?: string}}})?.response?.data?.message
+  return message || t('common.error')
+}})
 
 async function checkAndRecordConsent() {
   try {
@@ -297,26 +284,17 @@ async function checkAndRecordConsent() {
       })
     }
   } catch {
-    error.value = ''
+    return
   }
 }
 
-async function loginAsDemo(account: DemoAccount) {
-  loading.value = true
-  error.value = ''
-  try {
-    // Quick login skips password verification entirely on the backend (dev / demo only) so the
-    // click-to-impersonate flow keeps working after a seeded user has rotated their password.
-    // No password-change or 2FA branch here — the backend short-circuits to a fully-verified
-    // session.
-    await auth.demoLogin(account.email)
-    await resolveStationAndRedirect()
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
+const {running: demoLoggingIn, error: demoError, run: loginAsDemo} = useAsyncAction(async (account: DemoAccount) => {
+  await auth.demoLogin(account.email)
+  await resolveStationAndRedirect()
+})
+
+const loading = computed(() => loggingIn.value || demoLoggingIn.value)
+const error = computed(() => loginError.value || demoError.value)
 
 function topRoleLabel(account: DemoAccount): string {
   return StationUserTypeLabels[account.userType as keyof typeof StationUserTypeLabels] ?? account.userType ?? 'Login'

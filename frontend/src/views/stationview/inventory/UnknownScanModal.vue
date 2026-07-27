@@ -19,6 +19,7 @@ import {inventory, inventoryFields} from '@/api'
 import type {Inventory, InventoryItem, InventorySize} from '@/api/types'
 import {InventoryTypes, ItemSource} from '@/api/types'
 import type {InventoryFieldDefinition} from '@/api/inventoryFields'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 
 const props = defineProps<{
   scannedCode: string
@@ -36,7 +37,6 @@ const open = ref(true)
 const inventories = ref<Inventory[]>([])
 const loading = ref(true)
 const error = ref('')
-const submitting = ref(false)
 
 const targetInventoryId = ref<number | 'new'>('new')
 const newInventoryName = ref('')
@@ -174,58 +174,55 @@ function validate(): string | null {
   return null
 }
 
+const {running: submitting, error: submitError, run: runSubmit} = useAsyncAction(async () => {
+  let inventoryId: number
+  let sizes: InventorySize[]
+  if (isCreatingInventory.value) {
+    const created = await inventory.createInventory({
+      name: newInventoryName.value.trim(),
+      inventoryType: newInventoryType.value,
+      hasSizes: newInventoryHasSizes.value,
+    })
+    inventoryId = created.id
+    if (newInventoryHasSizes.value) {
+      for (let i = 0; i < cleanedNewSizes.value.length; i++) {
+        await inventory.createSize(inventoryId, {label: cleanedNewSizes.value[i], position: i, note: ''})
+      }
+      sizes = await inventory.listSizes(inventoryId)
+    } else {
+      sizes = []
+    }
+  } else {
+    inventoryId = targetInventoryId.value as number
+    sizes = availableSizes.value
+  }
+  let sizeId: number | undefined
+  if (effectiveHasSizes.value) {
+    const match = sizes.find(s => s.label === pickedSizeLabel.value)
+    if (!match) {
+      error.value = t('inventory.unknownScan.errors.sizeRequired')
+      return
+    }
+    sizeId = match.id
+  }
+  const item = await inventory.createItem(inventoryId, {
+    internalId: props.scannedCode,
+    name: itemName.value.trim(),
+    itemSource: itemSource.value,
+    sizeId,
+    metadata: buildMetadata(),
+  })
+  emit('created', item)
+}, {formatError: (e: any) => e?.response?.data?.message ?? t('inventory.unknownScan.errors.createFailed')})
+
 async function submit() {
   const validation = validate()
   if (validation) {
     error.value = validation
     return
   }
-  submitting.value = true
   error.value = ''
-  try {
-    let inventoryId: number
-    let sizes: InventorySize[]
-    if (isCreatingInventory.value) {
-      const created = await inventory.createInventory({
-        name: newInventoryName.value.trim(),
-        inventoryType: newInventoryType.value,
-        hasSizes: newInventoryHasSizes.value,
-      })
-      inventoryId = created.id
-      if (newInventoryHasSizes.value) {
-        for (let i = 0; i < cleanedNewSizes.value.length; i++) {
-          await inventory.createSize(inventoryId, {label: cleanedNewSizes.value[i], position: i, note: ''})
-        }
-        sizes = await inventory.listSizes(inventoryId)
-      } else {
-        sizes = []
-      }
-    } else {
-      inventoryId = targetInventoryId.value as number
-      sizes = availableSizes.value
-    }
-    let sizeId: number | undefined
-    if (effectiveHasSizes.value) {
-      const match = sizes.find(s => s.label === pickedSizeLabel.value)
-      if (!match) {
-        error.value = t('inventory.unknownScan.errors.sizeRequired')
-        return
-      }
-      sizeId = match.id
-    }
-    const item = await inventory.createItem(inventoryId, {
-      internalId: props.scannedCode,
-      name: itemName.value.trim(),
-      itemSource: itemSource.value,
-      sizeId,
-      metadata: buildMetadata(),
-    })
-    emit('created', item)
-  } catch (e: any) {
-    error.value = e?.response?.data?.message ?? t('inventory.unknownScan.errors.createFailed')
-  } finally {
-    submitting.value = false
-  }
+  await runSubmit()
 }
 
 function onClose() {
@@ -247,7 +244,7 @@ load()
       <code class="ml-2 font-mono">{{ scannedCode }}</code>
     </p>
 
-    <Alert v-if="error" variant="error" class="mb-3">{{ error }}</Alert>
+    <Alert v-if="error || submitError" variant="error" class="mb-3">{{ error || submitError }}</Alert>
 
     <div v-if="loading" class="flex justify-center py-6">
       <Spinner size="md" />

@@ -14,6 +14,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import {useStations} from '@/composables/useStations'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import {transfer} from '@/api'
 
 const {t} = useI18n()
@@ -23,29 +24,24 @@ const stationName = computed(() => activeStation.value?.stationName ?? '')
 
 const confirmOpen = ref(false)
 const typedName = ref('')
-const deleting = ref(false)
-const error = ref<string | null>(null)
 
 const matchesName = computed(() => typedName.value.trim() === stationName.value.trim() && stationName.value !== '')
 
+const {running: deleting, error, run: runDelete, clearError} = useAsyncAction(async () => {
+  await transfer.deleteMovedStation()
+  window.location.href = '/'
+}, {formatError: () => t('pages.station-moved.deleteError')})
+
 function openConfirm() {
   typedName.value = ''
-  error.value = null
+  clearError()
   confirmOpen.value = true
 }
 
 async function performDelete() {
   if (!matchesName.value) return
-  deleting.value = true
-  error.value = null
-  try {
-    await transfer.deleteMovedStation()
-    window.location.href = '/'
-  } catch (e) {
-    error.value = t('pages.station-moved.deleteError')
-    deleting.value = false
-    confirmOpen.value = false
-  }
+  await runDelete()
+  if (error.value) confirmOpen.value = false
 }
 </script>
 

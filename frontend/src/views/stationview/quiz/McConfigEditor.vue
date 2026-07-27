@@ -18,6 +18,7 @@ import ToggleSwitch from '@/components/input/toggle/ToggleSwitch.vue'
 import FieldHint from '@/components/typography/FieldHint.vue'
 import {ai} from '@/api'
 import {getItem} from '@/api/storage'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 
 const {t} = useI18n()
 
@@ -55,13 +56,10 @@ function toggleMcOptionCorrect(idx: number) {
   updateConfig({options: opts})
 }
 
-// --- AI generation ---
-const aiGenerating = ref(false)
-const aiError = ref('')
 const aiCountMode = ref<'add' | 'fillTo'>('add')
 const aiCount = ref(3)
 
-async function generateWrongAnswers() {
+const {running: aiGenerating, error: aiError, run: generateWrongAnswers} = useAsyncAction(async () => {
   const options = (config.value.options as { text: string; correct: boolean }[]) || []
   const correctAnswer = options.filter(o => o.correct).map(o => o.text).join(', ')
   if (!correctAnswer || !props.questionTitle) return
@@ -70,33 +68,22 @@ async function generateWrongAnswers() {
   const apiKey = getItem('ai_api_key') || ''
   const model = getItem('ai_model') || ''
 
-  if (!apiKey) {
-    aiError.value = t('quiz.ai.noKeyConfigured')
-    return
-  }
+  if (!apiKey) throw new Error(t('quiz.ai.noKeyConfigured'))
 
   const count = aiCountMode.value === 'fillTo'
       ? Math.max(0, aiCount.value - options.length)
       : aiCount.value
   if (count <= 0) return
 
-  aiGenerating.value = true
-  aiError.value = ''
-  try {
-    const results = await ai.generate({
-      provider, apiKey, model: model || null,
-      question: props.questionTitle, correctAnswer, count,
-    })
-    if (results.length > 0) {
-      const newOptions = [...options, ...results.map(text => ({text, correct: false}))]
-      config.value = {...config.value, options: newOptions}
-    }
-  } catch (e: unknown) {
-    aiError.value = e instanceof Error ? e.message : String(e)
-  } finally {
-    aiGenerating.value = false
+  const results = await ai.generate({
+    provider, apiKey, model: model || null,
+    question: props.questionTitle, correctAnswer, count,
+  })
+  if (results.length > 0) {
+    const newOptions = [...options, ...results.map(text => ({text, correct: false}))]
+    config.value = {...config.value, options: newOptions}
   }
-}
+}, {formatError: e => e instanceof Error ? e.message : String(e)})
 </script>
 
 <template>

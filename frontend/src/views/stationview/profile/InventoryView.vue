@@ -16,6 +16,7 @@ import type {MyInventoryItem, MyRequirement} from '@/api/inventory'
 import type {ManagedMember} from '@/api/managedMembers'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import MemberTabSelector from './inventoryview/MemberTabSelector.vue'
 import InventoryGroupList from './inventoryview/InventoryGroupList.vue'
 import ExchangeModal from './inventoryview/ExchangeModal.vue'
@@ -192,6 +193,7 @@ async function openExchange(item: MyInventoryItem) {
   exchangeNewSizeId.value = ''
   exchangeSizes.value = []
   exchangeSuccess.value = ''
+  clearExchangeError()
   showExchangeModal.value = true
   try {
     exchangeSizes.value = await inventory.listSizes(item.inventoryId)
@@ -203,22 +205,25 @@ function closeExchange() {
   exchangeItem.value = null
 }
 
-async function submitExchange() {
+const {
+  running: submittingExchange,
+  error: exchangeError,
+  run: submitExchange,
+  clearError: clearExchangeError,
+} = useAsyncAction(async () => {
   if (!exchangeItem.value || !exchangeReason.value.trim()) return
-  try {
-    const created = await exchanges.createExchange({
-      memberId: viewingMemberId.value ?? undefined,
-      itemId: exchangeItem.value.id,
-      inventoryId: exchangeItem.value.inventoryId,
-      oldSizeId: exchangeItem.value.sizeId ?? undefined,
-      newSizeId: exchangeNewSizeId.value ? Number(exchangeNewSizeId.value) : undefined,
-      reason: exchangeReason.value.trim(),
-    })
-    activeExchanges.value = [...activeExchanges.value, created]
-    exchangeSuccess.value = t('profile.exchangeCreated')
-    closeExchange()
-  } catch { void 0 }
-}
+  const created = await exchanges.createExchange({
+    memberId: viewingMemberId.value ?? undefined,
+    itemId: exchangeItem.value.id,
+    inventoryId: exchangeItem.value.inventoryId,
+    oldSizeId: exchangeItem.value.sizeId ?? undefined,
+    newSizeId: exchangeNewSizeId.value ? Number(exchangeNewSizeId.value) : undefined,
+    reason: exchangeReason.value.trim(),
+  })
+  activeExchanges.value = [...activeExchanges.value, created]
+  exchangeSuccess.value = t('profile.exchangeCreated')
+  closeExchange()
+})
 </script>
 
 <template>
@@ -248,6 +253,8 @@ async function submitExchange() {
           v-model:new-size-id="exchangeNewSizeId"
           :item="exchangeItem"
           :sizes="exchangeSizes"
+          :submitting="submittingExchange"
+          :error="exchangeError"
           @cancel="closeExchange"
           @submit="submitExchange"
       />

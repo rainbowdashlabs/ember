@@ -13,12 +13,15 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {inventoryFields} from '@/api'
 import {FieldType, defaultFieldConfig} from '@/api/inventoryFields'
 import type {InventoryFieldDefinition} from '@/api/inventoryFields'
 import FieldDraftEditor from './fielddefinitionssection/FieldDraftEditor.vue'
 import type {DraftField} from './fielddefinitionssection/types'
 import {useConfigPanel} from '@/composables/useConfigPanel'
+import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useConfirmDelete} from '@/composables/useConfirmDelete'
 
 const props = defineProps<{
   inventoryId: number
@@ -33,7 +36,6 @@ const {config: fields, loading, error, reload: load} = useConfigPanel<InventoryF
 })
 const editing = ref<number | null>(null)
 const draft = ref<DraftField | null>(null)
-const submitting = ref(false)
 
 const sortedFields = computed(() => [...fields.value].sort((a, b) => a.sortOrder - b.sortOrder || a.key.localeCompare(b.key)))
 
@@ -71,9 +73,8 @@ function cancelEdit() {
   editing.value = null
 }
 
-async function save() {
+const {running: submitting, run: save} = useAsyncAction(async () => {
   if (!draft.value) return
-  submitting.value = true
   error.value = ''
   try {
     if (draft.value.id) {
@@ -97,20 +98,19 @@ async function save() {
     cancelEdit()
   } catch (e: any) {
     error.value = e?.response?.data?.message ?? t('inventory.fields.errors.saveFailed')
-  } finally {
-    submitting.value = false
   }
-}
+})
 
-async function remove(field: InventoryFieldDefinition) {
-  if (!confirm(t('inventory.fields.confirmDelete', {label: field.label}))) return
-  try {
-    await inventoryFields.deleteField(props.inventoryId, field.id)
-    await load()
-  } catch (e: any) {
-    error.value = e?.response?.data?.message ?? t('inventory.fields.errors.deleteFailed')
-  }
-}
+const {
+  show: showDeleteModal,
+  target: deleteTarget,
+  requestDelete,
+  confirm: confirmDelete,
+} = useConfirmDelete<InventoryFieldDefinition>({
+  onDelete: field => inventoryFields.deleteField(props.inventoryId, field.id),
+  onSuccess: () => load(),
+  error,
+})
 
 watch(() => props.inventoryId, load)
 </script>
@@ -148,9 +148,15 @@ watch(() => props.inventoryId, load)
         <span v-if="f.required" class="text-xs text-error">{{ t('inventory.fields.required') }}</span>
         <div class="ml-auto flex gap-2">
           <IconButton :icon="['fas', 'pen']" :label="t('common.edit')" @click="startEdit(f)" />
-          <DeleteButton :label="t('common.delete')" @click="remove(f)" />
+          <DeleteButton :label="t('common.delete')" @click="requestDelete(f)" />
         </div>
       </li>
     </ul>
+
+    <ConfirmDeleteModal
+        v-model="showDeleteModal"
+        :message="t('inventory.fields.confirmDelete', {label: deleteTarget?.label})"
+        @confirm="confirmDelete"
+    />
   </NeutralContainer>
 </template>

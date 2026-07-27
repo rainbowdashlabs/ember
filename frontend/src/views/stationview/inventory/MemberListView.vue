@@ -18,6 +18,8 @@ import type { Inventory, InventoryItem, MemberGroup, ProfileField, StationMember
 import { useMemberFilter } from '@/composables/useMemberFilter'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { useAsyncAction } from '@/composables/useAsyncAction'
+import { saveBlob } from '@/util/downloadAuthed'
 import client from '@/api/client'
 import { getItem, setItem } from '@/api/storage'
 
@@ -44,7 +46,6 @@ const exportMode = ref(false)
 const selectedForExport = ref<Set<number>>(new Set())
 const selectedExportFields = ref<Set<number>>(new Set())
 const allFields = ref<ProfileField[]>([])
-const exporting = ref(false)
 const filterText = ref('')
 
 const memberItemMap = computed(() => {
@@ -235,37 +236,21 @@ function exportCsv() {
   }
 
   const csv = [headers.join(';'), ...rows.map(r => r.map(c => `"${c.replace(/"/g, '""')}"`).join(';'))].join('\n')
-  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = 'inventory-members.csv'
-  a.click()
-  URL.revokeObjectURL(url)
+  saveBlob(new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' }), 'inventory-members.csv')
   exportMode.value = false
 }
 
-async function exportPdf() {
-  exporting.value = true
-  try {
-    const memberIds = [...selectedForExport.value]
-    const inventoryIds = [...visibleInventoryIds.value]
-    const extraFieldIds = [...selectedExportFields.value]
-    const res = await client.post('/inventories/members/export', {
-      memberIds, inventoryIds, extraFieldIds,
-      showName: showName.value, showInternalId: showInternalId.value, showSize: showSize.value,
-    }, { responseType: 'blob' })
-    const blob = res.data as Blob
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'inventory-members.pdf'
-    a.click()
-    URL.revokeObjectURL(url)
-    exportMode.value = false
-  } catch { error.value = t('common.error') }
-  finally { exporting.value = false }
-}
+const {running: exporting, error: exportError, run: exportPdf} = useAsyncAction(async () => {
+  const memberIds = [...selectedForExport.value]
+  const inventoryIds = [...visibleInventoryIds.value]
+  const extraFieldIds = [...selectedExportFields.value]
+  const res = await client.post('/inventories/members/export', {
+    memberIds, inventoryIds, extraFieldIds,
+    showName: showName.value, showInternalId: showInternalId.value, showSize: showSize.value,
+  }, { responseType: 'blob' })
+  saveBlob(res.data as Blob, 'inventory-members.pdf')
+  exportMode.value = false
+}, {formatError: () => t('common.error')})
 
 function goToMember(memberId: number) {
   router.push({ name: 'inventory-member', params: { memberId } })
@@ -290,7 +275,7 @@ function goToMember(memberId: number) {
       />
 
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <Alert v-if="error || exportError" variant="error">{{ error || exportError }}</Alert>
 
       <SearchInput v-if="!loading" v-model="filterText" :placeholder="t('membersList.filter')" autofocus />
 

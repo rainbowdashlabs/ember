@@ -12,6 +12,8 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type {EventCategory} from '@/api/types'
 import {events} from '@/api'
+import {saveBlob} from '@/util/downloadAuthed'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import TimeRangeSection from './exportmodal/TimeRangeSection.vue'
 import CategoriesSection from './exportmodal/CategoriesSection.vue'
 import ColumnsSection, {type ExportColumn} from './exportmodal/ColumnsSection.vue'
@@ -28,7 +30,6 @@ const emit = defineEmits<{
   error: [message: string]
 }>()
 
-const exporting = ref(false)
 const exportMode = ref('year')
 const exportYear = ref(String(new Date().getFullYear()))
 const exportMonth = ref(String(new Date().getMonth() + 1))
@@ -105,8 +106,7 @@ watch(modelValue, (visible) => {
   }
 })
 
-async function doExport() {
-  exporting.value = true
+const {running: exporting, run: doExport} = useAsyncAction(async () => {
   try {
     const year = parseInt(exportYear.value)
     const month = parseInt(exportMonth.value)
@@ -133,19 +133,12 @@ async function doExport() {
       from,
       to,
     })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'events.pdf'
-    a.click()
-    URL.revokeObjectURL(url)
+    saveBlob(blob, 'events.pdf')
     modelValue.value = false
   } catch {
     emit('error', t('common.error'))
-  } finally {
-    exporting.value = false
   }
-}
+})
 </script>
 
 <template>

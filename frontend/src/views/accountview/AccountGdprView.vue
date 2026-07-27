@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref, onMounted} from 'vue'
+import {computed, ref, onMounted} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -17,6 +17,8 @@ import Modal from '@/components/feedback/Modal.vue'
 import {session as sessionApi, managedMembers as managedMembersApi} from '@/api'
 import {useOnboardingTour} from '@/composables/useOnboardingTour'
 import {useSession} from '@/composables/useSession'
+import {useAsyncAction} from '@/composables/useAsyncAction'
+import {saveBlob} from '@/util/downloadAuthed'
 import GdprSection from '@/views/stationview/profile/settingsview/GdprSection.vue'
 
 const {t} = useI18n()
@@ -27,45 +29,29 @@ const {isGuardian} = useSession()
 interface ManagedMemberInfo { id: number; name: string }
 
 const managedMembers = ref<ManagedMemberInfo[]>([])
-const exportingGdpr = ref(false)
 const exportingMemberId = ref<number | null>(null)
-const error = ref('')
+const memberError = ref('')
 const showDeleteAccountModal = ref(false)
-const deletingAccount = ref(false)
 
-function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url; a.download = filename; a.click()
-  URL.revokeObjectURL(url)
-}
-
-async function exportOwnData() {
-  exportingGdpr.value = true; error.value = ''
-  try { downloadBlob(await sessionApi.gdprExport(), 'gdpr-export.zip') }
-  catch { error.value = t('common.error') }
-  finally { exportingGdpr.value = false }
-}
+const {running: exportingGdpr, error: exportError, run: exportOwnData} = useAsyncAction(async () => {
+  saveBlob(await sessionApi.gdprExport(), 'gdpr-export.zip')
+})
 
 async function exportManagedMemberData(memberId: number) {
-  exportingMemberId.value = memberId; error.value = ''
-  try { downloadBlob(await sessionApi.gdprExportManagedMember(memberId), `gdpr-export-member-${memberId}.zip`) }
-  catch { error.value = t('common.error') }
+  exportingMemberId.value = memberId; memberError.value = ''
+  try { saveBlob(await sessionApi.gdprExportManagedMember(memberId), `gdpr-export-member-${memberId}.zip`) }
+  catch { memberError.value = t('common.error') }
   finally { exportingMemberId.value = null }
 }
 
-async function confirmDeleteAccount() {
-  deletingAccount.value = true
-  try {
-    await sessionApi.deleteAccount()
-    localStorage.removeItem('session_token')
-    localStorage.removeItem('session_expires_at')
-    router.push({name: 'login'})
-  } catch {
-    error.value = t('common.error')
-    deletingAccount.value = false
-  }
-}
+const {running: deletingAccount, error: deleteError, run: confirmDeleteAccount} = useAsyncAction(async () => {
+  await sessionApi.deleteAccount()
+  localStorage.removeItem('session_token')
+  localStorage.removeItem('session_expires_at')
+  router.push({name: 'login'})
+})
+
+const error = computed(() => exportError.value || memberError.value || deleteError.value)
 
 onMounted(async () => {
   if (isGuardian()) {

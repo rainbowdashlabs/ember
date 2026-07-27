@@ -11,6 +11,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import {useSession} from '@/composables/useSession'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import {
     type InstanceBackendRequest,
     type InstanceBackendSummary,
@@ -40,7 +41,7 @@ watch(loaded, (isLoaded) => {
 }, {immediate: true})
 
 const loading = ref(true)
-const error = ref('')
+const loadError = ref('')
 const success = ref('')
 const backend = ref<InstanceBackendSummary | null>(null)
 const probeOutcome = ref<ProbeResult | null>(null)
@@ -53,9 +54,6 @@ const smb = ref<SmbRequest>(newSmb())
 const sftp = ref<SftpRequest>(newSftp())
 
 const keepSource = ref(false)
-const probingLive = ref(false)
-const probingConfig = ref(false)
-const saving = ref(false)
 const confirmApply = ref(false)
 
 const summaryLabel = computed(() => {
@@ -65,15 +63,20 @@ const summaryLabel = computed(() => {
 
 onMounted(loadAll)
 
+function backendError(e: unknown, fallback: string): string {
+    const err = e as {response?: {data?: {title?: string}}; message?: string}
+    return err?.response?.data?.title ?? err?.message ?? fallback
+}
+
 async function loadAll() {
     loading.value = true
-    error.value = ''
+    loadError.value = ''
     try {
         backend.value = await getInstanceBackend()
         migrationStatus.value = await getInstanceMigrationStatus()
         seedFormFromBackend()
-    } catch (e: any) {
-        error.value = e?.response?.data?.title ?? e?.message ?? t('adminStorageBackend.errors.loadFailed')
+    } catch (e) {
+        loadError.value = backendError(e, t('adminStorageBackend.errors.loadFailed'))
     } finally {
         loading.value = false
     }
@@ -131,57 +134,45 @@ function currentRequest(): InstanceBackendRequest {
     return sftp.value
 }
 
-async function probeLive() {
-    probingLive.value = true
+function failedProbe(e: unknown): ProbeResult {
+    return {
+        healthy: false,
+        error: backendError(e, t('adminStorageBackend.errors.probeFailed')),
+        checkedAt: new Date().toISOString(),
+    }
+}
+
+const {running: probingLive, run: probeLive} = useAsyncAction(async () => {
     probeOutcome.value = null
     try {
         probeOutcome.value = await probeInstanceBackend()
-    } catch (e: any) {
-        probeOutcome.value = {
-            healthy: false,
-            error: e?.response?.data?.title ?? e?.message ?? t('adminStorageBackend.errors.probeFailed'),
-            checkedAt: new Date().toISOString(),
-        }
-    } finally {
-        probingLive.value = false
+    } catch (e) {
+        probeOutcome.value = failedProbe(e)
     }
-}
+})
 
-async function probeConfig() {
-    probingConfig.value = true
+const {running: probingConfig, run: probeConfig} = useAsyncAction(async () => {
     probeOutcome.value = null
     try {
         probeOutcome.value = await probeInstanceBackendConfig(currentRequest())
-    } catch (e: any) {
-        probeOutcome.value = {
-            healthy: false,
-            error: e?.response?.data?.title ?? e?.message ?? t('adminStorageBackend.errors.probeFailed'),
-            checkedAt: new Date().toISOString(),
-        }
-    } finally {
-        probingConfig.value = false
+    } catch (e) {
+        probeOutcome.value = failedProbe(e)
     }
-}
+})
 
-async function runApply() {
+const {running: saving, error: applyError, run: runApply} = useAsyncAction(async () => {
     confirmApply.value = false
-    saving.value = true
-    error.value = ''
     success.value = ''
-    try {
-        const result = await applyInstanceBackend({target: currentRequest(), keepSource: keepSource.value})
-        success.value = t('adminStorageBackend.feedback.applied', {
-            copied: result.copied,
-            skipped: result.skipped,
-            deleted: result.deleted,
-        })
-        await loadAll()
-    } catch (e: any) {
-        error.value = e?.response?.data?.title ?? e?.message ?? t('adminStorageBackend.errors.applyFailed')
-    } finally {
-        saving.value = false
-    }
-}
+    const result = await applyInstanceBackend({target: currentRequest(), keepSource: keepSource.value})
+    success.value = t('adminStorageBackend.feedback.applied', {
+        copied: result.copied,
+        skipped: result.skipped,
+        deleted: result.deleted,
+    })
+    await loadAll()
+}, {formatError: (e) => backendError(e, t('adminStorageBackend.errors.applyFailed'))})
+
+const error = computed(() => loadError.value || applyError.value)
 
 function newS3(): S3Request {
     return {

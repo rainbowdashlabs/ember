@@ -21,6 +21,8 @@ import type {PartnerResponse} from '@/api/federation'
 import EventEditBody from './eventeditview/EventEditBody.vue'
 import {useSession} from '@/composables/useSession'
 import {useEventEditDeps} from '@/composables/useEventEditDeps'
+import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useFlashMessage} from '@/composables/useFlashMessage'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -39,9 +41,8 @@ const eventFieldDefaults = ref<EventFieldDefault[]>([])
 const eventCustomFields = ref<EventFieldEntry[]>([])
 
 const loading = ref(true)
-const saving = ref(false)
 const error = ref('')
-const templateApplied = ref(false)
+const {message: templateAppliedMessage, flash: flashTemplateApplied} = useFlashMessage(3000)
 
 async function applyEventTemplate(templateId: string | undefined) {
   if (!templateId) return
@@ -69,8 +70,7 @@ async function applyEventTemplate(templateId: string | undefined) {
     if (detail.reminderDays?.length) {
       eventReminders.value = [...new Set([...eventReminders.value, ...detail.reminderDays])]
     }
-    templateApplied.value = true
-    setTimeout(() => { templateApplied.value = false }, 3000)
+    flashTemplateApplied(t('eventTemplates.applied'))
   } catch (e) { reportCaughtError(e, 'applyEventTemplate'); error.value = t('common.error') }
 }
 
@@ -249,70 +249,65 @@ function setFieldDefaultValue(fieldId: number, value: string) {
 }
 
 
-async function submit() {
-  saving.value = true
+const {running: saving, error: saveError, run: submit} = useAsyncAction(async () => {
   error.value = ''
-  try {
-    const fieldDefaultEntries = [...fieldDefaults.value.entries()]
-        .filter(([, v]) => v.source)
-        .map(([fieldId, v]) => ({fieldId, source: v.source, value: v.value || undefined}))
+  const fieldDefaultEntries = [...fieldDefaults.value.entries()]
+      .filter(([, v]) => v.source)
+      .map(([fieldId, v]) => ({fieldId, source: v.source, value: v.value || undefined}))
 
-    const data = {
-      name: eventName.value,
-      description: eventDescription.value || undefined,
-      eventType: eventType.value,
-      dayOfWeek: needsDayOfWeek(eventType.value) ? Number(eventDayOfWeek.value) : null,
-      startTime: eventStartTime.value ? new Date(eventStartTime.value).toISOString() : undefined,
-      endTime: eventEndTime.value ? new Date(eventEndTime.value).toISOString() : undefined,
-      templateId: eventTemplateId.value ? Number(eventTemplateId.value) : undefined,
-      categoryId: eventCategoryId.value ? Number(eventCategoryId.value) : undefined,
-      requiresRegistration: eventRequiresRegistration.value,
-      registrationDeadline: eventHasDeadline.value && eventRegistrationDeadline.value
-          ? new Date(eventRegistrationDeadline.value).toISOString() : undefined,
-      requiresConfirmation: eventRequiresConfirmation.value,
-      registrationLimit: eventRegistrationLimit.value ?? undefined,
-      minRegistrations: eventMinRegistrations.value ?? undefined,
-      thresholdDate: eventHasThreshold.value && eventThresholdDate.value
-          ? new Date(eventThresholdDate.value).toISOString() : undefined,
-      restriction: restriction.value,
-      registrationCloseDays: eventRegistrationCloseDays.value ?? undefined,
-    }
-
-    let savedEventId: number
-    if (isEdit.value) {
-      await events.updateEvent(eventId.value!, data)
-      savedEventId = eventId.value!
-    } else {
-      const created = await events.createEvent(data)
-      savedEventId = created.id
-    }
-
-    if (fieldDefaultEntries.length > 0 || isEdit.value) {
-      await events.setFieldDefaults(savedEventId, fieldDefaultEntries)
-    }
-
-    await events.setEventReminders(savedEventId, eventReminders.value)
-
-    const customFields = eventCustomFields.value.filter(f => f.name.trim())
-    await events.setEventFields(savedEventId, {fields: customFields})
-
-    if (canFederate.value) {
-      if (federationShared.value) {
-        const pIds = federationScope.value === 'SPECIFIC_PARTNERS' ? federationPartnerIds.value : undefined
-        await events.setFederationShare(savedEventId, federationScope.value, pIds)
-      } else {
-        await events.removeFederationShare(savedEventId).catch(() => {})
-      }
-    }
-
-    leaveEditor()
-  } catch (e) {
-    reportCaughtError(e, 'EventEditView.submit')
-    error.value = t('common.error')
-  } finally {
-    saving.value = false
+  const data = {
+    name: eventName.value,
+    description: eventDescription.value || undefined,
+    eventType: eventType.value,
+    dayOfWeek: needsDayOfWeek(eventType.value) ? Number(eventDayOfWeek.value) : null,
+    startTime: eventStartTime.value ? new Date(eventStartTime.value).toISOString() : undefined,
+    endTime: eventEndTime.value ? new Date(eventEndTime.value).toISOString() : undefined,
+    templateId: eventTemplateId.value ? Number(eventTemplateId.value) : undefined,
+    categoryId: eventCategoryId.value ? Number(eventCategoryId.value) : undefined,
+    requiresRegistration: eventRequiresRegistration.value,
+    registrationDeadline: eventHasDeadline.value && eventRegistrationDeadline.value
+        ? new Date(eventRegistrationDeadline.value).toISOString() : undefined,
+    requiresConfirmation: eventRequiresConfirmation.value,
+    registrationLimit: eventRegistrationLimit.value ?? undefined,
+    minRegistrations: eventMinRegistrations.value ?? undefined,
+    thresholdDate: eventHasThreshold.value && eventThresholdDate.value
+        ? new Date(eventThresholdDate.value).toISOString() : undefined,
+    restriction: restriction.value,
+    registrationCloseDays: eventRegistrationCloseDays.value ?? undefined,
   }
-}
+
+  let savedEventId: number
+  if (isEdit.value) {
+    await events.updateEvent(eventId.value!, data)
+    savedEventId = eventId.value!
+  } else {
+    const created = await events.createEvent(data)
+    savedEventId = created.id
+  }
+
+  if (fieldDefaultEntries.length > 0 || isEdit.value) {
+    await events.setFieldDefaults(savedEventId, fieldDefaultEntries)
+  }
+
+  await events.setEventReminders(savedEventId, eventReminders.value)
+
+  const customFields = eventCustomFields.value.filter(f => f.name.trim())
+  await events.setEventFields(savedEventId, {fields: customFields})
+
+  if (canFederate.value) {
+    if (federationShared.value) {
+      const pIds = federationScope.value === 'SPECIFIC_PARTNERS' ? federationPartnerIds.value : undefined
+      await events.setFederationShare(savedEventId, federationScope.value, pIds)
+    } else {
+      await events.removeFederationShare(savedEventId).catch(() => {})
+    }
+  }
+
+  leaveEditor()
+}, {formatError: (e) => {
+  reportCaughtError(e, 'EventEditView.submit')
+  return t('common.error')
+}})
 
 function leaveEditor() {
   const returnTo = typeof route.query.returnTo === 'string' ? route.query.returnTo : null
@@ -420,8 +415,8 @@ const bodyHandlers = {
       </div>
 
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
-      <Alert v-if="templateApplied" variant="success">{{ t('eventTemplates.applied') }}</Alert>
+      <Alert v-if="error || saveError" variant="error">{{ error || saveError }}</Alert>
+      <Alert v-if="templateAppliedMessage" variant="success">{{ templateAppliedMessage }}</Alert>
 
       <EventEditBody
           v-if="!loading"

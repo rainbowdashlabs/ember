@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import Alert from '@/components/feedback/Alert.vue'
@@ -16,6 +16,8 @@ import StatusActions from './waitingliststatusview/StatusActions.vue'
 import RemoveConfirmationModal from './waitingliststatusview/RemoveConfirmationModal.vue'
 import type { WaitingListPublicStatus } from '@/api/types'
 import { waitingList } from '@/api'
+import { useFlashMessage } from '@/composables/useFlashMessage'
+import { useAsyncAction } from '@/composables/useAsyncAction'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -23,59 +25,41 @@ const route = useRoute()
 const token = ref('')
 const status = ref<WaitingListPublicStatus | null>(null)
 const loading = ref(true)
-const error = ref('')
-const success = ref('')
+const pageError = ref('')
+const { message: success, flash } = useFlashMessage(5000)
 
 const showRemoveModal = ref(false)
-const removing = ref(false)
 const removed = ref(false)
-
-const confirming = ref(false)
 
 async function loadStatus() {
   token.value = (route.query.token as string) ?? ''
   if (!token.value) {
-    error.value = t('waitingList.publicStatus.noToken')
+    pageError.value = t('waitingList.publicStatus.noToken')
     loading.value = false
     return
   }
   try {
     status.value = await waitingList.getEntryStatus(token.value)
   } catch {
-    error.value = t('waitingList.publicStatus.invalidToken')
+    pageError.value = t('waitingList.publicStatus.invalidToken')
   } finally {
     loading.value = false
   }
 }
 
-async function confirmInterest() {
-  confirming.value = true
-  error.value = ''
-  try {
-    await waitingList.confirmInterest(token.value)
-    status.value = await waitingList.getEntryStatus(token.value)
-    success.value = t('waitingList.publicStatus.confirmed')
-    setTimeout(() => { success.value = '' }, 5000)
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    confirming.value = false
-  }
-}
+const { running: confirming, error: confirmError, run: confirmInterest } = useAsyncAction(async () => {
+  await waitingList.confirmInterest(token.value)
+  status.value = await waitingList.getEntryStatus(token.value)
+  flash(t('waitingList.publicStatus.confirmed'))
+})
 
-async function removeFromList() {
-  removing.value = true
-  error.value = ''
-  try {
-    await waitingList.removeEntry(token.value)
-    removed.value = true
-    showRemoveModal.value = false
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    removing.value = false
-  }
-}
+const { running: removing, error: removeError, run: removeFromList } = useAsyncAction(async () => {
+  await waitingList.removeEntry(token.value)
+  removed.value = true
+  showRemoveModal.value = false
+})
+
+const error = computed(() => pageError.value || confirmError.value || removeError.value)
 
 onMounted(loadStatus)
 </script>

@@ -18,6 +18,7 @@ import { StationPermission, StationUserType, parseFieldConfig } from '@/api/type
 import { useMemberData, memberDisplayName } from './listview/useMemberData'
 import { useSavedFilters, emptyTabState, type TabFilterState } from './listview/useSavedFilters'
 import { useExport } from './listview/useExport'
+import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useMemberFilter } from '@/composables/useMemberFilter'
 import { useSession } from '@/composables/useSession'
 import { stationMembers } from '@/api'
@@ -197,30 +198,29 @@ function navigateToEdit(member: StationMember, event: Event) {
 }
 
 const resendTarget = ref<StationMember | null>(null)
-const resending = ref(false)
-const resendError = ref('')
 const resendSuccess = ref('')
+
+const {
+  running: resending,
+  error: resendError,
+  run: confirmResendSetup,
+  clearError: clearResendError,
+} = useAsyncAction(async () => {
+  if (!resendTarget.value) return
+  await stationMembers.resendSetupMail(resendTarget.value.id)
+  resendSuccess.value = t('membersList.resendSuccess')
+  resendTarget.value = null
+}, {
+  formatError: e => {
+    const data = (e as {response?: {data?: {title?: string; message?: string}}})?.response?.data
+    return data?.title ?? data?.message ?? t('common.error')
+  },
+})
 
 function openResendSetup(member: StationMember, event: Event) {
   event.stopPropagation()
   resendTarget.value = member
-  resendError.value = ''
-}
-
-async function confirmResendSetup() {
-  if (!resendTarget.value) return
-  resending.value = true
-  resendError.value = ''
-  try {
-    await stationMembers.resendSetupMail(resendTarget.value.id)
-    resendSuccess.value = t('membersList.resendSuccess')
-    resendTarget.value = null
-  } catch (e) {
-    const data = (e as {response?: {data?: {title?: string; message?: string}}})?.response?.data
-    resendError.value = data?.title ?? data?.message ?? t('common.error')
-  } finally {
-    resending.value = false
-  }
+  clearResendError()
 }
 
 onMounted(() => {

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {onMounted, ref} from 'vue'
+import {computed, nextTick, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import SetupLayout from '@/views/stationview/setup/SetupLayout.vue'
@@ -13,12 +13,13 @@ import CustomColorsPanel from '@/views/stationview/manage/stationthemeview/Custo
 import LogoSection from '@/views/stationview/manage/stationview/LogoSection.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import client from '@/api/client'
 import {stationManage} from '@/api'
 import {THEMES} from '@/theme/themes'
 import type {ModeColors, ThemeColors} from '@/theme/themes'
 import {useTheme} from '@/composables/useTheme'
 import {useSetupStatus} from '@/composables/useSetupStatus'
+import {useAuthImage} from '@/composables/useAuthImage'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import {nextStep, stepRouteName} from '@/views/stationview/setup/steps'
 
 const {t} = useI18n()
@@ -27,6 +28,7 @@ const {reload} = useSetupStatus()
 const themeCtrl = useTheme()
 
 const LOGO_MAX_SIZE = 2 * 1024 * 1024
+const LOGO_URL = '/station/manage/logo?size=256'
 
 const stationName = ref('')
 const lockTheme = ref(false)
@@ -34,11 +36,9 @@ const lockFeel = ref(false)
 const customEnabled = ref(false)
 const presetKey = ref('')
 const hasLogo = ref(false)
-const logoObjectUrl = ref<string | null>(null)
-const uploading = ref(false)
-const logoError = ref<string | null>(null)
+const logoUrl = ref<string | null>(null)
+const {src: logoObjectUrl} = useAuthImage(logoUrl)
 const loading = ref(true)
-const saving = ref(false)
 const error = ref('')
 
 function defaultColors(): ThemeColors {
@@ -79,7 +79,7 @@ onMounted(async () => {
             }
         }
         hasLogo.value = info.hasLogo
-        if (info.hasLogo) await loadLogoBlob()
+        if (info.hasLogo) logoUrl.value = LOGO_URL
     } catch {
         error.value = t('common.error')
     } finally {
@@ -87,45 +87,19 @@ onMounted(async () => {
     }
 })
 
-async function loadLogoBlob() {
-    try {
-        const res = await client.get('/station/manage/logo?size=256', {
-            responseType: 'blob',
-            validateStatus: (status) => status === 200 || status === 404,
-        })
-        if (res.status === 404) {
-            logoObjectUrl.value = null
-            return
-        }
-        if (logoObjectUrl.value) URL.revokeObjectURL(logoObjectUrl.value)
-        logoObjectUrl.value = URL.createObjectURL(res.data)
-    } catch {
-        logoObjectUrl.value = null
-    }
-}
-
-async function handleLogoUpload(file: File) {
-    uploading.value = true
-    logoError.value = null
-    try {
-        await stationManage.uploadLogo(file)
-        hasLogo.value = true
-        await loadLogoBlob()
-    } catch {
-        logoError.value = t('fileUpload.uploadFailed')
-    } finally {
-        uploading.value = false
-    }
-}
+const {running: uploading, error: logoError, run: handleLogoUpload} = useAsyncAction(async (file: File) => {
+    await stationManage.uploadLogo(file)
+    hasLogo.value = true
+    logoUrl.value = null
+    await nextTick()
+    logoUrl.value = LOGO_URL
+}, {formatError: () => t('fileUpload.uploadFailed')})
 
 async function removeLogo() {
     try {
         await stationManage.deleteLogo()
         hasLogo.value = false
-        if (logoObjectUrl.value) {
-            URL.revokeObjectURL(logoObjectUrl.value)
-            logoObjectUrl.value = null
-        }
+        logoUrl.value = null
     } catch {
         error.value = t('common.error')
     }
@@ -135,32 +109,31 @@ function removeCustomColors() {
     customEnabled.value = false
 }
 
-async function save() {
-    saving.value = true
+const {running: saving, error: saveError, run: runSave} = useAsyncAction(async () => {
+    await stationManage.updateStationName({
+        name: stationName.value,
+        defaultTheme: themeCtrl.activeTheme.value,
+        allowUserTheme: !lockTheme.value,
+        defaultFeel: themeCtrl.activeFeel.value,
+        allowUserFeel: !lockFeel.value,
+        customThemeColors: customEnabled.value ? JSON.stringify(customColors.value) : null,
+    })
+    await reload()
+    const next = nextStep('branding')
+    if (next) router.push({name: stepRouteName(next)})
+})
+
+const displayError = computed(() => error.value || saveError.value)
+
+function save() {
     error.value = ''
-    try {
-        await stationManage.updateStationName({
-            name: stationName.value,
-            defaultTheme: themeCtrl.activeTheme.value,
-            allowUserTheme: !lockTheme.value,
-            defaultFeel: themeCtrl.activeFeel.value,
-            allowUserFeel: !lockFeel.value,
-            customThemeColors: customEnabled.value ? JSON.stringify(customColors.value) : null,
-        })
-        await reload()
-        const next = nextStep('branding')
-        if (next) router.push({name: stepRouteName(next)})
-    } catch {
-        error.value = t('common.error')
-    } finally {
-        saving.value = false
-    }
+    return runSave()
 }
 </script>
 
 <template>
   <SetupLayout step-id="branding" skippable :saving="saving" @save="save">
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <Alert v-if="displayError" variant="error">{{ displayError }}</Alert>
     <Spinner v-if="loading" size="lg"/>
     <template v-else>
       <ThemeDefaultsPanel v-model:lock-theme="lockTheme" v-model:lock-feel="lockFeel"/>
@@ -175,7 +148,7 @@ async function save() {
           :has-logo="hasLogo"
           :logo-object-url="logoObjectUrl"
           :uploading="uploading"
-          :logo-error="logoError"
+          :logo-error="logoError || null"
           :max-size="LOGO_MAX_SIZE"
           @upload="handleLogoUpload"
           @remove="removeLogo"

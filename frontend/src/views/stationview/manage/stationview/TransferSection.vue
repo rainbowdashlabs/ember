@@ -12,6 +12,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import {transfer} from '@/api'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 
 const emit = defineEmits<{
   error: [msg: string]
@@ -20,19 +21,17 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-const creatingToken = ref(false)
 const transferToken = ref('')
 
+const {running: creatingToken, run: runCreateToken} = useAsyncAction(() => transfer.createTransferToken())
+
 async function createToken() {
-  creatingToken.value = true
   transferToken.value = ''
-  try {
-    const result = await transfer.createTransferToken()
+  const result = await runCreateToken()
+  if (result) {
     transferToken.value = result.token
-  } catch {
+  } else {
     emit('error', t('common.error'))
-  } finally {
-    creatingToken.value = false
   }
 }
 

@@ -17,6 +17,7 @@ import * as lending from '@/api/lending'
 import {inventory} from '@/api'
 import type {Inventory} from '@/api/types'
 import {useSession} from '@/composables/useSession'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -30,7 +31,6 @@ const blockTo = ref('')
 const reason = ref('')
 const entries = ref<BlockEntry[]>([])
 const addInventoryId = ref('')
-const saving = ref(false)
 
 const availableInventories = computed(() =>
     inventories.value.filter(inv => !entries.value.some(e => e.inventoryId === inv.id))
@@ -101,45 +101,38 @@ watch(loaded, (v) => {
   if (v) loadInventories()
 })
 
-async function handleCreate() {
+const {running: saving, run: handleCreate} = useAsyncAction(async () => {
   if (!blockFrom.value || !blockTo.value) return
-  saving.value = true
-  try {
-    if (isFullBlock.value) {
-      await lending.createBlock({
-        blockFrom: blockFrom.value,
-        blockTo: blockTo.value,
-        reason: reason.value,
-      })
-    } else {
-      for (const entry of entries.value) {
-        if (entry.allItems) {
+  if (isFullBlock.value) {
+    await lending.createBlock({
+      blockFrom: blockFrom.value,
+      blockTo: blockTo.value,
+      reason: reason.value,
+    })
+  } else {
+    for (const entry of entries.value) {
+      if (entry.allItems) {
+        await lending.createBlock({
+          blockFrom: blockFrom.value,
+          blockTo: blockTo.value,
+          reason: reason.value,
+          inventoryId: entry.inventoryId,
+        })
+      } else {
+        for (const itemId of entry.selectedItemIds) {
           await lending.createBlock({
             blockFrom: blockFrom.value,
             blockTo: blockTo.value,
             reason: reason.value,
             inventoryId: entry.inventoryId,
+            itemId,
           })
-        } else {
-          for (const itemId of entry.selectedItemIds) {
-            await lending.createBlock({
-              blockFrom: blockFrom.value,
-              blockTo: blockTo.value,
-              reason: reason.value,
-              inventoryId: entry.inventoryId,
-              itemId,
-            })
-          }
         }
       }
     }
-    router.push({name: 'inventory-lending-blocks'})
-  } catch {
-    void 0
-  } finally {
-    saving.value = false
   }
-}
+  router.push({name: 'inventory-lending-blocks'})
+})
 
 function goBack() {
   router.push({name: 'inventory-lending-blocks'})

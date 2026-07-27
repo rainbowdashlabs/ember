@@ -4,11 +4,12 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {ref, onMounted} from 'vue'
+import {computed, ref, onMounted} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import {stationApplications, adminSettings} from '@/api'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
 import ApplyForm from '@/views/applyview/ApplyForm.vue'
@@ -21,8 +22,7 @@ const lastName = ref('')
 const email = ref('')
 const stationName = ref('')
 const introduction = ref('')
-const submitting = ref(false)
-const error = ref('')
+const validationError = ref('')
 const submitted = ref(false)
 const registrationEnabled = ref(true)
 const loading = ref(true)
@@ -37,27 +37,26 @@ onMounted(async () => {
   }
 })
 
-async function submit() {
+const {running: submitting, error: submitError, run: submitApplication} = useAsyncAction(async () => {
+  await stationApplications.submit({
+    firstName: firstName.value.trim(),
+    lastName: lastName.value.trim(),
+    email: email.value.trim(),
+    stationName: stationName.value.trim(),
+    introduction: introduction.value.trim(),
+  })
+  submitted.value = true
+})
+
+const error = computed(() => validationError.value || submitError.value)
+
+function submit() {
   if (!firstName.value.trim() || !lastName.value.trim() || !email.value.trim() || !stationName.value.trim()) {
-    error.value = t('apply.allFieldsRequired')
+    validationError.value = t('apply.allFieldsRequired')
     return
   }
-  submitting.value = true
-  error.value = ''
-  try {
-    await stationApplications.submit({
-      firstName: firstName.value.trim(),
-      lastName: lastName.value.trim(),
-      email: email.value.trim(),
-      stationName: stationName.value.trim(),
-      introduction: introduction.value.trim(),
-    })
-    submitted.value = true
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    submitting.value = false
-  }
+  validationError.value = ''
+  void submitApplication()
 }
 </script>
 

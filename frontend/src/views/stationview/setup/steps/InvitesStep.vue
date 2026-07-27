@@ -20,6 +20,7 @@ import {memberGroups, stationMemberInvites} from '@/api'
 import type {MemberGroup} from '@/api/types'
 import type {GuardianRequest, InviteEntry} from '@/api/stationMemberInvites'
 import {useSetupStatus} from '@/composables/useSetupStatus'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import {nextStep, stepRouteName} from '@/views/stationview/setup/steps'
 
 const {t} = useI18n()
@@ -43,8 +44,6 @@ interface RichRow {
 
 const richRows = ref<RichRow[]>([])
 const groups = ref<MemberGroup[]>([])
-const saving = ref(false)
-const error = ref('')
 const successCount = ref(0)
 
 const USER_TYPES = ['MEMBER', 'TEAM', 'MANAGER', 'GUARDIAN']
@@ -97,8 +96,16 @@ const expandedBulk = computed(() => {
     }))
 })
 
-async function save() {
-    error.value = ''
+const {running: saving, error, run: runSave, clearError} = useAsyncAction(async (payload: InviteEntry[]) => {
+    const result = await stationMemberInvites.createInvites({invites: payload})
+    successCount.value = result.provisioned.length
+    await reload()
+    const next = nextStep('invites')
+    if (next) router.push({name: stepRouteName(next)})
+})
+
+function save() {
+    clearError()
     successCount.value = 0
     const payload: InviteEntry[] = tab.value === 'bulk'
         ? expandedBulk.value
@@ -108,18 +115,7 @@ async function save() {
         if (next) router.push({name: stepRouteName(next)})
         return
     }
-    saving.value = true
-    try {
-        const result = await stationMemberInvites.createInvites({invites: payload})
-        successCount.value = result.provisioned.length
-        await reload()
-        const next = nextStep('invites')
-        if (next) router.push({name: stepRouteName(next)})
-    } catch {
-        error.value = t('common.error')
-    } finally {
-        saving.value = false
-    }
+    return runSave(payload)
 }
 </script>
 

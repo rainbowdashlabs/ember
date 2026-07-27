@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
+import Alert from '@/components/feedback/Alert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
@@ -23,6 +24,8 @@ const newSizeId = defineModel<string>('newSizeId', {required: true})
 defineProps<{
   item: MyInventoryItem | null
   sizes: InventorySize[]
+  submitting: boolean
+  error: string
 }>()
 
 const emit = defineEmits<{
@@ -49,9 +52,10 @@ const {t} = useI18n()
         </SelectInput>
       </div>
       <TextAreaInput v-model="reason" :placeholder="t('profile.exchangeReasonPlaceholder')" :rows="3" />
+      <Alert v-if="error" variant="error">{{ error }}</Alert>
       <div class="flex justify-end gap-2">
         <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
-        <PrimaryButton :disabled="!reason.trim() || (sizes.length > 0 && !newSizeId)" @click="emit('submit')">
+        <PrimaryButton :disabled="submitting || !reason.trim() || (sizes.length > 0 && !newSizeId)" @click="emit('submit')">
           {{ t('profile.submitExchange') }}
         </PrimaryButton>
       </div>

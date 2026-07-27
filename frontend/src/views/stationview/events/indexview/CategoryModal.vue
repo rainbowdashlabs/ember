@@ -27,7 +27,6 @@ const emit = defineEmits<{
 }>()
 
 const categoryName = ref('')
-const saving = ref(false)
 
 watch(modelValue, (open) => {
   if (!open) return
@@ -35,9 +34,7 @@ watch(modelValue, (open) => {
 })
 
 function submit() {
-  saving.value = true
   emit('save', categoryName.value)
-  saving.value = false
 }
 </script>
 
@@ -51,8 +48,8 @@ function submit() {
       </div>
       <div class="flex justify-end gap-3">
         <SecondaryButton @click="modelValue = false">{{ t('common.cancel') }}</SecondaryButton>
-        <PrimaryButton :disabled="saving || !categoryName" @click="submit">
-          {{ saving ? t('common.loading') : t('common.save') }}
+        <PrimaryButton :disabled="!categoryName" @click="submit">
+          {{ t('common.save') }}
         </PrimaryButton>
       </div>
     </div>

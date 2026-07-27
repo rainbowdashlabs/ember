@@ -7,6 +7,8 @@
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useConfigPanel} from '@/composables/useConfigPanel'
+import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useFlashMessage} from '@/composables/useFlashMessage'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -24,6 +26,7 @@ import {inventory, stationMembers} from '@/api'
 import type {InventoryItem, StationMember} from '@/api/types'
 import type {MemberSearchResult} from '@/api/members'
 import UnknownScanModal from '@/views/stationview/inventory/UnknownScanModal.vue'
+import {formatTime} from '@/util/format'
 
 interface AssignmentEvent {
   id: number
@@ -48,8 +51,8 @@ const memberUid = ref<string | null>(null)
 const selectedDisplayName = ref<string | null>(null)
 const pickedItemId = ref<number | null>(null)
 const bulkMode = ref(false)
-const submitting = ref(false)
-const success = ref('')
+const {message: flashMessage, kind: flashKind, flash} = useFlashMessage()
+const {running: submitting, run: runMutation} = useAsyncAction((fn: () => Promise<void>) => fn())
 const recent = ref<AssignmentEvent[]>([])
 const recentCounter = ref(1)
 const unknownScanCode = ref<string | null>(null)
@@ -70,7 +73,7 @@ async function onMemberPicked(picked: MemberSearchResult) {
       members.value = await stationMembers.listMembers()
       match = members.value.find(m => m.identity?.memberUid === picked.memberUid)
     } catch {
-      /* swallow — surfaced below */
+      match = undefined
     }
   }
   if (!match) {
@@ -82,13 +85,11 @@ async function onMemberPicked(picked: MemberSearchResult) {
 }
 
 function flashError(msg: string) {
-  error.value = msg
-  setTimeout(() => (error.value = ''), 3500)
+  flash(msg, 'error', 3500)
 }
 
 function flashSuccess(msg: string) {
-  success.value = msg
-  setTimeout(() => (success.value = ''), 2500)
+  flash(msg)
 }
 
 async function onItemPicked(item: InventoryItem) {
@@ -98,34 +99,33 @@ async function onItemPicked(item: InventoryItem) {
     return
   }
   if (submitting.value) return
-  submitting.value = true
-  try {
-    if (item.assignedTo === memberId.value) {
-      const returned = await inventory.assignItem(item.id, {memberId: null})
-      pushRecent('RETURN', returned, selectedMember.value)
-      flashSuccess(t('inventory.assign.returned', {name: item.name ?? ''}))
-      return
-    }
-    if (item.assignedTo && item.assignedTo !== memberId.value) {
-      const previous = members.value.find(m => m.id === item.assignedTo) ?? null
-      if (!confirm(t('inventory.assign.confirmReassign', {
-            previous: previous ? memberDisplay(previous) : `#${item.assignedTo}`,
-          }))) {
+  await runMutation(async () => {
+    try {
+      if (item.assignedTo === memberId.value) {
+        const returned = await inventory.assignItem(item.id, {memberId: null})
+        pushRecent('RETURN', returned, selectedMember.value)
+        flashSuccess(t('inventory.assign.returned', {name: item.name ?? ''}))
         return
       }
+      if (item.assignedTo && item.assignedTo !== memberId.value) {
+        const previous = members.value.find(m => m.id === item.assignedTo) ?? null
+        if (!window.confirm(t('inventory.assign.confirmReassign', {
+              previous: previous ? memberDisplay(previous) : `#${item.assignedTo}`,
+            }))) {
+          return
+        }
+      }
+      const assigned = await inventory.assignItem(item.id, {
+        memberId: memberId.value,
+        memberName: selectedMember.value ? memberDisplay(selectedMember.value) : '',
+      })
+      pushRecent('ASSIGN', assigned, selectedMember.value)
+      flashSuccess(t('inventory.assign.assigned', {name: item.name ?? ''}))
+    } catch (e: any) {
+      flashError(e?.response?.data?.message ?? t('inventory.assign.errors.failed'))
     }
-    const assigned = await inventory.assignItem(item.id, {
-      memberId: memberId.value,
-      memberName: selectedMember.value ? memberDisplay(selectedMember.value) : '',
-    })
-    pushRecent('ASSIGN', assigned, selectedMember.value)
-    flashSuccess(t('inventory.assign.assigned', {name: item.name ?? ''}))
-  } catch (e: any) {
-    flashError(e?.response?.data?.message ?? t('inventory.assign.errors.failed'))
-  } finally {
-    submitting.value = false
-    pickedItemId.value = null
-  }
+  })
+  pickedItemId.value = null
 }
 
 function pushRecent(action: 'ASSIGN' | 'RETURN', item: InventoryItem, member: StationMember | null) {
@@ -145,23 +145,22 @@ function pushRecent(action: 'ASSIGN' | 'RETURN', item: InventoryItem, member: St
 async function undoLast() {
   const last = recent.value[0]
   if (!last) return
-  submitting.value = true
-  try {
-    if (last.action === 'ASSIGN') {
-      await inventory.assignItem(last.itemId, {memberId: null})
-    } else {
-      await inventory.assignItem(last.itemId, {
-        memberId: last.memberId,
-        memberName: last.memberName,
-      })
+  await runMutation(async () => {
+    try {
+      if (last.action === 'ASSIGN') {
+        await inventory.assignItem(last.itemId, {memberId: null})
+      } else {
+        await inventory.assignItem(last.itemId, {
+          memberId: last.memberId,
+          memberName: last.memberName,
+        })
+      }
+      recent.value.shift()
+      flashSuccess(t('inventory.assign.undone'))
+    } catch (e: any) {
+      flashError(e?.response?.data?.message ?? t('inventory.assign.errors.failed'))
     }
-    recent.value.shift()
-    flashSuccess(t('inventory.assign.undone'))
-  } catch (e: any) {
-    flashError(e?.response?.data?.message ?? t('inventory.assign.errors.failed'))
-  } finally {
-    submitting.value = false
-  }
+  })
 }
 
 async function onUnknownScanCreated(item: InventoryItem) {
@@ -181,7 +180,6 @@ async function onUnknownScanCreated(item: InventoryItem) {
     flashError(e?.response?.data?.message ?? t('inventory.assign.errors.failed'))
   }
 }
-
 </script>
 
 <template>
@@ -190,7 +188,7 @@ async function onUnknownScanCreated(item: InventoryItem) {
       :subtitle="t('pages.inventory-assign.subtitle')"
   >
     <Alert v-if="error" variant="error" class="mb-3">{{ error }}</Alert>
-    <Alert v-if="success" variant="success" class="mb-3">{{ success }}</Alert>
+    <Alert v-if="flashMessage" :variant="flashKind" class="mb-3">{{ flashMessage }}</Alert>
 
     <div v-if="loading" class="flex justify-center py-12">
       <Spinner size="lg" />
@@ -250,7 +248,7 @@ async function onUnknownScanCreated(item: InventoryItem) {
             <span v-if="r.internalId" class="text-xs text-(--text-muted)">{{ r.internalId }}</span>
             <span class="text-(--text-muted)">→</span>
             <span>{{ r.memberName }}</span>
-            <span class="ml-auto text-xs text-(--text-muted)">{{ new Date(r.ts).toLocaleTimeString() }}</span>
+            <span class="ml-auto text-xs text-(--text-muted)">{{ formatTime(r.ts) }}</span>
           </li>
         </ul>
       </NeutralContainer>

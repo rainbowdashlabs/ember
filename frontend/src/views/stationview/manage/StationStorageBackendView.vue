@@ -20,6 +20,7 @@ import StorageBackendAuditTable from '@/components/storage/StorageBackendAuditTa
 import BackendForm from './stationstoragebackendview/BackendForm.vue'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import {
     type AuditEntry,
     type BackendOverrideResponse,
@@ -56,8 +57,6 @@ const selectedType = ref<'LOCAL' | 'S3' | 'SMB' | 'SFTP'>('LOCAL')
 const s3 = ref<S3Request>(newS3())
 const smb = ref<SmbRequest>(newSmb())
 const sftp = ref<SftpRequest>(newSftp())
-const probing = ref(false)
-const saving = ref(false)
 const probeOutcome = ref<ProbeResult | null>(null)
 const confirmApply = ref(false)
 
@@ -80,8 +79,8 @@ async function loadAll() {
         backend.value = await getStationBackend()
         seedFormFromBackend()
         auditEntries.value = await getStationStorageAudit()
-    } catch (e: any) {
-        error.value = e?.response?.data?.title ?? e?.message ?? t('stationStorageBackend.errors.loadFailed')
+    } catch (e) {
+        error.value = apiErrorTitle(e, t('stationStorageBackend.errors.loadFailed'))
     } finally {
         loading.value = false
     }
@@ -135,6 +134,11 @@ function seedFormFromBackend() {
     }
 }
 
+function apiErrorTitle(e: unknown, fallback: string): string {
+    const err = e as {response?: {data?: {title?: string}}; message?: string}
+    return err?.response?.data?.title ?? err?.message ?? fallback
+}
+
 function currentRequest(): StationBackendRequest | null {
     if (selectedType.value === 'LOCAL') return null
     if (selectedType.value === 'S3') return s3.value
@@ -142,45 +146,35 @@ function currentRequest(): StationBackendRequest | null {
     return sftp.value
 }
 
-async function probe() {
+const {running: probing, run: runProbe} = useAsyncAction(async (call: () => Promise<ProbeResult>) => {
+    try {
+        probeOutcome.value = await call()
+    } catch (e) {
+        probeOutcome.value = {
+            healthy: false,
+            error: apiErrorTitle(e, t('stationStorageBackend.errors.probeFailed')),
+            checkedAt: new Date().toISOString(),
+        }
+    }
+})
+
+function probe() {
     if (!hasOverride.value) {
         probeOutcome.value = null
         return
     }
-    probing.value = true
     probeOutcome.value = null
-    try {
-        probeOutcome.value = await probeStationBackend()
-    } catch (e: any) {
-        probeOutcome.value = {
-            healthy: false,
-            error: e?.response?.data?.title ?? e?.message ?? t('stationStorageBackend.errors.probeFailed'),
-            checkedAt: new Date().toISOString(),
-        }
-    } finally {
-        probing.value = false
-    }
+    return runProbe(() => probeStationBackend())
 }
 
-async function probeConfig() {
+function probeConfig() {
     const req = currentRequest()
     if (!req) {
         probeOutcome.value = null
         return
     }
-    probing.value = true
     probeOutcome.value = null
-    try {
-        probeOutcome.value = await probeStationBackendConfig(req)
-    } catch (e: any) {
-        probeOutcome.value = {
-            healthy: false,
-            error: e?.response?.data?.title ?? e?.message ?? t('stationStorageBackend.errors.probeFailed'),
-            checkedAt: new Date().toISOString(),
-        }
-    } finally {
-        probing.value = false
-    }
+    return runProbe(() => probeStationBackendConfig(req))
 }
 
 function applyRequest(): StationApplyRequest {
@@ -188,12 +182,11 @@ function applyRequest(): StationApplyRequest {
     return currentRequest()!
 }
 
-async function runApply() {
-    confirmApply.value = false
-    saving.value = true
-    error.value = ''
-    success.value = ''
-    try {
+const {running: saving, error: applyError, run: runApply} = useAsyncAction(
+    async () => {
+        confirmApply.value = false
+        error.value = ''
+        success.value = ''
         const result = await applyStationBackend(applyRequest())
         success.value = t('stationStorageBackend.feedback.applied', {
             copied: result.copied,
@@ -201,12 +194,9 @@ async function runApply() {
             deleted: result.deleted,
         })
         await loadAll()
-    } catch (e: any) {
-        error.value = e?.response?.data?.title ?? e?.message ?? t('stationStorageBackend.errors.applyFailed')
-    } finally {
-        saving.value = false
-    }
-}
+    },
+    {formatError: (e) => apiErrorTitle(e, t('stationStorageBackend.errors.applyFailed'))},
+)
 
 function newS3(): S3Request {
     return {
@@ -263,7 +253,7 @@ function newSftp(): SftpRequest {
                 </RouterLink>
             </div>
 
-            <Alert v-if="error" variant="error">{{ error }}</Alert>
+            <Alert v-if="error || applyError" variant="error">{{ error || applyError }}</Alert>
             <Alert v-if="success" variant="success">{{ success }}</Alert>
 
             <Spinner v-if="loading" size="lg" />

@@ -26,6 +26,8 @@ import { TicketPriority, type TicketPriorityName } from '@/api/boards'
 import { useSession } from '@/composables/useSession'
 import { useBoardApi } from '@/composables/useBoardApi'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { useAsyncAction } from '@/composables/useAsyncAction'
+import { useConfirmDelete } from '@/composables/useConfirmDelete'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -66,7 +68,6 @@ const comments = ref<BoardComment[]>([])
 const weblinks = ref<BoardWeblink[]>([])
 const attachments = ref<BoardTicketAttachment[]>([])
 
-const showDeleteModal = ref(false)
 const showChecklist = ref(false)
 const showAddLink = ref(false)
 const showAddWeblink = ref(false)
@@ -136,19 +137,32 @@ async function loadDetails() {
         fieldValues.value = Object.fromEntries(fv.map(v => [v.fieldId, !v.value ? null : v.fieldType === 'LANE_ASSIGNEE' ? (v.value.memberId ?? null) : (v.value.value ?? null)]))
         ticketLabels.value = await api.getTicketLabels()
         kbLinks.value = await api.getKbLinks()
-    } catch { /* ignore */ }
+    } catch { void 0 }
 }
 
-async function saveTicket() { error.value = ''; try { await api.updateTicket({ title: title.value, description: description.value || null, assignedMemberId: assignedMemberId.value ? Number(assignedMemberId.value) : null, priority: priority.value, dueDate: dueDate.value || null }); ticket.value = await api.getTicket(); await loadDetails() } catch { error.value = t('common.error') } }
-async function deleteTicketFn() { try { await api.deleteTicket(); await router.push(api.backRoute.value) } catch { error.value = t('common.error') } }
-async function moveTo(laneId: number) { try { await api.moveTicket({ toLaneId: laneId, position: 0 }); ticket.value = await api.getTicket(); await loadDetails() } catch { /* ignore */ } }
-async function addChecklistItem() { if (!newChecklistTitle.value.trim()) return; try { await api.addChecklistItem({ title: newChecklistTitle.value.trim() }); newChecklistTitle.value = ''; await loadDetails() } catch { /* ignore */ } }
-async function toggleChecklistItem(item: BoardChecklistItem) { try { await api.updateChecklistItem(item.id, { title: item.title, checked: !item.checked }); await loadDetails() } catch { /* ignore */ } }
+const {error: saveError, run: runSaveTicket} = useAsyncAction(async () => {
+    await api.updateTicket({ title: title.value, description: description.value || null, assignedMemberId: assignedMemberId.value ? Number(assignedMemberId.value) : null, priority: priority.value, dueDate: dueDate.value || null })
+    ticket.value = await api.getTicket()
+    await loadDetails()
+}, {formatError: () => t('common.error')})
+
+function saveTicket() { error.value = ''; void runSaveTicket() }
+
+const {show: showDeleteModal, requestDelete: requestDeleteTicket, confirm: confirmDeleteTicket} = useConfirmDelete<BoardTicket>({
+    onDelete: async () => {
+        await api.deleteTicket()
+        await router.push(api.backRoute.value)
+    },
+    error,
+})
+async function moveTo(laneId: number) { try { await api.moveTicket({ toLaneId: laneId, position: 0 }); ticket.value = await api.getTicket(); await loadDetails() } catch { void 0 } }
+async function addChecklistItem() { if (!newChecklistTitle.value.trim()) return; try { await api.addChecklistItem({ title: newChecklistTitle.value.trim() }); newChecklistTitle.value = ''; await loadDetails() } catch { void 0 } }
+async function toggleChecklistItem(item: BoardChecklistItem) { try { await api.updateChecklistItem(item.id, { title: item.title, checked: !item.checked }); await loadDetails() } catch { void 0 } }
 async function reorderChecklist(fromIndex: number, toIndex: number) { const items = [...checklist.value]; const [moved] = items.splice(fromIndex, 1); items.splice(toIndex, 0, moved); checklist.value = items; try { await api.reorderChecklist({ orderedIds: items.map(i => i.id) }) } catch { await loadDetails() } }
-async function removeAllChecklistItems() { try { for (const item of checklist.value) { await api.deleteChecklistItem(item.id) }; showChecklist.value = false; await loadDetails() } catch { /* ignore */ } }
-async function removeChecklistItem(itemId: number) { try { await api.deleteChecklistItem(itemId); await loadDetails() } catch { /* ignore */ } }
-async function createComment(parentId: number | null, content: string) { try { await api.createComment({ parentId, content }); await loadDetails() } catch { /* ignore */ } }
-async function updateComment(commentId: number, content: string) { try { await api.updateComment(commentId, { content }); await loadDetails() } catch { /* ignore */ } }
+async function removeAllChecklistItems() { try { for (const item of checklist.value) { await api.deleteChecklistItem(item.id) }; showChecklist.value = false; await loadDetails() } catch { void 0 } }
+async function removeChecklistItem(itemId: number) { try { await api.deleteChecklistItem(itemId); await loadDetails() } catch { void 0 } }
+async function createComment(parentId: number | null, content: string) { try { await api.createComment({ parentId, content }); await loadDetails() } catch { void 0 } }
+async function updateComment(commentId: number, content: string) { try { await api.updateComment(commentId, { content }); await loadDetails() } catch { void 0 } }
 
 async function saveFieldValue(fieldId: number, fieldType: boards.BoardFieldTypeName, value: unknown) {
     try {
@@ -159,15 +173,15 @@ async function saveFieldValue(fieldId: number, fieldType: boards.BoardFieldTypeN
             await api.setFieldValue(fieldId, fieldType, value)
             fieldValues.value[fieldId] = value
         }
-    } catch { /* ignore */ }
+    } catch { void 0 }
 }
 
 let kbSearchTimeout: ReturnType<typeof setTimeout> | null = null
-function onKbSearch() { if (kbSearchTimeout) clearTimeout(kbSearchTimeout); if (!kbSearchQuery.value.trim()) { kbSearchResults.value = []; return }; kbSearchTimeout = setTimeout(async () => { try { const results = await knowledgeBase.search(kbSearchQuery.value.trim(), { federated: false }); kbSearchResults.value = results.map(r => ({ id: r.file.id, title: r.file.name, path: r.folderPath })).filter(r => !kbLinks.value.some(l => l.kbFileId === r.id)) } catch { /* ignore */ } }, 300) }
-async function addKbLinkFn(kbFileId: number) { try { await boards.addKbLink(boardKey.value, ticketNumber.value, kbFileId); kbLinks.value = await api.getKbLinks(); kbSearchQuery.value = ''; kbSearchResults.value = []; showKbSearch.value = false } catch { /* ignore */ } }
-async function removeKbLinkFn(linkId: number) { try { await boards.removeKbLink(boardKey.value, ticketNumber.value, linkId); kbLinks.value = await api.getKbLinks() } catch { /* ignore */ } }
+function onKbSearch() { if (kbSearchTimeout) clearTimeout(kbSearchTimeout); if (!kbSearchQuery.value.trim()) { kbSearchResults.value = []; return }; kbSearchTimeout = setTimeout(async () => { try { const results = await knowledgeBase.search(kbSearchQuery.value.trim(), { federated: false }); kbSearchResults.value = results.map(r => ({ id: r.file.id, title: r.file.name, path: r.folderPath })).filter(r => !kbLinks.value.some(l => l.kbFileId === r.id)) } catch { void 0 } }, 300) }
+async function addKbLinkFn(kbFileId: number) { try { await boards.addKbLink(boardKey.value, ticketNumber.value, kbFileId); kbLinks.value = await api.getKbLinks(); kbSearchQuery.value = ''; kbSearchResults.value = []; showKbSearch.value = false } catch { void 0 } }
+async function removeKbLinkFn(linkId: number) { try { await boards.removeKbLink(boardKey.value, ticketNumber.value, linkId); kbLinks.value = await api.getKbLinks() } catch { void 0 } }
 
-async function createAndAddLabel(name: string) { try { const label = await api.createLabel({ name }); allLabels.value = await api.getLabels(); await api.addTicketLabel(label.id); ticketLabels.value = await api.getTicketLabels() } catch { /* ignore */ } }
+async function createAndAddLabel(name: string) { try { const label = await api.createLabel({ name }); allLabels.value = await api.getLabels(); await api.addTicketLabel(label.id); ticketLabels.value = await api.getTicketLabels() } catch { void 0 } }
 async function toggleLabel(labelId: number) {
     try {
         if (ticketLabels.value.some(l => l.id === labelId)) { await api.removeTicketLabel(labelId) }
@@ -175,14 +189,14 @@ async function toggleLabel(labelId: number) {
         ticketLabels.value = await api.getTicketLabels()
         ticketHistory.value = await api.getHistory()
         kbLinks.value = await api.getKbLinks()
-    } catch { /* ignore */ }
+    } catch { void 0 }
 }
 
 async function handleFileUpload(file: File) {
     try {
         await api.uploadAttachment(file)
         await loadDetails()
-    } catch { /* ignore */ }
+    } catch { void 0 }
 }
 
 async function toggleWatch() {
@@ -193,14 +207,14 @@ async function toggleWatch() {
             await api.watchTicket()
         }
         isWatching.value = !isWatching.value
-    } catch { /* ignore */ }
+    } catch { void 0 }
 }
 
 async function deleteCommentFn(commentId: number) {
     try {
         await api.deleteComment(commentId)
         await loadDetails()
-    } catch { /* ignore */ }
+    } catch { void 0 }
 }
 
 const checklistVisible = computed(() => checklist.value.length > 0 || showChecklist.value || newChecklistTitle.value !== '')
@@ -223,7 +237,7 @@ watch(ticketNumber, reload)
                 :can-edit="canEdit"
                 @back="router.push(api.backRoute.value)"
                 @toggle-watch="toggleWatch"
-                @request-delete="showDeleteModal = true"
+                @request-delete="requestDeleteTicket(ticket!)"
             />
             <TicketBody
                 v-model:title="title" v-model:description="description"
@@ -238,7 +252,7 @@ watch(ticketNumber, reload)
                 :links="links" :weblinks="weblinks" :attachments="attachments" :transitions="transitions"
                 :history="ticketHistory" :comments="comments" :kb-links="kbLinks"
                 :kb-search-results="kbSearchResults" :can-edit="canEdit"
-                :federated="api.isFederated.value" :partner-uid="api.partnerUid.value" :error="error"
+                :federated="api.isFederated.value" :partner-uid="api.partnerUid.value" :error="error || saveError"
                 @save-ticket="saveTicket" @reload-details="loadDetails"
                 @show-checklist="showChecklist = true"
                 @add-checklist-item="addChecklistItem"
@@ -256,7 +270,7 @@ watch(ticketNumber, reload)
                 <SubHeader class="mb-4">{{ t('common.delete') }}</SubHeader>
                 <p class="mb-4">Soll dieses Ticket wirklich gelöscht werden?</p>
                 <div class="flex justify-end gap-2">
-                    <DeleteButton @click="deleteTicketFn">{{ t('common.delete') }}</DeleteButton>
+                    <DeleteButton @click="confirmDeleteTicket">{{ t('common.delete') }}</DeleteButton>
                 </div>
             </Modal>
         </template>

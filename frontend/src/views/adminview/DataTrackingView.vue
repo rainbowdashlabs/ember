@@ -12,6 +12,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import {dataTracking} from '@/api'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import type {
   DataTracking,
   DataTrackingSummary,
@@ -41,7 +42,6 @@ const selectedTable = ref<string | null>(null)
 const selectedForBatch = ref<Set<string>>(new Set())
 const batchContext = ref<'stationTransfer' | 'gdprExport' | 'gdprDeletion'>('stationTransfer')
 const batchStatus = ref<TrackingStatusName>('UNVERIFIED')
-const batchSaving = ref(false)
 const batchError = ref('')
 
 const isDev = import.meta.env.DEV
@@ -206,9 +206,8 @@ function clearBatchSelection() {
  * Calls the existing per-table update endpoint sequentially; failures are surfaced as a single
  * banner so partial progress is visible.
  */
-async function applyBatch() {
+const {running: batchSaving, run: applyBatch} = useAsyncAction(async () => {
   if (!tracking.value || selectedForBatch.value.size === 0) return
-  batchSaving.value = true
   batchError.value = ''
   const failures: string[] = []
   const successUpdates: Record<string, TableEntry> = {}
@@ -242,13 +241,12 @@ async function applyBatch() {
     } catch { /* ignore */ }
   }
 
-  batchSaving.value = false
   if (failures.length > 0) {
     batchError.value = `${failures.length} update(s) failed:\n${failures.join('\n')}`
   } else {
     clearBatchSelection()
   }
-}
+})
 
 onMounted(loadData)
 </script>

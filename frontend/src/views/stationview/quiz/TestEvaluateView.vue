@@ -16,6 +16,7 @@ import {QuizAttemptStatus, QuizQuestionTypes, StationPermission} from '@/api/typ
 import {quiz} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import EvaluationHeader from './testevaluateview/EvaluationHeader.vue'
 import EvaluationSummary from './testevaluateview/EvaluationSummary.vue'
 import QuestionEvaluationList from './testevaluateview/QuestionEvaluationList.vue'
@@ -29,7 +30,6 @@ const canReview = computed(() => hasPermission(StationPermission.TEST_REVIEW))
 const testId = computed(() => Number(route.params.id))
 const attemptId = computed(() => Number(route.params.attemptId))
 
-const grading = ref(false)
 const graded = ref(false)
 
 const attemptDetail = ref<QuizAttemptDetail | null>(null)
@@ -116,39 +116,34 @@ function isGapCorrect(answerId: number, gapIndex: number): boolean {
   return (gapCorrectOverrides.value.get(answerId) ?? new Set()).has(gapIndex)
 }
 
-async function finishGrading() {
-  grading.value = true
-  error.value = ''
-  try {
-    for (const [answerId, pts] of pointsOverrides.value.entries()) {
-      await quiz.gradeAnswer(answerId, pts)
-    }
-    await quiz.gradeAttempt(attemptId.value)
-    graded.value = true
+const {running: grading, error: gradeError, run: finishGrading} = useAsyncAction(
+    async () => {
+      for (const [answerId, pts] of pointsOverrides.value.entries()) {
+        await quiz.gradeAnswer(answerId, pts)
+      }
+      await quiz.gradeAttempt(attemptId.value)
+      graded.value = true
 
-    try {
-      const all = await quiz.listAttempts(testId.value)
-      const next = all
-        .filter(a => a.id !== attemptId.value && a.status !== QuizAttemptStatus.GRADED && a.status !== QuizAttemptStatus.IN_PROGRESS)
-        .sort((a, b) => {
-          const aT = a.submittedAt ? new Date(a.submittedAt).getTime() : 0
-          const bT = b.submittedAt ? new Date(b.submittedAt).getTime() : 0
-          return aT - bT
-        })[0]
-      if (next) {
-        router.push({name: 'quiz-test-evaluate', params: {id: testId.value, attemptId: next.id}})
+      try {
+        const all = await quiz.listAttempts(testId.value)
+        const next = all
+          .filter(a => a.id !== attemptId.value && a.status !== QuizAttemptStatus.GRADED && a.status !== QuizAttemptStatus.IN_PROGRESS)
+          .sort((a, b) => {
+            const aT = a.submittedAt ? new Date(a.submittedAt).getTime() : 0
+            const bT = b.submittedAt ? new Date(b.submittedAt).getTime() : 0
+            return aT - bT
+          })[0]
+        if (next) {
+          router.push({name: 'quiz-test-evaluate', params: {id: testId.value, attemptId: next.id}})
+          return
+        }
+        router.push({name: 'quiz-test-detail', params: {id: testId.value}})
+      } catch {
         return
       }
-      router.push({name: 'quiz-test-detail', params: {id: testId.value}})
-    } catch {
-      void 0
-    }
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    grading.value = false
-  }
-}
+    },
+    {formatError: () => t('common.error')},
+)
 
 function goBack() {
   router.push({name: 'quiz-test-detail', params: {id: testId.value}})
@@ -207,7 +202,7 @@ function pointsForQuestion(aq: { questionId: number }): number {
   <ViewContent :title="t('pages.quiz-test-evaluate.title')" :subtitle="t('pages.quiz-test-evaluate.subtitle')">
     <div class="space-y-6 max-w-3xl">
       <Spinner v-if="loading" size="lg" />
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <Alert v-if="error || gradeError" variant="error">{{ error || gradeError }}</Alert>
 
       <template v-if="!loading && attemptDetail">
         <EvaluationHeader

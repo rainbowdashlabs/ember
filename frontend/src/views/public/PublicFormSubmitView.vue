@@ -17,6 +17,7 @@ import {publicForms} from '@/api'
 import type {PublicForm, PublicFormQuestion} from '@/api/publicForms'
 import {QuestionTypes} from '@/api/types'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -24,8 +25,8 @@ const route = useRoute()
 const stationUid = computed(() => String(route.params.stationUid))
 const publicUid = computed(() => String(route.params.publicUid))
 
-const submitting = ref(false)
 const submitted = ref(false)
+const validationError = ref('')
 const form = ref<PublicForm | null>(null)
 const answers = ref<Record<number, Record<string, unknown>>>({})
 const consentAccepted = ref(false)
@@ -42,7 +43,7 @@ function initAnswerDefaults(questions: PublicFormQuestion[]) {
   }
 }
 
-const {loading, error} = useAsyncLoader(async () => {
+const {loading, error: loadError} = useAsyncLoader(async () => {
   const data = await publicForms.getPublicForm(stationUid.value, publicUid.value)
   form.value = data
   initAnswerDefaults(data.questions)
@@ -69,36 +70,37 @@ function updateDate(q: PublicFormQuestion, date: string) {
   (answers.value[q.id] as {date: string}).date = date
 }
 
-async function submit() {
+const {running: submitting, error: submitError, run: runSubmit} = useAsyncAction(async () => {
   if (!form.value) return
+  const answerMap: Record<number, Record<string, unknown>> = {}
+  for (const q of form.value.questions) {
+    const value = answers.value[q.id]
+    if (value === undefined) continue
+    answerMap[q.id] = {type: q.questionType, ...value}
+  }
+  await publicForms.submitPublicResponse(stationUid.value, publicUid.value, {
+    answers: answerMap,
+    consentVersion: consentVersion.value,
+    privacyVersion: privacyVersion.value,
+    tosVersion: tosVersion.value,
+  })
+  submitted.value = true
+}, {formatError: (e) => {
+  const status = (e as {response?: {status?: number}}).response?.status
+  if (status === 409) return t('publicForm.alreadyAnswered')
+  if (status === 429) return t('publicForm.rateLimited')
+  return t('publicForm.submitError')
+}})
+
+const error = computed(() => loadError.value || validationError.value || submitError.value)
+
+function submit() {
   if (!consentAccepted.value) {
-    error.value = t('publicConsent.required')
+    validationError.value = t('publicConsent.required')
     return
   }
-  submitting.value = true
-  error.value = ''
-  try {
-    const answerMap: Record<number, Record<string, unknown>> = {}
-    for (const q of form.value.questions) {
-      const value = answers.value[q.id]
-      if (value === undefined) continue
-      answerMap[q.id] = {type: q.questionType, ...value}
-    }
-    await publicForms.submitPublicResponse(stationUid.value, publicUid.value, {
-      answers: answerMap,
-      consentVersion: consentVersion.value,
-      privacyVersion: privacyVersion.value,
-      tosVersion: tosVersion.value,
-    })
-    submitted.value = true
-  } catch (e: unknown) {
-    const status = (e as {response?: {status?: number}}).response?.status
-    if (status === 409) error.value = t('publicForm.alreadyAnswered')
-    else if (status === 429) error.value = t('publicForm.rateLimited')
-    else error.value = t('publicForm.submitError')
-  } finally {
-    submitting.value = false
-  }
+  validationError.value = ''
+  void runSubmit()
 }
 </script>
 

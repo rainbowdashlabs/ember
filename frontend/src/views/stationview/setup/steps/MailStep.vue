@@ -18,6 +18,7 @@ import MailProviderCredentialFields from '@/components/mail/MailProviderCredenti
 import {stationManage} from '@/api'
 import type {MailConfigRequest} from '@/api/stationManage'
 import {useSetupStatus} from '@/composables/useSetupStatus'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import {nextStep, stepRouteName} from '@/views/stationview/setup/steps'
 
 const {t} = useI18n()
@@ -36,8 +37,6 @@ const cfg = ref<MailConfigRequest>({
     apiKey: '',
 })
 const loading = ref(true)
-const saving = ref(false)
-const error = ref('')
 
 const PROVIDERS = ['NONE', 'SMTP', 'RAPIDMAIL', 'TWILIO', 'SWEEGO', 'BREVO']
 
@@ -59,20 +58,12 @@ onMounted(async () => {
     loading.value = false
 })
 
-async function save() {
-    saving.value = true
-    error.value = ''
-    try {
-        await stationManage.updateMailConfig(cfg.value)
-        await reload()
-        const next = nextStep('mail')
-        if (next) router.push({name: stepRouteName(next)})
-    } catch {
-        error.value = t('common.error')
-    } finally {
-        saving.value = false
-    }
-}
+const {running: saving, error, run: save} = useAsyncAction(async () => {
+    await stationManage.updateMailConfig(cfg.value)
+    await reload()
+    const next = nextStep('mail')
+    if (next) router.push({name: stepRouteName(next)})
+})
 </script>
 
 <template>

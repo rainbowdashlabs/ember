@@ -21,6 +21,7 @@ import type {TicketPriorityName} from '@/api/boards'
 import {priorityIcon, priorityColor} from '@/util/ticketPriority'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import {
   type FederatedBoardDetail,
   BoardShareMode,
@@ -57,7 +58,7 @@ const createTitle = ref('')
 const createDescription = ref('')
 const createLaneId = ref('')
 const createPriority = ref<TicketPriorityName>(TicketPriority.MEDIUM)
-const createError = ref('')
+const createValidationError = ref('')
 
 const showOverrideModal = ref(false)
 const searchQuery = ref('')
@@ -165,27 +166,29 @@ function onSearchPick(ticket: BoardTicket) {
   searchResults.value = null
 }
 
-async function handleCreateTicket() {
-  createError.value = ''
+const {error: createApiError, run: runCreateTicket} = useAsyncAction(async () => {
+  const created = await fedCreateTicket(partnerUid.value, boardKey.value, {
+    laneId: Number(createLaneId.value),
+    title: createTitle.value.trim(),
+    description: createDescription.value.trim() || undefined,
+    priority: createPriority.value,
+  })
+  showCreateModal.value = false
+  createTitle.value = ''
+  createDescription.value = ''
+  createPriority.value = TicketPriority.MEDIUM
+  router.push(`/station/federation/boards/${partnerUid.value}/${boardKey.value}/tickets/${created.ticketNumber}`)
+}, {formatError: () => t('common.error')})
+
+const createError = computed(() => createValidationError.value || createApiError.value)
+
+function handleCreateTicket() {
+  createValidationError.value = ''
   if (!createTitle.value.trim()) {
-    createError.value = t('common.requiredField')
+    createValidationError.value = t('common.requiredField')
     return
   }
-  try {
-    const created = await fedCreateTicket(partnerUid.value, boardKey.value, {
-      laneId: Number(createLaneId.value),
-      title: createTitle.value.trim(),
-      description: createDescription.value.trim() || undefined,
-      priority: createPriority.value,
-    })
-    showCreateModal.value = false
-    createTitle.value = ''
-    createDescription.value = ''
-    createPriority.value = TicketPriority.MEDIUM
-    router.push(`/station/federation/boards/${partnerUid.value}/${boardKey.value}/tickets/${created.ticketNumber}`)
-  } catch {
-    createError.value = t('common.error')
-  }
+  void runCreateTicket()
 }
 
 const dragTicket = ref<BoardTicket | null>(null)

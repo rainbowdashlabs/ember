@@ -18,6 +18,7 @@ import WaitlistRegistrationForm from './publicwaitlistview/WaitlistRegistrationF
 import type {GuardianInput, PublicWaitlistSummary, PublicWaitlistFormResponse, WaitingListField} from '@/api/types'
 import {waitingList} from '@/api'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -34,7 +35,6 @@ const email = ref('')
 const notes = ref('')
 const guardians = ref<GuardianInput[]>([{firstname: '', lastname: '', email: '', phone: ''}])
 const fieldValues = ref<Record<number, string>>({})
-const submitting = ref(false)
 const submitted = ref(false)
 
 function addGuardian() {
@@ -45,7 +45,7 @@ function removeGuardian(index: number) {
   guardians.value = guardians.value.filter((_, i) => i !== index)
 }
 
-const {loading, error} = useAsyncLoader(async () => {
+const {loading, error: loadError} = useAsyncLoader(async () => {
   lists.value = await waitingList.listPublicWaitlists(stationUid.value)
   if (lists.value.length === 1) {
     selectedListId.value = lists.value[0].id
@@ -60,7 +60,7 @@ async function loadForm() {
     form.value = await waitingList.getPublicWaitlistForm(stationUid.value, selectedListId.value)
     fieldValues.value = {}
   } catch {
-    error.value = t('common.error')
+    loadError.value = t('common.error')
   } finally {
     loadingForm.value = false
   }
@@ -95,36 +95,30 @@ const canSubmit = computed(() => {
   return true
 })
 
-async function submit() {
+const {running: submitting, error: submitError, run: submit} = useAsyncAction(async () => {
   if (!selectedListId.value || !canSubmit.value) return
-  submitting.value = true
-  error.value = ''
-  try {
-    const guardianData = guardians.value
-        .filter(g => g.firstname.trim() || g.email.trim())
-        .map(g => ({firstname: g.firstname.trim(), lastname: g.lastname.trim(), email: g.email.trim(), phone: g.phone.trim()}))
-    const values: Record<number, unknown> = {}
-    for (const [k, v] of Object.entries(fieldValues.value)) {
-      if (v) values[Number(k)] = v
-    }
-    await waitingList.submitPublicRegistration(stationUid.value, selectedListId.value, {
-      firstname: firstname.value.trim(),
-      lastname: lastname.value.trim(),
-      email: email.value.trim(),
-      guardians: guardianData,
-      values,
-      notes: notes.value.trim() || undefined,
-      consentVersion: consentVersion.value,
-      privacyVersion: privacyVersion.value,
-      tosVersion: tosVersion.value,
-    })
-    submitted.value = true
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    submitting.value = false
+  const guardianData = guardians.value
+      .filter(g => g.firstname.trim() || g.email.trim())
+      .map(g => ({firstname: g.firstname.trim(), lastname: g.lastname.trim(), email: g.email.trim(), phone: g.phone.trim()}))
+  const values: Record<number, unknown> = {}
+  for (const [k, v] of Object.entries(fieldValues.value)) {
+    if (v) values[Number(k)] = v
   }
-}
+  await waitingList.submitPublicRegistration(stationUid.value, selectedListId.value, {
+    firstname: firstname.value.trim(),
+    lastname: lastname.value.trim(),
+    email: email.value.trim(),
+    guardians: guardianData,
+    values,
+    notes: notes.value.trim() || undefined,
+    consentVersion: consentVersion.value,
+    privacyVersion: privacyVersion.value,
+    tosVersion: tosVersion.value,
+  })
+  submitted.value = true
+})
+
+const error = computed(() => loadError.value || submitError.value)
 </script>
 
 <template>

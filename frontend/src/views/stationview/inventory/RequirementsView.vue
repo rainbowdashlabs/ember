@@ -14,6 +14,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import type { Inventory, InventoryRequirement, MemberGroup } from '@/api/types'
 import { inventory, memberGroups } from '@/api'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { useAsyncAction } from '@/composables/useAsyncAction'
 import RequirementGroupCard from './requirementsview/RequirementGroupCard.vue'
 import RequirementAddModal from './requirementsview/RequirementAddModal.vue'
 import { userTypeFriendlyNames, type RequirementGroup } from './requirementsview/types'
@@ -30,7 +31,6 @@ const addUserType = ref('')
 const addGroupId = ref('')
 const addInventoryId = ref('')
 const addQuantity = ref(1)
-const saving = ref(false)
 
 function userTypeName(userType: string): string {
   return userTypeFriendlyNames[userType] ?? userType
@@ -91,28 +91,21 @@ function openAdd(preselect?: { type: 'userType' | 'group'; key: string }) {
   showAddModal.value = true
 }
 
-async function submitAdd() {
+const {running: saving, error: addError, run: submitAdd} = useAsyncAction(async () => {
   if (!addInventoryId.value) return
   if (addTargetType.value === 'userType' && !addUserType.value) return
   if (addTargetType.value === 'group' && !addGroupId.value) return
 
-  saving.value = true
   error.value = ''
-  try {
-    await inventory.createRequirement({
-      inventoryId: Number(addInventoryId.value),
-      userType: addTargetType.value === 'userType' ? addUserType.value : undefined,
-      groupId: addTargetType.value === 'group' ? Number(addGroupId.value) : undefined,
-      quantity: addQuantity.value,
-    })
-    showAddModal.value = false
-    requirements.value = await inventory.listAllRequirements()
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    saving.value = false
-  }
-}
+  await inventory.createRequirement({
+    inventoryId: Number(addInventoryId.value),
+    userType: addTargetType.value === 'userType' ? addUserType.value : undefined,
+    groupId: addTargetType.value === 'group' ? Number(addGroupId.value) : undefined,
+    quantity: addQuantity.value,
+  })
+  showAddModal.value = false
+  requirements.value = await inventory.listAllRequirements()
+}, {formatError: () => t('common.error')})
 
 async function updateQuantity(req: InventoryRequirement, newQuantity: number) {
   if (newQuantity < 1) return
@@ -155,7 +148,7 @@ async function onReorder(group: RequirementGroup, fromIndex: number, toIndex: nu
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg" />
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <Alert v-if="error || addError" variant="error">{{ error || addError }}</Alert>
 
       <template v-if="!loading">
         <div class="flex items-center justify-end">

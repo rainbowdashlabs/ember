@@ -20,6 +20,7 @@ import type {EventRegistrationEntry, MemberRegistrationStats, FederatedEventRegi
 import {events, stationMembers as stationMembersApi} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import RegistrationsPanel from './RegistrationsPanel.vue'
 import FederatedRegistrationsPanel from './FederatedRegistrationsPanel.vue'
 
@@ -45,7 +46,6 @@ interface MemberOption {
 }
 
 const allMembers = ref<MemberOption[]>([])
-const registering = ref(false)
 const error = ref('')
 const manualRegisterMemberId = ref('')
 
@@ -129,28 +129,28 @@ async function denyRegistration(id: number) {
   } catch { error.value = t('common.error') }
 }
 
-async function registerMember(memberId: number) {
-  registering.value = true
-  try {
-    await events.registerForEvent(props.eventId, {
-      eventDate: props.nextOccurrenceDate ?? undefined,
-      memberId: memberId !== props.currentMemberId ? memberId : undefined,
-    })
-    await reloadAndRefresh()
-  } catch { error.value = t('common.error') }
-  finally { registering.value = false }
+const {running: registering, error: registrationError, run: runRegistration} = useAsyncAction(
+    async (kind: 'register' | 'decline', memberId: number) => {
+      const request = {
+        eventDate: props.nextOccurrenceDate ?? undefined,
+        memberId: memberId !== props.currentMemberId ? memberId : undefined,
+      }
+      if (kind === 'register') {
+        await events.registerForEvent(props.eventId, request)
+      } else {
+        await events.declineEvent(props.eventId, request)
+      }
+      await reloadAndRefresh()
+    },
+    {formatError: () => t('common.error')},
+)
+
+function registerMember(memberId: number) {
+  return runRegistration('register', memberId)
 }
 
-async function declineMember(memberId: number) {
-  registering.value = true
-  try {
-    await events.declineEvent(props.eventId, {
-      eventDate: props.nextOccurrenceDate ?? undefined,
-      memberId: memberId !== props.currentMemberId ? memberId : undefined,
-    })
-    await reloadAndRefresh()
-  } catch { error.value = t('common.error') }
-  finally { registering.value = false }
+function declineMember(memberId: number) {
+  return runRegistration('decline', memberId)
 }
 
 async function acceptFederatedReg(regId: number) {
@@ -180,7 +180,7 @@ defineExpose({loadRegistrations})
 
 <template>
   <div class="space-y-6">
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <Alert v-if="error || registrationError" variant="error">{{ error || registrationError }}</Alert>
 
     <NeutralContainer v-if="event.requiresRegistration && !canManageEvents()" class="space-y-3">
       <SubHeader>{{ t('eventDetail.myRegistration') }}</SubHeader>

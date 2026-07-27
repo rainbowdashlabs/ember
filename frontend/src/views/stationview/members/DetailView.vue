@@ -20,6 +20,7 @@ import type { ExchangeRequestEntry } from '@/api/types'
 import { profileFields, profileFieldChanges, stationMembers, members, inventory, exchanges, memberGroups, userTags } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { useAsyncAction } from '@/composables/useAsyncAction'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -50,8 +51,6 @@ const memberGroupList = ref<import('@/api/types').MemberGroup[]>([])
 const memberTagList = ref<import('@/api/types').UserTag[]>([])
 const formerSuccess = ref(false)
 const deleteSuccess = ref(false)
-const markingFormer = ref(false)
-const deletingMember = ref(false)
 
 const exchangeSizes = ref<import('@/api/types').InventorySize[]>([])
 
@@ -234,25 +233,17 @@ async function handleCreateManager(data: { firstName: string; lastName: string; 
   } catch { error.value = t('common.error') }
 }
 
-async function handleMarkFormer() {
-  markingFormer.value = true
+const { running: markingFormer, error: formerError, run: handleMarkFormer } = useAsyncAction(async () => {
   error.value = ''
-  try {
-    await stationMembers.markFormer(memberId.value)
-    formerSuccess.value = true
-  } catch { error.value = t('common.error') }
-  finally { markingFormer.value = false }
-}
+  await stationMembers.markFormer(memberId.value)
+  formerSuccess.value = true
+}, { formatError: () => t('common.error') })
 
-async function handleDeleteMember() {
-  deletingMember.value = true
+const { running: deletingMember, error: deleteError, run: handleDeleteMember } = useAsyncAction(async () => {
   error.value = ''
-  try {
-    await stationMembers.deleteMember(memberId.value)
-    deleteSuccess.value = true
-  } catch { error.value = t('common.error') }
-  finally { deletingMember.value = false }
-}
+  await stationMembers.deleteMember(memberId.value)
+  deleteSuccess.value = true
+}, { formatError: () => t('common.error') })
 
 async function handleAssignItem(itemId: number) {
   error.value = ''
@@ -357,7 +348,7 @@ const detailModalsProps = computed(() => ({
       />
 
       <Spinner v-if="loading" size="lg" />
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <Alert v-if="error || formerError || deleteError" variant="error">{{ error || formerError || deleteError }}</Alert>
 
       <LoadedTabs
         v-if="!loading && member"

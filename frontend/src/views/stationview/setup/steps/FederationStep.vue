@@ -14,6 +14,7 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {stationManage} from '@/api'
 import {useSetupStatus} from '@/composables/useSetupStatus'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import {nextStep, stepRouteName} from '@/views/stationview/setup/steps'
 
 const {t} = useI18n()
@@ -25,8 +26,6 @@ const visibility = ref('PUBLIC')
 const description = ref('')
 const showKb = ref(true)
 const loading = ref(true)
-const saving = ref(false)
-const error = ref('')
 
 onMounted(async () => {
     try {
@@ -40,25 +39,17 @@ onMounted(async () => {
     loading.value = false
 })
 
-async function save() {
-    saving.value = true
-    error.value = ''
-    try {
-        await stationManage.updateStationName({
-            name: stationName.value,
-            discoveryVisibility: visibility.value,
-            discoveryDescription: description.value,
-            discoveryShowKb: showKb.value,
-        })
-        await reload()
-        const next = nextStep('federation')
-        if (next) router.push({name: stepRouteName(next)})
-    } catch {
-        error.value = t('common.error')
-    } finally {
-        saving.value = false
-    }
-}
+const {running: saving, error, run: save} = useAsyncAction(async () => {
+    await stationManage.updateStationName({
+        name: stationName.value,
+        discoveryVisibility: visibility.value,
+        discoveryDescription: description.value,
+        discoveryShowKb: showKb.value,
+    })
+    await reload()
+    const next = nextStep('federation')
+    if (next) router.push({name: stepRouteName(next)})
+})
 </script>
 
 <template>

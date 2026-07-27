@@ -29,6 +29,7 @@ import {
   recalculateAll,
 } from '@/api/storageMonitoring'
 import {STORAGE_CATEGORY_COLORS, buildStorageCategoryLabeler, formatBytes} from '@/util/storage'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 
 use([CanvasRenderer, BarChart, PieChart, TitleComponent, TooltipComponent, GridComponent, LegendComponent])
 
@@ -38,10 +39,9 @@ const isDark = ref(document.documentElement.classList.contains('dark'))
 let observer: MutationObserver | null = null
 
 const loading = ref(true)
-const error = ref('')
+const loadError = ref('')
 const stations = ref<AdminStationUsage[]>([])
 const presets = ref<StorageQuotaPreset[]>([])
-const reconciling = ref(false)
 
 onMounted(() => {
   observer = new MutationObserver(() => {
@@ -57,13 +57,13 @@ onUnmounted(() => {
 
 async function loadData() {
   loading.value = true
-  error.value = ''
+  loadError.value = ''
   try {
     const [usageData, presetData] = await Promise.all([getAdminUsage(), getPresets()])
     stations.value = usageData
     presets.value = presetData
   } catch (e: any) {
-    error.value = e.message || 'Failed to load storage data'
+    loadError.value = e.message || 'Failed to load storage data'
   } finally {
     loading.value = false
   }
@@ -77,15 +77,12 @@ const textColor = computed(() => isDark.value ? '#e0e0e0' : '#333333')
 
 const categoryLabel = buildStorageCategoryLabeler(t)
 
-async function handleRecalculateAll() {
-  reconciling.value = true
-  try {
-    await recalculateAll()
-    setTimeout(() => loadData(), 2000)
-  } finally {
-    reconciling.value = false
-  }
-}
+const {running: reconciling, error: reconcileError, run: handleRecalculateAll} = useAsyncAction(async () => {
+  await recalculateAll()
+  setTimeout(() => loadData(), 2000)
+})
+
+const error = computed(() => loadError.value || reconcileError.value)
 
 const topStationsChart = computed(() => {
   const top = [...stations.value].filter(s => s.totalBytes > 0).sort((a, b) => b.totalBytes - a.totalBytes).slice(0, 15)

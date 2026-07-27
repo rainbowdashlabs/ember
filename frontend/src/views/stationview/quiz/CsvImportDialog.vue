@@ -15,6 +15,7 @@ import type { QuizCategory, QuizQuestionTypeName } from '@/api/types'
 import { QuizQuestionTypes } from '@/api/types'
 import { quiz } from '@/api'
 import type { CsvMappings } from '@/api/quiz'
+import { useAsyncAction } from '@/composables/useAsyncAction'
 import CsvFileUploadBar from '@/views/stationview/quiz/csvimportdialog/CsvFileUploadBar.vue'
 import CsvColumnMapping from '@/views/stationview/quiz/csvimportdialog/CsvColumnMapping.vue'
 import CsvPreviewTable from '@/views/stationview/quiz/csvimportdialog/CsvPreviewTable.vue'
@@ -36,9 +37,7 @@ const csvFile = ref<File | null>(null)
 const headers = ref<string[]>([])
 const rows = ref<string[][]>([])
 const separator = ref(',')
-const importing = ref(false)
 const successCount = ref<number | null>(null)
-const error = ref('')
 
 const questionColumn = ref('')
 const answerColumn = ref('')
@@ -56,7 +55,7 @@ function onFileSelected(event: Event) {
   if (!file) return
   csvFile.value = file
   successCount.value = null
-  error.value = ''
+  clearError()
   const reader = new FileReader()
   reader.onload = (e) => {
     parseCSV(e.target?.result as string)
@@ -102,30 +101,26 @@ function onSeparatorChange() {
   }
 }
 
+const {running: importing, error, run: runImport, clearError} = useAsyncAction(async (file: File) => {
+  const mappings: CsvMappings = {
+    questionColumn: questionColumn.value,
+    answerColumn: answerColumn.value,
+    categoryColumn: categoryColumn.value,
+    typeColumn: typeColumn.value,
+    pointsColumn: pointsColumn.value,
+    separator: separator.value,
+    answerSeparator: answerSeparator.value,
+    defaultType: defaultType.value,
+  }
+  const result = await quiz.importCsv(props.catalogId, file, mappings)
+  successCount.value = result.imported
+  emit('imported', result.imported)
+}, {formatError: () => t('common.error')})
+
 async function doImport() {
   if (!csvFile.value || !questionColumn.value) return
-  importing.value = true
-  error.value = ''
   successCount.value = null
-  try {
-    const mappings: CsvMappings = {
-      questionColumn: questionColumn.value,
-      answerColumn: answerColumn.value,
-      categoryColumn: categoryColumn.value,
-      typeColumn: typeColumn.value,
-      pointsColumn: pointsColumn.value,
-      separator: separator.value,
-      answerSeparator: answerSeparator.value,
-      defaultType: defaultType.value,
-    }
-    const result = await quiz.importCsv(props.catalogId, csvFile.value, mappings)
-    successCount.value = result.imported
-    emit('imported', result.imported)
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    importing.value = false
-  }
+  await runImport(csvFile.value)
 }
 
 function close() {
@@ -134,7 +129,7 @@ function close() {
   headers.value = []
   rows.value = []
   successCount.value = null
-  error.value = ''
+  clearError()
 }
 </script>
 

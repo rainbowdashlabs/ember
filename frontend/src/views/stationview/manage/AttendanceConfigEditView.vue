@@ -9,15 +9,16 @@ import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import Modal from '@/components/feedback/Modal.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import AttendanceFieldModal from './attendanceconfigedit/FieldModal.vue'
 import EditContent from './attendanceconfigedit/EditContent.vue'
 import type {AttendanceTemplateField, MemberGroup, TemplateGroupEntry} from '@/api/types'
 import {attendance, memberGroups} from '@/api'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useConfirmDelete} from '@/composables/useConfirmDelete'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -34,14 +35,8 @@ const fields = ref<AttendanceTemplateField[]>([])
 const templateGroups = ref<TemplateGroupEntry[]>([])
 const availableGroups = ref<MemberGroup[]>([])
 
-// Field modal state
 const showFieldModal = ref(false)
 const editingField = ref<AttendanceTemplateField | null>(null)
-const fieldSaving = ref(false)
-
-// Delete modal state
-const showDeleteFieldModal = ref(false)
-const deleteFieldTarget = ref<AttendanceTemplateField | null>(null)
 
 const {loading, error} = useAsyncLoader(async () => {
   if (!templateId.value) return
@@ -70,8 +65,6 @@ async function saveTemplate() {
     throw e
   }
 }
-
-// -- Groups --
 
 function addGroup(groupId: number) {
   templateGroups.value = [...templateGroups.value, {groupId, position: templateGroups.value.length}]
@@ -110,8 +103,6 @@ async function saveGroups() {
   }
 }
 
-// -- Fields --
-
 function openAddField() {
   editingField.value = null
   showFieldModal.value = true
@@ -122,23 +113,18 @@ function openEditField(field: AttendanceTemplateField) {
   showFieldModal.value = true
 }
 
-async function saveField(data: { name: string; fieldType: string; config: Record<string, unknown>; position: number }) {
-  if (!templateId.value) return
-  fieldSaving.value = true
-  error.value = ''
-  try {
-    if (editingField.value) {
-      fields.value = await attendance.updateTemplateField(templateId.value, editingField.value.id, data)
-    } else {
-      fields.value = await attendance.createTemplateField(templateId.value, data)
-    }
-    showFieldModal.value = false
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    fieldSaving.value = false
-  }
-}
+const {running: fieldSaving, error: fieldSaveError, run: saveField} = useAsyncAction(
+    async (data: { name: string; fieldType: string; config: Record<string, unknown>; position: number }) => {
+      if (!templateId.value) return
+      if (editingField.value) {
+        fields.value = await attendance.updateTemplateField(templateId.value, editingField.value.id, data)
+      } else {
+        fields.value = await attendance.createTemplateField(templateId.value, data)
+      }
+      showFieldModal.value = false
+    },
+    {formatError: () => t('common.error')},
+)
 
 async function reorderFields(fromIndex: number, toIndex: number) {
   if (!templateId.value) return
@@ -162,21 +148,20 @@ async function reorderFields(fromIndex: number, toIndex: number) {
   }
 }
 
-function requestDeleteField(field: AttendanceTemplateField) {
-  deleteFieldTarget.value = field
-  showDeleteFieldModal.value = true
-}
+const {
+  show: showDeleteFieldModal,
+  target: deleteFieldTarget,
+  requestDelete: requestDeleteField,
+  confirm: confirmDeleteField,
+} = useConfirmDelete<AttendanceTemplateField>({
+  onDelete: async (field) => {
+    if (!templateId.value) return
+    fields.value = await attendance.deleteTemplateField(templateId.value, field.id)
+  },
+  error,
+})
 
-async function confirmDeleteField() {
-  if (!templateId.value || !deleteFieldTarget.value) return
-  try {
-    fields.value = await attendance.deleteTemplateField(templateId.value, deleteFieldTarget.value.id)
-    showDeleteFieldModal.value = false
-    deleteFieldTarget.value = null
-  } catch {
-    error.value = t('common.error')
-  }
-}
+const displayError = computed(() => error.value || fieldSaveError.value)
 
 function goBack() {
   router.push({name: 'station-attendance-config'})
@@ -196,7 +181,7 @@ function goBack() {
 
       <Spinner v-if="loading" size="lg"/>
 
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <Alert v-if="displayError" variant="error">{{ displayError }}</Alert>
 
       <EditContent
           v-if="!loading"
@@ -216,7 +201,6 @@ function goBack() {
           @reorder-fields="reorderFields"
       />
 
-      <!-- Field modal -->
       <AttendanceFieldModal
           v-model="showFieldModal"
           :available-groups="availableGroups"
@@ -226,16 +210,11 @@ function goBack() {
           @save="saveField"
       />
 
-      <!-- Delete field confirm modal -->
-      <Modal v-model="showDeleteFieldModal">
-        <div class="space-y-4">
-          <p>{{ t('attendanceConfig.deleteFieldConfirm', {name: deleteFieldTarget?.name}) }}</p>
-          <div class="flex justify-end gap-3">
-            <SecondaryButton @click="showDeleteFieldModal = false">{{ t('attendanceConfig.cancel') }}</SecondaryButton>
-            <ErrorButton @click="confirmDeleteField">{{ t('attendanceConfig.delete') }}</ErrorButton>
-          </div>
-        </div>
-      </Modal>
+      <ConfirmDeleteModal
+          v-model="showDeleteFieldModal"
+          :message="t('attendanceConfig.deleteFieldConfirm', {name: deleteFieldTarget?.name})"
+          @confirm="confirmDeleteField"
+      />
     </div>
   </ViewContent>
 </template>

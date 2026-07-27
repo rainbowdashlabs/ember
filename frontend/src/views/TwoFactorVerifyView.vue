@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {onMounted, ref} from 'vue'
+import {computed, onMounted, ref} from 'vue'
 import {useRoute} from 'vue-router'
 import {useI18n} from 'vue-i18n'
 import {getTwoFactorStatus, verify2fa, webauthnLoginBegin, webauthnLoginFinish} from '@/api/twoFactor'
@@ -13,6 +13,7 @@ import {removeItem, setItem} from '@/api/storage'
 import {scheduleTokenRefresh} from '@/api/client'
 import {session} from '@/api'
 import {useStations} from '@/composables/useStations'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import TextInput from '@/components/input/text/TextInput.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -30,8 +31,6 @@ const {setActiveStation} = useStations()
 
 const preAuthToken = ref(route.query.token as string || '')
 const code = ref('')
-const error = ref('')
-const loading = ref(false)
 const useBackupCode = ref(false)
 
 const rememberDevice = ref(false)
@@ -49,45 +48,41 @@ onMounted(async () => {
   }
 })
 
-async function handleVerify() {
+const {running: verifying, error: verifyError, run: runVerify, clearError: clearVerifyError} = useAsyncAction(async () => {
   if (!code.value || !preAuthToken.value) return
-  error.value = ''
-  loading.value = true
-  try {
-    const factor = useBackupCode.value ? 'BACKUP_CODE' : 'TOTP'
-    const days = rememberDevice.value ? trustedDeviceMaxDays.value : undefined
-    const result = await verify2fa(preAuthToken.value, factor, code.value, days)
-    finalizeSession(result.token, result.expiresAt)
-  } catch {
-    error.value = t('twoFactor.verify.invalidCode')
-  } finally {
-    loading.value = false
-  }
-}
+  const factor = useBackupCode.value ? 'BACKUP_CODE' : 'TOTP'
+  const days = rememberDevice.value ? trustedDeviceMaxDays.value : undefined
+  const result = await verify2fa(preAuthToken.value, factor, code.value, days)
+  finalizeSession(result.token, result.expiresAt)
+}, {formatError: () => t('twoFactor.verify.invalidCode')})
 
 const webauthnSupported = isWebAuthnSupported()
 
-async function handleWebAuthn() {
+const {running: webauthnRunning, error: webauthnError, run: runWebAuthn, clearError: clearWebauthnError} = useAsyncAction(async () => {
   if (!preAuthToken.value) return
-  error.value = ''
-  loading.value = true
-  try {
-    const begin = await webauthnLoginBegin(preAuthToken.value)
-    const credentialJson = await getWebAuthnCredential(begin.optionsJson)
-    const days = rememberDevice.value ? trustedDeviceMaxDays.value : undefined
-    const result = await webauthnLoginFinish(preAuthToken.value, begin.challengeToken, credentialJson, days)
-    finalizeSession(result.token, result.expiresAt)
-  } catch (e: any) {
-    if (e?.message === 'webauthn-cancelled') {
-      error.value = t('twoFactor.webauthn.cancelled')
-    } else if (e?.message === 'webauthn-unsupported') {
-      error.value = t('twoFactor.webauthn.unsupported')
-    } else {
-      error.value = t('twoFactor.verify.invalidCode')
-    }
-  } finally {
-    loading.value = false
-  }
+  const begin = await webauthnLoginBegin(preAuthToken.value)
+  const credentialJson = await getWebAuthnCredential(begin.optionsJson)
+  const days = rememberDevice.value ? trustedDeviceMaxDays.value : undefined
+  const result = await webauthnLoginFinish(preAuthToken.value, begin.challengeToken, credentialJson, days)
+  finalizeSession(result.token, result.expiresAt)
+}, {formatError: (e) => {
+  const message = (e as Error | undefined)?.message
+  if (message === 'webauthn-cancelled') return t('twoFactor.webauthn.cancelled')
+  if (message === 'webauthn-unsupported') return t('twoFactor.webauthn.unsupported')
+  return t('twoFactor.verify.invalidCode')
+}})
+
+const loading = computed(() => verifying.value || webauthnRunning.value)
+const error = computed(() => verifyError.value || webauthnError.value)
+
+function handleVerify() {
+  clearWebauthnError()
+  void runVerify()
+}
+
+function handleWebAuthn() {
+  clearVerifyError()
+  void runWebAuthn()
 }
 
 async function finalizeSession(token: string, expiresAt: string) {

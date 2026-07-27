@@ -18,6 +18,7 @@ import type {QuizCategory, QuizQuestion} from '@/api/types'
 import {QuizQuestionTypes} from '@/api/types'
 import {quiz, ai} from '@/api'
 import {getItem} from '@/api/storage'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 
 const {t} = useI18n()
 
@@ -35,7 +36,6 @@ const emit = defineEmits<{
   error: [message: string]
 }>()
 
-const processing = ref(false)
 const progress = ref('')
 
 const batchAutoPoints = ref(true)
@@ -56,66 +56,65 @@ function parseConfig(q: QuizQuestion): Record<string, unknown> {
   return { ...(q.config ?? {}) }
 }
 
-async function execute() {
-  processing.value = true
-  progress.value = ''
-  try {
-    const targets = props.questions
-    let done = 0
+const {running: processing, run: runExecute} = useAsyncAction(async () => {
+  const targets = props.questions
+  let done = 0
 
-    if (props.action === 'autoPoints') {
-      for (const q of targets) {
-        done++; progress.value = `${done}/${targets.length}`
-        await quiz.updateQuestion(q.id, {
-          title: q.title, description: q.description, categoryId: q.categoryId,
-          quizQuestionType: q.quizQuestionType, points: q.points,
-          autoPoints: batchAutoPoints.value, config: parseConfig(q),
-        })
-      }
-    } else if (props.action === 'setPoints') {
-      for (const q of targets) {
-        done++; progress.value = `${done}/${targets.length}`
-        await quiz.updateQuestion(q.id, {
-          title: q.title, description: q.description, categoryId: q.categoryId,
-          quizQuestionType: q.quizQuestionType, points: batchPoints.value,
-          autoPoints: false, config: parseConfig(q),
-        })
-      }
-    } else if (props.action === 'pointsPerCorrect') {
-      for (const q of targets) {
-        if (q.quizQuestionType !== QuizQuestionTypes.MULTIPLE_CHOICE) continue
-        done++; progress.value = `${done}/${targets.length}`
-        const config = parseConfig(q)
-        config.pointsPerCorrect = batchPointsPerCorrect.value
-        const correctCount = ((config.options as {correct: boolean}[]) || []).filter(o => o.correct).length
-        await quiz.updateQuestion(q.id, {
-          title: q.title, description: q.description, categoryId: q.categoryId,
-          quizQuestionType: q.quizQuestionType, points: correctCount * batchPointsPerCorrect.value,
-          autoPoints: true, config,
-        })
-      }
-    } else if (props.action === 'setCategory') {
-      const catId = batchCategoryId.value ? Number(batchCategoryId.value) : null
-      for (const q of targets) {
-        done++; progress.value = `${done}/${targets.length}`
-        await quiz.updateQuestion(q.id, {
-          title: q.title, description: q.description, categoryId: catId,
-          quizQuestionType: q.quizQuestionType, points: q.points,
-          autoPoints: q.autoPoints, config: parseConfig(q),
-        })
-      }
-    } else if (props.action === 'generate') {
-      await batchGenerate(targets)
+  if (props.action === 'autoPoints') {
+    for (const q of targets) {
+      done++; progress.value = `${done}/${targets.length}`
+      await quiz.updateQuestion(q.id, {
+        title: q.title, description: q.description, categoryId: q.categoryId,
+        quizQuestionType: q.quizQuestionType, points: q.points,
+        autoPoints: batchAutoPoints.value, config: parseConfig(q),
+      })
     }
-
-    emit('done')
-    show.value = false
-  } catch {
-    emit('error', t('common.error'))
-  } finally {
-    processing.value = false
-    progress.value = ''
+  } else if (props.action === 'setPoints') {
+    for (const q of targets) {
+      done++; progress.value = `${done}/${targets.length}`
+      await quiz.updateQuestion(q.id, {
+        title: q.title, description: q.description, categoryId: q.categoryId,
+        quizQuestionType: q.quizQuestionType, points: batchPoints.value,
+        autoPoints: false, config: parseConfig(q),
+      })
+    }
+  } else if (props.action === 'pointsPerCorrect') {
+    for (const q of targets) {
+      if (q.quizQuestionType !== QuizQuestionTypes.MULTIPLE_CHOICE) continue
+      done++; progress.value = `${done}/${targets.length}`
+      const config = parseConfig(q)
+      config.pointsPerCorrect = batchPointsPerCorrect.value
+      const correctCount = ((config.options as {correct: boolean}[]) || []).filter(o => o.correct).length
+      await quiz.updateQuestion(q.id, {
+        title: q.title, description: q.description, categoryId: q.categoryId,
+        quizQuestionType: q.quizQuestionType, points: correctCount * batchPointsPerCorrect.value,
+        autoPoints: true, config,
+      })
+    }
+  } else if (props.action === 'setCategory') {
+    const catId = batchCategoryId.value ? Number(batchCategoryId.value) : null
+    for (const q of targets) {
+      done++; progress.value = `${done}/${targets.length}`
+      await quiz.updateQuestion(q.id, {
+        title: q.title, description: q.description, categoryId: catId,
+        quizQuestionType: q.quizQuestionType, points: q.points,
+        autoPoints: q.autoPoints, config: parseConfig(q),
+      })
+    }
+  } else if (props.action === 'generate') {
+    await batchGenerate(targets)
   }
+
+  emit('done')
+  show.value = false
+  return true
+})
+
+async function execute() {
+  if (processing.value) return
+  const ok = await runExecute()
+  progress.value = ''
+  if (!ok) emit('error', t('common.error'))
 }
 
 async function batchGenerate(targets: QuizQuestion[]) {

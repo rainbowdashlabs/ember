@@ -9,6 +9,9 @@ import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import FilesView from './pagefilesview/FilesView.vue'
 import {useSession} from '@/composables/useSession'
+import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useConfirmAction} from '@/composables/useConfirmAction'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {
     assignPageTag,
     createPageFolder,
@@ -39,9 +42,7 @@ const entries = ref<PageFileListing[]>([])
 const folders = ref<PageFileFolder[]>([])
 const tags = ref<PageFileTag[]>([])
 const loading = ref(false)
-const uploading = ref(false)
 const uploadError = ref<string | null>(null)
-const pruning = ref(false)
 const search = ref('')
 const activeFolder = ref<number | null>(null)
 const activeTagFilter = ref<number | null>(null)
@@ -200,8 +201,7 @@ function toggleMultiSelect() {
 
 const UPLOAD_CONCURRENCY = 2
 
-async function uploadMany(files: File[]) {
-    uploading.value = true
+const {running: uploading, run: uploadMany} = useAsyncAction(async (files: File[]) => {
     uploadError.value = null
     let failed = 0
     let cursor = 0
@@ -229,18 +229,18 @@ async function uploadMany(files: File[]) {
     await Promise.all(Array.from({length: workerCount}, () => worker()))
 
     if (failed > 0) uploadError.value = t('fileUpload.uploadFailed')
-    uploading.value = false
-}
+})
 
-async function runPrune() {
-    if (!confirm(t('stationPages.editor.prunePrompt', {count: unusedCount.value}))) return
-    pruning.value = true
-    try {
-        await prunePageFiles()
-        await load()
-    } finally {
-        pruning.value = false
-    }
+const showPruneConfirm = ref(false)
+
+const {running: pruning, run: confirmPrune} = useAsyncAction(async () => {
+    showPruneConfirm.value = false
+    await prunePageFiles()
+    await load()
+})
+
+function runPrune() {
+    showPruneConfirm.value = true
 }
 
 function startEdit(f: PageFile) {
@@ -344,12 +344,18 @@ async function runBulkMove() {
     selectedIds.value = []
 }
 
-async function deleteOne(file: PageFile) {
-    if (!confirm(t('stationPages.editor.deleteFilePrompt', {name: file.fileName}))) return
-    await deleteStationPageFile(file.id)
-    entries.value = entries.value.filter(e => e.file.id !== file.id)
-    selectedIds.value = selectedIds.value.filter(x => x !== file.id)
-}
+const {
+    show: showDeleteFileModal,
+    target: deleteFileTarget,
+    request: requestDeleteFile,
+    confirm: confirmDeleteFile,
+} = useConfirmAction<PageFile>({
+    onConfirm: async (file) => {
+        await deleteStationPageFile(file.id)
+        entries.value = entries.value.filter(e => e.file.id !== file.id)
+        selectedIds.value = selectedIds.value.filter(x => x !== file.id)
+    },
+})
 
 async function runBulkDelete() {
     const ids = [...selectedIds.value]
@@ -358,7 +364,7 @@ async function runBulkDelete() {
         try {
             await deleteStationPageFile(id)
         } catch {
-            /* keep going — the load() at the end re-syncs */
+            continue
         }
     }
     selectedIds.value = []
@@ -419,7 +425,7 @@ async function runBulkDelete() {
             @clear-selection="clearSelection"
             @preview-file="openPreview"
             @edit-file="startEdit"
-            @delete-file="deleteOne"
+            @delete-file="requestDeleteFile"
             @toggle-select="toggleSelected"
             @toggle-tag="toggleFileTag"
             @save-edit="saveEdit"
@@ -427,6 +433,16 @@ async function runBulkDelete() {
             @save-tag="saveTag"
             @bulk-move="runBulkMove"
             @bulk-delete="runBulkDelete"
+        />
+        <ConfirmDeleteModal
+            v-model="showPruneConfirm"
+            :message="t('stationPages.editor.prunePrompt', {count: unusedCount})"
+            @confirm="confirmPrune"
+        />
+        <ConfirmDeleteModal
+            v-model="showDeleteFileModal"
+            :message="t('stationPages.editor.deleteFilePrompt', {name: deleteFileTarget?.fileName ?? ''})"
+            @confirm="confirmDeleteFile"
         />
     </ViewContent>
 </template>
