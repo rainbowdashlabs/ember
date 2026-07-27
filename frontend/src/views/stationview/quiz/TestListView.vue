@@ -25,6 +25,7 @@ import ConfirmDeleteModal from './testlistview/ConfirmDeleteModal.vue'
 const { t } = useI18n()
 const router = useRouter()
 import { StationPermission } from '@/api/types'
+import { useConfirmAction } from '@/composables/useConfirmAction'
 const { hasPermission, loaded } = useSession()
 const canConfigure = () => hasPermission(StationPermission.TEST_CONFIGURE)
 const canReadResults = () => hasPermission(StationPermission.TEST_RESULT_READ)
@@ -41,21 +42,23 @@ const testSummaries = ref<QuizTestSummary[]>([])
 const tests = ref<QuizTest[]>([])
 const availableTests = ref<QuizAvailableTest[]>([])
 
-const confirmModalOpen = ref(false)
-const confirmModalMessage = ref('')
-const confirmModalAction = ref<(() => Promise<void>) | null>(null)
-
-function showConfirm(message: string, action: () => Promise<void>) {
-  confirmModalMessage.value = message
-  confirmModalAction.value = action
-  confirmModalOpen.value = true
+interface PendingConfirm {
+  message: string
+  action: () => Promise<void>
 }
 
-async function executeConfirm() {
-  confirmModalOpen.value = false
-  if (confirmModalAction.value) {
-    try { await confirmModalAction.value() } catch { /* handled */ }
-  }
+const confirmAction = useConfirmAction<PendingConfirm>({
+  onConfirm: async (pending) => {
+    try {
+      await pending.action()
+    } catch {
+      return
+    }
+  },
+})
+
+function showConfirm(message: string, action: () => Promise<void>) {
+  confirmAction.request({message, action})
 }
 
 function testClickRoute(test: QuizTest) {
@@ -151,9 +154,9 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
       </template>
 
       <ConfirmDeleteModal
-        v-model="confirmModalOpen"
-        :message="confirmModalMessage"
-        @confirm="executeConfirm"
+        v-model="confirmAction.show.value"
+        :message="confirmAction.target.value?.message ?? ''"
+        @confirm="confirmAction.confirm"
       />
     </div>
   </ViewContent>

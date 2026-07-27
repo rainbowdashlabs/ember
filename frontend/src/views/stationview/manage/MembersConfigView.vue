@@ -7,6 +7,7 @@
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -53,8 +54,6 @@ const dateFields = computed(() => currentFields.value.filter(f => f.fieldType ==
 
 const showFieldModal = ref(false)
 const editingField = ref<ProfileField | null>(null)
-const showDeleteModal = ref(false)
-const deleteTarget = ref<ProfileField | null>(null)
 
 const {loading, error, reload} = useAsyncLoader(async () => {
   const [fields, groups] = await Promise.all([
@@ -133,22 +132,16 @@ async function toggleKeepOnArchive(field: ProfileField, value: boolean) {
   }
 }
 
-function requestDelete(field: ProfileField) {
-  deleteTarget.value = field
-  showDeleteModal.value = true
-}
-
-async function confirmDelete() {
-  if (!deleteTarget.value) return
-  try {
-    await profileFields.deleteField(deleteTarget.value.id)
-    showDeleteModal.value = false
-    deleteTarget.value = null
-    await reload()
-  } catch {
-    error.value = t('common.error')
-  }
-}
+const {
+  show: showDeleteModal,
+  target: deleteTarget,
+  requestDelete,
+  confirm: confirmDelete,
+} = useConfirmDelete<ProfileField>({
+  onDelete: (field) => profileFields.deleteField(field.id),
+  onSuccess: () => reload(),
+  error,
+})
 
 async function onReorder(fromIndex: number, toIndex: number) {
   const arr = [...currentFields.value]

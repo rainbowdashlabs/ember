@@ -1356,7 +1356,6 @@ export default {
         duplicate: 'Duplizieren',
         deleteConfirm: 'Vorlage "{name}" wirklich löschen? Alle zugehörigen Sitzungen werden ebenfalls gelöscht.',
         cancel: 'Abbrechen',
-        delete: 'Löschen',
         back: 'Zurück',
         editTitle: 'Vorlage bearbeiten',
         createTitle: 'Neue Vorlage erstellen',
@@ -2755,7 +2754,6 @@ export default {
             errors: {
                 loadFailed: 'Felder konnten nicht geladen werden.',
                 saveFailed: 'Speichern fehlgeschlagen.',
-                deleteFailed: 'Löschen fehlgeschlagen.',
             },
         },
         scan: {

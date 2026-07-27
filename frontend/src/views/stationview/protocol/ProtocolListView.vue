@@ -26,6 +26,7 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import { useSession } from '@/composables/useSession'
+import { useConfirmAction } from '@/composables/useConfirmAction'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { protocol, federation } from '@/api'
 import type { TestProtocol, SharedProtocolEntry } from '@/api/protocol'
@@ -39,7 +40,6 @@ const canConfigure = computed(() => hasPermission(StationPermission.PROTOCOL_CON
 const protocols = ref<TestProtocol[]>([])
 const sharedProtocols = ref<SharedProtocolEntry[]>([])
 
-// Search & filters
 const searchQuery = ref('')
 const showFederated = ref(true)
 const filterStationId = ref<string | null>(null)
@@ -49,10 +49,6 @@ const newName = ref('')
 const newDescription = ref('')
 const newPassThreshold = ref<number | undefined>(undefined)
 
-const showDeleteModal = ref(false)
-const deleteTarget = ref<TestProtocol | null>(null)
-
-// Unique partner stations from shared protocols
 const partnerStations = computed(() => {
   const map = new Map<string, string>()
   for (const s of sharedProtocols.value) {
@@ -61,7 +57,6 @@ const partnerStations = computed(() => {
   return [...map.entries()].map(([id, name]) => ({ id, name }))
 })
 
-// Filtered local protocols
 const filteredProtocols = computed(() => {
   if (!searchQuery.value.trim()) return protocols.value
   const q = searchQuery.value.trim().toLowerCase()
@@ -70,7 +65,6 @@ const filteredProtocols = computed(() => {
   )
 })
 
-// Filtered shared protocols
 const filteredShared = computed(() => {
   if (!showFederated.value) return []
   let result = sharedProtocols.value
@@ -97,6 +91,17 @@ const {loading, error, reload} = useAsyncLoader(async () => {
   }
 }, {autoLoad: false})
 
+const {
+  show: showDeleteModal,
+  target: deleteTarget,
+  request: requestDelete,
+  confirm: handleDelete,
+} = useConfirmAction<TestProtocol>({
+  onConfirm: p => protocol.deleteProtocol(p.id),
+  onSuccess: () => reload(),
+  error,
+})
+
 async function handleCreate() {
   if (!newName.value.trim()) return
   try {
@@ -110,16 +115,6 @@ async function handleCreate() {
     newDescription.value = ''
     newPassThreshold.value = undefined
     router.push({ name: 'protocol-detail', params: { id: created.id } })
-  } catch { error.value = t('common.error') }
-}
-
-async function handleDelete() {
-  if (!deleteTarget.value) return
-  try {
-    await protocol.deleteProtocol(deleteTarget.value.id)
-    showDeleteModal.value = false
-    deleteTarget.value = null
-    await reload()
   } catch { error.value = t('common.error') }
 }
 
@@ -191,7 +186,7 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
         <span v-if="p.passThreshold" class="text-xs text-[var(--text-muted)]">{{ t('protocol.threshold') }}: {{ p.passThreshold }}P</span>
         <div v-if="canConfigure" class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <EditButton :label="t('common.edit')" @click.stop="router.push({ name: 'protocol-detail', params: { id: p.id } })" />
-          <DeleteButton :label="t('common.delete')" @click.stop="deleteTarget = p; showDeleteModal = true" />
+          <DeleteButton :label="t('common.delete')" @click.stop="requestDelete(p)" />
         </div>
       </NeutralContainer>
 

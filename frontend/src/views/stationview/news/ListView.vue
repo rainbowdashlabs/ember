@@ -12,9 +12,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import Modal from '@/components/feedback/Modal.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import NewsList, { type UnifiedNewsItem } from './listview/NewsList.vue'
 import type { NewsEntry } from '@/api/types'
 import type { FederatedNewsItem } from '@/api/news'
@@ -257,15 +255,11 @@ watch(() => entries.value.length, async () => {
 
       <Spinner v-if="loadingMore" size="md" />
 
-      <Modal v-model="showDeleteModal">
-        <div class="space-y-4">
-          <p>{{ t('news.deleteConfirm', { title: deleteTarget?.title }) }}</p>
-          <div class="flex justify-end gap-3">
-            <SecondaryButton @click="showDeleteModal = false">{{ t('common.cancel') }}</SecondaryButton>
-            <ErrorButton @click="confirmDelete">{{ t('common.delete') }}</ErrorButton>
-          </div>
-        </div>
-      </Modal>
+      <ConfirmDeleteModal
+        v-model="showDeleteModal"
+        :message="t('news.deleteConfirm', { title: deleteTarget?.title })"
+        @confirm="confirmDelete"
+      />
     </div>
   </ViewContent>
 </template>

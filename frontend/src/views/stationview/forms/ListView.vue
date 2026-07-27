@@ -8,6 +8,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { useConfirmAction } from '@/composables/useConfirmAction'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -45,21 +46,23 @@ const showAvailable = computed(() => props.showAvailableSection ?? true)
 const managedForms = ref<Form[]>([])
 const availableForms = ref<FormListEntry[]>([])
 
-const confirmModalOpen = ref(false)
-const confirmModalMessage = ref('')
-const confirmModalAction = ref<(() => Promise<void>) | null>(null)
-
-function showConfirm(message: string, action: () => Promise<void>) {
-  confirmModalMessage.value = message
-  confirmModalAction.value = action
-  confirmModalOpen.value = true
+interface PendingConfirm {
+  message: string
+  action: () => Promise<void>
 }
 
-async function executeConfirm() {
-  confirmModalOpen.value = false
-  if (confirmModalAction.value) {
-    try { await confirmModalAction.value() } catch { /* ignore */ }
-  }
+const confirmAction = useConfirmAction<PendingConfirm>({
+  onConfirm: async (pending) => {
+    try {
+      await pending.action()
+    } catch {
+      return
+    }
+  },
+})
+
+function showConfirm(message: string, action: () => Promise<void>) {
+  confirmAction.request({message, action})
 }
 
 const { loading, error, reload } = useAsyncLoader(async () => {
@@ -165,9 +168,9 @@ watch(loaded, (isLoaded) => {
       </template>
 
       <ConfirmActionModal
-        v-model="confirmModalOpen"
-        :message="confirmModalMessage"
-        @confirm="executeConfirm"
+        v-model="confirmAction.show.value"
+        :message="confirmAction.target.value?.message ?? ''"
+        @confirm="confirmAction.confirm"
       />
     </div>
   </ViewContent>

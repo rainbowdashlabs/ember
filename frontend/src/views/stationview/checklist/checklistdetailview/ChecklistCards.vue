@@ -4,8 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
+import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
@@ -30,12 +30,9 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-const pendingDelete = ref<ChecklistEntryDto | null>(null)
-
-function confirmDelete() {
-  if (pendingDelete.value) emit('delete-entry', pendingDelete.value.id)
-  pendingDelete.value = null
-}
+const {show: showDelete, target: pendingDelete, requestDelete, confirm: confirmDelete} = useConfirmDelete<ChecklistEntryDto>({
+  onDelete: async entry => { emit('delete-entry', entry.id) },
+})
 </script>
 
 <template>
@@ -57,7 +54,7 @@ function confirmDelete() {
             v-if="!readOnly && !entry.deletedAt"
             :icon="['fas', 'trash']"
             :label="t('checklist.deleteRow')"
-            @click="pendingDelete = entry"
+            @click="requestDelete(entry)"
         />
       </div>
 
@@ -91,9 +88,8 @@ function confirmDelete() {
 
     <ConfirmDeleteModal
         v-if="pendingDelete"
-        :model-value="pendingDelete !== null"
+        v-model="showDelete"
         :message="t('checklist.deleteRowMessage', {name: pendingDelete?.memberName ?? ''})"
-        @update:model-value="(v) => { if (!v) pendingDelete = null }"
         @confirm="confirmDelete"
     />
   </div>
