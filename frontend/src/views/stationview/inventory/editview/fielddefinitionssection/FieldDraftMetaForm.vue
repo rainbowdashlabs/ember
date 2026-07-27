@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref, watch} from 'vue'
+import {watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
@@ -13,6 +13,7 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import {FieldType} from '@/api/inventoryFields'
 import type {FieldTypeName} from '@/api/inventoryFields'
 import type {DraftField} from './types'
+import {harmonizeKey} from './harmonize'
 
 const props = defineProps<{
     draft: DraftField
@@ -24,30 +25,11 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-const keyTouched = ref(false)
-
-function harmonizeKey(label: string): string {
-    return label
-        .toLowerCase()
-        .replace(/ä/g, 'ae')
-        .replace(/ö/g, 'oe')
-        .replace(/ü/g, 'ue')
-        .replace(/ß/g, 'ss')
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9]+/g, '_')
-        .replace(/^[0-9_]+/, '')
-        .replace(/_+$/, '')
-}
-
-function onKeyInput(value: string) {
-    props.draft.key = value
-    keyTouched.value = value !== ''
-}
-
-watch(() => props.draft.label, (label) => {
-    if (props.draft.id || keyTouched.value) return
-    props.draft.key = harmonizeKey(label)
+watch(() => props.draft.label, (label, previous) => {
+    if (props.draft.id) return
+    if (props.draft.key === '' || props.draft.key === harmonizeKey(previous ?? '')) {
+        props.draft.key = harmonizeKey(label)
+    }
 })
 
 function onTypeChanged(value: string) {
@@ -63,7 +45,7 @@ function onTypeChanged(value: string) {
         </label>
         <label class="flex flex-col gap-1 text-sm">
             <span>{{ t('inventory.fields.key') }}</span>
-            <TextInput :model-value="props.draft.key" :disabled="!!props.draft.id" :placeholder="t('inventory.fields.keyPlaceholder')" @update:model-value="onKeyInput" />
+            <TextInput v-model="props.draft.key" :disabled="!!props.draft.id" :placeholder="t('inventory.fields.keyPlaceholder')" />
         </label>
         <label class="flex flex-col gap-1 text-sm">
             <span>{{ t('inventory.fields.type') }}</span>
