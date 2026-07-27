@@ -6,7 +6,6 @@
 <script lang="ts" setup>
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Th from '@/components/table/Th.vue'
 import THead from '@/components/table/THead.vue'
 import type { InventoryItem, MemberIdentity } from '@/api/types'
@@ -50,7 +49,7 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <NeutralContainer class="overflow-x-auto">
+  <div class="overflow-x-auto">
     <table class="w-full text-sm">
       <thead>
         <ItemTableHeadRow v-if="tableApi" :table="tableApi" :show-action-column="showActions || showHistory"/>
@@ -83,5 +82,5 @@ const { t } = useI18n()
                        @delete="emit('delete', $event)"/>
       </tbody>
     </table>
-  </NeutralContainer>
+  </div>
 </template>

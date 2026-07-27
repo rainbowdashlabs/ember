@@ -5,8 +5,6 @@
  */
 <script lang="ts" setup>
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
@@ -41,7 +39,6 @@ withDefaults(defineProps<{
 const emit = defineEmits<InventoryItemActionEmits>()
 
 const { t } = useI18n()
-const router = useRouter()
 </script>
 
 <template>
@@ -68,7 +65,7 @@ const router = useRouter()
       <span v-else class="text-(--text-muted)">–</span>
     </Td>
     <Td v-if="showAssigned">
-      <SecondaryButton v-if="item.assignedTo" class="!bg-transparent !p-0 text-primary font-medium hover:underline" @click.stop="router.push({ name: 'inventory-member', params: { memberId: item.assignedTo } })"><MemberName :identity="memberIdentity"/></SecondaryButton>
+      <router-link v-if="item.assignedTo" :to="{ name: 'inventory-member', params: { memberId: item.assignedTo } }" class="inline-block font-medium hover:text-primary hover:underline" @click.stop><MemberName :identity="memberIdentity"/></router-link>
       <span v-else-if="locationLabel" class="inline-flex items-center gap-1 text-(--text-muted)">
         <font-awesome-icon :icon="['fas', 'box']" class="h-3 w-3"/>
         {{ locationLabel }}

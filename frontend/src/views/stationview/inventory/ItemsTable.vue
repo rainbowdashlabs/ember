@@ -6,9 +6,7 @@
 <script lang="ts" setup>
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
@@ -27,7 +25,6 @@ import { formatDate } from '@/util/format'
 const { isMobile } = useBreakpoint()
 
 const { t } = useI18n()
-const router = useRouter()
 
 const props = withDefaults(defineProps<{
   items: InventoryItem[]
@@ -105,9 +102,9 @@ function getMemberIdentity(memberId: number | null | undefined) {
         </div>
         <div v-if="item.assignedTo">
           <span class="text-(--text-muted)">{{ t('inventory.edit.colAssigned') }}:</span>
-          <SecondaryButton class="!bg-transparent !p-0 ml-1 text-primary font-medium hover:underline" @click.stop="router.push({ name: 'inventory-member', params: { memberId: item.assignedTo } })">
+          <router-link :to="{ name: 'inventory-member', params: { memberId: item.assignedTo } }" class="inline-block ml-1 font-medium hover:text-primary hover:underline" @click.stop>
             <MemberName :identity="getMemberIdentity(item.assignedTo)"/>
-          </SecondaryButton>
+          </router-link>
         </div>
         <div v-else-if="locationLabel(item.containerId)" class="text-(--text-muted) flex items-center gap-1">
           <font-awesome-icon :icon="['fas', 'box']" class="h-3 w-3"/>

@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ItemsTable from '../ItemsTable.vue'
 import type { ItemTableApi } from '../itemtable/useItemTable'
 import ItemTableFilterModal from '../itemtable/ItemTableFilterModal.vue'
@@ -93,37 +94,38 @@ const { t } = useI18n()
 
   <LentOutTable :lent-out-items="lentOutItems" :lent-out-count="counts.lentOut" />
 
-  <ItemListControls
-    v-if="items.length > 0 || permissions.canCreateItem"
-    :table="itemTable"
-    :count="items.length"
-    :show-quick-assign="permissions.canCreateItem && permissions.canQuickAssign"
-    :show-add="permissions.canCreateItem && permissions.canAddInternal"
-    :show-search="items.length > 0"
-    @quick-assign="$emit('openQuickAssign')"
-    @add="$emit('openAdd')"
-  />
-  <ItemsTable
-    v-if="items.length > 0"
-    :items="items"
-    :has-sizes="detail.hasSizes"
-    :sizes="detail.sizes"
-    :members="memberMap"
-    :show-actions="permissions.canEdit"
-    :show-history="true"
-    :inventory-type="detail.inventoryType ?? InventoryTypes.INTERNAL"
-    :lent-out-items="lentOutItems"
-    :lent-item-map="lentItemStationMap"
-    :container-path-by-id="containerPathById"
-    :table-api="itemTable"
-    @assign="$emit('assign', $event)"
-    @unassign="$emit('unassign', $event)"
-    @edit="$emit('edit', $event)"
-    @mark-lost="$emit('markLost', $event)"
-    @mark-found="$emit('markFound', $event)"
-    @history="$emit('history', $event)"
-    @delete="$emit('delete', $event)"
-  />
+  <NeutralContainer v-if="items.length > 0 || permissions.canCreateItem" class="space-y-4">
+    <ItemListControls
+      :table="itemTable"
+      :count="items.length"
+      :show-quick-assign="permissions.canCreateItem && permissions.canQuickAssign"
+      :show-add="permissions.canCreateItem && permissions.canAddInternal"
+      :show-search="items.length > 0"
+      @quick-assign="$emit('openQuickAssign')"
+      @add="$emit('openAdd')"
+    />
+    <ItemsTable
+      v-if="items.length > 0"
+      :items="items"
+      :has-sizes="detail.hasSizes"
+      :sizes="detail.sizes"
+      :members="memberMap"
+      :show-actions="permissions.canEdit"
+      :show-history="true"
+      :inventory-type="detail.inventoryType ?? InventoryTypes.INTERNAL"
+      :lent-out-items="lentOutItems"
+      :lent-item-map="lentItemStationMap"
+      :container-path-by-id="containerPathById"
+      :table-api="itemTable"
+      @assign="$emit('assign', $event)"
+      @unassign="$emit('unassign', $event)"
+      @edit="$emit('edit', $event)"
+      @mark-lost="$emit('markLost', $event)"
+      @mark-found="$emit('markFound', $event)"
+      @history="$emit('history', $event)"
+      @delete="$emit('delete', $event)"
+    />
+  </NeutralContainer>
 
   <ItemTableFilterModal :table="itemTable"/>
 
