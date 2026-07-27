@@ -84,7 +84,7 @@ public class InventoryFieldDefinitionService {
             }
         }
         InventoryFieldDefinition created =
-                repository.create(inventoryId, key, label, fieldType, required, sortOrder, effectiveConfig.toJson());
+                repository.create(inventoryId, key, label, fieldType, required, sortOrder, effectiveConfig);
         log.info(
                 "Created field definition {} (key='{}', label='{}', type={}, required={}) in inventory {}",
                 created.id(),
@@ -116,7 +116,7 @@ public class InventoryFieldDefinitionService {
         if (effective.fieldType() != existing.get().fieldType()) {
             throw new IllegalArgumentException("Field config type does not match the field's type");
         }
-        if (!repository.update(id, label, required, sortOrder, effective.toJson())) {
+        if (!repository.update(id, label, required, sortOrder, effective)) {
             log.warn("Update of field definition {} did not change any row", id);
             return Optional.empty();
         }

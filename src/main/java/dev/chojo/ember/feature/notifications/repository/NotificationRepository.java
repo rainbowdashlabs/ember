@@ -51,17 +51,17 @@ public class NotificationRepository {
      *
      * @param memberId the member ID
      * @param type     the notification type
-     * @param dataJson the notification data as JSON
+     * @param data     the notification data that must match exactly
      * @return {@code true} if a matching unacknowledged notification exists
      */
-    public boolean exists(int memberId, NotificationType type, String dataJson) {
+    public boolean exists(int memberId, NotificationType type, NotificationData data) {
         return SqlSupport.exists(
                 """
                 SELECT 1 FROM notification
                 WHERE member_id = :member_id
                   AND type = :type
                   AND data = :data::JSONB
-                  AND acknowledged_at IS NULL;""", call().bind("member_id", memberId).bind("type", type).bind("data", dataJson));
+                  AND acknowledged_at IS NULL;""", call().bind("member_id", memberId).bind("type", type).bind("data", data.toJson()));
     }
 
     /**
@@ -157,17 +157,17 @@ public class NotificationRepository {
      * Deletes unacknowledged notifications of a given type whose data contains the specified JSON fragment.
      * Uses PostgreSQL's {@code @>} containment operator for partial matching.
      *
-     * @param type            the notification type to match
-     * @param partialDataJson a JSON fragment that must be contained in the notification data
+     * @param type        the notification type to match
+     * @param partialData the data fragment that must be contained in the notification data
      * @return the number of notifications deleted
      */
-    public int deleteByTypeContaining(NotificationType type, String partialDataJson) {
+    public int deleteByTypeContaining(NotificationType type, NotificationData partialData) {
         return query("""
                 DELETE FROM notification
                 WHERE type = :type
                   AND data @> :partial::JSONB
                   AND acknowledged_at IS NULL;""")
-                .single(call().bind("type", type).bind("partial", partialDataJson))
+                .single(call().bind("type", type).bind("partial", partialData.toJson()))
                 .delete()
                 .rows();
     }

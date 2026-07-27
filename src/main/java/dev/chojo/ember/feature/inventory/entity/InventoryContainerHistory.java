@@ -20,7 +20,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param eventKind   the kind of lifecycle event recorded
  * @param eventTs     when the event occurred
  * @param actorId     the member who performed the action, or {@code null} for system events
- * @param details     event-specific JSON payload (e.g. previous parent id on MOVED)
+ * @param details     event-specific payload, typed by {@code eventKind}
  */
 public record InventoryContainerHistory(
         int id,
@@ -29,19 +29,22 @@ public record InventoryContainerHistory(
         ContainerEventKind eventKind,
         Instant eventTs,
         Integer actorId,
-        String details) {
+        ContainerHistoryDetails details) {
 
     /**
      * Creates a row mapping for database result set conversion.
      */
     public static RowMapping<InventoryContainerHistory> map() {
-        return row -> new InventoryContainerHistory(
-                row.getInt("id"),
-                row.getObject("container_id", Integer.class),
-                row.getInt("station_id"),
-                row.getEnum("event_kind", ContainerEventKind.class),
-                row.get("event_ts", INSTANT_TIMESTAMP),
-                row.getObject("actor_id", Integer.class),
-                row.getString("details"));
+        return row -> {
+            ContainerEventKind eventKind = row.getEnum("event_kind", ContainerEventKind.class);
+            return new InventoryContainerHistory(
+                    row.getInt("id"),
+                    row.getObject("container_id", Integer.class),
+                    row.getInt("station_id"),
+                    eventKind,
+                    row.get("event_ts", INSTANT_TIMESTAMP),
+                    row.getObject("actor_id", Integer.class),
+                    ContainerHistoryDetails.parse(eventKind, row.getString("details")));
+        };
     }
 }

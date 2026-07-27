@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.inventory.repository;
 
+import dev.chojo.ember.feature.inventory.entity.FieldConfig;
 import dev.chojo.ember.feature.inventory.entity.FieldType;
 import dev.chojo.ember.feature.inventory.entity.InventoryFieldDefinition;
 import dev.chojo.ember.util.sql.SqlSupport;
@@ -61,7 +62,7 @@ public class InventoryFieldDefinitionRepository {
             FieldType fieldType,
             boolean required,
             int sortOrder,
-            String configJson) {
+            FieldConfig config) {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO inventory_field_definition(inventory_id, key, label, field_type, required, sort_order, config)
@@ -73,7 +74,7 @@ public class InventoryFieldDefinitionRepository {
                         .bind("field_type", fieldType)
                         .bind("required", required)
                         .bind("sort_order", sortOrder)
-                        .bind("config", configJson == null || configJson.isBlank() ? "{}" : configJson),
+                        .bind("config", FieldConfig.toJsonOrEmpty(config)),
                 InventoryFieldDefinition.map(),
                 INVENTORY_FIELD_DEFINITION_COLUMNS);
     }
@@ -83,7 +84,7 @@ public class InventoryFieldDefinitionRepository {
      * {@code key} columns are intentionally not updatable here — changing
      * them goes through delete-and-re-add.
      */
-    public boolean update(int id, String label, boolean required, int sortOrder, String configJson) {
+    public boolean update(int id, String label, boolean required, int sortOrder, FieldConfig config) {
         return query("""
                 UPDATE inventory_field_definition
                 SET label = :label, required = :required, sort_order = :sort_order, config = :config::jsonb
@@ -91,7 +92,7 @@ public class InventoryFieldDefinitionRepository {
                 .single(call().bind("label", label)
                         .bind("required", required)
                         .bind("sort_order", sortOrder)
-                        .bind("config", configJson == null || configJson.isBlank() ? "{}" : configJson)
+                        .bind("config", FieldConfig.toJsonOrEmpty(config))
                         .bind("id", id))
                 .update()
                 .changed();

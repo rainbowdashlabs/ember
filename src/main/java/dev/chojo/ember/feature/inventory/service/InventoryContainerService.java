@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.feature.inventory.entity.ContainerEventKind;
+import dev.chojo.ember.feature.inventory.entity.ContainerHistoryDetails;
 import dev.chojo.ember.feature.inventory.entity.ContainerPath;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryContainer;
@@ -19,12 +19,9 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -59,8 +56,6 @@ public class InventoryContainerService {
             new DefaultKind("operation_case", "Einsatzkoffer", "suitcase", 80),
             new DefaultKind("other", "Sonstiges", "circle-question", 90));
 
-    private static final JsonMapper DETAIL_MAPPER = JsonMapper.builder().build();
-
     private final InventoryContainerRepository containerRepository;
     private final InventoryContainerKindRepository kindRepository;
     private final InventoryRepository inventoryRepository;
@@ -73,15 +68,6 @@ public class InventoryContainerService {
         this.containerRepository = containerRepository;
         this.kindRepository = kindRepository;
         this.inventoryRepository = inventoryRepository;
-    }
-
-    private static String detailJson(Map<String, ?> fields) {
-        try {
-            LinkedHashMap<String, Object> normalized = new LinkedHashMap<>(fields);
-            return DETAIL_MAPPER.writeValueAsString(normalized);
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to serialize container history details", e);
-        }
     }
 
     /**
@@ -278,11 +264,8 @@ public class InventoryContainerService {
         }
         InventoryContainer created =
                 containerRepository.create(stationId, parentId, internalId, name, kindId, description, createdBy);
-        LinkedHashMap<String, Object> fields = new LinkedHashMap<>();
-        fields.put("name", name);
-        if (parentId != null) fields.put("parentId", parentId);
         containerRepository.appendHistory(
-                created.id(), stationId, ContainerEventKind.CREATED, createdBy, detailJson(fields));
+                created.id(), stationId, createdBy, new ContainerHistoryDetails.Created(name, parentId));
         log.info(
                 "Created container {} (name='{}', parentId={}, kindId={}) in station {}",
                 created.id(),
@@ -324,19 +307,13 @@ public class InventoryContainerService {
         boolean updated = containerRepository.update(id, parentId, internalId, name, kindId, description);
         if (!updated) return Optional.empty();
         if (!existing.name().equals(name)) {
-            LinkedHashMap<String, Object> details = new LinkedHashMap<>();
-            details.put("from", existing.name());
-            details.put("to", name);
             containerRepository.appendHistory(
-                    id, existing.stationId(), ContainerEventKind.RENAMED, actorId, detailJson(details));
+                    id, existing.stationId(), actorId, new ContainerHistoryDetails.Renamed(existing.name(), name));
         }
         boolean parentChanged = !Objects.equals(existing.parentId(), parentId);
         if (parentChanged) {
-            LinkedHashMap<String, Object> details = new LinkedHashMap<>();
-            details.put("from", existing.parentId());
-            details.put("to", parentId);
-            containerRepository.appendHistory(
-                    id, existing.stationId(), ContainerEventKind.MOVED, actorId, detailJson(details));
+            ContainerHistoryDetails moved = new ContainerHistoryDetails.Moved(existing.parentId(), parentId);
+            containerRepository.appendHistory(id, existing.stationId(), actorId, moved);
         }
         log.info(
                 "Updated container {} (name='{}', parentId={}, renamed={}, moved={})",
@@ -362,11 +339,8 @@ public class InventoryContainerService {
         InventoryContainer existing = existingOpt.get();
         boolean deleted = containerRepository.delete(id);
         if (deleted) {
-            LinkedHashMap<String, Object> details = new LinkedHashMap<>();
-            details.put("id", id);
-            details.put("name", existing.name());
             containerRepository.appendHistory(
-                    null, existing.stationId(), ContainerEventKind.DELETED, actorId, detailJson(details));
+                    null, existing.stationId(), actorId, new ContainerHistoryDetails.Deleted(id, existing.name()));
             log.info("Deleted container {} (name='{}', station={})", id, existing.name(), existing.stationId());
         } else {
             log.warn("Delete of container {} did not change any row", id);

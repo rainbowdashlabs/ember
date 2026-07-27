@@ -233,7 +233,7 @@ public class NotificationService {
     public void notifyIfAbsent(int memberId, NotificationType type, NotificationData data) {
         requireLink(type, data);
         if (!isAppEnabled(memberId, type)) return;
-        if (!notificationRepository.exists(memberId, type, data.toJson())) {
+        if (!notificationRepository.exists(memberId, type, data)) {
             notificationRepository.create(memberId, type, data);
         }
     }
@@ -328,11 +328,10 @@ public class NotificationService {
     public void notifyMembersIfAbsent(
             Collection<Integer> memberIds, NotificationType type, NotificationData data, int excludeMemberId) {
         requireLink(type, data);
-        String dataJson = data.toJson();
         for (int memberId : memberIds) {
             if (memberId == excludeMemberId) continue;
             if (!isAppEnabled(memberId, type)) continue;
-            if (!notificationRepository.exists(memberId, type, dataJson)) {
+            if (!notificationRepository.exists(memberId, type, data)) {
                 notificationRepository.create(memberId, type, data);
             }
         }
@@ -402,13 +401,13 @@ public class NotificationService {
     }
 
     /**
-     * Deletes unacknowledged notifications matching a type and partial data JSON fragment.
+     * Deletes unacknowledged notifications matching a type and a partial data fragment.
      *
-     * @param type            the notification type
-     * @param partialDataJson JSON fragment for containment matching
+     * @param type        the notification type
+     * @param partialData the data fragment used for containment matching
      */
-    public void deleteByTypeContaining(NotificationType type, String partialDataJson) {
-        notificationRepository.deleteByTypeContaining(type, partialDataJson);
+    public void deleteByTypeContaining(NotificationType type, NotificationData partialData) {
+        notificationRepository.deleteByTypeContaining(type, partialData);
     }
 
     /**

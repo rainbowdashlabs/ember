@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.quiz.repository;
 
+import dev.chojo.ember.feature.quiz.entity.QuizAnswerValue;
 import dev.chojo.ember.feature.quiz.entity.QuizTest;
 import dev.chojo.ember.feature.quiz.entity.QuizTestAnswer;
 import dev.chojo.ember.feature.quiz.entity.QuizTestAttempt;
@@ -348,7 +349,7 @@ public class QuizTestRepository {
         return SqlSupport.findById("quiz_test_answer", QUIZ_TEST_ANSWER_COLUMNS, id, QuizTestAnswer.map());
     }
 
-    public void upsertAnswer(int attemptId, int questionId, Integer sectionId, String answer, int position) {
+    public void upsertAnswer(int attemptId, int questionId, Integer sectionId, QuizAnswerValue answer, int position) {
         query("""
                 INSERT INTO quiz_test_answer(attempt_id, question_id, section_id, answer, position)
                 VALUES (:attempt_id, :question_id, :section_id, :answer::JSONB, :position)
@@ -356,19 +357,19 @@ public class QuizTestRepository {
                 .single(call().bind("attempt_id", attemptId)
                         .bind("question_id", questionId)
                         .bind("section_id", sectionId)
-                        .bind("answer", answer)
+                        .bind("answer", answer == null ? null : answer.toJson())
                         .bind("position", position))
                 .insert();
     }
 
-    public void saveAnswer(int attemptId, int questionId, String answer) {
+    public void saveAnswer(int attemptId, int questionId, QuizAnswerValue answer) {
         query("""
                 INSERT INTO quiz_test_answer(attempt_id, question_id, answer)
                 VALUES (:attempt_id, :question_id, :answer::jsonb)
                 ON CONFLICT (attempt_id, question_id) DO UPDATE SET answer = EXCLUDED.answer;""")
                 .single(call().bind("attempt_id", attemptId)
                         .bind("question_id", questionId)
-                        .bind("answer", answer))
+                        .bind("answer", answer == null ? null : answer.toJson()))
                 .insert();
     }
 

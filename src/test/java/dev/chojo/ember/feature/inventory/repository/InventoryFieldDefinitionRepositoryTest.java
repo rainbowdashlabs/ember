@@ -52,14 +52,14 @@ class InventoryFieldDefinitionRepositoryTest extends RepositoryTestBase {
         FieldConfig.NumberConfig numberConfig =
                 new FieldConfig.NumberConfig(BigDecimal.ZERO, BigDecimal.valueOf(100), null, "kg");
         InventoryFieldDefinition created = fieldDefinitionRepo.create(
-                inventory.id(), "weight", "Weight", FieldType.NUMBER, true, 10, numberConfig.toJson());
+                inventory.id(), "weight", "Weight", FieldType.NUMBER, true, 10, numberConfig);
         assertEquals("weight", created.key());
         assertEquals(FieldType.NUMBER, created.fieldType());
 
         FieldConfig.EnumConfig enumConfig = new FieldConfig.EnumConfig(List.of(
                 new FieldConfig.EnumConfig.EnumOption("a", "A"), new FieldConfig.EnumConfig.EnumOption("b", "B")));
         InventoryFieldDefinition condition = fieldDefinitionRepo.create(
-                inventory.id(), "condition", "Condition", FieldType.ENUM, false, 20, enumConfig.toJson());
+                inventory.id(), "condition", "Condition", FieldType.ENUM, false, 20, enumConfig);
 
         List<InventoryFieldDefinition> all = fieldDefinitionRepo.findByInventory(inventory.id());
         assertEquals(2, all.size());
@@ -68,7 +68,7 @@ class InventoryFieldDefinitionRepositoryTest extends RepositoryTestBase {
         assertTrue(fieldDefinitionRepo.findById(condition.id()).isPresent());
         assertTrue(fieldDefinitionRepo.findById(99999).isEmpty());
 
-        assertTrue(fieldDefinitionRepo.update(condition.id(), "Item Condition", true, 5, enumConfig.toJson()));
+        assertTrue(fieldDefinitionRepo.update(condition.id(), "Item Condition", true, 5, enumConfig));
         InventoryFieldDefinition reloaded =
                 fieldDefinitionRepo.findById(condition.id()).orElseThrow();
         assertEquals("Item Condition", reloaded.label());
@@ -85,7 +85,7 @@ class InventoryFieldDefinitionRepositoryTest extends RepositoryTestBase {
 
         assertTrue(fieldDefinitionRepo.delete(created.id()));
         assertFalse(fieldDefinitionRepo.delete(created.id()));
-        assertFalse(fieldDefinitionRepo.update(created.id(), "x", false, 0, "{}"));
+        assertFalse(fieldDefinitionRepo.update(created.id(), "x", false, 0, null));
 
         inventoryRepo.deleteItem(item.id());
     }

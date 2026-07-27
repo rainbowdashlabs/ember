@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.quiz.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.quiz.entity.QuizAnswerValue;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.entity.TestStatus;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
@@ -245,7 +246,7 @@ class QuizTestRepositoryTest extends RepositoryTestBase {
     @Order(50)
     void saveAndFindAnswer() {
         var attempt = quizTestRepo.findAttempt(testId, member.id()).orElseThrow();
-        quizTestRepo.saveAnswer(attempt.id(), questionId, "{\"value\":true}");
+        quizTestRepo.saveAnswer(attempt.id(), questionId, new QuizAnswerValue.TrueFalse(true));
         var answers = quizTestRepo.findAnswers(attempt.id());
         assertFalse(answers.isEmpty());
         int answerId = answers.getFirst().id();
@@ -309,7 +310,8 @@ class QuizTestRepositoryTest extends RepositoryTestBase {
     void upsertAnswer() {
         var attempt = quizTestRepo.findAttempt(testId, member.id()).orElseThrow();
         // upsertAnswer inserts with ON CONFLICT on id — first call inserts
-        assertDoesNotThrow(() -> quizTestRepo.upsertAnswer(attempt.id(), questionId, null, "{\"value\":false}", 0));
+        var answer = new QuizAnswerValue.TrueFalse(false);
+        assertDoesNotThrow(() -> quizTestRepo.upsertAnswer(attempt.id(), questionId, null, answer, 0));
         var answers = quizTestRepo.findAnswers(attempt.id());
         assertFalse(answers.isEmpty());
     }

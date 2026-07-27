@@ -531,7 +531,7 @@ public class BoardTicketService {
     }
 
     public void setFieldValue(int ticketId, int fieldId, BoardFieldValue value) {
-        ticketRepository.setFieldValue(ticketId, fieldId, value.toJson());
+        ticketRepository.setFieldValue(ticketId, fieldId, value);
     }
 
     // -- Field values --

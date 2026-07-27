@@ -55,6 +55,28 @@ public record WaitlistVerificationToken(
                 ConsentProof.parse(row.getString("consent_proof")));
     }
 
+    /**
+     * Serialises the guardians of a pending registration into the
+     * {@code waitlist_verification_token.guardians} JSONB payload.
+     *
+     * @param guardians the guardians to serialise, may be null for none
+     * @return the JSONB payload, never null
+     */
+    public static String guardiansToJson(List<GuardianInput> guardians) {
+        return MAPPER.writeValueAsString(guardians != null ? guardians : List.of());
+    }
+
+    /**
+     * Serialises the submitted custom field values into the
+     * {@code waitlist_verification_token.field_values} JSONB payload.
+     *
+     * @param fieldValues field id to submitted value, may be null for none
+     * @return the JSONB payload, never null
+     */
+    public static String fieldValuesToJson(Map<Integer, JsonNode> fieldValues) {
+        return MAPPER.writeValueAsString(fieldValues != null ? fieldValues : Map.of());
+    }
+
     private static List<GuardianInput> parseGuardians(String json) {
         if (json == null || json.isBlank()) return List.of();
         try {

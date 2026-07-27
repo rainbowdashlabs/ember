@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.inventory.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
-import dev.chojo.ember.feature.inventory.entity.ContainerEventKind;
+import dev.chojo.ember.feature.inventory.entity.ContainerHistoryDetails;
 import dev.chojo.ember.feature.inventory.entity.ContainerPath;
 import dev.chojo.ember.feature.inventory.entity.InventoryContainer;
 import dev.chojo.ember.feature.inventory.entity.InventoryContainerHistory;
@@ -295,18 +295,23 @@ public class InventoryContainerRepository {
     }
 
     /**
-     * Appends a lifecycle event for a container.
+     * Appends a lifecycle event for a container. The event kind is taken from the
+     * payload, which is the only thing that can describe its own shape.
+     *
+     * @param containerId the subject container, or {@code null} for a deletion
+     * @param stationId   the station the event happened in
+     * @param actorId     the acting member, or {@code null} for system events
+     * @param details     the typed event payload
      */
-    public void appendHistory(
-            Integer containerId, int stationId, ContainerEventKind kind, Integer actorId, String detailsJson) {
+    public void appendHistory(Integer containerId, int stationId, Integer actorId, ContainerHistoryDetails details) {
         query("""
                 INSERT INTO inventory_container_history(container_id, station_id, event_kind, actor_id, details)
                 VALUES(:container_id, :station_id, :event_kind, :actor_id, :details::jsonb);""")
                 .single(call().bind("container_id", containerId)
                         .bind("station_id", stationId)
-                        .bind("event_kind", kind)
+                        .bind("event_kind", details.eventKind())
                         .bind("actor_id", actorId)
-                        .bind("details", detailsJson == null || detailsJson.isBlank() ? "{}" : detailsJson))
+                        .bind("details", details.toJson()))
                 .insert();
     }
 

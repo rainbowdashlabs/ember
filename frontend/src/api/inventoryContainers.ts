@@ -71,6 +71,40 @@ export const ContainerEventKind = {
 } as const
 export type ContainerEventKindName = (typeof ContainerEventKind)[keyof typeof ContainerEventKind]
 
+/** Details of a {@link ContainerEventKind.CREATED} entry. `parentId` is absent when created as a root. */
+export interface ContainerCreatedDetails {
+    name: string
+    parentId?: number
+}
+
+/** Details of a {@link ContainerEventKind.RENAMED} entry. */
+export interface ContainerRenamedDetails {
+    from: string
+    to: string
+}
+
+/** Details of a {@link ContainerEventKind.MOVED} entry. Either end is `null` when it was or became a root. */
+export interface ContainerMovedDetails {
+    from: number | null
+    to: number | null
+}
+
+/** Details of a {@link ContainerEventKind.DELETED} entry, which repeats the id the container had. */
+export interface ContainerDeletedDetails {
+    id: number
+    name: string
+}
+
+/**
+ * Payload of a history entry. The variant is selected by the entry's `eventKind` rather than by a
+ * discriminator inside the payload, so narrow on `eventKind` before reading it.
+ */
+export type ContainerHistoryDetails =
+    | ContainerCreatedDetails
+    | ContainerRenamedDetails
+    | ContainerMovedDetails
+    | ContainerDeletedDetails
+
 export interface InventoryContainerHistory {
     id: number
     containerId?: number | null
@@ -78,7 +112,7 @@ export interface InventoryContainerHistory {
     eventKind: ContainerEventKindName
     eventTs: string
     actorId?: number | null
-    details: string
+    details?: ContainerHistoryDetails | null
 }
 
 export interface ItemLocationResponse {

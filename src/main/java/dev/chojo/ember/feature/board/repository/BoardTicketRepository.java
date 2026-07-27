@@ -10,6 +10,7 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.board.entity.BoardActivityType;
 import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
 import dev.chojo.ember.feature.board.entity.BoardComment;
+import dev.chojo.ember.feature.board.entity.BoardFieldValue;
 import dev.chojo.ember.feature.board.entity.BoardTicket;
 import dev.chojo.ember.feature.board.entity.BoardTicketAttachment;
 import dev.chojo.ember.feature.board.entity.BoardTicketFieldValue;
@@ -624,14 +625,14 @@ public class BoardTicketRepository {
                 .all();
     }
 
-    public void setFieldValue(int ticketId, int fieldId, String valueJson) {
+    public void setFieldValue(int ticketId, int fieldId, BoardFieldValue value) {
         query("""
                 INSERT INTO board_ticket_field_value(ticket_id, field_id, value)
                 VALUES (:ticket_id, :field_id, :value::JSONB)
                 ON CONFLICT (ticket_id, field_id) DO UPDATE SET value = :value::JSONB;""")
                 .single(call().bind("ticket_id", ticketId)
                         .bind("field_id", fieldId)
-                        .bind("value", valueJson))
+                        .bind("value", value == null ? null : value.toJson()))
                 .insert();
     }
 

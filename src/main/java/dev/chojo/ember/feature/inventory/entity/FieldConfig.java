@@ -61,6 +61,18 @@ public sealed interface FieldConfig
     }
 
     /**
+     * Serialises a possibly-absent config to the JSONB payload the
+     * {@code inventory_field_definition.config} column expects, falling back to
+     * an empty object for {@code null}.
+     *
+     * @param config the config to serialise, may be null
+     * @return the JSONB payload, never null
+     */
+    static String toJsonOrEmpty(FieldConfig config) {
+        return config == null ? "{}" : config.toJson();
+    }
+
+    /**
      * Returns the {@link FieldType} this config variant applies to.
      */
     FieldType fieldType();

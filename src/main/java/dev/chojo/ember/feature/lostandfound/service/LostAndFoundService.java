@@ -126,8 +126,7 @@ public class LostAndFoundService {
                     claimedBy);
             notificationService.deleteByTypeContaining(
                     NotificationType.LOST_AND_FOUND_NEW,
-                    NotificationData.of(new NotificationParams.LostAndFoundNew(desc))
-                            .toJson());
+                    NotificationData.of(new NotificationParams.LostAndFoundNew(desc)));
             log.info("Claimed lost-and-found item {} by member {} at station {}", id, claimedBy, stationId);
         } else {
             log.warn("Failed to claim lost-and-found item {} by member {} at station {}", id, claimedBy, stationId);

@@ -21,8 +21,6 @@ import dev.chojo.ember.util.JsonUtil;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Instant;
 import java.util.List;
@@ -40,7 +38,6 @@ import static dev.chojo.ember.util.sql.SqlSupport.insertReturning;
 @Singleton
 public class WaitingListRepository {
 
-    private static final ObjectMapper JSON = JsonMapper.builder().build();
     private static final String WAITING_LIST_COLUMNS = """
             id, station_id, name, description, scoring_formula, confirm_interval_days, created_at, \
             visible_fields, testing_group_id, join_group_id, join_user_type, attendance_threshold, public""";
@@ -621,8 +618,6 @@ public class WaitingListRepository {
             Map<Integer, JsonNode> fieldValues,
             String notes,
             ConsentProof consent) {
-        String guardiansPayload = JSON.writeValueAsString(guardians != null ? guardians : List.of());
-        String fieldValuesPayload = JSON.writeValueAsString(fieldValues != null ? fieldValues : Map.of());
         insertReturning(
                 """
                 INSERT
@@ -637,8 +632,8 @@ public class WaitingListRepository {
                         .bind("firstname", firstname)
                         .bind("lastname", lastname)
                         .bind("email", email)
-                        .bind("guardians", guardiansPayload)
-                        .bind("field_values", fieldValuesPayload)
+                        .bind("guardians", WaitlistVerificationToken.guardiansToJson(guardians))
+                        .bind("field_values", WaitlistVerificationToken.fieldValuesToJson(fieldValues))
                         .bind("notes", notes)
                         .bind("consent_proof", consent.toJson()),
                 WaitlistVerificationToken.map(),
