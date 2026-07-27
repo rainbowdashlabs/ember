@@ -111,6 +111,31 @@ export async function deleteField(inventoryId: number, fieldId: number): Promise
     await client.delete(`/inventories/${inventoryId}/fields/${fieldId}`)
 }
 
+export interface NumberFieldViolation {
+    limit: 'min' | 'max'
+    bound: number
+}
+
+export function numberFieldViolation(
+    def: InventoryFieldDefinition,
+    value: unknown,
+): NumberFieldViolation | null {
+    if (def.config.kind !== 'NUMBER') return null
+    if (value === undefined || value === null || value === '') return null
+    const num = Number(value)
+    if (Number.isNaN(num)) return null
+    if (def.config.min != null && num < def.config.min) return {limit: 'min', bound: def.config.min}
+    if (def.config.max != null && num > def.config.max) return {limit: 'max', bound: def.config.max}
+    return null
+}
+
+export function hasInvalidFieldValues(
+    defs: InventoryFieldDefinition[],
+    values: Record<string, unknown>,
+): boolean {
+    return defs.some(def => numberFieldViolation(def, values[def.key]) !== null)
+}
+
 export function defaultFieldConfig(type: FieldTypeName): FieldConfig {
     switch (type) {
         case FieldType.DATE:

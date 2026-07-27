@@ -5,6 +5,7 @@
 ### New Features
 
 - **Sortable and filterable item lists.** The item tables on the inventory detail and edit pages can show custom fields as columns, sort by any column, and filter by specific values — including by source and assignment state (assigned, not assigned, in storage, not in storage). A column picker shows or hides additional columns.
+- **Custom fields when adding items.** The add-item dialog fills in the inventory's custom fields directly, and number fields check their allowed range while typing.
 
 ### Changes
 

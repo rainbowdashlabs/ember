@@ -171,6 +171,11 @@ function validate(): string | null {
       return t('inventory.unknownScan.errors.fieldRequired', {label: def.label})
     }
   }
+  for (const def of sortedFieldDefs.value) {
+    if (inventoryFields.numberFieldViolation(def, fieldValues.value[def.key])) {
+      return t('inventory.fields.numberInvalid', {label: def.label})
+    }
+  }
   return null
 }
 

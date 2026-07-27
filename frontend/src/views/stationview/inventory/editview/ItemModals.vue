@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {nextTick, ref} from 'vue'
+import {computed, nextTick, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -21,9 +21,12 @@ import ScanButton from '@/components/scanner/ScanButton.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import type {InventoryDetail, InventoryItem, InventoryItemHistory, StationMember} from '@/api/types'
 import {ItemSource} from '@/api/types'
-import {inventory} from '@/api'
+import {inventory, inventoryFields} from '@/api'
 import {useModalTarget} from '@/composables/useModalTarget'
 import EditItemModal from '../detailview/EditItemModal.vue'
+import EditItemCustomFields from '../detailview/edititemmodal/EditItemCustomFields.vue'
+import {buildItemMetadata} from '../detailview/itemMetadata'
+import type {InventoryFieldDefinition} from '@/api/inventoryFields'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {formatDate} from '@/util/format'
 
@@ -51,12 +54,26 @@ const itemInternalId = ref('')
 const itemInternalIdInput = ref<InstanceType<typeof TextInput> | null>(null)
 const itemSizeId = ref('')
 const itemQuantity = ref(1)
+const fieldDefs = ref<InventoryFieldDefinition[]>([])
+const fieldValues = ref<Record<string, unknown>>({})
+
+const fieldsInvalid = computed(() => inventoryFields.hasInvalidFieldValues(fieldDefs.value, fieldValues.value))
+
+async function loadFieldDefs() {
+  try {
+    fieldDefs.value = await inventoryFields.listFields(props.detail.id)
+  } catch {
+    fieldDefs.value = []
+  }
+}
 
 function openAdd() {
   itemName.value = props.detail.name ?? ''
   itemInternalId.value = ''
   itemSizeId.value = ''
   itemQuantity.value = 1
+  fieldValues.value = {}
+  loadFieldDefs()
   showItemModal.value = true
   nextTick(() => itemInternalIdInput.value?.$el?.focus())
 }
@@ -72,7 +89,7 @@ const {running: itemSaving, run: saveItem} = useAsyncAction(async () => {
       name: itemName.value,
       internalId: normalisedInternalId || undefined,
       sizeId: itemSizeId.value ? Number(itemSizeId.value) : undefined,
-      metadata: {owned: false, fields: {}},
+      metadata: buildItemMetadata(fieldDefs.value, fieldValues.value, false),
     }
     const count = Math.max(1, Math.min(itemQuantity.value, 100))
     for (let i = 0; i < count; i++) {
@@ -195,9 +212,10 @@ defineExpose({openAdd, openEdit, openAssign, openQuickAssign, openHistory, reque
         <NumberInput v-model="itemQuantity" :max="100" :min="1"/>
         <p class="text-xs text-(--text-muted)">{{ t('inventory.edit.itemQuantityHint') }}</p>
       </div>
+      <EditItemCustomFields :defs="fieldDefs" v-model="fieldValues"/>
       <div class="flex justify-end gap-3">
         <SecondaryButton type="button" @click="showItemModal = false">{{ t('common.cancel') }}</SecondaryButton>
-        <PrimaryButton :disabled="itemSaving || !itemName.trim()" type="submit">
+        <PrimaryButton :disabled="itemSaving || !itemName.trim() || fieldsInvalid" type="submit">
           {{ itemSaving ? t('common.loading') : t('common.save') }}
         </PrimaryButton>
       </div>

@@ -43,6 +43,7 @@ const containers = ref<InventoryContainer[]>([])
 const owned = ref(false)
 
 const sortedContainers = computed(() => [...containers.value].sort((a, b) => a.name.localeCompare(b.name)))
+const fieldsInvalid = computed(() => inventoryFields.hasInvalidFieldValues(fieldDefs.value, fieldValues.value))
 
 async function loadForInventory(inventoryId: number) {
   try {
@@ -115,7 +116,7 @@ async function save() {
       />
       <EditItemCustomFields :defs="fieldDefs" v-model="fieldValues"/>
       <EditItemFooter
-          :saveDisabled="!itemName.trim()"
+          :saveDisabled="!itemName.trim() || fieldsInvalid"
           :save="save"
           @cancel="show = false"
       />
