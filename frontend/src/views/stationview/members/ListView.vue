@@ -15,9 +15,9 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import type { StationMember } from '@/api/types'
 import { StationPermission, StationUserType, parseFieldConfig } from '@/api/types'
-import { useMemberData, memberDisplayName } from './listview/useMemberData'
+import { useMemberData, memberDisplayName, getMemberFirstName, getMemberLastName } from './listview/useMemberData'
 import { useSavedFilters, emptyTabState, type TabFilterState } from './listview/useSavedFilters'
-import { useExport } from './listview/useExport'
+import { useExport, type ExportColumn } from '@/composables/useExport'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useMemberFilter } from '@/composables/useMemberFilter'
 import { useSession } from '@/composables/useSession'
@@ -182,10 +182,29 @@ function applyColumnFilter(key: 'name' | 'groups' | 'tags' | number, selected: S
   state.columnEmptyFilters = newEmpty
 }
 
+const exportColumns = computed((): ExportColumn<StationMember>[] => [
+  {key: 'firstName', label: t('membersList.export.colFirstName'), value: getMemberFirstName},
+  {key: 'lastName', label: t('membersList.export.colLastName'), value: getMemberLastName},
+  {key: 'email', label: t('membersList.export.colEmail'), value: m => m.email ?? ''},
+  {key: 'groups', label: t('membersList.export.colGroups'), value: m => getMemberGroups(m.id).join(', ')},
+  ...tabScopedFields.value.map(f => ({
+    key: `field:${f.id}`,
+    label: f.name ?? '',
+    value: (m: StationMember) => getFieldValueAsString(m.id, f.id),
+  })),
+])
+
 const {
-  exportMode, selectedIds, showExportModal,
-  toggleExportMode, toggleSelect, toggleSelectAll, openExportModal, performExport,
-} = useExport(filteredMembers, fields, getMemberGroups, getFieldValueAsString)
+  exportMode, selectedIds, showExportModal, selectedColumns, columnOptions,
+  toggleExportMode, toggleRow, toggleAllRows, toggleColumn: toggleExportColumn,
+  selectColumns, openExportModal, performExport,
+} = useExport({
+  rows: () => filteredMembers.value,
+  rowId: m => m.id,
+  columns: () => exportColumns.value,
+  fileName: 'mitglieder',
+  defaultColumns: ['firstName', 'lastName', 'email'],
+})
 
 function navigateToDetail(member: StationMember, event: Event) {
   event.stopPropagation()
@@ -243,7 +262,8 @@ onMounted(() => {
       :saved-filters="savedFilters"
       :tab-overview-fields="tabOverviewFields"
       :tab-non-overview-fields="tabNonOverviewFields"
-      :tab-scoped-fields="tabScopedFields"
+      :export-columns="columnOptions"
+      :selected-export-columns="selectedColumns"
       :extra-column-ids="extraColumnIds"
       :hidden-column-ids="hiddenColumnIds"
       :export-mode="exportMode"
@@ -280,8 +300,10 @@ onMounted(() => {
       @navigate-detail="navigateToDetail"
       @navigate-edit="navigateToEdit"
       @resend-setup="openResendSetup"
-      @toggle-select="toggleSelect"
-      @toggle-select-all="toggleSelectAll"
+      @toggle-select="toggleRow"
+      @toggle-select-all="toggleAllRows"
+      @toggle-export-column="toggleExportColumn"
+      @select-export-columns="selectColumns"
       @export="performExport"
     />
 

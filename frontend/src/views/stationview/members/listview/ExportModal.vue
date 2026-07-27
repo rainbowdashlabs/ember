@@ -8,100 +8,54 @@ import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ExportFieldPicker from '@/components/export/ExportFieldPicker.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import RadioInput from '@/components/input/toggle/RadioInput.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type {ProfileField} from '@/api/types'
+import MutedText from '@/components/typography/MutedText.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
+import type {ExportFieldOption, ExportFormatName} from '@/composables/useExport'
 
 const {t} = useI18n()
-
-interface ExportColumn {
-  key: string
-  label: string
-}
 
 const modelValue = defineModel<boolean>({required: true})
 
 const props = defineProps<{
-  availableFields: ProfileField[]
+  columns: ExportFieldOption[]
+  selectedColumns: Set<string>
   selectedCount: number
 }>()
 
 const emit = defineEmits<{
-  export: [columns: string[], format: 'csv' | 'values']
+  toggleColumn: [key: string]
+  selectColumns: [keys: string[]]
+  export: [format: ExportFormatName]
 }>()
 
-const selectedColumns = ref<Set<string>>(new Set(['firstName', 'lastName', 'email']))
-const format = ref<'csv' | 'values'>('csv')
+const format = ref<ExportFormatName>('csv')
 
-const builtInColumns: ExportColumn[] = [
-  {key: 'firstName', label: t('membersList.export.colFirstName')},
-  {key: 'lastName', label: t('membersList.export.colLastName')},
-  {key: 'email', label: t('membersList.export.colEmail')},
-  {key: 'groups', label: t('membersList.export.colGroups')},
-]
-
-const allColumns = computed((): ExportColumn[] => [
-  ...builtInColumns,
-  ...props.availableFields.map(f => ({key: `field:${f.id}`, label: f.name ?? ''})),
-])
-
-const canExportValues = computed(() => selectedColumns.value.size === 1)
-
-function toggleColumn(key: string) {
-  const newSet = new Set(selectedColumns.value)
-  if (newSet.has(key)) {
-    newSet.delete(key)
-  } else {
-    newSet.add(key)
-  }
-  selectedColumns.value = newSet
-}
-
-function selectAll() {
-  selectedColumns.value = new Set(allColumns.value.map(c => c.key))
-}
-
-function selectNone() {
-  selectedColumns.value = new Set()
-}
+const canExportValues = computed(() => props.selectedColumns.size === 1)
 
 watch(canExportValues, (can) => {
   if (!can && format.value === 'values') format.value = 'csv'
 })
-
-function submit() {
-  emit('export', [...selectedColumns.value], format.value)
-}
 </script>
 
 <template>
   <Modal v-model="modelValue">
     <div class="space-y-4">
       <SubHeader>{{ t('membersList.export.title') }}</SubHeader>
-      <p class="text-sm text-(--text-muted)">{{ t('membersList.export.hint', {count: selectedCount}) }}</p>
+      <MutedText tag="p" size="sm">{{ t('membersList.export.hint', {count: selectedCount}) }}</MutedText>
 
-      <!-- Column selection -->
-      <div class="space-y-2">
-        <div class="flex items-center justify-between">
-          <FieldLabel>{{ t('membersList.export.selectColumns') }}</FieldLabel>
-          <div class="flex items-center gap-2">
-            <SecondaryButton @click="selectAll">{{ t('membersList.export.selectAll') }}</SecondaryButton>
-            <SecondaryButton @click="selectNone">{{ t('membersList.export.selectNone') }}</SecondaryButton>
-          </div>
-        </div>
-        <div class="grid gap-1 sm:grid-cols-2 max-h-64 overflow-y-auto">
-          <label v-for="col in allColumns" :key="col.key"
-                 class="flex items-center gap-2 cursor-pointer text-xs py-1 px-2 rounded hover:bg-bg-light-accent/30 dark:hover:bg-bg-dark-accent/30">
-            <CheckboxInput :model-value="selectedColumns.has(col.key)" @update:model-value="toggleColumn(col.key)"/>
-            {{ col.label }}
-          </label>
-        </div>
-      </div>
+      <ExportFieldPicker
+          bulk
+          :label="t('membersList.export.selectColumns')"
+          :options="columns"
+          :selected="selectedColumns"
+          @toggle="emit('toggleColumn', $event)"
+          @select="emit('selectColumns', $event)"
+      />
 
-      <!-- Format -->
       <div class="space-y-2">
         <FieldLabel>{{ t('membersList.export.format') }}</FieldLabel>
         <div class="flex items-center gap-4">
@@ -109,18 +63,19 @@ function submit() {
             <RadioInput v-model="format" value="csv"/>
             {{ t('membersList.export.formatCsv') }}
           </FieldLabel>
-          <label :class="{ 'opacity-40': !canExportValues }" class="flex items-center gap-2 cursor-pointer text-xs">
+          <FieldLabel inline :class="{ 'opacity-40': !canExportValues }" class="cursor-pointer">
             <RadioInput v-model="format" value="values" :disabled="!canExportValues"/>
             {{ t('membersList.export.formatValues') }}
-          </label>
+          </FieldLabel>
         </div>
-        <p v-if="!canExportValues && format === 'values'" class="text-xs text-(--text-muted)">
-          {{ t('membersList.export.valuesHint') }}</p>
+        <MutedText v-if="!canExportValues && format === 'values'" tag="p">
+          {{ t('membersList.export.valuesHint') }}
+        </MutedText>
       </div>
 
       <div class="flex justify-end gap-3">
         <SecondaryButton @click="modelValue = false">{{ t('common.cancel') }}</SecondaryButton>
-        <PrimaryButton :icon="['fas', 'download']" :disabled="selectedColumns.size === 0" @click="submit">
+        <PrimaryButton :icon="['fas', 'download']" :disabled="selectedColumns.size === 0" @click="emit('export', format)">
           {{ t('membersList.export.submit') }}
         </PrimaryButton>
       </div>

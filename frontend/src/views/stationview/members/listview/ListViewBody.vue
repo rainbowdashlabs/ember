@@ -9,6 +9,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import LoadedContent from './LoadedContent.vue'
 import ExportModal from './ExportModal.vue'
 import type { StationMember, ProfileField, MemberGroup, UserTag, PermissionGrant } from '@/api/types'
+import type { ExportFieldOption, ExportFormatName } from '@/composables/useExport'
 
 defineProps<{
   loading: boolean
@@ -19,7 +20,8 @@ defineProps<{
   savedFilters: { id: number; name: string }[]
   tabOverviewFields: ProfileField[]
   tabNonOverviewFields: ProfileField[]
-  tabScopedFields: ProfileField[]
+  exportColumns: ExportFieldOption[]
+  selectedExportColumns: Set<string>
   extraColumnIds: Set<number>
   hiddenColumnIds: Set<number>
   exportMode: boolean
@@ -65,7 +67,9 @@ defineEmits<{
   (e: 'resend-setup', member: StationMember, event: Event): void
   (e: 'toggle-select', id: number): void
   (e: 'toggle-select-all'): void
-  (e: 'export', config: unknown): void
+  (e: 'toggle-export-column', key: string): void
+  (e: 'select-export-columns', keys: string[]): void
+  (e: 'export', format: ExportFormatName): void
 }>()
 </script>
 
@@ -126,9 +130,12 @@ defineEmits<{
 
   <ExportModal
     :model-value="showExportModal"
-    :available-fields="tabScopedFields"
+    :columns="exportColumns"
+    :selected-columns="selectedExportColumns"
     :selected-count="selectedIds.size"
     @update:model-value="$emit('update:showExportModal', $event)"
+    @toggle-column="$emit('toggle-export-column', $event)"
+    @select-columns="$emit('select-export-columns', $event)"
     @export="$emit('export', $event)"
   />
 </template>

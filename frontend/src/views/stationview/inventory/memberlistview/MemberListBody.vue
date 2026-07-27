@@ -4,16 +4,18 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import EmptyState from '@/components/feedback/EmptyState.vue'
+import ExportFieldPicker from '@/components/export/ExportFieldPicker.vue'
 import MemberListFilters from './MemberListFilters.vue'
 import MemberListTable from './MemberListTable.vue'
-import MemberListExportFieldPicker from './MemberListExportFieldPicker.vue'
 import type { Inventory, InventoryItem, MemberGroup, ProfileField, StationMember, UserTag } from '@/api/types'
+import type { ExportFieldOption } from '@/composables/useExport'
 
 const { t } = useI18n()
 
-defineProps<{
+const props = defineProps<{
   showEmpty: boolean
   groups: MemberGroup[]
   tags: UserTag[]
@@ -45,6 +47,10 @@ const emit = defineEmits<{
   (e: 'toggle-export-selection', memberId: number): void
   (e: 'toggle-select-all'): void
 }>()
+
+const fieldOptions = computed((): ExportFieldOption<number>[] =>
+  props.allFields.map(f => ({ key: f.id, label: f.name ?? '' })),
+)
 </script>
 
 <template>
@@ -65,11 +71,14 @@ const emit = defineEmits<{
     @toggle-inventory="emit('toggle-inventory', $event)"
   />
 
-  <MemberListExportFieldPicker
-    v-if="exportMode && allFields.length > 0"
-    :fields="allFields"
-    :selected-field-ids="selectedExportFields"
-    @toggle-field="emit('toggle-export-field', $event)"
+  <ExportFieldPicker
+    v-if="exportMode && fieldOptions.length > 0"
+    boxed
+    layout="inline"
+    :label="t('inventoryMembers.exportFieldsHint')"
+    :options="fieldOptions"
+    :selected="selectedExportFields"
+    @toggle="emit('toggle-export-field', $event)"
   />
 
   <EmptyState v-if="filteredMembers.length === 0">{{ t('inventoryMembers.empty') }}</EmptyState>
