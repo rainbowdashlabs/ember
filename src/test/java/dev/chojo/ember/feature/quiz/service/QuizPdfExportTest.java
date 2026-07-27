@@ -13,11 +13,12 @@ import de.chojo.sadu.postgresql.mapper.PostgresqlMapper;
 import de.chojo.sadu.queries.api.configuration.QueryConfiguration;
 import de.chojo.sadu.updater.QueryReplacement;
 import de.chojo.sadu.updater.SqlUpdater;
+import dev.chojo.ember.TestContainers;
 import dev.chojo.ember.feature.media.service.ImageVariantService;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
 import dev.chojo.ember.feature.quiz.repository.QuizTestRepository;
-import dev.chojo.ember.feature.restriction.RestrictionRepository;
+import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
@@ -25,19 +26,15 @@ import dev.chojo.ember.feature.storage.service.StorageService;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 @Tag("database")
-@Testcontainers
 class QuizPdfExportTest {
     private static final String SCHEMA = "ember";
 
-    @Container
     static final PostgreSQLContainer PG = new PostgreSQLContainer("postgres:17")
             .withDatabaseName("ember_test")
             .withUsername("test")
@@ -54,6 +51,7 @@ class QuizPdfExportTest {
 
     @BeforeAll
     static void setup() throws Exception {
+        TestContainers.startExclusively(PG);
         DatabaseConfig dbConfig = new DatabaseConfig() {
             @Override
             public String host() {
@@ -102,7 +100,15 @@ class QuizPdfExportTest {
         catalogRepo = new QuizCatalogRepository();
         testRepo = new QuizTestRepository();
         quizService = new QuizService(
-                catalogRepo, testRepo, new RestrictionRepository(null, null, null), null, null, null, null, null, null);
+                catalogRepo,
+                testRepo,
+                new RestrictionService(null, null, null, null),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
         var backend = new LocalStorageBackend();
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
         var imageService = new QuizQuestionImageService(new ImageVariantService(storage), stationRepo);

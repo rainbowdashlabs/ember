@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.storage.backend.sftp;
 
+import dev.chojo.ember.TestContainers;
 import dev.chojo.ember.feature.storage.backend.ObjectMetadata;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -13,8 +14,6 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
@@ -32,12 +31,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * listByPrefix / sumSize / metadata round-trip / probe).
  */
 @Tag("storage")
-@Testcontainers
 class SftpStorageBackendTest {
     private static final String USER = "tester";
     private static final String PASSWORD = "testpass";
 
-    @Container
     static final GenericContainer<?> SFTP = new GenericContainer<>("atmoz/sftp:alpine")
             .withExposedPorts(22)
             .withCommand(USER + ":" + PASSWORD + ":1001:1001:share")
@@ -48,6 +45,7 @@ class SftpStorageBackendTest {
 
     @BeforeAll
     static void setup() {
+        TestContainers.startExclusively(SFTP);
         SftpBackendConfig config = new SftpBackendConfig(
                 SFTP.getHost(), SFTP.getMappedPort(22), USER, Optional.of(PASSWORD), Optional.empty(), "", "/share");
         backend = new SftpStorageBackend(config);

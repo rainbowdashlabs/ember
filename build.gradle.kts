@@ -81,7 +81,25 @@ dependencies {
     testImplementation(libs.archunit)
 }
 
+/**
+ * Number of JVMs a test task may fork.
+ *
+ * Every fork starts its own database container, and rootless Docker allocates the host port in a
+ * check-then-bind that races every outbound socket on the machine. Disabling the Testcontainers
+ * reaper halves the containers a fork starts and removes the one that lost that race by far the most
+ * often, which is what keeps one fork per two cores workable. Override with `-PtestForks=N` when a
+ * machine needs a different balance.
+ */
+fun testForks(): Int {
+    val configured = providers.gradleProperty("testForks").orNull?.toIntOrNull()
+    return configured ?: (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
+}
+
 tasks {
+    withType<Test>().configureEach {
+        environment("TESTCONTAINERS_RYUK_DISABLED", "true")
+    }
+
     compileJava {
         options.isIncremental = true
         options.compilerArgs.addAll(listOf("-parameters"))
@@ -126,7 +144,7 @@ tasks {
         filter {
             excludeTestsMatching("dev.chojo.ember.tracking.*")
         }
-        maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
+        maxParallelForks = testForks()
     }
 
     register<Test>("testRepositories") {
@@ -137,7 +155,7 @@ tasks {
         useJUnitPlatform { excludeTags("locale") }
         testLogging { events("passed", "skipped", "failed") }
         filter { includeTestsMatching("*.repository.*") }
-        maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
+        maxParallelForks = testForks()
     }
 
     register<Test>("testServices") {
@@ -148,7 +166,7 @@ tasks {
         useJUnitPlatform { excludeTags("locale") }
         testLogging { events("passed", "skipped", "failed") }
         filter { includeTestsMatching("*.service.*") }
-        maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
+        maxParallelForks = testForks()
     }
 
     register<Test>("testOther") {
@@ -163,7 +181,7 @@ tasks {
             excludeTestsMatching("*.service.*")
             excludeTestsMatching("dev.chojo.ember.tracking.*")
         }
-        maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
+        maxParallelForks = testForks()
     }
 
     register("fetchCloudflareRanges") {
