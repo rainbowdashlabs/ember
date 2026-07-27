@@ -7,12 +7,13 @@
 import {computed, ref, watch} from 'vue'
 import {useRoute} from 'vue-router'
 import {useSidebarCollapse} from '@/composables/useSidebarCollapse'
-import {useSidebarInFlyout} from '@/composables/useSidebarFlyoutContext'
+import {useSidebarFlyoutParent} from '@/composables/useSidebarFlyoutContext'
 import {useFlyoutHover} from '@/composables/useFlyoutHover'
 import SidebarFlyoutMenu from '@/components/navigation/SidebarFlyoutMenu.vue'
 
 const {collapsed} = useSidebarCollapse()
-const inFlyout = useSidebarInFlyout()
+const parentFlyout = useSidebarFlyoutParent()
+const inFlyout = parentFlyout !== null
 
 const props = defineProps<{
   label: string
@@ -66,8 +67,19 @@ function onRowLeave() {
   if (inFlyout) flyoutLeave()
 }
 
+function onPanelEnter() {
+  parentFlyout?.enter()
+  flyoutEnter()
+}
+
+function onPanelLeave() {
+  parentFlyout?.leave()
+  flyoutLeave()
+}
+
 function onChildNavigate() {
   flyoutForce(false)
+  parentFlyout?.close()
 }
 </script>
 
@@ -115,8 +127,8 @@ function onChildNavigate() {
         :label="label"
         :icon="icon"
         :badge="badge"
-        @enter="flyoutEnter"
-        @leave="flyoutLeave"
+        @enter="onPanelEnter"
+        @leave="onPanelLeave"
         @close="flyoutForce(false)"
     >
       <div @click="onChildNavigate">
