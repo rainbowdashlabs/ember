@@ -7,8 +7,7 @@
 import Td from '@/components/table/Td.vue'
 import TRow from '@/components/table/TRow.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
-import EditButton from '@/components/button/EditButton.vue'
-import DeleteButton from '@/components/button/DeleteButton.vue'
+import IconButton from '@/components/button/IconButton.vue'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
@@ -37,8 +36,7 @@ defineProps<{
     </Td>
     <Td align="right">
       <div class="flex items-center justify-end gap-0.5">
-        <EditButton/>
-        <DeleteButton/>
+        <IconButton :icon="['fas', 'ellipsis-vertical']" :label="t('common.actions')" class="text-(--text-muted)"/>
       </div>
     </Td>
   </TRow>
