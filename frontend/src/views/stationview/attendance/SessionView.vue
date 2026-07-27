@@ -25,6 +25,7 @@ import {useSessionMeta} from './sessionview/useSessionMeta'
 import {useCheckMode} from './sessionview/useCheckMode'
 import {useSessionFields} from './sessionview/useSessionFields'
 import SessionContent from './sessionview/SessionContent.vue'
+import {saveBlob} from '@/util/downloadAuthed'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -220,13 +221,7 @@ async function syncFromEvent() {
 async function exportPdf() {
   error.value = ''
   try {
-    const blob = await attendance.exportPdf(sessionId.value)
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `attendance-${sessionId.value}.pdf`
-    a.click()
-    URL.revokeObjectURL(url)
+    saveBlob(await attendance.exportPdf(sessionId.value), `attendance-${sessionId.value}.pdf`)
   } catch {
     error.value = t('common.error')
   }

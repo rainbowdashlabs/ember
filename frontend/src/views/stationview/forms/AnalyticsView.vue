@@ -22,6 +22,7 @@ import type { Form, FormAnalytics, FormResponse, FormAnswer, ProfileField } from
 import { QuestionTypes } from '@/api/types'
 import { forms, profileFields, stationMembers } from '@/api'
 import { FormAnalyticsBase, type FormAnalyticsBaseName } from '@/api/forms'
+import { saveBlob } from '@/util/downloadAuthed'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -215,14 +216,7 @@ async function performExport() {
 
   const csv = [headerCols.map(escapeCsv).join(';'), ...rows].join('\n')
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `${form.value?.title ?? 'formular'}-export.csv`
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
+  saveBlob(blob, `${form.value?.title ?? 'formular'}-export.csv`)
 }
 
 const { loading, error } = useAsyncLoader(async () => {

@@ -6,6 +6,7 @@
 import { ref, type Ref, type ComputedRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { ProfileField, StationMember } from '@/api/types'
+import { saveBlob } from '@/util/downloadAuthed'
 import { getMemberFirstName, getMemberLastName } from './useMemberData'
 
 export function useExport(
@@ -94,14 +95,7 @@ export function useExport(
     }
 
     const blob = new Blob([output], { type: format === 'csv' ? 'text/csv;charset=utf-8' : 'text/plain;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = format === 'csv' ? 'mitglieder.csv' : 'mitglieder.txt'
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+    saveBlob(blob, format === 'csv' ? 'mitglieder.csv' : 'mitglieder.txt')
 
     showExportModal.value = false
     exportMode.value = false

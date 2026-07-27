@@ -18,6 +18,7 @@ import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { useConfirmDelete } from '@/composables/useConfirmDelete'
+import { saveBlob } from '@/util/downloadAuthed'
 import CatalogToolbar from './cataloglistview/CatalogToolbar.vue'
 import CatalogList from './cataloglistview/CatalogList.vue'
 import CreateCatalogModal from './cataloglistview/CreateCatalogModal.vue'
@@ -126,12 +127,7 @@ async function exportCatalog(catalog: QuizCatalog) {
   try {
     const data = await quiz.exportCatalog(catalog.id)
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${catalog.name.replace(/\s+/g, '_')}.json`
-    a.click()
-    URL.revokeObjectURL(url)
+    saveBlob(blob, `${catalog.name.replace(/\s+/g, '_')}.json`)
   } catch {
     error.value = t('common.error')
   }

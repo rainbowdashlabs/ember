@@ -8,7 +8,7 @@ import {ref, onBeforeUnmount} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
-import client from '@/api/client'
+import {downloadAuthed} from '@/util/downloadAuthed'
 
 const props = defineProps<{
   checklistId: number
@@ -23,19 +23,7 @@ function toggle() {
 
 async function download(suffix: 'csv' | 'pdf') {
   open.value = false
-  const res = await client.get(`/checklist/${props.checklistId}/export.${suffix}`, {
-    responseType: 'blob',
-  })
-  const url = URL.createObjectURL(res.data)
-  const a = document.createElement('a')
-  a.href = url
-  const disposition = res.headers['content-disposition'] as string | undefined
-  const match = disposition?.match(/filename="([^"]+)"/)
-  a.download = match?.[1] ?? `checklist-${props.checklistId}.${suffix}`
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  URL.revokeObjectURL(url)
+  await downloadAuthed(`/checklist/${props.checklistId}/export.${suffix}`)
 }
 
 function onClickOutside(event: MouseEvent) {
