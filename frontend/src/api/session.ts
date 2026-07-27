@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import {uploadFile} from './upload'
 import type {ActiveSession, ConsentChangesResponse, ConsentStatusResponse, DocumentResponse, LegalVersionsResponse, MessageResponse, RecordConsentRequest, SessionInfo, StationMembership} from './types'
 
 export interface CrossStationSummary {
@@ -54,11 +55,7 @@ export async function invalidateAllSessions(): Promise<MessageResponse> {
 }
 
 export async function uploadAvatar(file: File): Promise<void> {
-    const formData = new FormData()
-    formData.append('avatar', file)
-    await client.post('/session/avatar', formData, {
-        headers: {'Content-Type': 'multipart/form-data'},
-    })
+    await uploadFile('/session/avatar', {avatar: file})
 }
 
 export async function deleteAvatar(): Promise<void> {

@@ -4,6 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import { uploadFile } from './upload'
+import { downloadAuthed } from '@/util/downloadAuthed'
 import type { MemberIdentity } from './types'
 
 // -- Types --
@@ -573,22 +575,11 @@ export async function uploadAttachment(
     ticketNumber: number,
     file: File,
 ): Promise<BoardTicketAttachment> {
-    const formData = new FormData()
-    formData.append('file', file)
-    const res = await client.post<BoardTicketAttachment>(
-        `/boards/${boardKey}/tickets/${ticketNumber}/attachments`,
-        formData,
-        { headers: { 'Content-Type': 'multipart/form-data' } },
-    )
-    return res.data
+    return uploadFile<BoardTicketAttachment>(`/boards/${boardKey}/tickets/${ticketNumber}/attachments`, { file })
 }
 
 export async function downloadAttachmentBlob(boardKey: string, ticketNumber: number, attachmentId: number, filename: string): Promise<void> {
-    const res = await client.get(`/boards/${boardKey}/tickets/${ticketNumber}/attachments/${attachmentId}/download`, { responseType: 'blob' })
-    const url = URL.createObjectURL(res.data as Blob)
-    const a = document.createElement('a')
-    a.href = url; a.download = filename; a.click()
-    URL.revokeObjectURL(url)
+    await downloadAuthed(`/boards/${boardKey}/tickets/${ticketNumber}/attachments/${attachmentId}/download`, filename)
 }
 
 export async function getAttachmentBlobUrl(boardKey: string, ticketNumber: number, attachmentId: number): Promise<string> {

@@ -18,6 +18,8 @@ import type {
     QuizAttemptDetail,
     QuizAvailableTest,
 } from './types'
+import {uploadFile} from './upload'
+import {downloadAuthed} from '@/util/downloadAuthed'
 
 // -- Shared catalog entry from federation --
 
@@ -282,11 +284,7 @@ export function questionImageUrl(questionId: number, size?: number): string {
 }
 
 export async function uploadQuestionImage(questionId: number, file: File): Promise<void> {
-    const formData = new FormData()
-    formData.append('image', file)
-    await client.post(`/quiz/questions/${questionId}/image`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-    })
+    await uploadFile(`/quiz/questions/${questionId}/image`, {image: file})
 }
 
 export async function deleteQuestionImage(questionId: number): Promise<void> {
@@ -296,25 +294,11 @@ export async function deleteQuestionImage(questionId: number): Promise<void> {
 // -- PDF Export --
 
 export async function downloadQuestionPdf(testId: number): Promise<void> {
-    const res = await client.get(`/quiz/tests/${testId}/export/questions`, { responseType: 'blob' })
-    downloadBlob(res)
+    await downloadAuthed(`/quiz/tests/${testId}/export/questions`)
 }
 
 export async function downloadSolutionPdf(testId: number): Promise<void> {
-    const res = await client.get(`/quiz/tests/${testId}/export/solutions`, { responseType: 'blob' })
-    downloadBlob(res)
-}
-
-function downloadBlob(res: { data: Blob; headers: { [key: string]: unknown } }) {
-    const disposition = String(res.headers['content-disposition'] ?? '')
-    const match = disposition.match(/filename="?([^"]+)"?/)
-    const filename = match?.[1] ?? 'download'
-    const url = URL.createObjectURL(res.data)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = filename
-    a.click()
-    URL.revokeObjectURL(url)
+    await downloadAuthed(`/quiz/tests/${testId}/export/solutions`)
 }
 
 // -- Import/Export --
@@ -343,11 +327,8 @@ export interface CsvMappings {
 }
 
 export async function importCsv(catalogId: number, file: File, mappings: CsvMappings): Promise<{ imported: number }> {
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('mappings', JSON.stringify(mappings))
-    const res = await client.post<{ imported: number }>(`/quiz/catalogs/${catalogId}/import-csv`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+    return uploadFile<{ imported: number }>(`/quiz/catalogs/${catalogId}/import-csv`, {
+        file,
+        mappings: JSON.stringify(mappings),
     })
-    return res.data
 }

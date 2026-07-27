@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import {uploadFile as uploadMultipart} from './upload'
 import type {MemberIdentity} from './types'
 
 export interface KbFolder {
@@ -196,15 +197,12 @@ export async function uploadFile(data: {
     description?: string
     file: File
 }): Promise<KbFile> {
-    const formData = new FormData()
-    formData.append('file', data.file)
-    if (data.name) formData.append('name', data.name)
-    if (data.description) formData.append('description', data.description)
-    if (data.folderId != null) formData.append('folderId', String(data.folderId))
-    const res = await client.post<KbFile>('/kb/files/upload', formData, {
-        headers: {'Content-Type': 'multipart/form-data'},
+    return uploadMultipart<KbFile>('/kb/files/upload', {
+        file: data.file,
+        name: data.name || undefined,
+        description: data.description || undefined,
+        folderId: data.folderId != null ? String(data.folderId) : undefined,
     })
-    return res.data
 }
 
 export async function importDocument(data: {
@@ -213,15 +211,12 @@ export async function importDocument(data: {
     description?: string
     file: File
 }): Promise<KbFile> {
-    const formData = new FormData()
-    formData.append('file', data.file)
-    if (data.name) formData.append('name', data.name)
-    if (data.description) formData.append('description', data.description)
-    if (data.folderId != null) formData.append('folderId', String(data.folderId))
-    const res = await client.post<KbFile>('/kb/files/import-document', formData, {
-        headers: {'Content-Type': 'multipart/form-data'},
+    return uploadMultipart<KbFile>('/kb/files/import-document', {
+        file: data.file,
+        name: data.name || undefined,
+        description: data.description || undefined,
+        folderId: data.folderId != null ? String(data.folderId) : undefined,
     })
-    return res.data
 }
 
 // -- Content --
@@ -265,12 +260,7 @@ export function originalFileUrl(id: number): string {
 }
 
 export async function reuploadOriginal(id: number, file: File): Promise<KbFile> {
-    const formData = new FormData()
-    formData.append('file', file)
-    const res = await client.put<KbFile>(`/kb/files/${id}/original`, formData, {
-        headers: {'Content-Type': 'multipart/form-data'},
-    })
-    return res.data
+    return uploadMultipart<KbFile>(`/kb/files/${id}/original`, {file}, 'put')
 }
 
 // -- Versions --
@@ -329,11 +319,7 @@ export function folderIconUrl(folderId: number, size = 128): string {
 }
 
 export async function uploadFolderIcon(folderId: number, file: File): Promise<void> {
-    const formData = new FormData()
-    formData.append('icon', file)
-    await client.post(`/kb/folders/${folderId}/icon`, formData, {
-        headers: {'Content-Type': 'multipart/form-data'},
-    })
+    await uploadMultipart(`/kb/folders/${folderId}/icon`, {icon: file})
 }
 
 // -- Tags --
@@ -398,12 +384,7 @@ export interface ImageUploadResponse {
 }
 
 export async function uploadKbImage(fileId: number, image: File): Promise<ImageUploadResponse> {
-    const formData = new FormData()
-    formData.append('image', image)
-    const res = await client.post<ImageUploadResponse>(`/kb/files/${fileId}/images`, formData, {
-        headers: {'Content-Type': 'multipart/form-data'},
-    })
-    return res.data
+    return uploadMultipart<ImageUploadResponse>(`/kb/files/${fileId}/images`, {image})
 }
 
 /**

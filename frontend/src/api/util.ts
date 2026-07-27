@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import client from './client'
+import {uploadFile} from './upload'
 
 export interface ParsedCsv {
     headers: string[]
@@ -11,11 +11,5 @@ export interface ParsedCsv {
 }
 
 export async function parseCsv(file: File, separator: string): Promise<ParsedCsv> {
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('separator', separator)
-    const res = await client.post<ParsedCsv>('/util/csv/parse', formData, {
-        headers: {'Content-Type': 'multipart/form-data'},
-    })
-    return res.data
+    return uploadFile<ParsedCsv>('/util/csv/parse', {file, separator})
 }

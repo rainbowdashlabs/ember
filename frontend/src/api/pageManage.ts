@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import {uploadFile} from './upload'
 
 export const CellContentType = {
     EMPTY: 'EMPTY',
@@ -551,12 +552,7 @@ export async function setLandingPage(pageId: number | null): Promise<void> {
 }
 
 export async function uploadPageFile(pageId: number, file: File): Promise<PageFile> {
-    const formData = new FormData()
-    formData.append('file', file)
-    const res = await client.post<PageFile>(`/pages/${pageId}/files`, formData, {
-        headers: {'Content-Type': 'multipart/form-data'},
-    })
-    return res.data
+    return uploadFile<PageFile>(`/pages/${pageId}/files`, {file})
 }
 
 export const uploadPageImage = uploadPageFile
@@ -666,10 +662,5 @@ export async function unassignPageTag(fileId: number, tagId: number): Promise<vo
 
 /** Uploads a file scoped to the current station (no specific owning page). */
 export async function uploadStationPageFile(file: File): Promise<PageFile> {
-    const formData = new FormData()
-    formData.append('file', file)
-    const res = await client.post<PageFile>('/pages/files', formData, {
-        headers: {'Content-Type': 'multipart/form-data'},
-    })
-    return res.data
+    return uploadFile<PageFile>('/pages/files', {file})
 }

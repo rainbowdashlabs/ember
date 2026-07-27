@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import {uploadFile} from './upload'
 import type {ClaimLostAndFoundRequest, CreateLostAndFoundRequest, LostAndFoundItem, MessageResponse} from './types'
 
 export async function listItems(): Promise<LostAndFoundItem[]> {
@@ -22,11 +23,7 @@ export async function createItem(data: CreateLostAndFoundRequest): Promise<LostA
 }
 
 export async function uploadImage(id: number, file: File): Promise<void> {
-    const formData = new FormData()
-    formData.append('image', file)
-    await client.post(`/lost-and-found/${id}/image`, formData, {
-        headers: {'Content-Type': 'multipart/form-data'},
-    })
+    await uploadFile(`/lost-and-found/${id}/image`, {image: file})
 }
 
 export function imageUrl(id: number, size?: number): string {

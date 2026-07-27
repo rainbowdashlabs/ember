@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import {uploadFile} from './upload'
 import type {MessageResponse, StationManageInfo, UpdateStationNameRequest} from './types'
 
 export async function getStationInfo(): Promise<StationManageInfo> {
@@ -17,12 +18,7 @@ export async function updateStationName(data: UpdateStationNameRequest): Promise
 }
 
 export async function uploadLogo(file: File): Promise<MessageResponse> {
-    const formData = new FormData()
-    formData.append('logo', file)
-    const res = await client.post<MessageResponse>('/station/manage/logo', formData, {
-        headers: {'Content-Type': 'multipart/form-data'},
-    })
-    return res.data
+    return uploadFile<MessageResponse>('/station/manage/logo', {logo: file})
 }
 
 export async function deleteLogo(): Promise<MessageResponse> {
