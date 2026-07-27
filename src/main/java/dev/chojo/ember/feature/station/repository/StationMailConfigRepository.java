@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.station.repository;
 
 import dev.chojo.ember.feature.station.entity.StationMailConfig;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.time.LocalDate;
@@ -20,6 +21,9 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 @Singleton
 public class StationMailConfigRepository {
 
+    private static final String MAIL_CONFIG_COLUMNS =
+            "station_id, provider, smtp_host, smtp_port, smtp_ssl, smtp_user, smtp_password, sender_address, sender_name, api_key, provider_name, provider_url, daily_limit, monthly_limit";
+
     /**
      * Finds the mail configuration for a station.
      *
@@ -27,7 +31,7 @@ public class StationMailConfigRepository {
      * @return the mail configuration, or empty if none exists
      */
     public Optional<StationMailConfig> findByStation(int stationId) {
-        return query("SELECT * FROM station_mail_config WHERE station_id = :station_id;")
+        return query("SELECT %s FROM station_mail_config WHERE station_id = :station_id;", MAIL_CONFIG_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(StationMailConfig.map())
                 .first();
@@ -40,7 +44,8 @@ public class StationMailConfigRepository {
      * @return the persisted mail configuration
      */
     public StationMailConfig upsert(StationMailConfig config) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT
                 INTO
                     station_mail_config(station_id, provider, smtp_host, smtp_port, smtp_ssl,
@@ -67,8 +72,8 @@ public class StationMailConfigRepository {
                         daily_limit    = :daily_limit,
                         monthly_limit  = :monthly_limit,
                         updated_at     = now()
-                RETURNING *;""")
-                .single(call().bind("station_id", config.stationId())
+                RETURNING %s;""".formatted(MAIL_CONFIG_COLUMNS),
+                call().bind("station_id", config.stationId())
                         .bind("provider", config.provider())
                         .bind("smtp_host", config.smtpHost())
                         .bind("smtp_port", config.smtpPort())
@@ -81,10 +86,8 @@ public class StationMailConfigRepository {
                         .bind("provider_name", config.providerName())
                         .bind("provider_url", config.providerUrl())
                         .bind("daily_limit", config.dailyLimit())
-                        .bind("monthly_limit", config.monthlyLimit()))
-                .map(StationMailConfig.map())
-                .first()
-                .orElseThrow();
+                        .bind("monthly_limit", config.monthlyLimit()),
+                StationMailConfig.map());
     }
 
     /**
@@ -98,8 +101,6 @@ public class StationMailConfigRepository {
                 .delete();
     }
 
-    // -- Per-station send counts --
-
     /**
      * Gets the number of emails sent by a station on a specific day.
      *
@@ -108,11 +109,9 @@ public class StationMailConfigRepository {
      * @return the number of emails sent, or 0 if no record exists
      */
     public int getDailyCount(int stationId, LocalDate day) {
-        return query("SELECT count FROM station_email_count WHERE station_id = :station_id AND day = :day;")
-                .single(call().bind("station_id", stationId).bind("day", day))
-                .map(row -> row.getInt("count"))
-                .first()
-                .orElse(0);
+        return SqlSupport.count(
+                "SELECT count FROM station_email_count WHERE station_id = :station_id AND day = :day;",
+                call().bind("station_id", stationId).bind("day", day));
     }
 
     /**
@@ -125,20 +124,16 @@ public class StationMailConfigRepository {
     public int getMonthlyCount(int stationId, LocalDate month) {
         LocalDate firstDay = month.withDayOfMonth(1);
         LocalDate lastDay = month.withDayOfMonth(month.lengthOfMonth());
-        return query("""
+        return SqlSupport.count(
+                """
                 SELECT
                     coalesce(sum(count), 0)
                 FROM
                     station_email_count
                 WHERE station_id = :station_id
                   AND day >= :first
-                  AND day <= :last;""")
-                .single(call().bind("station_id", stationId)
-                        .bind("first", firstDay)
-                        .bind("last", lastDay))
-                .map(row -> row.getInt(1))
-                .first()
-                .orElse(0);
+                  AND day <= :last;""",
+                call().bind("station_id", stationId).bind("first", firstDay).bind("last", lastDay));
     }
 
     /**

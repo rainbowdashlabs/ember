@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFileVersion;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
 import dev.chojo.ember.feature.knowledgebase.entity.KbSearchResult;
 import dev.chojo.ember.feature.knowledgebase.entity.KbTag;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.util.Arrays;
@@ -33,28 +34,30 @@ public class KnowledgeBaseRepository {
      * the setup wizard's status endpoint to mark the optional "knowledge base seed" step complete.
      */
     public boolean existsForStation(int stationId) {
-        return query("""
+        return SqlSupport.exists("""
                 SELECT 1
                 FROM (
                     SELECT 1 FROM kb_folder WHERE station_id = :station_id
                     UNION ALL
                     SELECT 1 FROM kb_file WHERE station_id = :station_id
                 ) any_kb_entry
-                LIMIT 1;""")
-                .single(call().bind("station_id", stationId))
-                .map(_ -> true)
-                .first()
-                .orElse(false);
+                LIMIT 1;""", call().bind("station_id", stationId));
     }
 
-    private static final String FOLDER_COLUMNS =
-            "fo.id, fo.station_id, fo.parent_id, fo.name, fo.description, fo.icon_url, fo.position, fo.created_by, fo.created_at, fo.updated_at, fo.restriction_mode, EXISTS(SELECT 1 FROM kb_access_restriction r WHERE r.folder_id = fo.id) AS restricted";
     private static final String FOLDER_COLUMNS_BARE =
-            "id, station_id, parent_id, name, description, icon_url, position, created_by, created_at, updated_at, restriction_mode, EXISTS(SELECT 1 FROM kb_access_restriction r WHERE r.folder_id = id) AS restricted";
-    private static final String FILE_COLUMNS =
-            "f.id, f.station_id, f.folder_id, f.name, f.description, f.file_type, f.mime_type, f.file_size, f.icon_url, f.youtube_url, f.link_url, f.position, f.created_by, f.created_at, f.updated_at, f.source_file_id, f.source_station_id, f.restriction_mode, EXISTS(SELECT 1 FROM kb_access_restriction r WHERE r.file_id = f.id) AS restricted, f.conversion_status";
+            "id, station_id, parent_id, name, description, icon_url, position, created_by, created_at, updated_at, restriction_mode";
+    private static final String FOLDER_COLUMNS = SqlSupport.alias("fo", FOLDER_COLUMNS_BARE);
+    private static final String FOLDER_RESTRICTED =
+            "EXISTS(SELECT 1 FROM kb_access_restriction r WHERE r.folder_id = fo.id) AS restricted";
     private static final String FILE_COLUMNS_BARE =
-            "id, station_id, folder_id, name, description, file_type, mime_type, file_size, icon_url, youtube_url, link_url, position, created_by, created_at, updated_at, source_file_id, source_station_id, restriction_mode, EXISTS(SELECT 1 FROM kb_access_restriction r WHERE r.file_id = id) AS restricted, conversion_status";
+            "id, station_id, folder_id, name, description, file_type, mime_type, file_size, icon_url, youtube_url, link_url, position, created_by, created_at, updated_at, source_file_id, source_station_id, restriction_mode, conversion_status";
+    private static final String FILE_COLUMNS = SqlSupport.alias("f", FILE_COLUMNS_BARE);
+    private static final String FILE_RESTRICTED =
+            "EXISTS(SELECT 1 FROM kb_access_restriction r WHERE r.file_id = f.id) AS restricted";
+    private static final String FILE_VERSION_COLUMNS = "id, file_id, patch, is_full, version, created_by, created_at";
+    private static final String RESTRICTION_COLUMNS = "id, folder_id, file_id, user_type, group_id, tag_id, member_id";
+    private static final String TAG_COLUMNS = "id, station_id, name";
+    private static final String TAG_COLUMNS_ALIASED = SqlSupport.alias("t", TAG_COLUMNS);
 
     // -- Folders --
     private static final Set<String> VALID_TS_CONFIGS =
@@ -84,24 +87,24 @@ public class KnowledgeBaseRepository {
         if (parentId == null) {
             return query("""
                     SELECT
-                        %s
+                        %s, %s
                     FROM
                         kb_folder fo
                     WHERE fo.station_id = :station_id
                       AND fo.parent_id IS NULL
-                    ORDER BY fo.position, fo.name;""", FOLDER_COLUMNS)
+                    ORDER BY fo.position, fo.name;""", FOLDER_COLUMNS, FOLDER_RESTRICTED)
                     .single(call().bind("station_id", stationId))
                     .map(KbFolder.map())
                     .all();
         }
         return query("""
                 SELECT
-                    %s
+                    %s, %s
                 FROM
                     kb_folder fo
                 WHERE fo.station_id = :station_id
                   AND fo.parent_id = :parent_id
-                ORDER BY fo.position, fo.name;""", FOLDER_COLUMNS)
+                ORDER BY fo.position, fo.name;""", FOLDER_COLUMNS, FOLDER_RESTRICTED)
                 .single(call().bind("station_id", stationId).bind("parent_id", parentId))
                 .map(KbFolder.map())
                 .all();
@@ -110,25 +113,24 @@ public class KnowledgeBaseRepository {
     // -- Files --
 
     public Optional<KbFolder> findFolderById(int id) {
-        return query("SELECT %s FROM kb_folder fo WHERE fo.id = :id;", FOLDER_COLUMNS)
+        return query("SELECT %s, %s FROM kb_folder fo WHERE fo.id = :id;", FOLDER_COLUMNS, FOLDER_RESTRICTED)
                 .single(call().bind("id", id))
                 .map(KbFolder.map())
                 .first();
     }
 
     public KbFolder createFolder(int stationId, Integer parentId, String name, String description, int createdBy) {
-        return query("""
-                INSERT INTO kb_folder(station_id, parent_id, name, description, created_by)
+        return SqlSupport.insertReturning(
+                """
+                INSERT INTO kb_folder AS fo(station_id, parent_id, name, description, created_by)
                 VALUES (:station_id, :parent_id, :name, :description, :created_by)
-                RETURNING %s;""", FOLDER_COLUMNS_BARE)
-                .single(call().bind("station_id", stationId)
+                RETURNING %s, %s;""".formatted(FOLDER_COLUMNS, FOLDER_RESTRICTED),
+                call().bind("station_id", stationId)
                         .bind("parent_id", parentId)
                         .bind("name", name)
                         .bind("description", description)
-                        .bind("created_by", createdBy))
-                .map(KbFolder.map())
-                .first()
-                .orElseThrow();
+                        .bind("created_by", createdBy),
+                KbFolder.map());
     }
 
     public boolean updateFolder(int id, String name, String description, String iconUrl, int position) {
@@ -151,41 +153,38 @@ public class KnowledgeBaseRepository {
     }
 
     public boolean deleteFolder(int id) {
-        return query("DELETE FROM kb_folder WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("kb_folder", id);
     }
 
     public List<KbFile> findFiles(int stationId, Integer folderId) {
         if (folderId == null) {
             return query("""
                     SELECT
-                        %s
+                        %s, %s
                     FROM
                         kb_file f
                     WHERE f.station_id = :station_id
                       AND f.folder_id IS NULL
-                    ORDER BY f.position, f.name;""", FILE_COLUMNS)
+                    ORDER BY f.position, f.name;""", FILE_COLUMNS, FILE_RESTRICTED)
                     .single(call().bind("station_id", stationId))
                     .map(KbFile.map())
                     .all();
         }
         return query("""
                 SELECT
-                    %s
+                    %s, %s
                 FROM
                     kb_file f
                 WHERE f.station_id = :station_id
                   AND f.folder_id = :folder_id
-                ORDER BY f.position, f.name;""", FILE_COLUMNS)
+                ORDER BY f.position, f.name;""", FILE_COLUMNS, FILE_RESTRICTED)
                 .single(call().bind("station_id", stationId).bind("folder_id", folderId))
                 .map(KbFile.map())
                 .all();
     }
 
     public Optional<KbFile> findFileById(int id) {
-        return query("SELECT %s FROM kb_file f WHERE f.id = :id;", FILE_COLUMNS)
+        return query("SELECT %s, %s FROM kb_file f WHERE f.id = :id;", FILE_COLUMNS, FILE_RESTRICTED)
                 .single(call().bind("id", id))
                 .map(KbFile.map())
                 .first();
@@ -216,11 +215,12 @@ public class KnowledgeBaseRepository {
             String youtubeUrl,
             String linkUrl,
             int createdBy) {
-        return query("""
-                INSERT INTO kb_file(station_id, folder_id, name, description, file_type, mime_type, file_size, youtube_url, link_url, created_by)
+        return SqlSupport.insertReturning(
+                """
+                INSERT INTO kb_file AS f(station_id, folder_id, name, description, file_type, mime_type, file_size, youtube_url, link_url, created_by)
                 VALUES (:station_id, :folder_id, :name, :description, :file_type, :mime_type, :file_size, :youtube_url, :link_url, :created_by)
-                RETURNING %s;""", FILE_COLUMNS_BARE)
-                .single(call().bind("station_id", stationId)
+                RETURNING %s, %s;""".formatted(FILE_COLUMNS, FILE_RESTRICTED),
+                call().bind("station_id", stationId)
                         .bind("folder_id", folderId)
                         .bind("name", name)
                         .bind("description", description)
@@ -229,10 +229,8 @@ public class KnowledgeBaseRepository {
                         .bind("file_size", fileSize)
                         .bind("youtube_url", youtubeUrl)
                         .bind("link_url", linkUrl)
-                        .bind("created_by", createdBy))
-                .map(KbFile.map())
-                .first()
-                .orElseThrow();
+                        .bind("created_by", createdBy),
+                KbFile.map());
     }
 
     // -- File Content --
@@ -276,10 +274,7 @@ public class KnowledgeBaseRepository {
     }
 
     public boolean deleteFile(int id) {
-        return query("DELETE FROM kb_file WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("kb_file", id);
     }
 
     public void storeTextContent(int fileId, String textContent) {
@@ -300,14 +295,18 @@ public class KnowledgeBaseRepository {
     // -- Search Index --
 
     public List<KbFileVersion> findVersions(int fileId) {
-        return query("SELECT * FROM kb_file_version WHERE file_id = :file_id ORDER BY version DESC;")
+        return query(
+                        "SELECT %s FROM kb_file_version WHERE file_id = :file_id ORDER BY version DESC;",
+                        FILE_VERSION_COLUMNS)
                 .single(call().bind("file_id", fileId))
                 .map(KbFileVersion.map())
                 .all();
     }
 
     public Optional<KbFileVersion> findVersion(int fileId, int version) {
-        return query("SELECT * FROM kb_file_version WHERE file_id = :file_id AND version = :version;")
+        return query(
+                        "SELECT %s FROM kb_file_version WHERE file_id = :file_id AND version = :version;",
+                        FILE_VERSION_COLUMNS)
                 .single(call().bind("file_id", fileId).bind("version", version))
                 .map(KbFileVersion.map())
                 .first();
@@ -322,18 +321,17 @@ public class KnowledgeBaseRepository {
     }
 
     public KbFileVersion createVersion(int fileId, String patch, boolean isFull, int version, int createdBy) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT INTO kb_file_version(file_id, patch, is_full, version, created_by)
                 VALUES (:file_id, :patch, :is_full, :version, :created_by)
-                RETURNING *;""")
-                .single(call().bind("file_id", fileId)
+                RETURNING %s;""".formatted(FILE_VERSION_COLUMNS),
+                call().bind("file_id", fileId)
                         .bind("patch", patch)
                         .bind("is_full", isFull)
                         .bind("version", version)
-                        .bind("created_by", createdBy))
-                .map(KbFileVersion.map())
-                .first()
-                .orElseThrow();
+                        .bind("created_by", createdBy),
+                KbFileVersion.map());
     }
 
     public void updateSearchIndex(int fileId, String plainText, String tsConfig) {
@@ -355,7 +353,7 @@ public class KnowledgeBaseRepository {
         String tsq = buildPrefixTsQuery(cfg);
         return query("""
                 SELECT
-                    %s
+                    %s, %s
                 FROM
                     kb_file f
                         JOIN kb_search_index si
@@ -363,7 +361,7 @@ public class KnowledgeBaseRepository {
                 WHERE f.station_id = :station_id
                   AND si.search_text @@ %s
                 ORDER BY ts_rank(si.search_text, %s) DESC
-                LIMIT 50;""", FILE_COLUMNS, tsq, tsq)
+                LIMIT 50;""", FILE_COLUMNS, FILE_RESTRICTED, tsq, tsq)
                 .single(call().bind("station_id", stationId).bind("tsquery", preparePrefixQuery(query)))
                 .map(KbFile.map())
                 .all();
@@ -378,7 +376,7 @@ public class KnowledgeBaseRepository {
                 regexp_replace(regexp_replace(COALESCE(fc.text_content, f.name || ' ' || COALESCE(f.description, '')), '<[^>]+>', ' ', 'g'), '[#*_~`>\\[\\]()!|]', '', 'g')"""; //
         return query("""
                 SELECT
-                    %s,
+                    %s, %s,
                     ts_headline('%s', %s, %s, 'MaxWords=30, MinWords=10, StartSel=<mark>, StopSel=</mark>') AS snippet
                 FROM
                     kb_file f
@@ -389,7 +387,7 @@ public class KnowledgeBaseRepository {
                 WHERE f.station_id = :station_id
                   AND si.search_text @@ %s
                 ORDER BY ts_rank(si.search_text, %s) DESC
-                LIMIT 50;""", FILE_COLUMNS, cfg, cleanText, tsq, tsq, tsq)
+                LIMIT 50;""", FILE_COLUMNS, FILE_RESTRICTED, cfg, cleanText, tsq, tsq, tsq)
                 .single(call().bind("station_id", stationId).bind("tsquery", preparePrefixQuery(query)))
                 .map(row -> new KbSearchResult(KbFile.map().map(row), row.getString("snippet")))
                 .all();
@@ -399,12 +397,12 @@ public class KnowledgeBaseRepository {
 
     public List<KbAccessRestriction> findRestrictions(Integer folderId, Integer fileId) {
         if (folderId != null) {
-            return query("SELECT * FROM kb_access_restriction WHERE folder_id = :folder_id;")
+            return query("SELECT %s FROM kb_access_restriction WHERE folder_id = :folder_id;", RESTRICTION_COLUMNS)
                     .single(call().bind("folder_id", folderId))
                     .map(KbAccessRestriction.map())
                     .all();
         }
-        return query("SELECT * FROM kb_access_restriction WHERE file_id = :file_id;")
+        return query("SELECT %s FROM kb_access_restriction WHERE file_id = :file_id;", RESTRICTION_COLUMNS)
                 .single(call().bind("file_id", fileId))
                 .map(KbAccessRestriction.map())
                 .all();
@@ -417,29 +415,25 @@ public class KnowledgeBaseRepository {
             Integer groupId,
             Integer tagId,
             Integer memberId) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT
                 INTO
                     kb_access_restriction(folder_id, file_id, user_type, group_id, tag_id, member_id)
                 VALUES
                     (:folder_id, :file_id, :user_type, :group_id, :tag_id, :member_id)
-                RETURNING *;""")
-                .single(call().bind("folder_id", folderId)
+                RETURNING %s;""".formatted(RESTRICTION_COLUMNS),
+                call().bind("folder_id", folderId)
                         .bind("file_id", fileId)
                         .bind("user_type", userType)
                         .bind("group_id", groupId)
                         .bind("tag_id", tagId)
-                        .bind("member_id", memberId))
-                .map(KbAccessRestriction.map())
-                .first()
-                .orElseThrow();
+                        .bind("member_id", memberId),
+                KbAccessRestriction.map());
     }
 
     public boolean removeRestriction(int id) {
-        return query("DELETE FROM kb_access_restriction WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("kb_access_restriction", id);
     }
 
     public void clearRestrictions(Integer folderId, Integer fileId) {
@@ -457,14 +451,15 @@ public class KnowledgeBaseRepository {
     // -- Tags --
 
     public List<KbTag> findTagsByStation(int stationId) {
-        return query("SELECT id, station_id, name FROM kb_tag WHERE station_id = :station_id ORDER BY name;")
+        return query("SELECT %s FROM kb_tag WHERE station_id = :station_id ORDER BY name;", TAG_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(KbTag.map())
                 .all();
     }
 
     public KbTag findOrCreateTag(int stationId, String name) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT
                 INTO
                     kb_tag(station_id, name)
@@ -472,47 +467,44 @@ public class KnowledgeBaseRepository {
                     (:station_id, lower(:name))
                 ON CONFLICT (station_id, name) DO UPDATE SET
                     name = excluded.name
-                RETURNING id, station_id, name;""")
-                .single(call().bind("station_id", stationId).bind("name", name.toLowerCase()))
-                .map(KbTag.map())
-                .first()
-                .orElseThrow();
+                RETURNING %s;""".formatted(TAG_COLUMNS),
+                call().bind("station_id", stationId).bind("name", name.toLowerCase()),
+                KbTag.map());
     }
 
     // Not yet exposed via routes — tag management UI not implemented
     public boolean deleteTag(int id) {
-        return query("DELETE FROM kb_tag WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("kb_tag", id);
     }
 
     public List<KbTag> findFileTags(int fileId) {
         return query("""
                 SELECT
-                    t.id,
-                    t.station_id,
-                    t.name
+                    %s
                 FROM
                     kb_tag t
                         JOIN kb_file_tag ft
                         ON ft.tag_id = t.id
                 WHERE ft.file_id = :file_id
-                ORDER BY t.name;""")
+                ORDER BY t.name;""", TAG_COLUMNS_ALIASED)
                 .single(call().bind("file_id", fileId))
                 .map(KbTag.map())
                 .all();
     }
 
     public List<KbFile> findAllFiles(int stationId) {
-        return query("SELECT %s FROM kb_file f WHERE f.station_id = :station_id ORDER BY f.name;", FILE_COLUMNS)
+        return query(
+                        "SELECT %s, %s FROM kb_file f WHERE f.station_id = :station_id ORDER BY f.name;",
+                        FILE_COLUMNS, FILE_RESTRICTED)
                 .single(call().bind("station_id", stationId))
                 .map(KbFile.map())
                 .all();
     }
 
     public List<KbFolder> findAllFolders(int stationId) {
-        return query("SELECT %s FROM kb_folder fo WHERE fo.station_id = :station_id;", FOLDER_COLUMNS)
+        return query(
+                        "SELECT %s, %s FROM kb_folder fo WHERE fo.station_id = :station_id;",
+                        FOLDER_COLUMNS, FOLDER_RESTRICTED)
                 .single(call().bind("station_id", stationId))
                 .map(KbFolder.map())
                 .all();
@@ -521,7 +513,7 @@ public class KnowledgeBaseRepository {
     public List<KbFile> findFilesByTag(int stationId, String tagName) {
         return query("""
                 SELECT
-                    %s
+                    %s, %s
                 FROM
                     kb_file f
                         JOIN kb_file_tag ft
@@ -530,7 +522,7 @@ public class KnowledgeBaseRepository {
                         ON t.id = ft.tag_id
                 WHERE f.station_id = :station_id
                   AND lower(t.name) = lower(:tag_name)
-                ORDER BY f.name;""", FILE_COLUMNS)
+                ORDER BY f.name;""", FILE_COLUMNS, FILE_RESTRICTED)
                 .single(call().bind("station_id", stationId).bind("tag_name", tagName))
                 .map(KbFile.map())
                 .all();
@@ -545,15 +537,13 @@ public class KnowledgeBaseRepository {
     public List<KbTag> findFolderTags(int folderId) {
         return query("""
                 SELECT
-                    t.id,
-                    t.station_id,
-                    t.name
+                    %s
                 FROM
                     kb_tag t
                         JOIN kb_folder_tag ft
                         ON ft.tag_id = t.id
                 WHERE ft.folder_id = :folder_id
-                ORDER BY t.name;""")
+                ORDER BY t.name;""", TAG_COLUMNS_ALIASED)
                 .single(call().bind("folder_id", folderId))
                 .map(KbTag.map())
                 .all();
@@ -580,13 +570,13 @@ public class KnowledgeBaseRepository {
     public List<KbFile> findRelatedFiles(int fileId) {
         return query("""
                 SELECT
-                    %s
+                    %s, %s
                 FROM
                     kb_file f
                         JOIN kb_related_file r
                         ON r.target_file_id = f.id
                 WHERE r.source_file_id = :file_id
-                ORDER BY r.position, f.name;""", FILE_COLUMNS)
+                ORDER BY r.position, f.name;""", FILE_COLUMNS, FILE_RESTRICTED)
                 .single(call().bind("file_id", fileId))
                 .map(KbFile.map())
                 .all();
@@ -632,24 +622,22 @@ public class KnowledgeBaseRepository {
     public List<KbFile> findFavourites(int memberId) {
         return query("""
                 SELECT
-                    %s
+                    %s, %s
                 FROM
                     kb_file f
                         JOIN kb_favourite fav
                         ON fav.file_id = f.id
                 WHERE fav.member_id = :member_id
-                ORDER BY fav.created_at DESC;""", FILE_COLUMNS)
+                ORDER BY fav.created_at DESC;""", FILE_COLUMNS, FILE_RESTRICTED)
                 .single(call().bind("member_id", memberId))
                 .map(KbFile.map())
                 .all();
     }
 
     public boolean isFavourite(int memberId, int fileId) {
-        return query("SELECT 1 FROM kb_favourite WHERE member_id = :member_id AND file_id = :file_id;")
-                .single(call().bind("member_id", memberId).bind("file_id", fileId))
-                .map(_ -> true)
-                .first()
-                .orElse(false);
+        return SqlSupport.exists(
+                "SELECT 1 FROM kb_favourite WHERE member_id = :member_id AND file_id = :file_id;",
+                call().bind("member_id", memberId).bind("file_id", fileId));
     }
 
     public void setFolderTags(int folderId, List<String> tagNames, int stationId) {
@@ -715,18 +703,14 @@ public class KnowledgeBaseRepository {
 
     public boolean hasRestrictions(Integer folderId, Integer fileId) {
         if (folderId != null) {
-            return query("SELECT 1 FROM kb_access_restriction WHERE folder_id = :folder_id LIMIT 1;")
-                    .single(call().bind("folder_id", folderId))
-                    .map(_ -> true)
-                    .first()
-                    .orElse(false);
+            return SqlSupport.exists(
+                    "SELECT 1 FROM kb_access_restriction WHERE folder_id = :folder_id LIMIT 1;",
+                    call().bind("folder_id", folderId));
         }
         if (fileId != null) {
-            return query("SELECT 1 FROM kb_access_restriction WHERE file_id = :file_id LIMIT 1;")
-                    .single(call().bind("file_id", fileId))
-                    .map(_ -> true)
-                    .first()
-                    .orElse(false);
+            return SqlSupport.exists(
+                    "SELECT 1 FROM kb_access_restriction WHERE file_id = :file_id LIMIT 1;",
+                    call().bind("file_id", fileId));
         }
         return false;
     }

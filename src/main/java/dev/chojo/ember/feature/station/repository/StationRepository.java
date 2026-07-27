@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.math.BigDecimal;
@@ -93,10 +94,7 @@ public class StationRepository {
      * @return the station, or empty if not found
      */
     public Optional<Station> findById(int id) {
-        return query("SELECT %s FROM station WHERE id = :id;", STATION_COLUMNS)
-                .single(call().bind("id", id))
-                .map(Station.map())
-                .first();
+        return SqlSupport.findById("station", STATION_COLUMNS, id, Station.map());
     }
 
     /**
@@ -151,19 +149,17 @@ public class StationRepository {
      * @return the created station
      */
     public Station create(String name) {
-        return query("INSERT INTO station(name) VALUES(:name) RETURNING %s;", STATION_COLUMNS)
-                .single(call().bind("name", name))
-                .map(Station.map())
-                .first()
-                .orElseThrow();
+        return SqlSupport.insertReturning(
+                "INSERT INTO station(name) VALUES(:name) RETURNING %s;".formatted(STATION_COLUMNS),
+                call().bind("name", name),
+                Station.map());
     }
 
     public Station create(String name, UUID uid) {
-        return query("INSERT INTO station(name, uid) VALUES(:name, :uid::UUID) RETURNING %s;", STATION_COLUMNS)
-                .single(call().bind("name", name).bind("uid", uid, StandardValueConverter.UUID_STRING))
-                .map(Station.map())
-                .first()
-                .orElseThrow();
+        return SqlSupport.insertReturning(
+                "INSERT INTO station(name, uid) VALUES(:name, :uid::UUID) RETURNING %s;".formatted(STATION_COLUMNS),
+                call().bind("name", name).bind("uid", uid, StandardValueConverter.UUID_STRING),
+                Station.map());
     }
 
     /**
@@ -360,10 +356,7 @@ public class StationRepository {
      * @return {@code true} if a row was deleted
      */
     public boolean delete(int id) {
-        boolean removed = query("DELETE FROM station WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        boolean removed = SqlSupport.deleteById("station", id);
         if (removed) {
             sweepOrphanedAccounts();
         }
@@ -496,8 +489,6 @@ public class StationRepository {
         }
     }
 
-    // -- Module settings --
-
     /**
      * Updates the UUID of a station (used during import to preserve the original UUID).
      */
@@ -588,8 +579,6 @@ public class StationRepository {
                 .update();
         readOnlyCache.invalidate(stationId);
     }
-
-    // -- Transfer read-only flag --
 
     /**
      * Clears the flag and invalidates the cache.

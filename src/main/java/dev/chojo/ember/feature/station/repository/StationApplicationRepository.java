@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.station.repository;
 
 import dev.chojo.ember.feature.station.entity.ApplicationStatus;
 import dev.chojo.ember.feature.station.entity.StationApplication;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -20,6 +21,9 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  */
 @Singleton
 public class StationApplicationRepository {
+
+    private static final String STATION_APPLICATION_COLUMNS =
+            "id, first_name, last_name, email, station_name, introduction, verification_token, status, deny_reason, created_at, resolved_at";
 
     /**
      * Creates a new station application.
@@ -39,22 +43,21 @@ public class StationApplicationRepository {
             String stationName,
             String introduction,
             String verificationToken) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT
                 INTO
                     station_application(first_name, last_name, email, station_name, introduction, verification_token)
                 VALUES
                     (:first_name, :last_name, :email, :station_name, :introduction, :verification_token)
-                RETURNING id, first_name, last_name, email, station_name, introduction, verification_token, status, deny_reason, created_at, resolved_at;""")
-                .single(call().bind("first_name", firstName)
+                RETURNING %s;""".formatted(STATION_APPLICATION_COLUMNS),
+                call().bind("first_name", firstName)
                         .bind("last_name", lastName)
                         .bind("email", email)
                         .bind("station_name", stationName)
                         .bind("introduction", introduction != null ? introduction : "")
-                        .bind("verification_token", verificationToken))
-                .map(StationApplication.map())
-                .first()
-                .orElseThrow();
+                        .bind("verification_token", verificationToken),
+                StationApplication.map());
     }
 
     /**
@@ -64,25 +67,7 @@ public class StationApplicationRepository {
      * @return the application, or empty if not found
      */
     public Optional<StationApplication> findById(int id) {
-        return query("""
-                SELECT
-                    id,
-                    first_name,
-                    last_name,
-                    email,
-                    station_name,
-                    introduction,
-                    verification_token,
-                    status,
-                    deny_reason,
-                    created_at,
-                    resolved_at
-                FROM
-                    station_application
-                WHERE id = :id;""")
-                .single(call().bind("id", id))
-                .map(StationApplication.map())
-                .first();
+        return SqlSupport.findById("station_application", STATION_APPLICATION_COLUMNS, id, StationApplication.map());
     }
 
     /**
@@ -94,22 +79,12 @@ public class StationApplicationRepository {
     public List<StationApplication> findByStatus(ApplicationStatus status) {
         return query("""
                 SELECT
-                    id,
-                    first_name,
-                    last_name,
-                    email,
-                    station_name,
-                    introduction,
-                    verification_token,
-                    status,
-                    deny_reason,
-                    created_at,
-                    resolved_at
+                    %s
                 FROM
                     station_application
                 WHERE status = :status
                 ORDER BY created_at;
-                """)
+                """, STATION_APPLICATION_COLUMNS)
                 .single(call().bind("status", status))
                 .map(StationApplication.map())
                 .all();
@@ -123,20 +98,13 @@ public class StationApplicationRepository {
     public List<StationApplication> findAll() {
         return query("""
                 SELECT
-                    id,
-                    first_name,
-                    last_name,
-                    email,
-                    station_name,
-                    introduction,
-                    verification_token,
-                    status,
-                    deny_reason,
-                    created_at,
-                    resolved_at
+                    %s
                 FROM
                     station_application
-                ORDER BY created_at DESC;""").single().map(StationApplication.map()).all();
+                ORDER BY created_at DESC;""", STATION_APPLICATION_COLUMNS)
+                .single()
+                .map(StationApplication.map())
+                .all();
     }
 
     /**
@@ -148,20 +116,10 @@ public class StationApplicationRepository {
     public Optional<StationApplication> findByToken(String token) {
         return query("""
                 SELECT
-                    id,
-                    first_name,
-                    last_name,
-                    email,
-                    station_name,
-                    introduction,
-                    verification_token,
-                    status,
-                    deny_reason,
-                    created_at,
-                    resolved_at
+                    %s
                 FROM
                     station_application
-                WHERE verification_token = :token;""")
+                WHERE verification_token = :token;""", STATION_APPLICATION_COLUMNS)
                 .single(call().bind("token", token))
                 .map(StationApplication.map())
                 .first();

@@ -10,6 +10,7 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsComment;
 import dev.chojo.ember.feature.news.entity.NewsViewer;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
@@ -28,9 +29,12 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class NewsRepository {
 
     private static final String NEWS_COLUMNS =
-            "n.id, n.public_uid, n.station_id, n.title, n.content_markdown, n.content_html, n.author_station_uid, n.author_member_uid, n.published_at, n.created_at, n.restriction_mode, EXISTS(SELECT 1 FROM news_restriction r WHERE r.news_id = n.id) AS restricted, n.public_blog";
-    private static final String NEWS_COLUMNS_BARE =
-            "id, public_uid, station_id, title, content_markdown, content_html, author_station_uid, author_member_uid, published_at, created_at, restriction_mode, EXISTS(SELECT 1 FROM news_restriction r WHERE r.news_id = id) AS restricted, public_blog";
+            "id, public_uid, station_id, title, content_markdown, content_html, author_station_uid, author_member_uid, published_at, created_at, restriction_mode, public_blog";
+    private static final String NEWS_ALIASED = SqlSupport.alias("n", NEWS_COLUMNS);
+    private static final String NEWS_RESTRICTED =
+            "EXISTS(SELECT 1 FROM news_restriction r WHERE r.news_id = n.id) AS restricted";
+    private static final String NEWS_COMMENT_COLUMNS =
+            "id, news_id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at";
 
     /**
      * Creates a new news article and returns the persisted entity.
@@ -43,11 +47,12 @@ public class NewsRepository {
      * @return the newly created news entry
      */
     public News create(int stationId, String title, String contentMarkdown, String contentHtml, MemberIdentity author) {
-        return query("""
-                INSERT INTO news(station_id, title, content_markdown, content_html, author_station_uid, author_member_uid, published_at)
+        return SqlSupport.insertReturning(
+                """
+                INSERT INTO news AS n(station_id, title, content_markdown, content_html, author_station_uid, author_member_uid, published_at)
                 VALUES (:station_id, :title, :content_markdown, :content_html, :author_station_uid::UUID, :author_member_uid::UUID, :published_at)
-                RETURNING %s;""", NEWS_COLUMNS_BARE)
-                .single(call().bind("station_id", stationId)
+                RETURNING %s, %s;""".formatted(NEWS_COLUMNS, NEWS_RESTRICTED),
+                call().bind("station_id", stationId)
                         .bind("title", title)
                         .bind("content_markdown", contentMarkdown)
                         .bind("content_html", contentHtml)
@@ -59,10 +64,8 @@ public class NewsRepository {
                                 "author_member_uid",
                                 author != null ? author.memberUid() : null,
                                 StandardValueConverter.UUID_STRING)
-                        .bind("published_at", Instant.now(), INSTANT_TIMESTAMP))
-                .map(News.map())
-                .first()
-                .orElseThrow();
+                        .bind("published_at", Instant.now(), INSTANT_TIMESTAMP),
+                News.map());
     }
 
     /**
@@ -73,9 +76,9 @@ public class NewsRepository {
      */
     public Optional<News> findById(int id) {
         return query("""
-                SELECT %s
+                SELECT %s, %s
                 FROM news n
-                WHERE n.id = :id;""", NEWS_COLUMNS)
+                WHERE n.id = :id;""", NEWS_ALIASED, NEWS_RESTRICTED)
                 .single(call().bind("id", id))
                 .map(News.map())
                 .first();
@@ -91,11 +94,11 @@ public class NewsRepository {
      */
     public List<News> findByStation(int stationId, int offset, int limit) {
         return query("""
-                SELECT %s
+                SELECT %s, %s
                 FROM news n
                 WHERE n.station_id = :station_id
                 ORDER BY n.published_at DESC
-                LIMIT :limit OFFSET :offset;""", NEWS_COLUMNS)
+                LIMIT :limit OFFSET :offset;""", NEWS_ALIASED, NEWS_RESTRICTED)
                 .single(call().bind("station_id", stationId)
                         .bind("limit", limit)
                         .bind("offset", offset))
@@ -115,13 +118,13 @@ public class NewsRepository {
      */
     public List<News> findVisibleForMember(int stationId, int memberId, int offset, int limit) {
         return query("""
-                SELECT %s
+                SELECT %s, %s
                 FROM news n
                 WHERE n.station_id = :station_id
                   AND n.published_at IS NOT NULL
                   AND check_restriction('news_restriction', 'news_id', 'news', 'id', n.id, :member_id, 'NEWS_MANAGER')
                 ORDER BY n.published_at DESC
-                LIMIT :limit OFFSET :offset;""", NEWS_COLUMNS)
+                LIMIT :limit OFFSET :offset;""", NEWS_ALIASED, NEWS_RESTRICTED)
                 .single(call().bind("station_id", stationId)
                         .bind("member_id", memberId)
                         .bind("limit", limit)
@@ -158,10 +161,7 @@ public class NewsRepository {
      * @return {@code true} if a row was deleted
      */
     public boolean delete(int id) {
-        return query("DELETE FROM news WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("news", id);
     }
 
     public void updatePublicBlog(int id, boolean publicBlog) {
@@ -189,7 +189,7 @@ public class NewsRepository {
         }
         return query("""
                 SELECT
-                    %s
+                    %s, %s
                 FROM
                     news n
                 WHERE n.station_id = :station_id
@@ -198,7 +198,10 @@ public class NewsRepository {
                   AND NOT EXISTS(SELECT 1 FROM news_restriction r WHERE r.news_id = n.id)
                     %s
                 ORDER BY n.published_at DESC
-                LIMIT :limit OFFSET :offset;""", NEWS_COLUMNS, filter).single(c).map(News.map()).all();
+                LIMIT :limit OFFSET :offset;""", NEWS_ALIASED, NEWS_RESTRICTED, filter)
+                .single(c)
+                .map(News.map())
+                .all();
     }
 
     /**
@@ -208,7 +211,7 @@ public class NewsRepository {
     public Optional<News> findPublicByUid(int stationId, UUID publicUid) {
         return query("""
                 SELECT
-                    %s
+                    %s, %s
                 FROM
                     news n
                 WHERE n.station_id = :station_id
@@ -219,7 +222,7 @@ public class NewsRepository {
                     SELECT 1
                     FROM news_restriction r
                     WHERE r.news_id = n.id
-                                );""", NEWS_COLUMNS)
+                                );""", NEWS_ALIASED, NEWS_RESTRICTED)
                 .single(call().bind("station_id", stationId)
                         .bind("public_uid", publicUid, StandardValueConverter.UUID_STRING))
                 .map(News.map())
@@ -240,8 +243,6 @@ public class NewsRepository {
                 .orElse(false);
     }
 
-    // -- Comments --
-
     /**
      * Creates a comment on a news article.
      *
@@ -252,11 +253,12 @@ public class NewsRepository {
      * @return the newly created comment
      */
     public NewsComment createComment(int newsId, Integer parentId, MemberIdentity author, String content) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT INTO news_comment(news_id, parent_id, author_station_uid, author_member_uid, content)
                 VALUES(:news_id, :parent_id, :author_station_uid::UUID, :author_member_uid::UUID, :content)
-                RETURNING *;""")
-                .single(call().bind("news_id", newsId)
+                RETURNING %s;""".formatted(NEWS_COMMENT_COLUMNS),
+                call().bind("news_id", newsId)
                         .bind("parent_id", parentId)
                         .bind(
                                 "author_station_uid",
@@ -266,10 +268,8 @@ public class NewsRepository {
                                 "author_member_uid",
                                 author != null ? author.memberUid() : null,
                                 StandardValueConverter.UUID_STRING)
-                        .bind("content", content))
-                .map(NewsComment.map())
-                .first()
-                .orElseThrow();
+                        .bind("content", content),
+                NewsComment.map());
     }
 
     /**
@@ -280,7 +280,8 @@ public class NewsRepository {
      */
     public List<NewsComment> findCommentsByNews(int newsId) {
         return query(
-                        "SELECT id, news_id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at FROM news_comment WHERE news_id = :news_id ORDER BY created_at ASC;")
+                        "SELECT %s FROM news_comment WHERE news_id = :news_id ORDER BY created_at ASC;",
+                        NEWS_COMMENT_COLUMNS)
                 .single(call().bind("news_id", newsId))
                 .map(NewsComment.map())
                 .all();
@@ -293,11 +294,8 @@ public class NewsRepository {
      * @return comment count
      */
     public int countComments(int newsId) {
-        return query("SELECT count(*) AS cnt FROM news_comment WHERE news_id = :news_id;")
-                .single(call().bind("news_id", newsId))
-                .map(row -> row.getInt("cnt"))
-                .first()
-                .orElse(0);
+        return SqlSupport.count(
+                "SELECT count(*) AS cnt FROM news_comment WHERE news_id = :news_id;", call().bind("news_id", newsId));
     }
 
     /**
@@ -307,11 +305,7 @@ public class NewsRepository {
      * @return the comment, or empty if not found
      */
     public Optional<NewsComment> findCommentById(int id) {
-        return query(
-                        "SELECT id, news_id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at FROM news_comment WHERE id = :id;")
-                .single(call().bind("id", id))
-                .map(NewsComment.map())
-                .first();
+        return SqlSupport.findById("news_comment", NEWS_COMMENT_COLUMNS, id, NewsComment.map());
     }
 
     /**
@@ -342,10 +336,7 @@ public class NewsRepository {
                     .update()
                     .changed();
         }
-        return query("DELETE FROM news_comment WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("news_comment", id);
     }
 
     /**
@@ -362,15 +353,12 @@ public class NewsRepository {
                 .orElse(false);
     }
 
-    // -- Acknowledgements --
-
     /**
      * Records that a member has acknowledged (read) a news article. Idempotent.
      *
      * @param newsId   the news article ID
      * @param memberId the member ID
      */
-    // Not yet exposed via routes — acknowledgement UI not implemented
     public void acknowledge(int newsId, int memberId) {
         query(
                         "INSERT INTO news_acknowledgement(news_id, member_id) VALUES(:news_id, :member_id) ON CONFLICT DO NOTHING;")
@@ -386,11 +374,9 @@ public class NewsRepository {
      * @return {@code true} if the member has acknowledged the article
      */
     public boolean isAcknowledged(int newsId, int memberId) {
-        return query("SELECT 1 FROM news_acknowledgement WHERE news_id = :news_id AND member_id = :member_id;")
-                .single(call().bind("news_id", newsId).bind("member_id", memberId))
-                .map(_ -> true)
-                .first()
-                .isPresent();
+        return SqlSupport.exists(
+                "SELECT 1 FROM news_acknowledgement WHERE news_id = :news_id AND member_id = :member_id;",
+                call().bind("news_id", newsId).bind("member_id", memberId));
     }
 
     /**
@@ -401,19 +387,13 @@ public class NewsRepository {
      * @return number of unacknowledged news articles
      */
     public int countUnacknowledged(int stationId, int memberId) {
-        return query("""
+        return SqlSupport.count("""
                 SELECT count(*) AS cnt FROM news n
                 WHERE n.station_id = :station_id
                   AND n.published_at IS NOT NULL
                   AND NOT exists (SELECT 1 FROM news_acknowledgement na WHERE na.news_id = n.id AND na.member_id = :member_id)
-                  AND check_restriction('news_restriction', 'news_id', 'news', 'id', n.id, :member_id, 'NEWS_MANAGER');""")
-                .single(call().bind("station_id", stationId).bind("member_id", memberId))
-                .map(row -> row.getInt("cnt"))
-                .first()
-                .orElse(0);
+                  AND check_restriction('news_restriction', 'news_id', 'news', 'id', n.id, :member_id, 'NEWS_MANAGER');""", call().bind("station_id", stationId).bind("member_id", memberId));
     }
-
-    // -- Views --
 
     /**
      * Records that a member fully saw a news article. Idempotent — (news_id, member_id)
@@ -449,11 +429,8 @@ public class NewsRepository {
      * @return view count
      */
     public int countViews(int newsId) {
-        return query("SELECT count(*) AS cnt FROM news_view WHERE news_id = :news_id;")
-                .single(call().bind("news_id", newsId))
-                .map(row -> row.getInt("cnt"))
-                .first()
-                .orElse(0);
+        return SqlSupport.count(
+                "SELECT count(*) AS cnt FROM news_view WHERE news_id = :news_id;", call().bind("news_id", newsId));
     }
 
     /**
@@ -464,11 +441,9 @@ public class NewsRepository {
      * @return {@code true} if the member has viewed the article
      */
     public boolean hasViewed(int newsId, int memberId) {
-        return query("SELECT 1 FROM news_view WHERE news_id = :news_id AND member_id = :member_id;")
-                .single(call().bind("news_id", newsId).bind("member_id", memberId))
-                .map(_ -> true)
-                .first()
-                .isPresent();
+        return SqlSupport.exists(
+                "SELECT 1 FROM news_view WHERE news_id = :news_id AND member_id = :member_id;",
+                call().bind("news_id", newsId).bind("member_id", memberId));
     }
 
     /**
