@@ -1,5 +1,11 @@
 # Changelog
 
+## v26.11.8
+
+### Fixes
+
+- **Public blog article links work.** Opening a single article from a station's public blog loads the article instead of failing.
+
 ## v26.11.6
 
 ### Changes

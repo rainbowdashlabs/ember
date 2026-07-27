@@ -133,10 +133,19 @@ class ChecklistRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(8)
     void replaceFilter() {
+        var group = memberGroupRepo.create(station.id(), "Filter Group");
+        var tag = userTagRepo.create(station.id(), "filter-tag");
+        checklistRepo.replaceFilter(
+                checklistId,
+                List.of(StationUserType.MEMBER),
+                List.of(group.id()),
+                List.of(tag.id()),
+                List.of(member.id()));
+        var rows = checklistRepo.findFilterRows(checklistId);
+        assertEquals(4, rows.size());
         checklistRepo.replaceFilter(
                 checklistId, List.of(StationUserType.MEMBER), List.of(), List.of(), List.of(member.id()));
-        var rows = checklistRepo.findFilterRows(checklistId);
-        assertEquals(2, rows.size());
+        assertEquals(2, checklistRepo.findFilterRows(checklistId).size());
     }
 
     @Test

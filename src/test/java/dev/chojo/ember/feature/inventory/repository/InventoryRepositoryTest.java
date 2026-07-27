@@ -114,6 +114,13 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     // -- Items --
 
     @Test
+    @Order(19)
+    void findSummariesByStation() {
+        var summaries = inventoryRepo.findSummariesByStation(station.id());
+        assertTrue(summaries.stream().anyMatch(s -> s.id() == inventoryId));
+    }
+
+    @Test
     @Order(20)
     void createItem() {
         InventoryItem item = inventoryRepo.createItem(inventoryId, "H-001", "Red Helmet", sizeId, null);
@@ -132,6 +139,13 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     @Order(22)
     void findItems() {
         assertEquals(1, inventoryRepo.findItems(inventoryId).size());
+    }
+
+    @Test
+    @Order(21)
+    void findByInternalId() {
+        assertTrue(inventoryRepo.findByInternalId(station.id(), "H-001").isPresent());
+        assertTrue(inventoryRepo.findByInternalId(station.id(), "NO-SUCH-ID").isEmpty());
     }
 
     @Test

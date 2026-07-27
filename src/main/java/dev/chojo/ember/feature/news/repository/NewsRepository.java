@@ -217,7 +217,7 @@ public class NewsRepository {
                 FROM
                     news n
                 WHERE n.station_id = :station_id
-                  AND n.public_uid = :public_uid
+                  AND n.public_uid = :public_uid::UUID
                   AND n.public_blog = TRUE
                   AND n.published_at IS NOT NULL
                   AND NOT exists(
