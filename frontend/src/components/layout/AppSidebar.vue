@@ -5,13 +5,12 @@
  */
 <script lang="ts" setup>
 import {computed, provide, toRef} from 'vue'
-import {useI18n} from 'vue-i18n'
 import PrideText from '@/components/display/PrideText.vue'
 import LayeredEmberLogo from '@/components/display/LayeredEmberLogo.vue'
 import {usePride} from '@/composables/usePride'
 import {emberLogo} from '@/composables/useEmberLogo'
 import {SIDEBAR_COLLAPSIBLE, useSidebarCollapse} from '@/composables/useSidebarCollapse'
-import IconButton from '@/components/button/IconButton.vue'
+import SidebarCollapseToggle from '@/components/layout/SidebarCollapseToggle.vue'
 
 const props = withDefaults(defineProps<{
   open: boolean
@@ -28,7 +27,6 @@ defineEmits<{
 
 provide(SIDEBAR_COLLAPSIBLE, toRef(props, 'collapsible'))
 
-const {t} = useI18n()
 const {prideActive, prideVariant} = usePride()
 const sidebarLogo = emberLogo()
 const {collapsed, toggle} = useSidebarCollapse()
@@ -47,46 +45,41 @@ const desktopWidthClass = computed(() => collapsed.value ? 'lg:w-16' : 'lg:w-64'
       :class="[open ? 'translate-x-0' : '-translate-x-full', desktopWidthClass]"
       class="fixed top-0 left-0 z-40 h-full w-64 shrink-0 flex flex-col bg-bg-light-accent dark:bg-bg-dark-accent border-r border-bg-light-accent dark:border-bg-dark transition-[transform,width] duration-300 ease-in-out lg:translate-x-0 lg:static lg:z-auto lg:sticky lg:top-0 lg:h-screen overflow-hidden"
   >
-    <div class="flex items-center h-14 border-b border-bg-light dark:border-bg-dark shrink-0">
+    <div class="flex items-stretch min-h-14 border-b border-bg-light dark:border-bg-dark shrink-0">
       <router-link
           to="/"
-          class="flex items-center gap-3 flex-1 min-w-0 h-full px-4 no-underline hover:bg-(--bg-accent) transition-colors"
+          :class="collapsed ? 'lg:justify-center lg:px-2' : ''"
+          class="flex items-center gap-3 flex-1 min-w-0 px-4 py-2 no-underline hover:bg-(--bg-accent) transition-colors"
       >
         <LayeredEmberLogo v-if="!stationLogoUrl" :layers="sidebarLogo.layers"
                           :active-layers="sidebarLogo.activeLayers" :auto-blink="true" size="h-8 w-8 shrink-0"
                           :pixel-size="64"/>
         <img v-else :src="stationLogoUrl" alt="" class="h-8 w-8 rounded object-contain shrink-0"/>
         <div
-            :class="collapsed ? 'lg:opacity-0 lg:w-0 lg:pointer-events-none' : 'opacity-100'"
-            class="flex flex-col justify-center min-w-0 transition-opacity duration-200 whitespace-nowrap"
+            :class="collapsed ? 'lg:hidden' : ''"
+            class="flex flex-col justify-center min-w-0"
         >
           <PrideText :active="prideActive" :variant="prideVariant"
-                     class="text-lg font-bold text-primary leading-tight">Ember
+                     class="text-lg font-bold text-primary leading-tight whitespace-nowrap">Ember
           </PrideText>
-          <span v-if="stationName" class="text-xs text-(--text-muted) leading-tight truncate">{{ stationName }}</span>
+          <span v-if="stationName" class="text-xs text-(--text-muted) leading-tight line-clamp-2">{{ stationName }}</span>
         </div>
       </router-link>
-      <IconButton
+      <SidebarCollapseToggle
           v-if="collapsible"
-          :icon="['fas', 'chevron-left']"
-          :label="collapsed ? t('sidebar.expand') : t('sidebar.collapse')"
-          class="hidden lg:inline-flex w-8 h-8 mr-2 text-(--text-muted) hover:text-(--text) hover:bg-(--bg-accent) shrink-0"
+          :collapsed="collapsed"
+          class="hidden lg:inline-flex w-8 h-8 mr-2 self-center"
           :class="collapsed ? 'lg:hidden' : ''"
           @click="toggle"
-      >
-        <font-awesome-icon :icon="['fas', 'chevron-left']" class="h-3.5 w-3.5"/>
-      </IconButton>
+      />
     </div>
 
-    <IconButton
+    <SidebarCollapseToggle
         v-if="collapsible && collapsed"
-        :icon="['fas', 'chevron-right']"
-        :label="t('sidebar.expand')"
-        class="hidden lg:inline-flex h-8 mx-2 mt-2 text-(--text-muted) hover:text-(--text) hover:bg-(--bg-accent) shrink-0"
+        :collapsed="collapsed"
+        class="hidden lg:inline-flex h-8 mx-2 mt-2"
         @click="toggle"
-    >
-      <font-awesome-icon :icon="['fas', 'chevron-right']" class="h-3.5 w-3.5"/>
-    </IconButton>
+    />
 
     <nav class="flex flex-col gap-1 p-3 overflow-y-auto overflow-x-hidden flex-1">
       <slot/>
