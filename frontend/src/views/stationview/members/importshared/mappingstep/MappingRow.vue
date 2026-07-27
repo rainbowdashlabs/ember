@@ -11,7 +11,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import MappingRowSource from './MappingRowSource.vue'
 import MappingRowMerge from './MappingRowMerge.vue'
 import TargetSelect from './TargetSelect.vue'
-import type { ColumnMapping } from '../MappingStep.vue'
+import { SKIP_TARGET, type ColumnMapping } from '../memberImport'
 
 const { t } = useI18n()
 
@@ -24,6 +24,7 @@ const props = defineProps<{
   needsValueMap: boolean
   targetOptions: { value: string; label: string; group?: string }[]
   fieldScopeGroups: string[]
+  primaryGroupLabel: string
   managerCount: number
 }>()
 
@@ -37,7 +38,7 @@ const emit = defineEmits<{
 }>()
 
 const rowClass = computed(() =>
-  props.mapping.target === 'skip'
+  props.mapping.target === SKIP_TARGET
     ? 'opacity-50'
     : 'bg-bg-light-accent/20 dark:bg-bg-dark-accent/20',
 )
@@ -64,6 +65,7 @@ const hasValueMap = computed(() => Object.keys(props.mapping.valueMap || {}).len
           :model-value="mapping.target"
           :target-options="targetOptions"
           :field-scope-groups="fieldScopeGroups"
+          :primary-group-label="primaryGroupLabel"
           :manager-count="managerCount"
           @update:model-value="emit('update', { target: $event })"
         />
@@ -73,7 +75,7 @@ const hasValueMap = computed(() => Object.keys(props.mapping.valueMap || {}).len
       </div>
     </div>
     <MappingRowMerge
-      v-if="mapping.target !== 'skip' && isMerged"
+      v-if="mapping.target !== SKIP_TARGET && isMerged"
       :merge-order="mapping.mergeOrder"
       :merge-separator="mapping.mergeSeparator"
       @update:merge-order="emit('update', { mergeOrder: $event })"

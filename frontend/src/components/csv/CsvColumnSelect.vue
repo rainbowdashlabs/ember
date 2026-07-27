@@ -10,25 +10,25 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 const modelValue = defineModel<string>({required: true})
 
 withDefaults(
-  defineProps<{
-    label: string
-    headers: string[]
-    optional?: boolean
-  }>(),
-  {optional: false},
+    defineProps<{
+      label: string
+      headers: string[]
+      optional?: boolean
+    }>(),
+    {optional: false},
 )
 
-function onUpdate(value: string | null | undefined) {
-  modelValue.value = value ?? modelValue.value
+function onUpdate(value: string | number | null | undefined) {
+  modelValue.value = value === null || value === undefined ? modelValue.value : String(value)
 }
 </script>
 
 <template>
   <div>
     <FieldLabel hint class="mb-1">{{ label }}</FieldLabel>
-    <SelectInput :model-value="modelValue" @update:model-value="onUpdate">
+    <SelectInput :model-value="modelValue" class="w-full" @update:model-value="onUpdate">
       <option v-if="optional" value="">&ndash;</option>
-      <option v-for="h in headers" :key="h" :value="h">{{ h }}</option>
+      <option v-for="header in headers" :key="header" :value="header">{{ header }}</option>
     </SelectInput>
   </div>
 </template>

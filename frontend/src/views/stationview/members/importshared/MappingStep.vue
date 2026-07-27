@@ -7,22 +7,11 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MappingHelp from './mappingstep/MappingHelp.vue'
 import MappingRow from './mappingstep/MappingRow.vue'
 import ValueMapEditorModal from './mappingstep/ValueMapEditorModal.vue'
-
-export interface ColumnMapping {
-  csvColumn: string
-  target: string
-  mergeOrder: number
-  mergeSeparator: string
-  valueMap: Record<string, string>
-  splitChar: string
-  splitIndex: number
-}
+import { createColumnMapping, SKIP_TARGET, type ColumnMapping } from './memberImport'
 
 const { t } = useI18n()
 
@@ -33,14 +22,9 @@ const props = defineProps<{
   sampleRows: string[][]
   targetOptions: { value: string; label: string; group?: string }[]
   fieldScopeGroups: string[]
+  primaryGroupLabel: string
   managerCount: number
-  loading: boolean
   needsValueMapFn: (mapping: ColumnMapping) => boolean
-}>()
-
-const emit = defineEmits<{
-  back: []
-  preview: []
 }>()
 
 const editingValueMapIndex = ref<number | null>(null)
@@ -51,7 +35,7 @@ function getSampleValues(colIndex: number): string[] {
 }
 
 function isMerged(target: string): boolean {
-  if (target === 'skip') return false
+  if (target === SKIP_TARGET) return false
   return mappings.value.filter(m => m.target === target).length > 1
 }
 
@@ -91,31 +75,33 @@ function updateMapping(index: number, partial: Partial<ColumnMapping>) {
 
 function splitColumn(index: number) {
   const m = mappings.value[index]
-  const char = ' '
-  const part1: ColumnMapping = { ...m, splitChar: char, splitIndex: 0, target: 'skip' }
-  const part2: ColumnMapping = { ...m, splitChar: char, splitIndex: 1, target: 'skip' }
   const updated = [...mappings.value]
-  updated.splice(index, 1, part1, part2)
+  updated.splice(index, 1,
+    { ...m, splitChar: ' ', splitIndex: 0, target: SKIP_TARGET },
+    { ...m, splitChar: ' ', splitIndex: 1, target: SKIP_TARGET },
+  )
   mappings.value = updated
 }
 
 function unsplitColumn(index: number) {
   const m = mappings.value[index]
   const siblings = getSplitSiblings(m.csvColumn)
-  const original: ColumnMapping = { csvColumn: m.csvColumn, target: 'skip', mergeOrder: m.mergeOrder, mergeSeparator: ' ', valueMap: {}, splitChar: '', splitIndex: 0 }
   const updated = [...mappings.value]
   for (let i = siblings.length - 1; i >= 0; i--) {
     updated.splice(siblings[i], 1)
   }
-  updated.splice(siblings[0], 0, original)
+  updated.splice(siblings[0], 0, createColumnMapping(m.csvColumn, SKIP_TARGET, m.mergeOrder))
   mappings.value = updated
 }
 
 function addSplitPart(index: number) {
   const m = mappings.value[index]
   const siblings = getSplitSiblings(m.csvColumn)
-  const nextIndex = siblings.length
-  const newPart: ColumnMapping = { csvColumn: m.csvColumn, splitChar: m.splitChar, splitIndex: nextIndex, target: 'skip', mergeOrder: m.mergeOrder, mergeSeparator: ' ', valueMap: {} }
+  const newPart: ColumnMapping = {
+    ...createColumnMapping(m.csvColumn, SKIP_TARGET, m.mergeOrder),
+    splitChar: m.splitChar,
+    splitIndex: siblings.length,
+  }
   const updated = [...mappings.value]
   updated.splice(siblings[siblings.length - 1] + 1, 0, newPart)
   mappings.value = updated
@@ -171,6 +157,7 @@ function addValueMapEntry() {
         :needs-value-map="needsValueMapFn(m)"
         :target-options="targetOptions"
         :field-scope-groups="fieldScopeGroups"
+        :primary-group-label="primaryGroupLabel"
         :manager-count="managerCount"
         @update="updateMapping(i, $event)"
         @split="splitColumn(i)"
@@ -189,11 +176,4 @@ function addValueMapEntry() {
       @add="addValueMapEntry"
     />
   </NeutralContainer>
-
-  <div class="flex justify-between">
-    <SecondaryButton @click="emit('back')">{{ t('common.back') }}</SecondaryButton>
-    <PrimaryButton :icon="['fas', 'eye']" :disabled="loading" @click="emit('preview')">
-      {{ loading ? t('common.loading') : t('memberImport.preview') }}
-    </PrimaryButton>
-  </div>
 </template>
