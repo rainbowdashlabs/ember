@@ -16,6 +16,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import type { CheckDetail } from '@/api/types'
 import { inventoryCheck } from '@/api'
 import { useConfigPanel } from '@/composables/useConfigPanel'
+import { formatDateTime } from '@/util/format'
 import CheckResultItemCard from '@/views/stationview/inventory/checkresultview/CheckResultItemCard.vue'
 
 const { t } = useI18n()
@@ -28,11 +29,6 @@ const {config: detail, loading, error} = useConfigPanel<CheckDetail | null>({
   initial: null,
   fetch: () => inventoryCheck.getLastCheck(memberId.value),
 })
-
-function formatDate(dateStr?: string | null): string {
-  if (!dateStr) return '-'
-  return new Date(dateStr).toLocaleString('de-DE')
-}
 
 function goBack() {
   router.push({ name: 'inventory-checks' })
@@ -60,7 +56,7 @@ function goBack() {
       <template v-if="!loading && detail">
         <NeutralContainer>
           <div class="text-sm text-(--text-muted)">
-            {{ formatDate(detail.check.checkedAt) }}
+            {{ formatDateTime(detail.check.checkedAt) || '-' }}
             &middot; {{ t('inventory.check.checkedBy') }}: {{ detail.checkerFirstName }} {{ detail.checkerLastName }}
           </div>
         </NeutralContainer>

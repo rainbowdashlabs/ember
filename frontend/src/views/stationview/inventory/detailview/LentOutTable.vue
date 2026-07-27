@@ -14,6 +14,7 @@ import Td from '@/components/table/Td.vue'
 import THead from '@/components/table/THead.vue'
 import TRow from '@/components/table/TRow.vue'
 import type { LentOutItem } from '@/api/lending'
+import { formatDate } from '@/util/format'
 
 const props = defineProps<{
   lentOutItems: LentOutItem[]
@@ -21,11 +22,6 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
-
-function formatDate(dateStr?: string | null): string {
-  if (!dateStr) return ''
-  return new Date(dateStr).toLocaleDateString('de-DE')
-}
 </script>
 
 <template>

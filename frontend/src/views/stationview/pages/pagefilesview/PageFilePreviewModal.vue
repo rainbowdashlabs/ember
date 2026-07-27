@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import {pageImageUrl, type PageFile} from '@/api/pageManage'
+import {formatSize} from '@/util/format'
 
 const props = defineProps<{
     file: PageFile | null
@@ -35,11 +36,6 @@ const previewKind = computed<'image' | 'video' | 'audio' | 'pdf' | 'other'>(() =
     return 'other'
 })
 
-function formatSize(bytes: number): string {
-    if (bytes < 1024) return `${bytes} B`
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-    return `${(bytes / 1024 / 1024).toFixed(1)} MB`
-}
 </script>
 
 <template>

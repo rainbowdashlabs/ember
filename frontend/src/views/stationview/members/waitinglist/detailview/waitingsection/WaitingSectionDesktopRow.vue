@@ -9,6 +9,7 @@ import WaitingListStatusBadge from '@/components/badge/WaitingListStatusBadge.vu
 import WaitingSectionActions from './WaitingSectionActions.vue'
 import WaitingSectionGuardians from './WaitingSectionGuardians.vue'
 import type { WaitingListEntryWithScore, WaitingListField } from '@/api/types'
+import { formatDate } from '@/util/format'
 
 const props = defineProps<{
   item: WaitingListEntryWithScore
@@ -25,10 +26,6 @@ const emit = defineEmits<{
   navigateToEntry: [entryId: number]
   deleteEntry: [entry: WaitingListEntryWithScore]
 }>()
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' })
-}
 
 function getEntryFieldValue(item: WaitingListEntryWithScore, fieldId: number): string {
   const v = item.values.find(v => v.fieldId === fieldId)?.value

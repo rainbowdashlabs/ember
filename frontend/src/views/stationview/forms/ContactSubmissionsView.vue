@@ -17,6 +17,7 @@ import type {Form, FormResponse, FormAnswer, FormQuestion} from '@/api/types'
 import {QuestionTypes} from '@/api/types'
 import {forms} from '@/api'
 import {FormAnalyticsBase, acknowledgeContactResponse} from '@/api/forms'
+import {formatDateTime} from '@/util/format'
 
 /**
  * Lightweight list view for CONTACT-form submissions. Unlike POLL analytics this surface is
@@ -112,10 +113,6 @@ function formatAnswer(answer: FormAnswer): string {
             return answer.value
     }
 }
-
-function formatTimestamp(iso: string): string {
-    return new Date(iso).toLocaleString('de-DE')
-}
 </script>
 
 <template>
@@ -138,7 +135,7 @@ function formatTimestamp(iso: string): string {
                 :ack-in-flight="ackInFlight"
                 :question-title="questionTitle"
                 :format-answer="formatAnswer"
-                :format-timestamp="formatTimestamp"
+                :format-timestamp="formatDateTime"
                 @acknowledge="acknowledge"
             />
         </div>

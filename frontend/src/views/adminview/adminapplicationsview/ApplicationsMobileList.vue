@@ -10,13 +10,13 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import ApplicationStatusBadge from '@/views/adminview/adminapplicationsview/ApplicationStatusBadge.vue'
 import type {StationApplication} from '@/api/stationApplications'
+import {formatDateTime} from '@/util/format'
 
 const {t} = useI18n()
 
 defineProps<{
   applications: StationApplication[]
   processing: boolean
-  formatDate: (dateStr?: string | null) => string
 }>()
 
 defineEmits<{
@@ -35,7 +35,7 @@ defineEmits<{
       <div class="grid grid-cols-1 gap-1 text-xs">
         <div class="text-(--text-muted)">{{ app.email }}</div>
         <div><span class="text-(--text-muted)">{{ t('adminApplications.station') }}:</span> {{ app.stationName }}</div>
-        <div class="text-(--text-muted)">{{ formatDate(app.createdAt) }}</div>
+        <div class="text-(--text-muted)">{{ formatDateTime(app.createdAt) || '-' }}</div>
         <div v-if="app.introduction" class="text-(--text-muted) truncate">{{ app.introduction }}</div>
       </div>
       <div v-if="app.status === 'pending'"

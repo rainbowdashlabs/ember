@@ -61,10 +61,6 @@ async function submitDeny() {
   }, {busy: processing})
 }
 
-function formatDate(dateStr?: string | null): string {
-  if (!dateStr) return '-'
-  return new Date(dateStr).toLocaleString('de-DE')
-}
 </script>
 
 <template>
@@ -80,14 +76,12 @@ function formatDate(dateStr?: string | null): string {
             v-else-if="isMobile"
             :applications="filteredApplications"
             :processing="processing"
-            :format-date="formatDate"
             @accept="acceptApplication"
             @deny="openDeny"/>
         <ApplicationsDesktopTable
             v-else
             :applications="filteredApplications"
             :processing="processing"
-            :format-date="formatDate"
             @accept="acceptApplication"
             @deny="openDeny"/>
       </template>

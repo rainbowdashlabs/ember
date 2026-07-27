@@ -14,6 +14,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import EventFieldValueInput from '@/components/input/EventFieldValueInput.vue'
 import type {EventFieldEntry} from '@/api/types'
 import type {BatchRow} from '@/api/events'
+import {formatDate} from '@/util/format'
 
 const {t} = useI18n()
 
@@ -46,14 +47,6 @@ function setAllColumn(fieldName: string, value: string) {
 
 function setAllName(value: string) {
   rows.value = rows.value.map(row => ({...row, name: value}))
-}
-
-function formatDate(isoString: string): string {
-  try {
-    return new Date(isoString).toLocaleDateString('de-DE')
-  } catch {
-    return isoString
-  }
 }
 </script>
 

@@ -15,6 +15,7 @@ import MemberName from '@/components/avatar/MemberName.vue'
 import type { InventoryItem, InventoryItemHistory, StationMember } from '@/api/types'
 import { inventory } from '@/api'
 import { useConfigPanel } from '@/composables/useConfigPanel'
+import { formatDate } from '@/util/format'
 
 const props = defineProps<{
   item: InventoryItem | null
@@ -38,12 +39,6 @@ watch(show, (visible) => {
     loadHistory()
   }
 })
-
-
-function formatDate(dateStr?: string | null): string {
-  if (!dateStr) return ''
-  return new Date(dateStr).toLocaleDateString('de-DE')
-}
 </script>
 
 <template>

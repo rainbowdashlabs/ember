@@ -13,6 +13,7 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import {QuizAttemptStatus} from '@/api/types'
 import type {QuizTestAttempt, StationMember} from '@/api/types'
+import {formatDateTime} from '@/util/format'
 
 const props = defineProps<{
   title: string
@@ -29,12 +30,6 @@ const router = useRouter()
 function memberName(memberId: number): string {
   const m = props.members.find(m => m.id === memberId)
   return m?.name ?? m?.email ?? `#${memberId}`
-}
-
-function formatDateTime(dateStr: string | null | undefined): string {
-  if (!dateStr) return '-'
-  const d = new Date(dateStr)
-  return `${d.toLocaleDateString()} ${d.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}`
 }
 
 function attemptStatusLabel(status: string): string {

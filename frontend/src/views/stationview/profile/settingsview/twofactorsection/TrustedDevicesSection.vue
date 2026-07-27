@@ -15,6 +15,7 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {useConfigPanel} from '@/composables/useConfigPanel'
+import {formatDateTime} from '@/util/format'
 
 const {t} = useI18n()
 
@@ -43,9 +44,6 @@ async function handleRevokeAll() {
   })
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString('de-DE')
-}
 </script>
 
 <template>
@@ -68,8 +66,8 @@ function formatDate(iso: string): string {
         <div class="min-w-0">
           <div class="text-sm font-medium truncate">{{ device.userAgent || t('twoFactor.trustedDevices.unknownDevice') }}</div>
           <MutedText tag="div" size="sm">
-            {{ t('twoFactor.trustedDevices.lastSeen') }}: {{ formatDate(device.lastSeenAt) }}
-            · {{ t('twoFactor.trustedDevices.expires') }}: {{ formatDate(device.trustedUntil) }}
+            {{ t('twoFactor.trustedDevices.lastSeen') }}: {{ formatDateTime(device.lastSeenAt) }}
+            · {{ t('twoFactor.trustedDevices.expires') }}: {{ formatDateTime(device.trustedUntil) }}
           </MutedText>
         </div>
         <ErrorButton size="sm" @click="handleRevoke(device)">{{ t('common.remove') }}</ErrorButton>

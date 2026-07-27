@@ -12,6 +12,7 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import type {InventoryItem, InventorySize, MemberIdentity} from '@/api/types'
 import type {ItemLocationResponse} from '@/api/inventoryContainers'
+import {formatDate} from '@/util/format'
 
 const props = defineProps<{
   item: InventoryItem
@@ -21,11 +22,6 @@ const props = defineProps<{
 }>()
 
 const {t} = useI18n()
-
-function formatDate(iso?: string | null): string {
-  if (!iso) return '—'
-  return new Date(iso).toLocaleDateString('de-DE', {day: '2-digit', month: '2-digit', year: 'numeric'})
-}
 
 function sizeLabel(sizeId?: number | null): string {
   if (sizeId == null) return '—'

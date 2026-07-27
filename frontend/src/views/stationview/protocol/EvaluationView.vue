@@ -19,6 +19,7 @@ import { protocol, stationMembers } from '@/api'
 import type { EvaluationResponse } from '@/api/protocol'
 import type { StationMember } from '@/api/types'
 import MutedText from '@/components/typography/MutedText.vue'
+import { formatDate } from '@/util/format'
 import EvaluationTable from './evaluationview/EvaluationTable.vue'
 
 const { t } = useI18n()
@@ -80,7 +81,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
 
     <template v-if="!loading && evalData">
       <MutedText tag="p" size="sm">
-        {{ evalData.protocolName }} — {{ new Date(evalData.testDate).toLocaleDateString('de-DE') }}
+        {{ evalData.protocolName }} — {{ formatDate(evalData.testDate) }}
         <template v-if="evalData.passThreshold"> — {{ t('protocol.threshold') }}: {{ evalData.passThreshold }}P</template>
       </MutedText>
 

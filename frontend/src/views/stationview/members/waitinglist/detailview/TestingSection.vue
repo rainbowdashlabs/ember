@@ -13,6 +13,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import type { WaitingListEntryWithScore } from '@/api/types'
+import { formatDate } from '@/util/format'
 
 const props = defineProps<{
   entries: WaitingListEntryWithScore[]
@@ -36,10 +37,6 @@ function toggleExpand(entryId: number) {
 function entryFullName(item: WaitingListEntryWithScore): string {
   const e = item.entry
   return e.lastname ? `${e.firstname} ${e.lastname}` : e.firstname
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' })
 }
 </script>
 

@@ -30,6 +30,7 @@ import { protocol, stationMembers, memberGroups, userTags } from '@/api'
 import type { TestProtocol, TestProtocolRun } from '@/api/protocol'
 import type { StationMember, MemberGroup, UserTag } from '@/api/types'
 import { StationPermission } from '@/api/types'
+import { formatDate } from '@/util/format'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -42,7 +43,6 @@ const members = ref<StationMember[]>([])
 const allGroups = ref<MemberGroup[]>([])
 const allTags = ref<UserTag[]>([])
 
-// Create modal
 const showCreateModal = ref(false)
 const newProtocolId = ref<string>('')
 const newName = ref('')
@@ -129,7 +129,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
       >
         <div class="flex-1 min-w-0">
           <div class="font-medium">{{ run.name }}</div>
-          <div class="text-sm text-[var(--text-muted)]">{{ protocolName(run.protocolId) }} &mdash; {{ new Date(run.testDate).toLocaleDateString('de-DE') }}</div>
+          <div class="text-sm text-[var(--text-muted)]">{{ protocolName(run.protocolId) }} &mdash; {{ formatDate(run.testDate) }}</div>
         </div>
         <SuccessBadge v-if="run.status === 'CLOSED'">{{ t('protocol.closed') }}</SuccessBadge>
         <PrimaryBadge v-else>{{ t('protocol.open') }}</PrimaryBadge>

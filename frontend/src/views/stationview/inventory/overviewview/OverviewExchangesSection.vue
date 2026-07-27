@@ -21,6 +21,7 @@ import type { ExchangeRequestEntry } from '@/api/types'
 import { ExchangeStatus } from '@/api/types'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { inventoryTypeBadge, inventoryTypeLabel as toInventoryTypeLabel } from '@/util/inventoryType'
+import { formatDate } from '@/util/format'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -29,11 +30,6 @@ const { isMobile } = useBreakpoint()
 defineProps<{
   exchanges: ExchangeRequestEntry[]
 }>()
-
-function formatDate(dateStr?: string | null): string {
-  if (!dateStr) return ''
-  return new Date(dateStr).toLocaleDateString('de-DE')
-}
 
 function inventoryTypeLabel(type?: string | null): string {
   return toInventoryTypeLabel(t, type)

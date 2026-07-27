@@ -27,6 +27,7 @@ import * as lending from '@/api/lending'
 import {useSession} from '@/composables/useSession'
 import {StationPermission} from '@/api/types'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import {formatDate} from '@/util/format'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -34,10 +35,8 @@ const {loaded, hasPermission} = useSession()
 
 const isLendingManager = computed(() => hasPermission(StationPermission.INVENTORY_LENDING_MANAGER))
 
-// Tab state
 const activeTab = ref<'offers' | 'requests'>('offers')
 
-// -- Offers tab --
 const availableItems = ref<AvailableInventoryEntry[]>([])
 const loadingAvailable = ref(true)
 const availableError = ref('')
@@ -83,7 +82,6 @@ function navigateToCreateRequest(item: AvailableInventoryEntry) {
   })
 }
 
-// -- Requests tab --
 const requests = ref<LendingRequestResponse[]>([])
 const loadingRequests = ref(true)
 const requestsError = ref('')
@@ -121,12 +119,6 @@ function statusBadge(status: LendingStatusName) {
   }
 }
 
-function formatDate(d: string | null): string {
-  if (!d) return '-'
-  return new Date(d).toLocaleDateString('de-DE')
-}
-
-// Load data
 onMounted(() => {
   if (loaded.value) {
     loadAvailable()
@@ -238,7 +230,7 @@ watch(loaded, (v) => {
                 <div>
                   <span class="font-medium">{{ req.requestingStationName }}</span>
                   <span class="text-sm text-[var(--text-muted)] ml-2">
-                    {{ formatDate(req.request.requestedDateFrom) }}
+                    {{ formatDate(req.request.requestedDateFrom) || '-' }}
                     <template v-if="req.request.requestedDateTo"> - {{ formatDate(req.request.requestedDateTo) }}</template>
                   </span>
                 </div>
@@ -268,7 +260,7 @@ watch(loaded, (v) => {
                 <div>
                   <span class="font-medium">{{ req.owningStationName }}</span>
                   <span class="text-sm text-[var(--text-muted)] ml-2">
-                    {{ formatDate(req.request.requestedDateFrom) }}
+                    {{ formatDate(req.request.requestedDateFrom) || '-' }}
                     <template v-if="req.request.requestedDateTo"> - {{ formatDate(req.request.requestedDateTo) }}</template>
                   </span>
                 </div>

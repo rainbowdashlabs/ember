@@ -8,17 +8,13 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type {InventoryItemHistory} from '@/api/types'
+import {formatDate} from '@/util/format'
 
 const props = defineProps<{
   entries: InventoryItemHistory[]
 }>()
 
 const {t} = useI18n()
-
-function formatDate(iso?: string | null): string {
-  if (!iso) return '—'
-  return new Date(iso).toLocaleDateString('de-DE', {day: '2-digit', month: '2-digit', year: 'numeric'})
-}
 </script>
 
 <template>
@@ -36,7 +32,7 @@ function formatDate(iso?: string | null): string {
       <tbody>
         <tr v-for="h in props.entries" :key="h.id" class="border-b border-(--border) last:border-0">
           <td class="p-2">{{ h.memberName || '—' }}</td>
-          <td class="p-2 text-(--text-muted)">{{ formatDate(h.givenOut) }}</td>
+          <td class="p-2 text-(--text-muted)">{{ h.givenOut ? formatDate(h.givenOut) : '—' }}</td>
           <td class="p-2 text-(--text-muted)">{{ h.returned ? formatDate(h.returned) : t('itemDetail.current') }}</td>
         </tr>
       </tbody>

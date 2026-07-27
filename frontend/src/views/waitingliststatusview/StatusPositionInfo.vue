@@ -8,6 +8,7 @@ import { useI18n } from 'vue-i18n'
 import StatusFieldRow from './StatusFieldRow.vue'
 import WaitingListStatusBadge from '@/components/badge/WaitingListStatusBadge.vue'
 import type { WaitingListPublicStatus } from '@/api/types'
+import { formatDate } from '@/util/format'
 
 const props = defineProps<{
   status: WaitingListPublicStatus
@@ -15,16 +16,11 @@ const props = defineProps<{
 
 const { t } = useI18n()
 
-function formatDate(dateStr: string | undefined | null): string {
-  if (!dateStr) return '-'
-  return new Date(dateStr).toLocaleDateString()
-}
-
 function nextConfirmationDate(): string {
   if (!props.status?.confirmedAt || !props.status.confirmIntervalDays) return '-'
   const next = new Date(props.status.confirmedAt)
   next.setDate(next.getDate() + props.status.confirmIntervalDays)
-  return next.toLocaleDateString()
+  return formatDate(next.toISOString())
 }
 </script>
 
@@ -36,8 +32,8 @@ function nextConfirmationDate(): string {
     <span class="ml-1 font-medium text-lg">{{ props.status.position }}</span>
     <p class="text-xs text-(--text-muted) mt-1">{{ t('waitingList.publicStatus.positionHint') }}</p>
   </StatusFieldRow>
-  <StatusFieldRow :label="t('waitingList.publicStatus.waitingSince')" :value="formatDate(props.status.createdAt)" />
-  <StatusFieldRow :label="t('waitingList.publicStatus.lastConfirmation')" :value="formatDate(props.status.confirmedAt)" />
+  <StatusFieldRow :label="t('waitingList.publicStatus.waitingSince')" :value="formatDate(props.status.createdAt) || '-'" />
+  <StatusFieldRow :label="t('waitingList.publicStatus.lastConfirmation')" :value="formatDate(props.status.confirmedAt) || '-'" />
   <StatusFieldRow
     v-if="props.status.confirmIntervalDays > 0"
     wide

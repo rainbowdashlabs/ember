@@ -14,11 +14,11 @@ import THead from '@/components/table/THead.vue'
 import TRow from '@/components/table/TRow.vue'
 import ApplicationStatusBadge from '@/views/adminview/adminapplicationsview/ApplicationStatusBadge.vue'
 import type {StationApplication} from '@/api/stationApplications'
+import {formatDateTime} from '@/util/format'
 
 defineProps<{
   applications: StationApplication[]
   processing: boolean
-  formatDate: (dateStr?: string | null) => string
 }>()
 
 defineEmits<{
@@ -52,7 +52,7 @@ const {t} = useI18n()
         </Td>
         <Td muted>{{ app.email }}</Td>
         <Td>{{ app.stationName }}</Td>
-        <Td muted>{{ formatDate(app.createdAt) }}</Td>
+        <Td muted>{{ formatDateTime(app.createdAt) || '-' }}</Td>
         <Td>
           <ApplicationStatusBadge :status="app.status"/>
         </Td>

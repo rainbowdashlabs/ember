@@ -8,6 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
 import type {ProblemEntry} from '@/api/problems'
+import {formatDateTime} from '@/util/format'
 
 const props = defineProps<{
   entry: ProblemEntry
@@ -29,9 +30,6 @@ function shortLogger(logger: string): string {
   return parts[parts.length - 1]
 }
 
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleString('de-DE')
-}
 </script>
 
 <template>
@@ -49,8 +47,8 @@ function formatTime(iso: string): string {
         {{ entry.exceptionClass ? `${entry.exceptionClass}: ${entry.exceptionMessage}` : entry.distinctMessages[0] }}
       </p>
       <p class="text-xs text-[var(--text-muted)]">
-        {{ formatTime(entry.firstOccurrence) }}
-        <template v-if="entry.count > 1"> — {{ formatTime(entry.lastOccurrence) }}</template>
+        {{ formatDateTime(entry.firstOccurrence) }}
+        <template v-if="entry.count > 1"> — {{ formatDateTime(entry.lastOccurrence) }}</template>
       </p>
     </div>
     <div class="flex items-center gap-1 shrink-0">

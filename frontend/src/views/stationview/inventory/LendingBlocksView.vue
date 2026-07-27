@@ -24,6 +24,7 @@ import {inventory} from '@/api'
 import type {Inventory, InventoryItem} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {formatDate} from '@/util/format'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -133,10 +134,6 @@ async function handleDeleteGroup(group: GroupedBlock) {
     }
     await loadBlocks()
   } catch { /* ignore */ }
-}
-
-function formatDate(d: string): string {
-  return new Date(d).toLocaleDateString('de-DE')
 }
 
 function itemLabel(item: { id: number; name: string | null; internalId: string | null }): string {

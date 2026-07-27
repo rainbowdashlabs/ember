@@ -14,6 +14,7 @@ import {
   webauthnRegisterFinish,
 } from '@/api/twoFactor'
 import {createWebAuthnCredential, isWebAuthnSupported} from '@/util/webauthn'
+import {formatDate} from '@/util/format'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
@@ -38,8 +39,11 @@ const {t} = useI18n()
 
 const securityKeys = computed(() => props.factors.filter(f => f.kind === 'WEBAUTHN'))
 const supported = computed(() => isWebAuthnSupported())
-// A password re-entry is required only when enrolling the very first factor, mirroring the
-// backend gate that stops a hijacked session from silently planting one.
+
+/**
+ * A password re-entry is required only when enrolling the very first factor, mirroring the
+ * backend gate that stops a hijacked session from silently planting one.
+ */
 const requiresPassword = computed(() => !props.factors.some(f => f.kind === 'TOTP' || f.kind === 'WEBAUTHN'))
 
 const showLabelPrompt = ref(false)
@@ -146,7 +150,7 @@ async function confirmRename() {
         <div>
           <div class="text-sm font-medium">{{ key.label }}</div>
           <MutedText tag="div" size="sm">
-            {{ t('twoFactor.webauthn.added') }}: {{ new Date(key.createdAt).toLocaleDateString('de-DE') }}
+            {{ t('twoFactor.webauthn.added') }}: {{ formatDate(key.createdAt) }}
           </MutedText>
         </div>
         <div class="flex items-center gap-2">

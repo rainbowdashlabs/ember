@@ -17,6 +17,7 @@ import TRow from '@/components/table/TRow.vue'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { inventoryTypeBadge, inventoryTypeLabel as toInventoryTypeLabel } from '@/util/inventoryType'
 import type { LostItem } from './types'
+import { formatDate } from '@/util/format'
 
 const { t } = useI18n()
 const { isMobile } = useBreakpoint()
@@ -24,11 +25,6 @@ const { isMobile } = useBreakpoint()
 defineProps<{
   items: LostItem[]
 }>()
-
-function formatDate(dateStr?: string | null): string {
-  if (!dateStr) return ''
-  return new Date(dateStr).toLocaleDateString('de-DE')
-}
 
 function inventoryTypeLabel(type?: string | null): string {
   return toInventoryTypeLabel(t, type)

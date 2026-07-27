@@ -8,6 +8,7 @@ import BaseButton from '@/components/button/BaseButton.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import {pageImageUrl, type PageFile, type PageFileListing, type PageFileTag} from '@/api/pageManage'
 import PageFilesGridItemMenu from './PageFilesGridItemMenu.vue'
+import {formatSize} from '@/util/format'
 
 const props = defineProps<{
     entry: PageFileListing
@@ -38,12 +39,6 @@ function isImage(f: PageFile): boolean {
 
 function tagsOf(e: PageFileListing): PageFileTag[] {
     return props.tags.filter(t => e.tagIds.includes(t.id))
-}
-
-function formatSize(bytes: number): string {
-    if (bytes < 1024) return `${bytes} B`
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-    return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 }
 
 function onCheckboxClick(e: MouseEvent) {

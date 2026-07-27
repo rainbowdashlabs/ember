@@ -10,6 +10,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import type {ActiveSession} from '@/api/types'
+import {formatDateTime} from '@/util/format'
 
 defineProps<{
   sessions: ActiveSession[]
@@ -86,13 +87,6 @@ function browserIcon(ua?: string): string[] {
   return icons[browser] ?? ['fas', 'globe']
 }
 
-function formatDate(dateStr?: string): string {
-  if (!dateStr) return '\u2013'
-  return new Date(dateStr).toLocaleString('de-DE', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  })
-}
 
 function timeAgo(dateStr?: string): string {
   if (!dateStr) return ''
@@ -131,7 +125,7 @@ function timeAgo(dateStr?: string): string {
             </div>
             <p class="text-xs text-(--text-muted)">
               {{ t('userSettings.lastActive') }}: {{ timeAgo(sess.lastUsedAt) }}
-              <span class="ml-2">{{ t('userSettings.created') }}: {{ formatDate(sess.createdAt) }}</span>
+              <span class="ml-2">{{ t('userSettings.created') }}: {{ sess.createdAt ? formatDateTime(sess.createdAt) : '–' }}</span>
               <span v-if="sess.location" class="ml-2">
                 <font-awesome-icon :icon="['fas', 'location-dot']" class="mr-0.5"/>{{ sess.location }}
               </span>

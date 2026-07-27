@@ -8,11 +8,11 @@ import {useI18n} from 'vue-i18n'
 import PrimaryContainer from '@/components/container/PrimaryContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type {StationEvent} from '@/api/types'
+import {formatTime} from '@/util/format'
 
 const props = defineProps<{
   events: StationEvent[]
   templateName: (id: number) => string
-  formatTime: (iso?: string) => string
 }>()
 
 const emit = defineEmits<{
@@ -31,7 +31,7 @@ const {t} = useI18n()
                         @click="emit('select', ev)">
         <div class="flex items-center justify-between">
           <span class="font-semibold">{{ ev.name }}</span>
-          <span class="text-sm">{{ props.formatTime(ev.startTime) }} – {{ props.formatTime(ev.endTime) }}</span>
+          <span class="text-sm">{{ formatTime(ev.startTime) }} – {{ formatTime(ev.endTime) }}</span>
         </div>
         <p v-if="ev.description" class="text-sm text-(--text-muted)">{{ ev.description }}</p>
         <p class="text-xs text-(--text-muted)">

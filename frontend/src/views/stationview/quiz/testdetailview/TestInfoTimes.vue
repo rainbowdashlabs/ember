@@ -9,6 +9,7 @@ import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import { QuizTestStatus } from '@/api/types'
 import type { QuizTestDetail } from '@/api/types'
+import { formatDateTime } from '@/util/format'
 
 const editStartAt = defineModel<string>('editStartAt', {required: true})
 const editEndAt = defineModel<string>('editEndAt', {required: true})
@@ -23,12 +24,6 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-
-function formatDateTime(dateStr: string | null | undefined): string {
-  if (!dateStr) return '-'
-  const d = new Date(dateStr)
-  return `${d.toLocaleDateString()} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-}
 
 function onStart(v: string) {
   editStartAt.value = v
@@ -48,7 +43,7 @@ function onEnd(v: string) {
   </div>
   <div v-else>
     <span class="text-xs text-(--text-muted) block">{{ t('quiz.tests.startAt') }}</span>
-    <span>{{ formatDateTime(test.startAt) }}</span>
+    <span>{{ formatDateTime(test.startAt) || '-' }}</span>
   </div>
   <div v-if="canConfigure && test.status !== QuizTestStatus.CLOSED">
     <FieldLabel hint class="mb-1">{{ t('quiz.tests.endAt') }}</FieldLabel>
@@ -56,6 +51,6 @@ function onEnd(v: string) {
   </div>
   <div v-else>
     <span class="text-xs text-(--text-muted) block">{{ t('quiz.tests.endAt') }}</span>
-    <span>{{ formatDateTime(test.endAt) }}</span>
+    <span>{{ formatDateTime(test.endAt) || '-' }}</span>
   </div>
 </template>

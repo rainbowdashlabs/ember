@@ -30,6 +30,18 @@ export function formatDate(iso?: string | null): string {
 }
 
 /**
+ * Formats an ISO timestamp as a long German date — `27. Juli 2026` — for editorial
+ * surfaces such as blog posts and release notes. Returns an empty string when the
+ * input is missing.
+ */
+export function formatDateLong(iso?: string | null): string {
+    if (!iso) return ''
+    return new Date(iso).toLocaleDateString('de-DE', {
+        year: 'numeric', month: 'long', day: 'numeric',
+    })
+}
+
+/**
  * Formats an ISO timestamp as `dd.MM.yyyy, HH:mm` for display. Returns an empty string when the
  * input is missing. Mirrors the most common date+time display used across views.
  */
@@ -57,4 +69,14 @@ export function formatRelative(iso?: string | null): string {
     const diffD = Math.floor(diffH / 24)
     if (diffD <= 30) return `vor ${diffD} Tag${diffD > 1 ? 'en' : ''}`
     return formatDate(iso)
+}
+
+/**
+ * Formats a byte count as a compact human-readable size (`B`, `KB`, `MB`), using one decimal
+ * place for the kilobyte and megabyte ranges.
+ */
+export function formatSize(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+    return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 }

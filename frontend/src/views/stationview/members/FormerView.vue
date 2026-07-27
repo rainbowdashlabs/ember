@@ -16,6 +16,7 @@ import type { StationMember } from '@/api/types'
 import { stationMembers } from '@/api'
 import { useConfigPanel } from '@/composables/useConfigPanel'
 import { useConfirmAction } from '@/composables/useConfirmAction'
+import { formatDate } from '@/util/format'
 
 const { t } = useI18n()
 
@@ -29,9 +30,8 @@ function memberDisplayName(m: StationMember): string {
   return m.name && m.name.trim() ? m.name : m.email ?? `#${m.id}`
 }
 
-function formatDate(dateStr?: string | null): string {
-  if (!dateStr) return '–'
-  return new Date(dateStr).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+function formatFormerDate(dateStr?: string | null): string {
+  return formatDate(dateStr) || '–'
 }
 
 const {
@@ -66,7 +66,7 @@ const {
           v-if="members.length > 0"
           :members="members"
           :member-display-name="memberDisplayName"
-          :format-date="formatDate"
+          :format-date="formatFormerDate"
           @reactivate="openReactivate"
         />
 

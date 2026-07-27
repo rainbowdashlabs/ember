@@ -18,6 +18,7 @@ import type {
 } from '@/api/boards'
 import type { MemberCompletion } from '@/api/stationMembers'
 import type {PriorityOption} from './types'
+import { formatDateTime } from '@/util/format'
 
 
 const props = defineProps<{
@@ -56,10 +57,6 @@ function closeAllEditors() {
     editingPriority.value = false
     editingAssignee.value = false
     editingDueDate.value = false
-}
-
-function formatDate(iso: string): string {
-    return new Date(iso).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
 function handleClickOutside(e: MouseEvent) {
@@ -108,8 +105,8 @@ onBeforeUnmount(() => document.removeEventListener('click', handleClickOutside))
             @save="(id, type, value) => emit('saveField', id, type, value)"
         />
         <div class="text-xs text-[var(--text-muted)] space-y-1 pt-4 border-t border-[var(--border)]">
-            <p v-if="ticket.createdAt">Erstellt: {{ formatDate(ticket.createdAt) }}</p>
-            <p v-if="ticket.updatedAt">Geändert: {{ formatDate(ticket.updatedAt) }}</p>
+            <p v-if="ticket.createdAt">Erstellt: {{ formatDateTime(ticket.createdAt) }}</p>
+            <p v-if="ticket.updatedAt">Geändert: {{ formatDateTime(ticket.updatedAt) }}</p>
         </div>
         <Alert v-if="error" variant="error">{{ error }}</Alert>
     </div>

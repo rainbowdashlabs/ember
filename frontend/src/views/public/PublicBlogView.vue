@@ -17,6 +17,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import type {PublicBlogEntry} from '@/api/types'
 import {news} from '@/api'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {formatDateLong} from '@/util/format'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -36,10 +37,6 @@ const entries = ref<PublicBlogEntry[]>([])
 const {loading, error} = useAsyncLoader(async () => {
   entries.value = await news.listPublicBlog(stationUid.value)
 })
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('de-DE', {year: 'numeric', month: 'long', day: 'numeric'})
-}
 
 function navigateToEntry(id: number) {
   router.push({name: 'public-blog-detail', params: {stationUid: stationUid.value, blogId: id}})
@@ -87,7 +84,7 @@ function excerpt(html: string, maxLength = 200): string {
         <p class="text-sm text-(--text-muted) line-clamp-3">{{ excerpt(entry.contentHtml) }}</p>
         <div class="mt-3 flex items-center gap-3 text-xs text-(--text-muted)">
           <span v-if="entry.authorName">{{ t('publicStation.blogBy') }} {{ entry.authorName }}</span>
-          <span>{{ formatDate(entry.publishedAt) }}</span>
+          <span>{{ formatDateLong(entry.publishedAt) }}</span>
         </div>
       </NeutralContainer>
     </div>

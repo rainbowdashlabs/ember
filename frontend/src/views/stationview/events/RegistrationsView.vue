@@ -17,6 +17,7 @@ import {RegistrationStatus} from '@/api/types'
 import type {EventRegistrationEntry, MemberRegistrationStats} from '@/api/events'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useEventEditDeps} from '@/composables/useEventEditDeps'
+import {formatDateTime} from '@/util/format'
 
 const {t} = useI18n()
 
@@ -89,12 +90,6 @@ const eventGroups = computed((): EventGroup[] => {
   })
   return result
 })
-
-function formatDeadline(iso?: string | null): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  return d.toLocaleDateString('de-DE', {day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'})
-}
 
 const expandedByStatus = computed(() => {
   const groups: Record<StatusKey, EventRegistrationEntry[]> = {
@@ -198,7 +193,7 @@ const {loading, error} = useAsyncLoader(async () => {
               :expanded-loading="expandedLoading"
               :expanded-by-status="expandedByStatus"
               :registration-stats="registrationStats"
-              :format-deadline="formatDeadline"
+              :format-deadline="formatDateTime"
               @toggle="toggleExpand(group.event.id)"
               @accept="accept"
               @deny="deny"

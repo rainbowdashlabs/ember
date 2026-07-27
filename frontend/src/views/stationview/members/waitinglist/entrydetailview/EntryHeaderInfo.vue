@@ -11,6 +11,7 @@ import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import WaitingListStatusBadge from '@/components/badge/WaitingListStatusBadge.vue'
 import type { WaitingListEntryWithScore } from '@/api/types'
+import { formatDateTime } from '@/util/format'
 
 defineProps<{
   entry: WaitingListEntryWithScore
@@ -26,11 +27,6 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-
-function formatDateTime(dateStr: string | undefined | null): string {
-  if (!dateStr) return '-'
-  return new Date(dateStr).toLocaleString()
-}
 </script>
 
 <template>
@@ -41,7 +37,7 @@ function formatDateTime(dateStr: string | undefined | null): string {
 
   <div class="text-sm text-(--text-muted) flex flex-wrap items-center gap-x-4 gap-y-2">
     <span>{{ t('waitingList.score') }}: <span class="font-mono font-medium">{{ entry.score }}</span></span>
-    <span>{{ t('waitingList.confirmedAt') }}: {{ formatDateTime(entry.entry.confirmedAt) }}</span>
+    <span>{{ t('waitingList.confirmedAt') }}: {{ formatDateTime(entry.entry.confirmedAt) || '-' }}</span>
     <span class="inline-flex items-center gap-1">
       {{ t('waitingList.createdAt') }}:
       <template v-if="editingCreatedAt">

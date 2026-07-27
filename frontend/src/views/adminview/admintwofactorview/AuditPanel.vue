@@ -15,6 +15,7 @@ import TableHeaderCell from '@/components/typography/TableHeaderCell.vue'
 import AccountSearchPicker from '@/components/input/search/AccountSearchPicker.vue'
 import {twoFactorAdmin} from '@/api'
 import type {AccountSearchResult, AuditEntry} from '@/api/twoFactorAdmin'
+import {formatDateTime} from '@/util/format'
 
 const {t} = useI18n()
 
@@ -64,9 +65,6 @@ function onAuditUidUpdate(uid: string | null) {
   }
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString('de-DE')
-}
 
 onMounted(() => loadAudit(true))
 </script>
@@ -104,7 +102,7 @@ onMounted(() => loadAudit(true))
         </thead>
         <tbody>
           <tr v-for="e in audit" :key="e.id" class="border-t border-(--border)">
-            <td class="py-2 pr-3 text-(--text-muted) whitespace-nowrap">{{ formatDate(e.createdAt) }}</td>
+            <td class="py-2 pr-3 text-(--text-muted) whitespace-nowrap">{{ formatDateTime(e.createdAt) }}</td>
             <td class="py-2 pr-3 font-mono">{{ e.accountId }}</td>
             <td class="py-2 pr-3 font-mono">{{ e.actorId ?? '—' }}</td>
             <td class="py-2 pr-3">{{ e.event }}</td>

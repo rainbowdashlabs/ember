@@ -12,6 +12,7 @@ import SizeBadge from '@/components/badge/SizeBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import type { ExchangeRequestEntry } from '@/api/types'
 import type { MyInventoryItem } from '@/api/inventory'
+import { formatDate } from '@/util/format'
 
 const { t } = useI18n()
 
@@ -48,7 +49,7 @@ const emit = defineEmits<{
         <div v-if="props.showInventoryName" class="text-xs text-(--text-muted)">{{ props.item.inventoryName }}</div>
         <div v-if="props.item.internalId" class="text-xs text-(--text-muted)">{{ props.item.internalId }}</div>
         <ErrorBadge v-if="props.item.lostAt" class="mt-1">
-          {{ t('profile.lostSince') }} {{ new Date(props.item.lostAt).toLocaleDateString('de-DE') }}
+          {{ t('profile.lostSince') }} {{ formatDate(props.item.lostAt) }}
         </ErrorBadge>
         <InfoBadge v-if="props.exchange" class="mt-1">
           {{ t('exchanges.status.' + props.exchange.status) }}

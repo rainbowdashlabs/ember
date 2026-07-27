@@ -19,6 +19,8 @@ import { boards, stationMembers } from '@/api'
 import type { MemberCompletion } from '@/api/stationMembers'
 import type { Board, BoardTicket, BoardLabel } from '@/api/boards'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { formatDate } from '@/util/format'
+import { priorityIcon, priorityColor } from '@/util/ticketPriority'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -56,8 +58,6 @@ const filteredTickets = computed(() => {
 
 function labelsForTicket(ticketId: number): BoardLabel[] { return allLabels.value.filter(l => (ticketLabelMap.value.get(ticketId) ?? []).includes(l.id)) }
 function toggleLabelFilter(id: number) { const n = new Set(labelFilter.value); if (n.has(id)) n.delete(id); else n.add(id); labelFilter.value = n }
-function priorityIcon(p: string) { return { HIGHEST: ['fas','angles-up'], HIGH: ['fas','angle-up'], MEDIUM: ['fas','equals'], LOW: ['fas','angle-down'], LOWEST: ['fas','angles-down'] }[p] ?? ['fas','minus'] }
-function priorityColor(p: string) { return { HIGHEST: 'text-red-500', HIGH: 'text-orange-500', MEDIUM: 'text-yellow-500', LOW: 'text-blue-400', LOWEST: 'text-gray-400' }[p] ?? 'text-gray-400' }
 </script>
 
 <template>
@@ -90,7 +90,7 @@ function priorityColor(p: string) { return { HIGHEST: 'text-red-500', HIGH: 'tex
                         <td class="py-2 pr-3"><div class="flex gap-1"><BaseBadge v-for="l in labelsForTicket(ticket.id)" :key="l.id" bg-class="" :style="{ backgroundColor: l.color, color: contrastTextColor(l.color) }">{{ l.name }}</BaseBadge></div></td>
                         <td class="py-2 pr-3"><font-awesome-icon :icon="priorityIcon(ticket.priority)" :class="priorityColor(ticket.priority)" class="text-xs" /></td>
                         <td class="py-2 pr-3"><div v-if="ticket.assignee" class="flex items-center gap-1"><UserAvatar :identity="ticket.assignee" size="sm" /><span class="text-xs whitespace-nowrap">{{ members.find(m => m.memberUid === ticket.assignee?.memberUid)?.name ?? '' }}</span></div></td>
-                        <td class="py-2 text-xs whitespace-nowrap">{{ ticket.dueDate ? new Date(ticket.dueDate).toLocaleDateString('de-DE') : '' }}</td>
+                        <td class="py-2 text-xs whitespace-nowrap">{{ formatDate(ticket.dueDate) }}</td>
                     </tr>
                 </tbody>
             </table>

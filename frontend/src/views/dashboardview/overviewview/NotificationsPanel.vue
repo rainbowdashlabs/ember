@@ -19,6 +19,7 @@ import {getFeedStatus} from '@/api/feedToken'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import type {FeedStatusResponse} from '@/api/feedToken'
 import type {NotificationEntry} from '@/api/types'
+import {formatDateTime} from '@/util/format'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -80,12 +81,6 @@ async function navigateTo(n: NotificationEntry) {
   if (n.link) {
     router.push({name: n.link.route, params: n.link.routeParams})
   }
-}
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('de-DE', {
-    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
-  })
 }
 
 async function ack(id: number) {
@@ -175,7 +170,7 @@ onMounted(loadData)
               <p class="text-sm">{{ renderMessage(n) }}</p>
               <!-- No body / preview snippet on the website: the dashboard panel stays
                    scannable and the full rich body lives in the feed only. -->
-              <p class="text-xs text-(--text-muted)">{{ formatDate(n.createdAt) }}</p>
+              <p class="text-xs text-(--text-muted)">{{ formatDateTime(n.createdAt) }}</p>
             </div>
           </div>
           <LinkButton class="shrink-0 mt-1" @click="($event: MouseEvent) => { $event.stopPropagation(); ack(n.id) }">

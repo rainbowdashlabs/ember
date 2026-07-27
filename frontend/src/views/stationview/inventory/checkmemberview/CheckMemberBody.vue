@@ -13,6 +13,7 @@ import CheckMemberSubmitBar from './CheckMemberSubmitBar.vue'
 import RapidCheckMode from './RapidCheckMode.vue'
 import type { CheckEntry } from './RapidCheckMode.vue'
 import InventorySection from './InventorySection.vue'
+import { formatDateTime } from '@/util/format'
 
 defineProps<{
   state: MemberCheckState
@@ -77,7 +78,7 @@ defineExpose({ getCurrentRapidEntry })
   />
   <NeutralContainer v-if="state.lastCheck">
     <div class="text-sm text-(--text-muted)">
-      {{ t('inventory.check.lastChecked') }}: {{ new Date(state.lastCheck.checkedAt).toLocaleString('de-DE') }}
+      {{ t('inventory.check.lastChecked') }}: {{ formatDateTime(state.lastCheck.checkedAt) }}
     </div>
   </NeutralContainer>
   <RapidCheckMode

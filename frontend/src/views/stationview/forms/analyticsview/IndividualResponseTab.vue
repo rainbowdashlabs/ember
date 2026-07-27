@@ -10,6 +10,7 @@ import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import type { FormResponse, FormQuestionAnalytics } from '@/api/types'
+import { formatDateTime } from '@/util/format'
 
 defineProps<{
   responses: FormResponse[]
@@ -48,7 +49,7 @@ const { t } = useI18n()
         <p v-if="currentResponse.memberIdentity" class="font-medium">
           <MemberName :identity="currentResponse.memberIdentity"/>
         </p>
-        <p class="text-xs text-(--text-muted)">{{ new Date(currentResponse.submittedAt).toLocaleString('de-DE') }}</p>
+        <p class="text-xs text-(--text-muted)">{{ formatDateTime(currentResponse.submittedAt) }}</p>
         <p v-if="currentResponse.submittedByName" class="text-xs text-(--text-muted) italic">{{ t('common.submittedBy', { name: currentResponse.submittedByName }) }}</p>
       </div>
 

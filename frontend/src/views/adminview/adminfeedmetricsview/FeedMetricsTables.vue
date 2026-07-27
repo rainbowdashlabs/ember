@@ -9,6 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import type {FeedUserAgentStat} from '@/api/feedMetrics'
+import {formatDateTime} from '@/util/format'
 
 defineProps<{
   statusBreakdown: Array<[number, number]>
@@ -54,7 +55,7 @@ const {t, n} = useI18n()
         <tr v-for="ua in userAgents" :key="ua.uaHash" class="border-t border-(--border) align-top">
           <td class="py-1 pr-3 font-mono break-all">{{ ua.uaString }}</td>
           <td class="py-1 pr-3 whitespace-nowrap">{{ n(ua.requestCount) }}</td>
-          <td class="py-1 pr-3 whitespace-nowrap">{{ new Date(ua.lastSeen).toLocaleString() }}</td>
+          <td class="py-1 pr-3 whitespace-nowrap">{{ formatDateTime(ua.lastSeen) }}</td>
         </tr>
         </tbody>
       </table>

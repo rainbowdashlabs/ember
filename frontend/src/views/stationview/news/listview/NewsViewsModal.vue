@@ -14,6 +14,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import {news as newsApi} from '@/api'
 import type {NewsViewsResponse} from '@/api/news'
+import {formatDateTime} from '@/util/format'
 
 const open = defineModel<boolean>({required: true})
 
@@ -47,11 +48,6 @@ async function load(newsId: number) {
   }
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString('de-DE', {
-    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
-  })
-}
 </script>
 
 <template>
@@ -66,7 +62,6 @@ function formatDate(iso: string): string {
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading && data">
-        <!-- Seen -->
         <section class="space-y-2">
           <div class="flex items-baseline gap-2">
             <p class="font-semibold text-sm">{{ t('news.views.seen') }}</p>
@@ -79,12 +74,11 @@ function formatDate(iso: string): string {
             <li v-for="entry in data.seen" :key="entry.member.memberUid"
                 class="flex items-center justify-between gap-3 text-sm">
               <MemberName :identity="entry.member"/>
-              <MutedText size="xs">{{ entry.seenAt ? formatDate(entry.seenAt) : '' }}</MutedText>
+              <MutedText size="xs">{{ formatDateTime(entry.seenAt) }}</MutedText>
             </li>
           </ul>
         </section>
 
-        <!-- Unseen -->
         <section class="space-y-2 pt-2 border-t border-(--border)">
           <div class="flex items-baseline gap-2">
             <p class="font-semibold text-sm">{{ t('news.views.unseen') }}</p>

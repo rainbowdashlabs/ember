@@ -27,6 +27,7 @@ import Td from '@/components/table/Td.vue'
 import Th from '@/components/table/Th.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import { resolveFederationVersion } from '@/util/federationVersion'
+import { formatDate } from '@/util/format'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -128,10 +129,9 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
     <template v-if="!loading && partner">
       <MutedText tag="p" size="sm">
         {{ t('federation.version') }}: v{{ resolveFederationVersion(partner.partner.federationVersion) }}
-        &mdash; {{ t('federation.since') }}: {{ new Date(partner.partner.createdAt).toLocaleDateString('de-DE') }}
+        &mdash; {{ t('federation.since') }}: {{ formatDate(partner.partner.createdAt) }}
       </MutedText>
 
-      <!-- Capabilities table -->
       <NeutralContainer>
         <table class="w-full text-sm">
           <thead>

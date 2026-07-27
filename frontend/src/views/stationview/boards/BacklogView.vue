@@ -18,6 +18,8 @@ import { boards, stationMembers } from '@/api'
 import type { MemberCompletion } from '@/api/stationMembers'
 import type { Board, BoardTicket } from '@/api/boards'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { formatDate } from '@/util/format'
+import { priorityIcon, priorityColor } from '@/util/ticketPriority'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -37,8 +39,6 @@ const {loading, error} = useAsyncLoader(async () => {
     }
 })
 
-function priorityIcon(p: string) { return { HIGHEST: ['fas','angles-up'], HIGH: ['fas','angle-up'], MEDIUM: ['fas','equals'], LOW: ['fas','angle-down'], LOWEST: ['fas','angles-down'] }[p] ?? ['fas','minus'] }
-function priorityColor(p: string) { return { HIGHEST: 'text-red-500', HIGH: 'text-orange-500', MEDIUM: 'text-yellow-500', LOW: 'text-blue-400', LOWEST: 'text-gray-400' }[p] ?? 'text-gray-400' }
 </script>
 
 <template>
@@ -79,7 +79,7 @@ function priorityColor(p: string) { return { HIGHEST: 'text-red-500', HIGH: 'tex
                                 <span class="text-xs whitespace-nowrap">{{ members.find(m => m.memberUid === ticket.assignee?.memberUid)?.name ?? '' }}</span>
                             </div>
                         </td>
-                        <td class="py-2 text-xs whitespace-nowrap">{{ ticket.dueDate ? new Date(ticket.dueDate).toLocaleDateString('de-DE') : '' }}</td>
+                        <td class="py-2 text-xs whitespace-nowrap">{{ formatDate(ticket.dueDate) }}</td>
                     </tr>
                 </tbody>
             </table>

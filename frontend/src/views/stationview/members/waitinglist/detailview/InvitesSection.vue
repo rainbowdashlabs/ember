@@ -12,6 +12,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type { WaitingListInvite } from '@/api/types'
+import { formatDate, formatDateTime } from '@/util/format'
 
 defineProps<{
   invites: WaitingListInvite[]
@@ -24,16 +25,6 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-
-function formatDate(dateStr: string | undefined | null): string {
-  if (!dateStr) return '-'
-  return new Date(dateStr).toLocaleDateString()
-}
-
-function formatDateTime(dateStr: string | undefined | null): string {
-  if (!dateStr) return '-'
-  return new Date(dateStr).toLocaleString()
-}
 </script>
 
 <template>

@@ -11,6 +11,7 @@ import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type {WaitingListEntryWithScore, WaitingListField} from '@/api/types'
+import {formatDate} from '@/util/format'
 
 const props = defineProps<{
   entries: WaitingListEntryWithScore[]
@@ -37,10 +38,6 @@ function fieldName(fieldId: number): string {
 
 function formatValue(value: unknown): string {
   return value == null ? '' : String(value)
-}
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString()
 }
 
 function toggle(id: number) {

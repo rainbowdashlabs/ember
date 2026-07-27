@@ -25,6 +25,7 @@ import type {InventoryDetail, InventoryItem, StationMember} from '@/api/types'
 import {InventoryTypes, ItemSource} from '@/api/types'
 import {inventory} from '@/api'
 import {useBreakpoint} from '@/composables/useBreakpoint'
+import {formatDate} from '@/util/format'
 
 const {isMobile} = useBreakpoint()
 const {t} = useI18n()
@@ -69,11 +70,6 @@ function getMemberIdentity(memberId: number | null | undefined) {
 function getSizeLabel(sizeId: number | null | undefined): string {
   if (!sizeId || !props.detail.sizes) return ''
   return props.detail.sizes.find(s => s.id === sizeId)?.label ?? ''
-}
-
-function formatDate(iso: string | null | undefined): string {
-  if (!iso) return '\u2013'
-  return new Date(iso).toLocaleDateString('de-DE', {day: '2-digit', month: '2-digit', year: 'numeric'})
 }
 
 async function unassignItem(item: InventoryItem) {
@@ -134,7 +130,6 @@ async function doMarkFound(item: InventoryItem) {
       {{ t('inventory.edit.noItems') }}
     </div>
 
-    <!-- Mobile card layout -->
     <div v-if="filteredItems.length > 0 && isMobile" class="space-y-2">
       <NeutralContainer v-for="item in filteredItems" :key="item.id" :class="item.lostAt ? 'opacity-60' : ''">
         <div class="flex items-start justify-between gap-2">
@@ -175,7 +170,6 @@ async function doMarkFound(item: InventoryItem) {
       </NeutralContainer>
     </div>
 
-    <!-- Desktop table layout -->
     <div v-if="filteredItems.length > 0 && !isMobile" class="overflow-x-auto">
       <table class="w-full text-sm">
         <thead>

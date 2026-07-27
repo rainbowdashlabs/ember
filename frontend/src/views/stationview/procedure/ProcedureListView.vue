@@ -31,6 +31,7 @@ import { procedures } from '@/api'
 import { StationPermission } from '@/api/types'
 import type { Procedure, ProcedureTemplate } from '@/api/procedures'
 import { ProcedureStatus } from '@/api/procedures'
+import { formatDate } from '@/util/format'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -46,7 +47,6 @@ const searchQuery = ref('')
 const statusFilter = ref<string>(ProcedureStatus.OPEN)
 const assigneeFilter = ref<string>(canEdit.value ? 'all' : 'me')
 
-// Create modal
 const showCreateModal = ref(false)
 const createMode = ref<'manual' | 'template'>('manual')
 const newName = ref('')
@@ -87,7 +87,9 @@ const filteredItems = computed(() => {
 async function loadTemplates() {
   try {
     templates.value = (await procedures.getTemplates()).filter(tpl => !tpl.archived)
-  } catch { /* ignore */ }
+  } catch {
+    return
+  }
 }
 
 function openCreateModal() {
@@ -118,11 +120,6 @@ async function handleCreate() {
   } catch {
     error.value = t('common.error')
   }
-}
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return ''
-  return new Date(dateStr).toLocaleDateString('de-DE')
 }
 
 watch([statusFilter, assigneeFilter], () => reload())

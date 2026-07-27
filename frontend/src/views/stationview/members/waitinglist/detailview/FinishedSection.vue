@@ -10,6 +10,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import WaitingListStatusBadge from '@/components/badge/WaitingListStatusBadge.vue'
 import type { WaitingListEntryWithScore } from '@/api/types'
+import { formatDate } from '@/util/format'
 
 const props = defineProps<{
   entries: WaitingListEntryWithScore[]
@@ -40,9 +41,9 @@ function onNameClick(item: WaitingListEntryWithScore) {
   }
 }
 
-function formatDate(dateStr: string | undefined | null): string {
-  if (!dateStr) return '-'
-  return new Date(dateStr).toLocaleDateString()
+function finishedDate(item: WaitingListEntryWithScore): string {
+  const e = item.entry
+  return formatDate(e.status === 'JOINED' ? e.joinedAt : e.withdrawnAt) || '-'
 }
 </script>
 
@@ -71,7 +72,7 @@ function formatDate(dateStr: string | undefined | null): string {
           <WaitingListStatusBadge :status="item.entry.status" />
         </div>
         <span class="text-xs text-(--text-muted)">
-          {{ item.entry.status === 'JOINED' ? formatDate(item.entry.joinedAt) : formatDate(item.entry.withdrawnAt) }}
+          {{ finishedDate(item) }}
         </span>
       </div>
     </div>
