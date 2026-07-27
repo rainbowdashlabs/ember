@@ -70,7 +70,7 @@ async function handleRevokeAll() {
             · {{ t('twoFactor.trustedDevices.expires') }}: {{ formatDateTime(device.trustedUntil) }}
           </MutedText>
         </div>
-        <ErrorButton size="sm" @click="handleRevoke(device)">{{ t('common.remove') }}</ErrorButton>
+        <ErrorButton compact @click="handleRevoke(device)">{{ t('common.remove') }}</ErrorButton>
       </li>
     </ul>
   </NeutralContainer>

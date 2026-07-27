@@ -192,7 +192,7 @@ async function handleRegenerate() {
               <font-awesome-icon :icon="['fas', 'mobile-screen']" class="text-(--text-muted)"/>
               <span class="font-medium">{{ t('twoFactor.authenticator') }}</span>
             </div>
-            <ErrorButton size="sm" @click="showRemoveModal = true">{{ t('common.remove') }}</ErrorButton>
+            <ErrorButton compact @click="showRemoveModal = true">{{ t('common.remove') }}</ErrorButton>
           </div>
         </NeutralContainer>
         <NeutralContainer v-else class="space-y-3">
@@ -201,7 +201,7 @@ async function handleRegenerate() {
               <font-awesome-icon :icon="['fas', 'mobile-screen']" class="text-(--text-muted)"/>
               <span class="font-medium">{{ t('twoFactor.authenticator') }}</span>
             </div>
-            <PrimaryButton size="sm" @click="startSetup">
+            <PrimaryButton compact @click="startSetup">
               <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
               {{ t('twoFactor.setup.begin') }}
             </PrimaryButton>
@@ -216,7 +216,7 @@ async function handleRegenerate() {
               <span class="font-medium">{{ t('twoFactor.backup.label') }}</span>
               <MutedText tag="span" size="sm" class="ml-2">{{ t('twoFactor.backup.remaining', {count: status.unusedBackupCodes}) }}</MutedText>
             </div>
-            <SecondaryButton size="sm" @click="handleRegenerate">{{ t('twoFactor.backup.regenerate') }}</SecondaryButton>
+            <SecondaryButton compact @click="handleRegenerate">{{ t('twoFactor.backup.regenerate') }}</SecondaryButton>
           </div>
         </NeutralContainer>
 

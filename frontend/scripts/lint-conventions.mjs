@@ -11,12 +11,13 @@
  *  6. .vue files > 300 lines get a warning
  *  7. Repeated element+class patterns (>5 occurrences)
  *  8. No inline toLocale date/time formatting in src/views/ — use util/format helpers (warning)
+ *  9. No size="…" on button components that do not declare a size prop (warning)
  *
  * Exit code 1 if any errors are found.
  */
 
 import {readFileSync} from 'fs'
-import {relative, sep} from 'path'
+import {basename, relative, sep} from 'path'
 import {SRC, walk, rel, isInsideDir, isInsideComponents, extractTemplate, createReporter} from './lint-utils.mjs'
 
 const reporter = createReporter()
@@ -27,8 +28,14 @@ const CAT_CSS_CLASSES = 'CSS class count'
 const CAT_FILE_SIZE = 'File size'
 const CAT_REPEATED = 'Repeated patterns'
 const CAT_INLINE_FORMAT = 'Inline date formatting'
+const CAT_DEAD_PROP = 'Dead prop'
 
 const vueFiles = walk(SRC, '.vue')
+
+const SIZE_AWARE_BUTTONS = new Set(vueFiles
+    .filter(file => isInsideDir(file, 'button'))
+    .filter(file => /defineProps<\{[^}]*\bsize\s*\??:/s.test(readFileSync(file, 'utf-8')))
+    .map(file => basename(file, '.vue')))
 
 for (const file of vueFiles) {
     const content = readFileSync(file, 'utf-8')
@@ -135,6 +142,19 @@ for (const file of vueFiles) {
         if (/ref<\{[^}]+\}/.test(line) && !line.includes('Record<')) {
             warn(file, i + 1, `Inline object type in ref<> — use a named interface/type instead.`, 'Inline type')
         }
+    }
+}
+
+for (const file of vueFiles) {
+    const content = readFileSync(file, 'utf-8')
+    const template = extractTemplate(content)
+    const templateStartLine = content.substring(0, content.indexOf('<template>')).split('\n').length
+
+    for (const match of template.matchAll(/<(\w*Button)\b[^>]*?>/gs)) {
+        if (SIZE_AWARE_BUTTONS.has(match[1])) continue
+        if (!/(?<![\w.:@-])size="/.test(match[0])) continue
+        const line = templateStartLine + template.substring(0, match.index).split('\n').length - 1
+        warn(file, line, `<${match[1]}> does not declare a size prop — size="…" silently becomes a dead DOM attribute. Use the compact prop.`, CAT_DEAD_PROP)
     }
 }
 

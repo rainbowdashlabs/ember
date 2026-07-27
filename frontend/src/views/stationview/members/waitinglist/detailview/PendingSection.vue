@@ -58,8 +58,8 @@ function toggle(id: number) {
             <InfoBadge class="shrink-0">{{ t('waitingList.status_PENDING') }}</InfoBadge>
           </div>
           <div v-if="!readonly" class="flex items-center gap-2 shrink-0 ml-2" @click.stop>
-            <SuccessButton size="sm" :icon="['fas', 'check']" @click="emit('approve', item.entry.id)">{{ t('waitingList.approve') }}</SuccessButton>
-            <ErrorButton size="sm" :icon="['fas', 'xmark']" @click="emit('reject', item.entry.id)">{{ t('waitingList.reject') }}</ErrorButton>
+            <SuccessButton compact :icon="['fas', 'check']" @click="emit('approve', item.entry.id)">{{ t('waitingList.approve') }}</SuccessButton>
+            <ErrorButton compact :icon="['fas', 'xmark']" @click="emit('reject', item.entry.id)">{{ t('waitingList.reject') }}</ErrorButton>
           </div>
         </div>
         <div v-if="expandedId === item.entry.id" class="mt-3 pt-3 border-t border-(--border) space-y-2 text-sm">

@@ -147,7 +147,7 @@ watch(() => props.inventoryId, load)
   <NeutralContainer>
     <div class="flex items-center justify-between mb-2">
       <SectionHeader>{{ t('inventory.fields.title') }}</SectionHeader>
-      <PrimaryButton v-if="!draft" size="sm" @click="startNew">
+      <PrimaryButton v-if="!draft" compact @click="startNew">
         <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
         {{ t('inventory.fields.add') }}
       </PrimaryButton>

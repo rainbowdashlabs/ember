@@ -168,7 +168,7 @@ onMounted(loadDescendants)
         <span v-if="movedIds.has(c.id)" class="ml-auto text-xs text-success">{{ t('inventory.storage.addExisting.moved') }}</span>
         <PrimaryButton
             v-else
-            size="sm"
+            compact
             class="ml-auto"
             :disabled="submitting"
             @click="moveHere(c)"

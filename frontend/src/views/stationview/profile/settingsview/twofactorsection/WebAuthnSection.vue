@@ -133,7 +133,7 @@ async function confirmRename() {
         <font-awesome-icon :icon="['fas', 'key']" class="text-(--text-muted)"/>
         <span class="font-medium">{{ t('twoFactor.webauthn.title') }}</span>
       </div>
-      <PrimaryButton size="sm" :disabled="!supported" @click="startEnrollment">
+      <PrimaryButton compact :disabled="!supported" @click="startEnrollment">
         <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
         {{ t('twoFactor.webauthn.add') }}
       </PrimaryButton>
@@ -154,8 +154,8 @@ async function confirmRename() {
           </MutedText>
         </div>
         <div class="flex items-center gap-2">
-          <SecondaryButton size="sm" @click="openRename(key)">{{ t('common.rename') }}</SecondaryButton>
-          <ErrorButton size="sm" @click="handleRemove(key)">{{ t('common.remove') }}</ErrorButton>
+          <SecondaryButton compact @click="openRename(key)">{{ t('common.rename') }}</SecondaryButton>
+          <ErrorButton compact @click="handleRemove(key)">{{ t('common.remove') }}</ErrorButton>
         </div>
       </li>
     </ul>

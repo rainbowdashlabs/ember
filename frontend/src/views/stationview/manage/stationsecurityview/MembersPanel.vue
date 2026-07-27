@@ -63,7 +63,7 @@ const mandatedNotEnrolled = computed(() => props.members.filter(m => m.mandated 
               <InfoBadge v-else>{{ t('twoFactor.admin.statusOptional') }}</InfoBadge>
             </td>
             <td class="py-2 pr-3">
-              <ErrorButton v-if="m.enrolled" size="sm" @click="emit('reset', m)">
+              <ErrorButton v-if="m.enrolled" compact @click="emit('reset', m)">
                 {{ t('twoFactor.admin.reset') }}
               </ErrorButton>
             </td>

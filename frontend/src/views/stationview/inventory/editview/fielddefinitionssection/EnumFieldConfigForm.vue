@@ -45,7 +45,7 @@ function addOption() {
                 <IconButton :icon="['fas', 'trash']" :label="t('common.delete')" @click="removeOption(idx)" />
             </li>
         </ul>
-        <SecondaryButton size="sm" class="mt-2" @click="addOption">
+        <SecondaryButton compact class="mt-2" @click="addOption">
             <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
             {{ t('inventory.fields.enum.add') }}
         </SecondaryButton>

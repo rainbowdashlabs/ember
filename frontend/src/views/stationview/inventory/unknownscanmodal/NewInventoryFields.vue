@@ -72,7 +72,7 @@ function onSizeInput(index: number, value: string, current: string[]) {
           @click="emit('removeSize', idx)"
       />
     </div>
-    <SecondaryButton size="sm" @click="emit('addSize')">
+    <SecondaryButton compact @click="emit('addSize')">
       <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
       {{ t('inventory.unknownScan.addSize') }}
     </SecondaryButton>
