@@ -1,8 +1,8 @@
 [versions]
-logback = "1.5.37"
+logback = "1.5.38"
 sadu = "2.3.9"
-jackson = "3.2.0"
-junit = "6.1.1"
+jackson = "3.2.1"
+junit = "6.1.2"
 javalin = "7.2.2"
 testcontainers = "2.0.5"
 commonmark = "0.29.0"
@@ -15,7 +15,7 @@ pitest = { id = "info.solidsoft.pitest", version = "1.19.0" }
 [libraries]
 # Database
 hikari = { group = "com.zaxxer", name = "HikariCP", version = "7.1.0" }
-postgres = { group = "org.postgresql", name = "postgresql", version = "42.7.12" }
+postgres = { group = "org.postgresql", name = "postgresql", version = "42.7.13" }
 sadu-postgresql = { group = "de.chojo.sadu", name = "sadu-postgresql", version.ref = "sadu" }
 sadu-datasource = { group = "de.chojo.sadu", name = "sadu-datasource", version.ref = "sadu" }
 sadu-queries = { group = "de.chojo.sadu", name = "sadu-queries", version.ref = "sadu" }
@@ -81,21 +81,21 @@ imageio-webp = { group = "com.twelvemonkeys.imageio", name = "imageio-webp", ver
 smbj = { group = "com.hierynomus", name = "smbj", version = "0.14.0" }
 sshd-core = { group = "org.apache.sshd", name = "sshd-core", version = "2.19.0" }
 sshd-sftp = { group = "org.apache.sshd", name = "sshd-sftp", version = "2.19.0" }
-aws-s3 = { group = "software.amazon.awssdk", name = "s3", version = "2.46.21" }
+aws-s3 = { group = "software.amazon.awssdk", name = "s3", version = "2.47.5" }
 
 # HTML sanitization
 jsoup = { group = "org.jsoup", name = "jsoup", version = "1.22.2" }
 
 # AI SDKs
-openai = { group = "com.openai", name = "openai-java", version = "4.41.0" }
+openai = { group = "com.openai", name = "openai-java", version = "4.42.0" }
 anthropic = { group = "com.anthropic", name = "anthropic-java", version = "2.48.0" }
-google-genai = { group = "com.google.genai", name = "google-genai", version = "1.60.0" }
+google-genai = { group = "com.google.genai", name = "google-genai", version = "1.61.0" }
 
 # CSV
 commons-csv = { group = "org.apache.commons", name = "commons-csv", version = "1.14.1" }
 
 # PDF
-pdfbox = { group = "org.apache.pdfbox", name = "pdfbox", version = "3.0.7" }
+pdfbox = { group = "org.apache.pdfbox", name = "pdfbox", version = "3.0.8" }
 
 # iCal
 ical4j = { group = "org.mnode.ical4j", name = "ical4j", version = "4.3.0" }
