@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.account.entity.AccountToken;
 import dev.chojo.ember.feature.account.entity.TokenType;
 import dev.chojo.ember.feature.legal.entity.GdprConsent;
 import dev.chojo.ember.util.sql.SqlSupport;
+import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -128,17 +129,12 @@ public class AccountRepository {
      */
     public List<PickerAccount> searchForPicker(String search, int limit) {
         boolean hasSearch = search != null && !search.isBlank();
-        String predicate = hasSearch
-                ? "WHERE LOWER(COALESCE(full_name, first_name || ' ' || last_name, '')) LIKE :q"
-                        + " OR LOWER(first_name) LIKE :q"
-                        + " OR LOWER(last_name) LIKE :q"
-                        + " OR LOWER(email) LIKE :q"
-                : "";
         String order = hasSearch ? "display_name" : "id DESC";
-        var c = call().bind("limit", limit);
-        if (hasSearch) {
-            c = c.bind("q", "%" + search.trim().toLowerCase() + "%");
-        }
+        var where = WhereBuilder.create().like("""
+                        WHERE LOWER(COALESCE(full_name, first_name || ' ' || last_name, '')) LIKE :q
+                           OR LOWER(first_name) LIKE :q
+                           OR LOWER(last_name) LIKE :q
+                           OR LOWER(email) LIKE :q""", "q", search);
         return query("""
                 SELECT id,
                        uid,
@@ -149,7 +145,10 @@ public class AccountRepository {
                 FROM account
                 %s
                 ORDER BY %s
-                LIMIT :limit;""", predicate, order).single(c).map(PickerAccount.map()).all();
+                LIMIT :limit;""", where.fragment(), order)
+                .single(where.apply(call().bind("limit", limit)))
+                .map(PickerAccount.map())
+                .all();
     }
 
     /**

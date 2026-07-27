@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.traffic.repository;
 
 import dev.chojo.ember.feature.traffic.entity.AuthBucket;
 import dev.chojo.ember.feature.traffic.entity.TrafficBucket;
+import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
@@ -46,20 +47,17 @@ public class StationTrafficRepository {
      * buckets.
      */
     public List<TrafficBucket> findHourly(Instant from, Instant to, Integer stationId, AuthBucket auth) {
-        String stationPredicate = stationId != null ? "AND station_id = :station_id" : "";
-        String authPredicate = auth != null ? "AND auth = :auth" : "";
-        var c = call().bind("from", from, INSTANT_TIMESTAMP).bind("to", to, INSTANT_TIMESTAMP);
-        if (stationId != null) c = c.bind("station_id", stationId);
-        if (auth != null) c = c.bind("auth", auth.name());
+        var where = WhereBuilder.create()
+                .add("AND station_id = :station_id", "station_id", stationId)
+                .add("AND auth = :auth", "auth", auth);
         return query("""
                 SELECT hour, station_id, auth, ingress_bytes, egress_bytes, requests
                 FROM station_traffic_hourly
                 WHERE hour >= :from
                   AND hour <= :to
                   %s
-                  %s
-                ORDER BY hour, auth;""", stationPredicate, authPredicate)
-                .single(c)
+                ORDER BY hour, auth;""", where.fragment())
+                .single(where.apply(call().bind("from", from, INSTANT_TIMESTAMP).bind("to", to, INSTANT_TIMESTAMP)))
                 .map(row -> new TrafficBucket(
                         row.get("hour", INSTANT_TIMESTAMP),
                         row.getObject("station_id") == null ? null : row.getInt("station_id"),
@@ -76,9 +74,7 @@ public class StationTrafficRepository {
      * together when summing across the whole table.
      */
     public List<TrafficBucket> findGlobal(Instant from, Instant to, AuthBucket auth) {
-        String authPredicate = auth != null ? "AND auth = :auth" : "";
-        var c = call().bind("from", from, INSTANT_TIMESTAMP).bind("to", to, INSTANT_TIMESTAMP);
-        if (auth != null) c = c.bind("auth", auth.name());
+        var where = WhereBuilder.create().add("AND auth = :auth", "auth", auth);
         return query("""
                 SELECT hour, station_id, auth, ingress_bytes, egress_bytes, requests
                 FROM station_traffic_hourly
@@ -86,8 +82,8 @@ public class StationTrafficRepository {
                   AND hour >= :from
                   AND hour <= :to
                   %s
-                ORDER BY hour, auth;""", authPredicate)
-                .single(c)
+                ORDER BY hour, auth;""", where.fragment())
+                .single(where.apply(call().bind("from", from, INSTANT_TIMESTAMP).bind("to", to, INSTANT_TIMESTAMP)))
                 .map(row -> new TrafficBucket(
                         row.get("hour", INSTANT_TIMESTAMP),
                         null,

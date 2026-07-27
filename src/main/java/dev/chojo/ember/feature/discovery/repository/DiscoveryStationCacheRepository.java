@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.discovery.repository;
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.feature.discovery.entity.CachedDiscoveryStation;
 import dev.chojo.ember.feature.discovery.entity.DiscoveryStationCard;
+import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
@@ -99,15 +100,10 @@ public class DiscoveryStationCacheRepository {
     }
 
     public List<CachedDiscoveryStation> searchForPicker(String search, int limit) {
-        boolean hasSearch = search != null && !search.isBlank();
-        String predicate = hasSearch ? """
-                AND (LOWER(c.payload->>'name') LIKE :q
-                     OR LOWER(COALESCE(c.payload->>'city', '')) LIKE :q
-                     OR LOWER(COALESCE(c.payload->>'country', '')) LIKE :q)""" : "";
-        var c = call().bind("limit", limit);
-        if (hasSearch) {
-            c = c.bind("q", "%" + search.trim().toLowerCase() + "%");
-        }
+        var where = WhereBuilder.create().like("""
+                        AND (LOWER(c.payload->>'name') LIKE :q
+                             OR LOWER(COALESCE(c.payload->>'city', '')) LIKE :q
+                             OR LOWER(COALESCE(c.payload->>'country', '')) LIKE :q)""", "q", search);
         return query("""
                 SELECT %s
                 FROM discovery_station_cache c
@@ -116,8 +112,8 @@ public class DiscoveryStationCacheRepository {
                   AND p.blocked = FALSE
                   %s
                 ORDER BY C.fetched_at DESC
-                LIMIT :limit;""", alias("c", DISCOVERY_STATION_CACHE_COLUMNS), predicate)
-                .single(c)
+                LIMIT :limit;""", alias("c", DISCOVERY_STATION_CACHE_COLUMNS), where.fragment())
+                .single(where.apply(call().bind("limit", limit)))
                 .map(CachedDiscoveryStation.map())
                 .all();
     }

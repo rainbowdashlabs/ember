@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsComment;
 import dev.chojo.ember.feature.news.entity.NewsViewer;
 import dev.chojo.ember.util.sql.SqlSupport;
+import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
@@ -183,12 +184,8 @@ public class NewsRepository {
      * {@code null} search term returns the most recent entries.
      */
     public List<News> findPublicBlogEntries(int stationId, String search, int offset, int limit) {
-        boolean hasSearch = search != null && !search.isBlank();
-        String filter = hasSearch ? " AND (LOWER(n.title) LIKE :q OR LOWER(n.content_markdown) LIKE :q)" : "";
-        var c = call().bind("station_id", stationId).bind("limit", limit).bind("offset", offset);
-        if (hasSearch) {
-            c = c.bind("q", "%" + search.trim().toLowerCase() + "%");
-        }
+        var where = WhereBuilder.create()
+                .like("AND (LOWER(n.title) LIKE :q OR LOWER(n.content_markdown) LIKE :q)", "q", search);
         return query("""
                 SELECT
                     %s, %s
@@ -200,8 +197,10 @@ public class NewsRepository {
                   AND NOT EXISTS(SELECT 1 FROM news_restriction r WHERE r.news_id = n.id)
                     %s
                 ORDER BY n.published_at DESC
-                LIMIT :limit OFFSET :offset;""", NEWS_ALIASED, NEWS_RESTRICTED, filter)
-                .single(c)
+                LIMIT :limit OFFSET :offset;""", NEWS_ALIASED, NEWS_RESTRICTED, where.fragment())
+                .single(where.apply(call().bind("station_id", stationId)
+                        .bind("limit", limit)
+                        .bind("offset", offset)))
                 .map(News.map())
                 .all();
     }

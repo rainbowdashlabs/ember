@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.checklist.entity.ChecklistSummary;
 import dev.chojo.ember.feature.restriction.Restriction;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.util.sql.SqlSupport;
+import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
@@ -224,13 +225,13 @@ public class ChecklistRepository {
     }
 
     public List<ChecklistEntry> findEntries(int checklistId, boolean includeDeleted) {
-        String predicate = includeDeleted ? "" : "AND deleted_at IS NULL";
+        var where = WhereBuilder.create().addIf(!includeDeleted, "AND deleted_at IS NULL");
         return query("""
                         SELECT %s
                           FROM checklist_entry
                          WHERE checklist_id = :checklist_id %s
-                         ORDER BY added_at, id;""", CHECKLIST_ENTRY_COLUMNS, predicate)
-                .single(call().bind("checklist_id", checklistId))
+                         ORDER BY added_at, id;""", CHECKLIST_ENTRY_COLUMNS, where.fragment())
+                .single(where.apply(call().bind("checklist_id", checklistId)))
                 .map(ChecklistEntry.map())
                 .all();
     }

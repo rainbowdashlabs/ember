@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.procedure.entity.ProcedureItem;
 import dev.chojo.ember.feature.procedure.entity.ProcedureStatus;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplate;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplateItem;
+import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
@@ -40,11 +41,11 @@ public class ProcedureRepository {
     // ── Templates ──
 
     public List<ProcedureTemplate> findTemplatesByStation(int stationId, boolean includeArchived) {
-        var sql = includeArchived
-                ? "SELECT %s FROM procedure_template WHERE station_id = :station_id ORDER BY created_at DESC;"
-                : "SELECT %s FROM procedure_template WHERE station_id = :station_id AND archived = FALSE ORDER BY created_at DESC;";
-        return query(sql, PROCEDURE_TEMPLATE_COLUMNS)
-                .single(call().bind("station_id", stationId))
+        var where = WhereBuilder.create().addIf(!includeArchived, "AND archived = FALSE");
+        return query(
+                        "SELECT %s FROM procedure_template WHERE station_id = :station_id %s ORDER BY created_at DESC;",
+                        PROCEDURE_TEMPLATE_COLUMNS, where.fragment())
+                .single(where.apply(call().bind("station_id", stationId)))
                 .map(ProcedureTemplate.map())
                 .all();
     }
@@ -189,44 +190,21 @@ public class ProcedureRepository {
     // ── Procedures ──
 
     public List<Procedure> findProceduresByStation(int stationId, ProcedureStatus status) {
-        if (status != null) {
-            return query("""
-                    SELECT %s FROM procedure
-                    WHERE station_id = :station_id AND status = :status
-                    ORDER BY created_at DESC;""", PROCEDURE_COLUMNS)
-                    .single(call().bind("station_id", stationId).bind("status", status))
-                    .map(Procedure.map())
-                    .all();
-        }
-        return query(
-                        "SELECT %s FROM procedure WHERE station_id = :station_id ORDER BY created_at DESC;",
-                        PROCEDURE_COLUMNS)
-                .single(call().bind("station_id", stationId))
+        var where = WhereBuilder.create().add("AND status = :status", "status", status);
+        return query("""
+                SELECT %s FROM procedure
+                WHERE station_id = :station_id %s
+                ORDER BY created_at DESC;""", PROCEDURE_COLUMNS, where.fragment())
+                .single(where.apply(call().bind("station_id", stationId)))
                 .map(Procedure.map())
                 .all();
     }
 
     public List<Procedure> findProceduresByAssignee(
             int stationId, int memberId, ProcedureStatus status, boolean publicOnly) {
-        var publicFilter = publicOnly ? " AND p.public" : "";
-        if (status != null) {
-            return query("""
-                    SELECT
-                        %s
-                    FROM
-                        procedure p
-                            JOIN procedure_assignee pa
-                            ON pa.procedure_id = p.id
-                    WHERE p.station_id = :station_id
-                      AND pa.member_id = :member_id
-                      AND p.status = :status %s
-                    ORDER BY p.created_at DESC;""", alias("p", PROCEDURE_COLUMNS), publicFilter)
-                    .single(call().bind("station_id", stationId)
-                            .bind("member_id", memberId)
-                            .bind("status", status))
-                    .map(Procedure.map())
-                    .all();
-        }
+        var where = WhereBuilder.create()
+                .add("AND p.status = :status", "status", status)
+                .addIf(publicOnly, "AND p.public");
         return query("""
                 SELECT
                     %s
@@ -235,9 +213,10 @@ public class ProcedureRepository {
                         JOIN procedure_assignee pa
                         ON pa.procedure_id = p.id
                 WHERE p.station_id = :station_id
-                  AND pa.member_id = :member_id %s
-                ORDER BY p.created_at DESC;""", alias("p", PROCEDURE_COLUMNS), publicFilter)
-                .single(call().bind("station_id", stationId).bind("member_id", memberId))
+                  AND pa.member_id = :member_id
+                  %s
+                ORDER BY p.created_at DESC;""", alias("p", PROCEDURE_COLUMNS), where.fragment())
+                .single(where.apply(call().bind("station_id", stationId).bind("member_id", memberId)))
                 .map(Procedure.map())
                 .all();
     }

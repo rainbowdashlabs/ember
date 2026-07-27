@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.util.sql.SqlSupport;
+import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
@@ -112,8 +113,6 @@ public class EventRepository {
      * inherited from a public category).
      */
     public List<PickerEvent> searchForPicker(int stationId, String search, PickerMode mode, int limit) {
-        boolean hasSearch = search != null && !search.isBlank();
-        String namePredicate = hasSearch ? "AND LOWER(e.name) LIKE :q" : "";
         String timePredicate =
                 switch (mode) {
                     case FUTURE -> "AND e.start_time > NOW()";
@@ -121,10 +120,9 @@ public class EventRepository {
                     case ALL -> "";
                 };
         String order = mode == PickerMode.PAST ? "e.start_time DESC" : "e.start_time ASC";
-        var c = call().bind("station_id", stationId).bind("limit", limit);
-        if (hasSearch) {
-            c = c.bind("q", "%" + search.trim().toLowerCase() + "%");
-        }
+        var where = WhereBuilder.create()
+                .like("AND LOWER(e.name) LIKE :q", "q", search)
+                .add(timePredicate);
         return query("""
                 SELECT e.public_uid, e.name, e.start_time, c.name AS category_name
                 FROM station_event e
@@ -132,10 +130,9 @@ public class EventRepository {
                 WHERE e.station_id = :station_id
                   AND (e.public = TRUE OR (e.public IS NULL AND c.public = TRUE))
                   %s
-                  %s
                 ORDER BY %s
-                LIMIT :limit;""", namePredicate, timePredicate, order)
-                .single(c)
+                LIMIT :limit;""", where.fragment(), order)
+                .single(where.apply(call().bind("station_id", stationId).bind("limit", limit)))
                 .map(row -> new PickerEvent(
                         row.get("public_uid", StandardValueConverter.UUID_STRING),
                         row.getString("name"),
@@ -166,31 +163,23 @@ public class EventRepository {
 
     public List<StationEvent> findFiltered(
             int stationId, Integer memberId, Integer categoryId, Boolean requiresRegistration) {
-        String memberPredicate = memberId != null
-                ? "AND check_restriction('event_restriction', 'event_id', 'station_event', 'id', e.id, :member_id, 'EVENT_MANAGER')"
-                : "";
-        String categoryPredicate = categoryId != null ? "AND e.category_id = :category_id" : "";
-        String requiresRegistrationPredicate =
-                requiresRegistration != null ? "AND e.requires_registration = :requires_registration" : "";
-        var call = call().bind("station_id", stationId);
-        if (memberId != null) call = call.bind("member_id", memberId);
-        if (categoryId != null) call = call.bind("category_id", categoryId);
-        if (requiresRegistration != null) call = call.bind("requires_registration", requiresRegistration);
-        return query(
-                        """
+        var where = WhereBuilder.create()
+                .add(
+                        "AND check_restriction('event_restriction', 'event_id', 'station_event', 'id', e.id, :member_id, 'EVENT_MANAGER')",
+                        "member_id",
+                        memberId)
+                .add("AND e.category_id = :category_id", "category_id", categoryId)
+                .add(
+                        "AND e.requires_registration = :requires_registration",
+                        "requires_registration",
+                        requiresRegistration);
+        return query("""
                 SELECT %s, %s
                 FROM station_event e
                 WHERE e.station_id = :station_id
                   %s
-                  %s
-                  %s
-                ORDER BY e.event_type, e.name;""",
-                        SqlSupport.alias("e", EVENT_COLUMNS),
-                        EVENT_RESTRICTED_COLUMN,
-                        memberPredicate,
-                        categoryPredicate,
-                        requiresRegistrationPredicate)
-                .single(call)
+                ORDER BY e.event_type, e.name;""", SqlSupport.alias("e", EVENT_COLUMNS), EVENT_RESTRICTED_COLUMN, where.fragment())
+                .single(where.apply(call().bind("station_id", stationId)))
                 .map(StationEvent.map())
                 .all();
     }

@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.page.entity.PageFile;
 import dev.chojo.ember.feature.page.entity.PageRow;
 import dev.chojo.ember.feature.page.entity.StationPage;
 import dev.chojo.ember.util.sql.SqlSupport;
+import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
@@ -113,12 +114,7 @@ public class PageRepository {
      * returns the most recently updated pages so the picker has something on first focus.
      */
     public List<PickerPage> searchForPicker(int stationId, String search, int limit) {
-        boolean hasSearch = search != null && !search.isBlank();
-        String predicate = hasSearch ? "AND LOWER(title) LIKE :q" : "";
-        var c = call().bind("station_id", stationId).bind("limit", limit);
-        if (hasSearch) {
-            c = c.bind("q", "%" + search.trim().toLowerCase() + "%");
-        }
+        var where = WhereBuilder.create().like("AND LOWER(title) LIKE :q", "q", search);
         return query("""
                 SELECT public_uid, title, slug, updated_at
                 FROM station_page
@@ -126,8 +122,8 @@ public class PageRepository {
                   AND PUBLISHED
                   %s
                 ORDER BY updated_at DESC
-                LIMIT :limit;""", predicate)
-                .single(c)
+                LIMIT :limit;""", where.fragment())
+                .single(where.apply(call().bind("station_id", stationId).bind("limit", limit)))
                 .map(row -> new PickerPage(
                         row.get("public_uid", StandardValueConverter.UUID_STRING),
                         row.getString("title"),

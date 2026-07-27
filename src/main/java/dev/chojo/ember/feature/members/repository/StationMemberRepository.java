@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.members.entity.RichMember;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.sql.SqlSupport;
+import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -244,12 +245,9 @@ public class StationMemberRepository {
      */
     public List<PickerMember> searchForPicker(int stationId, String search, int limit) {
         boolean hasSearch = search != null && !search.isBlank();
-        String predicate = hasSearch ? "AND LOWER(COALESCE(a.full_name, sm.display_name, '')) LIKE :q" : "";
         String order = hasSearch ? "display_name" : "sm.join_date DESC";
-        var c = call().bind("station_id", stationId).bind("limit", limit);
-        if (hasSearch) {
-            c = c.bind("q", "%" + search.trim().toLowerCase() + "%");
-        }
+        var where = WhereBuilder.create()
+                .like("AND LOWER(COALESCE(a.full_name, sm.display_name, '')) LIKE :q", "q", search);
         return query("""
                 SELECT %s
                 FROM station_member sm
@@ -257,8 +255,8 @@ public class StationMemberRepository {
                 WHERE sm.station_id = :station_id AND sm.former = FALSE
                   %s
                 ORDER BY %s
-                LIMIT :limit;""", PICKER_MEMBER_COLUMNS, predicate, order)
-                .single(c)
+                LIMIT :limit;""", PICKER_MEMBER_COLUMNS, where.fragment(), order)
+                .single(where.apply(call().bind("station_id", stationId).bind("limit", limit)))
                 .map(PickerMember.map())
                 .all();
     }
