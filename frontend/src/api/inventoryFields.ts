@@ -20,18 +20,22 @@ export interface EnumOption {
 }
 
 export interface DateFieldConfig {
+    kind: 'DATE'
 }
 
 export interface EnumFieldConfig {
+    kind: 'ENUM'
     options: EnumOption[]
 }
 
 export interface TextFieldConfig {
+    kind: 'TEXT'
     multiline: boolean
     maxLength: number
 }
 
 export interface NumberFieldConfig {
+    kind: 'NUMBER'
     min?: number | null
     max?: number | null
     step?: number | null
@@ -39,6 +43,7 @@ export interface NumberFieldConfig {
 }
 
 export interface BooleanFieldConfig {
+    kind: 'BOOLEAN'
     trueLabel: string
     falseLabel: string
 }
@@ -109,14 +114,14 @@ export async function deleteField(inventoryId: number, fieldId: number): Promise
 export function defaultFieldConfig(type: FieldTypeName): FieldConfig {
     switch (type) {
         case FieldType.DATE:
-            return {}
+            return {kind: 'DATE'}
         case FieldType.ENUM:
-            return {options: []}
+            return {kind: 'ENUM', options: []}
         case FieldType.TEXT:
-            return {multiline: false, maxLength: 200}
+            return {kind: 'TEXT', multiline: false, maxLength: 200}
         case FieldType.NUMBER:
-            return {min: null, max: null, step: null, unit: ''}
+            return {kind: 'NUMBER', min: null, max: null, step: null, unit: ''}
         case FieldType.BOOLEAN:
-            return {trueLabel: 'Yes', falseLabel: 'No'}
+            return {kind: 'BOOLEAN', trueLabel: 'Yes', falseLabel: 'No'}
     }
 }
