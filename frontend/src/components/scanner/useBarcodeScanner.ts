@@ -101,7 +101,6 @@ export interface StartScanOptions {
     videoEl: HTMLVideoElement
     formats?: BarcodeFormat[]
     onDecode: (value: string) => void
-    onError?: (error: Error) => void
 }
 
 /**
@@ -119,9 +118,7 @@ export function useBarcodeScanner() {
         const tier = await probeTier(formats)
         if (tier === 'unsupported') {
             const insecure = typeof window !== 'undefined' && window.isSecureContext === false
-            const err = new Error(insecure ? 'barcode-scanner-insecure-context' : 'barcode-scanner-unsupported')
-            options.onError?.(err)
-            throw err
+            throw new Error(insecure ? 'barcode-scanner-insecure-context' : 'barcode-scanner-unsupported')
         }
 
         const stream = await openCameraStream(options)
@@ -149,14 +146,13 @@ export function useBarcodeScanner() {
                     height: {ideal: 1080},
                 },
             })
-            await enableContinuousFocus(stream)
+            enableContinuousFocus(stream).catch(() => undefined)
             return stream
         } catch (e) {
             const err = e as Error
             if (err.name === 'NotFoundError' || err.name === 'OverconstrainedError') {
                 markNoCamera()
             }
-            options.onError?.(err)
             throw err
         }
     }
@@ -183,7 +179,6 @@ export function useBarcodeScanner() {
             await options.videoEl.play()
         } catch (e) {
             stream.getTracks().forEach(t => t.stop())
-            options.onError?.(e as Error)
             throw e
         }
         await waitForFreshFrame(options.videoEl)

@@ -9,7 +9,7 @@ import {useRoute} from 'vue-router'
 import {useI18n} from 'vue-i18n'
 import {getTwoFactorStatus, verify2fa, webauthnLoginBegin, webauthnLoginFinish} from '@/api/twoFactor'
 import {getWebAuthnCredential, isWebAuthnSupported} from '@/util/webauthn'
-import {removeItem, setItem} from '@/api/storage'
+import {setItem} from '@/api/storage'
 import {scheduleTokenRefresh} from '@/api/client'
 import {session} from '@/api'
 import {useStations} from '@/composables/useStations'
@@ -26,7 +26,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 const route = useRoute()
-const {setActiveStation} = useStations()
+const {setActiveStation, clearActiveStation} = useStations()
 
 const preAuthToken = ref(route.query.token as string || '')
 const code = ref('')
@@ -93,7 +93,7 @@ async function handleWebAuthn() {
 async function finalizeSession(token: string, expiresAt: string) {
   setItem('session_token', token)
   setItem('session_expires_at', expiresAt)
-  removeItem('station_id')
+  clearActiveStation()
   scheduleTokenRefresh(expiresAt)
   const redirect = route.query.redirect as string | undefined
   try {

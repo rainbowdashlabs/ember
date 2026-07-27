@@ -8,7 +8,7 @@ import CheckMemberHelp from '~/views/helpcenter/stationview/inventory/CheckMembe
 
 definePageMeta({
   layout: 'helpcenter',
-  name: 'help-inventory-check-member',
+  name: 'help-inventory-check-member-detail',
 })
 </script>
 

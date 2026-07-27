@@ -1,5 +1,12 @@
 # Changelog
 
+## v26.11.7
+
+### Fixes
+
+- **Opening a station loads it completely.** Picking a station on the cross-station overview reliably shows that station's profile and menu instead of occasionally returning to the overview or showing an empty page. Links from emails and feeds that point into a specific station open in that station.
+- **A clear message when session data cannot be loaded.** If loading the session fails, an error message with a retry button appears instead of an empty page with a bare menu.
+
 ## v26.11.6
 
 ### Changes

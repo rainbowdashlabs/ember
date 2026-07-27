@@ -8,7 +8,7 @@ import {join, relative, sep} from 'path'
 // ── Paths ───────────────────────────────────────────────────────────
 
 export const SRC = new URL('../src', import.meta.url).pathname
-export const ROUTER_FILE = join(SRC, 'router', 'index.ts')
+export const PAGES_DIR = join(SRC, 'pages')
 
 // ── Colors ──────────────────────────────────────────────────────────
 
@@ -54,35 +54,54 @@ export function extractTemplate(content) {
     return content.substring(start, end + '</template>'.length)
 }
 
-// ── Router parsing ──────────────────────────────────────────────────
+// ── Route parsing (Nuxt file-based routing) ─────────────────────────
+
+const SECTION_ROOTS = ['helpcenter/station', 'helpcenter/admin', 'helpcenter/cluster', 'station', 'admin', 'account', 'cluster']
+
+function pagePathToRoutePath(file) {
+    let p = relative(PAGES_DIR, file).split(sep).join('/').replace(/\.vue$/, '')
+    if (p.endsWith('/index')) p = p.slice(0, -'/index'.length)
+    if (p === 'index') p = ''
+    return p
+        .split('/')
+        .map(seg => {
+            if (seg.startsWith('[...') && seg.endsWith(']')) return ':pathMatch(.*)*'
+            if (seg.startsWith('[[') && seg.endsWith(']]')) return `:${seg.slice(2, -2)}?`
+            if (seg.startsWith('[') && seg.endsWith(']')) return `:${seg.slice(1, -1)}`
+            return seg
+        })
+        .join('/')
+}
+
+function stripSectionRoot(path) {
+    for (const root of SECTION_ROOTS) {
+        if (path === root) return ''
+        if (path.startsWith(`${root}/`)) return path.slice(root.length + 1)
+    }
+    return path
+}
 
 /**
- * Parse all named routes from the router file.
- * Returns array of {name, path} objects.
+ * Parse all named routes from the Nuxt page files in src/pages.
+ * Returns array of {name, path, component} objects, where path is relative
+ * to the page's section root (station/, admin/, account/, helpcenter/*) to
+ * make app and help-center routes comparable, and component is the page's
+ * view import normalized to a `@/views/...` spec.
  */
 export function parseRoutes() {
-    const content = readFileSync(ROUTER_FILE, 'utf-8')
-    const lines = content.split('\n')
     const routes = []
-
-    for (let i = 0; i < lines.length; i++) {
-        const pathMatch = lines[i].match(/^\s*path:\s*'([^']*)'/)
-        if (!pathMatch) continue
-
-        let name = null
-        let component = null
-        for (let j = i + 1; j < Math.min(i + 6, lines.length); j++) {
-            const nameMatch = lines[j].match(/^\s*name:\s*'([^']*)'/)
-            if (nameMatch) name = nameMatch[1]
-            const compMatch = lines[j].match(/import\('([^']+)'\)/)
-            if (compMatch) component = compMatch[1]
-            if (lines[j].match(/^\s*path:\s*'/) || lines[j].match(/^\s{8,12}}/)) break
-        }
-        if (name) {
-            routes.push({name, path: pathMatch[1], component: component || null})
-        }
+    for (const file of walk(PAGES_DIR, '.vue')) {
+        const content = readFileSync(file, 'utf-8')
+        const metaBlock = content.match(/definePageMeta\(\{([\s\S]*?)\}\)/)
+        const nameMatch = metaBlock && metaBlock[1].match(/name:\s*'([^']+)'/)
+        if (!nameMatch) continue
+        const compMatch = content.match(/import\s+\w+\s+from\s+'[~@]\/(views\/[^']+)'/)
+        routes.push({
+            name: nameMatch[1],
+            path: stripSectionRoot(pagePathToRoutePath(file)),
+            component: compMatch ? `@/${compMatch[1]}` : null,
+        })
     }
-
     return routes
 }
 

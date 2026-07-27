@@ -44,6 +44,7 @@ const {
   sessionInfo,
   loaded,
   loadFailed,
+  sessionStationId,
   load,
   isAdmin,
   isManager,
@@ -58,7 +59,10 @@ const {
   isGuardian,
   isModuleEnabled,
 } = useSession()
-const {activeStation, activeLogoUrl} = useStations()
+const {activeStation, activeLogoUrl, currentStationId} = useStations()
+
+const sessionCurrent = computed(() => loaded.value && sessionStationId.value === currentStationId.value)
+const sessionReady = computed(() => sessionCurrent.value && !loadFailed.value)
 const {counts, refresh: refreshSidebarCounts} = useSidebarCounts()
 const {bookmarks: bookmarkedBoards, refresh: refreshBookmarkedBoards} = useFederatedBoardBookmarks()
 const {
@@ -108,7 +112,7 @@ async function refreshBoards() {
 }
 
 onMounted(async () => {
-  if (!loaded.value) {
+  if (!sessionCurrent.value) {
     load()
   }
   resetTransferStatus()
@@ -141,9 +145,8 @@ watch(
     {immediate: true},
 )
 
-watch(loaded, (isLoaded) => {
-  if (!isLoaded) return
-  if (loadFailed.value) return
+watch(sessionReady, (ready) => {
+  if (!ready) return
   if (!sessionInfo.value?.member) {
     if (isAdmin()) {
       router.replace('/admin/dashboard/overview')
@@ -454,7 +457,13 @@ const manageDefaultRoute = computed(() => {
     <Alert v-if="isDemo" class="mb-4" variant="info">
       {{ t('demo.banner') }}
     </Alert>
-    <slot v-if="loaded && sessionInfo?.member"><RouterView/></slot>
+    <Alert v-if="loadFailed" class="mb-4" variant="error">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <span>{{ t('dashboard.sessionLoadFailed') }}</span>
+        <SecondaryButton @click="load()">{{ t('dashboard.sessionRetry') }}</SecondaryButton>
+      </div>
+    </Alert>
+    <slot v-if="sessionReady && sessionInfo?.member"><RouterView/></slot>
     <OnboardingTour/>
     <ReportProblemButton/>
     <DevToolsButton/>

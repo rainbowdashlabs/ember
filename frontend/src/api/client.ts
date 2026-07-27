@@ -38,10 +38,21 @@ const client = axios.create({
 let refreshing = false
 let refreshQueue: Array<(config: InternalAxiosRequestConfig) => void> = []
 
+function applyAuthHeaders(config: InternalAxiosRequestConfig) {
+    const token = getItem('session_token')
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+    }
+    const stationId = getItem('station_id')
+    if (stationId) {
+        config.headers['X-Station-Id'] = stationId
+    }
+}
+
 function waitForRefresh(config: InternalAxiosRequestConfig): Promise<InternalAxiosRequestConfig> {
     return new Promise((resolve) => {
         refreshQueue.push(() => {
-            config.headers.Authorization = `Bearer ${getItem('session_token')}`
+            applyAuthHeaders(config)
             resolve(config)
         })
     })
@@ -59,14 +70,7 @@ client.interceptors.request.use((config) => {
         return waitForRefresh(config)
     }
 
-    const token = getItem('session_token')
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`
-    }
-    const stationId = getItem('station_id')
-    if (stationId) {
-        config.headers['X-Station-Id'] = stationId
-    }
+    applyAuthHeaders(config)
     return config
 })
 
