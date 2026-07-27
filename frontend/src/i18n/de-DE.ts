@@ -4480,6 +4480,8 @@ export default {
         deleteConfirmWarning: 'Bist du sicher? Dein Konto wird gelöscht, alle Sitzungen beendet, dein Name anonymisiert und alle persönlichen Daten entfernt. Diese Aktion kann nicht rückgängig gemacht werden.',
     },
     dashboard: {
+        sessionLoadFailed: 'Deine Sitzungsdaten konnten nicht geladen werden. Bitte versuche es erneut.',
+        sessionRetry: 'Erneut versuchen',
         notifications: 'Benachrichtigungen',
         notificationSettings: 'Benachrichtigungs-Einstellungen',
         acknowledge: 'Gelesen',

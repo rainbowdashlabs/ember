@@ -15,7 +15,7 @@ import {auth, session, adminSettings} from '@/api'
 import client from '@/api/client'
 import {StorageDeniedError} from '@/api/auth'
 import type {StorageConsent} from '@/api/storage'
-import {acceptStorage, denyStorage, getConsent, getStoredLegalVersions, getItem, removeItem} from '@/api/storage'
+import {acceptStorage, denyStorage, getConsent, getStoredLegalVersions, getItem} from '@/api/storage'
 import {useStations} from '@/composables/useStations'
 import {useConsentGuard} from '@/composables/useConsentGuard'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -30,7 +30,7 @@ import type {DemoAccount} from '@/views/loginview/demoTypes'
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
-const {setActiveStation} = useStations()
+const {setActiveStation, clearActiveStation} = useStations()
 
 interface StationGroup {
   stationId: string
@@ -128,7 +128,7 @@ onMounted(async () => {
 
 async function resolveStationAndRedirect() {
   const redirectPath = route.query.redirect as string | undefined
-  removeItem('station_id')
+  clearActiveStation()
   const [stations, info] = await Promise.all([session.getStations(), session.getSessionInfo().catch(() => null)])
   const isAdmin = info?.instanceUserType === 'ADMINISTRATOR'
   if (stations.length === 1) {

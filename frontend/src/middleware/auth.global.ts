@@ -5,6 +5,7 @@
  */
 import {getItem} from '~/api/storage'
 import {useConsentGuard} from '~/composables/useConsentGuard'
+import {useStations} from '~/composables/useStations'
 
 export default defineNuxtRouteMiddleware((to) => {
     if (!import.meta.client) return
@@ -35,5 +36,14 @@ export default defineNuxtRouteMiddleware((to) => {
     localStorage.setItem('ember_last_activity', String(now))
     if (lastActivity && now - Number(lastActivity) > 3600000 && to.path !== '/station/requirements') {
         return navigateTo({path: '/station/requirements', query: {redirect: to.fullPath}})
+    }
+
+    if (to.path === '/station' || to.path.startsWith('/station/')) {
+        const queryStation = typeof to.query.station === 'string' ? to.query.station : null
+        if (queryStation && queryStation !== getItem('station_id')) {
+            useStations().setActiveStation(queryStation)
+        } else if (!queryStation && !getItem('station_id')) {
+            return navigateTo({path: '/cross-station', query: {redirect: to.fullPath}})
+        }
     }
 })

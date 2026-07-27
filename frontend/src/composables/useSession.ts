@@ -5,6 +5,7 @@
  */
 import {readonly, ref} from 'vue'
 import {session} from '@/api'
+import {getItem} from '@/api/storage'
 import type {SessionInfo} from '@/api/types'
 import {StationPermission} from '@/api/types'
 import {useTheme} from '@/composables/useTheme'
@@ -12,6 +13,8 @@ import {useTheme} from '@/composables/useTheme'
 const sessionInfo = ref<SessionInfo | null>(null)
 const loaded = ref(false)
 const loadFailed = ref(false)
+const sessionStationId = ref<string | null>(null)
+let loadSeq = 0
 
 function isTransientError(error: unknown): boolean {
     const status = (error as {response?: {status?: number}})?.response?.status
@@ -20,13 +23,18 @@ function isTransientError(error: unknown): boolean {
 
 export function useSession() {
     async function load() {
+        const seq = ++loadSeq
+        const requestedStation = getItem('station_id')
         for (let attempt = 1; ; attempt++) {
             try {
-                sessionInfo.value = await session.getSessionInfo()
-                useTheme().initFromSession(sessionInfo.value?.theme)
+                const info = await session.getSessionInfo()
+                if (seq !== loadSeq) return
+                sessionInfo.value = info
+                useTheme().initFromSession(info?.theme)
                 loadFailed.value = false
                 break
             } catch (error) {
+                if (seq !== loadSeq) return
                 if (!isTransientError(error) || attempt >= 3) {
                     sessionInfo.value = null
                     loadFailed.value = true
@@ -35,13 +43,16 @@ export function useSession() {
                 await new Promise(resolve => setTimeout(resolve, 500 * attempt))
             }
         }
+        sessionStationId.value = requestedStation
         loaded.value = true
     }
 
     function clear() {
+        loadSeq++
         sessionInfo.value = null
         loaded.value = false
         loadFailed.value = false
+        sessionStationId.value = null
     }
 
     function hasPermission(permission: string): boolean {
@@ -226,6 +237,7 @@ export function useSession() {
         sessionInfo: readonly(sessionInfo),
         loaded: readonly(loaded),
         loadFailed: readonly(loadFailed),
+        sessionStationId: readonly(sessionStationId),
         load,
         clear,
         hasPermission,

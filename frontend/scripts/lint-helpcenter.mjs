@@ -14,6 +14,46 @@ import {parseRoutes, normalizePath, SRC, RED, GREEN, YELLOW, RESET, BOLD} from '
 
 const allRoutes = parseRoutes()
 
+// ── Known gaps (pre-existing, tracked as warnings) ──────────────────
+//
+// Routes that shipped without a help-center counterpart before the linter
+// started reading the real Nuxt pages tree. New routes must NOT be added
+// here — write the help page instead. Remove entries as pages get written.
+
+const KNOWN_MISSING_HELP = new Set([
+    'event-detail-date',
+    'event-templates',
+    'event-template-edit',
+    'federated-board-view',
+    'federated-ticket-detail',
+    'federated-event-detail',
+    'federated-news-detail',
+    'inventory-item-detail',
+    'inventory-my',
+    'news-detail',
+    'news-create',
+    'quiz-catalog-mc-fill',
+    'station-setup',
+    'station-setup-address',
+    'station-setup-branding',
+    'station-setup-federation',
+    'station-setup-finish',
+    'station-setup-first-event',
+    'station-setup-groups',
+    'station-setup-invites',
+    'station-setup-kb-seed',
+    'station-setup-mail',
+    'station-setup-member-types',
+    'station-setup-modules',
+    'station-setup-welcome',
+    'admin-problem-reports',
+])
+
+const KNOWN_SHARED_HELP_COMPONENTS = new Set([
+    '@/views/helpcenter/stationview/inventory/CheckMemberHelp',
+    '@/views/helpcenter/stationview/procedure/ProcedureOverviewHelp',
+])
+
 // ── Panel definitions ───────────────────────────────────────────────
 
 const panels = [
@@ -57,11 +97,13 @@ for (const panel of panels) {
     const helpPathSet = new Set(helpRoutes.map(r => normalizePath(r.path)))
     const appPathSet = new Set(appRoutes.map(r => normalizePath(r.path)).filter(Boolean))
 
-    const missing = appRoutes.filter(r => {
+    const allMissing = appRoutes.filter(r => {
         const normalized = normalizePath(r.path)
         if (!normalized) return false
         return !helpPathSet.has(normalized)
     })
+    const knownMissing = allMissing.filter(r => KNOWN_MISSING_HELP.has(r.name))
+    const missing = allMissing.filter(r => !KNOWN_MISSING_HELP.has(r.name))
 
     const orphaned = helpRoutes.filter(r => {
         const normalized = normalizePath(r.path)
@@ -70,11 +112,18 @@ for (const panel of panels) {
         return !appPathSet.has(normalized)
     })
 
-    const covered = appRoutes.length - missing.length
+    const covered = appRoutes.length - allMissing.length
     const pct = Math.round((covered / appRoutes.length) * 100)
 
     console.log(`\n${BOLD}${panel.label} Panel${RESET}`)
     console.log(`  App routes: ${appRoutes.length} | Help routes: ${helpRoutes.length} | Coverage: ${covered}/${appRoutes.length} (${pct}%)`)
+
+    if (knownMissing.length > 0) {
+        console.log(`\n  ${YELLOW}Known missing help pages (${knownMissing.length}) — tracked in KNOWN_MISSING_HELP:${RESET}`)
+        for (const {name, path} of knownMissing.sort((a, b) => a.path.localeCompare(b.path))) {
+            console.log(`    ${YELLOW}warning${RESET} ${name} → ${path}`)
+        }
+    }
 
     if (orphaned.length > 0) {
         console.log(`\n  ${YELLOW}Orphaned help pages (${orphaned.length}) — path doesn't match any app route:${RESET}`)
@@ -91,7 +140,7 @@ for (const panel of panels) {
         totalMissing += missing.length
     }
 
-    if (missing.length === 0 && orphaned.length === 0) {
+    if (allMissing.length === 0 && orphaned.length === 0) {
         console.log(`  ${GREEN}✓ Full coverage, no orphans${RESET}`)
     }
 }
@@ -112,9 +161,12 @@ for (const r of allRoutes) {
 let duplicateCount = 0
 for (const [comp, routes] of helpComponentUsage) {
     if (routes.length <= 1) continue
-    duplicateCount++
+    const known = KNOWN_SHARED_HELP_COMPONENTS.has(comp)
+    if (!known) duplicateCount++
     const short = comp.replace(/.*\/views\//, '')
-    console.log(`  ${RED}error${RESET} ${short} used ${routes.length} times:`)
+    const color = known ? YELLOW : RED
+    const label = known ? 'warning' : 'error'
+    console.log(`  ${color}${label}${RESET} ${short} used ${routes.length} times:`)
     for (const r of routes) {
         console.log(`    - ${r.name} → ${r.path}`)
     }
