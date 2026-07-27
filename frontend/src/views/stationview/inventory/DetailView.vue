@@ -49,8 +49,8 @@ const containerPathById = computed(() => {
 })
 
 function itemSizeLabel(item: InventoryItem): string {
-  if (!item.sizeId || !detail.value?.sizes) return t('common.unisize')
-  return detail.value.sizes.find(s => s.id === item.sizeId)?.label ?? t('common.unisize')
+  if (!item.sizeId || !detail.value?.sizes) return ''
+  return detail.value.sizes.find(s => s.id === item.sizeId)?.label ?? ''
 }
 
 function itemAssignedName(item: InventoryItem): string {

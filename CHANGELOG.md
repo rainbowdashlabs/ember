@@ -9,6 +9,7 @@
 
 ### Changes
 
+- **No size placeholder for unsized items.** Item lists and member inventory pages leave the size empty for items without sizes instead of showing a one-size label. Size transitions in exchange and procurement views are unchanged.
 - **Item actions in one menu.** The action buttons on each inventory item row are collected in a single menu with labelled entries.
 - **Custom item fields are easier to set up.** The technical key and the values of selection options are suggested automatically from the entered names, and fields can be reordered by dragging them (on phones, with up and down arrows).
 - **One item edit dialog everywhere.** Editing an inventory item from the edit page now opens the same dialog as the detail page, including custom fields, storage container, and ownership. Custom field values are kept when saving.

@@ -58,7 +58,7 @@ const { t } = useI18n()
       </template>
     </Td>
     <Td muted>{{ item.internalId || '–' }}</Td>
-    <Td v-if="hasSizes"><SizeBadge :lost="!!item.lostAt">{{ sizeLabel }}</SizeBadge></Td>
+    <Td v-if="hasSizes"><SizeBadge v-if="sizeLabel" :lost="!!item.lostAt">{{ sizeLabel }}</SizeBadge></Td>
     <Td v-if="isMixed">
       <PrimaryBadge v-if="item.itemSource === ItemSource.INTERNAL">{{ t('inventory.edit.sourceInternal') }}</PrimaryBadge>
       <SecondaryBadge v-else-if="item.itemSource === ItemSource.EXTERNAL">{{ t('inventory.edit.sourceExternal') }}</SecondaryBadge>

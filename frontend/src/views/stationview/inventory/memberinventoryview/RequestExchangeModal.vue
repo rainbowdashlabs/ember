@@ -56,7 +56,7 @@ const submitDisabled = computed(() =>
       <template v-else>
         <p v-if="item" class="text-sm">
           {{ item.inventoryName }} — {{ item.name }}
-          <span class="text-(--text-muted)">{{ item.sizeName ?? t('common.unisize') }}</span>
+          <span v-if="item.sizeName" class="text-(--text-muted)">{{ item.sizeName }}</span>
         </p>
         <div v-if="sizes.length > 0" class="space-y-1">
           <FieldLabel>{{ t('exchanges.newSize') }}</FieldLabel>

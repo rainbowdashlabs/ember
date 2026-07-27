@@ -57,8 +57,8 @@ function itemNamePart(item: InventoryItem): string {
 
 function itemSizeLabel(item: InventoryItem): string {
   if (!props.showSize) return ''
-  if (!item.sizeId) return t('common.unisize')
-  return props.sizeMap.get(item.sizeId) ?? t('common.unisize')
+  if (!item.sizeId) return ''
+  return props.sizeMap.get(item.sizeId) ?? ''
 }
 
 function handleRowClick(member: StationMember) {

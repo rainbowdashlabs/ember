@@ -64,8 +64,8 @@ const isMixed = computed(() => props.inventoryType === InventoryTypes.MIXED)
 const emit = defineEmits<InventoryItemActionEmits>()
 
 function getSizeLabel(sizeId: number | null | undefined): string {
-  if (!sizeId || !props.sizes) return t('common.unisize')
-  return props.sizes.find(s => s.id === sizeId)?.label ?? t('common.unisize')
+  if (!sizeId || !props.sizes) return ''
+  return props.sizes.find(s => s.id === sizeId)?.label ?? ''
 }
 
 function getMemberIdentity(memberId: number | null | undefined) {
@@ -90,7 +90,7 @@ function getMemberIdentity(memberId: number | null | undefined) {
             </InfoBadge>
           </div>
         </div>
-        <div v-if="hasSizes">
+        <div v-if="hasSizes && getSizeLabel(item.sizeId)">
           <SizeBadge :lost="!!item.lostAt">{{ getSizeLabel(item.sizeId) }}</SizeBadge>
         </div>
       </div>

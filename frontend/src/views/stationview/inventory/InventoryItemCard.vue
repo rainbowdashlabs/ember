@@ -44,7 +44,7 @@ const emit = defineEmits<{
       <div>
         <div class="font-medium text-sm">
           {{ props.item.name }}
-          <SizeBadge :lost="!!props.item.lostAt">{{ props.item.sizeName ?? t('common.unisize') }}</SizeBadge>
+          <SizeBadge v-if="props.item.sizeName" :lost="!!props.item.lostAt">{{ props.item.sizeName }}</SizeBadge>
         </div>
         <div v-if="props.showInventoryName" class="text-xs text-(--text-muted)">{{ props.item.inventoryName }}</div>
         <div v-if="props.item.internalId" class="text-xs text-(--text-muted)">{{ props.item.internalId }}</div>
