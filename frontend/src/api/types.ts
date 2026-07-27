@@ -1060,7 +1060,7 @@ export interface InventoryItem {
     internalId?: string
     name?: string
     sizeId?: number | null
-    metadata?: string
+    metadata?: string | ItemMetadata | null
     assignedTo?: number | null
     lostAt?: string | null
     itemSource?: string | null
