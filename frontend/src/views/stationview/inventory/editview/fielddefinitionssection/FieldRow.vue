@@ -47,7 +47,6 @@ const {t} = useI18n()
       />
     </div>
     <span class="font-medium">{{ field.label }}</span>
-    <span class="text-xs text-(--text-muted)">{{ field.key }}</span>
     <span class="text-xs text-(--text-muted)">{{ t(`inventory.fields.types.${field.fieldType}`) }}</span>
     <span v-if="field.required" class="text-xs text-error">{{ t('inventory.fields.required') }}</span>
     <div class="ml-auto flex gap-2">
