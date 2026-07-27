@@ -20,6 +20,7 @@ import type {ItemLocationResponse} from '@/api/inventoryContainers'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useFlashMessage} from '@/composables/useFlashMessage'
 import ItemMetadataPanel from './itemdetailview/ItemMetadataPanel.vue'
 import ItemActionsPanel from './itemdetailview/ItemActionsPanel.vue'
 import ItemHistoryPanel from './itemdetailview/ItemHistoryPanel.vue'
@@ -40,7 +41,7 @@ const checkHistory = ref<ItemCheckHistoryEntry[]>([])
 const sizes = ref<InventorySize[]>([])
 const members = ref<StationMember[]>([])
 const location = ref<ItemLocationResponse | null>(null)
-const success = ref('')
+const {message: success, flash} = useFlashMessage(3000)
 
 const isManager = computed(() => hasPermission('INVENTORY_MANAGER') || hasPermission('STATION_ADMINISTRATOR'))
 const canEditItem = computed(() => canEdit.value || isManager.value)
@@ -65,11 +66,6 @@ const {loading, error} = useAsyncLoader(async () => {
   members.value = m
   location.value = loc
 })
-
-function flash(message: string) {
-  success.value = message
-  setTimeout(() => success.value = '', 3000)
-}
 
 function onError() {
   error.value = t('common.error')

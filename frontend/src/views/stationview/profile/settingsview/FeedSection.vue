@@ -21,6 +21,7 @@ import {feedToken} from '@/api'
 import type {FeedPreset, FeedTokenResponse} from '@/api/feedToken'
 import {buildFeedUrl} from '@/api/feedToken'
 import {useConfigPanel} from '@/composables/useConfigPanel'
+import {useFlashMessage} from '@/composables/useFlashMessage'
 import FeedCard from './feedsection/FeedCard.vue'
 import RssFallback from './feedsection/RssFallback.vue'
 
@@ -33,7 +34,7 @@ const {config: token, loading, error, runWith} = useConfigPanel<FeedTokenRespons
   },
 })
 
-const copied = ref('')
+const {message: copied, flash} = useFlashMessage(2000)
 const regenerateConfirmOpen = ref(false)
 const revokeConfirmOpen = ref(false)
 
@@ -69,8 +70,7 @@ async function confirmRevoke() {
 
 async function copyUrl(url: string) {
   await navigator.clipboard.writeText(url)
-  copied.value = url
-  setTimeout(() => { copied.value = '' }, 2000)
+  flash(url)
 }
 </script>
 
@@ -83,8 +83,6 @@ async function copyUrl(url: string) {
 
     <template v-if="!loading">
       <template v-if="token">
-        <!-- Verbosity preset: rewrites the URL we hand to the user with the verbose/images
-             query params the backend honours. No backend state. -->
         <div class="space-y-1">
           <FieldLabel>{{ t('userSettings.feedPresetLabel') }}</FieldLabel>
           <div class="flex flex-wrap items-center gap-2">
@@ -142,8 +140,6 @@ async function copyUrl(url: string) {
       </template>
     </template>
 
-    <!-- Rotating the token immediately breaks every subscribed reader (Thunderbird, Apple
-         Calendar, …) — confirm before discarding the existing token. -->
     <Modal v-model="regenerateConfirmOpen">
       <div class="space-y-4">
         <SubHeader>{{ t('userSettings.feedRegenerateConfirmTitle') }}</SubHeader>

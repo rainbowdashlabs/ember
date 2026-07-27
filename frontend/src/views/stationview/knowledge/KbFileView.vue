@@ -29,8 +29,10 @@ import type {KbFile, KbTag, MarkdownHtmlResponse} from '@/api/knowledgeBase'
 import {KbFileType} from '@/api/knowledgeBase'
 import {getItem} from '@/api/storage'
 import {downloadAuthed} from '@/util/downloadAuthed'
+import {formatDateTime} from '@/util/format'
 import {youtubeEmbedUrl as toYoutubeEmbedUrl} from '@/util/youtube'
 import MutedText from '@/components/typography/MutedText.vue'
+import {useFlashMessage} from '@/composables/useFlashMessage'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -127,7 +129,6 @@ async function saveContent() {
     if (!file.value) return
     try {
         await knowledgeBase.updateMarkdownContent(file.value.id, editContent.value)
-        // Refresh rendered HTML
         if (file.value.fileType === KbFileType.MARKDOWN) {
             markdownData.value = await knowledgeBase.getMarkdownHtml(file.value.id)
         } else {
@@ -186,15 +187,13 @@ function goBack() {
         router.push({name: 'kb-browse'})
     }
 }
-const shareCopied = ref(false)
+const {message: shareCopiedMessage, flash: flashShareCopied} = useFlashMessage(2000)
+const shareCopied = computed(() => shareCopiedMessage.value !== '')
 function copyShareLink() {
     if (!file.value) return
     const stationUid = getItem('station_id') ?? ''
     const url = `${window.location.origin}/public/station/${stationUid}/knowledge/file/${file.value.id}`
-    navigator.clipboard.writeText(url).then(() => {
-        shareCopied.value = true
-        setTimeout(() => { shareCopied.value = false }, 2000)
-    })
+    navigator.clipboard.writeText(url).then(() => flashShareCopied(url))
 }
 async function handleReuploadFile(uploadFile: File) {
     if (!file.value) return
@@ -258,7 +257,7 @@ watch(loaded, (isLoaded) => {
 
             <!-- Last edit info -->
             <p v-if="file.updatedAt" class="text-xs text-[var(--text-muted)] mb-3">
-                {{ t('kb.lastEditedAt') }}: {{ new Date(file.updatedAt).toLocaleString('de-DE') }}
+                {{ t('kb.lastEditedAt') }}: {{ formatDateTime(file.updatedAt) }}
                 <span v-if="lastEditedByName"> &mdash; {{ lastEditedByName }}</span>
             </p>
 

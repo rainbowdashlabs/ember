@@ -26,6 +26,7 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {getItem} from '@/api/storage'
 import {knowledgeBase, federation} from '@/api'
 import type {KbFolder, KbFile, SharedFileEntry} from '@/api/knowledgeBase'
+import {useFlashMessage} from '@/composables/useFlashMessage'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -256,8 +257,11 @@ function onSearchInput() {
 }
 
 async function loadTags() {
-    try { allKbTags.value = await knowledgeBase.listTags() }
-    catch { /* silent */ }
+    try {
+        allKbTags.value = await knowledgeBase.listTags()
+    } catch {
+        return
+    }
 }
 
 watch(filterTag, (tag) => { ensureTagScopeLoaded(tag) }, {immediate: true})
@@ -288,17 +292,15 @@ watch(loaded, (isLoaded) => {
     if (isLoaded) { loadData(); loadTags() }
 }, {immediate: true})
 
-const shareCopied = ref(false)
+const {message: shareCopiedMessage, flash: flashShareCopied} = useFlashMessage(2000)
+const shareCopied = computed(() => shareCopiedMessage.value !== '')
 function copyShareLink() {
     const stationUid = getItem('station_id') ?? ''
     const folderId = currentFolder.value?.id
     const url = folderId
         ? `${window.location.origin}/public/kb/${stationUid}?folderId=${folderId}`
         : `${window.location.origin}/public/kb/${stationUid}`
-    navigator.clipboard.writeText(url).then(() => {
-        shareCopied.value = true
-        setTimeout(() => { shareCopied.value = false }, 2000)
-    })
+    navigator.clipboard.writeText(url).then(() => flashShareCopied(url))
 }
 
 function navigateToFavourites() {

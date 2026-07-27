@@ -18,6 +18,7 @@ import StationMap, {type MapStation} from '@/components/map/StationMap.vue'
 import {discovery} from '@/api'
 import type {DiscoveryEntry} from '@/api/discovery'
 import {useSession} from '@/composables/useSession'
+import {useFlashMessage} from '@/composables/useFlashMessage'
 
 const {t} = useI18n()
 const {canManageFederation} = useSession()
@@ -25,7 +26,7 @@ const {canManageFederation} = useSession()
 const stations = ref<DiscoveryEntry[]>([])
 const loading = ref(true)
 const error = ref('')
-const success = ref('')
+const {message: success, flash} = useFlashMessage(3000)
 const inviteCode = ref('')
 const tab = ref<'list' | 'map'>('list')
 
@@ -55,8 +56,7 @@ onMounted(async () => {
 async function handleConnect(station: DiscoveryEntry) {
   try {
     await discovery.requestFederation(station.stationUid)
-    success.value = t('discovery.requestSent')
-    setTimeout(() => { success.value = '' }, 3000)
+    flash(t('discovery.requestSent'))
     stations.value = await discovery.listDiscoverable()
   } catch {
     error.value = t('discovery.requestError')

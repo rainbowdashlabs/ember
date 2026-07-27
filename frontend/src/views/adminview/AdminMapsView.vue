@@ -20,6 +20,7 @@ import CachePanel from './adminmapsview/CachePanel.vue'
 import {maps} from '@/api'
 import {useMapsConfig} from '@/composables/useMapsConfig'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useFlashMessage} from '@/composables/useFlashMessage'
 import type {
   AdminMapsConfig,
   MapsGeocodingConfig,
@@ -29,7 +30,7 @@ import type {
 const {t} = useI18n()
 const {reload: reloadMapsConfig} = useMapsConfig()
 
-const flash = ref('')
+const {message: flash, flash: showFlash} = useFlashMessage()
 
 const tiles = ref<MapsTilesConfig>({
   provider: 'OSM',
@@ -60,7 +61,6 @@ const {loading, error} = useAsyncLoader(async () => {
 })
 
 async function save() {
-  flash.value = ''
   error.value = ''
   try {
     const payload: AdminMapsConfig = {
@@ -83,7 +83,7 @@ async function purgeCache() {
   try {
     const stats = await maps.purgeCache()
     cacheStats.value = stats
-    flash.value = t('adminMaps.cachePurged')
+    showFlash(t('adminMaps.cachePurged'))
   } catch {
     error.value = t('common.error')
   } finally {

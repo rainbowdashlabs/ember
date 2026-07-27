@@ -21,6 +21,7 @@ import type { PermissionGrant, MemberGroup, UserTag } from '@/api/types'
 import { StationUserType, StationUserTypeLabels, StationPermission } from '@/api/types'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { useFlashMessage } from '@/composables/useFlashMessage'
 import type { PartnerResponse } from '@/api/federation'
 
 const { t } = useI18n()
@@ -31,7 +32,8 @@ const canFederate = computed(() => hasPermission(StationPermission.BOARD_FEDERAT
 
 const boardKey = computed(() => route.params.boardKey as string)
 const board = ref<Board | null>(null)
-const saved = ref(false)
+const {message: savedMessage, flash: flashSaved} = useFlashMessage(2000)
+const saved = computed(() => savedMessage.value !== '')
 
 const name = ref('')
 const description = ref('')
@@ -163,8 +165,7 @@ async function saveNow() {
                 editUserTypes: federatedEditUserTypes.value,
             })
         }
-        saved.value = true
-        setTimeout(() => saved.value = false, 2000)
+        flashSaved(t('common.saved'))
     } catch {
         error.value = t('common.error')
     } finally {

@@ -16,12 +16,13 @@ import {discovery, federation} from '@/api'
 import type {DiscoveryEntry} from '@/api/discovery'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useFlashMessage} from '@/composables/useFlashMessage'
 
 const {t} = useI18n()
 const {loaded, canManageFederation} = useSession()
 
 const stations = ref<DiscoveryEntry[]>([])
-const success = ref('')
+const {message: success, flash} = useFlashMessage(3000)
 
 const {loading, error, reload: loadAll} = useAsyncLoader(async () => {
   const [stationsList, partners] = await Promise.all([
@@ -38,8 +39,7 @@ const {loading, error, reload: loadAll} = useAsyncLoader(async () => {
 async function handleConnect(station: DiscoveryEntry) {
   try {
     await discovery.requestFederation(station.stationUid)
-    success.value = t('discovery.requestSent')
-    setTimeout(() => { success.value = '' }, 3000)
+    flash(t('discovery.requestSent'))
     await loadAll()
   } catch {
     error.value = t('discovery.requestError')

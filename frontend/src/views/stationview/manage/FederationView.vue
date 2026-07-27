@@ -27,6 +27,8 @@ import { federation } from '@/api'
 import type { PartnerResponse, PairRequest } from '@/api/federation'
 import { resolveFederationVersion } from '@/util/federationVersion'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { useFlashMessage } from '@/composables/useFlashMessage'
+import { formatDate } from '@/util/format'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -36,9 +38,8 @@ const { refresh: refreshSidebarCounts } = useSidebarCounts()
 const partners = ref<PartnerResponse[]>([])
 const pairRequests = ref<PairRequest[]>([])
 const localVersion = ref('')
-const success = ref('')
+const {message: success, flash} = useFlashMessage(3000)
 
-// Invite modal
 const showInviteModal = ref(false)
 const generatedCode = ref('')
 const acceptCode = ref('')
@@ -57,8 +58,7 @@ const {loading, error, reload} = useAsyncLoader(async () => {
 async function handleAcceptRequest(id: number) {
   try {
     await federation.acceptPairRequest(id)
-    success.value = t('federation.connected')
-    setTimeout(() => { success.value = '' }, 3000)
+    flash(t('federation.connected'))
     await reload()
     refreshSidebarCounts()
   } catch { error.value = t('common.error') }
@@ -86,8 +86,7 @@ async function handleAccept() {
     showInviteModal.value = false
     acceptCode.value = ''
     generatedCode.value = ''
-    success.value = result.status === 'ACTIVE' ? t('federation.connected') : t('federation.requestSent')
-    setTimeout(() => { success.value = '' }, 3000)
+    flash(result.status === 'ACTIVE' ? t('federation.connected') : t('federation.requestSent'))
     await reload()
   } catch { error.value = t('federation.invalidCode') }
 }
@@ -110,14 +109,13 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
     <Alert v-if="error" variant="error">{{ error }}</Alert>
     <Alert v-if="success" variant="success">{{ success }}</Alert>
 
-    <!-- Pending pair requests -->
     <div v-if="!loading && pairRequests.length > 0" class="mb-6">
       <SubHeader class="mb-2">{{ t('federation.pairRequests') }}</SubHeader>
       <div class="space-y-2">
         <NeutralContainer v-for="req in pairRequests" :key="req.id" class="flex items-center gap-2">
           <div class="flex-1 min-w-0">
             <div class="font-medium">{{ req.stationName }}</div>
-            <div class="text-xs text-[var(--text-muted)]">{{ new Date(req.createdAt).toLocaleDateString('de-DE') }}</div>
+            <div class="text-xs text-[var(--text-muted)]">{{ formatDate(req.createdAt) }}</div>
           </div>
           <SecondaryButton compact @click="handleAcceptRequest(req.id)">
             <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/> {{ t('federation.acceptRequest') }}
@@ -150,7 +148,6 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
       </NeutralContainer>
     </div>
 
-    <!-- Invite / Accept Modal -->
     <Modal v-model="showInviteModal">
       <SubHeader class="mb-3">{{ t('federation.addPartner') }}</SubHeader>
       <div class="space-y-4">

@@ -19,6 +19,7 @@ import PublicBlogPanel from './federationsettingsview/PublicBlogPanel.vue'
 import PublicSlugPanel from './federationsettingsview/PublicSlugPanel.vue'
 import {stationManage} from '@/api'
 import {useSession} from '@/composables/useSession'
+import {useFlashMessage} from '@/composables/useFlashMessage'
 
 const {t} = useI18n()
 const {loaded} = useSession()
@@ -26,7 +27,7 @@ const {loaded} = useSession()
 const loading = ref(true)
 const error = ref('')
 const saving = ref(false)
-const saved = ref(false)
+const {message: savedMessage, flash: flashSaved} = useFlashMessage(2000)
 const initialized = ref(false)
 
 const discoveryVisibility = ref('NONE')
@@ -69,7 +70,6 @@ async function loadSettings() {
     publicWaitlistEnabled.value = info.publicWaitlistEnabled ?? false
     publicBlogEnabled.value = info.publicBlogEnabled ?? false
     publicSlug.value = info.publicSlug ?? ''
-    // Mark initialized after all values are set so watchers don't trigger on load
     setTimeout(() => { initialized.value = true }, 50)
   } catch {
     error.value = t('common.error')
@@ -82,7 +82,6 @@ let saveTimer: ReturnType<typeof setTimeout> | null = null
 
 async function save() {
   saving.value = true
-  saved.value = false
   error.value = ''
   try {
     await stationManage.updateStationName({
@@ -96,8 +95,7 @@ async function save() {
       publicBlogEnabled: publicBlogEnabled.value,
       publicSlug: publicSlug.value || null,
     })
-    saved.value = true
-    setTimeout(() => { saved.value = false }, 2000)
+    flashSaved(t('common.saved'))
   } catch (e: any) {
     const msg = e?.response?.data?.message
     if (msg === 'Slug is already in use') {
@@ -116,7 +114,6 @@ function debouncedSave() {
   saveTimer = setTimeout(save, 600)
 }
 
-// Watch all form fields for changes
 watch(
     [discoveryVisibility, discoveryDescription, publicKbMode, publicCalendarEnabled, publicPagesEnabled, publicWaitlistEnabled, publicBlogEnabled, publicSlug],
     debouncedSave,
@@ -137,9 +134,9 @@ watch(loaded, (v) => { if (v) loadSettings() })
           <font-awesome-icon :icon="['fas', 'spinner']" spin class="h-3 w-3"/>
           {{ t('common.saving') }}
         </MutedText>
-        <MutedText v-else-if="saved" size="sm" class="flex items-center gap-1 text-success">
+        <MutedText v-else-if="savedMessage" size="sm" class="flex items-center gap-1 text-success">
           <font-awesome-icon :icon="['fas', 'check']" class="h-3 w-3"/>
-          {{ t('common.saved') }}
+          {{ savedMessage }}
         </MutedText>
       </Transition>
     </div>
