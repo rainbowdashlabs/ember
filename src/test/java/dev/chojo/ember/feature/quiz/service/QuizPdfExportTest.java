@@ -102,7 +102,7 @@ class QuizPdfExportTest {
         catalogRepo = new QuizCatalogRepository();
         testRepo = new QuizTestRepository();
         quizService = new QuizService(
-                catalogRepo, testRepo, new RestrictionRepository(null, null, null), null, null, null, null);
+                catalogRepo, testRepo, new RestrictionRepository(null, null, null), null, null, null, null, null, null);
         var backend = new LocalStorageBackend();
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
         var imageService = new QuizQuestionImageService(new ImageVariantService(storage), stationRepo);

@@ -28,6 +28,8 @@ import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.events.service.EventTemplateService;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
+import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
+import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.federation.service.FederationSigningService;
@@ -110,6 +112,8 @@ class DemoServiceTest extends RepositoryTestBase {
         var signingService = new FederationSigningService();
         var federationHttpClient = new FederationHttpClient(
                 signingService, stationRepo, new RemoteUrlValidator(new Federation(), new Demo()));
+        var federationFanout = new FederationFanout();
+        var federationEntityResolver = new FederationEntityResolver(federationRepo, stationRepo, federationHttpClient);
 
         var eventService = new EventService(eventRepo, restrictionRepo, noOpBus);
         var newsService = new NewsService(newsRepo, restrictionRepo, noOpBus, stationMemberRepo, accountRepo);
@@ -140,7 +144,9 @@ class DemoServiceTest extends RepositoryTestBase {
                 noOpBus,
                 memberSvc,
                 new PresentationCompressor(kbStorageConfig),
-                new PdfCompressor(kbStorageConfig));
+                new PdfCompressor(kbStorageConfig),
+                federationFanout,
+                federationEntityResolver);
         var quizService = new QuizService(
                 quizCatalogRepo,
                 quizTestRepo,
@@ -148,9 +154,17 @@ class DemoServiceTest extends RepositoryTestBase {
                 federationService,
                 federationRepo,
                 federationHttpClient,
-                stationRepo);
+                stationRepo,
+                federationFanout,
+                federationEntityResolver);
         var protocolService = new TestProtocolService(
-                testProtocolRepo, federationService, federationRepo, federationHttpClient, stationRepo);
+                testProtocolRepo,
+                federationService,
+                federationRepo,
+                federationHttpClient,
+                stationRepo,
+                federationFanout,
+                federationEntityResolver);
         var imageVariantStorage = new StorageService(new StorageBackendResolver(kbBackend), kbBackend);
         var imageVariantWriter = new ImageVariantService(imageVariantStorage);
         var avatarService = new AvatarService(imageVariantWriter);
@@ -183,7 +197,9 @@ class DemoServiceTest extends RepositoryTestBase {
                 eventService,
                 commentService,
                 eventCommentRepo,
-                memberNameResolver);
+                memberNameResolver,
+                federationFanout,
+                federationEntityResolver);
         var newsFederationService = new NewsFederationService(
                 newsFederationRepo,
                 federationService,
@@ -192,7 +208,9 @@ class DemoServiceTest extends RepositoryTestBase {
                 stationRepo,
                 newsService,
                 eventFederationRepo,
-                memberNameResolver);
+                memberNameResolver,
+                federationFanout,
+                federationEntityResolver);
         var lendingService = new LendingService(
                 lendingRepo, federationHttpClient, federationService, stationRepo, inventoryRepo, noOpBus);
         var federatedBoardService = new FederatedBoardService(federatedBoardRepo);

@@ -20,6 +20,8 @@ import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationDisplayNames;
+import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
+import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.entity.ConversionStatus;
@@ -123,6 +125,8 @@ public class KnowledgeBaseService {
     private final StationMemberService stationMemberService;
     private final PresentationCompressor officeCompressor;
     private final PdfCompressor pdfCompressor;
+    private final FederationFanout fanout;
+    private final FederationEntityResolver entityResolver;
     private final Parser markdownParser;
     private final HtmlRenderer htmlRenderer;
 
@@ -142,7 +146,9 @@ public class KnowledgeBaseService {
             DomainEventBus eventBus,
             StationMemberService stationMemberService,
             PresentationCompressor officeCompressor,
-            PdfCompressor pdfCompressor) {
+            PdfCompressor pdfCompressor,
+            FederationFanout fanout,
+            FederationEntityResolver entityResolver) {
         this.repository = repository;
         this.stationRepository = stationRepository;
         this.fileStorage = fileStorage;
@@ -156,6 +162,8 @@ public class KnowledgeBaseService {
         this.stationMemberService = stationMemberService;
         this.officeCompressor = officeCompressor;
         this.pdfCompressor = pdfCompressor;
+        this.fanout = fanout;
+        this.entityResolver = entityResolver;
         List<Extension> extensions = List.of(
                 TablesExtension.create(),
                 HeadingAnchorExtension.create(),
@@ -682,69 +690,32 @@ public class KnowledgeBaseService {
     }
 
     public List<SharedKbItem> browseSharedKb(int stationId) {
-        var futures = new ArrayList<CompletableFuture<List<SharedKbItem>>>();
-        for (var partner : federationService.findPartners(stationId)) {
-            if (partner.status() != FederationPartner.FederationStatus.ACTIVE) continue;
-            if (!federationService.hasCapability(partner.id(), CapabilityType.KB_SHARE, Direction.IMPORT)) continue;
-            int remoteStationId = resolvePartnerStationId(partner);
-
-            futures.add(CompletableFuture.supplyAsync(() -> {
-                var items = new ArrayList<SharedKbItem>();
-                if (partner.isRemote()) {
-                    browseSharedKbViaHttp(stationId, partner, remoteStationId, items);
-                } else {
-                    browseSharedKbDirect(remoteStationId, partner, items);
-                }
-                return items;
-            }));
-        }
-        return collectResults(futures);
+        return fanout.fanOut(
+                sharedKbPartners(stationId),
+                partner -> browseSharedKbDirect(resolvePartnerStationId(partner), partner),
+                partner -> browseSharedKbViaHttp(stationId, partner, resolvePartnerStationId(partner)));
     }
 
     // -- Related Files --
 
     public List<FederatedSearchResult> searchFederatedKb(int stationId, String query) {
-        var futures = new ArrayList<CompletableFuture<List<FederatedSearchResult>>>();
-        for (var partner : federationService.findPartners(stationId)) {
-            if (partner.status() != FederationPartner.FederationStatus.ACTIVE) continue;
-            if (!federationService.hasCapability(partner.id(), CapabilityType.KB_SHARE, Direction.IMPORT)) continue;
-            int remoteStationId = resolvePartnerStationId(partner);
-            String stationName = FederationDisplayNames.partnerName(stationRepository, partner, "?");
-            String stationUid = partner.partnerStationId().toString();
-
-            futures.add(CompletableFuture.supplyAsync(() -> {
-                if (partner.isRemote()) {
-                    return searchKbViaHttp(stationId, partner, remoteStationId, stationName, stationUid, query);
-                } else {
-                    return searchKbDirect(remoteStationId, stationName, stationUid, query);
-                }
-            }));
-        }
-        return collectResults(futures);
+        return fanout.fanOut(
+                sharedKbPartners(stationId),
+                partner -> searchKbDirect(partner, query),
+                partner -> searchKbViaHttp(stationId, partner, query));
     }
 
     /**
      * Fetches a single KB file from a federated partner, transparently handling local/remote.
      */
     public KbFile getFederatedKbFile(int localStationId, UUID partnerStationUid, int fileId) {
-        var partner = resolveActivePartner(localStationId, partnerStationUid);
-        if (partner.isRemote()) {
-            var result = federationHttpClient.get(
-                    partner.remoteHost(),
-                    "/remote/kb/files/" + fileId,
-                    partner.partnerStationId(),
-                    localStationId,
-                    getPrivateKey(localStationId),
-                    KbFile.class);
-            if (result == null) throw new IllegalStateException("Failed to fetch file from remote partner");
-            return result;
-        }
-        var file = findFile(fileId).orElseThrow();
-        int partnerStationId = resolvePartnerStationId(partner);
-        if (file.stationId() != partnerStationId) {
-            throw new BadRequestResponse("File does not belong to this partner");
-        }
-        return file;
+        return entityResolver.resolve(
+                localStationId,
+                partnerStationUid,
+                "/remote/kb/files/" + fileId,
+                KbFile.class,
+                "file",
+                partner -> requirePartnerFile(fileId, partner));
     }
 
     // -- Favourites --
@@ -753,21 +724,19 @@ public class KnowledgeBaseService {
      * Fetches KB file content from a federated partner, transparently handling local/remote.
      */
     public String getFederatedKbFileContent(int localStationId, UUID partnerStationUid, int fileId) {
-        var partner = resolveActivePartner(localStationId, partnerStationUid);
-        if (partner.isRemote()) {
-            return fetchKbFileContent(
-                    partner.remoteHost(),
-                    partner.partnerStationId(),
-                    fileId,
-                    localStationId,
-                    getPrivateKey(localStationId));
-        }
-        var file = findFile(fileId).orElseThrow();
-        int partnerStationId = resolvePartnerStationId(partner);
-        if (file.stationId() != partnerStationId) {
-            throw new BadRequestResponse("File does not belong to this partner");
-        }
-        return getMarkdownContent(fileId).orElse("");
+        return entityResolver.resolve(
+                localStationId,
+                partnerStationUid,
+                partner -> {
+                    var file = requirePartnerFile(fileId, partner);
+                    return getMarkdownContent(file.id()).orElse("");
+                },
+                partner -> fetchKbFileContent(
+                        partner.remoteHost(),
+                        partner.partnerStationId(),
+                        fileId,
+                        localStationId,
+                        getPrivateKey(localStationId)));
     }
 
     public KbFile copyKbFile(int fileId, int targetStationId, int createdBy) {
@@ -1105,7 +1074,8 @@ public class KnowledgeBaseService {
         return KbFileType.OTHER;
     }
 
-    private void browseSharedKbDirect(int remoteStationId, FederationPartner partner, List<SharedKbItem> result) {
+    private List<SharedKbItem> browseSharedKbDirect(int remoteStationId, FederationPartner partner) {
+        var result = new ArrayList<SharedKbItem>();
         var shares = federationRepository.findKbShares(remoteStationId);
         for (var share : shares) {
             if (share.fileId() != null) {
@@ -1124,10 +1094,12 @@ public class KnowledgeBaseService {
                 }
             }
         }
+        return result;
     }
 
-    private void browseSharedKbViaHttp(
-            int localStationId, FederationPartner partner, int remoteStationId, List<SharedKbItem> result) {
+    private List<SharedKbItem> browseSharedKbViaHttp(
+            int localStationId, FederationPartner partner, int remoteStationId) {
+        var result = new ArrayList<SharedKbItem>();
         var files = fetchSharedKbFiles(
                 partner.remoteHost(), partner.partnerStationId(), localStationId, getPrivateKey(localStationId));
         for (var remoteFile : files) {
@@ -1144,24 +1116,23 @@ public class KnowledgeBaseService {
             federationRepository.upsertMetadataCache(
                     partner.id(), ContentType.KB, remoteFile.id(), remoteFile.name(), remoteFile.description());
         }
+        return result;
     }
 
-    private List<FederatedSearchResult> searchKbDirect(
-            int remoteStationId, String stationName, String stationUid, String query) {
-        return searchWithSnippets(remoteStationId, query).stream()
+    private List<FederatedSearchResult> searchKbDirect(FederationPartner partner, String query) {
+        String stationName = FederationDisplayNames.partnerName(stationRepository, partner, "?");
+        String stationUid = partner.partnerStationId().toString();
+        return searchWithSnippets(resolvePartnerStationId(partner), query).stream()
                 .map(r -> new FederatedSearchResult(KbFileSummary.of(r.file()), r.snippet(), stationName, stationUid))
                 .toList();
     }
 
-    private List<FederatedSearchResult> searchKbViaHttp(
-            int localStationId,
-            FederationPartner partner,
-            int remoteStationId,
-            String stationName,
-            String stationUid,
-            String query) {
+    private List<FederatedSearchResult> searchKbViaHttp(int localStationId, FederationPartner partner, String query) {
         String privateKey = getPrivateKey(localStationId);
         if (privateKey == null) return List.of();
+        int remoteStationId = resolvePartnerStationId(partner);
+        String stationName = FederationDisplayNames.partnerName(stationRepository, partner, "?");
+        String stationUid = partner.partnerStationId().toString();
         var results = searchKb(partner.remoteHost(), partner.partnerStationId(), localStationId, privateKey, query);
         return results.stream()
                 .map(r -> new FederatedSearchResult(
@@ -1171,6 +1142,21 @@ public class KnowledgeBaseService {
                         stationName,
                         stationUid))
                 .toList();
+    }
+
+    private List<FederationPartner> sharedKbPartners(int stationId) {
+        return federationService.findPartners(stationId).stream()
+                .filter(p -> p.status() == FederationPartner.FederationStatus.ACTIVE)
+                .filter(p -> federationService.hasCapability(p.id(), CapabilityType.KB_SHARE, Direction.IMPORT))
+                .toList();
+    }
+
+    private KbFile requirePartnerFile(int fileId, FederationPartner partner) {
+        var file = findFile(fileId).orElseThrow();
+        if (file.stationId() != resolvePartnerStationId(partner)) {
+            throw new BadRequestResponse("File does not belong to this partner");
+        }
+        return file;
     }
 
     private String getPrivateKey(int stationId) {
@@ -1189,16 +1175,6 @@ public class KnowledgeBaseService {
 
     // -- Federation HTTP convenience methods --
 
-    private FederationPartner resolveActivePartner(int localStationId, UUID partnerStationUid) {
-        var partner = federationRepository
-                .findPartnerByStationAndRemoteUid(localStationId, partnerStationUid)
-                .orElseThrow(() -> new IllegalArgumentException("Unknown partner"));
-        if (partner.status() != FederationPartner.FederationStatus.ACTIVE) {
-            throw new BadRequestResponse("Partner is not active");
-        }
-        return partner;
-    }
-
     private FederationPartner findPartnerForStation(int localStationId, int remoteStationId) {
         var partners = federationService.findPartners(localStationId);
         for (var partner : partners) {
@@ -1208,24 +1184,6 @@ public class KnowledgeBaseService {
             }
         }
         return null;
-    }
-
-    private <T> List<T> collectResults(List<CompletableFuture<List<T>>> futures) {
-        var allFuture = CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
-        try {
-            allFuture.join();
-        } catch (Exception e) {
-            log.error("Error during parallel federation fetch", e);
-        }
-        var result = new ArrayList<T>();
-        for (var future : futures) {
-            try {
-                result.addAll(future.get());
-            } catch (Exception e) {
-                log.error("Error collecting federation results", e);
-            }
-        }
-        return result;
     }
 
     public record SharedKbItem(KbFileSummary file, int sourceStationId, int partnerId) {}

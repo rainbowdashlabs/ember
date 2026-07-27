@@ -32,6 +32,7 @@ import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.MemberCompletion;
@@ -60,7 +61,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Partner station service that discovers federated boards, proxies requests to owning stations,
@@ -86,6 +86,7 @@ public class FederatedBoardProxyService {
     private final EventFederationRepository eventFederationRepository;
     private final MemberNameResolver memberNameResolver;
     private final MemberIdentityFactory memberIdentityFactory;
+    private final FederationFanout fanout;
 
     @Inject
     public FederatedBoardProxyService(
@@ -103,7 +104,8 @@ public class FederatedBoardProxyService {
             UserTagService tagService,
             EventFederationRepository eventFederationRepository,
             MemberNameResolver memberNameResolver,
-            MemberIdentityFactory memberIdentityFactory) {
+            MemberIdentityFactory memberIdentityFactory,
+            FederationFanout fanout) {
         this.federatedBoardService = federatedBoardService;
         this.federatedBoardRepository = federatedBoardRepository;
         this.boardService = boardService;
@@ -119,6 +121,7 @@ public class FederatedBoardProxyService {
         this.eventFederationRepository = eventFederationRepository;
         this.memberNameResolver = memberNameResolver;
         this.memberIdentityFactory = memberIdentityFactory;
+        this.fanout = fanout;
     }
 
     // -- Discovery --
@@ -128,20 +131,12 @@ public class FederatedBoardProxyService {
      * Returns board info with partner station name and share mode.
      */
     public List<DiscoveredBoard> discoverBoards(int stationId) {
-        var futures = new ArrayList<CompletableFuture<List<DiscoveredBoard>>>();
-        for (var partner : federationService.findPartners(stationId)) {
-            if (partner.status() != FederationPartner.FederationStatus.ACTIVE) continue;
-            if (!federationService.hasCapability(partner.id(), CapabilityType.BOARD_SHARE, Direction.IMPORT)) continue;
-
-            futures.add(CompletableFuture.supplyAsync(() -> {
-                if (partner.isRemote()) {
-                    return discoverBoardsViaHttp(stationId, partner);
-                } else {
-                    return discoverBoardsDirect(partner);
-                }
-            }));
-        }
-        return collectResults(futures);
+        var partners = federationService.findPartners(stationId).stream()
+                .filter(p -> p.status() == FederationPartner.FederationStatus.ACTIVE)
+                .filter(p -> federationService.hasCapability(p.id(), CapabilityType.BOARD_SHARE, Direction.IMPORT))
+                .toList();
+        return fanout.fanOut(
+                partners, this::discoverBoardsDirect, partner -> discoverBoardsViaHttp(stationId, partner));
     }
 
     public FederatedBoardDetail proxyGetBoard(int partnerId, String boardKey) {
@@ -1269,24 +1264,6 @@ public class FederatedBoardProxyService {
                 .findById(stationId)
                 .map(Station::federationPrivateKey)
                 .orElse(null);
-    }
-
-    private <T> List<T> collectResults(List<CompletableFuture<List<T>>> futures) {
-        var allFuture = CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
-        try {
-            allFuture.join();
-        } catch (Exception e) {
-            log.error("Error during parallel federation board discovery", e);
-        }
-        var result = new ArrayList<T>();
-        for (var future : futures) {
-            try {
-                result.addAll(future.get());
-            } catch (Exception e) {
-                log.error("Error collecting federation board results", e);
-            }
-        }
-        return result;
     }
 
     private record LabelActionBody(UUID remoteMemberId, String displayName) {}

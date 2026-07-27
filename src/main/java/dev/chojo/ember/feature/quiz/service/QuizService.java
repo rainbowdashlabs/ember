@@ -11,6 +11,8 @@ import dev.chojo.ember.feature.federation.entity.ContentType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
+import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
@@ -55,7 +57,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Singleton
@@ -69,6 +70,8 @@ public class QuizService {
     private final FederationRepository federationRepository;
     private final FederationHttpClient federationHttpClient;
     private final StationRepository stationRepository;
+    private final FederationFanout fanout;
+    private final FederationEntityResolver entityResolver;
 
     @Inject
     public QuizService(
@@ -78,7 +81,9 @@ public class QuizService {
             FederationService federationService,
             FederationRepository federationRepository,
             FederationHttpClient federationHttpClient,
-            StationRepository stationRepository) {
+            StationRepository stationRepository,
+            FederationFanout fanout,
+            FederationEntityResolver entityResolver) {
         this.catalogRepository = catalogRepository;
         this.testRepository = testRepository;
         this.restrictionRepository = restrictionRepository;
@@ -86,6 +91,8 @@ public class QuizService {
         this.federationRepository = federationRepository;
         this.federationHttpClient = federationHttpClient;
         this.stationRepository = stationRepository;
+        this.fanout = fanout;
+        this.entityResolver = entityResolver;
     }
 
     // -- Catalogs --
@@ -643,46 +650,32 @@ public class QuizService {
     }
 
     public List<SharedQuizItem> browseSharedQuiz(int stationId) {
-        var futures = new ArrayList<CompletableFuture<List<SharedQuizItem>>>();
-        for (var partner : federationService.findPartners(stationId)) {
-            if (partner.status() != FederationPartner.FederationStatus.ACTIVE) continue;
-            if (!federationService.hasCapability(partner.id(), CapabilityType.QUIZ_SHARE, Direction.IMPORT)) continue;
-            int remoteStationId = resolvePartnerStationId(partner);
-
-            futures.add(CompletableFuture.supplyAsync(() -> {
-                var items = new ArrayList<SharedQuizItem>();
-                if (partner.isRemote()) {
-                    browseSharedQuizViaHttp(stationId, partner, remoteStationId, items);
-                } else {
-                    browseSharedQuizDirect(remoteStationId, partner, items);
-                }
-                return items;
-            }));
-        }
-        return collectResults(futures);
+        var partners = federationService.findPartners(stationId).stream()
+                .filter(p -> p.status() == FederationPartner.FederationStatus.ACTIVE)
+                .filter(p -> federationService.hasCapability(p.id(), CapabilityType.QUIZ_SHARE, Direction.IMPORT))
+                .toList();
+        return fanout.fanOut(
+                partners,
+                partner -> browseSharedQuizDirect(resolvePartnerStationId(partner), partner),
+                partner -> browseSharedQuizViaHttp(stationId, partner, resolvePartnerStationId(partner)));
     }
 
     public FederatedCatalogDetail getFederatedQuizCatalog(int localStationId, UUID partnerStationUid, int catalogId) {
-        var partner = resolveActivePartner(localStationId, partnerStationUid);
-        if (partner.isRemote()) {
-            var result = federationHttpClient.get(
-                    partner.remoteHost(),
-                    "/remote/quiz/catalogs/" + catalogId,
-                    partner.partnerStationId(),
-                    localStationId,
-                    getPrivateKey(localStationId),
-                    FederatedCatalogDetail.class);
-            if (result == null) throw new IllegalStateException("Failed to fetch catalog from remote partner");
-            return result;
-        }
-        var catalog = findCatalog(catalogId).orElseThrow();
-        int partnerStationId = resolvePartnerStationId(partner);
-        if (catalog.stationId() != partnerStationId) {
-            throw new BadRequestResponse("Catalog does not belong to this partner");
-        }
-        var categories = findCategories(catalog.stationId());
-        var questions = findQuestions(catalog.id());
-        return new FederatedCatalogDetail(catalog, categories, questions);
+        return entityResolver.resolve(
+                localStationId,
+                partnerStationUid,
+                "/remote/quiz/catalogs/" + catalogId,
+                FederatedCatalogDetail.class,
+                "catalog",
+                partner -> {
+                    var catalog = findCatalog(catalogId).orElseThrow();
+                    if (catalog.stationId() != resolvePartnerStationId(partner)) {
+                        throw new BadRequestResponse("Catalog does not belong to this partner");
+                    }
+                    var categories = findCategories(catalog.stationId());
+                    var questions = findQuestions(catalog.id());
+                    return new FederatedCatalogDetail(catalog, categories, questions);
+                });
     }
 
     public QuizCatalog copyQuizCatalog(int catalogId, int targetStationId) {
@@ -999,7 +992,8 @@ public class QuizService {
         return requiredCount == 0 ? 0 : (double) correct / requiredCount * maxPoints;
     }
 
-    private void browseSharedQuizDirect(int remoteStationId, FederationPartner partner, List<SharedQuizItem> result) {
+    private List<SharedQuizItem> browseSharedQuizDirect(int remoteStationId, FederationPartner partner) {
+        var result = new ArrayList<SharedQuizItem>();
         var shares = federationRepository.findQuizShares(remoteStationId);
         for (var share : shares) {
             if (share.catalogId() != null) {
@@ -1011,10 +1005,12 @@ public class QuizService {
                 });
             }
         }
+        return result;
     }
 
-    private void browseSharedQuizViaHttp(
-            int localStationId, FederationPartner partner, int remoteStationId, List<SharedQuizItem> result) {
+    private List<SharedQuizItem> browseSharedQuizViaHttp(
+            int localStationId, FederationPartner partner, int remoteStationId) {
+        var result = new ArrayList<SharedQuizItem>();
         var catalogs = fetchSharedQuizCatalogs(
                 partner.remoteHost(), partner.partnerStationId(), localStationId, getPrivateKey(localStationId));
         for (var remoteCatalog : catalogs) {
@@ -1031,6 +1027,7 @@ public class QuizService {
                     remoteCatalog.name(),
                     remoteCatalog.description());
         }
+        return result;
     }
 
     private String getPrivateKey(int stationId) {
@@ -1042,39 +1039,11 @@ public class QuizService {
 
     // -- Federation helpers --
 
-    private FederationPartner resolveActivePartner(int localStationId, UUID partnerStationUid) {
-        var partner = federationRepository
-                .findPartnerByStationAndRemoteUid(localStationId, partnerStationUid)
-                .orElseThrow(() -> new IllegalArgumentException("Unknown partner"));
-        if (partner.status() != FederationPartner.FederationStatus.ACTIVE) {
-            throw new BadRequestResponse("Partner is not active");
-        }
-        return partner;
-    }
-
     private int resolvePartnerStationId(FederationPartner partner) {
         return stationRepository
                 .findByUid(partner.partnerStationId())
                 .map(Station::id)
                 .orElse(0);
-    }
-
-    private <T> List<T> collectResults(List<CompletableFuture<List<T>>> futures) {
-        var allFuture = CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
-        try {
-            allFuture.join();
-        } catch (Exception e) {
-            log.error("Error during parallel federation fetch", e);
-        }
-        var result = new ArrayList<T>();
-        for (var future : futures) {
-            try {
-                result.addAll(future.get());
-            } catch (Exception e) {
-                log.error("Error collecting federation results", e);
-            }
-        }
-        return result;
     }
 
     private record AttemptQuestionEntry(int questionId, Integer sectionId) {}

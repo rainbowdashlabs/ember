@@ -10,6 +10,8 @@ import dev.chojo.ember.feature.federation.entity.ContentType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
+import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.protocol.entity.TestProtocol;
@@ -34,7 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Singleton
@@ -46,6 +47,8 @@ public class TestProtocolService {
     private final FederationRepository federationRepository;
     private final FederationHttpClient federationHttpClient;
     private final StationRepository stationRepository;
+    private final FederationFanout fanout;
+    private final FederationEntityResolver entityResolver;
 
     @Inject
     public TestProtocolService(
@@ -53,12 +56,16 @@ public class TestProtocolService {
             FederationService federationService,
             FederationRepository federationRepository,
             FederationHttpClient federationHttpClient,
-            StationRepository stationRepository) {
+            StationRepository stationRepository,
+            FederationFanout fanout,
+            FederationEntityResolver entityResolver) {
         this.repository = repository;
         this.federationService = federationService;
         this.federationRepository = federationRepository;
         this.federationHttpClient = federationHttpClient;
         this.stationRepository = stationRepository;
+        this.fanout = fanout;
+        this.entityResolver = entityResolver;
     }
 
     // -- Protocols --
@@ -347,47 +354,32 @@ public class TestProtocolService {
     // -- Federated protocols --
 
     public List<SharedProtocolItem> browseSharedProtocols(int stationId) {
-        var futures = new ArrayList<CompletableFuture<List<SharedProtocolItem>>>();
-        for (var partner : federationService.findPartners(stationId)) {
-            if (partner.status() != FederationPartner.FederationStatus.ACTIVE) continue;
-            if (!federationService.hasCapability(partner.id(), CapabilityType.PROTOCOL_SHARE, Direction.IMPORT))
-                continue;
-            int remoteStationId = resolvePartnerStationId(partner);
-
-            futures.add(CompletableFuture.supplyAsync(() -> {
-                var items = new ArrayList<SharedProtocolItem>();
-                if (partner.isRemote()) {
-                    browseSharedProtocolsViaHttp(stationId, partner, remoteStationId, items);
-                } else {
-                    browseSharedProtocolsDirect(remoteStationId, partner, items);
-                }
-                return items;
-            }));
-        }
-        return collectResults(futures);
+        var partners = federationService.findPartners(stationId).stream()
+                .filter(p -> p.status() == FederationPartner.FederationStatus.ACTIVE)
+                .filter(p -> federationService.hasCapability(p.id(), CapabilityType.PROTOCOL_SHARE, Direction.IMPORT))
+                .toList();
+        return fanout.fanOut(
+                partners,
+                partner -> browseSharedProtocolsDirect(resolvePartnerStationId(partner), partner),
+                partner -> browseSharedProtocolsViaHttp(stationId, partner, resolvePartnerStationId(partner)));
     }
 
     public FederatedProtocolDetail getFederatedProtocol(int localStationId, UUID partnerStationUid, int protocolId) {
-        var partner = resolveActivePartner(localStationId, partnerStationUid);
-        if (partner.isRemote()) {
-            var result = federationHttpClient.get(
-                    partner.remoteHost(),
-                    "/remote/protocols/" + protocolId,
-                    partner.partnerStationId(),
-                    localStationId,
-                    getPrivateKey(localStationId),
-                    FederatedProtocolDetail.class);
-            if (result == null) throw new IllegalStateException("Failed to fetch protocol from remote partner");
-            return result;
-        }
-        var protocol = findProtocol(protocolId).orElseThrow();
-        int partnerStationId = resolvePartnerStationId(partner);
-        if (protocol.stationId() != partnerStationId) {
-            throw new BadRequestResponse("Protocol does not belong to this partner");
-        }
-        var sections = findSections(protocolId);
-        var items = findAllItemsByProtocol(protocolId);
-        return new FederatedProtocolDetail(protocol, sections, items);
+        return entityResolver.resolve(
+                localStationId,
+                partnerStationUid,
+                "/remote/protocols/" + protocolId,
+                FederatedProtocolDetail.class,
+                "protocol",
+                partner -> {
+                    var protocol = findProtocol(protocolId).orElseThrow();
+                    if (protocol.stationId() != resolvePartnerStationId(partner)) {
+                        throw new BadRequestResponse("Protocol does not belong to this partner");
+                    }
+                    var sections = findSections(protocolId);
+                    var items = findAllItemsByProtocol(protocolId);
+                    return new FederatedProtocolDetail(protocol, sections, items);
+                });
     }
 
     public TestProtocol copyProtocol(int protocolId, int targetStationId) {
@@ -451,8 +443,8 @@ public class TestProtocolService {
                 RemoteProtocol.class);
     }
 
-    private void browseSharedProtocolsDirect(
-            int remoteStationId, FederationPartner partner, List<SharedProtocolItem> result) {
+    private List<SharedProtocolItem> browseSharedProtocolsDirect(int remoteStationId, FederationPartner partner) {
+        var result = new ArrayList<SharedProtocolItem>();
         var shares = federationRepository.findProtocolShares(remoteStationId);
         for (var share : shares) {
             if (share.protocolId() != null) {
@@ -464,10 +456,12 @@ public class TestProtocolService {
                 });
             }
         }
+        return result;
     }
 
-    private void browseSharedProtocolsViaHttp(
-            int localStationId, FederationPartner partner, int remoteStationId, List<SharedProtocolItem> result) {
+    private List<SharedProtocolItem> browseSharedProtocolsViaHttp(
+            int localStationId, FederationPartner partner, int remoteStationId) {
+        var result = new ArrayList<SharedProtocolItem>();
         var protocols = fetchSharedProtocols(
                 partner.remoteHost(), partner.partnerStationId(), localStationId, getPrivateKey(localStationId));
         for (var remoteProto : protocols) {
@@ -480,37 +474,10 @@ public class TestProtocolService {
                     remoteProto.name(),
                     remoteProto.description());
         }
-    }
-
-    // -- Federation helpers --
-
-    private <T> List<T> collectResults(List<CompletableFuture<List<T>>> futures) {
-        var allFuture = CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
-        try {
-            allFuture.join();
-        } catch (Exception e) {
-            log.error("Error during parallel federation fetch", e);
-        }
-        var result = new ArrayList<T>();
-        for (var future : futures) {
-            try {
-                result.addAll(future.get());
-            } catch (Exception e) {
-                log.error("Error collecting federation results", e);
-            }
-        }
         return result;
     }
 
-    private FederationPartner resolveActivePartner(int localStationId, UUID partnerStationUid) {
-        var partner = federationRepository
-                .findPartnerByStationAndRemoteUid(localStationId, partnerStationUid)
-                .orElseThrow(() -> new IllegalArgumentException("Unknown partner"));
-        if (partner.status() != FederationPartner.FederationStatus.ACTIVE) {
-            throw new BadRequestResponse("Partner is not active");
-        }
-        return partner;
-    }
+    // -- Federation helpers --
 
     private int resolvePartnerStationId(FederationPartner partner) {
         return stationRepository

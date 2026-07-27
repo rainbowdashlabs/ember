@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
@@ -144,7 +145,8 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 tagService,
                 new EventFederationRepository(),
                 resolver,
-                memberIdentityFactory);
+                memberIdentityFactory,
+                new FederationFanout());
 
         station1 = stationRepo.create("ProxyStation1");
         station2 = stationRepo.create("ProxyStation2");

@@ -10,6 +10,8 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
+import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -69,7 +71,9 @@ class QuizServiceTest extends RepositoryTestBase {
                 federationService,
                 federationRepo,
                 httpClient,
-                stationRepo);
+                stationRepo,
+                new FederationFanout(),
+                new FederationEntityResolver(federationRepo, stationRepo, httpClient));
 
         station = stationRepo.create("QuizSvcStation");
         stationB = stationRepo.create("QuizSvcStationB");

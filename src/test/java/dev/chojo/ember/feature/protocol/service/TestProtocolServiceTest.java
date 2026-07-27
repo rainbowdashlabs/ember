@@ -9,6 +9,8 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
+import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -50,7 +52,14 @@ class TestProtocolServiceTest extends RepositoryTestBase {
         federationRepo = new FederationRepository();
         federationService = new FederationService(federationRepo, stationRepo, new Api());
         httpClient = mock(FederationHttpClient.class);
-        service = new TestProtocolService(testProtocolRepo, federationService, federationRepo, httpClient, stationRepo);
+        service = new TestProtocolService(
+                testProtocolRepo,
+                federationService,
+                federationRepo,
+                httpClient,
+                stationRepo,
+                new FederationFanout(),
+                new FederationEntityResolver(federationRepo, stationRepo, httpClient));
         station = stationRepo.create("ProtocolSvcStation");
         stationB = stationRepo.create("ProtocolSvcStationB");
         stationC = stationRepo.create("ProtocolSvcStationC");

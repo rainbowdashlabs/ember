@@ -19,6 +19,8 @@ import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
+import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -93,7 +95,9 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         federationRepo,
                         stationRepo,
                         mock(MemberGroupService.class),
-                        mock(UserTagService.class)));
+                        mock(UserTagService.class)),
+                new FederationFanout(),
+                new FederationEntityResolver(federationRepo, stationRepo, httpClient));
 
         stationA = stationRepo.create("EventFedSvcStationA");
         stationB = stationRepo.create("EventFedSvcStationB");

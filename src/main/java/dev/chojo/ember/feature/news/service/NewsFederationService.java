@@ -12,6 +12,8 @@ import dev.chojo.ember.feature.federation.entity.FederationPartner.FederationSta
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationDisplayNames;
+import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
+import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
@@ -32,7 +34,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Service providing business logic for federated news sharing.
@@ -49,6 +50,8 @@ public class NewsFederationService {
     private final NewsService newsService;
     private final EventFederationRepository eventFederationRepository;
     private final MemberNameResolver memberNameResolver;
+    private final FederationFanout fanout;
+    private final FederationEntityResolver entityResolver;
 
     @Inject
     public NewsFederationService(
@@ -59,7 +62,9 @@ public class NewsFederationService {
             StationRepository stationRepository,
             NewsService newsService,
             EventFederationRepository eventFederationRepository,
-            MemberNameResolver memberNameResolver) {
+            MemberNameResolver memberNameResolver,
+            FederationFanout fanout,
+            FederationEntityResolver entityResolver) {
         this.federationRepository = federationRepository;
         this.federationService = federationService;
         this.partnerRepository = partnerRepository;
@@ -68,6 +73,8 @@ public class NewsFederationService {
         this.newsService = newsService;
         this.eventFederationRepository = eventFederationRepository;
         this.memberNameResolver = memberNameResolver;
+        this.fanout = fanout;
+        this.entityResolver = entityResolver;
     }
 
     // -- Share management --
@@ -181,18 +188,7 @@ public class NewsFederationService {
         var partners = federationService.findPartners(stationId).stream()
                 .filter(p -> p.status() == FederationStatus.ACTIVE)
                 .toList();
-
-        var futures = new ArrayList<CompletableFuture<List<FederatedNewsItem>>>();
-        for (var partner : partners) {
-            futures.add(CompletableFuture.supplyAsync(() -> {
-                if (partner.isRemote()) {
-                    return browseNewsViaHttp(station, partner);
-                } else {
-                    return browseNewsDirect(partner);
-                }
-            }));
-        }
-        return collectResults(futures);
+        return fanout.fanOut(partners, this::browseNewsDirect, partner -> browseNewsViaHttp(station, partner));
     }
 
     /**
@@ -200,42 +196,30 @@ public class NewsFederationService {
      * Transparently handles local and remote partners.
      */
     public FederatedNewsData getFederatedNews(int localStationId, UUID partnerStationUid, int newsId) {
-        var partner = partnerRepository
-                .findPartnerByStationAndRemoteUid(localStationId, partnerStationUid)
-                .orElseThrow(() -> new IllegalArgumentException("Unknown partner"));
-        if (partner.status() != FederationStatus.ACTIVE) {
-            throw new BadRequestResponse("Partner is not active");
-        }
-        if (partner.isRemote()) {
-            var result = httpClient.get(
-                    partner.remoteHost(),
-                    "/remote/news/" + newsId,
-                    partner.partnerStationId(),
-                    localStationId,
-                    stationRepository
-                            .findById(localStationId)
-                            .map(Station::federationPrivateKey)
-                            .orElse(null),
-                    FederatedNewsData.class);
-            if (result == null) throw new IllegalStateException("Failed to fetch news from remote partner");
-            return result;
-        }
-        int partnerStationId = stationRepository
-                .findByUid(partner.partnerStationId())
-                .map(Station::id)
-                .orElseThrow();
-        var newsIds = findSharedNewsIds(partner.id(), partnerStationId);
-        if (!newsIds.contains(newsId)) {
-            throw new BadRequestResponse("News not shared with this partner");
-        }
-        return newsService
-                .findById(newsId)
-                .map(n -> {
-                    NewsVisibilityRole visibilityRole =
-                            findVisibilityRole(newsId).orElse(NewsVisibilityRole.MEMBER);
-                    return toNewsData(n, visibilityRole);
-                })
-                .orElseThrow();
+        return entityResolver.resolve(
+                localStationId,
+                partnerStationUid,
+                "/remote/news/" + newsId,
+                FederatedNewsData.class,
+                "news",
+                partner -> {
+                    int partnerStationId = stationRepository
+                            .findByUid(partner.partnerStationId())
+                            .map(Station::id)
+                            .orElseThrow();
+                    var newsIds = findSharedNewsIds(partner.id(), partnerStationId);
+                    if (!newsIds.contains(newsId)) {
+                        throw new BadRequestResponse("News not shared with this partner");
+                    }
+                    return newsService
+                            .findById(newsId)
+                            .map(n -> {
+                                NewsVisibilityRole visibilityRole =
+                                        findVisibilityRole(newsId).orElse(NewsVisibilityRole.MEMBER);
+                                return toNewsData(n, visibilityRole);
+                            })
+                            .orElseThrow();
+                });
     }
 
     private List<FederatedNewsItem> browseNewsDirect(FederationPartner partner) {
@@ -302,24 +286,6 @@ public class NewsFederationService {
                 n.publishedAt() != null ? n.publishedAt().toString() : "",
                 newsService.countComments(n.id()),
                 visibilityRole);
-    }
-
-    private <T> List<T> collectResults(List<CompletableFuture<List<T>>> futures) {
-        var allFuture = CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
-        try {
-            allFuture.join();
-        } catch (Exception e) {
-            log.error("Error during parallel federation news fetch", e);
-        }
-        var result = new ArrayList<T>();
-        for (var future : futures) {
-            try {
-                result.addAll(future.get());
-            } catch (Exception e) {
-                log.error("Error collecting federation news results", e);
-            }
-        }
-        return result;
     }
 
     /**
