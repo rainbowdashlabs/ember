@@ -84,3 +84,50 @@ export function useAuthImageById(
 
     return useAuthImage(computedUrl)
 }
+
+/**
+ * Fetches a set of authenticated images keyed by caller-chosen keys (ids, urls) and
+ * exposes their blob object URLs, revoking everything on unmount. For list views that
+ * show one image per row (logos, item photos) where the single-image composable does
+ * not fit.
+ */
+export function useAuthImages<K extends string | number>() {
+    const srcs = ref<Map<K, string>>(new Map())
+
+    function revokeAll() {
+        srcs.value.forEach(url => URL.revokeObjectURL(url))
+        srcs.value = new Map()
+    }
+
+    async function load(key: K, imageUrl: string): Promise<void> {
+        try {
+            const res = await client.get(imageUrl, {
+                responseType: 'blob',
+                validateStatus: (status) => status === 200 || status === 404,
+            })
+            if (res.status === 200 && res.data) {
+                const previous = srcs.value.get(key)
+                if (previous) URL.revokeObjectURL(previous)
+                const next = new Map(srcs.value)
+                next.set(key, URL.createObjectURL(res.data))
+                srcs.value = next
+            }
+        } catch {
+            return
+        }
+    }
+
+    async function loadAll(entries: Array<[K, string]>): Promise<void> {
+        for (const [key, imageUrl] of entries) {
+            await load(key, imageUrl)
+        }
+    }
+
+    function srcFor(key: K): string | null {
+        return srcs.value.get(key) ?? null
+    }
+
+    onUnmounted(revokeAll)
+
+    return {srcs, srcFor, load, loadAll, revokeAll}
+}

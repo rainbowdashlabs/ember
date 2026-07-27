@@ -4,6 +4,13 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import axios, {type AxiosError, type InternalAxiosRequestConfig} from 'axios'
+
+declare module 'axios' {
+    export interface InternalAxiosRequestConfig {
+        _startTime?: number
+        _stepUpRetried?: boolean
+    }
+}
 import {getItem, removeItem, setItem} from './storage'
 import {showToast} from '@/util/toast'
 import {reportApiError} from '@/util/devErrorReporter'
@@ -53,7 +60,7 @@ function releaseQueue() {
 }
 
 client.interceptors.request.use((config) => {
-    (config as any)._startTime = Date.now();
+    config._startTime = Date.now()
     // If refreshing and this isn't the refresh request itself, wait
     if (refreshing && !config.url?.includes('/auth/refresh')) {
         return waitForRefresh(config)
@@ -72,7 +79,7 @@ client.interceptors.request.use((config) => {
 
 client.interceptors.response.use(
     (response) => {
-        const start = (response.config as any)._startTime
+        const start = response.config._startTime
         requestHistory.push({
             method: (response.config.method ?? 'GET').toUpperCase(),
             url: response.config.url ?? '',
@@ -86,7 +93,7 @@ client.interceptors.response.use(
     (error) => {
         const config = error?.config
         if (config) {
-            const start = (config as any)._startTime
+            const start = config._startTime
             requestHistory.push({
                 method: (config.method ?? 'GET').toUpperCase(),
                 url: config.url ?? '',
@@ -110,10 +117,10 @@ client.interceptors.response.use(
             const body: any = error.response?.data
             const isStepUp = body?.error === 'step_up_required'
                 || error.response?.headers?.['x-stepup-required'] != null
-            if (isStepUp && config && !(config as any)._stepUpRetried) {
+            if (isStepUp && config && !config._stepUpRetried) {
                 const category = (body?.category
                     ?? error.response?.headers?.['x-stepup-required']) as StepUpCategory
-                ;(config as any)._stepUpRetried = true
+                config._stepUpRetried = true
                 return requestStepUp(category)
                     .then(() => client.request(config))
                     .catch((stepUpErr) => Promise.reject(stepUpErr ?? (error as AxiosError)))

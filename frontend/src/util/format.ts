@@ -40,3 +40,21 @@ export function formatDateTime(iso?: string | null): string {
         hour: '2-digit', minute: '2-digit',
     })
 }
+
+/**
+ * Formats an ISO timestamp as a German relative time — "gerade eben", "vor 5 Min.",
+ * "vor 3 Std.", "vor 2 Tagen" — falling back to the absolute date after 30 days.
+ * Returns an empty string when the input is missing.
+ */
+export function formatRelative(iso?: string | null): string {
+    if (!iso) return ''
+    const diffMs = Date.now() - new Date(iso).getTime()
+    const diffMin = Math.floor(diffMs / 60000)
+    if (diffMin < 1) return 'gerade eben'
+    if (diffMin < 60) return `vor ${diffMin} Min.`
+    const diffH = Math.floor(diffMin / 60)
+    if (diffH < 24) return `vor ${diffH} Std.`
+    const diffD = Math.floor(diffH / 24)
+    if (diffD <= 30) return `vor ${diffD} Tag${diffD > 1 ? 'en' : ''}`
+    return formatDate(iso)
+}
