@@ -13,6 +13,8 @@ import dev.chojo.ember.feature.board.entity.BoardFieldType;
 import dev.chojo.ember.feature.board.entity.BoardLabel;
 import dev.chojo.ember.feature.board.entity.BoardLane;
 import dev.chojo.ember.feature.board.entity.TicketLabelMapping;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
+import dev.chojo.ember.feature.restriction.RestrictionSql;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
@@ -30,6 +32,9 @@ public class BoardRepository {
     private static final String LANE_COLUMNS = "id, board_id, name, color, position";
     private static final String LABEL_COLUMNS = "id, board_id, name, color";
     private static final String FIELD_COLUMNS = "id, board_id, name, field_type, config, position";
+    private static final String VIEW_ACCESS_TABLE = "board_view_access";
+    private static final String EDIT_ACCESS_TABLE = "board_edit_access";
+    private static final String BOARD_FK = "board_id";
 
     // -- Board CRUD --
 
@@ -261,99 +266,65 @@ public class BoardRepository {
 
     public void setViewAccess(
             int boardId, List<StationUserType> userTypes, List<Integer> groupIds, List<Integer> tagIds) {
-        query("DELETE FROM board_view_access WHERE board_id = :board_id;")
-                .single(call().bind("board_id", boardId))
-                .delete();
-        for (StationUserType userType : userTypes) {
-            query("INSERT INTO board_view_access(board_id, user_type) VALUES (:board_id, :user_type);")
-                    .single(call().bind("board_id", boardId).bind("user_type", userType))
-                    .insert();
-        }
-        for (int groupId : groupIds) {
-            query("INSERT INTO board_view_access(board_id, group_id) VALUES (:board_id, :group_id);")
-                    .single(call().bind("board_id", boardId).bind("group_id", groupId))
-                    .insert();
-        }
-        for (int tagId : tagIds) {
-            query("INSERT INTO board_view_access(board_id, tag_id) VALUES (:board_id, :tag_id);")
-                    .single(call().bind("board_id", boardId).bind("tag_id", tagId))
-                    .insert();
-        }
+        RestrictionSql.replace(VIEW_ACCESS_TABLE, BOARD_FK, boardId, accessSelection(userTypes, groupIds, tagIds));
     }
 
     public void setEditAccess(
             int boardId, List<StationUserType> userTypes, List<Integer> groupIds, List<Integer> tagIds) {
-        query("DELETE FROM board_edit_access WHERE board_id = :board_id;")
-                .single(call().bind("board_id", boardId))
-                .delete();
-        for (StationUserType userType : userTypes) {
-            query("INSERT INTO board_edit_access(board_id, user_type) VALUES (:board_id, :user_type);")
-                    .single(call().bind("board_id", boardId).bind("user_type", userType))
-                    .insert();
-        }
-        for (int groupId : groupIds) {
-            query("INSERT INTO board_edit_access(board_id, group_id) VALUES (:board_id, :group_id);")
-                    .single(call().bind("board_id", boardId).bind("group_id", groupId))
-                    .insert();
-        }
-        for (int tagId : tagIds) {
-            query("INSERT INTO board_edit_access(board_id, tag_id) VALUES (:board_id, :tag_id);")
-                    .single(call().bind("board_id", boardId).bind("tag_id", tagId))
-                    .insert();
-        }
+        RestrictionSql.replace(EDIT_ACCESS_TABLE, BOARD_FK, boardId, accessSelection(userTypes, groupIds, tagIds));
+    }
+
+    /**
+     * Board access tables carry no per-member rows, so the selection never names members.
+     */
+    private static RestrictionSelection accessSelection(
+            List<StationUserType> userTypes, List<Integer> groupIds, List<Integer> tagIds) {
+        return new RestrictionSelection(userTypes, groupIds, tagIds, List.of(), null);
     }
 
     public List<StationUserType> findViewAccessUserTypes(int boardId) {
-        return query("SELECT user_type FROM board_view_access WHERE board_id = :board_id AND user_type IS NOT NULL;")
-                .single(call().bind("board_id", boardId))
-                .map(row -> row.getEnum("user_type", StationUserType.class))
-                .all();
+        return findAccessUserTypes(VIEW_ACCESS_TABLE, boardId);
     }
 
     public List<Integer> findViewAccessGroupIds(int boardId) {
-        return query("SELECT group_id FROM board_view_access WHERE board_id = :board_id AND group_id IS NOT NULL;")
-                .single(call().bind("board_id", boardId))
-                .map(row -> row.getInt("group_id"))
-                .all();
+        return findAccessIds(VIEW_ACCESS_TABLE, "group_id", boardId);
     }
 
     public List<Integer> findViewAccessTagIds(int boardId) {
-        return query("SELECT tag_id FROM board_view_access WHERE board_id = :board_id AND tag_id IS NOT NULL;")
-                .single(call().bind("board_id", boardId))
-                .map(row -> row.getInt("tag_id"))
-                .all();
+        return findAccessIds(VIEW_ACCESS_TABLE, "tag_id", boardId);
     }
 
     public List<StationUserType> findEditAccessUserTypes(int boardId) {
-        return query("SELECT user_type FROM board_edit_access WHERE board_id = :board_id AND user_type IS NOT NULL;")
+        return findAccessUserTypes(EDIT_ACCESS_TABLE, boardId);
+    }
+
+    public List<Integer> findEditAccessGroupIds(int boardId) {
+        return findAccessIds(EDIT_ACCESS_TABLE, "group_id", boardId);
+    }
+
+    public List<Integer> findEditAccessTagIds(int boardId) {
+        return findAccessIds(EDIT_ACCESS_TABLE, "tag_id", boardId);
+    }
+
+    private static List<StationUserType> findAccessUserTypes(String table, int boardId) {
+        return query("SELECT user_type FROM %s WHERE board_id = :board_id AND user_type IS NOT NULL;", table)
                 .single(call().bind("board_id", boardId))
                 .map(row -> row.getEnum("user_type", StationUserType.class))
                 .all();
     }
 
-    public List<Integer> findEditAccessGroupIds(int boardId) {
-        return query("SELECT group_id FROM board_edit_access WHERE board_id = :board_id AND group_id IS NOT NULL;")
+    private static List<Integer> findAccessIds(String table, String column, int boardId) {
+        return query("SELECT %1$s FROM %2$s WHERE board_id = :board_id AND %1$s IS NOT NULL;", column, table)
                 .single(call().bind("board_id", boardId))
-                .map(row -> row.getInt("group_id"))
-                .all();
-    }
-
-    public List<Integer> findEditAccessTagIds(int boardId) {
-        return query("SELECT tag_id FROM board_edit_access WHERE board_id = :board_id AND tag_id IS NOT NULL;")
-                .single(call().bind("board_id", boardId))
-                .map(row -> row.getInt("tag_id"))
+                .map(row -> row.getInt(column))
                 .all();
     }
 
     public boolean hasViewRestrictions(int boardId) {
-        return SqlSupport.exists(
-                "SELECT 1 FROM board_view_access WHERE board_id = :board_id LIMIT 1;",
-                call().bind("board_id", boardId));
+        return RestrictionSql.hasAny(VIEW_ACCESS_TABLE, BOARD_FK, boardId);
     }
 
     public boolean hasEditRestrictions(int boardId) {
-        return SqlSupport.exists(
-                "SELECT 1 FROM board_edit_access WHERE board_id = :board_id LIMIT 1;",
-                call().bind("board_id", boardId));
+        return RestrictionSql.hasAny(EDIT_ACCESS_TABLE, BOARD_FK, boardId);
     }
 }

@@ -37,7 +37,7 @@ class EventThresholdCheckerTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         var eventBus = new DomainEventBus(Set.of());
-        EventService eventService = new EventService(eventRepo, restrictionRepo, eventBus);
+        EventService eventService = new EventService(eventRepo, restrictionService, eventBus);
         checker = new EventThresholdChecker(eventRepo, eventService, new StationReadOnlyGuard(stationRepo));
         station = stationRepo.create("ThresholdChecker Station");
         account = accountRepo.create("threshold@test.com", "Threshold", "Checker");

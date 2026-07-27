@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
+import dev.chojo.ember.feature.quiz.entity.QuizAnswerValue;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizCategory;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
@@ -32,10 +33,10 @@ import dev.chojo.ember.feature.quiz.entity.TestStatus;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
 import dev.chojo.ember.feature.quiz.repository.QuizTestRepository;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
-import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionSet;
 import dev.chojo.ember.feature.restriction.RestrictionType;
+import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.system.service.RequirementsService;
@@ -65,7 +66,7 @@ public class QuizService {
 
     private final QuizCatalogRepository catalogRepository;
     private final QuizTestRepository testRepository;
-    private final RestrictionRepository restrictionRepository;
+    private final RestrictionService restrictionService;
     private final FederationService federationService;
     private final FederationRepository federationRepository;
     private final FederationHttpClient federationHttpClient;
@@ -77,7 +78,7 @@ public class QuizService {
     public QuizService(
             QuizCatalogRepository catalogRepository,
             QuizTestRepository testRepository,
-            RestrictionRepository restrictionRepository,
+            RestrictionService restrictionService,
             FederationService federationService,
             FederationRepository federationRepository,
             FederationHttpClient federationHttpClient,
@@ -86,7 +87,7 @@ public class QuizService {
             FederationEntityResolver entityResolver) {
         this.catalogRepository = catalogRepository;
         this.testRepository = testRepository;
-        this.restrictionRepository = restrictionRepository;
+        this.restrictionService = restrictionService;
         this.federationService = federationService;
         this.federationRepository = federationRepository;
         this.federationHttpClient = federationHttpClient;
@@ -566,8 +567,20 @@ public class QuizService {
         return testRepository.findAnswers(attemptId);
     }
 
+    /**
+     * Stores a submitted answer, validating the payload against the shape the
+     * answered question's type prescribes.
+     *
+     * @param attemptId  the attempt the answer belongs to
+     * @param questionId the answered question
+     * @param answer     the raw submitted JSON payload
+     * @throws IllegalArgumentException if the question is unknown or the payload does not fit its type
+     */
     public void saveAnswer(int attemptId, int questionId, String answer) {
-        testRepository.saveAnswer(attemptId, questionId, answer);
+        var question = catalogRepository
+                .findQuestionById(questionId)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown quiz question " + questionId));
+        testRepository.saveAnswer(attemptId, questionId, QuizAnswerValue.parse(question.quizQuestionType(), answer));
     }
 
     public Optional<QuizTestAnswer> findAnswerById(int answerId) {
@@ -626,13 +639,11 @@ public class QuizService {
     public RestrictionSet findRestrictions(int testId) {
         var test = testRepository.findById(testId).orElse(null);
         RestrictionMode mode = test != null ? test.restrictionMode() : RestrictionMode.OR;
-        return restrictionRepository.findRestrictionSet(
-                RestrictionType.QUIZ_TEST.table(), RestrictionType.QUIZ_TEST.fkColumn(), testId, mode);
+        return restrictionService.findRestrictionSet(RestrictionType.QUIZ_TEST, testId, mode);
     }
 
     public void setRestrictions(int testId, RestrictionSelection selection) {
-        restrictionRepository.setRestrictions(
-                RestrictionType.QUIZ_TEST.table(), RestrictionType.QUIZ_TEST.fkColumn(), testId, selection);
+        restrictionService.setRestrictions(RestrictionType.QUIZ_TEST, testId, selection);
         log.info("Updated restrictions for quiz test {}", testId);
     }
 
@@ -646,7 +657,7 @@ public class QuizService {
      * Delegates to the DB function which resolves the member's identity internally.
      */
     public boolean canMemberAccess(int testId, int memberId, Set<StationPermission> memberPermissions) {
-        return restrictionRepository.checkRestriction(RestrictionType.QUIZ_TEST, testId, memberId, memberPermissions);
+        return restrictionService.checkRestriction(RestrictionType.QUIZ_TEST, testId, memberId, memberPermissions);
     }
 
     public List<SharedQuizItem> browseSharedQuiz(int stationId) {

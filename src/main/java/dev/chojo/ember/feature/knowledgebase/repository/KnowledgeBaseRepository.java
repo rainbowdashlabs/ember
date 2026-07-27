@@ -14,6 +14,8 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFileVersion;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
 import dev.chojo.ember.feature.knowledgebase.entity.KbSearchResult;
 import dev.chojo.ember.feature.knowledgebase.entity.KbTag;
+import dev.chojo.ember.feature.restriction.RestrictionSql;
+import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
@@ -47,13 +49,11 @@ public class KnowledgeBaseRepository {
     private static final String FOLDER_COLUMNS_BARE =
             "id, station_id, parent_id, name, description, icon_url, position, created_by, created_at, updated_at, restriction_mode";
     private static final String FOLDER_COLUMNS = SqlSupport.alias("fo", FOLDER_COLUMNS_BARE);
-    private static final String FOLDER_RESTRICTED =
-            "EXISTS(SELECT 1 FROM kb_access_restriction r WHERE r.folder_id = fo.id) AS restricted";
+    private static final String FOLDER_RESTRICTED = RestrictionSql.restrictedFlag(RestrictionType.KB_FOLDER, "fo.id");
     private static final String FILE_COLUMNS_BARE =
             "id, station_id, folder_id, name, description, file_type, mime_type, file_size, icon_url, youtube_url, link_url, position, created_by, created_at, updated_at, source_file_id, source_station_id, restriction_mode, conversion_status";
     private static final String FILE_COLUMNS = SqlSupport.alias("f", FILE_COLUMNS_BARE);
-    private static final String FILE_RESTRICTED =
-            "EXISTS(SELECT 1 FROM kb_access_restriction r WHERE r.file_id = f.id) AS restricted";
+    private static final String FILE_RESTRICTED = RestrictionSql.restrictedFlag(RestrictionType.KB_FILE, "f.id");
     private static final String FILE_VERSION_COLUMNS = "id, file_id, patch, is_full, version, created_by, created_at";
     private static final String RESTRICTION_COLUMNS = "id, folder_id, file_id, user_type, group_id, tag_id, member_id";
     private static final String TAG_COLUMNS = "id, station_id, name";
@@ -707,14 +707,11 @@ public class KnowledgeBaseRepository {
 
     public boolean hasRestrictions(Integer folderId, Integer fileId) {
         if (folderId != null) {
-            return SqlSupport.exists(
-                    "SELECT 1 FROM kb_access_restriction WHERE folder_id = :folder_id LIMIT 1;",
-                    call().bind("folder_id", folderId));
+            return RestrictionSql.hasAny(
+                    RestrictionType.KB_FOLDER.table(), RestrictionType.KB_FOLDER.fkColumn(), folderId);
         }
         if (fileId != null) {
-            return SqlSupport.exists(
-                    "SELECT 1 FROM kb_access_restriction WHERE file_id = :file_id LIMIT 1;",
-                    call().bind("file_id", fileId));
+            return RestrictionSql.hasAny(RestrictionType.KB_FILE.table(), RestrictionType.KB_FILE.fkColumn(), fileId);
         }
         return false;
     }

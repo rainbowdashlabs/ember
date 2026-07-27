@@ -19,7 +19,9 @@ import static dev.chojo.ember.feature.restriction.RestrictionMode.OR;
 public record RestrictionSet(List<Restriction> restrictions, RestrictionMode mode) {
 
     /**
-     * Checks whether a member with the given identifiers satisfies these restrictions.
+     * Checks whether a member with the given identifiers satisfies these restrictions. Per-user
+     * restrictions are always OR-connected: a direct member match grants access immediately, and
+     * when no other restriction type is present a missing member match denies it.
      *
      * @param memberUserType the member's user type
      * @param memberGroupIds the member's group IDs
@@ -31,7 +33,6 @@ public record RestrictionSet(List<Restriction> restrictions, RestrictionMode mod
             StationUserType memberUserType, List<Integer> memberGroupIds, List<Integer> memberTagIds, int memberId) {
         if (restrictions.isEmpty()) return true;
 
-        // Per-user restrictions are always OR — any member match grants immediate access
         boolean hasMemberRestrictions = restrictions.stream().anyMatch(r -> r.memberId() != null);
         if (hasMemberRestrictions) {
             boolean memberMatch = restrictions.stream().anyMatch(r -> r.memberId() != null && r.memberId() == memberId);

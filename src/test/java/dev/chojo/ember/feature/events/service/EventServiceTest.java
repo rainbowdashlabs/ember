@@ -16,7 +16,6 @@ import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
-import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -48,10 +47,7 @@ class EventServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new EventService(
-                eventRepo,
-                new RestrictionRepository(stationMemberRepo, memberGroupRepo, userTagRepo),
-                new DomainEventBus(Set.of()));
+        service = new EventService(eventRepo, restrictionService, new DomainEventBus(Set.of()));
         station = stationRepo.create("EventStation");
         account = accountRepo.create("event-svc@test.com", "Event", "Tester");
         member = stationMemberRepo.create(station.id(), account.id());

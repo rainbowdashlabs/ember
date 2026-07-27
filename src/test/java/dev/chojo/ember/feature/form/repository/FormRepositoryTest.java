@@ -16,8 +16,8 @@ import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.entity.FormResponse;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
+import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -266,20 +266,17 @@ class FormRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(40)
     void setAndFindRestrictions() {
-        var restrictionRepo = new RestrictionRepository(stationMemberRepo, memberGroupRepo, userTagRepo);
         restrictionRepo.setRestrictions(
-                "form_restriction",
-                "form_id",
+                RestrictionType.FORM,
                 formId,
                 new RestrictionSelection(
                         List.of(StationUserType.MEMBER, StationUserType.TEAM), List.of(), List.of(), List.of(), null));
-        var restrictions = restrictionRepo.findRestrictions("form_restriction", "form_id", formId);
+        var restrictions = restrictionRepo.findRestrictions(RestrictionType.FORM, formId);
         assertEquals(2, restrictions.size());
         // Clear
-        restrictionRepo.setRestrictions("form_restriction", "form_id", formId, RestrictionSelection.empty());
-        assertTrue(restrictionRepo
-                .findRestrictions("form_restriction", "form_id", formId)
-                .isEmpty());
+        restrictionRepo.setRestrictions(RestrictionType.FORM, formId, RestrictionSelection.empty());
+        assertTrue(
+                restrictionRepo.findRestrictions(RestrictionType.FORM, formId).isEmpty());
     }
 
     // -- Cleanup --

@@ -8,7 +8,6 @@ package dev.chojo.ember.feature.news.service;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -35,11 +34,7 @@ class NewsServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         service = new NewsService(
-                newsRepo,
-                new RestrictionRepository(stationMemberRepo, memberGroupRepo, userTagRepo),
-                new DomainEventBus(Set.of()),
-                stationMemberRepo,
-                accountRepo);
+                newsRepo, restrictionService, new DomainEventBus(Set.of()), stationMemberRepo, accountRepo);
         station = stationRepo.create("NewsStation");
         account = accountRepo.create("news-svc@test.com", "News", "Author");
         member = stationMemberRepo.create(station.id(), account.id());

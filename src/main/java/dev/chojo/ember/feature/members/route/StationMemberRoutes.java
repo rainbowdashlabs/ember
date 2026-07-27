@@ -24,8 +24,8 @@ import dev.chojo.ember.feature.members.service.FormerMemberService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
-import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.restriction.RestrictionType;
+import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -65,7 +65,7 @@ public class StationMemberRoutes implements Routes {
     private final ProfileFieldService profileFieldService;
     private final GdprDeletionService gdprDeletionService;
     private final MemberIdentityFactory memberIdentityFactory;
-    private final RestrictionRepository restrictionRepository;
+    private final RestrictionService restrictionService;
     private final AvatarService avatarService;
     private final AuthService authService;
 
@@ -78,7 +78,7 @@ public class StationMemberRoutes implements Routes {
             ProfileFieldService profileFieldService,
             GdprDeletionService gdprDeletionService,
             MemberIdentityFactory memberIdentityFactory,
-            RestrictionRepository restrictionRepository,
+            RestrictionService restrictionService,
             AvatarService avatarService,
             AuthService authService) {
         this.memberService = memberService;
@@ -88,7 +88,7 @@ public class StationMemberRoutes implements Routes {
         this.profileFieldService = profileFieldService;
         this.gdprDeletionService = gdprDeletionService;
         this.memberIdentityFactory = memberIdentityFactory;
-        this.restrictionRepository = restrictionRepository;
+        this.restrictionService = restrictionService;
         this.avatarService = avatarService;
         this.authService = authService;
     }
@@ -277,8 +277,7 @@ public class StationMemberRoutes implements Routes {
             try {
                 var rType = RestrictionType.valueOf(rtParam);
                 int entityId = Integer.parseInt(entityIdParam);
-                var allowedIds =
-                        restrictionRepository.findMembersPassingRestriction(rType, entityId, session.stationId());
+                var allowedIds = restrictionService.findMembersPassingRestriction(rType, entityId, session.stationId());
                 if (!allowedIds.isEmpty()) {
                     completions = completions.stream()
                             .filter(c -> allowedIds.contains(c.id()))

@@ -30,9 +30,6 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 @AnalyzeClasses(packages = "dev.chojo.ember")
 public class ArchitectureTest {
 
-    private static final Set<String> REPOSITORY_PLACEMENT_EXCEPTIONS =
-            Set.of("dev.chojo.ember.feature.restriction.RestrictionRepository");
-
     private static final Set<String> SERVICE_PLACEMENT_EXCEPTIONS = Set.of(
             "dev.chojo.ember.util.CloudflareRangesService",
             "dev.chojo.ember.feature.storage.audit.StorageBackendAuditService",
@@ -41,7 +38,6 @@ public class ArchitectureTest {
             "dev.chojo.ember.feature.storage.migration.StorageMigrationService");
 
     private static final Set<String> REPOSITORY_DEPENDENCY_EXCEPTIONS = Set.of(
-            "dev.chojo.ember.feature.restriction.RestrictionRepository",
             "dev.chojo.ember.feature.board.repository.BoardTicketRepository",
             "dev.chojo.ember.feature.members.repository.StationMemberRepository");
 
@@ -60,7 +56,6 @@ public class ArchitectureTest {
             .haveSimpleNameEndingWith("Repository")
             .and()
             .areTopLevelClasses()
-            .and(notIn(REPOSITORY_PLACEMENT_EXCEPTIONS))
             .should()
             .resideInAPackage("..repository..");
 

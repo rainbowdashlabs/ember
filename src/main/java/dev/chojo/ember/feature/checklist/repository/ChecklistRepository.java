@@ -15,6 +15,8 @@ import dev.chojo.ember.feature.checklist.entity.ChecklistEntry;
 import dev.chojo.ember.feature.checklist.entity.ChecklistSummary;
 import dev.chojo.ember.feature.restriction.Restriction;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
+import dev.chojo.ember.feature.restriction.RestrictionSql;
 import dev.chojo.ember.util.sql.SqlSupport;
 import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
@@ -46,7 +48,8 @@ public class ChecklistRepository {
             "id, entry_id, column_id, checked, note, updated_at, updated_by";
     private static final String CHECKLIST_CELL_NOTE_HISTORY_COLUMNS =
             "id, cell_id, old_note, new_note, changed_by, changed_at";
-    private static final String CHECKLIST_MEMBER_FILTER_COLUMNS = "id, user_type, group_id, tag_id, member_id";
+    private static final String MEMBER_FILTER_TABLE = "checklist_member_filter";
+    private static final String CHECKLIST_FK = "checklist_id";
 
     public List<ChecklistSummary> findSummariesByStation(int stationId) {
         return query("""
@@ -184,12 +187,7 @@ public class ChecklistRepository {
     }
 
     public List<Restriction> findFilterRows(int checklistId) {
-        return query(
-                        "SELECT %s FROM checklist_member_filter WHERE checklist_id = :checklist_id ORDER BY id;",
-                        CHECKLIST_MEMBER_FILTER_COLUMNS)
-                .single(call().bind("checklist_id", checklistId))
-                .map(Restriction.map())
-                .all();
+        return RestrictionSql.findRows(MEMBER_FILTER_TABLE, CHECKLIST_FK, checklistId);
     }
 
     public void replaceFilter(
@@ -198,30 +196,11 @@ public class ChecklistRepository {
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds) {
-        query("DELETE FROM checklist_member_filter WHERE checklist_id = :checklist_id;")
-                .single(call().bind("checklist_id", checklistId))
-                .delete();
-
-        for (StationUserType userType : userTypes) {
-            query("INSERT INTO checklist_member_filter(checklist_id, user_type) VALUES (:checklist_id, :user_type);")
-                    .single(call().bind("checklist_id", checklistId).bind("user_type", userType))
-                    .insert();
-        }
-        for (int groupId : groupIds) {
-            query("INSERT INTO checklist_member_filter(checklist_id, group_id) VALUES (:checklist_id, :group_id);")
-                    .single(call().bind("checklist_id", checklistId).bind("group_id", groupId))
-                    .insert();
-        }
-        for (int tagId : tagIds) {
-            query("INSERT INTO checklist_member_filter(checklist_id, tag_id) VALUES (:checklist_id, :tag_id);")
-                    .single(call().bind("checklist_id", checklistId).bind("tag_id", tagId))
-                    .insert();
-        }
-        for (int memberId : memberIds) {
-            query("INSERT INTO checklist_member_filter(checklist_id, member_id) VALUES (:checklist_id, :member_id);")
-                    .single(call().bind("checklist_id", checklistId).bind("member_id", memberId))
-                    .insert();
-        }
+        RestrictionSql.replace(
+                MEMBER_FILTER_TABLE,
+                CHECKLIST_FK,
+                checklistId,
+                new RestrictionSelection(userTypes, groupIds, tagIds, memberIds, null));
     }
 
     public List<ChecklistEntry> findEntries(int checklistId, boolean includeDeleted) {

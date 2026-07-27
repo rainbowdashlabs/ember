@@ -21,7 +21,6 @@ import dev.chojo.ember.feature.quiz.entity.SectionEntry;
 import dev.chojo.ember.feature.quiz.entity.SourceEntry;
 import dev.chojo.ember.feature.quiz.entity.TestStatus;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
-import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -67,7 +66,7 @@ class QuizServiceTest extends RepositoryTestBase {
         service = new QuizService(
                 quizCatalogRepo,
                 quizTestRepo,
-                new RestrictionRepository(stationMemberRepo, memberGroupRepo, userTagRepo),
+                restrictionService,
                 federationService,
                 federationRepo,
                 httpClient,

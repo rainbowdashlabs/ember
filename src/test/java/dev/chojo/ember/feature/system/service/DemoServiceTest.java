@@ -115,8 +115,8 @@ class DemoServiceTest extends RepositoryTestBase {
         var federationFanout = new FederationFanout();
         var federationEntityResolver = new FederationEntityResolver(federationRepo, stationRepo, federationHttpClient);
 
-        var eventService = new EventService(eventRepo, restrictionRepo, noOpBus);
-        var newsService = new NewsService(newsRepo, restrictionRepo, noOpBus, stationMemberRepo, accountRepo);
+        var eventService = new EventService(eventRepo, restrictionService, noOpBus);
+        var newsService = new NewsService(newsRepo, restrictionService, noOpBus, stationMemberRepo, accountRepo);
         var inventoryService = new InventoryService(inventoryRepo);
         var exchangeService = new ExchangeService(exchangeRepo, inventoryRepo, inventoryService, noOpBus);
         var procurementService = new ProcurementService(procurementRepo, inventoryService, inventoryRepo, noOpBus);
@@ -150,7 +150,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var quizService = new QuizService(
                 quizCatalogRepo,
                 quizTestRepo,
-                restrictionRepo,
+                restrictionService,
                 federationService,
                 federationRepo,
                 federationHttpClient,
@@ -243,7 +243,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var fieldDefSvc = new InventoryFieldDefinitionService(fieldDefinitionRepo);
         var inventorySeeder =
                 new DemoInventorySeeder(inventoryRepo, inventoryCheckRepo, accountRepo, containerSvc, fieldDefSvc);
-        var formSeeder = new DemoFormSeeder(formRepo, restrictionRepo);
+        var formSeeder = new DemoFormSeeder(formRepo, restrictionService);
         var notificationSeeder = new DemoNotificationSeeder(notificationRepo);
         var waitingListSeeder = new DemoWaitingListSeeder(
                 waitingListRepo, memberGroupRepo, stationMemberRepo, attendanceRepo, accountRepo);

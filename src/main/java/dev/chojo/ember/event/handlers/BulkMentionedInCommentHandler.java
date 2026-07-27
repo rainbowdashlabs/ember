@@ -18,8 +18,8 @@ import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
-import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.restriction.RestrictionType;
+import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -34,7 +34,7 @@ public class BulkMentionedInCommentHandler implements DomainEventHandler<BulkMen
     private final MemberGroupRepository memberGroupRepository;
     private final EventRepository eventRepository;
     private final StationMemberRepository stationMemberRepository;
-    private final RestrictionRepository restrictionRepository;
+    private final RestrictionService restrictionService;
 
     @Inject
     public BulkMentionedInCommentHandler(
@@ -42,12 +42,12 @@ public class BulkMentionedInCommentHandler implements DomainEventHandler<BulkMen
             MemberGroupRepository memberGroupRepository,
             EventRepository eventRepository,
             StationMemberRepository stationMemberRepository,
-            RestrictionRepository restrictionRepository) {
+            RestrictionService restrictionService) {
         this.notificationService = notificationService;
         this.memberGroupRepository = memberGroupRepository;
         this.eventRepository = eventRepository;
         this.stationMemberRepository = stationMemberRepository;
-        this.restrictionRepository = restrictionRepository;
+        this.restrictionService = restrictionService;
     }
 
     @Override
@@ -113,7 +113,7 @@ public class BulkMentionedInCommentHandler implements DomainEventHandler<BulkMen
         }
 
         // No registration required — notify all members who can see the event, minus declined
-        var eligible = restrictionRepository.findMembersPassingRestriction(
+        var eligible = restrictionService.findMembersPassingRestriction(
                 RestrictionType.EVENT, stationEvent.id(), stationEvent.stationId());
         if (eligible.isEmpty()) {
             var ids = stationMemberRepository.findByStation(stationEvent.stationId(), false).stream()

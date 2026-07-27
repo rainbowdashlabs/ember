@@ -15,6 +15,8 @@ import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.entity.FormResponse;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.restriction.RestrictionSql;
+import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
@@ -38,7 +40,10 @@ public class FormRepository {
             "id, station_id, title, description, status, shuffle_questions, allow_edit, forced, start_at, end_at, closed_at, created_by, created_at, updated_at, restriction_mode, purpose, public_uid";
     private static final String FORM_COLUMNS = SqlSupport.alias("f", FORM_COLUMNS_BARE);
     private static final String FORM_COMPUTED =
-            "EXISTS(SELECT 1 FROM form_restriction r WHERE r.form_id = f.id) AS restricted, (SELECT count(*) FROM form_response fr WHERE fr.form_id = f.id)::INT AS response_count, GREATEST(f.updated_at, (SELECT MAX(fr2.updated_at) FROM form_response fr2 WHERE fr2.form_id = f.id)) AS last_activity_at";
+            "%s, (SELECT count(*) FROM form_response fr WHERE fr.form_id = f.id)::INT AS response_count, GREATEST(f.updated_at, (SELECT MAX(fr2.updated_at) FROM form_response fr2 WHERE fr2.form_id = f.id)) AS last_activity_at"
+                    .formatted(RestrictionSql.restrictedFlag(RestrictionType.FORM, "f.id"));
+    private static final String FORM_VISIBLE_FOR_MEMBER =
+            RestrictionSql.visibleFor(RestrictionType.FORM, "f.id", ":member_id");
     private static final String QUESTION_COLUMNS =
             "id, form_id, position, question_type, title, description, required, shuffle, config";
     private static final String RESPONSE_COLUMNS =
@@ -118,8 +123,8 @@ public class FormRepository {
                 SELECT %s, %s
                 FROM form f
                 WHERE f.station_id = :station_id
-                  AND check_restriction('form_restriction', 'form_id', 'form', 'id', f.id, :member_id, 'POLL_MANAGER')
-                ORDER BY f.created_at DESC;""", FORM_COLUMNS, FORM_COMPUTED)
+                  AND %s
+                ORDER BY f.created_at DESC;""", FORM_COLUMNS, FORM_COMPUTED, FORM_VISIBLE_FOR_MEMBER)
                 .single(call().bind("station_id", stationId).bind("member_id", memberId))
                 .map(Form.map())
                 .all();

@@ -10,6 +10,8 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsComment;
 import dev.chojo.ember.feature.news.entity.NewsViewer;
+import dev.chojo.ember.feature.restriction.RestrictionSql;
+import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.util.sql.SqlSupport;
 import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
@@ -32,8 +34,12 @@ public class NewsRepository {
     private static final String NEWS_COLUMNS =
             "id, public_uid, station_id, title, content_markdown, content_html, author_station_uid, author_member_uid, published_at, created_at, restriction_mode, public_blog";
     private static final String NEWS_ALIASED = SqlSupport.alias("n", NEWS_COLUMNS);
-    private static final String NEWS_RESTRICTED =
-            "EXISTS(SELECT 1 FROM news_restriction r WHERE r.news_id = n.id) AS restricted";
+    private static final String NEWS_RESTRICTED = RestrictionSql.restrictedFlag(RestrictionType.NEWS, "n.id");
+    private static final String NEWS_UNRESTRICTED = RestrictionSql.unrestricted(RestrictionType.NEWS, "n.id");
+    private static final String NEWS_VISIBLE_FOR_MEMBER =
+            RestrictionSql.visibleFor(RestrictionType.NEWS, "n.id", ":member_id");
+    private static final String NEWS_VISIBLE_FOR_STATION_MEMBER =
+            RestrictionSql.visibleFor(RestrictionType.NEWS, ":news_id", "sm.id");
     private static final String NEWS_COMMENT_COLUMNS =
             "id, news_id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at";
 
@@ -125,9 +131,9 @@ public class NewsRepository {
                 FROM news n
                 WHERE n.station_id = :station_id
                   AND n.published_at IS NOT NULL
-                  AND check_restriction('news_restriction', 'news_id', 'news', 'id', n.id, :member_id, 'NEWS_MANAGER')
+                  AND %s
                 ORDER BY n.published_at DESC
-                LIMIT :limit OFFSET :offset;""", NEWS_ALIASED, NEWS_RESTRICTED)
+                LIMIT :limit OFFSET :offset;""", NEWS_ALIASED, NEWS_RESTRICTED, NEWS_VISIBLE_FOR_MEMBER)
                 .single(call().bind("station_id", stationId)
                         .bind("member_id", memberId)
                         .bind("limit", limit)
@@ -194,10 +200,10 @@ public class NewsRepository {
                 WHERE n.station_id = :station_id
                   AND n.public_blog = TRUE
                   AND n.published_at IS NOT NULL
-                  AND NOT EXISTS(SELECT 1 FROM news_restriction r WHERE r.news_id = n.id)
+                  AND %s
                     %s
                 ORDER BY n.published_at DESC
-                LIMIT :limit OFFSET :offset;""", NEWS_ALIASED, NEWS_RESTRICTED, where.fragment())
+                LIMIT :limit OFFSET :offset;""", NEWS_ALIASED, NEWS_RESTRICTED, NEWS_UNRESTRICTED, where.fragment())
                 .single(where.apply(call().bind("station_id", stationId)
                         .bind("limit", limit)
                         .bind("offset", offset)))
@@ -219,11 +225,7 @@ public class NewsRepository {
                   AND n.public_uid = :public_uid::UUID
                   AND n.public_blog = TRUE
                   AND n.published_at IS NOT NULL
-                  AND NOT exists(
-                    SELECT 1
-                    FROM news_restriction r
-                    WHERE r.news_id = n.id
-                                );""", NEWS_ALIASED, NEWS_RESTRICTED)
+                  AND %s;""", NEWS_ALIASED, NEWS_RESTRICTED, NEWS_UNRESTRICTED)
                 .single(call().bind("station_id", stationId)
                         .bind("public_uid", publicUid, StandardValueConverter.UUID_STRING))
                 .map(News.map())
@@ -236,8 +238,8 @@ public class NewsRepository {
                     SELECT 1 FROM news n
                     WHERE n.station_id = :station_id AND n.public_blog = TRUE
                     AND n.published_at IS NOT NULL
-                    AND NOT exists(SELECT 1 FROM news_restriction r WHERE r.news_id = n.id)
-                ) AS exists;""")
+                    AND %s
+                ) AS exists;""", NEWS_UNRESTRICTED)
                 .single(call().bind("station_id", stationId))
                 .map(row -> row.getBoolean("exists"))
                 .first()
@@ -389,12 +391,13 @@ public class NewsRepository {
      * @return number of unacknowledged news articles
      */
     public int countUnacknowledged(int stationId, int memberId) {
-        return SqlSupport.count("""
+        return SqlSupport.count(
+                """
                 SELECT count(*) AS cnt FROM news n
                 WHERE n.station_id = :station_id
                   AND n.published_at IS NOT NULL
                   AND NOT exists (SELECT 1 FROM news_acknowledgement na WHERE na.news_id = n.id AND na.member_id = :member_id)
-                  AND check_restriction('news_restriction', 'news_id', 'news', 'id', n.id, :member_id, 'NEWS_MANAGER');""", call().bind("station_id", stationId).bind("member_id", memberId));
+                  AND %s;""", call().bind("station_id", stationId).bind("member_id", memberId), NEWS_VISIBLE_FOR_MEMBER);
     }
 
     /**
@@ -460,11 +463,11 @@ public class NewsRepository {
                 JOIN station st ON st.id = sm.station_id
                 WHERE sm.station_id = :station_id
                   AND sm.former = FALSE
-                  AND check_restriction('news_restriction', 'news_id', 'news', 'id', :news_id, sm.id, 'NEWS_MANAGER')
+                  AND %s
                   AND NOT exists (
                       SELECT 1 FROM news_view nv
                       WHERE nv.news_id = :news_id AND nv.member_id = sm.id)
-                ORDER BY sm.id;""")
+                ORDER BY sm.id;""", NEWS_VISIBLE_FOR_STATION_MEMBER)
                 .single(call().bind("news_id", newsId).bind("station_id", stationId))
                 .map(NewsViewer.map())
                 .all();

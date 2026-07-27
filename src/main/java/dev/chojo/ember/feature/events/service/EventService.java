@@ -23,10 +23,10 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.entity.UpcomingEventOccurrence;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
-import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionSet;
 import dev.chojo.ember.feature.restriction.RestrictionType;
+import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -55,14 +55,14 @@ public class EventService {
     private static final Logger log = LoggerFactory.getLogger(EventService.class);
 
     private final EventRepository eventRepository;
-    private final RestrictionRepository restrictionRepository;
+    private final RestrictionService restrictionService;
     private final DomainEventBus eventBus;
 
     @Inject
     public EventService(
-            EventRepository eventRepository, RestrictionRepository restrictionRepository, DomainEventBus eventBus) {
+            EventRepository eventRepository, RestrictionService restrictionService, DomainEventBus eventBus) {
         this.eventRepository = eventRepository;
-        this.restrictionRepository = restrictionRepository;
+        this.restrictionService = restrictionService;
         this.eventBus = eventBus;
     }
 
@@ -598,8 +598,7 @@ public class EventService {
     public RestrictionSet findRestrictions(int eventId) {
         var event = eventRepository.findById(eventId).orElse(null);
         RestrictionMode mode = event != null ? event.restrictionMode() : RestrictionMode.AND;
-        return restrictionRepository.findRestrictionSet(
-                RestrictionType.EVENT.table(), RestrictionType.EVENT.fkColumn(), eventId, mode);
+        return restrictionService.findRestrictionSet(RestrictionType.EVENT, eventId, mode);
     }
 
     /**
@@ -609,8 +608,7 @@ public class EventService {
      * @param selection the restriction selection to persist
      */
     public void setRestrictions(int eventId, RestrictionSelection selection) {
-        restrictionRepository.setRestrictions(
-                RestrictionType.EVENT.table(), RestrictionType.EVENT.fkColumn(), eventId, selection);
+        restrictionService.setRestrictions(RestrictionType.EVENT, eventId, selection);
         log.info("Set restrictions for event {}", eventId);
     }
 
@@ -633,7 +631,7 @@ public class EventService {
      * @param memberId the member ID
      */
     public boolean isMemberEligible(int eventId, int memberId, Set<StationPermission> memberPermissions) {
-        return restrictionRepository.checkRestriction(RestrictionType.EVENT, eventId, memberId, memberPermissions);
+        return restrictionService.checkRestriction(RestrictionType.EVENT, eventId, memberId, memberPermissions);
     }
 
     // -- Field Defaults --

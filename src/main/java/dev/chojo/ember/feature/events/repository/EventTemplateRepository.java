@@ -12,6 +12,8 @@ import dev.chojo.ember.feature.events.entity.EventTemplateField;
 import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
+import dev.chojo.ember.feature.restriction.RestrictionSql;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
@@ -28,6 +30,8 @@ public class EventTemplateRepository {
             id, station_id, name, title, description, category_id, event_type,
             requires_registration, registration_deadline_offset, requires_confirmation,
             restriction_mode, attendance_template_id, registration_limit""";
+    private static final String RESTRICTION_TABLE = "event_template_restriction";
+    private static final String TEMPLATE_FK = "template_id";
 
     public List<EventTemplate> findByStation(int stationId) {
         return query("""
@@ -132,21 +136,18 @@ public class EventTemplateRepository {
     }
 
     public List<String> findRestrictions(int templateId) {
-        return query("SELECT user_type FROM event_template_restriction WHERE template_id = :template_id;")
+        return query("SELECT user_type FROM %s WHERE %s = :template_id;", RESTRICTION_TABLE, TEMPLATE_FK)
                 .single(call().bind("template_id", templateId))
                 .map(row -> row.getString("user_type"))
                 .all();
     }
 
     public void setRestrictions(int templateId, List<StationUserType> userTypes) {
-        query("DELETE FROM event_template_restriction WHERE template_id = :template_id;")
-                .single(call().bind("template_id", templateId))
-                .delete();
-        for (StationUserType userType : userTypes) {
-            query("INSERT INTO event_template_restriction(template_id, user_type) VALUES (:template_id, :user_type);")
-                    .single(call().bind("template_id", templateId).bind("user_type", userType))
-                    .insert();
-        }
+        RestrictionSql.replace(
+                RESTRICTION_TABLE,
+                TEMPLATE_FK,
+                templateId,
+                new RestrictionSelection(userTypes, List.of(), List.of(), List.of(), null));
     }
 
     public List<Integer> findReminderDays(int templateId) {

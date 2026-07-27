@@ -25,10 +25,10 @@ import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
-import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionSet;
 import dev.chojo.ember.feature.restriction.RestrictionType;
+import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.feature.system.service.RequirementsService;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
@@ -55,7 +55,7 @@ public class FormService {
     private final StationMemberService memberService;
     private final MemberGroupService groupService;
     private final UserTagService tagService;
-    private final RestrictionRepository restrictionRepository;
+    private final RestrictionService restrictionService;
     private final DomainEventBus eventBus;
 
     @Inject
@@ -64,13 +64,13 @@ public class FormService {
             StationMemberService memberService,
             MemberGroupService groupService,
             UserTagService tagService,
-            RestrictionRepository restrictionRepository,
+            RestrictionService restrictionService,
             DomainEventBus eventBus) {
         this.repository = repository;
         this.memberService = memberService;
         this.groupService = groupService;
         this.tagService = tagService;
-        this.restrictionRepository = restrictionRepository;
+        this.restrictionService = restrictionService;
         this.eventBus = eventBus;
     }
 
@@ -99,8 +99,7 @@ public class FormService {
     public RestrictionSet findRestrictions(int formId) {
         var form = repository.findById(formId).orElse(null);
         RestrictionMode mode = form != null ? form.restrictionMode() : RestrictionMode.OR;
-        return restrictionRepository.findRestrictionSet(
-                RestrictionType.FORM.table(), RestrictionType.FORM.fkColumn(), formId, mode);
+        return restrictionService.findRestrictionSet(RestrictionType.FORM, formId, mode);
     }
 
     /**
@@ -520,8 +519,7 @@ public class FormService {
      * @param selection the restriction selection to apply
      */
     public void setRestrictions(int formId, RestrictionSelection selection) {
-        restrictionRepository.setRestrictions(
-                RestrictionType.FORM.table(), RestrictionType.FORM.fkColumn(), formId, selection);
+        restrictionService.setRestrictions(RestrictionType.FORM, formId, selection);
         log.info("Updated access restrictions for form {}", formId);
     }
 

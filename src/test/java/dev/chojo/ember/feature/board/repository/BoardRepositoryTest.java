@@ -509,7 +509,7 @@ class BoardRepositoryTest extends RepositoryTestBase {
         boardRepo.createField(boardId, "TestField", BoardFieldType.STRING, new BoardFieldConfig.Simple(false), 0);
         var fields = boardRepo.findFields(boardId);
         int fieldId = fields.getFirst().id();
-        boardTicketRepo.setFieldValue(ticketId1, fieldId, "{\"value\":\"hello\"}");
+        boardTicketRepo.setFieldValue(ticketId1, fieldId, new BoardFieldValue.StringValue("hello"));
         var values = boardTicketRepo.findFieldValues(ticketId1);
         assertEquals(1, values.size());
         assertInstanceOf(BoardFieldValue.StringValue.class, values.getFirst().value());

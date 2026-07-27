@@ -20,7 +20,6 @@ import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
-import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -60,9 +59,8 @@ class FormServiceTest extends RepositoryTestBase {
         var memberService = mock(StationMemberService.class);
         var groupService = mock(MemberGroupService.class);
         var tagService = mock(UserTagService.class);
-        var restrictionRepo = new RestrictionRepository(stationMemberRepo, memberGroupRepo, userTagRepo);
 
-        service = new FormService(formRepo, memberService, groupService, tagService, restrictionRepo, eventBus);
+        service = new FormService(formRepo, memberService, groupService, tagService, restrictionService, eventBus);
         station = stationRepo.create("FormSvcStation");
         account = accountRepo.create("form-svc@test.com", "Form", "Svc");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -326,10 +324,9 @@ class FormServiceTest extends RepositoryTestBase {
         when(groupService.findGroupsForMember(member.id())).thenReturn(List.of());
         when(tagService.findTagsForMember(member.id())).thenReturn(List.of());
 
-        var restrictionRepo = new RestrictionRepository(stationMemberRepo, memberGroupRepo, userTagRepo);
         var eventBus = new DomainEventBus(Set.of());
         var restrictedService =
-                new FormService(formRepo, memberService, groupService, tagService, restrictionRepo, eventBus);
+                new FormService(formRepo, memberService, groupService, tagService, restrictionService, eventBus);
 
         // Member is in the restriction list — should have access
         assertTrue(restrictedService.canMemberAccess(form.id(), member.id()));
