@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import ColumnFilterModal from './ColumnFilterModal.vue'
+import ColumnFilterModal from '@/components/table/ColumnFilterModal.vue'
 import MemberCardMobile from './MemberCardMobile.vue'
 import MemberDesktopTable from './MemberDesktopTable.vue'
 import type {ProfileField, StationMember} from '@/api/types'

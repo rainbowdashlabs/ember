@@ -11,6 +11,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 
 const { t } = useI18n()
 
@@ -68,47 +69,37 @@ function close() {
 <template>
   <Modal v-model="model">
     <div class="space-y-4">
-      <SubHeader>{{ t('membersList.filterBy', { column: columnLabel }) }}</SubHeader>
+      <SubHeader>{{ t('tableFilter.by', { column: columnLabel }) }}</SubHeader>
 
       <div class="flex gap-2 text-xs">
-        <SecondaryButton @click="selectAll">{{ t('membersList.filterSelectAll') }}</SecondaryButton>
-        <SecondaryButton @click="selectNone">{{ t('membersList.filterSelectNone') }}</SecondaryButton>
+        <SecondaryButton @click="selectAll">{{ t('tableFilter.selectAll') }}</SecondaryButton>
+        <SecondaryButton @click="selectNone">{{ t('tableFilter.selectNone') }}</SecondaryButton>
       </div>
 
       <div class="max-h-64 overflow-y-auto space-y-1 border rounded border-bg-light-accent dark:border-bg-dark-accent p-2">
-        <!-- Empty value option -->
         <FieldLabel inline class="cursor-pointer dark:hover:bg-bg-dark-accent/50 hover:bg-bg-light-accent/50 px-2 py-1 rounded">
-          <input
-              v-model="localIncludeEmpty"
-              type="checkbox"
-              class="h-4 w-4 rounded accent-primary"
-          />
-          <span class="italic text-(--text-muted)">{{ t('membersList.filterEmpty') }}</span>
+          <CheckboxInput v-model="localIncludeEmpty"/>
+          <span class="italic text-(--text-muted)">{{ t('tableFilter.empty') }}</span>
         </FieldLabel>
 
-        <!-- Value options -->
-        <label
+        <FieldLabel
             v-for="val in values"
             :key="val"
-            class="flex items-center gap-2 px-2 py-1 rounded hover:bg-bg-light-accent/50 dark:hover:bg-bg-dark-accent/50 cursor-pointer text-xs"
+            inline
+            class="cursor-pointer px-2 py-1 rounded hover:bg-bg-light-accent/50 dark:hover:bg-bg-dark-accent/50 text-xs"
         >
-          <input
-              :checked="localSelected.has(val)"
-              type="checkbox"
-              class="h-4 w-4 rounded accent-primary"
-              @change="toggleValue(val)"
-          />
+          <CheckboxInput :model-value="localSelected.has(val)" @update:model-value="toggleValue(val)"/>
           <span>{{ val }}</span>
-        </label>
+        </FieldLabel>
 
         <div v-if="values.length === 0" class="text-center text-(--text-muted) text-xs py-2">
-          {{ t('membersList.filterNoValues') }}
+          {{ t('tableFilter.noValues') }}
         </div>
       </div>
 
       <div class="flex justify-end gap-2">
         <SecondaryButton @click="close">{{ t('common.cancel') }}</SecondaryButton>
-        <PrimaryButton @click="apply">{{ t('membersList.filterApply') }}</PrimaryButton>
+        <PrimaryButton @click="apply">{{ t('tableFilter.apply') }}</PrimaryButton>
       </div>
     </div>
   </Modal>
