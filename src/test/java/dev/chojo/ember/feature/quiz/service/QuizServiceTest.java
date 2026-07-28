@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.quiz.entity.CreateQuestionCommand;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.entity.SectionEntry;
@@ -186,16 +187,13 @@ class QuizServiceTest extends RepositoryTestBase {
     @Order(20)
     void createQuestion() {
         var q = service.createQuestion(
-                catalogId,
-                categoryId,
-                QuizQuestionType.TRUE_FALSE,
-                "Is the sky blue?",
-                "Sky color",
-                null,
-                2.0,
-                false,
-                "{\"correctAnswer\":true}",
-                0);
+                CreateQuestionCommand.builder(catalogId, QuizQuestionType.TRUE_FALSE, "Is the sky blue?")
+                        .category(categoryId)
+                        .description("Sky color")
+                        .points(2.0)
+                        .autoPoints(false)
+                        .configJson("{\"correctAnswer\":true}")
+                        .build());
         assertNotNull(q);
         assertEquals("Is the sky blue?", q.title());
         questionId = q.id();
@@ -205,16 +203,11 @@ class QuizServiceTest extends RepositoryTestBase {
     @Order(21)
     void createQuestionAutoPoints() {
         var q = service.createQuestion(
-                catalogId,
-                null,
-                QuizQuestionType.MULTIPLE_CHOICE,
-                "What is 2+2?",
-                "Math",
-                null,
-                1.0,
-                true,
-                "{\"options\":[{\"text\":\"4\",\"correct\":true}],\"pointsPerCorrect\":3.0}",
-                1);
+                CreateQuestionCommand.builder(catalogId, QuizQuestionType.MULTIPLE_CHOICE, "What is 2+2?")
+                        .description("Math")
+                        .configJson("{\"options\":[{\"text\":\"4\",\"correct\":true}],\"pointsPerCorrect\":3.0}")
+                        .position(1)
+                        .build());
         assertNotNull(q);
         // Auto points from config: pointsPerCorrect = 3.0
         assertEquals(3.0, q.points());
@@ -622,16 +615,13 @@ class QuizServiceTest extends RepositoryTestBase {
     @Order(75)
     void autoGradeMultipleChoice() {
         var q = service.createQuestion(
-                catalogId,
-                null,
-                QuizQuestionType.MULTIPLE_CHOICE,
-                "MC Question",
-                "",
-                null,
-                3.0,
-                false,
-                "{\"options\":[{\"text\":\"A\",\"correct\":true},{\"text\":\"B\",\"correct\":false},{\"text\":\"C\",\"correct\":true}],\"pointsPerCorrect\":1.0}",
-                10);
+                CreateQuestionCommand.builder(catalogId, QuizQuestionType.MULTIPLE_CHOICE, "MC Question")
+                        .points(3.0)
+                        .autoPoints(false)
+                        .configJson(
+                                "{\"options\":[{\"text\":\"A\",\"correct\":true},{\"text\":\"B\",\"correct\":false},{\"text\":\"C\",\"correct\":true}],\"pointsPerCorrect\":1.0}")
+                        .position(10)
+                        .build());
         var test2 = service.createTest(station.id(), "MC Grade", "", null, false, false, member.id());
         service.replaceSections(
                 test2.id(), List.of(new SectionEntry("S", "", List.of(new SourceEntry(catalogId, null, 0)))));
@@ -655,16 +645,12 @@ class QuizServiceTest extends RepositoryTestBase {
     @Order(76)
     void autoGradeTrueFalse() {
         var q = service.createQuestion(
-                catalogId,
-                null,
-                QuizQuestionType.TRUE_FALSE,
-                "TF Question",
-                "",
-                null,
-                2.0,
-                false,
-                "{\"correctAnswer\":true}",
-                11);
+                CreateQuestionCommand.builder(catalogId, QuizQuestionType.TRUE_FALSE, "TF Question")
+                        .points(2.0)
+                        .autoPoints(false)
+                        .configJson("{\"correctAnswer\":true}")
+                        .position(11)
+                        .build());
         var test2 = service.createTest(station.id(), "TF Grade", "", null, false, false, member.id());
         service.replaceSections(
                 test2.id(), List.of(new SectionEntry("S", "", List.of(new SourceEntry(catalogId, null, 0)))));
@@ -687,7 +673,12 @@ class QuizServiceTest extends RepositoryTestBase {
     @Order(77)
     void autoGradeFreeAnswerNotAutoGraded() {
         var q = service.createQuestion(
-                catalogId, null, QuizQuestionType.FREE_ANSWER, "Free Answer", "", null, 5.0, false, "{}", 12);
+                CreateQuestionCommand.builder(catalogId, QuizQuestionType.FREE_ANSWER, "Free Answer")
+                        .points(5.0)
+                        .autoPoints(false)
+                        .configJson("{}")
+                        .position(12)
+                        .build());
         var test2 = service.createTest(station.id(), "FA Grade", "", null, false, false, member.id());
         service.replaceSections(
                 test2.id(), List.of(new SectionEntry("S", "", List.of(new SourceEntry(catalogId, null, 0)))));
@@ -710,16 +701,12 @@ class QuizServiceTest extends RepositoryTestBase {
     @Order(78)
     void autoGradeOrdering() {
         var q = service.createQuestion(
-                catalogId,
-                null,
-                QuizQuestionType.ORDERING,
-                "Order Question",
-                "",
-                null,
-                3.0,
-                false,
-                "{\"items\":[\"A\",\"B\",\"C\"]}",
-                13);
+                CreateQuestionCommand.builder(catalogId, QuizQuestionType.ORDERING, "Order Question")
+                        .points(3.0)
+                        .autoPoints(false)
+                        .configJson("{\"items\":[\"A\",\"B\",\"C\"]}")
+                        .position(13)
+                        .build());
         var test2 = service.createTest(station.id(), "Ord Grade", "", null, false, false, member.id());
         service.replaceSections(
                 test2.id(), List.of(new SectionEntry("S", "", List.of(new SourceEntry(catalogId, null, 0)))));
@@ -743,16 +730,12 @@ class QuizServiceTest extends RepositoryTestBase {
     @Order(79)
     void autoGradeFillBlank() {
         var q = service.createQuestion(
-                catalogId,
-                null,
-                QuizQuestionType.FILL_IN_THE_BLANK,
-                "Fill Question",
-                "",
-                null,
-                2.0,
-                false,
-                "{\"answers\":[\"Paris\"]}",
-                14);
+                CreateQuestionCommand.builder(catalogId, QuizQuestionType.FILL_IN_THE_BLANK, "Fill Question")
+                        .points(2.0)
+                        .autoPoints(false)
+                        .configJson("{\"answers\":[\"Paris\"]}")
+                        .position(14)
+                        .build());
         var test2 = service.createTest(station.id(), "Fill Grade", "", null, false, false, member.id());
         service.replaceSections(
                 test2.id(), List.of(new SectionEntry("S", "", List.of(new SourceEntry(catalogId, null, 0)))));
@@ -774,16 +757,12 @@ class QuizServiceTest extends RepositoryTestBase {
     @Order(86)
     void autoGradeEnumeration() {
         var q = service.createQuestion(
-                catalogId,
-                null,
-                QuizQuestionType.ENUMERATION,
-                "Enum Question",
-                "",
-                null,
-                4.0,
-                false,
-                "{\"answers\":[\"red\",\"blue\",\"green\"],\"requiredCount\":3}",
-                15);
+                CreateQuestionCommand.builder(catalogId, QuizQuestionType.ENUMERATION, "Enum Question")
+                        .points(4.0)
+                        .autoPoints(false)
+                        .configJson("{\"answers\":[\"red\",\"blue\",\"green\"],\"requiredCount\":3}")
+                        .position(15)
+                        .build());
         var test2 = service.createTest(station.id(), "Enum Grade", "", null, false, false, member.id());
         service.replaceSections(
                 test2.id(), List.of(new SectionEntry("S", "", List.of(new SourceEntry(catalogId, null, 0)))));
@@ -805,16 +784,12 @@ class QuizServiceTest extends RepositoryTestBase {
     @Order(87)
     void autoGradeConnect() {
         var q = service.createQuestion(
-                catalogId,
-                null,
-                QuizQuestionType.CONNECT,
-                "Connect Question",
-                "",
-                null,
-                2.0,
-                false,
-                "{\"pairs\":[{\"left\":\"A\",\"right\":\"1\"},{\"left\":\"B\",\"right\":\"2\"}]}",
-                16);
+                CreateQuestionCommand.builder(catalogId, QuizQuestionType.CONNECT, "Connect Question")
+                        .points(2.0)
+                        .autoPoints(false)
+                        .configJson("{\"pairs\":[{\"left\":\"A\",\"right\":\"1\"},{\"left\":\"B\",\"right\":\"2\"}]}")
+                        .position(16)
+                        .build());
         var test2 = service.createTest(station.id(), "Con Grade", "", null, false, false, member.id());
         service.replaceSections(
                 test2.id(), List.of(new SectionEntry("S", "", List.of(new SourceEntry(catalogId, null, 0)))));
@@ -836,16 +811,13 @@ class QuizServiceTest extends RepositoryTestBase {
     @Order(88)
     void autoGradeMultipleChoiceWrongAnswer() {
         var q = service.createQuestion(
-                catalogId,
-                null,
-                QuizQuestionType.MULTIPLE_CHOICE,
-                "MC Wrong",
-                "",
-                null,
-                2.0,
-                false,
-                "{\"options\":[{\"text\":\"A\",\"correct\":true},{\"text\":\"B\",\"correct\":false}],\"pointsPerCorrect\":1.0}",
-                18);
+                CreateQuestionCommand.builder(catalogId, QuizQuestionType.MULTIPLE_CHOICE, "MC Wrong")
+                        .points(2.0)
+                        .autoPoints(false)
+                        .configJson(
+                                "{\"options\":[{\"text\":\"A\",\"correct\":true},{\"text\":\"B\",\"correct\":false}],\"pointsPerCorrect\":1.0}")
+                        .position(18)
+                        .build());
         var test2 = service.createTest(station.id(), "MCW Grade", "", null, false, false, member.id());
         service.replaceSections(
                 test2.id(), List.of(new SectionEntry("S", "", List.of(new SourceEntry(catalogId, null, 0)))));
@@ -870,39 +842,24 @@ class QuizServiceTest extends RepositoryTestBase {
     void balancedCatalogPicking() {
         // Create multiple questions in different categories
         var cat2 = service.createCategory(station.id(), "BalCat", "", 99);
-        var q1 = service.createQuestion(
-                catalogId,
-                categoryId,
-                QuizQuestionType.TRUE_FALSE,
-                "BQ1",
-                "",
-                null,
-                1.0,
-                false,
-                "{\"correctAnswer\":true}",
-                20);
-        var q2 = service.createQuestion(
-                catalogId,
-                categoryId,
-                QuizQuestionType.TRUE_FALSE,
-                "BQ2",
-                "",
-                null,
-                1.0,
-                false,
-                "{\"correctAnswer\":false}",
-                21);
-        var q3 = service.createQuestion(
-                catalogId,
-                cat2.id(),
-                QuizQuestionType.TRUE_FALSE,
-                "BQ3",
-                "",
-                null,
-                1.0,
-                false,
-                "{\"correctAnswer\":true}",
-                22);
+        var q1 = service.createQuestion(CreateQuestionCommand.builder(catalogId, QuizQuestionType.TRUE_FALSE, "BQ1")
+                .category(categoryId)
+                .autoPoints(false)
+                .configJson("{\"correctAnswer\":true}")
+                .position(20)
+                .build());
+        var q2 = service.createQuestion(CreateQuestionCommand.builder(catalogId, QuizQuestionType.TRUE_FALSE, "BQ2")
+                .category(categoryId)
+                .autoPoints(false)
+                .configJson("{\"correctAnswer\":false}")
+                .position(21)
+                .build());
+        var q3 = service.createQuestion(CreateQuestionCommand.builder(catalogId, QuizQuestionType.TRUE_FALSE, "BQ3")
+                .category(cat2.id())
+                .autoPoints(false)
+                .configJson("{\"correctAnswer\":true}")
+                .position(22)
+                .build());
 
         // Use a source WITHOUT categoryId but WITH count=2 to trigger pickBalancedFromCatalog
         var test2 = service.createTest(station.id(), "Balanced", "", null, false, false, member.id());
@@ -923,16 +880,12 @@ class QuizServiceTest extends RepositoryTestBase {
     @Order(74)
     void autoGradeFillBlankWithGaps() {
         var q = service.createQuestion(
-                catalogId,
-                null,
-                QuizQuestionType.FILL_IN_THE_BLANK,
-                "Fill Gaps",
-                "",
-                null,
-                4.0,
-                false,
-                "{\"answers\":[\"Paris\",\"Berlin\"]}",
-                17);
+                CreateQuestionCommand.builder(catalogId, QuizQuestionType.FILL_IN_THE_BLANK, "Fill Gaps")
+                        .points(4.0)
+                        .autoPoints(false)
+                        .configJson("{\"answers\":[\"Paris\",\"Berlin\"]}")
+                        .position(17)
+                        .build());
         var test2 = service.createTest(station.id(), "FillGap", "", null, false, false, member.id());
         service.replaceSections(
                 test2.id(), List.of(new SectionEntry("S", "", List.of(new SourceEntry(catalogId, null, 0)))));
@@ -953,17 +906,11 @@ class QuizServiceTest extends RepositoryTestBase {
     @Test
     @Order(97)
     void deleteQuestion() {
-        var q = service.createQuestion(
-                catalogId,
-                null,
-                QuizQuestionType.TRUE_FALSE,
-                "ToDelete",
-                "",
-                null,
-                1.0,
-                false,
-                "{\"correctAnswer\":true}",
-                99);
+        var q = service.createQuestion(CreateQuestionCommand.builder(catalogId, QuizQuestionType.TRUE_FALSE, "ToDelete")
+                .autoPoints(false)
+                .configJson("{\"correctAnswer\":true}")
+                .position(99)
+                .build());
         assertTrue(service.deleteQuestion(q.id()));
     }
 
@@ -993,10 +940,25 @@ class QuizServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(199)
+    void browseSharedCatalogsResolvesStationName() {
+        var fedCatalog = quizCatalogRepo.create(stationB.id(), "FedNamed", "Federated catalog", false);
+        var share = federationRepo.createQuizShare(stationB.id(), fedCatalog.id(), ShareScope.ALL_PARTNERS);
+        var shared = service.browseSharedCatalogs(station.id());
+        var entry = shared.stream().filter(s -> s.id() == fedCatalog.id()).findFirst();
+        assertTrue(entry.isPresent());
+        assertEquals(stationB.name(), entry.get().stationName());
+        assertEquals(stationB.id(), entry.get().sourceStationId());
+        federationRepo.deleteQuizShare(share.id(), stationB.id());
+        quizCatalogRepo.delete(fedCatalog.id());
+    }
+
+    @Test
     @Order(201)
     void browseSharedQuizEmptyNoShares() {
         var shared = service.browseSharedQuiz(station.id());
         assertTrue(shared.isEmpty());
+        assertTrue(service.browseSharedCatalogs(station.id()).isEmpty());
     }
 
     @Test

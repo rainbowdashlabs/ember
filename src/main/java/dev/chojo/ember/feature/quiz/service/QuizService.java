@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
 import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.quiz.entity.CreateQuestionCommand;
 import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
 import dev.chojo.ember.feature.quiz.entity.QuizAnswerValue;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
@@ -186,60 +187,33 @@ public class QuizService {
         return catalogRepository.findQuestionsByIds(ids);
     }
 
-    public QuizQuestion createQuestion(
-            int catalogId,
-            Integer categoryId,
-            QuizQuestionType quizQuestionType,
-            String title,
-            String description,
-            String imageUrl,
-            double points,
-            boolean autoPoints,
-            QuestionConfig config,
-            int position) {
-        String configStr = serializeConfig(config);
-        double effectivePoints = autoPoints ? calculateAutoPoints(quizQuestionType, configStr, points) : points;
-        var question = catalogRepository.createQuestion(
-                catalogId,
-                categoryId,
-                quizQuestionType,
-                title,
-                description,
-                imageUrl,
-                effectivePoints,
-                autoPoints,
-                configStr,
-                position);
-        log.info("Created quiz question {} in catalog {} (type {})", question.id(), catalogId, quizQuestionType);
-        return question;
-    }
-
     /**
-     * Convenience overload that accepts a raw JSON config string.
-     * Parses it to the appropriate {@link QuestionConfig} using the question type.
+     * Creates a question from a {@link CreateQuestionCommand}. When the command asks for
+     * automatic points, the point value is derived from the config instead of the value
+     * the command carries.
      */
-    public QuizQuestion createQuestion(
-            int catalogId,
-            Integer categoryId,
-            QuizQuestionType quizQuestionType,
-            String title,
-            String description,
-            String imageUrl,
-            double points,
-            boolean autoPoints,
-            String configJson,
-            int position) {
-        return createQuestion(
-                catalogId,
-                categoryId,
-                quizQuestionType,
-                title,
-                description,
-                imageUrl,
-                points,
-                autoPoints,
-                quizQuestionType.parseConfig(configJson != null ? configJson : "{}"),
-                position);
+    public QuizQuestion createQuestion(CreateQuestionCommand command) {
+        String configStr = serializeConfig(command.config());
+        double effectivePoints = command.autoPoints()
+                ? calculateAutoPoints(command.questionType(), configStr, command.points())
+                : command.points();
+        var question = catalogRepository.createQuestion(
+                command.catalogId(),
+                command.categoryId(),
+                command.questionType(),
+                command.title(),
+                command.description(),
+                command.imageUrl(),
+                effectivePoints,
+                command.autoPoints(),
+                configStr,
+                command.position());
+        log.info(
+                "Created quiz question {} in catalog {} (type {})",
+                question.id(),
+                command.catalogId(),
+                command.questionType());
+        return question;
     }
 
     public boolean updateQuestion(
@@ -671,6 +645,24 @@ public class QuizService {
                 partner -> browseSharedQuizViaHttp(stationId, partner, resolvePartnerStationId(partner)));
     }
 
+    /**
+     * Lists the catalogs federated partners share with this station, each resolved to the
+     * display name of the station that owns it.
+     */
+    public List<SharedQuizCatalog> browseSharedCatalogs(int stationId) {
+        return browseSharedQuiz(stationId).stream()
+                .map(item -> new SharedQuizCatalog(
+                        item.id(),
+                        item.name(),
+                        item.description(),
+                        stationRepository
+                                .findById(item.sourceStationId())
+                                .map(Station::name)
+                                .orElse("Unknown"),
+                        item.sourceStationId()))
+                .toList();
+    }
+
     public FederatedCatalogDetail getFederatedQuizCatalog(int localStationId, UUID partnerStationUid, int catalogId) {
         return entityResolver.resolve(
                 localStationId,
@@ -703,17 +695,15 @@ public class QuizService {
         var questions = findQuestions(source.id());
         for (var q : questions) {
             Integer newCatId = q.categoryId() != null ? categoryMap.get(q.categoryId()) : null;
-            createQuestion(
-                    newCatalog.id(),
-                    newCatId,
-                    q.quizQuestionType(),
-                    q.title(),
-                    q.description(),
-                    q.imageUrl(),
-                    q.points(),
-                    q.autoPoints(),
-                    q.config() != null ? q.config() : new QuestionConfig.Unknown(),
-                    q.position());
+            createQuestion(CreateQuestionCommand.builder(newCatalog.id(), q.quizQuestionType(), q.title())
+                    .category(newCatId)
+                    .description(q.description())
+                    .imageUrl(q.imageUrl())
+                    .points(q.points())
+                    .autoPoints(q.autoPoints())
+                    .config(q.config())
+                    .position(q.position())
+                    .build());
         }
         log.info(
                 "Copied quiz catalog {} to new catalog {} for station {} ({} questions)",
@@ -1065,6 +1055,12 @@ public class QuizService {
     // -- Federation HTTP convenience methods --
 
     public record SharedQuizItem(int id, String name, String description, int sourceStationId, int partnerId) {}
+
+    /**
+     * A shared catalog as the browsing station sees it, including the owning station's
+     * display name.
+     */
+    public record SharedQuizCatalog(int id, String name, String description, String stationName, int sourceStationId) {}
 
     public record RemoteQuizCatalog(int id, String name, String description) {}
 }
