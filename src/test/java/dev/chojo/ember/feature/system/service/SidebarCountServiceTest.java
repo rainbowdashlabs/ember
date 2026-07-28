@@ -11,7 +11,7 @@ import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.events.repository.EventRepository;
+import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.inventory.service.ExchangeService;
@@ -40,7 +40,7 @@ class SidebarCountServiceTest {
     private NotificationService notificationService;
     private RequirementsService requirementsService;
     private ProfileFieldChangeRepository profileFieldChangeRepository;
-    private EventRepository eventRepository;
+    private EventRegistrationRepository eventRegistrationRepository;
     private LendingRepository lendingRepository;
     private FederationRepository federationRepository;
     private WaitingListRepository waitingListRepository;
@@ -59,7 +59,7 @@ class SidebarCountServiceTest {
         notificationService = mock(NotificationService.class);
         requirementsService = mock(RequirementsService.class);
         profileFieldChangeRepository = mock(ProfileFieldChangeRepository.class);
-        eventRepository = mock(EventRepository.class);
+        eventRegistrationRepository = mock(EventRegistrationRepository.class);
         lendingRepository = mock(LendingRepository.class);
         federationRepository = mock(FederationRepository.class);
         waitingListRepository = mock(WaitingListRepository.class);
@@ -75,7 +75,7 @@ class SidebarCountServiceTest {
                 notificationService,
                 requirementsService,
                 profileFieldChangeRepository,
-                eventRepository,
+                eventRegistrationRepository,
                 lendingRepository,
                 federationRepository,
                 waitingListRepository,
@@ -123,7 +123,7 @@ class SidebarCountServiceTest {
                 .thenReturn(3);
         when(profileFieldChangeRepository.countPendingChanges(STATION_ID, MEMBER_ID))
                 .thenReturn(2);
-        when(eventRepository.countPendingRegistrations(STATION_ID)).thenReturn(7);
+        when(eventRegistrationRepository.countPendingByStation(STATION_ID)).thenReturn(7);
         when(lendingRepository.countActionableRequests(STATION_UID)).thenReturn(4);
         when(waitingListRepository.countPendingEntries(STATION_ID)).thenReturn(6);
         when(lostAndFoundRepository.countClaimedNotProvided(STATION_ID)).thenReturn(1);
@@ -171,7 +171,7 @@ class SidebarCountServiceTest {
         assertEquals(0, counts.pendingExchanges());
 
         verifyNoInteractions(profileFieldChangeRepository);
-        verifyNoInteractions(eventRepository);
+        verifyNoInteractions(eventRegistrationRepository);
         verifyNoInteractions(lendingRepository);
         verifyNoInteractions(federationRepository);
         verifyNoInteractions(waitingListRepository);
@@ -193,7 +193,7 @@ class SidebarCountServiceTest {
         var counts = service.getCounts(session);
 
         assertEquals(3, counts.pendingChanges());
-        verifyNoInteractions(eventRepository);
+        verifyNoInteractions(eventRegistrationRepository);
     }
 
     @Test

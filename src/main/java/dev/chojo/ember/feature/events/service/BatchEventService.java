@@ -12,8 +12,8 @@ import dev.chojo.ember.feature.events.entity.BatchRequest;
 import dev.chojo.ember.feature.events.entity.BatchRow;
 import dev.chojo.ember.feature.events.entity.IntervalConfig;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventBreakRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
-import dev.chojo.ember.feature.events.repository.EventRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -33,18 +33,18 @@ public class BatchEventService {
 
     private final EventService eventService;
     private final EventFieldService eventFieldService;
-    private final EventRepository eventRepository;
+    private final EventBreakRepository breakRepository;
     private final DomainEventBus eventBus;
 
     @Inject
     public BatchEventService(
             EventService eventService,
             EventFieldService eventFieldService,
-            EventRepository eventRepository,
+            EventBreakRepository breakRepository,
             DomainEventBus eventBus) {
         this.eventService = eventService;
         this.eventFieldService = eventFieldService;
-        this.eventRepository = eventRepository;
+        this.breakRepository = breakRepository;
         this.eventBus = eventBus;
     }
 
@@ -107,7 +107,7 @@ public class BatchEventService {
         var dates = expandInterval(interval);
         if (!ignoreBreaks) {
             dates = dates.stream()
-                    .filter(date -> !eventRepository.isDateInBreak(stationId, date))
+                    .filter(date -> !breakRepository.isDateInBreak(stationId, date))
                     .toList();
         }
         LocalTime startOfDay = interval.startTime() != null ? interval.startTime() : LocalTime.of(0, 0);

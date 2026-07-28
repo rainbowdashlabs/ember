@@ -37,7 +37,7 @@ class EventThresholdCheckerTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         var eventBus = new DomainEventBus(Set.of());
-        EventService eventService = new EventService(eventRepo, restrictionService, eventBus);
+        EventService eventService = newEventService(eventBus);
         checker = new EventThresholdChecker(eventRepo, eventService, new StationReadOnlyGuard(stationRepo));
         station = stationRepo.create("ThresholdChecker Station");
         account = accountRepo.create("threshold@test.com", "Threshold", "Checker");
@@ -112,7 +112,7 @@ class EventThresholdCheckerTest extends RepositoryTestBase {
                 null);
 
         // Register a member with ACCEPTED status
-        var reg = eventRepo.createRegistration(
+        var reg = eventRegistrationRepo.create(
                 event.id(), member.id(), LocalDate.now(), RegistrationStatus.ACCEPTED, null);
 
         Method checkMethod = EventThresholdChecker.class.getDeclaredMethod("check");
@@ -122,7 +122,7 @@ class EventThresholdCheckerTest extends RepositoryTestBase {
         var updated = eventRepo.findById(event.id()).orElseThrow();
         assertFalse(updated.cancelled());
 
-        eventRepo.deleteRegistration(reg.id());
+        eventRegistrationRepo.delete(reg.id());
         eventRepo.delete(event.id());
     }
 

@@ -7,7 +7,7 @@ package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.events.repository.EventRepository;
+import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.inventory.service.ExchangeService;
@@ -29,7 +29,7 @@ public class SidebarCountService {
     private final NotificationService notificationService;
     private final RequirementsService requirementsService;
     private final ProfileFieldChangeRepository profileFieldChangeRepository;
-    private final EventRepository eventRepository;
+    private final EventRegistrationRepository eventRegistrationRepository;
     private final LendingRepository lendingRepository;
     private final FederationRepository federationRepository;
     private final WaitingListRepository waitingListRepository;
@@ -45,7 +45,7 @@ public class SidebarCountService {
             NotificationService notificationService,
             RequirementsService requirementsService,
             ProfileFieldChangeRepository profileFieldChangeRepository,
-            EventRepository eventRepository,
+            EventRegistrationRepository eventRegistrationRepository,
             LendingRepository lendingRepository,
             FederationRepository federationRepository,
             WaitingListRepository waitingListRepository,
@@ -58,7 +58,7 @@ public class SidebarCountService {
         this.notificationService = notificationService;
         this.requirementsService = requirementsService;
         this.profileFieldChangeRepository = profileFieldChangeRepository;
-        this.eventRepository = eventRepository;
+        this.eventRegistrationRepository = eventRegistrationRepository;
         this.lendingRepository = lendingRepository;
         this.federationRepository = federationRepository;
         this.waitingListRepository = waitingListRepository;
@@ -87,7 +87,7 @@ public class SidebarCountService {
 
         int pendingRegistrations = 0;
         if (roles.contains(StationPermission.EVENT_MANAGER)) {
-            pendingRegistrations = eventRepository.countPendingRegistrations(stationId);
+            pendingRegistrations = eventRegistrationRepository.countPendingByStation(stationId);
         }
 
         int lendingRequests = 0;

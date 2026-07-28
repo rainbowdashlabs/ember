@@ -38,7 +38,7 @@ class EventFieldRepositoryTest extends RepositoryTestBase {
         station = stationRepo.create("EventField Station");
         account = accountRepo.create("eventfield@test.com", "EF", "User");
         StationMember member = stationMemberRepo.create(station.id(), account.id());
-        EventCategory cat = eventRepo.createCategory(station.id(), "EF Cat", 1, null);
+        EventCategory cat = eventCategoryRepo.create(station.id(), "EF Cat", 1, null);
         categoryId = cat.id();
         StationEvent event = eventRepo.create(
                 station.id(),
@@ -63,7 +63,7 @@ class EventFieldRepositoryTest extends RepositoryTestBase {
     @AfterAll
     static void cleanup() {
         eventRepo.delete(eventId);
-        eventRepo.deleteCategory(categoryId);
+        eventCategoryRepo.delete(categoryId);
         stationRepo.delete(station.id());
         accountRepo.delete(account.id());
     }

@@ -28,9 +28,15 @@ import dev.chojo.ember.feature.discovery.repository.DiscoveryBlocklistRepository
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPeerRepository;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPingRepository;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryStationCacheRepository;
+import dev.chojo.ember.feature.events.repository.EventBreakRepository;
+import dev.chojo.ember.feature.events.repository.EventCategoryRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.events.repository.EventFieldDefaultRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
+import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
+import dev.chojo.ember.feature.events.repository.EventReminderRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
+import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.feed.repository.FeedMetricsRepository;
 import dev.chojo.ember.feature.feed.repository.FeedTokenRepository;
@@ -124,6 +130,11 @@ public abstract class RepositoryTestBase {
     protected static ProfileFieldRepository profileFieldRepo;
     protected static RegistrationCodeRepository registrationCodeRepo;
     protected static EventRepository eventRepo;
+    protected static EventBreakRepository eventBreakRepo;
+    protected static EventCategoryRepository eventCategoryRepo;
+    protected static EventFieldDefaultRepository eventFieldDefaultRepo;
+    protected static EventRegistrationRepository eventRegistrationRepo;
+    protected static EventReminderRepository eventReminderRepo;
     protected static SavedFilterRepository savedFilterRepo;
     protected static InventoryCheckRepository inventoryCheckRepo;
     protected static EventFieldRepository eventFieldRepo;
@@ -236,6 +247,11 @@ public abstract class RepositoryTestBase {
         profileFieldRepo = new ProfileFieldRepository();
         registrationCodeRepo = new RegistrationCodeRepository();
         eventRepo = new EventRepository();
+        eventBreakRepo = new EventBreakRepository();
+        eventCategoryRepo = new EventCategoryRepository();
+        eventFieldDefaultRepo = new EventFieldDefaultRepository();
+        eventRegistrationRepo = new EventRegistrationRepository();
+        eventReminderRepo = new EventReminderRepository();
         savedFilterRepo = new SavedFilterRepository();
         inventoryCheckRepo = new InventoryCheckRepository();
         eventFieldRepo = new EventFieldRepository();
@@ -294,6 +310,22 @@ public abstract class RepositoryTestBase {
         memberNameResolver =
                 new MemberNameResolver(memberSvc, accountRepo, eventFedRepo, fedRepo, stationRepo, groupSvc, tagSvc);
         memberIdentityFactory = new MemberIdentityFactory(stationRepo, stationMemberRepo, memberNameResolver);
+    }
+
+    /**
+     * Builds an {@link EventService} over the split event repositories, so no test has to repeat
+     * the repository list its constructor takes.
+     */
+    protected static EventService newEventService(DomainEventBus eventBus) {
+        return new EventService(
+                eventRepo,
+                eventBreakRepo,
+                eventCategoryRepo,
+                eventFieldDefaultRepo,
+                eventRegistrationRepo,
+                eventReminderRepo,
+                restrictionService,
+                eventBus);
     }
 
     /**

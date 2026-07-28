@@ -8,6 +8,8 @@ package dev.chojo.ember.feature.events.service;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventBreakRepository;
+import dev.chojo.ember.feature.events.repository.EventCategoryRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -49,6 +51,8 @@ public class EventExportService {
     private static final String[] DAY_NAMES = {"", "Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"};
 
     private final EventRepository eventRepository;
+    private final EventCategoryRepository categoryRepository;
+    private final EventBreakRepository breakRepository;
     private final EventFieldRepository eventFieldRepository;
     private final StationRepository stationRepository;
     private final Api apiConfig;
@@ -56,10 +60,14 @@ public class EventExportService {
     @Inject
     public EventExportService(
             EventRepository eventRepository,
+            EventCategoryRepository categoryRepository,
+            EventBreakRepository breakRepository,
             EventFieldRepository eventFieldRepository,
             StationRepository stationRepository,
             Api apiConfig) {
         this.eventRepository = eventRepository;
+        this.categoryRepository = categoryRepository;
+        this.breakRepository = breakRepository;
         this.eventFieldRepository = eventFieldRepository;
         this.stationRepository = stationRepository;
         this.apiConfig = apiConfig;
@@ -87,8 +95,8 @@ public class EventExportService {
         }
 
         var allEvents = eventRepository.findByStation(stationId);
-        var eventCategories = eventRepository.findCategoriesByStation(stationId);
-        var breaks = eventRepository.findBreaksByStation(stationId);
+        var eventCategories = categoryRepository.findByStation(stationId);
+        var breaks = breakRepository.findByStation(stationId);
 
         // Build column headers in order
         var columnHeaders = columns.stream().map(ExportColumn::label).toList();

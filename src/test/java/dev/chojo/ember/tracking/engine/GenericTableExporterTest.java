@@ -48,7 +48,7 @@ class GenericTableExporterTest extends RepositoryTestBase {
 
         userTagRepo.create(station.id(), "vip");
 
-        eventRepo.createCategory(station.id(), "TestCategory", 1, null);
+        eventCategoryRepo.create(station.id(), "TestCategory", 1, null);
 
         inventoryRepo.create(station.id(), "InvA", InventoryType.INTERNAL, false);
         inventoryRepo.create(station.id(), "InvB", InventoryType.EXTERNAL, true);

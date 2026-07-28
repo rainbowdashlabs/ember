@@ -16,7 +16,9 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
 import dev.chojo.ember.feature.attendance.entity.SessionSummary;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository.TemplateGroup;
+import dev.chojo.ember.feature.events.repository.EventFieldDefaultRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
+import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.members.entity.MemberAbsence;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -49,6 +51,8 @@ public class AttendanceService {
     private final AttendanceRepository attendanceRepository;
     private final EventRepository eventRepository;
     private final EventFieldRepository eventFieldRepository;
+    private final EventFieldDefaultRepository eventFieldDefaultRepository;
+    private final EventRegistrationRepository eventRegistrationRepository;
     private final StationMemberRepository stationMemberRepository;
     private final MemberGroupRepository memberGroupRepository;
 
@@ -57,11 +61,15 @@ public class AttendanceService {
             AttendanceRepository attendanceRepository,
             EventRepository eventRepository,
             EventFieldRepository eventFieldRepository,
+            EventFieldDefaultRepository eventFieldDefaultRepository,
+            EventRegistrationRepository eventRegistrationRepository,
             StationMemberRepository stationMemberRepository,
             MemberGroupRepository memberGroupRepository) {
         this.attendanceRepository = attendanceRepository;
         this.eventRepository = eventRepository;
         this.eventFieldRepository = eventFieldRepository;
+        this.eventFieldDefaultRepository = eventFieldDefaultRepository;
+        this.eventRegistrationRepository = eventRegistrationRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberGroupRepository = memberGroupRepository;
     }
@@ -242,7 +250,7 @@ public class AttendanceService {
         }
         // Auto-populate field defaults from the linked event (overrides template defaults)
         if (eventId != null) {
-            var defaults = eventRepository.findFieldDefaults(eventId);
+            var defaults = eventFieldDefaultRepository.findByEvent(eventId);
             if (!defaults.isEmpty()) {
                 var event = eventRepository.findById(eventId).orElse(null);
                 if (event != null) {
@@ -386,7 +394,7 @@ public class AttendanceService {
         if (session.get().eventId() != null) {
             int eventId = session.get().eventId();
             LocalDate today = LocalDate.now();
-            var registrations = eventRepository.findRegistrations(eventId, today);
+            var registrations = eventRegistrationRepository.findByEventAndDate(eventId, today);
 
             for (var reg : registrations) {
                 if (existingMemberIds.contains(reg.memberId())) continue;
@@ -529,7 +537,7 @@ public class AttendanceService {
         if (session.isEmpty() || session.get().eventId() == null) return false;
 
         LocalDate today = LocalDate.now();
-        return eventRepository
+        return eventRegistrationRepository
                 .findDeclinedMemberIds(session.get().eventId(), today)
                 .contains(memberId);
     }

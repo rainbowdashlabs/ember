@@ -10,6 +10,8 @@ import dev.chojo.ember.event.events.RegistrationDeadlineExpired;
 import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventBreakRepository;
+import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
 import jakarta.inject.Inject;
@@ -30,6 +32,8 @@ public class RegistrationDeadlineChecker {
     private static final Logger log = LoggerFactory.getLogger(RegistrationDeadlineChecker.class);
 
     private final EventRepository eventRepository;
+    private final EventBreakRepository breakRepository;
+    private final EventRegistrationRepository registrationRepository;
     private final EventService eventService;
     private final DomainEventBus eventBus;
     private final StationReadOnlyGuard readOnlyGuard;
@@ -37,10 +41,14 @@ public class RegistrationDeadlineChecker {
     @Inject
     public RegistrationDeadlineChecker(
             EventRepository eventRepository,
+            EventBreakRepository breakRepository,
+            EventRegistrationRepository registrationRepository,
             EventService eventService,
             DomainEventBus eventBus,
             StationReadOnlyGuard readOnlyGuard) {
         this.eventRepository = eventRepository;
+        this.breakRepository = breakRepository;
+        this.registrationRepository = registrationRepository;
         this.eventService = eventService;
         this.eventBus = eventBus;
         this.readOnlyGuard = readOnlyGuard;
@@ -84,14 +92,14 @@ public class RegistrationDeadlineChecker {
 
         for (var event : events) {
             if (!readOnlyGuard.isWritable(event.stationId())) continue;
-            var stationBreaks = breaks.computeIfAbsent(event.stationId(), eventRepository::findBreaksByStation);
+            var stationBreaks = breaks.computeIfAbsent(event.stationId(), breakRepository::findByStation);
             var nextDate = findNextOccurrence(event, today, stationBreaks);
             if (nextDate == null) continue;
 
             var deadlineDate = nextDate.minusDays(event.registrationCloseDays());
             if (today.isBefore(deadlineDate)) continue;
 
-            var pending = eventRepository.findPendingRegistrationsForDate(event.id(), nextDate);
+            var pending = registrationRepository.findPendingByEventAndDate(event.id(), nextDate);
             if (pending.isEmpty()) continue;
 
             for (EventRegistration reg : pending) {

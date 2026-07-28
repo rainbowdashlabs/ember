@@ -10,6 +10,7 @@ import dev.chojo.ember.event.events.BulkMentionedInComment;
 import dev.chojo.ember.feature.comment.entity.MentionType;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
+import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
@@ -33,6 +34,7 @@ public class BulkMentionedInCommentHandler implements DomainEventHandler<BulkMen
     private final NotificationService notificationService;
     private final MemberGroupRepository memberGroupRepository;
     private final EventRepository eventRepository;
+    private final EventRegistrationRepository registrationRepository;
     private final StationMemberRepository stationMemberRepository;
     private final RestrictionService restrictionService;
 
@@ -41,11 +43,13 @@ public class BulkMentionedInCommentHandler implements DomainEventHandler<BulkMen
             NotificationService notificationService,
             MemberGroupRepository memberGroupRepository,
             EventRepository eventRepository,
+            EventRegistrationRepository registrationRepository,
             StationMemberRepository stationMemberRepository,
             RestrictionService restrictionService) {
         this.notificationService = notificationService;
         this.memberGroupRepository = memberGroupRepository;
         this.eventRepository = eventRepository;
+        this.registrationRepository = registrationRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.restrictionService = restrictionService;
     }
@@ -96,7 +100,7 @@ public class BulkMentionedInCommentHandler implements DomainEventHandler<BulkMen
         var stationEvent = eventRepository.findById(event.mentionTargetId()).orElse(null);
         if (stationEvent == null) return Set.of();
 
-        var allRegs = eventRepository.findAllRegistrations(event.mentionTargetId());
+        var allRegs = registrationRepository.findByEvent(event.mentionTargetId());
         var declinedIds = allRegs.stream()
                 .filter(r -> r.status() == RegistrationStatus.DECLINED)
                 .map(EventRegistration::memberId)
@@ -128,7 +132,7 @@ public class BulkMentionedInCommentHandler implements DomainEventHandler<BulkMen
     }
 
     private Set<Integer> resolveRegistrationsByStatus(int eventId, RegistrationStatus status) {
-        return eventRepository.findAllRegistrations(eventId).stream()
+        return registrationRepository.findByEvent(eventId).stream()
                 .filter(r -> r.status() == status)
                 .map(EventRegistration::memberId)
                 .collect(Collectors.toCollection(HashSet::new));

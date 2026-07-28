@@ -21,6 +21,11 @@ import dev.chojo.ember.feature.events.entity.RegistrationCount;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.entity.UpcomingEventOccurrence;
+import dev.chojo.ember.feature.events.repository.EventBreakRepository;
+import dev.chojo.ember.feature.events.repository.EventCategoryRepository;
+import dev.chojo.ember.feature.events.repository.EventFieldDefaultRepository;
+import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
+import dev.chojo.ember.feature.events.repository.EventReminderRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
@@ -55,13 +60,30 @@ public class EventService {
     private static final Logger log = LoggerFactory.getLogger(EventService.class);
 
     private final EventRepository eventRepository;
+    private final EventBreakRepository breakRepository;
+    private final EventCategoryRepository categoryRepository;
+    private final EventFieldDefaultRepository fieldDefaultRepository;
+    private final EventRegistrationRepository registrationRepository;
+    private final EventReminderRepository reminderRepository;
     private final RestrictionService restrictionService;
     private final DomainEventBus eventBus;
 
     @Inject
     public EventService(
-            EventRepository eventRepository, RestrictionService restrictionService, DomainEventBus eventBus) {
+            EventRepository eventRepository,
+            EventBreakRepository breakRepository,
+            EventCategoryRepository categoryRepository,
+            EventFieldDefaultRepository fieldDefaultRepository,
+            EventRegistrationRepository registrationRepository,
+            EventReminderRepository reminderRepository,
+            RestrictionService restrictionService,
+            DomainEventBus eventBus) {
         this.eventRepository = eventRepository;
+        this.breakRepository = breakRepository;
+        this.categoryRepository = categoryRepository;
+        this.fieldDefaultRepository = fieldDefaultRepository;
+        this.registrationRepository = registrationRepository;
+        this.reminderRepository = reminderRepository;
         this.restrictionService = restrictionService;
         this.eventBus = eventBus;
     }
@@ -363,7 +385,7 @@ public class EventService {
         int dayOfWeek = today.getDayOfWeek().getValue();
         int dayOfMonth = today.getDayOfMonth();
         int monthValue = today.getMonthValue();
-        boolean inBreak = eventRepository.isDateInBreak(stationId, today);
+        boolean inBreak = breakRepository.isDateInBreak(stationId, today);
 
         return eventRepository.findByStation(stationId).stream()
                 .filter(e -> {
@@ -416,7 +438,7 @@ public class EventService {
                     })
                     .toList();
         }
-        var breaks = eventRepository.findBreaksByStation(stationId);
+        var breaks = breakRepository.findByStation(stationId);
 
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
         int maxDays = 28;
@@ -456,11 +478,11 @@ public class EventService {
      * @return the list of categories
      */
     public Optional<EventCategory> findCategoryById(int id) {
-        return eventRepository.findCategoryById(id);
+        return categoryRepository.findById(id);
     }
 
     public List<EventCategory> findCategoriesByStation(int stationId) {
-        return eventRepository.findCategoriesByStation(stationId);
+        return categoryRepository.findByStation(stationId);
     }
 
     /**
@@ -473,7 +495,7 @@ public class EventService {
      * @return the created category
      */
     public EventCategory createCategory(int stationId, String name, int position, String color) {
-        var category = eventRepository.createCategory(stationId, name, position, color);
+        var category = categoryRepository.create(stationId, name, position, color);
         log.info("Created event category {} for station {}", category.id(), stationId);
         return category;
     }
@@ -489,7 +511,7 @@ public class EventService {
      */
     public boolean updateCategory(
             int id, String name, int position, Integer maxShownEvents, boolean isPublic, String color) {
-        if (eventRepository.updateCategory(id, name, position, maxShownEvents, isPublic, color)) {
+        if (categoryRepository.update(id, name, position, maxShownEvents, isPublic, color)) {
             log.info("Updated event category {}", id);
             return true;
         }
@@ -504,7 +526,7 @@ public class EventService {
      * @return true if the category was deleted
      */
     public boolean deleteCategory(int id) {
-        if (eventRepository.deleteCategory(id)) {
+        if (categoryRepository.delete(id)) {
             log.info("Deleted event category {}", id);
             return true;
         }
@@ -512,8 +534,15 @@ public class EventService {
         return false;
     }
 
-    public void reorderCategories(List<Integer> orderedIds) {
-        eventRepository.reorderCategories(orderedIds);
+    /**
+     * Rewrites the display order of a station's event categories. Ids from another station are
+     * ignored by the repository, so a caller cannot reorder a foreign station's categories.
+     *
+     * @param stationId  the owning station
+     * @param orderedIds the category IDs in their new order
+     */
+    public void reorderCategories(int stationId, List<Integer> orderedIds) {
+        categoryRepository.reorder(stationId, orderedIds);
         log.info("Reordered {} event categories", orderedIds.size());
     }
 
@@ -526,7 +555,7 @@ public class EventService {
      * @return the list of breaks
      */
     public List<EventBreak> findBreaksByStation(int stationId) {
-        return eventRepository.findBreaksByStation(stationId);
+        return breakRepository.findByStation(stationId);
     }
 
     /**
@@ -536,7 +565,7 @@ public class EventService {
      * @return the break, if found
      */
     public Optional<EventBreak> findBreakById(int id) {
-        return eventRepository.findBreakById(id);
+        return breakRepository.findById(id);
     }
 
     /**
@@ -549,7 +578,7 @@ public class EventService {
      * @return the created break
      */
     public EventBreak createBreak(int stationId, String name, LocalDate startDate, LocalDate endDate) {
-        var eventBreak = eventRepository.createBreak(stationId, name, startDate, endDate);
+        var eventBreak = breakRepository.create(stationId, name, startDate, endDate);
         log.info("Created event break {} for station {}", eventBreak.id(), stationId);
         return eventBreak;
     }
@@ -564,9 +593,9 @@ public class EventService {
      * @return the updated break, or empty if not found
      */
     public Optional<EventBreak> updateBreak(int id, String name, LocalDate startDate, LocalDate endDate) {
-        if (eventRepository.updateBreak(id, name, startDate, endDate)) {
+        if (breakRepository.update(id, name, startDate, endDate)) {
             log.info("Updated event break {}", id);
-            return eventRepository.findBreakById(id);
+            return breakRepository.findById(id);
         }
         log.warn("Cannot update event break: break {} not found", id);
         return Optional.empty();
@@ -579,7 +608,7 @@ public class EventService {
      * @return true if the break was deleted
      */
     public boolean deleteBreak(int id) {
-        if (eventRepository.deleteBreak(id)) {
+        if (breakRepository.delete(id)) {
             log.info("Deleted event break {}", id);
             return true;
         }
@@ -643,7 +672,7 @@ public class EventService {
      * @return the list of field defaults
      */
     public List<EventFieldDefault> findFieldDefaults(int eventId) {
-        return eventRepository.findFieldDefaults(eventId);
+        return fieldDefaultRepository.findByEvent(eventId);
     }
 
     /**
@@ -653,7 +682,7 @@ public class EventService {
      * @param defaults the new field default configurations
      */
     public void setFieldDefaults(int eventId, List<EventFieldDefault> defaults) {
-        eventRepository.setFieldDefaults(eventId, defaults);
+        fieldDefaultRepository.replaceForEvent(eventId, defaults);
         log.info("Set field defaults for event {} ({} defaults)", eventId, defaults.size());
     }
 
@@ -664,7 +693,7 @@ public class EventService {
         var event = eventRepository.findById(eventId).orElse(null);
         if (event == null) return Map.of();
 
-        var defaults = eventRepository.findFieldDefaults(eventId);
+        var defaults = fieldDefaultRepository.findByEvent(eventId);
         var result = new HashMap<Integer, String>();
         for (var def : defaults) {
             String resolved =
@@ -692,7 +721,7 @@ public class EventService {
      * @return the list of pending registrations
      */
     public List<EventRegistration> findPendingRegistrationsByStation(int stationId) {
-        return eventRepository.findPendingRegistrationsByStation(stationId);
+        return registrationRepository.findPendingByStation(stationId);
     }
 
     /**
@@ -703,7 +732,7 @@ public class EventService {
      * @return the list of registrations
      */
     public List<EventRegistration> findRegistrations(int eventId, LocalDate eventDate) {
-        return eventRepository.findRegistrations(eventId, eventDate);
+        return registrationRepository.findByEventAndDate(eventId, eventDate);
     }
 
     /**
@@ -713,7 +742,7 @@ public class EventService {
      * @return the list of registrations
      */
     public List<EventRegistration> findAllRegistrations(int eventId) {
-        return eventRepository.findAllRegistrations(eventId);
+        return registrationRepository.findByEvent(eventId);
     }
 
     /**
@@ -723,7 +752,7 @@ public class EventService {
      * @return the list of registrations
      */
     public List<EventRegistration> findRegistrationsByMember(int memberId) {
-        return eventRepository.findRegistrationsByMember(memberId);
+        return registrationRepository.findByMember(memberId);
     }
 
     /**
@@ -734,7 +763,7 @@ public class EventService {
      * @return the list of registrations
      */
     public List<EventRegistration> findRegistrationsByMembers(Collection<Integer> memberIds) {
-        return eventRepository.findRegistrationsByMembers(memberIds);
+        return registrationRepository.findByMembers(memberIds);
     }
 
     /**
@@ -748,7 +777,7 @@ public class EventService {
      * Returns the most recent registration time across the given members, for feed cache invalidation.
      */
     public Instant findMaxRegistrationCreatedAt(Collection<Integer> memberIds) {
-        return eventRepository.findMaxRegistrationCreatedAt(memberIds);
+        return registrationRepository.findMaxCreatedAt(memberIds);
     }
 
     /**
@@ -764,7 +793,7 @@ public class EventService {
     public EventRegistration register(
             int eventId, int memberId, LocalDate eventDate, boolean autoAccept, Integer createdBy) {
         var registration =
-                eventRepository.createRegistration(eventId, memberId, eventDate, RegistrationStatus.PENDING, createdBy);
+                registrationRepository.create(eventId, memberId, eventDate, RegistrationStatus.PENDING, createdBy);
         log.info(
                 "Registered member {} for event {} on {} (status={})",
                 memberId,
@@ -772,8 +801,8 @@ public class EventService {
                 eventDate,
                 autoAccept ? RegistrationStatus.ACCEPTED : RegistrationStatus.PENDING);
         if (autoAccept) {
-            eventRepository.updateRegistrationStatus(registration.id(), RegistrationStatus.ACCEPTED);
-            return eventRepository.findRegistrationById(registration.id()).orElse(registration);
+            registrationRepository.updateStatus(registration.id(), RegistrationStatus.ACCEPTED);
+            return registrationRepository.findById(registration.id()).orElse(registration);
         }
         return registration;
     }
@@ -785,16 +814,16 @@ public class EventService {
      * @return the registration, if found
      */
     public Optional<EventRegistration> findRegistrationById(int id) {
-        return eventRepository.findRegistrationById(id);
+        return registrationRepository.findById(id);
     }
 
     public boolean updateRegistrationStatus(int id, RegistrationStatus status) {
-        if (!eventRepository.updateRegistrationStatus(id, status)) {
+        if (!registrationRepository.updateStatus(id, status)) {
             log.warn("Cannot update registration status: registration {} not found", id);
             return false;
         }
         log.info("Updated registration {} status to {}", id, status);
-        eventRepository.findRegistrationById(id).ifPresent(registration -> eventRepository
+        registrationRepository.findById(id).ifPresent(registration -> eventRepository
                 .findById(registration.eventId())
                 .ifPresent(event -> eventBus.publish(new EventRegistrationStatusChanged(
                         event.stationId(), event.id(), event.name(), registration.memberId(), status))));
@@ -802,8 +831,8 @@ public class EventService {
     }
 
     public boolean withdrawRegistration(int id) {
-        var registration = eventRepository.findRegistrationById(id).orElse(null);
-        if (!eventRepository.deleteRegistration(id)) {
+        var registration = registrationRepository.findById(id).orElse(null);
+        if (!registrationRepository.delete(id)) {
             log.warn("Cannot withdraw registration: registration {} not found", id);
             return false;
         }
@@ -822,12 +851,12 @@ public class EventService {
     }
 
     public EventRegistration decline(int eventId, int memberId, LocalDate eventDate, Integer createdBy) {
-        var existing = eventRepository.findRegistrations(eventId, eventDate).stream()
+        var existing = registrationRepository.findByEventAndDate(eventId, eventDate).stream()
                 .filter(r -> r.memberId() == memberId)
                 .findFirst()
                 .orElse(null);
-        var result = eventRepository.createRegistration(
-                eventId, memberId, eventDate, RegistrationStatus.DECLINED, createdBy);
+        var result =
+                registrationRepository.create(eventId, memberId, eventDate, RegistrationStatus.DECLINED, createdBy);
         log.info("Declined registration for member {} on event {} ({})", memberId, eventId, eventDate);
         if (existing != null && existing.status() == RegistrationStatus.ACCEPTED) {
             eventRepository
@@ -839,25 +868,25 @@ public class EventService {
     }
 
     public List<RegistrationCount> findRegistrationCounts(int stationId) {
-        return eventRepository.findRegistrationCounts(stationId);
+        return registrationRepository.findCountsByStation(stationId);
     }
 
     public List<Integer> findDeclinedMemberIds(int eventId, LocalDate eventDate) {
-        return eventRepository.findDeclinedMemberIds(eventId, eventDate);
+        return registrationRepository.findDeclinedMemberIds(eventId, eventDate);
     }
 
     public List<MemberRegistrationStats> findRegistrationStats(int eventId, Integer categoryId, int months) {
-        return eventRepository.findRegistrationStatsByEvent(eventId, categoryId, months);
+        return registrationRepository.findStatsByEvent(eventId, categoryId, months);
     }
 
     // --- Reminders ---
 
     public List<Integer> findReminderDays(int eventId) {
-        return eventRepository.findReminderDays(eventId);
+        return reminderRepository.findDays(eventId);
     }
 
     public void setReminders(int eventId, List<Integer> daysBefore) {
-        eventRepository.replaceReminders(eventId, daysBefore);
+        reminderRepository.replace(eventId, daysBefore);
         log.info("Set reminders for event {} ({} days)", eventId, daysBefore.size());
     }
 }

@@ -42,6 +42,33 @@ class RouteSourceConventionsTest {
         assertNoMatches(INLINE_UUID_PATH_PARSE, "parses a UUID path parameter inline; use RouteSupport.pathUuid");
     }
 
+    /**
+     * Javalin answers with the first registered handler that matches, and the route multibinder is
+     * consumed in binding order. {@code EventStructureRoutes} registers literal paths such as
+     * {@code /events/categories} that {@code EventRoutes} would otherwise swallow with
+     * {@code /events/{id}}, so its binding has to come first.
+     */
+    @Test
+    void eventStructureRoutesAreBoundBeforeEventRoutes() throws IOException {
+        List<String> lines =
+                Files.readAllLines(Path.of("src", "main", "java", "dev", "chojo", "ember", "EmberModule.java"));
+        int structure = bindingLine(lines, "EventStructureRoutes");
+        int events = bindingLine(lines, "EventRoutes");
+        assertTrue(
+                structure < events,
+                () -> "EventStructureRoutes must be bound before EventRoutes so its literal /events/* paths"
+                        + " are matched before /events/{id}; found lines %d and %d".formatted(structure, events));
+    }
+
+    private int bindingLine(List<String> lines, String routeClass) {
+        String binding = "addBinding().to(%s.class)".formatted(routeClass);
+        return Stream.iterate(0, i -> i + 1)
+                .limit(lines.size())
+                .filter(i -> lines.get(i).contains(binding))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("No route binding found for " + routeClass));
+    }
+
     private void assertNoMatches(Pattern pattern, String message) throws IOException {
         List<String> violations;
         try (Stream<Path> files = Files.walk(MAIN_SOURCES)) {

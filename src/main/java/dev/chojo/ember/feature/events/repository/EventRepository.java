@@ -7,21 +7,15 @@ package dev.chojo.ember.feature.events.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
-import dev.chojo.ember.feature.events.entity.EventBreak;
-import dev.chojo.ember.feature.events.entity.EventCategory;
-import dev.chojo.ember.feature.events.entity.EventFieldDefault;
-import dev.chojo.ember.feature.events.entity.EventRegistration;
-import dev.chojo.ember.feature.events.entity.MemberRegistrationStats;
-import dev.chojo.ember.feature.events.entity.RegistrationCount;
-import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.restriction.RestrictionSql;
+import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.util.sql.SqlSupport;
 import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -34,22 +28,20 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 /**
- * Repository for managing station events, event breaks, categories, restrictions, field defaults, and registrations.
+ * Repository for the {@code station_event} table: event definitions, their visibility filtering,
+ * cancellation state and the scheduler reads that drive deadline, threshold and reminder handling.
  */
 @Singleton
 public class EventRepository {
 
     private static final String EVENT_COLUMNS =
             "id, station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, restriction_mode, \"public\", registration_limit, cancelled, cancelled_at, cancel_reason, min_registrations, threshold_date, threshold_notified, registration_close_days";
-    private static final String EVENT_RESTRICTED_COLUMN =
-            "EXISTS(SELECT 1 FROM event_restriction r WHERE r.event_id = e.id) AS restricted";
+    private static final String EVENT_RESTRICTED_COLUMN = RestrictionSql.restrictedFlag(RestrictionType.EVENT, "e.id");
     private static final String EVENT_RESTRICTED_COLUMN_BARE =
-            "EXISTS(SELECT 1 FROM event_restriction r WHERE r.event_id = id) AS restricted";
-    private static final String EVENT_BREAK_COLUMNS = "id, station_id, name, start_date, end_date";
-    private static final String EVENT_CATEGORY_COLUMNS =
-            "id, station_id, name, position, max_shown_events, public, color";
-    private static final String EVENT_REGISTRATION_COLUMNS =
-            "id, event_id, member_id, event_date, status, created_at, created_by";
+            RestrictionSql.restrictedFlag(RestrictionType.EVENT, "id");
+    private static final String EVENT_VISIBLE_FOR_MEMBER =
+            RestrictionSql.visibleFor(RestrictionType.EVENT, "e.id", ":member_id");
+    private static final String EVENT_MEMBER_PREDICATE = "AND " + EVENT_VISIBLE_FOR_MEMBER;
 
     /**
      * Retrieves all events for a station, ordered by event type and name.
@@ -154,20 +146,21 @@ public class EventRepository {
                 SELECT %s, %s
                 FROM station_event e
                 WHERE e.station_id = :station_id
-                  AND check_restriction('event_restriction', 'event_id', 'station_event', 'id', e.id, :member_id, 'EVENT_MANAGER')
-                ORDER BY e.event_type, e.name;""", SqlSupport.alias("e", EVENT_COLUMNS), EVENT_RESTRICTED_COLUMN)
+                  AND %s
+                ORDER BY e.event_type, e.name;""", SqlSupport.alias("e", EVENT_COLUMNS), EVENT_RESTRICTED_COLUMN, EVENT_VISIBLE_FOR_MEMBER)
                 .single(call().bind("station_id", stationId).bind("member_id", memberId))
                 .map(StationEvent.map())
                 .all();
     }
 
+    /**
+     * Retrieves a station's events narrowed by any combination of member visibility, category and
+     * registration requirement. Absent filters widen the result rather than restricting it.
+     */
     public List<StationEvent> findFiltered(
             int stationId, Integer memberId, Integer categoryId, Boolean requiresRegistration) {
         var where = WhereBuilder.create()
-                .add(
-                        "AND check_restriction('event_restriction', 'event_id', 'station_event', 'id', e.id, :member_id, 'EVENT_MANAGER')",
-                        "member_id",
-                        memberId)
+                .add("AND " + EVENT_VISIBLE_FOR_MEMBER, "member_id", memberId)
                 .add("AND e.category_id = :category_id", "category_id", categoryId)
                 .add(
                         "AND e.requires_registration = :requires_registration",
@@ -234,11 +227,12 @@ public class EventRepository {
             Integer minRegistrations,
             Instant thresholdDate,
             Integer registrationCloseDays) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT INTO station_event(station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, registration_limit, min_registrations, threshold_date, registration_close_days)
                 VALUES (:station_id, :name, :description, :event_type, :day_of_week, :start_time, :end_time, :template_id, :requires_registration, :registration_deadline, :requires_confirmation, :category_id, :registration_limit, :min_registrations, :threshold_date, :registration_close_days)
-                RETURNING %s, %s;""", EVENT_COLUMNS, EVENT_RESTRICTED_COLUMN_BARE)
-                .single(call().bind("station_id", stationId)
+                RETURNING %s, %s;""",
+                call().bind("station_id", stationId)
                         .bind("name", name)
                         .bind("description", description)
                         .bind("event_type", eventType)
@@ -253,10 +247,10 @@ public class EventRepository {
                         .bind("registration_limit", registrationLimit)
                         .bind("min_registrations", minRegistrations)
                         .bind("threshold_date", thresholdDate, INSTANT_TIMESTAMP)
-                        .bind("registration_close_days", registrationCloseDays))
-                .map(StationEvent.map())
-                .first()
-                .orElseThrow();
+                        .bind("registration_close_days", registrationCloseDays),
+                StationEvent.map(),
+                EVENT_COLUMNS,
+                EVENT_RESTRICTED_COLUMN_BARE);
     }
 
     /**
@@ -347,202 +341,6 @@ public class EventRepository {
     }
 
     /**
-     * Retrieves all event breaks for a station, ordered by start date.
-     *
-     * @param stationId the station ID
-     * @return the list of event breaks
-     */
-    public List<EventBreak> findBreaksByStation(int stationId) {
-        return query("""
-                SELECT %s
-                FROM station_event_break
-                WHERE station_id = :station_id
-                ORDER BY start_date;""", EVENT_BREAK_COLUMNS)
-                .single(call().bind("station_id", stationId))
-                .map(EventBreak.map())
-                .all();
-    }
-
-    /**
-     * Finds an event break by its ID.
-     *
-     * @param id the break ID
-     * @return the break, if found
-     */
-    public Optional<EventBreak> findBreakById(int id) {
-        return SqlSupport.findById("station_event_break", EVENT_BREAK_COLUMNS, id, EventBreak.map());
-    }
-
-    /**
-     * Creates a new event break.
-     *
-     * @param stationId the station ID
-     * @param name      the break name
-     * @param startDate the first day of the break
-     * @param endDate   the last day of the break
-     * @return the created break
-     */
-    public EventBreak createBreak(int stationId, String name, LocalDate startDate, LocalDate endDate) {
-        return SqlSupport.insertReturning(
-                """
-                INSERT INTO station_event_break(station_id, name, start_date, end_date)
-                VALUES (:station_id, :name, :start_date, :end_date)
-                RETURNING %s;""",
-                call().bind("station_id", stationId)
-                        .bind("name", name)
-                        .bind("start_date", startDate)
-                        .bind("end_date", endDate),
-                EventBreak.map(),
-                EVENT_BREAK_COLUMNS);
-    }
-
-    /**
-     * Updates an existing event break.
-     *
-     * @param id        the break ID
-     * @param name      the new break name
-     * @param startDate the new start date
-     * @param endDate   the new end date
-     * @return true if a row was updated
-     */
-    public boolean updateBreak(int id, String name, LocalDate startDate, LocalDate endDate) {
-        return query("""
-                UPDATE station_event_break
-                SET
-                    name       = :name,
-                    start_date = :start_date,
-                    end_date   = :end_date
-                WHERE id = :id;""")
-                .single(call().bind("name", name)
-                        .bind("start_date", startDate)
-                        .bind("end_date", endDate)
-                        .bind("id", id))
-                .update()
-                .changed();
-    }
-
-    /**
-     * Deletes an event break by ID.
-     *
-     * @param id the break ID
-     * @return true if a row was deleted
-     */
-    public boolean deleteBreak(int id) {
-        return SqlSupport.deleteById("station_event_break", id);
-    }
-
-    /**
-     * Retrieves all event categories for a station, ordered by position.
-     *
-     * @param id the station ID
-     * @return the list of event categories
-     */
-    public Optional<EventCategory> findCategoryById(int id) {
-        return SqlSupport.findById("event_category", EVENT_CATEGORY_COLUMNS, id, EventCategory.map());
-    }
-
-    public List<EventCategory> findCategoriesByStation(int stationId) {
-        return query("""
-                SELECT %s
-                FROM event_category
-                WHERE station_id = :station_id
-                ORDER BY position;""", EVENT_CATEGORY_COLUMNS)
-                .single(call().bind("station_id", stationId))
-                .map(EventCategory.map())
-                .all();
-    }
-
-    /**
-     * Creates a new event category.
-     *
-     * @param stationId the station ID
-     * @param name      the category name
-     * @param position  the display order position
-     * @param color     optional display color (#RRGGBB), or null
-     * @return the created category
-     */
-    public EventCategory createCategory(int stationId, String name, int position, String color) {
-        return SqlSupport.insertReturning(
-                """
-                INSERT
-                INTO
-                    event_category(station_id, name, position, color)
-                VALUES
-                    (:station_id, :name, :position, :color)
-                RETURNING %s;""",
-                call().bind("station_id", stationId)
-                        .bind("name", name)
-                        .bind("position", position)
-                        .bind("color", color),
-                EventCategory.map(),
-                EVENT_CATEGORY_COLUMNS);
-    }
-
-    /**
-     * Updates an existing event category.
-     *
-     * @param id       the category ID
-     * @param name     the new category name
-     * @param position the new display order position
-     * @param color    the optional new display color (#RRGGBB), or null to clear
-     * @return true if a row was updated
-     */
-    public boolean updateCategory(
-            int id, String name, int position, Integer maxShownEvents, boolean isPublic, String color) {
-        return query("""
-                UPDATE event_category
-                SET name = :name,
-                    position = :position,
-                    max_shown_events = :max_shown_events,
-                    public = :public,
-                    color = :color
-                WHERE id = :id;""")
-                .single(call().bind("name", name)
-                        .bind("position", position)
-                        .bind("max_shown_events", maxShownEvents)
-                        .bind("public", isPublic)
-                        .bind("color", color)
-                        .bind("id", id))
-                .update()
-                .changed();
-    }
-
-    /**
-     * Deletes an event category by ID.
-     *
-     * @param id the category ID
-     * @return true if a row was deleted
-     */
-    public boolean deleteCategory(int id) {
-        return SqlSupport.deleteById("event_category", id);
-    }
-
-    public void reorderCategories(List<Integer> orderedIds) {
-        for (int i = 0; i < orderedIds.size(); i++) {
-            query("UPDATE event_category SET position = :position WHERE id = :id;")
-                    .single(call().bind("position", i).bind("id", orderedIds.get(i)))
-                    .update();
-        }
-    }
-
-    /**
-     * Checks whether a given date falls within any break period for the station.
-     *
-     * @param stationId the station ID
-     * @param date      the date to check
-     * @return true if the date is within a break
-     */
-    public boolean isDateInBreak(int stationId, LocalDate date) {
-        return SqlSupport.exists("""
-                SELECT 1
-                FROM station_event_break
-                WHERE station_id = :station_id
-                  AND start_date <= :date
-                  AND end_date >= :date
-                LIMIT 1;""", call().bind("station_id", stationId).bind("date", date));
-    }
-
-    /**
      * Updates the restriction mode for an event.
      *
      * @param eventId the event ID
@@ -562,84 +360,9 @@ public class EventRepository {
     }
 
     /**
-     * Retrieves all field default configurations for an event.
-     *
-     * @param eventId the event ID
-     * @return the list of field defaults
+     * Finds one-time events whose registration deadline has passed while pending registrations
+     * remain and no deadline notification has gone out yet.
      */
-    public List<EventFieldDefault> findFieldDefaults(int eventId) {
-        return query("""
-                SELECT
-                    event_id,
-                    field_id,
-                    source,
-                    value
-                FROM
-                    event_field_default
-                WHERE event_id = :event_id;""")
-                .single(call().bind("event_id", eventId))
-                .map(EventFieldDefault.map())
-                .all();
-    }
-
-    /**
-     * Replaces all field defaults for an event by deleting existing ones and inserting the given defaults.
-     *
-     * @param eventId  the event ID
-     * @param defaults the new field default configurations
-     */
-    public void setFieldDefaults(int eventId, List<EventFieldDefault> defaults) {
-        query("DELETE FROM event_field_default WHERE event_id = :event_id;")
-                .single(call().bind("event_id", eventId))
-                .delete();
-        for (var def : defaults) {
-            query("""
-                    INSERT INTO event_field_default(event_id, field_id, source, value)
-                    VALUES (:event_id, :field_id, :source, :value);""")
-                    .single(call().bind("event_id", eventId)
-                            .bind("field_id", def.fieldId())
-                            .bind("source", def.source())
-                            .bind("value", def.value()))
-                    .insert();
-        }
-    }
-
-    /**
-     * Retrieves all registrations for an event on a specific date, ordered by creation time.
-     *
-     * @param eventId   the event ID
-     * @param eventDate the specific occurrence date
-     * @return the list of registrations
-     */
-    public List<EventRegistration> findRegistrations(int eventId, LocalDate eventDate) {
-        return query("""
-                SELECT %s
-                FROM event_registration
-                WHERE event_id = :event_id
-                  AND event_date = :event_date
-                ORDER BY created_at;""", EVENT_REGISTRATION_COLUMNS)
-                .single(call().bind("event_id", eventId).bind("event_date", eventDate))
-                .map(EventRegistration.map())
-                .all();
-    }
-
-    /**
-     * Retrieves all registrations for an event across all dates, ordered by date descending, then status and creation time.
-     *
-     * @param eventId the event ID
-     * @return the list of registrations
-     */
-    public List<EventRegistration> findAllRegistrations(int eventId) {
-        return query("""
-                SELECT %s
-                FROM event_registration
-                WHERE event_id = :event_id
-                ORDER BY event_date DESC, status, created_at;""", EVENT_REGISTRATION_COLUMNS)
-                .single(call().bind("event_id", eventId))
-                .map(EventRegistration.map())
-                .all();
-    }
-
     public List<ExpiredDeadlineEvent> findOneTimeEventsWithExpiredDeadline() {
         return query("""
                 SELECT
@@ -667,6 +390,10 @@ public class EventRepository {
                 .all();
     }
 
+    /**
+     * Finds active recurring events that close their registration a fixed number of days before
+     * each occurrence.
+     */
     public List<StationEvent> findRecurringEventsWithCloseDays() {
         return query("""
                 SELECT %s, %s
@@ -681,91 +408,15 @@ public class EventRepository {
                 .all();
     }
 
-    public List<EventRegistration> findPendingRegistrationsForDate(int eventId, LocalDate eventDate) {
-        return query("""
-                SELECT %s
-                FROM event_registration
-                WHERE event_id = :event_id
-                  AND event_date = :event_date
-                  AND status = 'PENDING'
-                ORDER BY created_at;""", EVENT_REGISTRATION_COLUMNS)
-                .single(call().bind("event_id", eventId).bind("event_date", eventDate))
-                .map(EventRegistration.map())
-                .all();
-    }
-
+    /**
+     * Marks an event's registration deadline as notified, preventing duplicate warnings.
+     *
+     * @param eventId the event ID
+     */
     public void markDeadlineNotified(int eventId) {
         query("UPDATE station_event SET deadline_notified = TRUE, updated_at = now() WHERE id = :id;")
                 .single(call().bind("id", eventId))
                 .update();
-    }
-
-    /**
-     * Retrieves all pending registrations for a specific event.
-     *
-     * @param eventId the event ID
-     * @return the list of pending registrations
-     */
-    public List<EventRegistration> findPendingRegistrations(int eventId) {
-        return query("""
-                SELECT %s
-                FROM event_registration
-                WHERE event_id = :event_id
-                  AND status = 'PENDING'
-                ORDER BY created_at;""", EVENT_REGISTRATION_COLUMNS)
-                .single(call().bind("event_id", eventId))
-                .map(EventRegistration.map())
-                .all();
-    }
-
-    public List<EventRegistration> findPendingRegistrationsByStation(int stationId) {
-        return query("""
-                SELECT %s
-                FROM event_registration er
-                    JOIN station_event se ON er.event_id = se.id
-                WHERE se.station_id = :station_id AND er.status = 'PENDING'
-                ORDER BY er.event_date, er.created_at;""", SqlSupport.alias("er", EVENT_REGISTRATION_COLUMNS))
-                .single(call().bind("station_id", stationId))
-                .map(EventRegistration.map())
-                .all();
-    }
-
-    /**
-     * Retrieves all registrations for a specific member, ordered by event date.
-     *
-     * @param memberId the member ID
-     * @return the list of registrations
-     */
-    public List<EventRegistration> findRegistrationsByMember(int memberId) {
-        return query("""
-                SELECT %s
-                FROM event_registration
-                WHERE member_id = :member_id
-                  AND ( event_date IS NULL OR event_date >= current_date )
-                ORDER BY event_date;""", EVENT_REGISTRATION_COLUMNS)
-                .single(call().bind("member_id", memberId))
-                .map(EventRegistration.map())
-                .all();
-    }
-
-    /**
-     * Retrieves upcoming registrations for any member in the given collection in a single query,
-     * avoiding N+1 lookups when fanning out across a guardian and their managed members.
-     *
-     * @param memberIds the member IDs to fetch registrations for
-     * @return the list of registrations, ordered by event date
-     */
-    public List<EventRegistration> findRegistrationsByMembers(Collection<Integer> memberIds) {
-        if (memberIds.isEmpty()) return List.of();
-        return query("""
-                SELECT %s
-                FROM event_registration
-                WHERE member_id = ANY ( :member_ids )
-                  AND ( event_date IS NULL OR event_date >= current_date )
-                ORDER BY event_date;""", EVENT_REGISTRATION_COLUMNS)
-                .single(call().bind("member_ids", List.copyOf(memberIds), PostgreSqlTypes.INTEGER))
-                .map(EventRegistration.map())
-                .all();
     }
 
     /**
@@ -779,167 +430,6 @@ public class EventRepository {
                 .map(row -> row.get("m", INSTANT_TIMESTAMP))
                 .first()
                 .orElse(Instant.EPOCH);
-    }
-
-    /**
-     * Returns the most recent {@code created_at} across the given members' registrations.
-     * The registration upsert bumps {@code created_at} on every status change, so this acts as
-     * a freshness signal for the iCal feed's per-member visibility filtering.
-     */
-    public Instant findMaxRegistrationCreatedAt(Collection<Integer> memberIds) {
-        if (memberIds.isEmpty()) return Instant.EPOCH;
-        return query("SELECT max(created_at) AS m FROM event_registration WHERE member_id = ANY(:member_ids);")
-                .single(call().bind("member_ids", List.copyOf(memberIds), PostgreSqlTypes.INTEGER))
-                .map(row -> row.get("m", INSTANT_TIMESTAMP))
-                .first()
-                .orElse(Instant.EPOCH);
-    }
-
-    /**
-     * Creates a registration with PENDING status and no creator.
-     *
-     * @param eventId   the event ID
-     * @param memberId  the member ID
-     * @param eventDate the event occurrence date
-     * @return the created registration
-     */
-    public EventRegistration createRegistration(int eventId, int memberId, LocalDate eventDate) {
-        return createRegistration(eventId, memberId, eventDate, RegistrationStatus.PENDING, null);
-    }
-
-    /**
-     * Creates or upserts a registration with the specified status. On conflict (same event, member, and date),
-     * the existing registration is updated with the new status and creator.
-     *
-     * @param eventId   the event ID
-     * @param memberId  the member ID
-     * @param eventDate the event occurrence date
-     * @param status    the registration status
-     * @param createdBy the member ID of the creator, or null if self-registered
-     * @return the created or updated registration
-     */
-    public EventRegistration createRegistration(
-            int eventId, int memberId, LocalDate eventDate, RegistrationStatus status, Integer createdBy) {
-        return SqlSupport.insertReturning(
-                """
-                INSERT
-                INTO
-                    event_registration(event_id, member_id, event_date, status, created_by)
-                VALUES
-                    (:event_id, :member_id, :event_date, :status, :created_by)
-                ON CONFLICT (event_id, member_id, event_date)
-                    DO UPDATE
-                    SET
-                        status     = :status,
-                        created_at = now(),
-                        created_by = :created_by
-                RETURNING %s;""",
-                call().bind("event_id", eventId)
-                        .bind("member_id", memberId)
-                        .bind("event_date", eventDate)
-                        .bind("status", status)
-                        .bind("created_by", createdBy),
-                EventRegistration.map(),
-                EVENT_REGISTRATION_COLUMNS);
-    }
-
-    /**
-     * Returns registration counts by status for all events of a station on their relevant dates.
-     */
-    public List<RegistrationCount> findRegistrationCounts(int stationId) {
-        return query("""
-                SELECT er.event_id, er.event_date, er.status, count(*) AS count
-                FROM event_registration er
-                JOIN station_event se ON se.id = er.event_id
-                WHERE se.station_id = :station_id
-                GROUP BY er.event_id, er.event_date, er.status
-                ORDER BY er.event_id, er.event_date;""")
-                .single(call().bind("station_id", stationId))
-                .map(row -> new RegistrationCount(
-                        row.getInt("event_id"),
-                        row.getObject("event_date", LocalDate.class),
-                        row.getEnum("status", RegistrationStatus.class),
-                        row.getInt("count")))
-                .all();
-    }
-
-    /**
-     * Find declined member IDs for a specific event and date.
-     */
-    public List<Integer> findDeclinedMemberIds(int eventId, LocalDate eventDate) {
-        return query("""
-                SELECT member_id FROM event_registration
-                WHERE event_id = :event_id AND event_date = :event_date AND status = 'DECLINED';""")
-                .single(call().bind("event_id", eventId).bind("event_date", eventDate))
-                .map(row -> row.getInt("member_id"))
-                .all();
-    }
-
-    public List<MemberRegistrationStats> findRegistrationStatsByEvent(int eventId, Integer categoryId, int months) {
-        return query("""
-                SELECT
-                    er.member_id,
-                    count(*)                                               AS registered,
-                    count(*) FILTER (WHERE er.status = 'ACCEPTED')         AS accepted,
-                    count(*) FILTER (WHERE er.status = 'DENIED')           AS denied,
-                    count(*) FILTER (WHERE er.status = 'DECLINED')         AS declined,
-                    max(er.event_date) FILTER (WHERE er.status = 'DENIED') AS last_denied
-                FROM
-                    event_registration er
-                        JOIN station_event se
-                        ON se.id = er.event_id
-                WHERE se.station_id = (
-                    SELECT station_id
-                    FROM station_event
-                    WHERE id = :event_id
-                                      )
-                  AND ( :category_id IS NULL OR se.category_id = :category_id )
-                  AND er.event_date >= ( current_date - make_interval(months => :months) )
-                  AND er.member_id IN (
-                    SELECT member_id
-                    FROM event_registration
-                    WHERE event_id = :event_id
-                                      )
-                GROUP BY er.member_id;""")
-                .single(call().bind("event_id", eventId)
-                        .bind("category_id", categoryId)
-                        .bind("months", months))
-                .map(MemberRegistrationStats.map())
-                .all();
-    }
-
-    /**
-     * Updates the status of a registration.
-     *
-     * @param id     the registration ID
-     * @param status the new status
-     * @return true if a row was updated
-     */
-    public boolean updateRegistrationStatus(int id, RegistrationStatus status) {
-        return query("UPDATE event_registration SET status = :status WHERE id = :id;")
-                .single(call().bind("status", status).bind("id", id))
-                .update()
-                .changed();
-    }
-
-    /**
-     * Deletes a registration by ID.
-     *
-     * @param id the registration ID
-     * @return true if a row was deleted
-     */
-    public boolean deleteRegistration(int id) {
-        return SqlSupport.deleteById("event_registration", id);
-    }
-
-    /**
-     * Finds a registration by its ID.
-     *
-     * @param id the registration ID
-     * @return the registration, if found
-     */
-    public Optional<EventRegistration> findRegistrationById(int id) {
-        return SqlSupport.findById("event_registration", EVENT_REGISTRATION_COLUMNS, id, EventRegistration.map());
     }
 
     /**
@@ -997,62 +487,8 @@ public class EventRepository {
     }
 
     /**
-     * Counts accepted registrations for an event.
-     *
-     * @param eventId the event ID
-     * @return the count of accepted registrations
+     * Finds all active events that have at least one reminder configured.
      */
-    public int countAcceptedRegistrations(int eventId) {
-        return SqlSupport.count("""
-                SELECT
-                    count(*) AS cnt
-                FROM
-                    event_registration
-                WHERE event_id = :id
-                  AND status = 'ACCEPTED';""", call().bind("id", eventId));
-    }
-
-    /**
-     * Finds member IDs with pending or accepted registrations for an event.
-     *
-     * @param eventId the event ID
-     * @return the list of member IDs
-     */
-    public List<Integer> findRegisteredMemberIds(int eventId) {
-        return query("""
-                SELECT member_id
-                FROM event_registration
-                WHERE event_id = :id
-                  AND status IN ('PENDING', 'ACCEPTED');""")
-                .single(call().bind("id", eventId))
-                .map(row -> row.getInt("member_id"))
-                .all();
-    }
-
-    public List<Integer> findReminderDays(int eventId) {
-        return query("SELECT days_before FROM event_reminder WHERE event_id = :event_id ORDER BY days_before;")
-                .single(call().bind("event_id", eventId))
-                .map(row -> row.getInt("days_before"))
-                .all();
-    }
-
-    public void replaceReminders(int eventId, List<Integer> daysBefore) {
-        query("DELETE FROM event_reminder WHERE event_id = :event_id;")
-                .single(call().bind("event_id", eventId))
-                .delete();
-        for (int days : daysBefore) {
-            query("""
-                    INSERT
-                    INTO
-                        event_reminder(event_id, days_before)
-                    VALUES
-                        (:event_id, :days_before)
-                    ON CONFLICT DO NOTHING;""")
-                    .single(call().bind("event_id", eventId).bind("days_before", days))
-                    .insert();
-        }
-    }
-
     public List<StationEvent> findEventsWithReminders() {
         return query("""
                 SELECT %s, %s
@@ -1066,45 +502,6 @@ public class EventRepository {
                 .single(call())
                 .map(StationEvent.map())
                 .all();
-    }
-
-    public boolean isReminderSent(int eventId, LocalDate eventDate, int daysBefore) {
-        return SqlSupport.exists(
-                """
-                SELECT
-                    1
-                FROM
-                    event_reminder_sent
-                WHERE event_id = :event_id
-                  AND event_date = :event_date
-                  AND days_before = :days_before;""",
-                call().bind("event_id", eventId).bind("event_date", eventDate).bind("days_before", daysBefore));
-    }
-
-    public void markReminderSent(int eventId, LocalDate eventDate, int daysBefore) {
-        query("""
-                INSERT
-                INTO
-                    event_reminder_sent(event_id, event_date, days_before)
-                VALUES
-                    (:event_id, :event_date, :days_before)
-                ON CONFLICT DO NOTHING;""")
-                .single(call().bind("event_id", eventId)
-                        .bind("event_date", eventDate)
-                        .bind("days_before", daysBefore))
-                .insert();
-    }
-
-    public int countPendingRegistrations(int stationId) {
-        return SqlSupport.count("""
-                SELECT
-                    count(*) AS cnt
-                FROM
-                    event_registration er
-                        JOIN station_event se
-                        ON er.event_id = se.id
-                WHERE se.station_id = :station_id
-                  AND er.status = 'PENDING';""", call().bind("station_id", stationId));
     }
 
     /**
@@ -1131,5 +528,8 @@ public class EventRepository {
      */
     public record PickerEvent(UUID eventUid, String name, Instant startTime, String categoryName) {}
 
+    /**
+     * A one-time event whose registration deadline has passed with pending registrations left.
+     */
     public record ExpiredDeadlineEvent(int eventId, int stationId, String name, int pendingCount) {}
 }

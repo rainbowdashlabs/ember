@@ -47,7 +47,7 @@ class EventServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new EventService(eventRepo, restrictionService, new DomainEventBus(Set.of()));
+        service = newEventService(new DomainEventBus(Set.of()));
         station = stationRepo.create("EventStation");
         account = accountRepo.create("event-svc@test.com", "Event", "Tester");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -276,11 +276,9 @@ class EventServiceTest extends RepositoryTestBase {
     @Order(53)
     void reorderCategories() {
         var cat2 = service.createCategory(station.id(), "Category 2", 1, null);
-        // Reorder: put cat2 first, categoryId second
-        service.reorderCategories(List.of(cat2.id(), categoryId));
-        // Just verify no exception is thrown and both still exist
-        assertTrue(service.findCategoryById(categoryId).isPresent());
-        assertTrue(service.findCategoryById(cat2.id()).isPresent());
+        service.reorderCategories(station.id(), List.of(cat2.id(), categoryId));
+        assertEquals(0, service.findCategoryById(cat2.id()).orElseThrow().position());
+        assertEquals(1, service.findCategoryById(categoryId).orElseThrow().position());
         service.deleteCategory(cat2.id());
     }
 
