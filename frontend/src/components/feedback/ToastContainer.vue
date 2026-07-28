@@ -4,9 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import { useToast } from '@/composables/useToast'
+import { dismissToast, getToasts } from '@/util/toast'
 
-const { toasts, dismiss } = useToast()
+const toasts = getToasts()
 </script>
 
 <template>
@@ -23,7 +23,7 @@ const { toasts, dismiss } = useToast()
                         'border-error bg-error/10 dark:bg-error/20': toast.variant === 'error',
                     }"
                     style="backdrop-filter: blur(8px)"
-                    @click="dismiss(toast.id)"
+                    @click="dismissToast(toast.id)"
                 >
                     <font-awesome-icon
                         :icon="['fas', toast.variant === 'success' ? 'circle-check' : toast.variant === 'error' ? 'triangle-exclamation' : 'circle-info']"

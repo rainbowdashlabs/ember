@@ -16,7 +16,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {stepUp, webauthnStepUpBegin, webauthnStepUpFinish} from '@/api/twoFactor'
 import {getWebAuthnCredential, isWebAuthnSupported} from '@/util/webauthn'
-import {useStepUpPrompt} from '@/composables/useStepUp'
+import {useStepUpPrompt} from '@/util/stepUp'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 
 const {t} = useI18n()

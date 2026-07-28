@@ -4,8 +4,12 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+/**
+ * Muted body text. `size="base"` inherits the surrounding font size and is the variant for
+ * muted copy that must not shrink relative to its container.
+ */
 withDefaults(defineProps<{
-  size?: 'xs' | 'sm'
+  size?: 'xs' | 'sm' | 'base'
   tag?: 'span' | 'p' | 'div'
 }>(), {
   size: 'xs',
@@ -14,7 +18,7 @@ withDefaults(defineProps<{
 </script>
 
 <template>
-  <component :is="tag" :class="size === 'sm' ? 'text-sm' : 'text-xs'" class="text-(--text-muted)">
+  <component :is="tag" :class="{'text-xs': size === 'xs', 'text-sm': size === 'sm'}" class="text-(--text-muted)">
     <slot/>
   </component>
 </template>

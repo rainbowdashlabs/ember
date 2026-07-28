@@ -6,7 +6,8 @@
 <script lang="ts" setup>
 import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import type {PermissionNode, PermissionGrant} from '@/api/types'
+import type {PermissionNode} from '@/api/data'
+import type {PermissionGrant} from '@/api/types'
 import {data} from '@/api'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Spinner from '@/components/feedback/Spinner.vue'

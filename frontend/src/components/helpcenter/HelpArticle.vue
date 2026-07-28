@@ -6,6 +6,7 @@
 <script lang="ts" setup>
 import {computed} from 'vue'
 import ViewContent from '@/components/layout/ViewContent.vue'
+import ProseContent from '@/components/display/ProseContent.vue'
 
 const props = defineProps<{
   title: string
@@ -25,9 +26,9 @@ useHead(computed(() => ({
 <template>
   <ViewContent :title="title" :subtitle="subtitle">
     <div class="max-w-3xl mx-auto space-y-6">
-      <div class="prose prose-sm dark:prose-invert max-w-none space-y-6">
+      <ProseContent class="space-y-6">
         <slot/>
-      </div>
+      </ProseContent>
     </div>
   </ViewContent>
 </template>
