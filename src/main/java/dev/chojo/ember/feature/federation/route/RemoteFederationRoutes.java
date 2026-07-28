@@ -34,8 +34,8 @@ import java.util.UUID;
  * All requests are verified via RSA signature instead of session tokens.
  */
 @Singleton
-public class FederationRemoteRoutes implements Routes {
-    private static final Logger log = LoggerFactory.getLogger(FederationRemoteRoutes.class);
+public class RemoteFederationRoutes implements Routes {
+    private static final Logger log = LoggerFactory.getLogger(RemoteFederationRoutes.class);
 
     private final FederationService federationService;
     private final FederationSigningService signingService;
@@ -45,7 +45,7 @@ public class FederationRemoteRoutes implements Routes {
     private final StationReadOnlyGuard readOnlyGuard;
 
     @Inject
-    public FederationRemoteRoutes(
+    public RemoteFederationRoutes(
             FederationService federationService,
             FederationSigningService signingService,
             FederationRepository repository,

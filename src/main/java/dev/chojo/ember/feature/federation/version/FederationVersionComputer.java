@@ -26,9 +26,9 @@ import dev.chojo.ember.feature.federation.entity.LendingRequest;
 import dev.chojo.ember.feature.federation.entity.LendingRequestItem;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
-import dev.chojo.ember.feature.federation.route.FederationRemoteRoutes;
 import dev.chojo.ember.feature.federation.route.FederationRoutes;
 import dev.chojo.ember.feature.federation.route.LendingRoutes;
+import dev.chojo.ember.feature.federation.route.RemoteFederationRoutes;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 
 import java.lang.reflect.RecordComponent;
@@ -82,7 +82,7 @@ public final class FederationVersionComputer {
      */
     private static final List<Class<?>> DTO_CONTAINER_CLASSES = List.of(
             FederationHttpClient.class,
-            FederationRemoteRoutes.class,
+            RemoteFederationRoutes.class,
             FederationRoutes.class,
             LendingRoutes.class,
             BoardRoutes.class,
