@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.restriction.RestrictionSql;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.util.sql.FullTextSearch;
 import dev.chojo.ember.util.sql.SqlSupport;
+import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -60,29 +61,26 @@ public class KnowledgeBaseRepository {
             "COALESCE(fc.text_content, f.name || ' ' || COALESCE(f.description, ''))";
     private static final String SNIPPET_OPTIONS = "MaxWords=30, MinWords=10, StartSel=<mark>, StopSel=</mark>";
 
+    /**
+     * Folders directly under {@code parentId}, or the root folders when it is {@code null}.
+     *
+     * <p>A null parent means "match {@code IS NULL}" here, not "no filter", so the predicate is
+     * chosen rather than left out — {@link WhereBuilder} drops null-valued predicates, which would
+     * widen this to every folder in the station.
+     */
     public List<KbFolder> findFolders(int stationId, Integer parentId) {
-        if (parentId == null) {
-            return query("""
-                    SELECT
-                        %s, %s
-                    FROM
-                        kb_folder fo
-                    WHERE fo.station_id = :station_id
-                      AND fo.parent_id IS NULL
-                    ORDER BY fo.position, fo.name;""", FOLDER_COLUMNS, FOLDER_RESTRICTED)
-                    .single(call().bind("station_id", stationId))
-                    .map(KbFolder.map())
-                    .all();
-        }
+        var where = parentId == null
+                ? WhereBuilder.create().add("AND fo.parent_id IS NULL")
+                : WhereBuilder.create().add("AND fo.parent_id = :parent_id", "parent_id", parentId);
         return query("""
                 SELECT
                     %s, %s
                 FROM
                     kb_folder fo
                 WHERE fo.station_id = :station_id
-                  AND fo.parent_id = :parent_id
-                ORDER BY fo.position, fo.name;""", FOLDER_COLUMNS, FOLDER_RESTRICTED)
-                .single(call().bind("station_id", stationId).bind("parent_id", parentId))
+                  %s
+                ORDER BY fo.position, fo.name;""", FOLDER_COLUMNS, FOLDER_RESTRICTED, where.fragment())
+                .single(where.apply(call().bind("station_id", stationId)))
                 .map(KbFolder.map())
                 .all();
     }
@@ -135,29 +133,24 @@ public class KnowledgeBaseRepository {
         return SqlSupport.deleteById("kb_folder", id);
     }
 
+    /**
+     * Files directly inside {@code folderId}, or the ones at the root when it is {@code null}.
+     *
+     * <p>Same null-means-{@code IS NULL} handling as {@link #findFolders(int, Integer)}.
+     */
     public List<KbFile> findFiles(int stationId, Integer folderId) {
-        if (folderId == null) {
-            return query("""
-                    SELECT
-                        %s, %s
-                    FROM
-                        kb_file f
-                    WHERE f.station_id = :station_id
-                      AND f.folder_id IS NULL
-                    ORDER BY f.position, f.name;""", FILE_COLUMNS, FILE_RESTRICTED)
-                    .single(call().bind("station_id", stationId))
-                    .map(KbFile.map())
-                    .all();
-        }
+        var where = folderId == null
+                ? WhereBuilder.create().add("AND f.folder_id IS NULL")
+                : WhereBuilder.create().add("AND f.folder_id = :folder_id", "folder_id", folderId);
         return query("""
                 SELECT
                     %s, %s
                 FROM
                     kb_file f
                 WHERE f.station_id = :station_id
-                  AND f.folder_id = :folder_id
-                ORDER BY f.position, f.name;""", FILE_COLUMNS, FILE_RESTRICTED)
-                .single(call().bind("station_id", stationId).bind("folder_id", folderId))
+                  %s
+                ORDER BY f.position, f.name;""", FILE_COLUMNS, FILE_RESTRICTED, where.fragment())
+                .single(where.apply(call().bind("station_id", stationId)))
                 .map(KbFile.map())
                 .all();
     }

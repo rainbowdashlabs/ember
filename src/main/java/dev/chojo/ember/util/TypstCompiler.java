@@ -5,8 +5,6 @@
  */
 package dev.chojo.ember.util;
 
-import tools.jackson.databind.ObjectMapper;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -40,8 +38,7 @@ public final class TypstCompiler {
         }
     }
 
-    public static byte[] compileTemplate(
-            Map<String, Object> data, String templateName, StationLogo logo, ObjectMapper mapper)
+    public static byte[] compileTemplate(Map<String, Object> data, String templateName, StationLogo logo)
             throws IOException, InterruptedException {
         Path tempDir = Files.createTempDirectory("typst-template-");
         try {
@@ -57,7 +54,7 @@ public final class TypstCompiler {
                 data.put("logoFile", "logo." + ext);
             }
 
-            Files.writeString(templateDir.resolve("data.json"), mapper.writeValueAsString(data));
+            Files.writeString(templateDir.resolve("data.json"), Json.MAPPER.writeValueAsString(data));
             Files.copy(templateSource, templateFile);
 
             Path outputFile = tempDir.resolve("output.pdf");

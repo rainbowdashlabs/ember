@@ -19,8 +19,6 @@ import dev.chojo.ember.util.TypstCompiler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -44,7 +42,6 @@ import static org.slf4j.LoggerFactory.getLogger;
 @Singleton
 public class EventExportService {
     private static final Logger log = getLogger(EventExportService.class);
-    private static final ObjectMapper MAPPER = JsonMapper.builder().build();
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
     private static final DateTimeFormatter DATE_TIME_FMT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
@@ -266,8 +263,7 @@ public class EventExportService {
         return TypstCompiler.compileTemplate(
                 data,
                 templateName,
-                logo != null ? new TypstCompiler.StationLogo(logo.data(), logo.contentType()) : null,
-                MAPPER);
+                logo != null ? new TypstCompiler.StationLogo(logo.data(), logo.contentType()) : null);
     }
 
     public record ExportColumn(String type, String key, String fieldName, String label) {}

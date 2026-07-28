@@ -63,25 +63,25 @@ public class PageRepository {
                 .first();
     }
 
+    /**
+     * The page with this slug directly under {@code parentId}, or at the root when it is
+     * {@code null}.
+     *
+     * <p>A null parent means "match {@code IS NULL}" here, not "no filter", so the predicate is
+     * chosen rather than left out — {@link WhereBuilder} drops null-valued predicates, which would
+     * make this match a same-slug page at any depth.
+     */
     public Optional<StationPage> findBySlugAndParent(int stationId, String slug, Integer parentId) {
-        if (parentId == null) {
-            return query("""
-                    SELECT %s
-                    FROM station_page
-                    WHERE station_id = :station_id
-                      AND slug = :slug
-                      AND parent_id IS NULL;""", STATION_PAGE_COLUMNS)
-                    .single(call().bind("station_id", stationId).bind("slug", slug))
-                    .map(StationPage.mapFlat())
-                    .first();
-        }
+        var where = parentId == null
+                ? WhereBuilder.create().add("AND parent_id IS NULL")
+                : WhereBuilder.create().add("AND parent_id = :parent_id", "parent_id", parentId);
         return query("""
                 SELECT %s
                 FROM station_page
                 WHERE station_id = :station_id
                   AND slug = :slug
-                  AND parent_id = :parent_id;""", STATION_PAGE_COLUMNS)
-                .single(call().bind("station_id", stationId).bind("slug", slug).bind("parent_id", parentId))
+                  %s;""", STATION_PAGE_COLUMNS, where.fragment())
+                .single(where.apply(call().bind("station_id", stationId).bind("slug", slug)))
                 .map(StationPage.mapFlat())
                 .first();
     }
