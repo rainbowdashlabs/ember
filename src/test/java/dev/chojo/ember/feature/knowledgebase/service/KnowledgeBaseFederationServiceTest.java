@@ -8,7 +8,6 @@ package dev.chojo.ember.feature.knowledgebase.service;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Storage;
-import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
@@ -26,7 +25,6 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.service.PdfCompressor;
 import dev.chojo.ember.feature.storage.service.PresentationCompressor;
@@ -59,6 +57,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     private static final String REMOTE_HOST = "https://remote-kb.example.com";
 
     private static KnowledgeBaseService kbService;
+    private static KbContentService contentService;
     private static KnowledgeBaseFederationService service;
     private static FederationRepository federationRepo;
     private static FederationService federationService;
@@ -78,22 +77,22 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         httpClient = mock(FederationHttpClient.class);
         commentRepo = new KbCommentRepository();
         var storageConfig = new Storage();
+        var fileStorage = mock(KbFileStorageService.class);
+        var searchService = new KbSearchService(knowledgeBaseRepo, stationRepo);
+        contentService = new KbContentService(knowledgeBaseRepo, fileStorage, searchService);
         kbService = new KnowledgeBaseService(
                 knowledgeBaseRepo,
-                stationRepo,
-                stationMemberRepo,
-                accountRepo,
-                memberGroupRepo,
-                userTagRepo,
-                mock(KbFileStorageService.class),
-                commentRepo,
-                memberIdentityFactory,
-                mock(DomainEventBus.class),
-                mock(StationMemberService.class),
+                fileStorage,
+                contentService,
+                new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo),
+                new KbPresentationService(knowledgeBaseRepo, fileStorage, contentService),
+                new KbLinkMetadataService(),
                 new PresentationCompressor(storageConfig),
                 new PdfCompressor(storageConfig));
         service = new KnowledgeBaseFederationService(
                 kbService,
+                contentService,
+                searchService,
                 federationService,
                 federationRepo,
                 httpClient,
@@ -374,7 +373,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         assertEquals("CopySource", copied.name());
         assertEquals(station.id(), copied.stationId());
         assertNotEquals(file.id(), copied.id());
-        assertTrue(kbService.getMarkdownContent(copied.id()).orElseThrow().contains("Copy Me"));
+        assertTrue(contentService.getMarkdownContent(copied.id()).orElseThrow().contains("Copy Me"));
 
         knowledgeBaseRepo.deleteFile(copied.id());
         knowledgeBaseRepo.deleteFile(file.id());
@@ -411,7 +410,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
 
         var copied = service.copyKbFile(file.id(), station.id(), member.id());
         assertEquals("RemoteCopySource", copied.name());
-        assertTrue(kbService.getMarkdownContent(copied.id()).orElseThrow().contains("From remote"));
+        assertTrue(contentService.getMarkdownContent(copied.id()).orElseThrow().contains("From remote"));
 
         knowledgeBaseRepo.deleteFile(copied.id());
         knowledgeBaseRepo.deleteFile(file.id());
@@ -713,11 +712,21 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 () -> service.updateFederatedComment(station.id(), stationC.uid(), 7, memberUid, "Neu"));
     }
 
+    /**
+     * The partner authorises the delete against the acting member, so the request has to carry that
+     * member's uid in its body. Sending a bodyless DELETE makes the partner reject the call.
+     */
     @Test
     @Order(93)
     void deleteFederatedCommentViaHttp() {
         var memberUid = UUID.randomUUID();
-        when(httpClient.delete(eq(REMOTE_HOST), eq("/remote/kb/comments/8"), any(), eq(station.id()), any()))
+        when(httpClient.delete(
+                        eq(REMOTE_HOST),
+                        eq("/remote/kb/comments/8"),
+                        argThat(body -> body != null && body.toString().contains(memberUid.toString())),
+                        any(),
+                        eq(station.id()),
+                        any()))
                 .thenReturn(true);
 
         assertTrue(service.deleteFederatedComment(station.id(), stationC.uid(), 8, memberUid));
@@ -727,7 +736,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     @Order(94)
     void deleteFederatedCommentViaHttpFailure() {
         var memberUid = UUID.randomUUID();
-        when(httpClient.delete(eq(REMOTE_HOST), eq("/remote/kb/comments/9"), any(), eq(station.id()), any()))
+        when(httpClient.delete(eq(REMOTE_HOST), eq("/remote/kb/comments/9"), any(), any(), eq(station.id()), any()))
                 .thenReturn(false);
 
         assertThrows(

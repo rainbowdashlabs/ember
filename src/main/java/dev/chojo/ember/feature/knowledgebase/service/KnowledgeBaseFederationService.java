@@ -59,6 +59,8 @@ public class KnowledgeBaseFederationService {
     private static final Logger log = LoggerFactory.getLogger(KnowledgeBaseFederationService.class);
 
     private final KnowledgeBaseService knowledgeBaseService;
+    private final KbContentService contentService;
+    private final KbSearchService searchService;
     private final FederationService federationService;
     private final FederationRepository federationRepository;
     private final FederationHttpClient httpClient;
@@ -72,6 +74,8 @@ public class KnowledgeBaseFederationService {
     @Inject
     public KnowledgeBaseFederationService(
             KnowledgeBaseService knowledgeBaseService,
+            KbContentService contentService,
+            KbSearchService searchService,
             FederationService federationService,
             FederationRepository federationRepository,
             FederationHttpClient httpClient,
@@ -82,6 +86,8 @@ public class KnowledgeBaseFederationService {
             FederationFanout fanout,
             FederationEntityResolver entityResolver) {
         this.knowledgeBaseService = knowledgeBaseService;
+        this.contentService = contentService;
+        this.searchService = searchService;
         this.federationService = federationService;
         this.federationRepository = federationRepository;
         this.httpClient = httpClient;
@@ -170,7 +176,7 @@ public class KnowledgeBaseFederationService {
                 partnerStationUid,
                 partner -> {
                     var file = requirePartnerFile(fileId, partner);
-                    return knowledgeBaseService.getMarkdownContent(file.id()).orElse("");
+                    return contentService.getMarkdownContent(file.id()).orElse("");
                 },
                 partner -> fetchKbFileContent(
                         partner.remoteHost(),
@@ -201,7 +207,7 @@ public class KnowledgeBaseFederationService {
                     targetStationId,
                     privateKey(targetStationId));
         } else {
-            content = knowledgeBaseService.getMarkdownContent(fileId).orElse("");
+            content = contentService.getMarkdownContent(fileId).orElse("");
         }
         var copied = knowledgeBaseService.createMarkdownFile(
                 targetStationId, null, source.name(), source.description(), content, createdBy);
@@ -249,7 +255,7 @@ public class KnowledgeBaseFederationService {
      */
     public List<RemoteKbSearchResultItem> searchForPartner(FederationPartner partner, String query) {
         if (query == null || query.isBlank()) return List.of();
-        var results = knowledgeBaseService.searchWithSnippets(partner.stationId(), query);
+        var results = searchService.searchWithSnippets(partner.stationId(), query);
         var sharedFileIds = federationRepository.findKbShares(partner.stationId()).stream()
                 .map(FederationShare::fileId)
                 .filter(Objects::nonNull)
@@ -281,7 +287,7 @@ public class KnowledgeBaseFederationService {
      */
     public String fileContentForPartner(FederationPartner partner, int fileId) {
         var file = fileForPartner(partner, fileId);
-        return knowledgeBaseService.getMarkdownContent(file.id()).orElse("");
+        return contentService.getMarkdownContent(file.id()).orElse("");
     }
 
     /**
@@ -390,6 +396,7 @@ public class KnowledgeBaseFederationService {
         boolean success = httpClient.delete(
                 partner.remoteHost(),
                 "/remote/kb/comments/" + commentId,
+                new RemoteCommentDeleteRequest(memberUid),
                 partner.partnerStationId(),
                 station.id(),
                 station.federationPrivateKey());
@@ -486,7 +493,7 @@ public class KnowledgeBaseFederationService {
     private List<FederatedSearchResult> searchKbDirect(FederationPartner partner, String query) {
         String stationName = FederationDisplayNames.partnerName(stationRepository, partner, "?");
         String stationUid = partner.partnerStationId().toString();
-        return knowledgeBaseService.searchWithSnippets(partnerStationId(partner), query).stream()
+        return searchService.searchWithSnippets(partnerStationId(partner), query).stream()
                 .map(result -> new FederatedSearchResult(
                         KbFileSummary.of(result.file()), result.snippet(), stationName, stationUid))
                 .toList();
@@ -661,4 +668,6 @@ public class KnowledgeBaseFederationService {
     private record RemoteCommentRequest(UUID remoteMemberUid, String displayName, Integer parentId, String content) {}
 
     private record RemoteCommentUpdateRequest(UUID remoteMemberUid, String content) {}
+
+    private record RemoteCommentDeleteRequest(UUID remoteMemberUid) {}
 }

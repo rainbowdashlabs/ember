@@ -9,6 +9,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessRestriction;
+import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import io.javalin.http.Context;
@@ -32,10 +33,12 @@ import static dev.chojo.ember.feature.knowledgebase.route.KbRouteAccess.requireO
 public class KnowledgeBaseAccessRoutes implements Routes {
 
     private final KnowledgeBaseService service;
+    private final KbAccessService accessService;
 
     @Inject
-    public KnowledgeBaseAccessRoutes(KnowledgeBaseService service) {
+    public KnowledgeBaseAccessRoutes(KnowledgeBaseService service, KbAccessService accessService) {
         this.service = service;
+        this.accessService = accessService;
     }
 
     /**
@@ -105,34 +108,34 @@ public class KnowledgeBaseAccessRoutes implements Routes {
     private void getFolderRestrictions(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFolder(ctx, service, id);
-        ctx.json(toRestrictionResponse(service.findRestrictions(id, null)));
+        ctx.json(toRestrictionResponse(accessService.findRestrictions(id, null)));
     }
 
     private void setFolderRestrictions(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFolder(ctx, service, id);
-        service.setRestrictions(id, null, toSelection(ctx.bodyAsClass(RestrictionRequest.class)));
-        ctx.json(toRestrictionResponse(service.findRestrictions(id, null)));
+        accessService.setRestrictions(id, null, toSelection(ctx.bodyAsClass(RestrictionRequest.class)));
+        ctx.json(toRestrictionResponse(accessService.findRestrictions(id, null)));
     }
 
     private void getFileRestrictions(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFile(ctx, service, id);
-        ctx.json(toRestrictionResponse(service.findRestrictions(null, id)));
+        ctx.json(toRestrictionResponse(accessService.findRestrictions(null, id)));
     }
 
     private void setFileRestrictions(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFile(ctx, service, id);
-        service.setRestrictions(null, id, toSelection(ctx.bodyAsClass(RestrictionRequest.class)));
-        ctx.json(toRestrictionResponse(service.findRestrictions(null, id)));
+        accessService.setRestrictions(null, id, toSelection(ctx.bodyAsClass(RestrictionRequest.class)));
+        ctx.json(toRestrictionResponse(accessService.findRestrictions(null, id)));
     }
 
     private void getFilePublicVisibility(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFile(ctx, service, id);
         ctx.json(new PublicVisibilityResponse(
-                service.findPublicVisibility(null, id).orElse(null)));
+                accessService.findPublicVisibility(null, id).orElse(null)));
     }
 
     private void setFilePublicVisibility(Context ctx) {
@@ -140,9 +143,9 @@ public class KnowledgeBaseAccessRoutes implements Routes {
         requireOwnedFile(ctx, service, id);
         var req = ctx.bodyAsClass(PublicVisibilityRequest.class);
         if (req.visible() == null) {
-            service.removePublicVisibility(null, id);
+            accessService.removePublicVisibility(null, id);
         } else {
-            service.setPublicVisibility(null, id, req.visible());
+            accessService.setPublicVisibility(null, id, req.visible());
         }
         ctx.json(new PublicVisibilityResponse(req.visible()));
     }
@@ -151,7 +154,7 @@ public class KnowledgeBaseAccessRoutes implements Routes {
         int id = pathInt(ctx, "id");
         requireOwnedFolder(ctx, service, id);
         ctx.json(new PublicVisibilityResponse(
-                service.findPublicVisibility(id, null).orElse(null)));
+                accessService.findPublicVisibility(id, null).orElse(null)));
     }
 
     private void setFolderPublicVisibility(Context ctx) {
@@ -159,9 +162,9 @@ public class KnowledgeBaseAccessRoutes implements Routes {
         requireOwnedFolder(ctx, service, id);
         var req = ctx.bodyAsClass(PublicVisibilityRequest.class);
         if (req.visible() == null) {
-            service.removePublicVisibility(id, null);
+            accessService.removePublicVisibility(id, null);
         } else {
-            service.setPublicVisibility(id, null, req.visible());
+            accessService.setPublicVisibility(id, null, req.visible());
         }
         ctx.json(new PublicVisibilityResponse(req.visible()));
     }

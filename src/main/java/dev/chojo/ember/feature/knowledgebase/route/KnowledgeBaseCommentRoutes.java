@@ -10,6 +10,8 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.knowledgebase.entity.KbComment;
 import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
+import dev.chojo.ember.feature.knowledgebase.service.KbAuthorNameService;
+import dev.chojo.ember.feature.knowledgebase.service.KbCommentService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
@@ -32,6 +34,8 @@ import static dev.chojo.ember.feature.knowledgebase.route.KbRouteAccess.requireO
 public class KnowledgeBaseCommentRoutes implements Routes {
 
     private final KnowledgeBaseService service;
+    private final KbCommentService commentService;
+    private final KbAuthorNameService authorNameService;
     private final KnowledgeBaseFederationService federationService;
     private final KbCommentRepository commentRepository;
     private final MemberIdentityFactory memberIdentityFactory;
@@ -39,10 +43,14 @@ public class KnowledgeBaseCommentRoutes implements Routes {
     @Inject
     public KnowledgeBaseCommentRoutes(
             KnowledgeBaseService service,
+            KbCommentService commentService,
+            KbAuthorNameService authorNameService,
             KnowledgeBaseFederationService federationService,
             KbCommentRepository commentRepository,
             MemberIdentityFactory memberIdentityFactory) {
         this.service = service;
+        this.commentService = commentService;
+        this.authorNameService = authorNameService;
         this.federationService = federationService;
         this.commentRepository = commentRepository;
         this.memberIdentityFactory = memberIdentityFactory;
@@ -73,8 +81,8 @@ public class KnowledgeBaseCommentRoutes implements Routes {
         requireOwnedFile(ctx, service, fileId);
         var req = ctx.bodyAsClass(CreateKbCommentRequest.class);
         String content = requireContent(req.content());
-        String authorName = service.resolveMemberName(session.member().id());
-        var comment = service.createComment(
+        String authorName = authorNameService.resolveMemberName(session.member().id());
+        var comment = commentService.createComment(
                 session.stationId(), fileId, req.parentId(), session.member().id(), authorName, content);
         ctx.status(HttpStatus.CREATED).json(federationService.toCommentResponse(comment));
     }
@@ -104,7 +112,7 @@ public class KnowledgeBaseCommentRoutes implements Routes {
         if (!isAuthor && !session.hasPermission(StationPermission.KNOWLEDGE_MANAGER)) {
             throw new ForbiddenResponse("You can only delete your own comments");
         }
-        if (!service.deleteComment(session.stationId(), commentId)) throw new NotFoundResponse();
+        if (!commentService.deleteComment(session.stationId(), commentId)) throw new NotFoundResponse();
         ctx.status(HttpStatus.NO_CONTENT);
     }
 

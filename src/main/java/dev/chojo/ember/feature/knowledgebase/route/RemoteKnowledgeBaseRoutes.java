@@ -8,8 +8,8 @@ package dev.chojo.ember.feature.knowledgebase.route;
 import dev.chojo.ember.api.FederationSession;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
+import dev.chojo.ember.feature.knowledgebase.service.KbCommentService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
-import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -31,12 +31,13 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 @Singleton
 public class RemoteKnowledgeBaseRoutes implements Routes {
 
-    private final KnowledgeBaseService service;
+    private final KbCommentService commentService;
     private final KnowledgeBaseFederationService federationService;
 
     @Inject
-    public RemoteKnowledgeBaseRoutes(KnowledgeBaseService service, KnowledgeBaseFederationService federationService) {
-        this.service = service;
+    public RemoteKnowledgeBaseRoutes(
+            KbCommentService commentService, KnowledgeBaseFederationService federationService) {
+        this.commentService = commentService;
         this.federationService = federationService;
     }
 
@@ -122,7 +123,7 @@ public class RemoteKnowledgeBaseRoutes implements Routes {
         int commentId = pathInt(ctx, "commentId");
         var req = ctx.bodyAsClass(RemoteKbCommentDeleteRequest.class);
         federationService.requireRemoteCommentAuthor(partner, commentId, req.remoteMemberUid(), "delete");
-        if (!service.deleteComment(partner.stationId(), commentId)) throw new NotFoundResponse();
+        if (!commentService.deleteComment(partner.stationId(), commentId)) throw new NotFoundResponse();
         ctx.status(HttpStatus.NO_CONTENT);
     }
 

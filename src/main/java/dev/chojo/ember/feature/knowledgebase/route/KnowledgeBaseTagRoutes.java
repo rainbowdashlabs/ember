@@ -9,6 +9,8 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
+import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
+import dev.chojo.ember.feature.knowledgebase.service.KbTagService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import io.javalin.http.Context;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -32,10 +34,15 @@ import static dev.chojo.ember.feature.knowledgebase.route.KbRouteAccess.requireO
 public class KnowledgeBaseTagRoutes implements Routes {
 
     private final KnowledgeBaseService service;
+    private final KbTagService tagService;
+    private final KbAccessService accessService;
 
     @Inject
-    public KnowledgeBaseTagRoutes(KnowledgeBaseService service) {
+    public KnowledgeBaseTagRoutes(
+            KnowledgeBaseService service, KbTagService tagService, KbAccessService accessService) {
         this.service = service;
+        this.tagService = tagService;
+        this.accessService = accessService;
     }
 
     @Override
@@ -50,7 +57,7 @@ public class KnowledgeBaseTagRoutes implements Routes {
 
     private void listTags(Context ctx) {
         var session = UserSession.from(ctx);
-        ctx.json(service.findTagsByStation(session.stationId()));
+        ctx.json(tagService.findTagsByStation(session.stationId()));
     }
 
     private void getTagScope(Context ctx) {
@@ -58,14 +65,14 @@ public class KnowledgeBaseTagRoutes implements Routes {
         String tagName = ctx.pathParam("name");
         int stationId = session.stationId();
 
-        var matchingFiles = service.findFilesByTag(stationId, tagName);
+        var matchingFiles = tagService.findFilesByTag(stationId, tagName);
         var allFolders = service.findAllFolders(stationId);
 
         if (!session.hasPermission(StationPermission.KNOWLEDGE_MANAGER)) {
-            var access =
-                    service.memberAccess(session.member().id(), session.member().userType());
+            var access = accessService.memberAccess(
+                    session.member().id(), session.member().userType());
             matchingFiles = matchingFiles.stream()
-                    .filter(file -> service.canAccess(access, null, file.id()))
+                    .filter(file -> accessService.canAccess(access, null, file.id()))
                     .toList();
         }
 
@@ -90,7 +97,7 @@ public class KnowledgeBaseTagRoutes implements Routes {
     private void getFileTags(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFile(ctx, service, id);
-        ctx.json(service.findFileTags(id));
+        ctx.json(tagService.findFileTags(id));
     }
 
     private void setFileTags(Context ctx) {
@@ -98,13 +105,13 @@ public class KnowledgeBaseTagRoutes implements Routes {
         int id = pathInt(ctx, "id");
         requireOwnedFile(ctx, service, id);
         var req = ctx.bodyAsClass(TagRequest.class);
-        ctx.json(service.setFileTags(id, req.tags(), session.stationId()));
+        ctx.json(tagService.setFileTags(id, req.tags(), session.stationId()));
     }
 
     private void getFolderTags(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFolder(ctx, service, id);
-        ctx.json(service.findFolderTags(id));
+        ctx.json(tagService.findFolderTags(id));
     }
 
     private void setFolderTags(Context ctx) {
@@ -112,7 +119,7 @@ public class KnowledgeBaseTagRoutes implements Routes {
         int id = pathInt(ctx, "id");
         requireOwnedFolder(ctx, service, id);
         var req = ctx.bodyAsClass(TagRequest.class);
-        ctx.json(service.setFolderTags(id, req.tags(), session.stationId()));
+        ctx.json(tagService.setFolderTags(id, req.tags(), session.stationId()));
     }
 
     public record TagRequest(List<String> tags) {}

@@ -13,8 +13,13 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
+import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
+import dev.chojo.ember.feature.knowledgebase.service.KbAuthorNameService;
+import dev.chojo.ember.feature.knowledgebase.service.KbContentService;
 import dev.chojo.ember.feature.knowledgebase.service.KbIconService;
 import dev.chojo.ember.feature.knowledgebase.service.KbImageService;
+import dev.chojo.ember.feature.knowledgebase.service.KbPresentationService;
+import dev.chojo.ember.feature.knowledgebase.service.KbSearchService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.util.PandocConverter;
@@ -55,6 +60,11 @@ public class KnowledgeBaseRoutes implements Routes {
     private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of("image/png", "image/jpeg", "image/webp");
 
     private final KnowledgeBaseService service;
+    private final KbContentService contentService;
+    private final KbSearchService searchService;
+    private final KbAccessService accessService;
+    private final KbPresentationService presentationService;
+    private final KbAuthorNameService authorNameService;
     private final KnowledgeBaseFederationService federationService;
     private final KbIconService iconService;
     private final KbImageService imageService;
@@ -62,10 +72,20 @@ public class KnowledgeBaseRoutes implements Routes {
     @Inject
     public KnowledgeBaseRoutes(
             KnowledgeBaseService service,
+            KbContentService contentService,
+            KbSearchService searchService,
+            KbAccessService accessService,
+            KbPresentationService presentationService,
+            KbAuthorNameService authorNameService,
             KnowledgeBaseFederationService federationService,
             KbIconService iconService,
             KbImageService imageService) {
         this.service = service;
+        this.contentService = contentService;
+        this.searchService = searchService;
+        this.accessService = accessService;
+        this.presentationService = presentationService;
+        this.authorNameService = authorNameService;
         this.federationService = federationService;
         this.iconService = iconService;
         this.imageService = imageService;
@@ -209,7 +229,7 @@ public class KnowledgeBaseRoutes implements Routes {
     private void getFile(Context ctx) {
         int id = pathInt(ctx, "id");
         var file = requireOwnedFile(ctx, service, id);
-        ctx.json(new FileResponse(file, service.resolveMemberName(file.createdBy())));
+        ctx.json(new FileResponse(file, authorNameService.resolveMemberName(file.createdBy())));
     }
 
     private void updateFile(Context ctx) {
@@ -344,13 +364,13 @@ public class KnowledgeBaseRoutes implements Routes {
 
         switch (file.fileType()) {
             case MARKDOWN, TEXT -> {
-                var text = service.getMarkdownContent(id);
+                var text = contentService.getMarkdownContent(id);
                 if (text.isEmpty()) throw new NotFoundResponse();
                 ctx.contentType(ContentType.TEXT_PLAIN);
                 ctx.result(text.get());
             }
             case PDF, IMAGE, OTHER -> {
-                var data = service.getFileContent(id);
+                var data = contentService.getFileContent(id);
                 if (data.isEmpty()) throw new NotFoundResponse();
                 String mime = SafeInlineMime.safeContentType(file.mimeType());
                 var disposition = SafeInlineMime.isInlineSafe(file.mimeType())
@@ -361,7 +381,7 @@ public class KnowledgeBaseRoutes implements Routes {
                 ctx.result(data.get());
             }
             case PRESENTATION -> {
-                var pdf = service.getPresentationPdf(id);
+                var pdf = presentationService.getPresentationPdf(id);
                 if (pdf.isEmpty()) throw new NotFoundResponse("Conversion not ready");
                 ctx.contentType("application/pdf");
                 ctx.header(
@@ -377,9 +397,9 @@ public class KnowledgeBaseRoutes implements Routes {
     private void getMarkdownHtml(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFile(ctx, service, id);
-        var text = service.getMarkdownContent(id);
+        var text = contentService.getMarkdownContent(id);
         if (text.isEmpty()) throw new NotFoundResponse();
-        String html = service.renderMarkdown(text.get());
+        String html = contentService.renderMarkdown(text.get());
         ctx.json(new MarkdownHtmlResponse(html, text.get()));
     }
 
@@ -388,7 +408,7 @@ public class KnowledgeBaseRoutes implements Routes {
         var session = UserSession.from(ctx);
         requireOwnedFile(ctx, service, id);
         var req = ctx.bodyAsClass(ContentUpdateRequest.class);
-        service.updateMarkdownContent(
+        contentService.updateMarkdownContent(
                 id, req.content() != null ? req.content() : "", session.member().id());
         ctx.status(204);
     }
@@ -399,7 +419,7 @@ public class KnowledgeBaseRoutes implements Routes {
         if (file.fileType() != KbFileType.PRESENTATION) {
             throw new BadRequestResponse("Only presentation files have an original");
         }
-        var data = service.getFileContent(id);
+        var data = contentService.getFileContent(id);
         if (data.isEmpty()) throw new NotFoundResponse();
         ctx.contentType(SafeInlineMime.safeContentType(file.mimeType()));
         ctx.header(
@@ -417,7 +437,7 @@ public class KnowledgeBaseRoutes implements Routes {
         var uploaded = requireUpload(ctx);
         try (var content = uploaded.content()) {
             byte[] data = content.readAllBytes();
-            service.reuploadPresentation(id, data, uploaded.contentType(), uploaded.filename());
+            presentationService.reuploadPresentation(id, data, uploaded.contentType(), uploaded.filename());
             ctx.json(service.findFile(id).orElseThrow());
         } catch (Exception e) {
             log.warn("Failed to re-upload presentation file", e);
@@ -428,13 +448,13 @@ public class KnowledgeBaseRoutes implements Routes {
     private void listVersions(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFile(ctx, service, id);
-        ctx.json(service.findVersions(id).stream()
+        ctx.json(contentService.findVersions(id).stream()
                 .map(v -> new VersionResponse(
                         v.id(),
                         v.version(),
                         v.isFull(),
                         v.createdBy(),
-                        service.resolveMemberName(v.createdBy()),
+                        authorNameService.resolveMemberName(v.createdBy()),
                         v.createdAt()))
                 .toList());
     }
@@ -443,7 +463,7 @@ public class KnowledgeBaseRoutes implements Routes {
         int fileId = pathInt(ctx, "id");
         int version = pathInt(ctx, "version");
         requireOwnedFile(ctx, service, fileId);
-        service.findVersion(fileId, version).ifPresentOrElse(ctx::json, () -> {
+        contentService.findVersion(fileId, version).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
         });
     }
@@ -453,7 +473,7 @@ public class KnowledgeBaseRoutes implements Routes {
         int version = pathInt(ctx, "version");
         var session = UserSession.from(ctx);
         requireOwnedFile(ctx, service, fileId);
-        service.revertToVersion(fileId, version, session.member().id());
+        contentService.revertToVersion(fileId, version, session.member().id());
         ctx.status(204);
     }
 
@@ -480,7 +500,8 @@ public class KnowledgeBaseRoutes implements Routes {
             return;
         }
 
-        var localFuture = CompletableFuture.supplyAsync(() -> service.searchWithSnippets(session.stationId(), query));
+        var localFuture =
+                CompletableFuture.supplyAsync(() -> searchService.searchWithSnippets(session.stationId(), query));
         var federatedFuture = federated
                 ? CompletableFuture.supplyAsync(() -> searchFederated(session.stationId(), query))
                 : CompletableFuture.completedFuture(List.<SearchResultResponse>of());
@@ -523,13 +544,13 @@ public class KnowledgeBaseRoutes implements Routes {
         KbFolder currentFolder = folderId != null ? service.findFolder(folderId).orElse(null) : null;
 
         if (!session.hasPermission(StationPermission.KNOWLEDGE_MANAGER)) {
-            var access =
-                    service.memberAccess(session.member().id(), session.member().userType());
+            var access = accessService.memberAccess(
+                    session.member().id(), session.member().userType());
             folders = folders.stream()
-                    .filter(folder -> service.canAccess(access, folder.id(), null))
+                    .filter(folder -> accessService.canAccess(access, folder.id(), null))
                     .toList();
             files = files.stream()
-                    .filter(file -> service.canAccess(access, null, file.id()))
+                    .filter(file -> accessService.canAccess(access, null, file.id()))
                     .toList();
         }
 
