@@ -10,6 +10,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.members.entity.MemberCompletion;
 import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -34,17 +35,20 @@ public class StationMemberService {
     private final StationRepository stationRepository;
     private final AccountRepository accountRepository;
     private final AuthService authService;
+    private final MemberLookupService lookupService;
 
     @Inject
     public StationMemberService(
             StationMemberRepository memberRepository,
             StationRepository stationRepository,
             AccountRepository accountRepository,
-            AuthService authService) {
+            AuthService authService,
+            MemberLookupService lookupService) {
         this.memberRepository = memberRepository;
         this.stationRepository = stationRepository;
         this.accountRepository = accountRepository;
         this.authService = authService;
+        this.lookupService = lookupService;
     }
 
     public List<StationMember> findByStation(int stationId) {
@@ -60,15 +64,23 @@ public class StationMemberService {
     }
 
     public UUID resolveUid(int memberId) {
-        return memberRepository.resolveUid(memberId);
+        return lookupService.resolveUid(memberId);
     }
 
     public Optional<Integer> resolveId(int stationId, UUID memberUid) {
-        return memberRepository.resolveId(stationId, memberUid);
+        return lookupService.resolveId(stationId, memberUid);
     }
 
     public MemberIdentity resolveIdentity(int memberId) {
-        return memberRepository.resolveIdentity(memberId);
+        return lookupService.resolveIdentity(memberId);
+    }
+
+    public Optional<Integer> resolveMemberId(MemberIdentity identity) {
+        return lookupService.resolveMemberId(identity);
+    }
+
+    public List<MemberCompletion> findCompletions(int stationId) {
+        return lookupService.findCompletions(stationId);
     }
 
     public List<StationMember> findByAccount(int accountId) {

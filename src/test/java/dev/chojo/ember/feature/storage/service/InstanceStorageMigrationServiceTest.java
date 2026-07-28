@@ -3,28 +3,32 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-package dev.chojo.ember.feature.storage.migration;
+package dev.chojo.ember.feature.storage.service;
 
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.conf.file.elements.StorageBackendSettings;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.storage.backend.ObjectMetadata;
+import dev.chojo.ember.feature.storage.backend.StorageBackend;
 import dev.chojo.ember.feature.storage.backend.StorageBackendFactory;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.StorageBackendType;
+import dev.chojo.ember.feature.storage.backend.StorageException;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.credential.CredentialCipher;
 import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
+import dev.chojo.ember.feature.storage.migration.MigrationException;
+import dev.chojo.ember.feature.storage.migration.MigrationLockRegistry;
 import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
-import dev.chojo.ember.feature.storage.service.InstanceStorageReadOnlyState;
-import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
@@ -50,8 +54,11 @@ class InstanceStorageMigrationServiceTest extends RepositoryTestBase {
 
     private static StationStorageConfigRepository storageConfigRepo;
 
+    private Path sourceRoot;
     private Path targetRoot;
+    private LocalStorageBackend sourceBackend;
     private LocalStorageBackend targetBackend;
+    private SwappableFactory factory;
     private StorageService storageService;
     private InstanceStorageMigrationService migrationService;
     private MigrationLockRegistry locks;
@@ -64,9 +71,9 @@ class InstanceStorageMigrationServiceTest extends RepositoryTestBase {
 
     @BeforeEach
     void setup() throws Exception {
-        Path sourceRoot = Files.createTempDirectory("instance-migration-source");
+        sourceRoot = Files.createTempDirectory("instance-migration-source");
         targetRoot = Files.createTempDirectory("instance-migration-target");
-        LocalStorageBackend sourceBackend = new LocalStorageBackend(sourceRoot);
+        sourceBackend = new LocalStorageBackend(sourceRoot);
         targetBackend = new LocalStorageBackend(targetRoot);
         var cipher = new CredentialCipher(Base64.getEncoder().encodeToString(new byte[32]));
 
@@ -75,7 +82,7 @@ class InstanceStorageMigrationServiceTest extends RepositoryTestBase {
         setField(StorageBackendSettings.class, storage.backend(), "type", StorageBackendType.LOCAL);
         setField(StorageBackendSettings.LocalSettings.class, storage.backend().local(), "root", sourceRoot.toString());
 
-        StorageBackendFactory factory = new StorageBackendFactory(storage, sourceBackend, cipher);
+        factory = new SwappableFactory(storage, sourceBackend, cipher);
         var resolver = new StorageBackendResolver(factory, storageConfigRepo);
         storageService = new StorageService(resolver, sourceBackend);
 
@@ -246,6 +253,212 @@ class InstanceStorageMigrationServiceTest extends RepositoryTestBase {
             assertThrows(MigrationException.class, () -> migrationService.prepare(targetSettings));
         } finally {
             migrationService.abort(prepared);
+        }
+    }
+
+    /**
+     * The read-only flag is the outward signal that a migration owns the instance; the status
+     * endpoint reads it, so it must be false before preparation and false again after commit.
+     */
+    @Test
+    void inFlightFlagTracksThePreparedWindow() {
+        assertFalse(migrationService.isMigrationInFlight());
+        var prepared = migrationService.prepare(newLocalSettings(targetRoot.toString()));
+        assertTrue(migrationService.isMigrationInFlight());
+        migrationService.commit(prepared, true);
+        assertFalse(migrationService.isMigrationInFlight());
+    }
+
+    /**
+     * A read-only flag left set by an earlier crash blocks preparation and hands the instance
+     * lock straight back, so a retry after the operator clears it is not deadlocked.
+     */
+    @Test
+    void preparationRefusesWhileTheReadOnlyFlagIsAlreadySet() {
+        assertTrue(readOnly.lock());
+
+        var error = assertThrows(
+                MigrationException.class, () -> migrationService.prepare(newLocalSettings(targetRoot.toString())));
+
+        assertTrue(error.getMessage().contains("read-only"));
+        assertFalse(locks.isInstanceLocked(), "the instance lock must be handed back");
+        readOnly.unlock();
+    }
+
+    /**
+     * A target that cannot be written to at all fails its probe; the lock and the read-only flag
+     * are released so the instance keeps serving from the previous backend.
+     */
+    @Test
+    void anUnhealthyTargetAbortsPreparation() throws Exception {
+        Path blocked = Files.createTempFile("instance-migration-blocked", ".marker");
+
+        var error = assertThrows(
+                MigrationException.class, () -> migrationService.prepare(newLocalSettings(blocked.toString())));
+
+        assertTrue(error.getMessage().contains("probe failed"));
+        assertFalse(readOnly.isLocked());
+        assertFalse(locks.isInstanceLocked());
+    }
+
+    /**
+     * Migrating onto the backend that is already the instance default would delete the very bytes
+     * it just "copied"; preparation refuses instead.
+     */
+    @Test
+    void migratingOntoTheCurrentInstanceDefaultIsRefused() throws Exception {
+        Storage sameRoot = new Storage();
+        setField(Storage.class, sameRoot, "backend", new StorageBackendSettings());
+        var cipher = new CredentialCipher(Base64.getEncoder().encodeToString(new byte[32]));
+        var sameRootFactory = new SwappableFactory(sameRoot, sourceBackend, cipher);
+        var service = new InstanceStorageMigrationService(
+                stationRepo, accountRepo, storageConfigRepo, sameRootFactory, locks, readOnly);
+
+        var error = assertThrows(MigrationException.class, () -> service.prepare(new StorageBackendSettings()));
+
+        assertTrue(error.getMessage().contains("current instance default"));
+        assertFalse(readOnly.isLocked());
+        assertFalse(locks.isInstanceLocked());
+    }
+
+    /**
+     * Bytes placed on the target out-of-band carry no hash in their sidecar. The comparison falls
+     * back to hashing both sides, and an identical payload still counts as skipped.
+     */
+    @Test
+    void keysOnTheTargetWithoutAStoredHashAreComparedByContent() {
+        Station station = stationRepo.create("Hashless Target");
+        byte[] payload = "hashless-payload".getBytes(StandardCharsets.UTF_8);
+        var scope = new StorageScope.Station(station.id(), station.uid());
+        storageService.store(scope, StorageCategory.PAGE_FILES, "doc.txt", payload, "text/plain");
+        String fullKey = scope.prefix() + "/" + StorageCategory.PAGE_FILES.prefix() + "/doc.txt";
+        targetBackend.store(
+                fullKey, new ByteArrayInputStream(payload), payload.length, ObjectMetadata.of("text/plain"));
+
+        var result = migrationService.commit(migrationService.prepare(newLocalSettings(targetRoot.toString())), true);
+
+        assertEquals(1, result.skipped(), "identical content must be recognised without a stored hash");
+        assertEquals(0, result.copied());
+    }
+
+    /**
+     * A target that accepts writes but cannot read them back fails sample verification. The
+     * exception surfaces from preparation, before the caller ever flips the configuration.
+     */
+    @Test
+    void sampleVerificationFailureAbortsPreparation() {
+        Station station = stationRepo.create("Verify Failure Station");
+        var scope = new StorageScope.Station(station.id(), station.uid());
+        storageService.store(
+                scope, StorageCategory.PAGE_FILES, "doc.txt", "verify".getBytes(StandardCharsets.UTF_8), "text/plain");
+        factory.instanceTarget = new LocalStorageBackend(targetRoot) {
+            @Override
+            public boolean exists(String fullKey) {
+                return false;
+            }
+        };
+
+        var error = assertThrows(
+                MigrationException.class, () -> migrationService.prepare(newLocalSettings(targetRoot.toString())));
+
+        assertTrue(error.getMessage().contains("Sample verification failed"));
+        assertFalse(readOnly.isLocked(), "a failed preparation must clear the read-only flag");
+        assertFalse(locks.isInstanceLocked());
+    }
+
+    /**
+     * Deleting the source is best-effort: keys the old backend refuses to drop are logged and
+     * left behind rather than failing a migration whose bytes are already safely on the target.
+     */
+    @Test
+    void sourceDeleteFailuresDoNotFailTheCommit() {
+        Station station = stationRepo.create("Delete Failure Station");
+        var scope = new StorageScope.Station(station.id(), station.uid());
+        storageService.store(
+                scope,
+                StorageCategory.PAGE_FILES,
+                "doc.txt",
+                "stubborn".getBytes(StandardCharsets.UTF_8),
+                "text/plain");
+        factory.instanceBackend = new LocalStorageBackend(sourceRoot) {
+            @Override
+            public void delete(String fullKey) {
+                throw new StorageException("read-only filesystem");
+            }
+        };
+
+        var result = migrationService.commit(migrationService.prepare(newLocalSettings(targetRoot.toString())), false);
+
+        assertEquals(1, result.copied());
+        assertEquals(0, result.deleted(), "keys that could not be deleted are not counted");
+        assertFalse(readOnly.isLocked());
+        assertFalse(locks.isInstanceLocked());
+    }
+
+    /**
+     * Backends that blow up while releasing their connections must not strand the instance in
+     * read-only mode — the flag and the lock are released regardless.
+     */
+    @Test
+    void backendsThatFailToCloseStillReleaseTheInstance() {
+        factory.instanceBackend = new LocalStorageBackend(sourceRoot) {
+            @Override
+            public void close() {
+                throw new IllegalStateException("source close failed");
+            }
+        };
+        factory.instanceTarget = new LocalStorageBackend(targetRoot) {
+            @Override
+            public void close() {
+                throw new IllegalStateException("target close failed");
+            }
+        };
+
+        migrationService.commit(migrationService.prepare(newLocalSettings(targetRoot.toString())), false);
+
+        assertFalse(readOnly.isLocked());
+        assertFalse(locks.isInstanceLocked());
+    }
+
+    /**
+     * Same guarantee on the abort path, which the route handler takes when saving the new
+     * configuration fails after a successful byte copy.
+     */
+    @Test
+    void abortReleasesTheInstanceEvenWhenTheTargetFailsToClose() {
+        factory.instanceTarget = new LocalStorageBackend(targetRoot) {
+            @Override
+            public void close() {
+                throw new IllegalStateException("target close failed");
+            }
+        };
+
+        migrationService.abort(migrationService.prepare(newLocalSettings(targetRoot.toString())));
+
+        assertFalse(readOnly.isLocked());
+        assertFalse(locks.isInstanceLocked());
+    }
+
+    /**
+     * Factory stand-in that lets a test point the instance default and the migration target at
+     * deliberately misbehaving local backends without needing a real remote endpoint.
+     */
+    private static final class SwappableFactory extends StorageBackendFactory {
+        private StorageBackend instanceBackend;
+        private StorageBackend instanceTarget;
+
+        private SwappableFactory(Storage storage, LocalStorageBackend local, CredentialCipher cipher) {
+            super(storage, local, cipher);
+        }
+
+        @Override
+        public synchronized StorageBackend instanceDefault() {
+            return instanceBackend != null ? instanceBackend : super.instanceDefault();
+        }
+
+        @Override
+        public StorageBackend buildForInstance(StorageBackendSettings settings) {
+            return instanceTarget != null ? instanceTarget : super.buildForInstance(settings);
         }
     }
 

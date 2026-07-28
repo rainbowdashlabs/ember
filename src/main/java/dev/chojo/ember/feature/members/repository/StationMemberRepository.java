@@ -5,8 +5,6 @@
  */
 package dev.chojo.ember.feature.members.repository;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
@@ -17,17 +15,14 @@ import dev.chojo.ember.feature.members.entity.MemberCompletion;
 import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.RichMember;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.sql.SqlSupport;
 import dev.chojo.ember.util.sql.WhereBuilder;
-import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -57,48 +52,25 @@ public class StationMemberRepository {
             %s AS display_tag,
             %s AS display_tag_color,
             sm.join_date AS join_date""".formatted(PRIMARY_TAG_NAME_SUBQUERY, PRIMARY_TAG_COLOR_SUBQUERY);
-    private final Cache<Integer, UUID> memberUidCache = Caffeine.newBuilder()
-            .expireAfterAccess(5, TimeUnit.MINUTES)
-            .maximumSize(10_000)
-            .build();
-    private final Cache<MemberKey, Integer> memberIdCache = Caffeine.newBuilder()
-            .expireAfterAccess(5, TimeUnit.MINUTES)
-            .maximumSize(10_000)
-            .build();
-    private final StationRepository stationRepository;
-
-    @Inject
-    public StationMemberRepository(StationRepository stationRepository) {
-        this.stationRepository = stationRepository;
-    }
 
     /**
-     * Resolves an internal member ID to its UUID. Cached.
+     * Reads the UUID of an internal member ID.
      */
-    public UUID resolveUid(int memberId) {
-        return memberUidCache.get(memberId, id -> query("SELECT uid FROM station_member WHERE id = :id;")
-                .single(call().bind("id", id))
+    public Optional<UUID> selectUid(int memberId) {
+        return query("SELECT uid FROM station_member WHERE id = :id;")
+                .single(call().bind("id", memberId))
                 .map(row -> row.get("uid", StandardValueConverter.UUID_STRING))
-                .first()
-                .orElse(null));
+                .first();
     }
 
     /**
-     * Resolves a member UUID within a station to its internal ID. Cached.
+     * Reads the internal ID of a member UUID within a station.
      */
-    public Optional<Integer> resolveId(int stationId, UUID memberUid) {
-        var key = new MemberKey(stationId, memberUid);
-        var cached = memberIdCache.getIfPresent(key);
-        if (cached != null) return Optional.of(cached);
+    public Optional<Integer> selectId(int stationId, UUID memberUid) {
         return query("SELECT id FROM station_member WHERE station_id = :station_id AND uid = :uid::UUID;")
                 .single(call().bind("station_id", stationId).bind("uid", memberUid, StandardValueConverter.UUID_STRING))
                 .map(row -> row.getInt("id"))
-                .first()
-                .map(id -> {
-                    memberIdCache.put(key, id);
-                    memberUidCache.put(id, memberUid);
-                    return id;
-                });
+                .first();
     }
 
     /**
@@ -113,17 +85,6 @@ public class StationMemberRepository {
                         row.get("member_uid", StandardValueConverter.UUID_STRING)))
                 .first()
                 .orElse(null);
-    }
-
-    /**
-     * Invalidates caches for a member (on create/delete).
-     */
-    public void invalidateMemberCache(int memberId) {
-        var uid = memberUidCache.getIfPresent(memberId);
-        memberUidCache.invalidate(memberId);
-        if (uid != null) {
-            memberIdCache.asMap().values().remove(memberId);
-        }
     }
 
     /**
@@ -219,11 +180,11 @@ public class StationMemberRepository {
     /**
      * Finds active members of a station for autocomplete, returning only id and display name.
      *
-     * @param stationId the station identifier
+     * @param stationId  the station identifier
+     * @param stationUid the UUID of that station, stamped onto every completion
      * @return list of member completion entries
      */
-    public List<MemberCompletion> findCompletions(int stationId) {
-        UUID stationUid = stationRepository.resolveUid(stationId);
+    public List<MemberCompletion> findCompletions(int stationId, UUID stationUid) {
         return query(
                         "SELECT sm.id, sm.uid, coalesce(a.full_name, sm.display_name, 'Mitglied ' || sm.id) AS display_name FROM station_member sm LEFT JOIN account a ON sm.account_id = a.id WHERE sm.station_id = :station_id AND sm.former = FALSE ORDER BY display_name;")
                 .single(call().bind("station_id", stationId))
@@ -378,14 +339,14 @@ public class StationMemberRepository {
 
     /**
      * Replaces the {@code uid} column for the member. Used by the demo seeder to pin
-     * deterministic UUIDs so demo media does not accumulate on disk across restarts.
+     * deterministic UUIDs so demo media does not accumulate on disk across restarts. Callers must
+     * go through the lookup service so the cached translations are dropped along with it.
      */
-    public void setUid(int id, UUID uid) {
+    public void updateUid(int id, UUID uid) {
         query("UPDATE station_member SET uid = :uid::uuid WHERE id = :id;")
                 .single(call().bind("uid", uid, StandardValueConverter.UUID_STRING)
                         .bind("id", id))
                 .update();
-        invalidateMemberCache(id);
     }
 
     public boolean delete(int id) {
@@ -581,8 +542,6 @@ public class StationMemberRepository {
                 .single(call().bind("manager_id", managerId))
                 .delete();
     }
-
-    private record MemberKey(int stationId, UUID memberUid) {}
 
     /**
      * Lightweight result row for the editor's member-search picker. Exposes the member UUID —

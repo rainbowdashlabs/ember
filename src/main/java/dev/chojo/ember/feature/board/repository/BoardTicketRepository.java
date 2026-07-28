@@ -22,10 +22,7 @@ import dev.chojo.ember.feature.board.entity.BoardTicketTransition;
 import dev.chojo.ember.feature.board.entity.BoardWeblink;
 import dev.chojo.ember.feature.board.entity.LinkType;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.sql.SqlSupport;
-import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
@@ -61,14 +58,6 @@ public class BoardTicketRepository {
             "id, ticket_id, filename, original_name, content_type, size_bytes, uploader_station_uid, uploader_member_uid, created_at";
     private static final String HISTORY_COLUMNS =
             "id, ticket_id, action, detail, actor_station_uid, actor_member_uid, created_at";
-    private final StationMemberRepository stationMemberRepository;
-    private final StationRepository stationRepository;
-
-    @Inject
-    public BoardTicketRepository(StationMemberRepository stationMemberRepository, StationRepository stationRepository) {
-        this.stationMemberRepository = stationMemberRepository;
-        this.stationRepository = stationRepository;
-    }
 
     // -- Ticket CRUD --
 
@@ -444,35 +433,18 @@ public class BoardTicketRepository {
                 .orElse(false);
     }
 
-    public List<Integer> findWatchers(int ticketId) {
+    /**
+     * The federated identities watching a ticket. Translating them back to local member IDs is the
+     * caller's job, since remote watchers have no local ID.
+     */
+    public List<MemberIdentity> findWatcherIdentities(int ticketId) {
         return query(
                         "SELECT watcher_station_uid, watcher_member_uid FROM board_ticket_watcher WHERE ticket_id = :ticket_id;")
                 .single(call().bind("ticket_id", ticketId))
-                .map(row -> {
-                    UUID memberUid = row.get("watcher_member_uid", StandardValueConverter.UUID_STRING);
-                    UUID stationUid = row.get("watcher_station_uid", StandardValueConverter.UUID_STRING);
-                    return stationRepository
-                            .resolveId(stationUid)
-                            .flatMap(sid -> stationMemberRepository.resolveId(sid, memberUid));
-                })
-                .all()
-                .stream()
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .toList();
-    }
-
-    public void addWatcher(int ticketId, int memberId) {
-        MemberIdentity identity = stationMemberRepository.resolveIdentity(memberId);
-        if (identity == null) return;
-        query("""
-                INSERT INTO board_ticket_watcher(ticket_id, watcher_station_uid, watcher_member_uid)
-                VALUES (:ticket_id, :watcher_station_uid::UUID, :watcher_member_uid::UUID)
-                ON CONFLICT DO NOTHING;""")
-                .single(call().bind("ticket_id", ticketId)
-                        .bind("watcher_station_uid", identity.stationUid(), StandardValueConverter.UUID_STRING)
-                        .bind("watcher_member_uid", identity.memberUid(), StandardValueConverter.UUID_STRING))
-                .insert();
+                .map(row -> new MemberIdentity(
+                        row.get("watcher_station_uid", StandardValueConverter.UUID_STRING),
+                        row.get("watcher_member_uid", StandardValueConverter.UUID_STRING)))
+                .all();
     }
 
     public void addWatcher(int ticketId, MemberIdentity identity) {
@@ -499,24 +471,10 @@ public class BoardTicketRepository {
                 .changed();
     }
 
-    public boolean removeWatcher(int ticketId, int memberId) {
-        MemberIdentity identity = stationMemberRepository.resolveIdentity(memberId);
-        if (identity == null) return false;
-        return query("""
-                DELETE FROM board_ticket_watcher
-                WHERE ticket_id = :ticket_id AND watcher_station_uid = :watcher_station_uid::UUID AND watcher_member_uid = :watcher_member_uid::UUID;""")
-                .single(call().bind("ticket_id", ticketId)
-                        .bind("watcher_station_uid", identity.stationUid(), StandardValueConverter.UUID_STRING)
-                        .bind("watcher_member_uid", identity.memberUid(), StandardValueConverter.UUID_STRING))
-                .delete()
-                .changed();
-    }
-
     // -- Weblinks --
 
-    public boolean isWatching(int ticketId, int memberId) {
-        MemberIdentity identity = stationMemberRepository.resolveIdentity(memberId);
-        if (identity == null) return false;
+    public boolean isWatching(int ticketId, MemberIdentity identity) {
+        if (identity == null || identity.stationUid() == null || identity.memberUid() == null) return false;
         return SqlSupport.exists(
                 """
                 SELECT 1 FROM board_ticket_watcher

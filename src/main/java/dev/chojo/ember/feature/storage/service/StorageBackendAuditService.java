@@ -3,8 +3,11 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-package dev.chojo.ember.feature.storage.audit;
+package dev.chojo.ember.feature.storage.service;
 
+import dev.chojo.ember.feature.storage.audit.StorageAuditAction;
+import dev.chojo.ember.feature.storage.audit.StorageAuditEntry;
+import dev.chojo.ember.feature.storage.audit.StorageAuditOutcome;
 import dev.chojo.ember.feature.storage.entity.RedactedStationConfig;
 import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
 import dev.chojo.ember.feature.storage.repository.StorageBackendAuditRepository;

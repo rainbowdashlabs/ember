@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.architecture;
 
-import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
@@ -17,29 +16,16 @@ import jakarta.inject.Singleton;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
-import java.util.Set;
-
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 /**
- * Structural conventions enforced across the backend. Exception lists freeze the
- * pre-existing violations that later cleanup phases resolve — do not extend them
- * for new code; fix the placement instead.
+ * Structural conventions enforced across the backend. Every rule here holds for the whole
+ * codebase without exception — if a new class cannot satisfy one, fix the placement rather
+ * than reintroducing a frozen exception list.
  */
 @AnalyzeClasses(packages = "dev.chojo.ember")
 public class ArchitectureTest {
-
-    private static final Set<String> SERVICE_PLACEMENT_EXCEPTIONS = Set.of(
-            "dev.chojo.ember.util.CloudflareRangesService",
-            "dev.chojo.ember.feature.storage.audit.StorageBackendAuditService",
-            "dev.chojo.ember.feature.storage.transfer.TransferBackendDescriptorService",
-            "dev.chojo.ember.feature.storage.migration.InstanceStorageMigrationService",
-            "dev.chojo.ember.feature.storage.migration.StorageMigrationService");
-
-    private static final Set<String> REPOSITORY_DEPENDENCY_EXCEPTIONS = Set.of(
-            "dev.chojo.ember.feature.board.repository.BoardTicketRepository",
-            "dev.chojo.ember.feature.members.repository.StationMemberRepository");
 
     @ArchTest
     static final ArchRule repositoriesAreSingletons = classes()
@@ -65,7 +51,6 @@ public class ArchitectureTest {
             .haveSimpleNameEndingWith("Service")
             .and()
             .areTopLevelClasses()
-            .and(notIn(SERVICE_PLACEMENT_EXCEPTIONS))
             .should()
             .resideInAPackage("..service..");
 
@@ -84,12 +69,7 @@ public class ArchitectureTest {
             .haveSimpleNameEndingWith("Repository")
             .and()
             .areTopLevelClasses()
-            .and(notIn(REPOSITORY_DEPENDENCY_EXCEPTIONS))
             .should(notDependOnForeignRepositories());
-
-    private static DescribedPredicate<JavaClass> notIn(Set<String> names) {
-        return DescribedPredicate.describe("are not frozen exceptions", clazz -> !names.contains(clazz.getFullName()));
-    }
 
     private static ArchCondition<JavaClass> notDependOnForeignRepositories() {
         return new ArchCondition<>("not depend on other repositories") {

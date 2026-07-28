@@ -3,12 +3,13 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-package dev.chojo.ember.feature.storage.transfer;
+package dev.chojo.ember.feature.storage.service;
 
 import dev.chojo.ember.feature.storage.credential.CredentialCipher;
 import dev.chojo.ember.feature.storage.credential.StoredCredentials;
 import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
 import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
+import dev.chojo.ember.feature.storage.transfer.TransferBackendDescriptor;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 

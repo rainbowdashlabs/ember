@@ -269,7 +269,7 @@ public class StationMemberRoutes implements Routes {
 
     private void completions(Context ctx) {
         var session = UserSession.from(ctx);
-        var completions = stationMemberRepository.findCompletions(session.stationId());
+        var completions = memberService.findCompletions(session.stationId());
 
         String rtParam = ctx.queryParam("restrictionType");
         String entityIdParam = ctx.queryParam("entityId");

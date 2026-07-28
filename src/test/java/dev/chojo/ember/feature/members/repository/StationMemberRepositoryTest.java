@@ -153,7 +153,7 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(22)
     void findCompletions() {
-        var completions = stationMemberRepo.findCompletions(station.id());
+        var completions = stationMemberRepo.findCompletions(station.id(), stationRepo.resolveUid(station.id()));
         assertNotNull(completions);
         assertTrue(
                 completions.stream().allMatch(c -> c.name() != null && !c.name().isBlank()));
@@ -255,38 +255,15 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
 
     @Test
     @Order(39)
-    void resolveUidAndIdCaching() {
-        // resolveUid populates the cache
-        var uid = stationMemberRepo.resolveUid(memberId1);
-        assertNotNull(uid);
-        // Call again to hit cache
-        var uid2 = stationMemberRepo.resolveUid(memberId1);
-        assertEquals(uid, uid2);
+    void selectUidAndSelectId() {
+        var uid = stationMemberRepo.selectUid(memberId1);
+        assertTrue(uid.isPresent());
+        assertTrue(stationMemberRepo.selectUid(-4711).isEmpty());
 
-        // resolveId populates the cache
-        var id = stationMemberRepo.resolveId(station.id(), uid);
+        var id = stationMemberRepo.selectId(station.id(), uid.orElseThrow());
         assertTrue(id.isPresent());
         assertEquals(memberId1, id.get());
-        // Call again to hit cache
-        var id2 = stationMemberRepo.resolveId(station.id(), uid);
-        assertTrue(id2.isPresent());
-        assertEquals(memberId1, id2.get());
-    }
-
-    @Test
-    @Order(39)
-    void invalidateMemberCache() {
-        // Populate cache
-        var uid = stationMemberRepo.resolveUid(memberId1);
-        assertNotNull(uid);
-        stationMemberRepo.resolveId(station.id(), uid);
-
-        // Invalidate — should not throw
-        stationMemberRepo.invalidateMemberCache(memberId1);
-
-        // After invalidation, a fresh resolve should still work
-        var freshUid = stationMemberRepo.resolveUid(memberId1);
-        assertEquals(uid, freshUid);
+        assertTrue(stationMemberRepo.selectId(station.id(), UUID.randomUUID()).isEmpty());
     }
 
     @Test
@@ -345,7 +322,7 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
         var matches = stationMemberRepo.searchForPicker(station.id(), null, 50);
         assertFalse(matches.isEmpty());
         var first = matches.stream()
-                .filter(p -> p.memberUid().equals(stationMemberRepo.resolveUid(memberId1)))
+                .filter(p -> p.memberUid().equals(memberLookupService.resolveUid(memberId1)))
                 .findFirst()
                 .orElseThrow();
         assertNotNull(first.displayName());
@@ -374,12 +351,12 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
         userTagRepo.addMember(tag.id(), memberId1);
         try {
             var byGroup = stationMemberRepo.findOfficersByGroup(station.id(), group.id());
-            assertTrue(byGroup.stream().anyMatch(m -> m.memberUid().equals(stationMemberRepo.resolveUid(memberId1))));
+            assertTrue(byGroup.stream().anyMatch(m -> m.memberUid().equals(memberLookupService.resolveUid(memberId1))));
 
             var byTag = stationMemberRepo.findOfficersByTag(station.id(), tag.id());
-            assertTrue(byTag.stream().anyMatch(m -> m.memberUid().equals(stationMemberRepo.resolveUid(memberId1))));
+            assertTrue(byTag.stream().anyMatch(m -> m.memberUid().equals(memberLookupService.resolveUid(memberId1))));
 
-            var uid = stationMemberRepo.resolveUid(memberId1);
+            var uid = memberLookupService.resolveUid(memberId1);
             var byUids = stationMemberRepo.findOfficersByUids(station.id(), List.of(uid));
             assertEquals(1, byUids.size());
             assertEquals(uid, byUids.getFirst().memberUid());
