@@ -15,6 +15,10 @@
 - **One item edit dialog everywhere.** Editing an inventory item from the edit page now opens the same dialog as the detail page, including custom fields, storage container, and ownership. Custom field values are kept when saving.
 - **Confirmations use the app's own dialog.** Deleting a file tag or folder, unassigning an item during a check, and handing over an item another member still holds all ask in a styled dialog instead of a plain browser prompt.
 
+### Security
+
+- **Boards you cannot see stay hidden.** Ticket comments, checklists, links, labels and history on a board you have no access to are no longer readable, and such a board now answers exactly as a missing one so its existence cannot be probed. Being unable to edit a board you can see is still reported separately.
+
 ### Fixes
 
 - **Public blog article links work.** Opening a single article from a station's public blog loads the article instead of failing.

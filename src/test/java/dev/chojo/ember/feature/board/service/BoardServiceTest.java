@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.board.service;
 
+import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -19,6 +20,7 @@ import dev.chojo.ember.feature.board.entity.LaneData;
 import dev.chojo.ember.feature.board.entity.LanePreset;
 import dev.chojo.ember.feature.board.entity.LinkType;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
+import dev.chojo.ember.feature.board.route.BoardRouteGuards;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
@@ -30,6 +32,8 @@ import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import io.javalin.http.ForbiddenResponse;
+import io.javalin.http.NotFoundResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -416,6 +420,36 @@ class BoardServiceTest extends RepositoryTestBase {
                         StationUserType.MEMBER,
                         null)));
         assertTrue(boardService.canView(boardId, member.id()));
+    }
+
+    /**
+     * A board the caller may not view has to answer exactly as a missing one, so board keys cannot
+     * be probed to learn which boards exist. Edit failures stay 403 — the caller can already see
+     * the board, so hiding it would be pointless and the interface needs the distinction.
+     */
+    @Test
+    @Order(62)
+    void invisibleBoardIsNotFoundWhileUneditableBoardIsForbidden() {
+        var guards = new BoardRouteGuards(boardService, ticketService, memberIdentityFactory);
+        var session = new UserSession(account, 1, station.id(), station.uid(), member, Set.of(), Set.of(), null);
+
+        boardService.setViewAccess(boardId, List.of(StationUserType.MANAGER), List.of(), List.of());
+        when(memberService.findById(member.id()))
+                .thenReturn(Optional.of(new StationMember(
+                        member.id(),
+                        member.stationId(),
+                        member.uid(),
+                        member.accountId(),
+                        false,
+                        null,
+                        null,
+                        StationUserType.MEMBER,
+                        null)));
+
+        assertThrows(NotFoundResponse.class, () -> guards.requireViewAccess(boardId, session));
+        assertThrows(ForbiddenResponse.class, () -> guards.requireEditAccess(boardId, session));
+
+        boardService.setViewAccess(boardId, List.of(), List.of(), List.of());
     }
 
     @Test

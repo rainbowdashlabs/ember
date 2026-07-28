@@ -98,7 +98,7 @@ public class BoardTicketDetailRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardComment[].class)))
     private void getComments(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        int ticketId = guards.ticketId(ctx, session);
+        int ticketId = guards.viewableTicketId(ctx, session);
         ctx.json(ticketService.findComments(ticketId).stream()
                 .map(comment -> CommentResponseMapper.fromBoard(memberNameResolver, comment))
                 .toList());
@@ -174,7 +174,7 @@ public class BoardTicketDetailRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardChecklistItem[].class)))
     private void getChecklist(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        ctx.json(ticketService.findChecklistItems(guards.ticketId(ctx, session)));
+        ctx.json(ticketService.findChecklistItems(guards.viewableTicketId(ctx, session)));
     }
 
     @OpenApi(

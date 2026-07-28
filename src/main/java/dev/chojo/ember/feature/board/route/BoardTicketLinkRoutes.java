@@ -85,7 +85,7 @@ public class BoardTicketLinkRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardTicketLink[].class)))
     private void getLinks(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        ctx.json(ticketService.findLinks(guards.ticketId(ctx, session)));
+        ctx.json(ticketService.findLinks(guards.viewableTicketId(ctx, session)));
     }
 
     @OpenApi(
@@ -137,7 +137,7 @@ public class BoardTicketLinkRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardWeblink[].class)))
     private void getWeblinks(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        ctx.json(ticketService.findWeblinks(guards.ticketId(ctx, session)));
+        ctx.json(ticketService.findWeblinks(guards.viewableTicketId(ctx, session)));
     }
 
     @OpenApi(
@@ -197,7 +197,7 @@ public class BoardTicketLinkRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardLabel[].class)))
     private void getTicketLabels(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        ctx.json(boardService.findLabelsForTicket(guards.ticketId(ctx, session)));
+        ctx.json(boardService.findLabelsForTicket(guards.viewableTicketId(ctx, session)));
     }
 
     @OpenApi(
@@ -258,7 +258,7 @@ public class BoardTicketLinkRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardTicketKbLink[].class)))
     private void getKbLinks(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        ctx.json(ticketService.findKbLinks(guards.ticketId(ctx, session)));
+        ctx.json(ticketService.findKbLinks(guards.viewableTicketId(ctx, session)));
     }
 
     @OpenApi(

@@ -90,15 +90,11 @@ public class BoardRouteGuards {
     }
 
     /**
-     * Resolves the ticket named by the path parameters without any board-level access check.
-     */
-    public int ticketId(Context ctx, UserSession session) {
-        return resolveTicketId(ctx, resolveBoardId(ctx, session.stationId()));
-    }
-
-    /**
      * Asserts the session may edit the board. Answers 400 when the caller is not a station member
      * and 403 when the board is not editable for them.
+     *
+     * <p>Edit failures stay 403 on purpose: the caller can view the board, so its existence is
+     * already known to them and the interface has to distinguish "not allowed" from "not there".
      */
     public void requireEditAccess(int boardId, UserSession session) {
         if (session.member() == null) throw new BadRequestResponse("Not a station member");
@@ -109,13 +105,16 @@ public class BoardRouteGuards {
 
     /**
      * Asserts the session may view the board. Answers 400 when the caller is not a station member
-     * and 403 when the board is not visible to them.
+     * and 404 when the board is not visible to them.
+     *
+     * <p>An invisible board answers exactly as a missing one, so a member cannot probe board keys
+     * to learn which boards exist in their station.
      */
     public void requireViewAccess(int boardId, UserSession session) {
         if (session.member() == null) throw new BadRequestResponse("Not a station member");
         boolean isManager = session.permissions().contains(StationPermission.BOARD_MANAGER);
         if (!boardService.canView(boardId, session.member().id(), isManager))
-            throw new ForbiddenResponse("No access to this board");
+            throw new NotFoundResponse("Board not found");
     }
 
     /**

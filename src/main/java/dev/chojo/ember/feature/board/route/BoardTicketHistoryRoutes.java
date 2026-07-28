@@ -65,7 +65,7 @@ public class BoardTicketHistoryRoutes implements Routes {
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = BoardTicketTransition[].class)))
     private void getTransitions(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        ctx.json(ticketService.findTransitions(guards.ticketId(ctx, session)).stream()
+        ctx.json(ticketService.findTransitions(guards.viewableTicketId(ctx, session)).stream()
                 .map(transition -> {
                     var resolved = memberNameResolver.resolveDisplay(transition.actor());
                     return BoardTicketTransitionResponse.from(transition, resolved.identity(), resolved.name());
