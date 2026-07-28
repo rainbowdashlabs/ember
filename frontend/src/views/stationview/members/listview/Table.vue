@@ -12,6 +12,8 @@ import MemberDesktopTable from './MemberDesktopTable.vue'
 import type {ProfileField, StationMember} from '@/api/types'
 import {StationUserType} from '@/api/types'
 import {useBreakpoint} from '@/composables/useBreakpoint'
+import {sortIconFor, type SortDirection} from '@/composables/useSortable'
+import type {MemberSortKey} from './useSavedFilters'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 
 const {isMobile} = useBreakpoint()
@@ -21,8 +23,8 @@ const props = defineProps<{
   members: StationMember[]
   visibleColumns: ProfileField[]
   expandedId: number | null
-  sortColumn: 'name' | number
-  sortAsc: boolean
+  sortKey: MemberSortKey
+  sortDirection: SortDirection
   columnMultiFilters: Map<'name' | 'groups' | 'tags' | number, Set<string>>
   columnEmptyFilters: Set<'name' | 'groups' | 'tags' | number>
   memberGroupsMap: Map<number, string[]>
@@ -38,7 +40,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  toggleSort: [column: 'name' | number]
+  toggleSort: [column: MemberSortKey]
   applyColumnFilter: [key: 'name' | 'groups' | 'tags' | number, selected: Set<string>, includeEmpty: boolean]
   toggleExpand: [member: StationMember]
   navigateDetail: [member: StationMember, event: Event]
@@ -60,9 +62,8 @@ const filterModalValues = ref<string[]>([])
 const filterModalSelected = ref<Set<string>>(new Set())
 const filterModalIncludeEmpty = ref(false)
 
-function sortIcon(column: 'name' | number): string {
-  if (props.sortColumn !== column) return 'sort'
-  return props.sortAsc ? 'sort-up' : 'sort-down'
+function sortIcon(column: MemberSortKey): string {
+  return sortIconFor(props.sortKey === column, props.sortDirection)
 }
 
 function hasActiveFilter(key: 'name' | 'groups' | 'tags' | number): boolean {

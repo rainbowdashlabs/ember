@@ -16,6 +16,7 @@ import {StationUserType} from '@/api/types'
 import {inventoryCheck} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useConfigPanel} from '@/composables/useConfigPanel'
+import {byDate, byValue, useSortable} from '@/composables/useSortable'
 import CheckOverviewTabs from './checkoverviewview/CheckOverviewTabs.vue'
 import MemberCheckTable from './checkoverviewview/MemberCheckTable.vue'
 import MemberCheckCardList from './checkoverviewview/MemberCheckCardList.vue'
@@ -30,29 +31,26 @@ const {config: members, loading, error} = useConfigPanel<MemberCheckSummary[]>({
   fetch: () => inventoryCheck.getCheckOverview(),
 })
 const activeTab = ref<'team' | 'member'>('member')
-const sortBy = ref<'name' | 'lastChecked'>('name')
 
 const currentMemberId = computed(() => sessionInfo.value?.member?.id)
 
-const filteredMembers = computed(() => {
-  return members.value.filter(m => {
-    const ut = m.userType ?? ''
-    if (ut === StationUserType.GUARDIAN) return false
-    if (activeTab.value === 'team') {
-      return ut === StationUserType.TEAM || ut === StationUserType.MANAGER
-    } else {
-      return ut === StationUserType.MEMBER
-    }
-  }).sort((a, b) => {
-    if (sortBy.value === 'lastChecked') {
-      if (!a.lastCheckedAt && b.lastCheckedAt) return -1
-      if (a.lastCheckedAt && !b.lastCheckedAt) return 1
-      if (a.lastCheckedAt && b.lastCheckedAt) {
-        return new Date(a.lastCheckedAt).getTime() - new Date(b.lastCheckedAt).getTime()
-      }
-    }
-    return memberName(a).localeCompare(memberName(b), 'de')
-  })
+const filteredMembers = computed(() => members.value.filter(m => {
+  const ut = m.userType ?? ''
+  if (ut === StationUserType.GUARDIAN) return false
+  if (activeTab.value === 'team') {
+    return ut === StationUserType.TEAM || ut === StationUserType.MANAGER
+  }
+  return ut === StationUserType.MEMBER
+}))
+
+const {sortKey: sortBy, sorted: sortedMembers} = useSortable<MemberCheckSummary, 'name' | 'lastChecked'>({
+  items: filteredMembers,
+  initialKey: 'name',
+  comparators: {
+    name: byValue(memberName),
+    lastChecked: byDate(m => m.lastCheckedAt, {nulls: 'first'}),
+  },
+  fallback: byValue(memberName),
 })
 
 function startCheck(memberId: number) {
@@ -76,17 +74,17 @@ function viewLastCheck(member: MemberCheckSummary) {
       <template v-if="!loading && !error">
         <CheckOverviewTabs v-model:active-tab="activeTab" v-model:sort-by="sortBy"/>
 
-        <EmptyState v-if="filteredMembers.length === 0">{{ t('inventory.check.noMembers') }}</EmptyState>
+        <EmptyState v-if="sortedMembers.length === 0">{{ t('inventory.check.noMembers') }}</EmptyState>
 
         <template v-else>
           <MemberCheckTable
-              :members="filteredMembers"
+              :members="sortedMembers"
               :current-member-id="currentMemberId"
               @start-check="startCheck"
               @view-last-check="viewLastCheck"
           />
           <MemberCheckCardList
-              :members="filteredMembers"
+              :members="sortedMembers"
               :current-member-id="currentMemberId"
               @start-check="startCheck"
               @view-last-check="viewLastCheck"

@@ -10,6 +10,7 @@ import { listFields } from '@/api/inventoryFields'
 import type { InventoryItem } from '@/api/types'
 import { ItemSource } from '@/api/types'
 import type { ColumnPickerOption } from '@/components/table/columns'
+import { byValue, useSortable } from '@/composables/useSortable'
 import { formatDate } from '@/util/format'
 import { parseItemMetadata, type ParsedItemMetadata } from '../detailview/itemMetadata'
 
@@ -36,8 +37,6 @@ export function useItemTable(options: ItemTableOptions) {
   const searchText = ref('')
   const hiddenKeys = ref<Set<string>>(new Set())
   const extraKeys = ref<Set<string>>(new Set())
-  const sortColumn = ref('name')
-  const sortAsc = ref(true)
   const columnMultiFilters = ref<Map<string, Set<string>>>(new Map())
   const columnEmptyFilters = ref<Set<string>>(new Set())
 
@@ -169,7 +168,7 @@ export function useItemTable(options: ItemTableOptions) {
       ['name', 'internalId', 'size', 'assigned'].some(key => columnValue(item, key).toLowerCase().includes(query)))
   })
 
-  const filteredItems = computed(() => {
+  const matchingItems = computed(() => {
     let list = searchedItems.value
     for (const [key, selectedValues] of columnMultiFilters.value) {
       if (selectedValues.size === 0) continue
@@ -187,23 +186,14 @@ export function useItemTable(options: ItemTableOptions) {
         return values.length === 0 || values.every(v => !v)
       })
     }
-    return [...list].sort((a, b) => {
-      const valA = columnValue(a, sortColumn.value).toLowerCase()
-      const valB = columnValue(b, sortColumn.value).toLowerCase()
-      const cmp = valA.localeCompare(valB)
-      return sortAsc.value ? cmp : -cmp
-    })
+    return list
   })
 
-  function toggleSort(column: string) {
-    if (sortColumn.value === column) { sortAsc.value = !sortAsc.value }
-    else { sortColumn.value = column; sortAsc.value = true }
-  }
-
-  function sortIcon(column: string): string {
-    if (sortColumn.value !== column) return 'sort'
-    return sortAsc.value ? 'sort-up' : 'sort-down'
-  }
+  const {sorted: filteredItems, toggle: toggleSort, icon: sortIcon} = useSortable<InventoryItem, string>({
+    items: matchingItems,
+    initialKey: 'name',
+    comparators: key => byValue(item => columnValue(item, key)),
+  })
 
   function hasActiveFilter(key: string): boolean {
     const multi = columnMultiFilters.value.get(key)

@@ -16,9 +16,10 @@ import Alert from '@/components/feedback/Alert.vue'
 import type { StationMember } from '@/api/types'
 import { StationPermission, StationUserType, parseFieldConfig } from '@/api/types'
 import { useMemberData, memberDisplayName, getMemberFirstName, getMemberLastName } from './listview/useMemberData'
-import { useSavedFilters, emptyTabState, type TabFilterState } from './listview/useSavedFilters'
+import { useSavedFilters, emptyTabState, type MemberSortKey, type TabFilterState } from './listview/useSavedFilters'
 import { useExport, type ExportColumn } from '@/composables/useExport'
 import { useAsyncAction } from '@/composables/useAsyncAction'
+import { byValue, useSortable, type SortDirection } from '@/composables/useSortable'
 import { useMemberFilter } from '@/composables/useMemberFilter'
 import { useSession } from '@/composables/useSession'
 import { stationMembers } from '@/api'
@@ -45,17 +46,30 @@ const tabStates = ref<Record<string, TabFilterState>>({
   MEMBER: emptyTabState(),
   GUARDIAN: emptyTabState(),
   TEAM: emptyTabState(),
+  MANAGER: emptyTabState(),
 })
 
 const currentTabState = computed(() => tabStates.value[activeTab.value] ?? emptyTabState())
+
+/** Mutable state of the active tab. Falls back to a throwaway state for unknown tabs. */
+function activeTabState(): TabFilterState {
+  return tabStates.value[activeTab.value] ?? emptyTabState()
+}
+
 const filterText = computed({
   get: () => currentTabState.value.filterText,
-  set: (v: string) => { tabStates.value[activeTab.value].filterText = v },
+  set: (v: string) => { activeTabState().filterText = v },
 })
 const columnMultiFilters = computed(() => currentTabState.value.columnMultiFilters)
 const columnEmptyFilters = computed(() => currentTabState.value.columnEmptyFilters)
-const sortColumn = computed(() => currentTabState.value.sortColumn)
-const sortAsc = computed(() => currentTabState.value.sortAsc)
+const sortKey = computed<MemberSortKey>({
+  get: () => currentTabState.value.sortKey,
+  set: (v: MemberSortKey) => { activeTabState().sortKey = v },
+})
+const sortDirection = computed<SortDirection>({
+  get: () => currentTabState.value.sortDirection,
+  set: (v: SortDirection) => { activeTabState().sortDirection = v },
+})
 
 const tabs = computed(() => [
   { key: 'ALL', label: t('membersList.tabAll') },
@@ -152,28 +166,20 @@ const filteredMembers = computed(() => {
       return values.length === 0 || values.every(v => !v)
     })
   }
-  return [...list].sort((a, b) => {
-    let valA: string, valB: string
-    if (sortColumn.value === 'name') {
-      valA = memberDisplayName(a).toLowerCase()
-      valB = memberDisplayName(b).toLowerCase()
-    } else {
-      valA = getFieldValueAsString(a.id, sortColumn.value).toLowerCase()
-      valB = getFieldValueAsString(b.id, sortColumn.value).toLowerCase()
-    }
-    const cmp = valA.localeCompare(valB)
-    return sortAsc.value ? cmp : -cmp
-  })
+  return list
 })
 
-function toggleSort(column: 'name' | number) {
-  const state = tabStates.value[activeTab.value]
-  if (state.sortColumn === column) { state.sortAsc = !state.sortAsc }
-  else { state.sortColumn = column; state.sortAsc = true }
-}
+const {sorted: sortedMembers, toggle: toggleSort} = useSortable<StationMember, MemberSortKey>({
+  items: filteredMembers,
+  initialKey: 'name',
+  state: {key: sortKey, direction: sortDirection},
+  comparators: key => key === 'name'
+      ? byValue(memberDisplayName)
+      : byValue(member => getFieldValueAsString(member.id, key)),
+})
 
 function applyColumnFilter(key: 'name' | 'groups' | 'tags' | number, selected: Set<string>, includeEmpty: boolean) {
-  const state = tabStates.value[activeTab.value]
+  const state = activeTabState()
   const newMap = new Map(state.columnMultiFilters)
   if (selected.size > 0) { newMap.set(key, selected) } else { newMap.delete(key) }
   state.columnMultiFilters = newMap
@@ -199,7 +205,7 @@ const {
   toggleExportMode, toggleRow, toggleAllRows, toggleColumn: toggleExportColumn,
   selectColumns, openExportModal, performExport,
 } = useExport({
-  rows: () => filteredMembers.value,
+  rows: () => sortedMembers.value,
   rowId: m => m.id,
   columns: () => exportColumns.value,
   fileName: 'mitglieder',
@@ -272,11 +278,11 @@ onMounted(() => {
       :can-edit="canEdit"
       :groups="allGroups"
       :tags="allTags"
-      :filtered-members="filteredMembers"
+      :members="sortedMembers"
       :visible-columns="visibleColumns"
       :expanded-id="expandedId"
-      :sort-column="sortColumn"
-      :sort-asc="sortAsc"
+      :sort-key="sortKey"
+      :sort-direction="sortDirection"
       :column-multi-filters="columnMultiFilters"
       :column-empty-filters="columnEmptyFilters"
       :member-groups-map="memberGroupsMap"

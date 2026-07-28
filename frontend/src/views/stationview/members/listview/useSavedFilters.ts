@@ -5,19 +5,22 @@
  */
 import { ref, type Ref } from 'vue'
 import { savedFilters as savedFiltersApi } from '@/api'
+import type { SortDirection } from '@/composables/useSortable'
 
 export type FilterKey = 'name' | 'groups' | 'tags' | number
+
+export type MemberSortKey = 'name' | number
 
 export interface TabFilterState {
   filterText: string
   columnMultiFilters: Map<FilterKey, Set<string>>
   columnEmptyFilters: Set<FilterKey>
-  sortColumn: 'name' | number
-  sortAsc: boolean
+  sortKey: MemberSortKey
+  sortDirection: SortDirection
 }
 
 export function emptyTabState(): TabFilterState {
-  return { filterText: '', columnMultiFilters: new Map(), columnEmptyFilters: new Set(), sortColumn: 'name', sortAsc: true }
+  return { filterText: '', columnMultiFilters: new Map(), columnEmptyFilters: new Set(), sortKey: 'name', sortDirection: 'asc' }
 }
 
 export interface SavedFilterPreset {

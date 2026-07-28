@@ -1531,6 +1531,7 @@ export default {
     },
     tableFilter: {
         by: 'Filtern: {column}',
+        sortBy: 'Sortieren: {column}',
         selectAll: 'Alle',
         selectNone: 'Keine',
         empty: 'Kein Wert (leer)',
