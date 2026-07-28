@@ -48,7 +48,7 @@ function togglePartner(id: number, checked: boolean) {
     <template v-if="shared && !disabled">
       <div class="space-y-1">
         <FieldLabel>{{ t('federationShare.scope') }}</FieldLabel>
-        <SelectInput :model-value="scope" @update:model-value="scope = $event ?? 'ALL_PARTNERS'">
+        <SelectInput :model-value="scope" @update:model-value="scope = String($event ?? 'ALL_PARTNERS')">
           <option value="ALL_PARTNERS">{{ t('federationShare.scopeAll') }}</option>
           <option value="SPECIFIC_PARTNERS">{{ t('federationShare.scopeSpecific') }}</option>
         </SelectInput>

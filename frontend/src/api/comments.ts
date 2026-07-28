@@ -6,6 +6,7 @@
 import client from './client'
 import { createCrudResource, createScopedCrudResource } from './crud'
 import type { MemberIdentity } from './types'
+import { apiErrorStatus } from '@/util/apiError'
 
 export interface Comment {
     id: number
@@ -107,8 +108,8 @@ export async function getNote(entityType: string, entityId: number): Promise<Ent
     try {
         const res = await client.get<EntityNote>(`/notes/${entityType}/${entityId}`)
         return res.data
-    } catch (e: any) {
-        if (e?.response?.status === 404) return null
+    } catch (e) {
+        if (apiErrorStatus(e) === 404) return null
         throw e
     }
 }

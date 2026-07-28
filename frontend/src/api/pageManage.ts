@@ -410,6 +410,8 @@ export interface StationPage {
     sortOrder: number
     metaDescription: string | null
     ogImageId: number | null
+    /** Content hash of the social preview image. Page files are served by hash, not by id. */
+    ogImageHash: string | null
     createdBy: number
     createdAt: string
     updatedAt: string

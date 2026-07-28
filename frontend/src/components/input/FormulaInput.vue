@@ -69,9 +69,10 @@ function onKeydown(event: KeyboardEvent) {
     event.preventDefault()
     selectedIndex.value = Math.max(selectedIndex.value - 1, 0)
   } else if (event.key === 'Enter' || event.key === 'Tab') {
-    if (filteredSuggestions.value.length > 0) {
+    const suggestion = filteredSuggestions.value[selectedIndex.value]
+    if (suggestion) {
       event.preventDefault()
-      applySuggestion(filteredSuggestions.value[selectedIndex.value])
+      applySuggestion(suggestion)
     }
   } else if (event.key === 'Escape') {
     showSuggestions.value = false

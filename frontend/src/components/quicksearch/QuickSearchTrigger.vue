@@ -7,13 +7,14 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
+import type {QuickSearchScope} from '@/composables/useQuickSearch'
 
 const props = defineProps<{
-  scope?: string
+  scope?: QuickSearchScope
 }>()
 
 const emit = defineEmits<{
-  open: [scope: string]
+  open: [scope: QuickSearchScope]
 }>()
 
 const {t} = useI18n()

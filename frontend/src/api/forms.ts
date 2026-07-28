@@ -315,6 +315,7 @@ export async function updateForMember(formId: number, memberId: number, data: Fo
  * - {@code /pages/polls/forms/...} — page editors viewing a POLL form embedded in a POLL_EMBED
  *   cell (gated by PAGE_EDIT, with a server-side purpose check). CONTACT forms intentionally
  *   have no analytics surface; their submissions are read individually as messages.
+ * - {@code /pages/forms/...} — page editors reading the individual submissions of a CONTACT form.
  *
  * Picking the right surface keeps the permission model honest: a user with PAGE_EDIT but no
  * POLL_VIEW_RESULTS can still see analytics for the polls they actually embedded on a page.
@@ -322,6 +323,7 @@ export async function updateForMember(formId: number, memberId: number, data: Fo
 export const FormAnalyticsBase = {
     FORMS: '/forms',
     PAGE_POLLS: '/pages/polls/forms',
+    PAGE_FORMS: '/pages/forms',
 } as const
 export type FormAnalyticsBaseName = (typeof FormAnalyticsBase)[keyof typeof FormAnalyticsBase]
 

@@ -19,9 +19,10 @@ export function relativeLuminance(r: number, g: number, b: number): number {
  */
 export function parseRgbString(css: string): [number, number, number] | null {
     const match = css.match(/[\d.]+/g)
-    if (!match || match.length < 3) return null
-    const [r, g, b] = match.map(Number)
-    return [r, g, b]
+    if (!match) return null
+    const [r, g, b] = match
+    if (r === undefined || g === undefined || b === undefined) return null
+    return [Number(r), Number(g), Number(b)]
 }
 
 /**
@@ -31,21 +32,10 @@ export function parseRgbString(css: string): [number, number, number] | null {
 export function parseHexColor(hex: string): [number, number, number] | null {
     if (!hex) return null
     const clean = hex.trim().replace(/^#/, '')
-    if (clean.length === 3) {
-        const r = parseInt(clean[0] + clean[0], 16)
-        const g = parseInt(clean[1] + clean[1], 16)
-        const b = parseInt(clean[2] + clean[2], 16)
-        if ([r, g, b].some(isNaN)) return null
-        return [r, g, b]
-    }
-    if (clean.length === 6) {
-        const r = parseInt(clean.slice(0, 2), 16)
-        const g = parseInt(clean.slice(2, 4), 16)
-        const b = parseInt(clean.slice(4, 6), 16)
-        if ([r, g, b].some(isNaN)) return null
-        return [r, g, b]
-    }
-    return null
+    const expanded = clean.length === 3 ? clean.replace(/./g, channel => channel + channel) : clean
+    if (!/^[\da-f]{6}$/i.test(expanded)) return null
+    const value = parseInt(expanded, 16)
+    return [(value >> 16) & 0xff, (value >> 8) & 0xff, value & 0xff]
 }
 
 /**

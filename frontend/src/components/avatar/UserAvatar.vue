@@ -30,8 +30,9 @@ const sizeClasses = computed(() => {
 const initials = computed(() => {
   if (!props.name) return '?'
   const parts = props.name.trim().split(/\s+/)
-  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-  return parts[0][0]?.toUpperCase() ?? '?'
+  const first = parts[0]?.[0] ?? ''
+  const last = parts.length >= 2 ? (parts[parts.length - 1]?.[0] ?? '') : ''
+  return (first + last).toUpperCase() || '?'
 })
 
 function resolveUrl(): string | null {

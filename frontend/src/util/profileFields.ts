@@ -30,7 +30,7 @@ export function setFieldValue(values: Ref<Map<number, string>>, fieldId: number,
  */
 export interface ProfileFieldValueEntry {
     fieldId: number
-    value: string | null | undefined
+    value?: string | null
 }
 
 /**

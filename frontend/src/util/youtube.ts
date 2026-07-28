@@ -16,8 +16,8 @@ export function extractYoutubeId(url: string): string | null {
         /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
     ]
     for (const pattern of patterns) {
-        const match = url.match(pattern)
-        if (match) return match[1]
+        const match = url.match(pattern)?.[1]
+        if (match) return match
     }
     return null
 }

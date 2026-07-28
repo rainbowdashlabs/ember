@@ -12,10 +12,10 @@ import client from '@/api/client'
  */
 export function parseContentDispositionFilename(header?: string | null): string | null {
     if (!header) return null
-    const extended = header.match(/filename\*=(?:UTF-8'')?([^;]+)/i)
-    if (extended) return decodeURIComponent(extended[1].trim().replace(/^"|"$/g, ''))
-    const plain = header.match(/filename="?([^";]+)"?/i)
-    return plain ? plain[1].trim() : null
+    const extended = header.match(/filename\*=(?:UTF-8'')?([^;]+)/i)?.[1]
+    if (extended) return decodeURIComponent(extended.trim().replace(/^"|"$/g, ''))
+    const plain = header.match(/filename="?([^";]+)"?/i)?.[1]
+    return plain ? plain.trim() : null
 }
 
 /**

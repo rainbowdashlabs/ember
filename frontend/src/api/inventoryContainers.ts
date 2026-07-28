@@ -200,8 +200,8 @@ export interface CompleteContainerCheckRequest {
 export async function listExpectedItemsInContainer(
     containerId: number,
     deep: boolean,
-): Promise<import('./types').InventoryItem[]> {
-    const res = await client.get<import('./types').InventoryItem[]>(
+): Promise<InventoryItem[]> {
+    const res = await client.get<InventoryItem[]>(
         `/inventory-checks/container/${containerId}/expected`,
         {params: {deep}},
     )

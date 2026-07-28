@@ -55,8 +55,20 @@ export interface KbFileVersion {
     createdAt: string
 }
 
+/**
+ * The file facts a federated listing carries. Partner stations only publish the
+ * identity, the name and the description; the remaining metadata stays on the
+ * owning station, so everything past those three is optional.
+ */
+export interface SharedKbFile {
+    id: number
+    name: string
+    description: string
+    fileType?: string
+}
+
 export interface SharedFileEntry {
-    file: KbFile
+    file: SharedKbFile
     stationName: string
     sourceStationId: string
 }

@@ -54,7 +54,7 @@ const hasVisibleChildren = computed(() => {
 })
 
 const localExpanded = ref(isActive.value)
-const key = computed(() => props.groupKey ?? (Array.isArray(props.prefix) ? props.prefix[0] : props.prefix))
+const key = computed(() => props.groupKey ?? (Array.isArray(props.prefix) ? props.prefix[0] ?? '' : props.prefix))
 const accordionMode = computed(() => props.openGroup !== undefined)
 
 const expanded = computed(() => {

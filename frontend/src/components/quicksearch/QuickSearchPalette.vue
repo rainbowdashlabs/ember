@@ -197,7 +197,7 @@ function activateResult(result: PaletteResult) {
 
 function indexOfItem(sectionIdx: number, itemIdx: number): number {
     let count = 0
-    for (let i = 0; i < sectionIdx; i++) count += sections.value[i].items.length
+    for (let i = 0; i < sectionIdx; i++) count += sections.value[i]?.items.length ?? 0
     return count + itemIdx
 }
 

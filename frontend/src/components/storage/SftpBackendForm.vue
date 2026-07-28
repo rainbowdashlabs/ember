@@ -78,7 +78,7 @@ watch(authMode, (next) => {
         </div>
         <div v-else class="space-y-1 sm:col-span-2">
             <FieldLabel>{{ t('stationStorageBackend.form.sftp.privateKey') }}</FieldLabel>
-            <TextAreaInput v-model="model.privateKey" rows="6" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----" />
+            <TextAreaInput v-model="model.privateKey" :rows="6" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----" />
             <MutedText tag="p" size="xs">{{ t('stationStorageBackend.form.sftp.privateKeyHint') }}</MutedText>
         </div>
     </div>

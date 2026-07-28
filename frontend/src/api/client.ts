@@ -15,9 +15,10 @@ import {getItem, removeItem, setItem} from './storage'
 import {showToast} from '@/util/toast'
 import {reportApiError} from '@/util/devErrorReporter'
 import {requestStepUp, type StepUpCategory} from '@/util/stepUp'
+import type {ApiErrorBody} from '@/util/apiError'
 
 // -- Request history for problem reports --
-interface RequestHistoryEntry {
+export interface RequestHistoryEntry {
     method: string
     url: string
     status: number | null
@@ -118,7 +119,7 @@ client.interceptors.response.use(
             )
         }
         if (error.response?.status === 401) {
-            const body: any = error.response?.data
+            const body = error.response?.data as ApiErrorBody | undefined
             const isStepUp = body?.error === 'step_up_required'
                 || error.response?.headers?.['x-stepup-required'] != null
             if (isStepUp && config && !config._stepUpRetried) {

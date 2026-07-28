@@ -41,7 +41,7 @@ function setBool(val: boolean) {
   </template>
   <template v-else-if="fieldType === 'ENUM'">
     <SelectInput :disabled="disabled" :model-value="modelValue"
-                 @update:model-value="modelValue = $event ?? ''">
+                 @update:model-value="modelValue = String($event ?? '')">
       <option value="">—</option>
       <option v-for="opt in options ?? []" :key="opt" :value="opt">{{ opt }}</option>
     </SelectInput>

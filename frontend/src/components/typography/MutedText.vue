@@ -10,7 +10,7 @@
  */
 withDefaults(defineProps<{
   size?: 'xs' | 'sm' | 'base'
-  tag?: 'span' | 'p' | 'div'
+  tag?: 'span' | 'p' | 'div' | 'label'
 }>(), {
   size: 'xs',
   tag: 'span',

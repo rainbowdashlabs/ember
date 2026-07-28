@@ -177,6 +177,8 @@ export interface SessionInfo {
     disabledModules?: string[]
     theme?: ThemeSessionInfo
     publicKbMode?: string
+    /** ISO timestamp at which the station setup wizard was finished, or null while it still applies. */
+    setupCompletedAt?: string | null
 }
 
 export interface ThemeSessionInfo {

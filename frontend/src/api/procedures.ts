@@ -67,13 +67,13 @@ export interface ProcedureItem {
 export interface TemplateDetail {
     template: ProcedureTemplate
     items: ProcedureTemplateItem[]
-    dependencies: number[][]
+    dependencies: [number, number][]
 }
 
 export interface ProcedureDetail {
     procedure: Procedure
     items: ProcedureItem[]
-    dependencies: number[][]
+    dependencies: [number, number][]
     assigneeIds: number[]
     assignees: MemberIdentity[]
 }
@@ -94,8 +94,8 @@ interface TemplateItemUpdateRequest extends TemplateItemRequest {
     position?: number
 }
 
-interface ProcedureRequest {
-    name: string
+export interface ProcedureRequest {
+    name?: string
     description?: string
     templateId?: number
     dueAt?: string
@@ -115,6 +115,7 @@ interface ProcedureItemRequest {
     description?: string
     isPublic?: boolean
     userAssigned?: boolean
+    position?: number
 }
 
 interface ProcedureItemUpdateRequest {

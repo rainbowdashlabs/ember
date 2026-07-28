@@ -63,7 +63,7 @@ const helpRoute = computed(() => {
   if (routeExists(autoName)) return {name: autoName}
 
   // 3. Fall back to module overview based on route name prefix
-  const prefix = name.split('-')[0]
+  const prefix = name.split('-')[0] ?? ''
   if (MODULE_FALLBACKS[prefix]) return {name: MODULE_FALLBACKS[prefix]}
 
   // 4. Default

@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import {apiErrorStatus} from '@/util/apiError'
 
 export interface FeedTokenResponse {
     token: string
@@ -22,8 +23,8 @@ export async function getFeedToken(): Promise<FeedTokenResponse | null> {
     try {
         const res = await client.get<FeedTokenResponse>('/feed/token')
         return res.data
-    } catch (e: any) {
-        if (e?.response?.status === 404) return null
+    } catch (e) {
+        if (apiErrorStatus(e) === 404) return null
         throw e
     }
 }

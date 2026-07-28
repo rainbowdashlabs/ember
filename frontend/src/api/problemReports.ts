@@ -21,7 +21,16 @@ export interface ProblemReport {
     createdAt: string
 }
 
-export async function submitReport(message: string, sessionInfo: any): Promise<ProblemReport> {
+/** The session facts a problem report records about its reporter. */
+export interface ReportSessionContext {
+    userType?: string
+    permissions?: readonly string[]
+}
+
+export async function submitReport(
+    message: string,
+    sessionInfo: ReportSessionContext | null | undefined,
+): Promise<ProblemReport> {
     const roles = [sessionInfo?.userType, ...(sessionInfo?.permissions ?? [])].filter(Boolean).join(', ')
     const res = await client.post<ProblemReport>('/problem-reports', {
         message,

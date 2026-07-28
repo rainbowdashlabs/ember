@@ -61,9 +61,10 @@ export function downloadExport<T>(
     fileName: string,
     format: ExportFormatName = 'csv',
 ): void {
-    const asValues = format === 'values' && columns.length === 1
+    const [singleColumn] = columns
+    const asValues = format === 'values' && columns.length === 1 && singleColumn !== undefined
     const content = asValues
-        ? rows.map(row => cellValue(row, columns[0])).filter(v => v).join('; ')
+        ? rows.map(row => cellValue(row, singleColumn)).filter(v => v).join('; ')
         : buildCsv(rows, columns)
     const type = asValues ? 'text/plain;charset=utf-8' : 'text/csv;charset=utf-8'
     saveBlob(new Blob([content], {type}), `${fileName}.${asValues ? 'txt' : 'csv'}`)

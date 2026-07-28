@@ -93,13 +93,13 @@ function resolveMentions(text: string): MentionPart[] {
     if (match.index > last) {
       parts.push({type: 'text', value: text.substring(last, match.index)})
     }
-    const inner = match[1]
+    const inner = match[1] ?? ''
     const colonIdx = inner.indexOf(':')
     const slashIdx = inner.indexOf('/')
     // Bulk mention: type:name:id (e.g. group:Vorstand:5)
-    const bulkMatch = inner.match(/^(GROUP|EVENT|REGISTERED|DECLINED):([^:]+):\d+$/)
-    if (bulkMatch) {
-      parts.push({type: 'mention', name: bulkMatch[2], bulk: true})
+    const bulkName = inner.match(/^(GROUP|EVENT|REGISTERED|DECLINED):([^:]+):\d+$/)?.[2]
+    if (bulkName) {
+      parts.push({type: 'mention', name: bulkName, bulk: true})
     } else if (slashIdx >= 0 && colonIdx > slashIdx) {
       const memberUid = inner.substring(slashIdx + 1, colonIdx)
       const fallback = inner.substring(colonIdx + 1)

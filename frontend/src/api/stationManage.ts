@@ -26,6 +26,8 @@ export interface StationManageInfo {
     discoveryShowKb?: boolean
     publicCalendarEnabled?: boolean
     publicPagesEnabled?: boolean
+    publicWaitlistEnabled?: boolean
+    publicBlogEnabled?: boolean
     publicSlug?: string | null
 }
 
@@ -44,6 +46,8 @@ export interface UpdateStationNameRequest {
     discoveryShowKb?: boolean
     publicCalendarEnabled?: boolean
     publicPagesEnabled?: boolean
+    publicWaitlistEnabled?: boolean
+    publicBlogEnabled?: boolean
     publicSlug?: string | null
 }
 
