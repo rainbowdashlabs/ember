@@ -16,14 +16,12 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbSearchResult;
 import dev.chojo.ember.feature.knowledgebase.entity.KbTag;
 import dev.chojo.ember.feature.restriction.RestrictionSql;
 import dev.chojo.ember.feature.restriction.RestrictionType;
+import dev.chojo.ember.util.sql.FullTextSearch;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -58,30 +56,9 @@ public class KnowledgeBaseRepository {
     private static final String RESTRICTION_COLUMNS = "id, folder_id, file_id, user_type, group_id, tag_id, member_id";
     private static final String TAG_COLUMNS = "id, station_id, name";
     private static final String TAG_COLUMNS_ALIASED = SqlSupport.alias("t", TAG_COLUMNS);
-
-    // -- Folders --
-    private static final Set<String> VALID_TS_CONFIGS =
-            Set.of("simple", "german", "english", "french", "spanish", "italian", "dutch", "portuguese", "russian");
-
-    /**
-     * Build a tsquery that supports prefix matching.
-     * Each word gets :* appended so "Notr" matches "Notruf".
-     * Multiple words are combined with &amp; (AND).
-     */
-    private static String buildPrefixTsQuery(String cfg) {
-        return "to_tsquery('%s', :tsquery)".formatted(cfg);
-    }
-
-    private static String preparePrefixQuery(String query) {
-        return Arrays.stream(query.trim().split("\\s+"))
-                .filter(w -> !w.isBlank())
-                .map(w -> w.replaceAll("[^\\w\\p{L}]", "") + ":*")
-                .collect(Collectors.joining(" & "));
-    }
-
-    private static String sanitizeTsConfig(String config) {
-        return VALID_TS_CONFIGS.contains(config) ? config : "simple";
-    }
+    private static final String SNIPPET_SOURCE =
+            "COALESCE(fc.text_content, f.name || ' ' || COALESCE(f.description, ''))";
+    private static final String SNIPPET_OPTIONS = "MaxWords=30, MinWords=10, StartSel=<mark>, StopSel=</mark>";
 
     public List<KbFolder> findFolders(int stationId, Integer parentId) {
         if (parentId == null) {
@@ -340,22 +317,20 @@ public class KnowledgeBaseRepository {
     }
 
     public void updateSearchIndex(int fileId, String plainText, String tsConfig) {
-        String config = sanitizeTsConfig(tsConfig);
         query("""
                 INSERT
                 INTO
                     kb_search_index(file_id, search_text)
                 VALUES
-                    (:file_id, to_tsvector('%s', :text))
+                    (:file_id, %s)
                 ON CONFLICT (file_id) DO UPDATE SET
-                    search_text = excluded.search_text;""", config)
+                    search_text = excluded.search_text;""", FullTextSearch.vector(tsConfig, "text"))
                 .single(call().bind("file_id", fileId).bind("text", plainText))
                 .insert();
     }
 
     public List<KbFile> search(int stationId, String query, String tsConfig) {
-        String cfg = sanitizeTsConfig(tsConfig);
-        String tsq = buildPrefixTsQuery(cfg);
+        String tsq = FullTextSearch.prefixQuery(tsConfig, "tsquery");
         return query("""
                 SELECT
                     %s, %s
@@ -367,22 +342,19 @@ public class KnowledgeBaseRepository {
                   AND si.search_text @@ %s
                 ORDER BY ts_rank(si.search_text, %s) DESC
                 LIMIT 50;""", FILE_COLUMNS, FILE_RESTRICTED, tsq, tsq)
-                .single(call().bind("station_id", stationId).bind("tsquery", preparePrefixQuery(query)))
+                .single(call().bind("station_id", stationId).bind("tsquery", FullTextSearch.prefixTerms(query)))
                 .map(KbFile.map())
                 .all();
     }
 
     public List<KbSearchResult> searchWithSnippets(int stationId, String query, String tsConfig) {
-        String cfg = sanitizeTsConfig(tsConfig);
-        String tsq = buildPrefixTsQuery(cfg);
-        // Strip markdown/HTML from text_content before generating headline snippet
-        // strip HTML tags
-        String cleanText = """
-                regexp_replace(regexp_replace(COALESCE(fc.text_content, f.name || ' ' || COALESCE(f.description, '')), '<[^>]+>', ' ', 'g'), '[#*_~`>\\[\\]()!|]', '', 'g')"""; //
+        String tsq = FullTextSearch.prefixQuery(tsConfig, "tsquery");
+        String snippet =
+                FullTextSearch.headline(tsConfig, FullTextSearch.stripMarkup(SNIPPET_SOURCE), tsq, SNIPPET_OPTIONS);
         return query("""
                 SELECT
                     %s, %s,
-                    ts_headline('%s', %s, %s, 'MaxWords=30, MinWords=10, StartSel=<mark>, StopSel=</mark>') AS snippet
+                    %s AS snippet
                 FROM
                     kb_file f
                         JOIN kb_search_index si
@@ -392,8 +364,8 @@ public class KnowledgeBaseRepository {
                 WHERE f.station_id = :station_id
                   AND si.search_text @@ %s
                 ORDER BY ts_rank(si.search_text, %s) DESC
-                LIMIT 50;""", FILE_COLUMNS, FILE_RESTRICTED, cfg, cleanText, tsq, tsq, tsq)
-                .single(call().bind("station_id", stationId).bind("tsquery", preparePrefixQuery(query)))
+                LIMIT 50;""", FILE_COLUMNS, FILE_RESTRICTED, snippet, tsq, tsq)
+                .single(call().bind("station_id", stationId).bind("tsquery", FullTextSearch.prefixTerms(query)))
                 .map(row -> new KbSearchResult(KbFile.map().map(row), row.getString("snippet")))
                 .all();
     }

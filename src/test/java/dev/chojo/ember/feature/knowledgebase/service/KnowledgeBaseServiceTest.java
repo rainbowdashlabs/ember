@@ -6,22 +6,10 @@
 package dev.chojo.ember.feature.knowledgebase.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
-import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.events.repository.EventFederationRepository;
-import dev.chojo.ember.feature.federation.entity.CapabilityType;
-import dev.chojo.ember.feature.federation.entity.Direction;
-import dev.chojo.ember.feature.federation.entity.ShareScope;
-import dev.chojo.ember.feature.federation.repository.FederationRepository;
-import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
-import dev.chojo.ember.feature.federation.service.FederationFanout;
-import dev.chojo.ember.feature.federation.service.FederationHttpClient;
-import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.entity.ConversionStatus;
-import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
-import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
@@ -40,7 +28,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -55,74 +42,34 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     private static StationMember member;
     private static int folderId;
     private static int fileId;
-    private static FederationRepository federationRepo;
-    private static FederationService federationService;
-    private static Station stationB;
-    private static FederationHttpClient httpClient;
     private static KbFileStorageService fileStorage;
-    private static Station stationC;
 
     @BeforeAll
     static void setup() {
         fileStorage = mock(KbFileStorageService.class);
-        federationRepo = new FederationRepository();
-        federationService = new FederationService(federationRepo, stationRepo, new Api());
-        httpClient = mock(FederationHttpClient.class);
-        var kbCommentRepo = mock(KbCommentRepository.class);
-        var eventFedRepo = mock(EventFederationRepository.class);
         var storageConfig = new Storage();
         service = new KnowledgeBaseService(
                 knowledgeBaseRepo,
                 stationRepo,
+                stationMemberRepo,
+                accountRepo,
+                memberGroupRepo,
+                userTagRepo,
                 fileStorage,
-                federationService,
-                federationRepo,
-                httpClient,
-                kbCommentRepo,
-                eventFedRepo,
+                mock(KbCommentRepository.class),
                 memberIdentityFactory,
                 mock(DomainEventBus.class),
                 mock(StationMemberService.class),
                 new PresentationCompressor(storageConfig),
-                new PdfCompressor(storageConfig),
-                new FederationFanout(),
-                new FederationEntityResolver(federationRepo, stationRepo, httpClient));
+                new PdfCompressor(storageConfig));
         station = stationRepo.create("KbSvcStation");
-        stationB = stationRepo.create("KbSvcStationB");
         account = accountRepo.create("kb-svc@test.com", "Kb", "SvcTester");
         member = stationMemberRepo.create(station.id(), account.id());
-
-        // Create bidirectional federation partnership
-        var keyPair = federationService.generateKeyPair();
-        var partner = federationService.acceptInvite(
-                station.id(), stationB.id(), federationService.encodePublicKey(keyPair), null, null);
-        int partnerIdAtoB = partner.id();
-
-        // Enable KB_SHARE capability
-        federationService.setCapability(partnerIdAtoB, CapabilityType.KB_SHARE, Direction.IMPORT, true);
-
-        // Create remote partner station
-        stationC = stationRepo.create("KbSvcStationC");
-        var keyPairRemote = federationService.generateKeyPair();
-        var remotePartner = federationService.acceptInvite(
-                station.id(),
-                stationC.id(),
-                federationService.encodePublicKey(keyPairRemote),
-                "https://remote-kb.example.com",
-                null);
-        int remotePartnerId = remotePartner.id();
-        federationService.setCapability(remotePartnerId, CapabilityType.KB_SHARE, Direction.IMPORT, true);
     }
 
     @AfterAll
     static void cleanup() {
-        // Delete federation partners before stations (FK constraint)
-        for (var p : federationService.findPartners(station.id())) federationRepo.deletePartner(p.id());
-        for (var p : federationService.findPartners(stationB.id())) federationRepo.deletePartner(p.id());
-        for (var p : federationService.findPartners(stationC.id())) federationRepo.deletePartner(p.id());
         stationRepo.delete(station.id());
-        stationRepo.delete(stationB.id());
-        stationRepo.delete(stationC.id());
         accountRepo.delete(account.id());
     }
 
@@ -1069,202 +1016,51 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         assertTrue(service.deleteFolder(folderId));
     }
 
-    // -- Federation Tests --
-
     @Test
-    @Order(200)
-    void browseSharedKbWithShare() {
-        var file = knowledgeBaseRepo.createFile(
-                stationB.id(), null, "FedFile", "desc", KbFileType.MARKDOWN, "text/markdown", 0, null, member.id());
-        var share = federationRepo.createKbShare(stationB.id(), file.id(), null, ShareScope.ALL_PARTNERS);
-        var items = service.browseSharedKb(station.id());
-        assertTrue(items.stream().anyMatch(i -> i.file().id() == file.id()));
-        federationRepo.deleteKbShare(share.id(), stationB.id());
-        knowledgeBaseRepo.deleteFile(file.id());
+    @Order(160)
+    void resolveMemberNameFallsBackToAccountName() {
+        assertEquals(account.fullName(), service.resolveMemberName(member.id()));
     }
 
     @Test
-    @Order(201)
-    void browseSharedKbEmptyNoShares() {
-        var items = service.browseSharedKb(station.id());
-        assertTrue(items.isEmpty());
+    @Order(161)
+    void resolveMemberNameForUnknownMember() {
+        assertEquals("Unbekannt", service.resolveMemberName(999999));
     }
 
     @Test
-    @Order(202)
-    void getFederatedKbFileLocal() {
-        var file = knowledgeBaseRepo.createFile(
-                stationB.id(), null, "FedFile2", "desc2", KbFileType.MARKDOWN, "text/markdown", 0, null, member.id());
-        var result = service.getFederatedKbFile(station.id(), stationB.uid(), file.id());
-        assertNotNull(result);
-        assertEquals(file.id(), result.id());
-        knowledgeBaseRepo.deleteFile(file.id());
+    @Order(162)
+    void memberAccessReadsGroupsAndTags() {
+        var group = memberGroupRepo.create(station.id(), "KbAccessGroup");
+        var tag = userTagRepo.create(station.id(), "KbAccessTag");
+        memberGroupRepo.addMember(group.id(), member.id());
+        userTagRepo.addMember(tag.id(), member.id());
+
+        var access = service.memberAccess(member.id(), StationUserType.MEMBER);
+        assertEquals(member.id(), access.memberId());
+        assertEquals(StationUserType.MEMBER, access.userType());
+        assertTrue(access.groupIds().contains(group.id()));
+        assertTrue(access.tagIds().contains(tag.id()));
+
+        userTagRepo.removeMember(tag.id(), member.id());
+        memberGroupRepo.removeMember(group.id(), member.id());
+        memberGroupRepo.delete(group.id());
+        userTagRepo.delete(tag.id());
     }
 
     @Test
-    @Order(202)
-    void getFederatedKbFileContentLocal() {
-        var file = knowledgeBaseRepo.createFile(
-                stationB.id(), null, "FedMdFile", "desc", KbFileType.MARKDOWN, "text/markdown", 0, null, member.id());
-        knowledgeBaseRepo.storeTextContent(file.id(), "# Content");
-        var content = service.getFederatedKbFileContent(station.id(), stationB.uid(), file.id());
-        assertNotNull(content);
-        assertTrue(content.contains("Content"));
-        knowledgeBaseRepo.deleteFile(file.id());
-    }
-
-    @Test
-    @Order(203)
-    void getFederatedKbFileWrongStation() {
-        var file = knowledgeBaseRepo.createFile(
-                station.id(), null, "LocalFile", "local", KbFileType.MARKDOWN, "text/markdown", 0, null, member.id());
-
-        // Partner may or may not exist due to cross-test interference;
-        // either way the call must reject access (wrong ownership or unknown partner).
-        assertThrows(Exception.class, () -> service.getFederatedKbFile(station.id(), stationB.uid(), file.id()));
-
-        knowledgeBaseRepo.deleteFile(file.id());
-    }
-
-    @Test
-    @Order(205)
-    void copyKbFile() {
-        var file = knowledgeBaseRepo.createFile(
-                stationB.id(),
+    @Order(163)
+    void canAccessWithAccessContext() {
+        var file = service.createMarkdownFile(station.id(), null, "CtxFile", "", "# Ctx", member.id());
+        service.setRestrictions(
                 null,
-                "CopySource",
-                "copy desc",
-                KbFileType.MARKDOWN,
-                "text/markdown",
-                0,
-                null,
-                member.id());
-        knowledgeBaseRepo.storeTextContent(file.id(), "# Copy Me");
+                file.id(),
+                new RestrictionSelection(List.of(StationUserType.MEMBER), List.of(), List.of(), List.of(), null));
 
-        var copied = service.copyKbFile(file.id(), station.id(), member.id());
-        assertNotNull(copied);
-        assertEquals("CopySource", copied.name());
-        assertEquals(station.id(), copied.stationId());
-        assertNotEquals(file.id(), copied.id());
+        assertFalse(service.canAccess(service.memberAccess(member.id(), null), null, file.id()));
+        assertTrue(service.canAccess(service.memberAccess(member.id(), StationUserType.MEMBER), null, file.id()));
 
-        var content = service.getMarkdownContent(copied.id());
-        assertTrue(content.isPresent());
-        assertTrue(content.get().contains("Copy Me"));
-
-        knowledgeBaseRepo.deleteFile(copied.id());
-        knowledgeBaseRepo.deleteFile(file.id());
-    }
-
-    @Test
-    @Order(206)
-    void sharedKbItemRecord() {
-        var summary = new KbFileSummary(1, 2, null, "Test", "Desc", KbFileType.MARKDOWN, Instant.now(), false);
-        var item = new KnowledgeBaseService.SharedKbItem(summary, 2, 3);
-        assertEquals(1, item.file().id());
-        assertEquals(2, item.sourceStationId());
-        assertEquals(3, item.partnerId());
-        assertEquals("Test", item.file().name());
-    }
-
-    @Test
-    @Order(207)
-    void federatedSearchResultRecord() {
-        var summary = new KbFileSummary(10, 20, null, "Search", "Desc", KbFileType.MARKDOWN, Instant.now(), false);
-        var result = new KnowledgeBaseService.FederatedSearchResult(summary, "snippet text", "StationName", "uid-123");
-        assertEquals(10, result.file().id());
-        assertEquals("snippet text", result.snippet());
-        assertEquals("StationName", result.stationName());
-        assertEquals("uid-123", result.stationUid());
-    }
-
-    // -- Remote HTTP Federation Tests --
-
-    @Test
-    @Order(210)
-    void browseSharedKbViaHttp() {
-        when(httpClient.getList(
-                        eq("https://remote-kb.example.com"),
-                        eq("/remote/kb/browse"),
-                        any(),
-                        eq(station.id()),
-                        any(),
-                        eq(KnowledgeBaseService.RemoteKbFile.class)))
-                .thenReturn(
-                        List.of(new KnowledgeBaseService.RemoteKbFile(99, "RemoteFile", "remote desc", "MARKDOWN")));
-
-        var items = service.browseSharedKb(station.id());
-        assertTrue(items.stream().anyMatch(i -> i.file().name().equals("RemoteFile")));
-    }
-
-    @Test
-    @Order(211)
-    void searchFederatedKbViaHttp() {
-        when(httpClient.getList(
-                        eq("https://remote-kb.example.com"),
-                        contains("/remote/kb/search"),
-                        any(),
-                        eq(station.id()),
-                        any(),
-                        eq(KnowledgeBaseService.RemoteKbSearchResult.class)))
-                .thenReturn(List.of(new KnowledgeBaseService.RemoteKbSearchResult(
-                        88, "SearchResult", "found desc", "matched snippet")));
-
-        var results = service.searchFederatedKb(station.id(), "test");
-        assertTrue(results.stream().anyMatch(r -> r.file().name().equals("SearchResult")));
-        assertTrue(results.stream().anyMatch(r -> r.snippet().equals("matched snippet")));
-    }
-
-    @Test
-    @Order(212)
-    void getFederatedKbFileRemote() {
-        var remoteFile = new KbFile(
-                77,
-                1,
-                null,
-                "RemoteDetail",
-                "desc",
-                KbFileType.MARKDOWN,
-                "text/markdown",
-                0,
-                null,
-                null,
-                null,
-                0,
-                1,
-                Instant.parse("2026-01-01T00:00:00Z"),
-                Instant.parse("2026-01-01T00:00:00Z"),
-                null,
-                null,
-                null,
-                false,
-                null);
-        when(httpClient.get(
-                        eq("https://remote-kb.example.com"),
-                        eq("/remote/kb/files/77"),
-                        any(),
-                        eq(station.id()),
-                        any(),
-                        any()))
-                .thenReturn(remoteFile);
-
-        var file = service.getFederatedKbFile(station.id(), stationC.uid(), 77);
-        assertNotNull(file);
-        assertEquals("RemoteDetail", file.name());
-    }
-
-    @Test
-    @Order(213)
-    void getFederatedKbFileContentRemote() {
-        when(httpClient.get(
-                        eq("https://remote-kb.example.com"),
-                        eq("/remote/kb/file/55/content"),
-                        any(),
-                        eq(station.id()),
-                        any(),
-                        eq(KnowledgeBaseService.RemoteKbContent.class)))
-                .thenReturn(new KnowledgeBaseService.RemoteKbContent(55, "# Remote Content"));
-
-        var content = service.getFederatedKbFileContent(station.id(), stationC.uid(), 55);
-        assertEquals("# Remote Content", content);
+        service.setRestrictions(null, file.id(), RestrictionSelection.empty());
+        service.deleteFile(file.id());
     }
 }

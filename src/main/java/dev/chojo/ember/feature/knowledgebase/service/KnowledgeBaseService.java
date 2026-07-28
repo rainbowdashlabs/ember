@@ -5,30 +5,20 @@
  */
 package dev.chojo.ember.feature.knowledgebase.service;
 
-import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.BulkMentionedInComment;
 import dev.chojo.ember.event.events.CommentCreated;
+import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.event.events.MentionedInComment;
+import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.entity.MentionType;
-import dev.chojo.ember.feature.events.repository.EventFederationRepository;
-import dev.chojo.ember.feature.federation.entity.CapabilityType;
-import dev.chojo.ember.feature.federation.entity.ContentType;
-import dev.chojo.ember.feature.federation.entity.Direction;
-import dev.chojo.ember.feature.federation.entity.FederationPartner;
-import dev.chojo.ember.feature.federation.repository.FederationRepository;
-import dev.chojo.ember.feature.federation.service.FederationDisplayNames;
-import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
-import dev.chojo.ember.feature.federation.service.FederationFanout;
-import dev.chojo.ember.feature.federation.service.FederationHttpClient;
-import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.entity.ConversionStatus;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessRestriction;
 import dev.chojo.ember.feature.knowledgebase.entity.KbComment;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
-import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileVersion;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
@@ -38,20 +28,23 @@ import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.knowledgebase.entity.UrlMetadata;
 import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
+import dev.chojo.ember.feature.members.entity.MemberGroup;
+import dev.chojo.ember.feature.members.entity.UserTag;
+import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.restriction.Restriction;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionSet;
-import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.service.PdfCompressor;
 import dev.chojo.ember.feature.storage.service.PresentationCompressor;
 import dev.chojo.ember.util.HtmlSanitizer;
 import dev.chojo.ember.util.PresentationConverter;
 import dev.chojo.ember.util.TextDiff;
-import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.apache.pdfbox.Loader;
@@ -73,8 +66,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -114,56 +105,48 @@ public class KnowledgeBaseService {
             "application/vnd.oasis.opendocument.presentation");
     private final KnowledgeBaseRepository repository;
     private final StationRepository stationRepository;
+    private final StationMemberRepository stationMemberRepository;
+    private final AccountRepository accountRepository;
+    private final MemberGroupRepository memberGroupRepository;
+    private final UserTagRepository userTagRepository;
     private final KbFileStorageService fileStorage;
-    private final FederationService federationService;
-    private final FederationRepository federationRepository;
-    private final FederationHttpClient federationHttpClient;
     private final KbCommentRepository kbCommentRepository;
-    private final EventFederationRepository eventFederationRepository;
     private final MemberIdentityFactory memberIdentityFactory;
     private final DomainEventBus eventBus;
     private final StationMemberService stationMemberService;
     private final PresentationCompressor officeCompressor;
     private final PdfCompressor pdfCompressor;
-    private final FederationFanout fanout;
-    private final FederationEntityResolver entityResolver;
     private final Parser markdownParser;
     private final HtmlRenderer htmlRenderer;
-
-    // -- Folders --
 
     @Inject
     public KnowledgeBaseService(
             KnowledgeBaseRepository repository,
             StationRepository stationRepository,
+            StationMemberRepository stationMemberRepository,
+            AccountRepository accountRepository,
+            MemberGroupRepository memberGroupRepository,
+            UserTagRepository userTagRepository,
             KbFileStorageService fileStorage,
-            FederationService federationService,
-            FederationRepository federationRepository,
-            FederationHttpClient federationHttpClient,
             KbCommentRepository kbCommentRepository,
-            EventFederationRepository eventFederationRepository,
             MemberIdentityFactory memberIdentityFactory,
             DomainEventBus eventBus,
             StationMemberService stationMemberService,
             PresentationCompressor officeCompressor,
-            PdfCompressor pdfCompressor,
-            FederationFanout fanout,
-            FederationEntityResolver entityResolver) {
+            PdfCompressor pdfCompressor) {
         this.repository = repository;
         this.stationRepository = stationRepository;
+        this.stationMemberRepository = stationMemberRepository;
+        this.accountRepository = accountRepository;
+        this.memberGroupRepository = memberGroupRepository;
+        this.userTagRepository = userTagRepository;
         this.fileStorage = fileStorage;
-        this.federationService = federationService;
-        this.federationRepository = federationRepository;
-        this.federationHttpClient = federationHttpClient;
         this.kbCommentRepository = kbCommentRepository;
-        this.eventFederationRepository = eventFederationRepository;
         this.memberIdentityFactory = memberIdentityFactory;
         this.eventBus = eventBus;
         this.stationMemberService = stationMemberService;
         this.officeCompressor = officeCompressor;
         this.pdfCompressor = pdfCompressor;
-        this.fanout = fanout;
-        this.entityResolver = entityResolver;
         List<Extension> extensions = List.of(
                 TablesExtension.create(),
                 HeadingAnchorExtension.create(),
@@ -689,120 +672,6 @@ public class KnowledgeBaseService {
         return repository.findFolderTags(folderId);
     }
 
-    public List<SharedKbItem> browseSharedKb(int stationId) {
-        return fanout.fanOut(
-                sharedKbPartners(stationId),
-                partner -> browseSharedKbDirect(resolvePartnerStationId(partner), partner),
-                partner -> browseSharedKbViaHttp(stationId, partner, resolvePartnerStationId(partner)));
-    }
-
-    // -- Related Files --
-
-    public List<FederatedSearchResult> searchFederatedKb(int stationId, String query) {
-        return fanout.fanOut(
-                sharedKbPartners(stationId),
-                partner -> searchKbDirect(partner, query),
-                partner -> searchKbViaHttp(stationId, partner, query));
-    }
-
-    /**
-     * Fetches a single KB file from a federated partner, transparently handling local/remote.
-     */
-    public KbFile getFederatedKbFile(int localStationId, UUID partnerStationUid, int fileId) {
-        return entityResolver.resolve(
-                localStationId,
-                partnerStationUid,
-                "/remote/kb/files/" + fileId,
-                KbFile.class,
-                "file",
-                partner -> requirePartnerFile(fileId, partner));
-    }
-
-    // -- Favourites --
-
-    /**
-     * Fetches KB file content from a federated partner, transparently handling local/remote.
-     */
-    public String getFederatedKbFileContent(int localStationId, UUID partnerStationUid, int fileId) {
-        return entityResolver.resolve(
-                localStationId,
-                partnerStationUid,
-                partner -> {
-                    var file = requirePartnerFile(fileId, partner);
-                    return getMarkdownContent(file.id()).orElse("");
-                },
-                partner -> fetchKbFileContent(
-                        partner.remoteHost(),
-                        partner.partnerStationId(),
-                        fileId,
-                        localStationId,
-                        getPrivateKey(localStationId)));
-    }
-
-    public KbFile copyKbFile(int fileId, int targetStationId, int createdBy) {
-        var source = findFile(fileId).orElseThrow();
-        String content;
-        var partner = findPartnerForStation(targetStationId, source.stationId());
-        if (partner != null && partner.isRemote()) {
-            content = fetchKbFileContent(
-                    partner.remoteHost(),
-                    partner.partnerStationId(),
-                    fileId,
-                    targetStationId,
-                    getPrivateKey(targetStationId));
-        } else {
-            content = getMarkdownContent(fileId).orElse("");
-        }
-        var copied = createMarkdownFile(targetStationId, null, source.name(), source.description(), content, createdBy);
-        setSourceReference(copied.id(), source.id(), source.stationId());
-        if (isFavourite(createdBy, fileId)) {
-            addFavourite(createdBy, copied.id());
-        }
-        log.info(
-                "KB file {} copied from file {} (station {}) into station {} by member {}",
-                copied.id(),
-                source.id(),
-                source.stationId(),
-                targetStationId,
-                createdBy);
-        return findFile(copied.id()).orElseThrow();
-    }
-
-    public List<RemoteKbFile> fetchSharedKbFiles(
-            String remoteHost, UUID partnerStationUid, int localStationId, String localPrivateKeyBase64) {
-        return federationHttpClient.getList(
-                remoteHost,
-                "/remote/kb/browse",
-                partnerStationUid,
-                localStationId,
-                localPrivateKeyBase64,
-                RemoteKbFile.class);
-    }
-
-    public List<RemoteKbSearchResult> searchKb(
-            String remoteHost, UUID partnerStationUid, int localStationId, String localPrivateKeyBase64, String query) {
-        return federationHttpClient.getList(
-                remoteHost,
-                "/remote/kb/search?q=" + URLEncoder.encode(query, StandardCharsets.UTF_8),
-                partnerStationUid,
-                localStationId,
-                localPrivateKeyBase64,
-                RemoteKbSearchResult.class);
-    }
-
-    public String fetchKbFileContent(
-            String remoteHost, UUID partnerStationUid, int fileId, int localStationId, String localPrivateKeyBase64) {
-        var remoteContent = federationHttpClient.get(
-                remoteHost,
-                "/remote/kb/file/" + fileId + "/content",
-                partnerStationUid,
-                localStationId,
-                localPrivateKeyBase64,
-                RemoteKbContent.class);
-        if (remoteContent == null || remoteContent.content() == null) return "";
-        return remoteContent.content();
-    }
-
     public KbComment createComment(
             int stationId, int fileId, Integer parentId, int authorId, String authorName, String content) {
         var identity = memberIdentityFactory.fromMemberId(authorId);
@@ -887,18 +756,20 @@ public class KnowledgeBaseService {
         return comment;
     }
 
-    public KbComment createRemoteComment(
-            int fileId, int partnerId, UUID remoteMemberUid, String displayName, Integer parentId, String content) {
-        // Look up the partner's station UID for inline identity
-        var partnerStationUid = federationRepository
-                .findPartnerById(partnerId)
-                .map(FederationPartner::partnerStationId)
-                .orElse(null);
-        var identity = partnerStationUid != null ? new MemberIdentity(partnerStationUid, remoteMemberUid) : null;
-        var comment = kbCommentRepository.create(fileId, parentId, identity, content);
-        eventFederationRepository.cacheName(partnerId, remoteMemberUid, displayName);
-        log.info("KB remote comment {} created on file {} from partner {}", comment.id(), fileId, partnerId);
-        return comment;
+    /**
+     * Deletes a knowledge-base comment and announces the removal with a short content preview.
+     *
+     * @param stationId the station owning the file the comment belongs to
+     * @param commentId the comment to remove
+     * @return {@code true} when a comment was removed
+     */
+    public boolean deleteComment(int stationId, int commentId) {
+        var comment = kbCommentRepository.findById(commentId).orElse(null);
+        if (comment == null || !kbCommentRepository.delete(commentId)) return false;
+        String preview =
+                comment.content().length() > 100 ? comment.content().substring(0, 100) + "..." : comment.content();
+        eventBus.publish(new CommentDeleted(stationId, commentId, preview));
+        return true;
     }
 
     void performPresentationConversion(int stationId, int fileId, byte[] data, String filename) {
@@ -910,8 +781,6 @@ public class KnowledgeBaseService {
             repository.updateConversionStatus(fileId, ConversionStatus.FAILED);
         }
     }
-
-    // -- Federated KB --
 
     /**
      * Routes a freshly-uploaded blob through the at-rest compressors registered in
@@ -1047,8 +916,6 @@ public class KnowledgeBaseService {
         }
     }
 
-    // -- Federation helpers --
-
     private KbFileType detectFileType(String mimeType, String filename) {
         if (mimeType != null) {
             if (PRESENTATION_MIME_TYPES.contains(mimeType)) return KbFileType.PRESENTATION;
@@ -1074,127 +941,56 @@ public class KnowledgeBaseService {
         return KbFileType.OTHER;
     }
 
-    private List<SharedKbItem> browseSharedKbDirect(int remoteStationId, FederationPartner partner) {
-        var result = new ArrayList<SharedKbItem>();
-        var shares = federationRepository.findKbShares(remoteStationId);
-        for (var share : shares) {
-            if (share.fileId() != null) {
-                findFile(share.fileId()).ifPresent(file -> {
-                    var summary = KbFileSummary.of(file);
-                    result.add(new SharedKbItem(summary, remoteStationId, partner.id()));
-                    federationRepository.upsertMetadataCache(
-                            partner.id(), ContentType.KB, file.id(), file.name(), file.description());
-                });
-            } else if (share.folderId() != null) {
-                for (var file : findFiles(remoteStationId, share.folderId())) {
-                    var summary = KbFileSummary.of(file);
-                    result.add(new SharedKbItem(summary, remoteStationId, partner.id()));
-                    federationRepository.upsertMetadataCache(
-                            partner.id(), ContentType.KB, file.id(), file.name(), file.description());
-                }
-            }
-        }
-        return result;
+    /**
+     * Resolves the name shown for a member on knowledge-base content, preferring their station
+     * display name over the account name and falling back to a placeholder when neither resolves.
+     */
+    public String resolveMemberName(int memberId) {
+        return stationMemberRepository
+                .findById(memberId)
+                .map(member -> {
+                    if (member.displayName() != null && !member.displayName().isBlank()) {
+                        return member.displayName();
+                    }
+                    if (member.accountId() != null) {
+                        return accountRepository
+                                .findById(member.accountId())
+                                .map(Account::fullName)
+                                .orElse("Unbekannt");
+                    }
+                    return "Unbekannt";
+                })
+                .orElse("Unbekannt");
     }
 
-    private List<SharedKbItem> browseSharedKbViaHttp(
-            int localStationId, FederationPartner partner, int remoteStationId) {
-        var result = new ArrayList<SharedKbItem>();
-        var files = fetchSharedKbFiles(
-                partner.remoteHost(), partner.partnerStationId(), localStationId, getPrivateKey(localStationId));
-        for (var remoteFile : files) {
-            var summary = new KbFileSummary(
-                    remoteFile.id(),
-                    remoteStationId,
-                    null,
-                    remoteFile.name(),
-                    remoteFile.description(),
-                    KbFileType.valueOf(remoteFile.fileType() != null ? remoteFile.fileType() : "MARKDOWN"),
-                    Instant.now(),
-                    false);
-            result.add(new SharedKbItem(summary, remoteStationId, partner.id()));
-            federationRepository.upsertMetadataCache(
-                    partner.id(), ContentType.KB, remoteFile.id(), remoteFile.name(), remoteFile.description());
-        }
-        return result;
-    }
-
-    private List<FederatedSearchResult> searchKbDirect(FederationPartner partner, String query) {
-        String stationName = FederationDisplayNames.partnerName(stationRepository, partner, "?");
-        String stationUid = partner.partnerStationId().toString();
-        return searchWithSnippets(resolvePartnerStationId(partner), query).stream()
-                .map(r -> new FederatedSearchResult(KbFileSummary.of(r.file()), r.snippet(), stationName, stationUid))
+    /**
+     * Reads the group and user-tag memberships an access check needs, so a whole listing can be
+     * filtered against {@link #canAccess(MemberAccess, Integer, Integer)} without re-reading them
+     * per row.
+     *
+     * @param memberId the member whose access is evaluated
+     * @param userType the member's station user type
+     * @return the member's access context
+     */
+    public MemberAccess memberAccess(int memberId, StationUserType userType) {
+        var groupIds = memberGroupRepository.findGroupsForMember(memberId).stream()
+                .map(MemberGroup::id)
                 .toList();
-    }
-
-    private List<FederatedSearchResult> searchKbViaHttp(int localStationId, FederationPartner partner, String query) {
-        String privateKey = getPrivateKey(localStationId);
-        if (privateKey == null) return List.of();
-        int remoteStationId = resolvePartnerStationId(partner);
-        String stationName = FederationDisplayNames.partnerName(stationRepository, partner, "?");
-        String stationUid = partner.partnerStationId().toString();
-        var results = searchKb(partner.remoteHost(), partner.partnerStationId(), localStationId, privateKey, query);
-        return results.stream()
-                .map(r -> new FederatedSearchResult(
-                        new KbFileSummary(
-                                r.id(), remoteStationId, null, r.name(), r.description(), null, Instant.now(), false),
-                        r.snippet(),
-                        stationName,
-                        stationUid))
+        var tagIds = userTagRepository.findTagsForMember(memberId).stream()
+                .map(UserTag::id)
                 .toList();
+        return new MemberAccess(memberId, userType, groupIds, tagIds);
     }
 
-    private List<FederationPartner> sharedKbPartners(int stationId) {
-        return federationService.findPartners(stationId).stream()
-                .filter(p -> p.status() == FederationPartner.FederationStatus.ACTIVE)
-                .filter(p -> federationService.hasCapability(p.id(), CapabilityType.KB_SHARE, Direction.IMPORT))
-                .toList();
+    /**
+     * Evaluates the access restrictions on a folder or file against a pre-read access context.
+     */
+    public boolean canAccess(MemberAccess access, Integer folderId, Integer fileId) {
+        return canAccess(access.memberId(), folderId, fileId, access.userType(), access.groupIds(), access.tagIds());
     }
 
-    private KbFile requirePartnerFile(int fileId, FederationPartner partner) {
-        var file = findFile(fileId).orElseThrow();
-        if (file.stationId() != resolvePartnerStationId(partner)) {
-            throw new BadRequestResponse("File does not belong to this partner");
-        }
-        return file;
-    }
-
-    private String getPrivateKey(int stationId) {
-        return stationRepository
-                .findById(stationId)
-                .map(Station::federationPrivateKey)
-                .orElse(null);
-    }
-
-    private int resolvePartnerStationId(FederationPartner partner) {
-        return stationRepository
-                .findByUid(partner.partnerStationId())
-                .map(Station::id)
-                .orElse(0);
-    }
-
-    // -- Federation HTTP convenience methods --
-
-    private FederationPartner findPartnerForStation(int localStationId, int remoteStationId) {
-        var partners = federationService.findPartners(localStationId);
-        for (var partner : partners) {
-            int partnerRemoteId = resolvePartnerStationId(partner);
-            if (partnerRemoteId == remoteStationId && partner.status() == FederationPartner.FederationStatus.ACTIVE) {
-                return partner;
-            }
-        }
-        return null;
-    }
-
-    public record SharedKbItem(KbFileSummary file, int sourceStationId, int partnerId) {}
-
-    public record FederatedSearchResult(KbFileSummary file, String snippet, String stationName, String stationUid) {}
-
-    public record RemoteKbSearchResult(int id, String name, String description, String snippet) {}
-
-    // -- KB Comments --
-
-    public record RemoteKbFile(int id, String name, String description, String fileType) {}
-
-    public record RemoteKbContent(int fileId, String content) {}
+    /**
+     * The memberships an access restriction is evaluated against, read once per request.
+     */
+    public record MemberAccess(int memberId, StationUserType userType, List<Integer> groupIds, List<Integer> tagIds) {}
 }
