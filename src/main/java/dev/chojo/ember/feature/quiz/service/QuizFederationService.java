@@ -29,7 +29,9 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * The catalogs federation partners share with a station, resolved the same way whether the
@@ -118,20 +120,30 @@ public class QuizFederationService {
 
     /**
      * Copies a catalog with its categories and questions into another station.
+     *
+     * <p>Categories belong to a station, not to a catalog, so they are read from the source
+     * station and recreated in the target one. Only the categories the copied questions actually
+     * reference are brought across, to avoid importing the source station's whole vocabulary.
      */
     public QuizCatalog copyQuizCatalog(int catalogId, int targetStationId) {
         var source = catalogService.findCatalog(catalogId).orElseThrow();
         var newCatalog = catalogService.createCatalog(
                 targetStationId, source.name(), source.description(), source.trainingEnabled());
 
+        var questions = questionService.findQuestions(source.id());
+        var referenced = questions.stream()
+                .map(QuizQuestion::categoryId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
         var categoryMap = new HashMap<Integer, Integer>();
-        for (var category : catalogService.findCategories(source.id())) {
+        for (var category : catalogService.findCategories(source.stationId())) {
+            if (!referenced.contains(category.id())) continue;
             var copy = catalogService.createCategory(
-                    newCatalog.id(), category.name(), category.description(), category.position());
+                    targetStationId, category.name(), category.description(), category.position());
             categoryMap.put(category.id(), copy.id());
         }
 
-        var questions = questionService.findQuestions(source.id());
         for (var question : questions) {
             Integer newCategoryId = question.categoryId() != null ? categoryMap.get(question.categoryId()) : null;
             questionService.createQuestion(

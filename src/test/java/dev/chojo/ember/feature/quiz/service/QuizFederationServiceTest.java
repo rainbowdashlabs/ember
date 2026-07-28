@@ -31,6 +31,7 @@ import static org.mockito.Mockito.*;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class QuizFederationServiceTest extends RepositoryTestBase {
     private static QuizFederationService service;
+    private static QuizCatalogService catalogService;
     private static QuizQuestionService questionService;
     private static FederationRepository federationRepo;
     private static FederationService federationService;
@@ -45,8 +46,9 @@ class QuizFederationServiceTest extends RepositoryTestBase {
         federationService = new FederationService(federationRepo, stationRepo, new Api());
         httpClient = mock(FederationHttpClient.class);
         questionService = new QuizQuestionService(quizCatalogRepo);
+        catalogService = new QuizCatalogService(quizCatalogRepo);
         service = new QuizFederationService(
-                new QuizCatalogService(quizCatalogRepo),
+                catalogService,
                 questionService,
                 federationService,
                 federationRepo,
@@ -176,10 +178,41 @@ class QuizFederationServiceTest extends RepositoryTestBase {
         assertEquals(1, copiedQuestions.size());
         assertEquals("CopyQ1", copiedQuestions.getFirst().title());
 
+        var targetCategories = catalogService.findCategories(station.id());
+        var copiedCategory = targetCategories.stream()
+                .filter(c -> "CopyCat".equals(c.name()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("category was not copied into the target station"));
+        assertNotEquals(category.id(), copiedCategory.id());
+        assertEquals(
+                copiedCategory.id(),
+                copiedQuestions.getFirst().categoryId(),
+                "the copied question must point at the copied category, not the source station's");
+
         for (var q : copiedQuestions) quizCatalogRepo.deleteQuestion(q.id());
+        quizCatalogRepo.deleteCategory(copiedCategory.id());
         quizCatalogRepo.delete(copied.id());
         quizCatalogRepo.deleteQuestion(question.id());
         quizCatalogRepo.deleteCategory(category.id());
+        quizCatalogRepo.delete(source.id());
+    }
+
+    /**
+     * A category the copied questions never reference must not be dragged into the target station,
+     * otherwise importing one catalog imports the source station's whole vocabulary.
+     */
+    @Test
+    @Order(21)
+    void copyQuizCatalogLeavesUnreferencedCategoriesBehind() {
+        var source = quizCatalogRepo.create(localPartner.id(), "CopySrc2", "Source without categories", false);
+        var unused = quizCatalogRepo.createCategory(localPartner.id(), "UnusedCat", "Never referenced", 0);
+
+        var copied = service.copyQuizCatalog(source.id(), station.id());
+
+        assertTrue(catalogService.findCategories(station.id()).stream().noneMatch(c -> "UnusedCat".equals(c.name())));
+
+        quizCatalogRepo.delete(copied.id());
+        quizCatalogRepo.deleteCategory(unused.id());
         quizCatalogRepo.delete(source.id());
     }
 
