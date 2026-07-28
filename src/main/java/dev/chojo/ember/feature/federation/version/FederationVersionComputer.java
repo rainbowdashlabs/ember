@@ -9,6 +9,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import dev.chojo.ember.feature.board.route.BoardRoutes;
+import dev.chojo.ember.feature.board.route.FederatedBoardRoutes;
+import dev.chojo.ember.feature.board.route.RemoteBoardRoutes;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.ChangeType;
 import dev.chojo.ember.feature.federation.entity.ContentType;
@@ -83,7 +85,9 @@ public final class FederationVersionComputer {
             FederationRemoteRoutes.class,
             FederationRoutes.class,
             LendingRoutes.class,
-            BoardRoutes.class);
+            BoardRoutes.class,
+            FederatedBoardRoutes.class,
+            RemoteBoardRoutes.class);
 
     /**
      * Revision tag for the request signing envelope. Bumped when the bytes covered
