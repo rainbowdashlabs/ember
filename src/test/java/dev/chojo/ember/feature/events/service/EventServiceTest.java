@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
@@ -1893,5 +1894,84 @@ class EventServiceTest extends RepositoryTestBase {
         var resolved = service.findByPublicUid(station.id(), publicUid);
         assertTrue(resolved.isPresent());
         assertEquals(event.id(), resolved.get().id());
+    }
+
+    @Test
+    @Order(211)
+    void searchEventPickerReturnsPublicEventsOnly() {
+        var start = Instant.now().plus(34, ChronoUnit.DAYS);
+        var end = start.plus(2, ChronoUnit.HOURS);
+        var hidden = createPickerEvent("PickerHidden", start, end);
+        var visible = createPickerEvent("PickerVisible", start, end);
+        markPublic(visible.id(), true);
+        markPublic(hidden.id(), false);
+
+        var results = service.searchEventPicker(station.id(), "pickerv", EventRepository.PickerMode.FUTURE, 10);
+        assertTrue(results.stream().anyMatch(e -> "PickerVisible".equals(e.name())));
+
+        var all = service.searchEventPicker(station.id(), "picker", EventRepository.PickerMode.ALL, 10);
+        assertTrue(all.stream().noneMatch(e -> "PickerHidden".equals(e.name())));
+
+        var past = service.searchEventPicker(station.id(), "pickerv", EventRepository.PickerMode.PAST, 10);
+        assertTrue(past.stream().noneMatch(e -> "PickerVisible".equals(e.name())));
+    }
+
+    @Test
+    @Order(212)
+    void findFilteredForMembersUnionsWithoutDuplicates() {
+        var start = Instant.now().plus(35, ChronoUnit.DAYS);
+        var end = start.plus(2, ChronoUnit.HOURS);
+        var event = createPickerEvent("UnionEvent", start, end);
+
+        var repeated = service.findFilteredForMembers(station.id(), List.of(member.id(), member.id()), null, null);
+        assertEquals(1, repeated.stream().filter(e -> e.id() == event.id()).count());
+
+        var unrestricted = service.findFilteredForMembers(station.id(), null, null, null);
+        assertTrue(unrestricted.stream().anyMatch(e -> e.id() == event.id()));
+
+        var noMembers = service.findFilteredForMembers(station.id(), List.of(), null, null);
+        assertTrue(noMembers.isEmpty());
+    }
+
+    private static StationEvent createPickerEvent(String name, Instant start, Instant end) {
+        return service.create(
+                station.id(),
+                name,
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                end,
+                null,
+                false,
+                null,
+                false,
+                categoryId,
+                null,
+                null,
+                null,
+                null);
+    }
+
+    private static void markPublic(int id, boolean isPublic) {
+        var event = service.findById(id).orElseThrow();
+        service.update(
+                id,
+                event.name(),
+                event.description(),
+                event.eventType(),
+                event.dayOfWeek(),
+                event.startTime(),
+                event.endTime(),
+                null,
+                false,
+                null,
+                false,
+                categoryId,
+                isPublic,
+                null,
+                null,
+                null,
+                null);
     }
 }

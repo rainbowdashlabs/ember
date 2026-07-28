@@ -204,12 +204,19 @@ public class EventRegistrationRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/events/{eventId}/registrations",
+            path = "/api/v1/events/{eventId}/registration-stats",
             methods = HttpMethod.GET,
-            summary = "List registrations for an event",
+            summary = "Registration history and fairness ranking for an event's members",
             tags = {"Events"},
             pathParams = @OpenApiParam(name = "eventId", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventRegistration[].class)))
+            queryParams = {
+                @OpenApiParam(name = "categoryId", type = Integer.class),
+                @OpenApiParam(name = "months", type = Integer.class)
+            },
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = RegistrationStatsResponse[].class)))
     private void getRegistrationStats(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");

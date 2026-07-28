@@ -12,7 +12,10 @@ import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
 import dev.chojo.ember.feature.quiz.entity.QuizTest;
 import dev.chojo.ember.feature.quiz.entity.QuizTestAttempt;
 import dev.chojo.ember.feature.quiz.entity.TestStatus;
-import dev.chojo.ember.feature.quiz.service.QuizService;
+import dev.chojo.ember.feature.quiz.service.QuizAttemptService;
+import dev.chojo.ember.feature.quiz.service.QuizCatalogService;
+import dev.chojo.ember.feature.quiz.service.QuizQuestionService;
+import dev.chojo.ember.feature.quiz.service.QuizTestService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -31,11 +34,21 @@ import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 @Singleton
 public class QuizRouteGuards {
 
-    private final QuizService quizService;
+    private final QuizCatalogService catalogService;
+    private final QuizQuestionService questionService;
+    private final QuizTestService testService;
+    private final QuizAttemptService attemptService;
 
     @Inject
-    public QuizRouteGuards(QuizService quizService) {
-        this.quizService = quizService;
+    public QuizRouteGuards(
+            QuizCatalogService catalogService,
+            QuizQuestionService questionService,
+            QuizTestService testService,
+            QuizAttemptService attemptService) {
+        this.catalogService = catalogService;
+        this.questionService = questionService;
+        this.testService = testService;
+        this.attemptService = attemptService;
     }
 
     /**
@@ -43,7 +56,7 @@ public class QuizRouteGuards {
      * 404 when absent or owned by another station.
      */
     public QuizCatalog requireOwnedCatalog(Context ctx, int catalogId) {
-        return requireOwnedOrNotFound(ctx, catalogId, quizService::findCatalog, QuizCatalog::stationId);
+        return requireOwnedOrNotFound(ctx, catalogId, catalogService::findCatalog, QuizCatalog::stationId);
     }
 
     /**
@@ -51,14 +64,14 @@ public class QuizRouteGuards {
      * 404 when absent or owned by another station.
      */
     public QuizCategory requireOwnedCategory(Context ctx, int categoryId) {
-        return requireOwnedOrNotFound(ctx, categoryId, quizService::findCategory, QuizCategory::stationId);
+        return requireOwnedOrNotFound(ctx, categoryId, catalogService::findCategory, QuizCategory::stationId);
     }
 
     /**
      * Loads a question and asserts its catalog belongs to the caller's station, returning it.
      */
     public QuizQuestion requireOwnedQuestion(Context ctx, int questionId) {
-        var question = quizService.findQuestion(questionId).orElseThrow(NotFoundResponse::new);
+        var question = questionService.findQuestion(questionId).orElseThrow(NotFoundResponse::new);
         requireOwnedCatalog(ctx, question.catalogId());
         return question;
     }
@@ -68,14 +81,14 @@ public class QuizRouteGuards {
      * when absent or owned by another station.
      */
     public QuizTest requireOwnedTest(Context ctx, int testId) {
-        return requireOwnedOrNotFound(ctx, testId, quizService::findTest, QuizTest::stationId);
+        return requireOwnedOrNotFound(ctx, testId, testService::findTest, QuizTest::stationId);
     }
 
     /**
      * Loads an attempt and asserts its test belongs to the caller's station, returning it.
      */
     public QuizTestAttempt requireOwnedAttempt(Context ctx, int attemptId) {
-        var attempt = quizService.findAttemptById(attemptId).orElseThrow(NotFoundResponse::new);
+        var attempt = attemptService.findAttemptById(attemptId).orElseThrow(NotFoundResponse::new);
         requireOwnedTest(ctx, attempt.testId());
         return attempt;
     }
@@ -99,7 +112,7 @@ public class QuizRouteGuards {
     public QuizTestAttempt requireMemberAttempt(Context ctx, UserSession session) {
         int attemptId = pathInt(ctx, "id");
         if (session.member() == null) throw new BadRequestResponse("Not a station member");
-        var attempt = quizService.findAttemptById(attemptId).orElseThrow(NotFoundResponse::new);
+        var attempt = attemptService.findAttemptById(attemptId).orElseThrow(NotFoundResponse::new);
         if (attempt.memberId() != session.member().id()) throw new ForbiddenResponse();
         return attempt;
     }

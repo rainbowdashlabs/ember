@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.quiz.route;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.quiz.service.QuizService;
+import dev.chojo.ember.feature.quiz.service.QuizFederationService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -26,12 +26,12 @@ import static dev.chojo.ember.api.RouteSupport.pathUuid;
 @Singleton
 public class FederatedQuizRoutes implements Routes {
 
-    private final QuizService quizService;
+    private final QuizFederationService federationService;
     private final QuizRouteGuards guards;
 
     @Inject
-    public FederatedQuizRoutes(QuizService quizService, QuizRouteGuards guards) {
-        this.quizService = quizService;
+    public FederatedQuizRoutes(QuizFederationService federationService, QuizRouteGuards guards) {
+        this.federationService = federationService;
         this.guards = guards;
     }
 
@@ -52,21 +52,21 @@ public class FederatedQuizRoutes implements Routes {
 
     private void browseCatalogs(Context ctx) {
         var session = UserSession.from(ctx);
-        ctx.json(quizService.browseSharedCatalogs(session.stationId()));
+        ctx.json(federationService.browseSharedCatalogs(session.stationId()));
     }
 
     private void getCatalog(Context ctx) {
         var session = UserSession.from(ctx);
         var stationUid = pathUuid(ctx, "stationuid");
         int catalogId = pathInt(ctx, "id");
-        ctx.json(quizService.getFederatedQuizCatalog(session.stationId(), stationUid, catalogId));
+        ctx.json(federationService.getFederatedQuizCatalog(session.stationId(), stationUid, catalogId));
     }
 
     private void copyCatalog(Context ctx) {
         var session = UserSession.from(ctx);
         int catalogId = pathInt(ctx, "id");
         guards.requireOwnedCatalog(ctx, catalogId);
-        var copied = quizService.copyQuizCatalog(catalogId, session.stationId());
+        var copied = federationService.copyQuizCatalog(catalogId, session.stationId());
         ctx.status(HttpStatus.CREATED).json(copied);
     }
 }

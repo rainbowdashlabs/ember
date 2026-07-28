@@ -6,45 +6,25 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.event.DomainEventBus;
-import dev.chojo.ember.event.events.EventCancelled;
-import dev.chojo.ember.event.events.EventCreated;
-import dev.chojo.ember.event.events.EventDeleted;
-import dev.chojo.ember.event.events.EventRegistrationStatusChanged;
 import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
-import dev.chojo.ember.feature.events.entity.EventSummary;
 import dev.chojo.ember.feature.events.entity.MemberRegistrationStats;
 import dev.chojo.ember.feature.events.entity.RegistrationCount;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.entity.UpcomingEventOccurrence;
-import dev.chojo.ember.feature.events.repository.EventBreakRepository;
-import dev.chojo.ember.feature.events.repository.EventCategoryRepository;
-import dev.chojo.ember.feature.events.repository.EventFieldDefaultRepository;
-import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
-import dev.chojo.ember.feature.events.repository.EventReminderRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionSet;
-import dev.chojo.ember.feature.restriction.RestrictionType;
-import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -52,135 +32,110 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Service providing business logic for station events, including CRUD operations for events, breaks, categories,
- * restrictions, field defaults, and registrations.
+ * Entry point to the event domain for routes and neighbouring features. Every call is served by one
+ * of the focused services this facade composes, which is where the behaviour and the parameter
+ * documentation live: {@link EventCrudService}, {@link EventOccurrenceService},
+ * {@link EventCategoryService}, {@link EventBreakService}, {@link EventRestrictionService},
+ * {@link EventFieldDefaultService}, {@link EventRegistrationService} and
+ * {@link EventReminderService}.
  */
 @Singleton
 public class EventService {
-    private static final Logger log = LoggerFactory.getLogger(EventService.class);
-
-    private final EventRepository eventRepository;
-    private final EventBreakRepository breakRepository;
-    private final EventCategoryRepository categoryRepository;
-    private final EventFieldDefaultRepository fieldDefaultRepository;
-    private final EventRegistrationRepository registrationRepository;
-    private final EventReminderRepository reminderRepository;
-    private final RestrictionService restrictionService;
-    private final DomainEventBus eventBus;
+    private final EventCrudService crudService;
+    private final EventOccurrenceService occurrenceService;
+    private final EventCategoryService categoryService;
+    private final EventBreakService breakService;
+    private final EventRestrictionService restrictionService;
+    private final EventFieldDefaultService fieldDefaultService;
+    private final EventRegistrationService registrationService;
+    private final EventReminderService reminderService;
 
     @Inject
     public EventService(
-            EventRepository eventRepository,
-            EventBreakRepository breakRepository,
-            EventCategoryRepository categoryRepository,
-            EventFieldDefaultRepository fieldDefaultRepository,
-            EventRegistrationRepository registrationRepository,
-            EventReminderRepository reminderRepository,
-            RestrictionService restrictionService,
-            DomainEventBus eventBus) {
-        this.eventRepository = eventRepository;
-        this.breakRepository = breakRepository;
-        this.categoryRepository = categoryRepository;
-        this.fieldDefaultRepository = fieldDefaultRepository;
-        this.registrationRepository = registrationRepository;
-        this.reminderRepository = reminderRepository;
+            EventCrudService crudService,
+            EventOccurrenceService occurrenceService,
+            EventCategoryService categoryService,
+            EventBreakService breakService,
+            EventRestrictionService restrictionService,
+            EventFieldDefaultService fieldDefaultService,
+            EventRegistrationService registrationService,
+            EventReminderService reminderService) {
+        this.crudService = crudService;
+        this.occurrenceService = occurrenceService;
+        this.categoryService = categoryService;
+        this.breakService = breakService;
         this.restrictionService = restrictionService;
-        this.eventBus = eventBus;
+        this.fieldDefaultService = fieldDefaultService;
+        this.registrationService = registrationService;
+        this.reminderService = reminderService;
     }
 
-    // -- Events --
-
     /**
-     * Retrieves all events for a station.
-     *
-     * @param stationId the station ID
-     * @return the list of station events
+     * Retrieves all events for a station — see {@link EventCrudService#findByStation}.
      */
     public List<StationEvent> findByStation(int stationId) {
-        return eventRepository.findByStation(stationId);
+        return crudService.findByStation(stationId);
     }
 
     /**
-     * Event picker for the {@code FEATURED_EVENT} / {@code UPCOMING_EVENTS} /
-     * {@code PAST_EVENT_RECAP} cells. Returns a compact picker shape filtered
-     * to public events (per-event {@code public = TRUE} or category-default).
+     * Searches the public events of a station for the event picker cells — see
+     * {@link EventCrudService#searchEventPicker}.
      */
     public List<EventRepository.PickerEvent> searchEventPicker(
             int stationId, String search, EventRepository.PickerMode mode, int limit) {
-        return eventRepository.searchForPicker(stationId, search, mode, limit);
+        return crudService.searchEventPicker(stationId, search, mode, limit);
     }
 
     /**
      * Bulk-resolves the public UUIDs for a set of event ids — see
-     * {@link EventRepository#findPublicUidsByIds}.
+     * {@link EventCrudService#findPublicUidsByIds}.
      */
     public Map<Integer, UUID> findPublicUidsByIds(int stationId, Collection<Integer> ids) {
-        return eventRepository.findPublicUidsByIds(stationId, ids);
+        return crudService.findPublicUidsByIds(stationId, ids);
     }
 
     /**
-     * Resolves a single station event by its public UUID — used by cell renderers.
+     * Resolves a single station event by its public UUID — see {@link EventCrudService#findByPublicUid}.
      */
     public Optional<StationEvent> findByPublicUid(int stationId, UUID publicUid) {
-        return eventRepository.findByPublicUid(stationId, publicUid);
+        return crudService.findByPublicUid(stationId, publicUid);
     }
 
     /**
-     * Retrieves events for a station that the given member is allowed to see.
-     *
-     * @param stationId the station ID
-     * @param memberId  the requesting member ID
-     * @return the filtered list of station events
+     * Retrieves the events of a station a member is allowed to see — see
+     * {@link EventCrudService#findByStationForMember}.
      */
     public List<StationEvent> findByStationForMember(int stationId, int memberId) {
-        return eventRepository.findByStationForMember(stationId, memberId);
+        return crudService.findByStationForMember(stationId, memberId);
     }
 
+    /**
+     * Filters a station's events by member, category and registration requirement — see
+     * {@link EventCrudService#findFiltered}.
+     */
     public List<StationEvent> findFiltered(
             int stationId, Integer memberId, Integer categoryId, Boolean requiresRegistration) {
-        return eventRepository.findFiltered(stationId, memberId, categoryId, requiresRegistration);
+        return crudService.findFiltered(stationId, memberId, categoryId, requiresRegistration);
     }
 
+    /**
+     * Unions the filtered events visible to any of the given members — see
+     * {@link EventCrudService#findFilteredForMembers}.
+     */
     public List<StationEvent> findFilteredForMembers(
             int stationId, List<Integer> memberIds, Integer categoryId, Boolean requiresRegistration) {
-        if (memberIds == null) {
-            return eventRepository.findFiltered(stationId, null, categoryId, requiresRegistration);
-        }
-        var eventMap = new LinkedHashMap<Integer, StationEvent>();
-        for (int mid : memberIds) {
-            for (var ev : eventRepository.findFiltered(stationId, mid, categoryId, requiresRegistration)) {
-                eventMap.putIfAbsent(ev.id(), ev);
-            }
-        }
-        return new ArrayList<>(eventMap.values());
+        return crudService.findFilteredForMembers(stationId, memberIds, categoryId, requiresRegistration);
     }
 
     /**
-     * Finds a station event by its ID.
-     *
-     * @param id the event ID
-     * @return the event, if found
+     * Finds a station event by its ID — see {@link EventCrudService#findById}.
      */
     public Optional<StationEvent> findById(int id) {
-        return eventRepository.findById(id);
+        return crudService.findById(id);
     }
 
     /**
-     * Creates a new station event.
-     *
-     * @param stationId            the station this event belongs to
-     * @param name                 the event name
-     * @param description          the event description
-     * @param eventType            the recurrence type
-     * @param dayOfWeek            the ISO day of week for recurring events, or null
-     * @param startTime            the start time
-     * @param endTime              the end time
-     * @param templateId           the optional attendance template ID
-     * @param requiresRegistration whether registration is required
-     * @param registrationDeadline the registration deadline, or null
-     * @param requiresConfirmation whether registrations require manager confirmation
-     * @param categoryId           the optional category ID
-     * @return the created event
+     * Creates a new station event — see {@link EventCrudService#create}.
      */
     public StationEvent create(
             int stationId,
@@ -199,7 +154,7 @@ public class EventService {
             Integer minRegistrations,
             Instant thresholdDate,
             Integer registrationCloseDays) {
-        var event = createWithoutEvent(
+        return crudService.create(
                 stationId,
                 name,
                 description,
@@ -216,14 +171,11 @@ public class EventService {
                 minRegistrations,
                 thresholdDate,
                 registrationCloseDays);
-        eventBus.publish(new EventCreated(stationId, event));
-        return event;
     }
 
     /**
-     * Persists a new event without publishing any domain event. Reserved for callers that
-     * aggregate their own domain event (e.g. {@code BatchEventService} emitting
-     * {@link dev.chojo.ember.event.events.EventsBatchCreated} once at the end).
+     * Persists a new event without publishing any domain event — see
+     * {@link EventCrudService#createWithoutEvent}.
      */
     public StationEvent createWithoutEvent(
             int stationId,
@@ -242,7 +194,7 @@ public class EventService {
             Integer minRegistrations,
             Instant thresholdDate,
             Integer registrationCloseDays) {
-        var event = eventRepository.create(
+        return crudService.createWithoutEvent(
                 stationId,
                 name,
                 description,
@@ -259,26 +211,10 @@ public class EventService {
                 minRegistrations,
                 thresholdDate,
                 registrationCloseDays);
-        log.info("Created event {} for station {} ({}, type={})", event.id(), stationId, name, eventType);
-        return event;
     }
 
     /**
-     * Updates a station event and returns the refreshed entity if the update was successful.
-     *
-     * @param id                   the event ID
-     * @param name                 the new event name
-     * @param description          the new description
-     * @param eventType            the new recurrence type
-     * @param dayOfWeek            the new day of week, or null
-     * @param startTime            the new start time
-     * @param endTime              the new end time
-     * @param templateId           the new template ID, or null
-     * @param requiresRegistration whether registration is required
-     * @param registrationDeadline the new registration deadline, or null
-     * @param requiresConfirmation whether registrations require confirmation
-     * @param categoryId           the new category ID, or null
-     * @return the updated event, or empty if not found
+     * Updates a station event and returns the refreshed entity — see {@link EventCrudService#update}.
      */
     public Optional<StationEvent> update(
             int id,
@@ -298,7 +234,7 @@ public class EventService {
             Integer minRegistrations,
             Instant thresholdDate,
             Integer registrationCloseDays) {
-        if (eventRepository.update(
+        return crudService.update(
                 id,
                 name,
                 description,
@@ -315,108 +251,42 @@ public class EventService {
                 registrationLimit,
                 minRegistrations,
                 thresholdDate,
-                registrationCloseDays)) {
-            log.info("Updated event {}", id);
-            return eventRepository.findById(id);
-        }
-        log.warn("Cannot update event: event {} not found", id);
-        return Optional.empty();
+                registrationCloseDays);
     }
 
     /**
-     * Deletes a station event by ID.
-     *
-     * @param id the event ID
-     * @return true if the event was deleted
+     * Deletes a station event by ID — see {@link EventCrudService#delete}.
      */
     public boolean delete(int id) {
-        var event = eventRepository.findById(id).orElse(null);
-        if (event == null) {
-            log.warn("Cannot delete event: event {} not found", id);
-            return false;
-        }
-        if (eventRepository.delete(id)) {
-            log.info("Deleted event {} for station {}", id, event.stationId());
-            eventBus.publish(new EventDeleted(event.stationId(), id, event.name()));
-            return true;
-        }
-        log.warn("Failed to delete event {}", id);
-        return false;
+        return crudService.delete(id);
     }
 
     /**
-     * Cancels an event, notifying all registered members.
-     *
-     * @param stationId the station ID (for ownership check)
-     * @param eventId   the event ID
-     * @param reason    optional cancellation reason
-     * @return true if the event was cancelled
+     * Cancels an event, notifying all registered members — see {@link EventCrudService#cancelEvent}.
      */
     public boolean cancelEvent(int stationId, int eventId, String reason) {
-        var event = eventRepository.findById(eventId).orElse(null);
-        if (event == null || event.stationId() != stationId) {
-            log.warn("Cannot cancel event: event {} not found for station {}", eventId, stationId);
-            return false;
-        }
-        if (event.cancelled()) {
-            log.warn("Cannot cancel event: event {} already cancelled", eventId);
-            return false;
-        }
-
-        boolean cancelled = eventRepository.cancelEvent(eventId, reason);
-        if (cancelled) {
-            log.info("Cancelled event {} for station {}", eventId, stationId);
-            eventBus.publish(new EventCancelled(stationId, eventId, event.name(), reason));
-        } else {
-            log.warn("Failed to cancel event {}", eventId);
-        }
-        return cancelled;
+        return crudService.cancelEvent(stationId, eventId, reason);
     }
 
     /**
-     * Finds all events that occur today for a station, taking into account recurrence rules and break periods.
-     * One-time events match by their start date; recurring events match by day of week and recurrence pattern.
-     *
-     * @param stationId the station ID
-     * @return the list of today's events
+     * Returns the most recent station-event modification time — see
+     * {@link EventCrudService#findMaxEventUpdatedAt}.
+     */
+    public Instant findMaxEventUpdatedAt(int stationId) {
+        return crudService.findMaxEventUpdatedAt(stationId);
+    }
+
+    /**
+     * Finds all events that occur today for a station — see
+     * {@link EventOccurrenceService#findTodayEvents}.
      */
     public List<StationEvent> findTodayEvents(int stationId) {
-        LocalDate today = LocalDate.now(ZoneOffset.UTC);
-        int dayOfWeek = today.getDayOfWeek().getValue();
-        int dayOfMonth = today.getDayOfMonth();
-        int monthValue = today.getMonthValue();
-        boolean inBreak = breakRepository.isDateInBreak(stationId, today);
-
-        return eventRepository.findByStation(stationId).stream()
-                .filter(e -> {
-                    if (e.eventType() == StationEvent.EventType.ONE_TIME) {
-                        if (e.startTime() == null) return false;
-                        LocalDate eventDateUtc =
-                                e.startTime().atZone(ZoneOffset.UTC).toLocalDate();
-                        return today.equals(eventDateUtc);
-                    }
-                    if (inBreak) return false;
-                    return switch (e.eventType()) {
-                        case RECURRING -> e.dayOfWeek() != null && e.dayOfWeek() == dayOfWeek;
-                        case MONTHLY_FIRST -> e.dayOfWeek() != null && e.dayOfWeek() == dayOfWeek && dayOfMonth <= 7;
-                        case QUARTERLY ->
-                            e.dayOfWeek() != null
-                                    && e.dayOfWeek() == dayOfWeek
-                                    && dayOfMonth <= 7
-                                    && (monthValue - 1) % 3 == 0;
-                        case YEARLY ->
-                            e.startTime() != null
-                                    && e.startTime().atZone(ZoneOffset.UTC).getMonthValue() == monthValue
-                                    && e.startTime().atZone(ZoneOffset.UTC).getDayOfMonth() == dayOfMonth;
-                        default -> false;
-                    };
-                })
-                .toList();
+        return occurrenceService.findTodayEvents(stationId);
     }
 
     /**
-     * Expands events into chronologically sorted date occurrences for the next 28 days,
-     * applying optional server-side filters, with pagination on the expanded list.
+     * Expands events into chronologically sorted date occurrences — see
+     * {@link EventOccurrenceService#findUpcomingOccurrences}.
      */
     public List<UpcomingEventOccurrence> findUpcomingOccurrences(
             int stationId,
@@ -426,467 +296,260 @@ public class EventService {
             String search,
             int limit,
             int offset) {
-        var events = findFilteredForMembers(stationId, memberIds, categoryId, requiresRegistration);
-        if (search != null && !search.isBlank()) {
-            String q = search.toLowerCase();
-            events = events.stream()
-                    .filter(ev -> {
-                        String name = ev.name() != null ? ev.name().toLowerCase() : "";
-                        String desc =
-                                ev.description() != null ? ev.description().toLowerCase() : "";
-                        return name.contains(q) || desc.contains(q);
-                    })
-                    .toList();
-        }
-        var breaks = breakRepository.findByStation(stationId);
-
-        LocalDate today = LocalDate.now(ZoneOffset.UTC);
-        int maxDays = 28;
-        var occurrences = new ArrayList<UpcomingEventOccurrence>();
-
-        // One-time events
-        for (var ev : events) {
-            if (ev.eventType() != StationEvent.EventType.ONE_TIME || ev.startTime() == null) continue;
-            LocalDate eventDate = ev.startTime().atZone(ZoneOffset.UTC).toLocalDate();
-            if (!eventDate.isBefore(today)) {
-                occurrences.add(new UpcomingEventOccurrence(EventSummary.of(ev), eventDate));
-            }
-        }
-
-        // Recurring events for the next 28 days
-        for (int d = 0; d <= maxDays; d++) {
-            LocalDate date = today.plusDays(d);
-            if (EventBreak.coversAny(breaks, date)) continue;
-
-            for (var ev : events) {
-                if (ev.occursOn(date)) {
-                    occurrences.add(new UpcomingEventOccurrence(EventSummary.of(ev), date));
-                }
-            }
-        }
-
-        occurrences.sort(Comparator.comparing(UpcomingEventOccurrence::date));
-        return occurrences.stream().skip(offset).limit(limit).toList();
+        return occurrenceService.findUpcomingOccurrences(
+                stationId, memberIds, categoryId, requiresRegistration, search, limit, offset);
     }
 
-    // -- Categories --
-
     /**
-     * Retrieves all event categories for a station.
-     *
-     * @param id the ID
-     * @return the list of categories
+     * Finds an event category by its ID — see {@link EventCategoryService#findById}.
      */
     public Optional<EventCategory> findCategoryById(int id) {
-        return categoryRepository.findById(id);
-    }
-
-    public List<EventCategory> findCategoriesByStation(int stationId) {
-        return categoryRepository.findByStation(stationId);
+        return categoryService.findById(id);
     }
 
     /**
-     * Creates a new event category.
-     *
-     * @param stationId the station ID
-     * @param name      the category name
-     * @param position  the display order position
-     * @param color     optional display color (#RRGGBB), or null
-     * @return the created category
+     * Retrieves all event categories for a station — see {@link EventCategoryService#findByStation}.
+     */
+    public List<EventCategory> findCategoriesByStation(int stationId) {
+        return categoryService.findByStation(stationId);
+    }
+
+    /**
+     * Creates a new event category — see {@link EventCategoryService#create}.
      */
     public EventCategory createCategory(int stationId, String name, int position, String color) {
-        var category = categoryRepository.create(stationId, name, position, color);
-        log.info("Created event category {} for station {}", category.id(), stationId);
-        return category;
+        return categoryService.create(stationId, name, position, color);
     }
 
     /**
-     * Updates an event category.
-     *
-     * @param id       the category ID
-     * @param name     the new name
-     * @param position the new position
-     * @param color    the optional new display color (#RRGGBB), or null to clear
-     * @return true if the category was updated
+     * Updates an event category — see {@link EventCategoryService#update}.
      */
     public boolean updateCategory(
             int id, String name, int position, Integer maxShownEvents, boolean isPublic, String color) {
-        if (categoryRepository.update(id, name, position, maxShownEvents, isPublic, color)) {
-            log.info("Updated event category {}", id);
-            return true;
-        }
-        log.warn("Cannot update event category: category {} not found", id);
-        return false;
+        return categoryService.update(id, name, position, maxShownEvents, isPublic, color);
     }
 
     /**
-     * Deletes an event category by ID.
-     *
-     * @param id the category ID
-     * @return true if the category was deleted
+     * Deletes an event category by ID — see {@link EventCategoryService#delete}.
      */
     public boolean deleteCategory(int id) {
-        if (categoryRepository.delete(id)) {
-            log.info("Deleted event category {}", id);
-            return true;
-        }
-        log.warn("Cannot delete event category: category {} not found", id);
-        return false;
+        return categoryService.delete(id);
     }
 
     /**
-     * Rewrites the display order of a station's event categories. Ids from another station are
-     * ignored by the repository, so a caller cannot reorder a foreign station's categories.
-     *
-     * @param stationId  the owning station
-     * @param orderedIds the category IDs in their new order
+     * Rewrites the display order of a station's event categories — see
+     * {@link EventCategoryService#reorder}.
      */
     public void reorderCategories(int stationId, List<Integer> orderedIds) {
-        categoryRepository.reorder(stationId, orderedIds);
-        log.info("Reordered {} event categories", orderedIds.size());
+        categoryService.reorder(stationId, orderedIds);
     }
 
-    // -- Breaks --
-
     /**
-     * Retrieves all event breaks for a station.
-     *
-     * @param stationId the station ID
-     * @return the list of breaks
+     * Retrieves all event breaks for a station — see {@link EventBreakService#findByStation}.
      */
     public List<EventBreak> findBreaksByStation(int stationId) {
-        return breakRepository.findByStation(stationId);
+        return breakService.findByStation(stationId);
     }
 
     /**
-     * Finds an event break by its ID.
-     *
-     * @param id the break ID
-     * @return the break, if found
+     * Finds an event break by its ID — see {@link EventBreakService#findById}.
      */
     public Optional<EventBreak> findBreakById(int id) {
-        return breakRepository.findById(id);
+        return breakService.findById(id);
     }
 
     /**
-     * Creates a new event break.
-     *
-     * @param stationId the station ID
-     * @param name      the break name
-     * @param startDate the first day of the break
-     * @param endDate   the last day of the break
-     * @return the created break
+     * Creates a new event break — see {@link EventBreakService#create}.
      */
     public EventBreak createBreak(int stationId, String name, LocalDate startDate, LocalDate endDate) {
-        var eventBreak = breakRepository.create(stationId, name, startDate, endDate);
-        log.info("Created event break {} for station {}", eventBreak.id(), stationId);
-        return eventBreak;
+        return breakService.create(stationId, name, startDate, endDate);
     }
 
     /**
-     * Updates an event break and returns the refreshed entity if the update was successful.
-     *
-     * @param id        the break ID
-     * @param name      the new break name
-     * @param startDate the new start date
-     * @param endDate   the new end date
-     * @return the updated break, or empty if not found
+     * Updates an event break and returns the refreshed entity — see {@link EventBreakService#update}.
      */
     public Optional<EventBreak> updateBreak(int id, String name, LocalDate startDate, LocalDate endDate) {
-        if (breakRepository.update(id, name, startDate, endDate)) {
-            log.info("Updated event break {}", id);
-            return breakRepository.findById(id);
-        }
-        log.warn("Cannot update event break: break {} not found", id);
-        return Optional.empty();
+        return breakService.update(id, name, startDate, endDate);
     }
 
     /**
-     * Deletes an event break by ID.
-     *
-     * @param id the break ID
-     * @return true if the break was deleted
+     * Deletes an event break by ID — see {@link EventBreakService#delete}.
      */
     public boolean deleteBreak(int id) {
-        if (breakRepository.delete(id)) {
-            log.info("Deleted event break {}", id);
-            return true;
-        }
-        log.warn("Cannot delete event break: break {} not found", id);
-        return false;
+        return breakService.delete(id);
     }
 
-    // -- Restrictions --
-
     /**
-     * Retrieves the restriction set for an event.
-     *
-     * @param eventId the event ID
-     * @return the restriction set
+     * Retrieves the restriction set for an event — see {@link EventRestrictionService#findRestrictions}.
      */
     public RestrictionSet findRestrictions(int eventId) {
-        var event = eventRepository.findById(eventId).orElse(null);
-        RestrictionMode mode = event != null ? event.restrictionMode() : RestrictionMode.AND;
-        return restrictionService.findRestrictionSet(RestrictionType.EVENT, eventId, mode);
+        return restrictionService.findRestrictions(eventId);
     }
 
     /**
-     * Sets all restrictions for an event, replacing any existing restrictions.
-     *
-     * @param eventId   the event ID
-     * @param selection the restriction selection to persist
+     * Replaces all restrictions of an event — see {@link EventRestrictionService#setRestrictions}.
      */
     public void setRestrictions(int eventId, RestrictionSelection selection) {
-        restrictionService.setRestrictions(RestrictionType.EVENT, eventId, selection);
-        log.info("Set restrictions for event {}", eventId);
+        restrictionService.setRestrictions(eventId, selection);
     }
 
     /**
-     * Updates the restriction mode for an event.
-     *
-     * @param eventId the event ID
-     * @param mode    the restriction mode
+     * Updates the restriction mode for an event — see
+     * {@link EventRestrictionService#updateRestrictionMode}.
      */
     public void updateRestrictionMode(int eventId, RestrictionMode mode) {
-        eventRepository.updateRestrictionMode(eventId, mode);
-        log.info("Updated restriction mode for event {} to {}", eventId, mode);
+        restrictionService.updateRestrictionMode(eventId, mode);
     }
 
     /**
-     * Checks if a member is eligible for an event based on its restrictions.
-     * Delegates to the DB function which resolves the member's identity internally.
-     *
-     * @param eventId  the event to check
-     * @param memberId the member ID
+     * Checks if a member is eligible for an event — see
+     * {@link EventRestrictionService#isMemberEligible}.
      */
     public boolean isMemberEligible(int eventId, int memberId, Set<StationPermission> memberPermissions) {
-        return restrictionService.checkRestriction(RestrictionType.EVENT, eventId, memberId, memberPermissions);
+        return restrictionService.isMemberEligible(eventId, memberId, memberPermissions);
     }
 
-    // -- Field Defaults --
-
     /**
-     * Retrieves all field default configurations for an event.
-     *
-     * @param eventId the event ID
-     * @return the list of field defaults
+     * Retrieves all field default configurations for an event — see
+     * {@link EventFieldDefaultService#findByEvent}.
      */
     public List<EventFieldDefault> findFieldDefaults(int eventId) {
-        return fieldDefaultRepository.findByEvent(eventId);
+        return fieldDefaultService.findByEvent(eventId);
     }
 
     /**
-     * Replaces all field defaults for an event.
-     *
-     * @param eventId  the event ID
-     * @param defaults the new field default configurations
+     * Replaces all field defaults for an event — see {@link EventFieldDefaultService#setForEvent}.
      */
     public void setFieldDefaults(int eventId, List<EventFieldDefault> defaults) {
-        fieldDefaultRepository.replaceForEvent(eventId, defaults);
-        log.info("Set field defaults for event {} ({} defaults)", eventId, defaults.size());
+        fieldDefaultService.setForEvent(eventId, defaults);
     }
 
     /**
-     * Resolves field defaults for an event into concrete values by replacing event property links.
+     * Resolves field defaults into concrete values — see {@link EventFieldDefaultService#resolve}.
      */
     public Map<Integer, String> resolveFieldDefaults(int eventId) {
-        var event = eventRepository.findById(eventId).orElse(null);
-        if (event == null) return Map.of();
-
-        var defaults = fieldDefaultRepository.findByEvent(eventId);
-        var result = new HashMap<Integer, String>();
-        for (var def : defaults) {
-            String resolved =
-                    switch (def.source()) {
-                        case "VALUE" -> def.value();
-                        case "EVENT_NAME" -> event.name();
-                        case "EVENT_DESCRIPTION" -> event.description();
-                        case "EVENT_START_TIME" -> event.startTime() != null ? "\"" + event.startTime() + "\"" : null;
-                        case "EVENT_END_TIME" -> event.endTime() != null ? "\"" + event.endTime() + "\"" : null;
-                        default -> null;
-                    };
-            if (resolved != null) {
-                result.put(def.fieldId(), resolved);
-            }
-        }
-        return result;
+        return fieldDefaultService.resolve(eventId);
     }
 
-    // -- Registrations --
-
     /**
-     * Retrieves all pending registrations for events in a station.
-     *
-     * @param stationId the station ID
-     * @return the list of pending registrations
+     * Retrieves all pending registrations for events in a station — see
+     * {@link EventRegistrationService#findPendingByStation}.
      */
     public List<EventRegistration> findPendingRegistrationsByStation(int stationId) {
-        return registrationRepository.findPendingByStation(stationId);
+        return registrationService.findPendingByStation(stationId);
     }
 
     /**
-     * Retrieves all registrations for an event on a specific date.
-     *
-     * @param eventId   the event ID
-     * @param eventDate the event occurrence date
-     * @return the list of registrations
+     * Retrieves all registrations for an event occurrence — see
+     * {@link EventRegistrationService#findByEventAndDate}.
      */
     public List<EventRegistration> findRegistrations(int eventId, LocalDate eventDate) {
-        return registrationRepository.findByEventAndDate(eventId, eventDate);
+        return registrationService.findByEventAndDate(eventId, eventDate);
     }
 
     /**
-     * Retrieves all registrations for an event across all dates.
-     *
-     * @param eventId the event ID
-     * @return the list of registrations
+     * Retrieves all registrations for an event across all dates — see
+     * {@link EventRegistrationService#findByEvent}.
      */
     public List<EventRegistration> findAllRegistrations(int eventId) {
-        return registrationRepository.findByEvent(eventId);
+        return registrationService.findByEvent(eventId);
     }
 
     /**
-     * Retrieves all registrations for a specific member.
-     *
-     * @param memberId the member ID
-     * @return the list of registrations
+     * Retrieves all registrations of a member — see {@link EventRegistrationService#findByMember}.
      */
     public List<EventRegistration> findRegistrationsByMember(int memberId) {
-        return registrationRepository.findByMember(memberId);
+        return registrationService.findByMember(memberId);
     }
 
     /**
-     * Retrieves upcoming registrations for any member in the given collection in one query.
-     * Used by the personal iCal feed to load owner + managed-member registrations together.
-     *
-     * @param memberIds the member IDs to fetch registrations for
-     * @return the list of registrations
+     * Retrieves the registrations of several members in one query — see
+     * {@link EventRegistrationService#findByMembers}.
      */
     public List<EventRegistration> findRegistrationsByMembers(Collection<Integer> memberIds) {
-        return registrationRepository.findByMembers(memberIds);
+        return registrationService.findByMembers(memberIds);
     }
 
     /**
-     * Returns the most recent station-event modification time, for feed cache invalidation.
-     */
-    public Instant findMaxEventUpdatedAt(int stationId) {
-        return eventRepository.findMaxEventUpdatedAt(stationId);
-    }
-
-    /**
-     * Returns the most recent registration time across the given members, for feed cache invalidation.
+     * Returns the most recent registration time across the given members — see
+     * {@link EventRegistrationService#findMaxCreatedAt}.
      */
     public Instant findMaxRegistrationCreatedAt(Collection<Integer> memberIds) {
-        return registrationRepository.findMaxCreatedAt(memberIds);
+        return registrationService.findMaxCreatedAt(memberIds);
     }
 
     /**
-     * Registers a member for an event. If {@code autoAccept} is true, the registration is immediately accepted.
-     *
-     * @param eventId    the event ID
-     * @param memberId   the member ID
-     * @param eventDate  the event occurrence date
-     * @param autoAccept whether to automatically accept the registration
-     * @param createdBy  the member ID of the creator, or null if self-registered
-     * @return the created registration
+     * Registers a member for an event — see {@link EventRegistrationService#register}.
      */
     public EventRegistration register(
             int eventId, int memberId, LocalDate eventDate, boolean autoAccept, Integer createdBy) {
-        var registration =
-                registrationRepository.create(eventId, memberId, eventDate, RegistrationStatus.PENDING, createdBy);
-        log.info(
-                "Registered member {} for event {} on {} (status={})",
-                memberId,
-                eventId,
-                eventDate,
-                autoAccept ? RegistrationStatus.ACCEPTED : RegistrationStatus.PENDING);
-        if (autoAccept) {
-            registrationRepository.updateStatus(registration.id(), RegistrationStatus.ACCEPTED);
-            return registrationRepository.findById(registration.id()).orElse(registration);
-        }
-        return registration;
+        return registrationService.register(eventId, memberId, eventDate, autoAccept, createdBy);
     }
 
     /**
-     * Finds a registration by its ID.
-     *
-     * @param id the registration ID
-     * @return the registration, if found
+     * Finds a registration by its ID — see {@link EventRegistrationService#findById}.
      */
     public Optional<EventRegistration> findRegistrationById(int id) {
-        return registrationRepository.findById(id);
+        return registrationService.findById(id);
     }
 
+    /**
+     * Moves a registration to a new status — see {@link EventRegistrationService#updateStatus}.
+     */
     public boolean updateRegistrationStatus(int id, RegistrationStatus status) {
-        if (!registrationRepository.updateStatus(id, status)) {
-            log.warn("Cannot update registration status: registration {} not found", id);
-            return false;
-        }
-        log.info("Updated registration {} status to {}", id, status);
-        registrationRepository.findById(id).ifPresent(registration -> eventRepository
-                .findById(registration.eventId())
-                .ifPresent(event -> eventBus.publish(new EventRegistrationStatusChanged(
-                        event.stationId(), event.id(), event.name(), registration.memberId(), status))));
-        return true;
+        return registrationService.updateStatus(id, status);
     }
 
+    /**
+     * Removes a registration — see {@link EventRegistrationService#withdraw}.
+     */
     public boolean withdrawRegistration(int id) {
-        var registration = registrationRepository.findById(id).orElse(null);
-        if (!registrationRepository.delete(id)) {
-            log.warn("Cannot withdraw registration: registration {} not found", id);
-            return false;
-        }
-        log.info("Withdrew registration {}", id);
-        if (registration != null && registration.status() == RegistrationStatus.ACCEPTED) {
-            eventRepository
-                    .findById(registration.eventId())
-                    .ifPresent(event -> eventBus.publish(new EventRegistrationStatusChanged(
-                            event.stationId(),
-                            event.id(),
-                            event.name(),
-                            registration.memberId(),
-                            RegistrationStatus.WITHDRAWN)));
-        }
-        return true;
+        return registrationService.withdraw(id);
     }
 
+    /**
+     * Records that a member will not attend an occurrence — see
+     * {@link EventRegistrationService#decline}.
+     */
     public EventRegistration decline(int eventId, int memberId, LocalDate eventDate, Integer createdBy) {
-        var existing = registrationRepository.findByEventAndDate(eventId, eventDate).stream()
-                .filter(r -> r.memberId() == memberId)
-                .findFirst()
-                .orElse(null);
-        var result =
-                registrationRepository.create(eventId, memberId, eventDate, RegistrationStatus.DECLINED, createdBy);
-        log.info("Declined registration for member {} on event {} ({})", memberId, eventId, eventDate);
-        if (existing != null && existing.status() == RegistrationStatus.ACCEPTED) {
-            eventRepository
-                    .findById(eventId)
-                    .ifPresent(event -> eventBus.publish(new EventRegistrationStatusChanged(
-                            event.stationId(), event.id(), event.name(), memberId, RegistrationStatus.DECLINED)));
-        }
-        return result;
+        return registrationService.decline(eventId, memberId, eventDate, createdBy);
     }
 
+    /**
+     * Returns the per-event registration totals of a station — see
+     * {@link EventRegistrationService#findCountsByStation}.
+     */
     public List<RegistrationCount> findRegistrationCounts(int stationId) {
-        return registrationRepository.findCountsByStation(stationId);
+        return registrationService.findCountsByStation(stationId);
     }
 
+    /**
+     * Returns the members who declined an occurrence — see
+     * {@link EventRegistrationService#findDeclinedMemberIds}.
+     */
     public List<Integer> findDeclinedMemberIds(int eventId, LocalDate eventDate) {
-        return registrationRepository.findDeclinedMemberIds(eventId, eventDate);
+        return registrationService.findDeclinedMemberIds(eventId, eventDate);
     }
 
+    /**
+     * Returns per-member registration statistics for an event — see
+     * {@link EventRegistrationService#findStatsByEvent}.
+     */
     public List<MemberRegistrationStats> findRegistrationStats(int eventId, Integer categoryId, int months) {
-        return registrationRepository.findStatsByEvent(eventId, categoryId, months);
+        return registrationService.findStatsByEvent(eventId, categoryId, months);
     }
 
-    // --- Reminders ---
-
+    /**
+     * Returns the configured reminder lead times of an event — see {@link EventReminderService#findDays}.
+     */
     public List<Integer> findReminderDays(int eventId) {
-        return reminderRepository.findDays(eventId);
+        return reminderService.findDays(eventId);
     }
 
+    /**
+     * Replaces the reminder lead times of an event — see {@link EventReminderService#setDays}.
+     */
     public void setReminders(int eventId, List<Integer> daysBefore) {
-        reminderRepository.replace(eventId, daysBefore);
-        log.info("Set reminders for event {} ({} days)", eventId, daysBefore.size());
+        reminderService.setDays(eventId, daysBefore);
     }
 }

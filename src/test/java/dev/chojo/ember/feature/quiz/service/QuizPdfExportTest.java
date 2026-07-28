@@ -18,7 +18,6 @@ import dev.chojo.ember.feature.media.service.ImageVariantService;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
 import dev.chojo.ember.feature.quiz.repository.QuizTestRepository;
-import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
@@ -45,7 +44,7 @@ class QuizPdfExportTest {
 
     private static QuizCatalogRepository catalogRepo;
     private static QuizTestRepository testRepo;
-    private static QuizService quizService;
+    private static QuizTestService testService;
     private static QuizPdfService pdfService;
     private static StationRepository stationRepo;
 
@@ -99,16 +98,7 @@ class QuizPdfExportTest {
         stationRepo = new StationRepository();
         catalogRepo = new QuizCatalogRepository();
         testRepo = new QuizTestRepository();
-        quizService = new QuizService(
-                catalogRepo,
-                testRepo,
-                new RestrictionService(null, null, null, null),
-                null,
-                null,
-                null,
-                null,
-                null,
-                null);
+        testService = new QuizTestService(testRepo, new QuizQuestionSelector(catalogRepo, testRepo));
         var backend = new LocalStorageBackend();
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
         var imageService = new QuizQuestionImageService(new ImageVariantService(storage), stationRepo);
@@ -241,7 +231,7 @@ class QuizPdfExportTest {
         testRepo.createSource(section.id(), catalog.id(), category.id(), 8);
 
         // Activate the test (generates frozen questions)
-        quizService.activateTest(test.id());
+        testService.activateTest(test.id());
 
         // Export question PDF
         byte[] questionPdf = pdfService.exportQuestionPdf(test.id());

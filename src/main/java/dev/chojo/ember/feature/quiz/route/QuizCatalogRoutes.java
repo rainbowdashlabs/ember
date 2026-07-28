@@ -12,10 +12,12 @@ import dev.chojo.ember.feature.quiz.entity.CreateQuestionCommand;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizCategory;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
+import dev.chojo.ember.feature.quiz.service.QuizCatalogService;
+import dev.chojo.ember.feature.quiz.service.QuizFederationService;
+import dev.chojo.ember.feature.quiz.service.QuizFederationService.SharedQuizCatalog;
 import dev.chojo.ember.feature.quiz.service.QuizImportService;
 import dev.chojo.ember.feature.quiz.service.QuizImportService.CsvMappings;
-import dev.chojo.ember.feature.quiz.service.QuizService;
-import dev.chojo.ember.feature.quiz.service.QuizService.SharedQuizCatalog;
+import dev.chojo.ember.feature.quiz.service.QuizQuestionService;
 import dev.chojo.ember.util.Json;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -47,13 +49,22 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 public class QuizCatalogRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(QuizCatalogRoutes.class);
 
-    private final QuizService quizService;
+    private final QuizCatalogService catalogService;
+    private final QuizQuestionService questionService;
+    private final QuizFederationService federationService;
     private final QuizImportService importService;
     private final QuizRouteGuards guards;
 
     @Inject
-    public QuizCatalogRoutes(QuizService quizService, QuizImportService importService, QuizRouteGuards guards) {
-        this.quizService = quizService;
+    public QuizCatalogRoutes(
+            QuizCatalogService catalogService,
+            QuizQuestionService questionService,
+            QuizFederationService federationService,
+            QuizImportService importService,
+            QuizRouteGuards guards) {
+        this.catalogService = catalogService;
+        this.questionService = questionService;
+        this.federationService = federationService;
         this.importService = importService;
         this.guards = guards;
     }
@@ -96,18 +107,18 @@ public class QuizCatalogRoutes implements Routes {
      */
     private void listCatalogs(Context ctx) {
         var session = UserSession.from(ctx);
-        var catalogs = quizService.findCatalogs(session.stationId());
-        ctx.json(new CatalogListResponse(catalogs, quizService.browseSharedCatalogs(session.stationId())));
+        var catalogs = catalogService.findCatalogs(session.stationId());
+        ctx.json(new CatalogListResponse(catalogs, federationService.browseSharedCatalogs(session.stationId())));
     }
 
     private void getCatalog(Context ctx) {
         int id = pathInt(ctx, "id");
-        quizService
+        catalogService
                 .findCatalog(id)
                 .ifPresentOrElse(
                         catalog -> {
-                            var questions = quizService.findQuestions(id);
-                            var categories = quizService.findCategories(catalog.stationId());
+                            var questions = questionService.findQuestions(id);
+                            var categories = catalogService.findCategories(catalog.stationId());
                             var typeCounts = new LinkedHashMap<String, Integer>();
                             for (var q : questions) {
                                 typeCounts.merge(q.quizQuestionType().name(), 1, Integer::sum);
@@ -133,7 +144,7 @@ public class QuizCatalogRoutes implements Routes {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(CatalogRequest.class);
         if (req.name() == null || req.name().isBlank()) throw new BadRequestResponse("name is required");
-        var catalog = quizService.createCatalog(
+        var catalog = catalogService.createCatalog(
                 session.stationId(),
                 req.name(),
                 req.description() != null ? req.description() : "",
@@ -145,14 +156,14 @@ public class QuizCatalogRoutes implements Routes {
         int id = pathInt(ctx, "id");
         guards.requireOwnedCatalog(ctx, id);
         var req = ctx.bodyAsClass(CatalogRequest.class);
-        if (!quizService.updateCatalog(
+        if (!catalogService.updateCatalog(
                 id,
                 req.name(),
                 req.description() != null ? req.description() : "",
                 req.trainingEnabled() != null && req.trainingEnabled())) {
             throw new NotFoundResponse();
         }
-        quizService.findCatalog(id).ifPresentOrElse(ctx::json, () -> {
+        catalogService.findCatalog(id).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
         });
     }
@@ -160,7 +171,7 @@ public class QuizCatalogRoutes implements Routes {
     private void deleteCatalog(Context ctx) {
         int id = pathInt(ctx, "id");
         guards.requireOwnedCatalog(ctx, id);
-        if (quizService.deleteCatalog(id)) {
+        if (catalogService.deleteCatalog(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
             throw new NotFoundResponse();
@@ -169,7 +180,7 @@ public class QuizCatalogRoutes implements Routes {
 
     private void listCategories(Context ctx) {
         var session = UserSession.from(ctx);
-        ctx.json(quizService.findCategories(session.stationId()));
+        ctx.json(catalogService.findCategories(session.stationId()));
     }
 
     private void createCategory(Context ctx) {
@@ -177,7 +188,7 @@ public class QuizCatalogRoutes implements Routes {
         var req = ctx.bodyAsClass(CategoryRequest.class);
         if (req.name() == null || req.name().isBlank()) throw new BadRequestResponse("name is required");
         ctx.status(HttpStatus.CREATED)
-                .json(quizService.createCategory(
+                .json(catalogService.createCategory(
                         session.stationId(),
                         req.name(),
                         req.description() != null ? req.description() : "",
@@ -188,7 +199,7 @@ public class QuizCatalogRoutes implements Routes {
         int id = pathInt(ctx, "id");
         guards.requireOwnedCategory(ctx, id);
         var req = ctx.bodyAsClass(CategoryRequest.class);
-        if (!quizService.updateCategory(
+        if (!catalogService.updateCategory(
                 id,
                 req.name(),
                 req.description() != null ? req.description() : "",
@@ -201,7 +212,7 @@ public class QuizCatalogRoutes implements Routes {
     private void deleteCategory(Context ctx) {
         int id = pathInt(ctx, "id");
         guards.requireOwnedCategory(ctx, id);
-        if (quizService.deleteCategory(id)) {
+        if (catalogService.deleteCategory(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
             throw new NotFoundResponse();
@@ -210,21 +221,21 @@ public class QuizCatalogRoutes implements Routes {
 
     private void listTrainingCatalogs(Context ctx) {
         var session = UserSession.from(ctx);
-        ctx.json(quizService.findTrainingCatalogs(session.stationId()));
+        ctx.json(catalogService.findTrainingCatalogs(session.stationId()));
     }
 
     private void getTrainingQuestions(Context ctx) {
         int catalogId = pathInt(ctx, "id");
         var catalog = guards.requireOwnedCatalog(ctx, catalogId);
         if (!catalog.trainingEnabled()) throw new ForbiddenResponse("Training not enabled for this catalog");
-        ctx.json(quizService.findQuestions(catalogId));
+        ctx.json(questionService.findQuestions(catalogId));
     }
 
     private void exportCatalog(Context ctx) {
         int catalogId = pathInt(ctx, "id");
         var catalog = guards.requireOwnedCatalog(ctx, catalogId);
-        var categories = quizService.findCategories(catalog.stationId());
-        var questions = quizService.findQuestions(catalogId);
+        var categories = catalogService.findCategories(catalog.stationId());
+        var questions = questionService.findQuestions(catalogId);
         ctx.json(new CatalogExport(
                 catalog.name(), catalog.description(), catalog.trainingEnabled(), categories, questions));
     }
@@ -233,7 +244,7 @@ public class QuizCatalogRoutes implements Routes {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(CatalogExport.class);
         if (req.name() == null || req.name().isBlank()) throw new BadRequestResponse("name is required");
-        var catalog = quizService.createCatalog(
+        var catalog = catalogService.createCatalog(
                 session.stationId(),
                 req.name(),
                 req.description() != null ? req.description() : "",
@@ -242,7 +253,8 @@ public class QuizCatalogRoutes implements Routes {
         var categoryIdMap = new HashMap<Integer, Integer>();
         if (req.categories() != null) {
             for (var cat : req.categories()) {
-                var created = quizService.createCategory(catalog.id(), cat.name(), cat.description(), cat.position());
+                var created =
+                        catalogService.createCategory(catalog.id(), cat.name(), cat.description(), cat.position());
                 categoryIdMap.put(cat.id(), created.id());
             }
         }
@@ -250,15 +262,16 @@ public class QuizCatalogRoutes implements Routes {
         if (req.questions() != null) {
             for (var q : req.questions()) {
                 Integer newCategoryId = q.categoryId() != null ? categoryIdMap.get(q.categoryId()) : null;
-                quizService.createQuestion(CreateQuestionCommand.builder(catalog.id(), q.quizQuestionType(), q.title())
-                        .category(newCategoryId)
-                        .description(q.description())
-                        .imageUrl(q.imageUrl())
-                        .points(q.points())
-                        .autoPoints(q.autoPoints())
-                        .config(q.config())
-                        .position(q.position())
-                        .build());
+                questionService.createQuestion(
+                        CreateQuestionCommand.builder(catalog.id(), q.quizQuestionType(), q.title())
+                                .category(newCategoryId)
+                                .description(q.description())
+                                .imageUrl(q.imageUrl())
+                                .points(q.points())
+                                .autoPoints(q.autoPoints())
+                                .config(q.config())
+                                .position(q.position())
+                                .build());
             }
         }
         ctx.status(HttpStatus.CREATED).json(catalog);

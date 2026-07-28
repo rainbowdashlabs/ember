@@ -13,7 +13,7 @@ import dev.chojo.ember.feature.quiz.entity.CreateQuestionCommand;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionImageService;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionSanitizer;
-import dev.chojo.ember.feature.quiz.service.QuizService;
+import dev.chojo.ember.feature.quiz.service.QuizQuestionService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -40,7 +40,7 @@ public class QuizQuestionRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(QuizQuestionRoutes.class);
     private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of("image/png", "image/jpeg", "image/webp");
 
-    private final QuizService quizService;
+    private final QuizQuestionService questionService;
     private final QuizQuestionSanitizer sanitizer;
     private final QuizQuestionImageService imageService;
     private final QuizRouteGuards guards;
@@ -48,12 +48,12 @@ public class QuizQuestionRoutes implements Routes {
 
     @Inject
     public QuizQuestionRoutes(
-            QuizService quizService,
+            QuizQuestionService questionService,
             QuizQuestionSanitizer sanitizer,
             QuizQuestionImageService imageService,
             QuizRouteGuards guards,
             Api apiConfig) {
-        this.quizService = quizService;
+        this.questionService = questionService;
         this.sanitizer = sanitizer;
         this.imageService = imageService;
         this.guards = guards;
@@ -79,7 +79,7 @@ public class QuizQuestionRoutes implements Routes {
     private void listQuestions(Context ctx) {
         int catalogId = pathInt(ctx, "id");
         guards.requireOwnedCatalog(ctx, catalogId);
-        ctx.json(quizService.findQuestions(catalogId));
+        ctx.json(questionService.findQuestions(catalogId));
     }
 
     private void getQuestion(Context ctx) {
@@ -99,8 +99,8 @@ public class QuizQuestionRoutes implements Routes {
         var req = ctx.bodyAsClass(QuestionRequest.class);
         if (req.title() == null || req.title().isBlank()) throw new BadRequestResponse("title is required");
         if (req.quizQuestionType() == null) throw new BadRequestResponse("questionType is required");
-        var question =
-                quizService.createQuestion(CreateQuestionCommand.builder(catalogId, req.quizQuestionType(), req.title())
+        var question = questionService.createQuestion(
+                CreateQuestionCommand.builder(catalogId, req.quizQuestionType(), req.title())
                         .category(req.categoryId())
                         .description(req.description())
                         .imageUrl(req.imageUrl())
@@ -116,7 +116,7 @@ public class QuizQuestionRoutes implements Routes {
         int id = pathInt(ctx, "id");
         guards.requireOwnedQuestion(ctx, id);
         var req = ctx.bodyAsClass(QuestionRequest.class);
-        if (!quizService.updateQuestion(
+        if (!questionService.updateQuestion(
                 id,
                 req.categoryId(),
                 req.title(),
@@ -128,7 +128,7 @@ public class QuizQuestionRoutes implements Routes {
                 req.position() != null ? req.position() : 0)) {
             throw new NotFoundResponse();
         }
-        quizService.findQuestion(id).ifPresentOrElse(ctx::json, () -> {
+        questionService.findQuestion(id).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
         });
     }
@@ -136,7 +136,7 @@ public class QuizQuestionRoutes implements Routes {
     private void deleteQuestion(Context ctx) {
         int id = pathInt(ctx, "id");
         guards.requireOwnedQuestion(ctx, id);
-        if (quizService.deleteQuestion(id)) {
+        if (questionService.deleteQuestion(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
             throw new NotFoundResponse();

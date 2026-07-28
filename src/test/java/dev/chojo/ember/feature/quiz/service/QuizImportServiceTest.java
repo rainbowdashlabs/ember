@@ -39,17 +39,19 @@ class QuizImportServiceTest {
     private static final QuizCatalog CATALOG =
             new QuizCatalog(42, 7, "Catalog", "", false, false, Instant.EPOCH, Instant.EPOCH);
 
-    private QuizService quizService;
+    private QuizCatalogService catalogService;
+    private QuizQuestionService questionService;
     private QuizImportService service;
     private int nextCategoryId;
 
     @BeforeEach
     void setUp() {
-        quizService = mock(QuizService.class);
-        service = new QuizImportService(quizService);
+        catalogService = mock(QuizCatalogService.class);
+        questionService = mock(QuizQuestionService.class);
+        service = new QuizImportService(catalogService, questionService);
         nextCategoryId = 100;
-        when(quizService.findCategories(anyInt())).thenReturn(List.of());
-        when(quizService.createCategory(anyInt(), anyString(), anyString(), anyInt()))
+        when(catalogService.findCategories(anyInt())).thenReturn(List.of());
+        when(catalogService.createCategory(anyInt(), anyString(), anyString(), anyInt()))
                 .thenAnswer(invocation -> new QuizCategory(
                         nextCategoryId++, invocation.getArgument(0), invocation.getArgument(1), "", 0));
     }
@@ -61,7 +63,7 @@ class QuizImportServiceTest {
 
     private List<CreateQuestionCommand> captureCommands(int expected) {
         var captor = ArgumentCaptor.forClass(CreateQuestionCommand.class);
-        verify(quizService, times(expected)).createQuestion(captor.capture());
+        verify(questionService, times(expected)).createQuestion(captor.capture());
         return captor.getAllValues();
     }
 
@@ -90,7 +92,7 @@ class QuizImportServiceTest {
 
     @Test
     void reusesExistingCategoriesAndCreatesMissingOnesOnce() {
-        when(quizService.findCategories(7)).thenReturn(List.of(new QuizCategory(5, 7, "Mathe", "", 0)));
+        when(catalogService.findCategories(7)).thenReturn(List.of(new QuizCategory(5, 7, "Mathe", "", 0)));
         String csv = """
                 Frage,Antwort,Kategorie,Typ,Punkte
                 A,x,Mathe,MC,1
@@ -107,7 +109,7 @@ class QuizImportServiceTest {
         assertEquals(5, commands.get(1).categoryId().intValue());
         assertEquals(commands.get(2).categoryId(), commands.get(3).categoryId());
         assertNull(commands.get(4).categoryId());
-        verify(quizService, times(1)).createCategory(eq(7), eq("Physik"), eq(""), eq(1));
+        verify(catalogService, times(1)).createCategory(eq(7), eq("Physik"), eq(""), eq(1));
     }
 
     @Test
@@ -157,7 +159,7 @@ class QuizImportServiceTest {
                 """;
 
         assertThrows(BadRequestResponse.class, () -> service.importCsv(CATALOG, csv, mappings("Typ", null)));
-        verify(quizService, never()).createQuestion(any());
+        verify(questionService, never()).createQuestion(any());
     }
 
     @Test
@@ -336,9 +338,10 @@ class QuizImportServiceTest {
     }
 
     private QuestionConfig importOne(QuizQuestionType type, String answer) {
-        quizService = mock(QuizService.class);
-        service = new QuizImportService(quizService);
-        when(quizService.findCategories(anyInt())).thenReturn(List.of());
+        catalogService = mock(QuizCatalogService.class);
+        questionService = mock(QuizQuestionService.class);
+        service = new QuizImportService(catalogService, questionService);
+        when(catalogService.findCategories(anyInt())).thenReturn(List.of());
         service.importCsv(CATALOG, "Frage,Antwort\nTitel,%s\n".formatted(answer), mappings("Typ", type));
         return captureCommands(1).getFirst().config();
     }

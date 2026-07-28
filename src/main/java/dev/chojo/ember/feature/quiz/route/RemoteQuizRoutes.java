@@ -12,7 +12,8 @@ import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizCategory;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
-import dev.chojo.ember.feature.quiz.service.QuizService;
+import dev.chojo.ember.feature.quiz.service.QuizCatalogService;
+import dev.chojo.ember.feature.quiz.service.QuizQuestionService;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.NotFoundResponse;
@@ -31,12 +32,17 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 @Singleton
 public class RemoteQuizRoutes implements Routes {
 
-    private final QuizService quizService;
+    private final QuizCatalogService catalogService;
+    private final QuizQuestionService questionService;
     private final FederationRepository federationRepository;
 
     @Inject
-    public RemoteQuizRoutes(QuizService quizService, FederationRepository federationRepository) {
-        this.quizService = quizService;
+    public RemoteQuizRoutes(
+            QuizCatalogService catalogService,
+            QuizQuestionService questionService,
+            FederationRepository federationRepository) {
+        this.catalogService = catalogService;
+        this.questionService = questionService;
         this.federationRepository = federationRepository;
     }
 
@@ -51,7 +57,7 @@ public class RemoteQuizRoutes implements Routes {
         var shares = federationRepository.findQuizShares(partner.stationId());
         var result = shares.stream()
                 .filter(s -> s.catalogId() != null)
-                .flatMap(s -> quizService.findCatalog(s.catalogId()).stream())
+                .flatMap(s -> catalogService.findCatalog(s.catalogId()).stream())
                 .filter(catalog -> catalog.stationId() == partner.stationId())
                 .map(catalog -> new RemoteCatalogSummary(
                         catalog.id(),
@@ -65,12 +71,12 @@ public class RemoteQuizRoutes implements Routes {
     private void getCatalog(Context ctx) {
         var partner = requireFederationPartner(ctx);
         int catalogId = pathInt(ctx, "id");
-        var catalog = quizService.findCatalog(catalogId).orElseThrow(NotFoundResponse::new);
+        var catalog = catalogService.findCatalog(catalogId).orElseThrow(NotFoundResponse::new);
         if (catalog.stationId() != partner.stationId()) {
             throw new ForbiddenResponse("Catalog not shared with this partner");
         }
-        var categories = quizService.findCategories(catalog.stationId());
-        var questions = quizService.findQuestions(catalog.id());
+        var categories = catalogService.findCategories(catalog.stationId());
+        var questions = questionService.findQuestions(catalog.id());
         ctx.json(new RemoteCatalogDetail(catalog, categories, questions));
     }
 

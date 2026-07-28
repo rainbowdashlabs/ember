@@ -26,7 +26,6 @@ import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
-import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -77,7 +76,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         httpClient = mock(FederationHttpClient.class);
         var eventBus = new DomainEventBus(Set.of());
         EventService eventService = newEventService(eventBus);
-        var memberSvc = new StationMemberService(stationMemberRepo, stationRepo, accountRepo, mock(AuthService.class));
+        var memberSvc = newStationMemberService(accountRepo, mock(AuthService.class));
         commentService = new CommentService(eventCommentRepo, eventBus, memberSvc, stationRepo);
         service = new EventFederationService(
                 eventFederationRepo,

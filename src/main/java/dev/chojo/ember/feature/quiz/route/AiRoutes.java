@@ -14,7 +14,8 @@ import dev.chojo.ember.feature.quiz.entity.QuizCategory;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.entity.StationAiProvider;
 import dev.chojo.ember.feature.quiz.service.AiService;
-import dev.chojo.ember.feature.quiz.service.QuizService;
+import dev.chojo.ember.feature.quiz.service.QuizCatalogService;
+import dev.chojo.ember.feature.quiz.service.QuizQuestionService;
 import dev.chojo.ember.util.Json;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -48,12 +49,14 @@ public class AiRoutes implements Routes {
     private final ConcurrentHashMap<String, GenerationJob> generationJobs = new ConcurrentHashMap<>();
 
     private final AiService aiService;
-    private final QuizService quizService;
+    private final QuizCatalogService catalogService;
+    private final QuizQuestionService questionService;
 
     @Inject
-    public AiRoutes(AiService aiService, QuizService quizService) {
+    public AiRoutes(AiService aiService, QuizCatalogService catalogService, QuizQuestionService questionService) {
         this.aiService = aiService;
-        this.quizService = quizService;
+        this.catalogService = catalogService;
+        this.questionService = questionService;
     }
 
     @Override
@@ -225,14 +228,14 @@ public class AiRoutes implements Routes {
             throw new BadRequestResponse("entries is required");
         }
         String provider = req.provider() != null ? req.provider() : "openai";
-        var categories = quizService.findCategories(session.stationId());
+        var categories = catalogService.findCategories(session.stationId());
         var categoryMap = new HashMap<Integer, QuizCategory>();
         for (var cat : categories) categoryMap.put(cat.id(), cat);
 
         // Collect existing question titles from the catalog to avoid duplicates
         var existingTitles = new ArrayList<String>();
         if (req.catalogId() != null) {
-            var existingQuestions = quizService.findQuestions(req.catalogId());
+            var existingQuestions = questionService.findQuestions(req.catalogId());
             for (var q : existingQuestions) {
                 existingTitles.add(q.title());
             }
@@ -331,7 +334,7 @@ public class AiRoutes implements Routes {
         int targetTotal = req.targetTotalOptions() != null ? req.targetTotalOptions() : 5;
         String provider = req.provider() != null ? req.provider() : "openai";
 
-        var questions = quizService.findQuestions(catalogId);
+        var questions = questionService.findQuestions(catalogId);
         int generated = 0;
         var errors = new ArrayList<String>();
 
@@ -368,7 +371,7 @@ public class AiRoutes implements Routes {
 
                 var updatedMc = new QuestionConfig.MultipleChoice(updatedOptions, pointsPerCorrect);
                 String newConfig = MAPPER.writeValueAsString(updatedMc);
-                quizService.updateQuestion(
+                questionService.updateQuestion(
                         q.id(),
                         q.categoryId(),
                         q.title(),

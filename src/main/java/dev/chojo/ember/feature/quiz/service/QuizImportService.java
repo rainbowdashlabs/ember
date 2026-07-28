@@ -38,11 +38,13 @@ public class QuizImportService {
     private static final int FREE_ANSWER_LINES = 3;
     private static final int ENUMERATION_REQUIRED_COUNT = 3;
 
-    private final QuizService quizService;
+    private final QuizCatalogService catalogService;
+    private final QuizQuestionService questionService;
 
     @Inject
-    public QuizImportService(QuizService quizService) {
-        this.quizService = quizService;
+    public QuizImportService(QuizCatalogService catalogService, QuizQuestionService questionService) {
+        this.catalogService = catalogService;
+        this.questionService = questionService;
     }
 
     /**
@@ -69,7 +71,7 @@ public class QuizImportService {
 
             var type = resolveType(columns.typeCell(cells), mappings.defaultType());
             var config = buildConfig(type, columns.answerCell(cells), mappings.answerSeparatorOrDefault());
-            quizService.createQuestion(CreateQuestionCommand.builder(catalog.id(), type, title)
+            questionService.createQuestion(CreateQuestionCommand.builder(catalog.id(), type, title)
                     .category(categories.resolve(columns.categoryCell(cells)))
                     .points(resolvePoints(columns.pointsCell(cells)))
                     .autoPoints(true)
@@ -181,7 +183,7 @@ public class QuizImportService {
 
         private CategoryResolver(int stationId) {
             this.stationId = stationId;
-            var existing = quizService.findCategories(stationId);
+            var existing = catalogService.findCategories(stationId);
             this.initialCount = existing.size();
             for (var category : existing) {
                 byName.put(category.name().toLowerCase(), category.id());
@@ -190,7 +192,7 @@ public class QuizImportService {
 
         private Integer resolve(String name) {
             if (name.isEmpty()) return null;
-            return byName.computeIfAbsent(name.toLowerCase(), _ -> quizService
+            return byName.computeIfAbsent(name.toLowerCase(), _ -> catalogService
                     .createCategory(stationId, name, "", initialCount)
                     .id());
         }

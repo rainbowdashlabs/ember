@@ -16,8 +16,11 @@ import dev.chojo.ember.feature.quiz.entity.QuizTestSectionSource;
 import dev.chojo.ember.feature.quiz.entity.SectionEntry;
 import dev.chojo.ember.feature.quiz.entity.SourceEntry;
 import dev.chojo.ember.feature.quiz.entity.TestStatus;
+import dev.chojo.ember.feature.quiz.service.QuizAttemptService;
 import dev.chojo.ember.feature.quiz.service.QuizPdfService;
-import dev.chojo.ember.feature.quiz.service.QuizService;
+import dev.chojo.ember.feature.quiz.service.QuizQuestionService;
+import dev.chojo.ember.feature.quiz.service.QuizTestAccessService;
+import dev.chojo.ember.feature.quiz.service.QuizTestService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import io.javalin.http.BadRequestResponse;
@@ -46,13 +49,25 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 public class QuizTestRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(QuizTestRoutes.class);
 
-    private final QuizService quizService;
+    private final QuizTestService testService;
+    private final QuizTestAccessService accessService;
+    private final QuizQuestionService questionService;
+    private final QuizAttemptService attemptService;
     private final QuizPdfService pdfService;
     private final QuizRouteGuards guards;
 
     @Inject
-    public QuizTestRoutes(QuizService quizService, QuizPdfService pdfService, QuizRouteGuards guards) {
-        this.quizService = quizService;
+    public QuizTestRoutes(
+            QuizTestService testService,
+            QuizTestAccessService accessService,
+            QuizQuestionService questionService,
+            QuizAttemptService attemptService,
+            QuizPdfService pdfService,
+            QuizRouteGuards guards) {
+        this.testService = testService;
+        this.accessService = accessService;
+        this.questionService = questionService;
+        this.attemptService = attemptService;
         this.pdfService = pdfService;
         this.guards = guards;
     }
@@ -118,13 +133,13 @@ public class QuizTestRoutes implements Routes {
         var session = UserSession.from(ctx);
         List<QuizTest> tests;
         if (session.member() != null && !session.permissions().contains(StationPermission.TEST_CONFIGURE)) {
-            tests = quizService.findTestsForMember(
+            tests = testService.findTestsForMember(
                     session.stationId(), session.member().id());
         } else {
-            tests = quizService.findTests(session.stationId());
+            tests = testService.findTests(session.stationId());
         }
         var result = tests.stream()
-                .map(t -> new TestSummary(t, quizService.countAttempts(t.id())))
+                .map(t -> new TestSummary(t, testService.countAttempts(t.id())))
                 .toList();
         ctx.json(result);
     }
@@ -140,12 +155,12 @@ public class QuizTestRoutes implements Routes {
             return;
         }
         int memberId = session.member().id();
-        var tests = quizService.findTestsForMember(session.stationId(), memberId).stream()
+        var tests = testService.findTestsForMember(session.stationId(), memberId).stream()
                 .filter(t -> t.status() == TestStatus.ACTIVE)
                 .toList();
         var result = tests.stream()
                 .map(t -> {
-                    var attempt = quizService.findAttempt(t.id(), memberId).orElse(null);
+                    var attempt = attemptService.findAttempt(t.id(), memberId).orElse(null);
                     AttemptStatus attemptStatus = attempt != null ? attempt.status() : null;
                     Instant startedAt = attempt != null ? attempt.startedAt() : null;
                     Instant submittedAt = attempt != null ? attempt.submittedAt() : null;
@@ -159,7 +174,7 @@ public class QuizTestRoutes implements Routes {
         int id = pathInt(ctx, "id");
         var test = guards.requireOwnedTest(ctx, id);
         ctx.json(new TestDetail(
-                test, buildSectionDetails(id), quizService.findAttempts(id).size()));
+                test, buildSectionDetails(id), attemptService.findAttempts(id).size()));
     }
 
     private void createTest(Context ctx) {
@@ -167,7 +182,7 @@ public class QuizTestRoutes implements Routes {
         if (session.member() == null) throw new BadRequestResponse("Not a station member");
         var req = ctx.bodyAsClass(TestRequest.class);
         if (req.title() == null || req.title().isBlank()) throw new BadRequestResponse("title is required");
-        var test = quizService.createTest(
+        var test = testService.createTest(
                 session.stationId(),
                 req.title(),
                 req.description() != null ? req.description() : "",
@@ -182,7 +197,7 @@ public class QuizTestRoutes implements Routes {
         int id = pathInt(ctx, "id");
         guards.requireOwnedTest(ctx, id);
         var req = ctx.bodyAsClass(TestRequest.class);
-        if (!quizService.updateTest(
+        if (!testService.updateTest(
                 id,
                 req.title(),
                 req.description() != null ? req.description() : "",
@@ -193,7 +208,7 @@ public class QuizTestRoutes implements Routes {
                 req.endAt())) {
             throw new NotFoundResponse();
         }
-        quizService.findTest(id).ifPresentOrElse(ctx::json, () -> {
+        testService.findTest(id).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
         });
     }
@@ -201,7 +216,7 @@ public class QuizTestRoutes implements Routes {
     private void deleteTest(Context ctx) {
         int id = pathInt(ctx, "id");
         guards.requireOwnedTest(ctx, id);
-        if (quizService.deleteTest(id)) {
+        if (testService.deleteTest(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
             throw new NotFoundResponse();
@@ -212,8 +227,8 @@ public class QuizTestRoutes implements Routes {
         int id = pathInt(ctx, "id");
         var test = guards.requireOwnedTest(ctx, id);
         if (test.status() != TestStatus.DRAFT) throw new BadRequestResponse("Test is not in DRAFT status");
-        quizService.activateTest(id);
-        quizService.findTest(id).ifPresentOrElse(ctx::json, () -> {
+        testService.activateTest(id);
+        testService.findTest(id).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
         });
     }
@@ -221,8 +236,8 @@ public class QuizTestRoutes implements Routes {
     private void closeTest(Context ctx) {
         int id = pathInt(ctx, "id");
         guards.requireOwnedTest(ctx, id);
-        if (!quizService.closeTest(id)) throw new NotFoundResponse();
-        quizService.findTest(id).ifPresentOrElse(ctx::json, () -> {
+        if (!testService.closeTest(id)) throw new NotFoundResponse();
+        testService.findTest(id).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
         });
     }
@@ -231,7 +246,7 @@ public class QuizTestRoutes implements Routes {
         int testId = pathInt(ctx, "id");
         var test = guards.requireOwnedTest(ctx, testId);
         if (test.status() == TestStatus.ACTIVE) throw new BadRequestResponse("Cannot regenerate for active test");
-        quizService.generateFrozenQuestions(testId);
+        testService.generateFrozenQuestions(testId);
         ctx.json(buildFrozenQuestionResponse(testId));
     }
 
@@ -245,21 +260,21 @@ public class QuizTestRoutes implements Routes {
         var test = guards.requireModifiableTest(ctx);
         int position = pathInt(ctx, "position");
         var req = ctx.bodyAsClass(ReplaceQuestionRequest.class);
-        quizService.replaceFrozenQuestion(test.id(), position, req.questionId());
+        testService.replaceFrozenQuestion(test.id(), position, req.questionId());
         ctx.json(buildFrozenQuestionResponse(test.id()));
     }
 
     private void randomReplaceFrozenQuestion(Context ctx) {
         var test = guards.requireModifiableTest(ctx);
         int position = pathInt(ctx, "position");
-        quizService.replaceWithRandomQuestion(test.id(), position);
+        testService.replaceWithRandomQuestion(test.id(), position);
         ctx.json(buildFrozenQuestionResponse(test.id()));
     }
 
     private void listAvailableReplacements(Context ctx) {
         int testId = pathInt(ctx, "id");
         guards.requireOwnedTest(ctx, testId);
-        ctx.json(quizService.findAvailableReplacements(testId));
+        ctx.json(testService.findAvailableReplacements(testId));
     }
 
     private void listSections(Context ctx) {
@@ -283,14 +298,14 @@ public class QuizTestRoutes implements Routes {
                                         .toList()
                                 : List.of()))
                 .toList();
-        quizService.replaceSections(testId, entries);
-        ctx.json(quizService.findSections(testId));
+        testService.replaceSections(testId, entries);
+        ctx.json(testService.findSections(testId));
     }
 
     private void getRestrictions(Context ctx) {
         int id = pathInt(ctx, "id");
         guards.requireOwnedTest(ctx, id);
-        var restrictions = quizService.findRestrictions(id);
+        var restrictions = accessService.findRestrictions(id);
         ctx.json(new TestRestrictions(
                 restrictions.userTypes(),
                 restrictions.groupIds(),
@@ -303,11 +318,11 @@ public class QuizTestRoutes implements Routes {
         int id = pathInt(ctx, "id");
         guards.requireOwnedTest(ctx, id);
         var req = ctx.bodyAsClass(TestRestrictions.class);
-        quizService.setRestrictions(
+        accessService.setRestrictions(
                 id,
                 new RestrictionSelection(req.userTypes(), req.groupIds(), req.tagIds(), req.memberIds(), req.mode()));
         if (req.mode() != null) {
-            quizService.updateRestrictionMode(id, req.mode());
+            accessService.updateRestrictionMode(id, req.mode());
         }
         ctx.json(req);
     }
@@ -317,7 +332,7 @@ public class QuizTestRoutes implements Routes {
         guards.requireOwnedTest(ctx, testId);
         var req = ctx.bodyAsClass(AccessRequest.class);
         if (req.memberId() == null) throw new BadRequestResponse("memberId is required");
-        quizService.grantMemberAccess(testId, req.memberId(), req.closesAt());
+        accessService.grantMemberAccess(testId, req.memberId(), req.closesAt());
         ctx.json(new QuizSuccessResponse(true));
     }
 
@@ -325,7 +340,7 @@ public class QuizTestRoutes implements Routes {
         int testId = pathInt(ctx, "testId");
         int memberId = pathInt(ctx, "memberId");
         guards.requireOwnedTest(ctx, testId);
-        quizService.revokeMemberAccess(testId, memberId);
+        accessService.revokeMemberAccess(testId, memberId);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -361,19 +376,19 @@ public class QuizTestRoutes implements Routes {
      * Builds the section detail responses for a test, loading each section's sources.
      */
     private List<SectionDetail> buildSectionDetails(int testId) {
-        return quizService.findSections(testId).stream()
+        return testService.findSections(testId).stream()
                 .map(s -> {
-                    var sources = quizService.findSources(s.id());
+                    var sources = testService.findSources(s.id());
                     return new SectionDetail(s.id(), s.testId(), s.title(), s.description(), s.position(), sources);
                 })
                 .toList();
     }
 
     private List<FrozenQuestionDetail> buildFrozenQuestionResponse(int testId) {
-        var frozen = quizService.findFrozenQuestions(testId);
+        var frozen = testService.findFrozenQuestions(testId);
         return frozen.stream()
                 .map(fq -> {
-                    var question = quizService.findQuestion(fq.questionId()).orElse(null);
+                    var question = questionService.findQuestion(fq.questionId()).orElse(null);
                     return new FrozenQuestionDetail(fq.position(), fq.sectionId(), question);
                 })
                 .toList();
