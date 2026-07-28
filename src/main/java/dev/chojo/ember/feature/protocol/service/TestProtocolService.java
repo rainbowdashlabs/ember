@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.federation.entity.ContentType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.service.FederationDisplayNames;
 import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
 import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
@@ -364,6 +365,29 @@ public class TestProtocolService {
                 partner -> browseSharedProtocolsViaHttp(stationId, partner, resolvePartnerStationId(partner)));
     }
 
+    /**
+     * Lists the protocols federation partners share with the given station, with the owning
+     * partner station's display name already resolved.
+     *
+     * @param stationId the station browsing shared protocols
+     * @return the shared protocols with a display name per entry
+     */
+    public List<SharedProtocolView> browseSharedProtocolViews(int stationId) {
+        return browseSharedProtocols(stationId).stream()
+                .map(item -> {
+                    var partner = federationRepository
+                            .findPartnerById(item.partnerId())
+                            .orElse(null);
+                    return new SharedProtocolView(
+                            item.id(),
+                            item.name(),
+                            item.description(),
+                            FederationDisplayNames.partnerName(stationRepository, partner, "Unknown"),
+                            item.sourceStationId());
+                })
+                .toList();
+    }
+
     public FederatedProtocolDetail getFederatedProtocol(int localStationId, UUID partnerStationUid, int protocolId) {
         return entityResolver.resolve(
                 localStationId,
@@ -499,6 +523,12 @@ public class TestProtocolService {
     // -- Federation HTTP convenience methods --
 
     public record SharedProtocolItem(int id, String name, String description, int sourceStationId, int partnerId) {}
+
+    /**
+     * A shared protocol as shown to users, carrying the owning partner station's display name.
+     */
+    public record SharedProtocolView(
+            int id, String name, String description, String stationName, int sourceStationId) {}
 
     public record RemoteProtocol(int id, String name, String description) {}
 }

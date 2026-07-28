@@ -5,15 +5,11 @@
  */
 package dev.chojo.ember.feature.protocol.route;
 
-import dev.chojo.ember.api.FederationSession;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
-import dev.chojo.ember.feature.federation.entity.FederationPartner;
-import dev.chojo.ember.feature.federation.repository.FederationRepository;
-import dev.chojo.ember.feature.federation.service.FederationDisplayNames;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
@@ -25,10 +21,9 @@ import dev.chojo.ember.feature.protocol.entity.TestProtocolRunMember;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolSection;
 import dev.chojo.ember.feature.protocol.service.TestProtocolPdfService;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
-import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.protocol.service.TestProtocolService.SharedProtocolView;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.InternalServerErrorResponse;
 import io.javalin.http.NotFoundResponse;
@@ -49,8 +44,11 @@ import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-import static dev.chojo.ember.api.RouteSupport.pathUuid;
-
+/**
+ * HTTP route definitions for test protocols owned by the current station. The federated consumer
+ * endpoints live in {@link FederatedTestProtocolRoutes}, the server-to-server endpoints in
+ * {@link RemoteTestProtocolRoutes}.
+ */
 @Singleton
 public class TestProtocolRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(TestProtocolRoutes.class);
@@ -61,8 +59,6 @@ public class TestProtocolRoutes implements Routes {
     private final MemberGroupRepository memberGroupRepository;
     private final UserTagRepository userTagRepository;
     private final AccountRepository accountRepository;
-    private final FederationRepository federationRepository;
-    private final StationRepository stationRepository;
 
     @Inject
     public TestProtocolRoutes(
@@ -71,48 +67,38 @@ public class TestProtocolRoutes implements Routes {
             StationMemberRepository stationMemberRepository,
             MemberGroupRepository memberGroupRepository,
             UserTagRepository userTagRepository,
-            AccountRepository accountRepository,
-            FederationRepository federationRepository,
-            StationRepository stationRepository) {
+            AccountRepository accountRepository) {
         this.service = service;
         this.pdfService = pdfService;
         this.stationMemberRepository = stationMemberRepository;
         this.memberGroupRepository = memberGroupRepository;
         this.userTagRepository = userTagRepository;
         this.accountRepository = accountRepository;
-        this.federationRepository = federationRepository;
-        this.stationRepository = stationRepository;
     }
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        // Protocol list (static paths first, before {id} params)
         routes.get(prefix + "/protocols", this::listProtocols, StationPermission.PROTOCOL_TESTER);
         routes.post(prefix + "/protocols", this::createProtocol, StationPermission.PROTOCOL_CONFIGURE);
 
-        // Runs (static "runs" path must be registered before "/protocols/{id}")
         routes.get(prefix + "/protocols/runs", this::listRuns, StationPermission.PROTOCOL_TESTER);
         routes.get(prefix + "/protocols/runs/{id}", this::getRun, StationPermission.PROTOCOL_TESTER);
         routes.put(prefix + "/protocols/runs/{id}", this::updateRun, StationPermission.PROTOCOL_CREATE);
         routes.delete(prefix + "/protocols/runs/{id}", this::deleteRun, StationPermission.PROTOCOL_MANAGER);
         routes.post(prefix + "/protocols/runs/{id}/close", this::closeRun, StationPermission.PROTOCOL_CREATE);
 
-        // Sections (static "sections" path before {id})
         routes.put(prefix + "/protocols/sections/{id}", this::updateSection, StationPermission.PROTOCOL_CONFIGURE);
         routes.delete(prefix + "/protocols/sections/{id}", this::deleteSection, StationPermission.PROTOCOL_CONFIGURE);
 
-        // Items (static "items" path before {id})
         routes.put(prefix + "/protocols/items/{id}", this::updateItem, StationPermission.PROTOCOL_CONFIGURE);
         routes.delete(prefix + "/protocols/items/{id}", this::deleteItem, StationPermission.PROTOCOL_CONFIGURE);
 
-        // Protocol CRUD with {id} param (after all static sub-paths)
         routes.get(prefix + "/protocols/{id}", this::getProtocol, StationPermission.PROTOCOL_TESTER);
         routes.put(prefix + "/protocols/{id}", this::updateProtocol, StationPermission.PROTOCOL_CONFIGURE);
         routes.delete(prefix + "/protocols/{id}", this::deleteProtocol, StationPermission.PROTOCOL_CONFIGURE);
         routes.post(prefix + "/protocols/{id}/sections", this::createSection, StationPermission.PROTOCOL_CONFIGURE);
         routes.post(prefix + "/protocols/{id}/runs", this::createRun, StationPermission.PROTOCOL_CREATE);
 
-        // Section items (needs section {id})
         routes.post(prefix + "/protocols/sections/{id}/items", this::createItem, StationPermission.PROTOCOL_CONFIGURE);
         routes.get(
                 prefix + "/protocols/runs/{runId}/members/{memberId}/export",
@@ -125,7 +111,6 @@ public class TestProtocolRoutes implements Routes {
                 StationPermission.PROTOCOL_TESTER);
         routes.get(prefix + "/protocols/runs/{id}/export-all", this::exportAllZip, StationPermission.PROTOCOL_TESTER);
 
-        // Grading
         routes.post(
                 prefix + "/protocols/runs/{runId}/members/{memberId}/lock",
                 this::lockMember,
@@ -154,44 +139,12 @@ public class TestProtocolRoutes implements Routes {
                 prefix + "/protocols/runs/{runId}/members/{memberId}/sections/{sectionId}/toggle-done",
                 this::toggleSectionDone,
                 StationPermission.PROTOCOL_TESTER);
-
-        // Federated (user-facing, bearer token auth)
-        routes.get(prefix + "/federated/protocols", this::federatedBrowseProtocols, StationPermission.USER);
-        routes.get(
-                prefix + "/federated/{stationuid}/protocols/{id}",
-                this::federatedGetProtocol,
-                StationPermission.PROTOCOL_MANAGER);
-        routes.post(
-                prefix + "/federated/protocols/{id}/copy",
-                this::federatedCopyProtocol,
-                StationPermission.PROTOCOL_MANAGER);
-        routes.post(
-                prefix + "/federated/{stationuid}/protocols/{id}/copy",
-                this::federatedCopyProtocol,
-                StationPermission.PROTOCOL_MANAGER);
-
-        // Remote (server-to-server, RSA signature auth)
-        routes.get(prefix + "/remote/protocols", this::remoteBrowseProtocols);
-        routes.get(prefix + "/remote/protocols/{id}", this::remoteGetProtocol);
     }
-
-    // -- Protocol CRUD --
 
     private void listProtocols(Context ctx) {
         var session = UserSession.from(ctx);
         var protocols = service.findProtocols(session.stationId());
-        var sharedItems = service.browseSharedProtocols(session.stationId());
-        var shared = sharedItems.stream()
-                .map(item -> {
-                    var partner = federationRepository
-                            .findPartnerById(item.partnerId())
-                            .orElse(null);
-                    String stationName = FederationDisplayNames.partnerName(stationRepository, partner, "Unknown");
-                    return new SharedProtocolItem(
-                            item.id(), item.name(), item.description(), stationName, item.sourceStationId());
-                })
-                .toList();
-        ctx.json(new ProtocolListResponse(protocols, shared));
+        ctx.json(new ProtocolListResponse(protocols, service.browseSharedProtocolViews(session.stationId())));
     }
 
     private void createProtocol(Context ctx) {
@@ -257,8 +210,6 @@ public class TestProtocolRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    // -- Sections --
-
     private void deleteSection(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         service.deleteSection(id);
@@ -289,8 +240,6 @@ public class TestProtocolRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
-    // -- Items --
-
     private void deleteItem(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         service.deleteItem(id);
@@ -313,7 +262,6 @@ public class TestProtocolRoutes implements Routes {
                 req.name(),
                 req.testDate() != null ? req.testDate() : LocalDate.now(),
                 session.member().id());
-        // Collect members from all sources, deduplicated
         var resolvedIds = new LinkedHashSet<Integer>();
         if (req.memberIds() != null) {
             resolvedIds.addAll(req.memberIds());
@@ -340,8 +288,6 @@ public class TestProtocolRoutes implements Routes {
         }
         ctx.status(HttpStatus.CREATED).json(run);
     }
-
-    // -- Runs --
 
     private void getRun(Context ctx) {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
@@ -392,8 +338,6 @@ public class TestProtocolRoutes implements Routes {
         ctx.json(service.findRunMember(runId, memberId).orElseThrow());
     }
 
-    // -- Grading --
-
     private void getChecks(Context ctx) {
         int runId = ctx.pathParamAsClass("runId", Integer.class).get();
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
@@ -441,7 +385,6 @@ public class TestProtocolRoutes implements Routes {
         var allItems = service.findAllItemsByProtocol(run.protocolId());
         var members = service.findRunMembers(id);
 
-        // Build per-section scores per member
         var itemsBySectionId = allItems.stream().collect(Collectors.groupingBy(TestProtocolItem::sectionId));
 
         var memberScores = new ArrayList<EvalMemberData>();
@@ -464,7 +407,6 @@ public class TestProtocolRoutes implements Routes {
             memberScores.add(new EvalMemberData(rm.memberId(), rm.totalScore(), sectionScores));
         }
 
-        // Section max points
         var sectionMaxPoints = new HashMap<Integer, Double>();
         for (var section : sections) {
             var sItems = itemsBySectionId.getOrDefault(section.id(), List.of());
@@ -486,13 +428,11 @@ public class TestProtocolRoutes implements Routes {
             var baos = new ByteArrayOutputStream();
             var zos = new ZipOutputStream(baos);
 
-            // Table PDF
             byte[] tablePdf = pdfService.exportEvaluationTable(id, proto.name(), run.testDate());
             zos.putNextEntry(new ZipEntry("Auswertung.pdf"));
             zos.write(tablePdf);
             zos.closeEntry();
 
-            // Per-member PDFs
             for (var rm : members) {
                 String memberName = resolveMemberNameForFile(rm.memberId());
                 byte[] pdf = pdfService.exportRunMember(id, rm.memberId(), proto.name(), run.testDate());
@@ -556,75 +496,7 @@ public class TestProtocolRoutes implements Routes {
         ctx.result(pdf);
     }
 
-    private void federatedBrowseProtocols(Context ctx) {
-        var session = UserSession.from(ctx);
-        var items = service.browseSharedProtocols(session.stationId());
-        ctx.json(items.stream()
-                .map(i -> {
-                    var partner =
-                            federationRepository.findPartnerById(i.partnerId()).orElse(null);
-                    String stationName = FederationDisplayNames.partnerName(stationRepository, partner, "Unknown");
-                    return new SharedProtocolItem(i.id(), i.name(), i.description(), stationName, i.sourceStationId());
-                })
-                .toList());
-    }
-
-    private void federatedGetProtocol(Context ctx) {
-        var session = UserSession.from(ctx);
-        var stationUid = pathUuid(ctx, "stationuid");
-        int protocolId = ctx.pathParamAsClass("id", Integer.class).get();
-        ctx.json(service.getFederatedProtocol(session.stationId(), stationUid, protocolId));
-    }
-
-    // -- Records --
-
-    private void federatedCopyProtocol(Context ctx) {
-        var session = UserSession.from(ctx);
-        int protocolId = ctx.pathParamAsClass("id", Integer.class).get();
-        var copied = service.copyProtocol(protocolId, session.stationId());
-        ctx.status(HttpStatus.CREATED).json(copied);
-    }
-
-    private void remoteBrowseProtocols(Context ctx) {
-        var partner = requireFederationPartner(ctx);
-        var shares = federationRepository.findProtocolShares(partner.stationId());
-        var result = shares.stream()
-                .filter(s -> s.protocolId() != null)
-                .flatMap(s -> service.findProtocol(s.protocolId()).stream())
-                .filter(proto -> proto.stationId() == partner.stationId())
-                .map(proto -> new RemoteProtocolSummary(
-                        proto.id(),
-                        proto.name(),
-                        proto.description(),
-                        proto.updatedAt().toString()))
-                .toList();
-        ctx.json(result);
-    }
-
-    private void remoteGetProtocol(Context ctx) {
-        var partner = requireFederationPartner(ctx);
-        int protocolId = ctx.pathParamAsClass("id", Integer.class).get();
-        var protocol = service.findProtocol(protocolId).orElseThrow(NotFoundResponse::new);
-        if (protocol.stationId() != partner.stationId()) {
-            throw new ForbiddenResponse("Protocol not shared with this partner");
-        }
-        var sections = service.findSections(protocolId);
-        var items = service.findAllItemsByProtocol(protocolId);
-        ctx.json(new RemoteProtocolDetail(protocol, sections, items));
-    }
-
-    private FederationPartner requireFederationPartner(Context ctx) {
-        var session = FederationSession.from(ctx);
-        if (session == null) {
-            throw new ForbiddenResponse("Missing or invalid federation signature");
-        }
-        return session.partner();
-    }
-
-    private record ProtocolListResponse(List<TestProtocol> protocols, List<SharedProtocolItem> shared) {}
-
-    private record SharedProtocolItem(
-            int id, String name, String description, String stationName, int sourceStationId) {}
+    private record ProtocolListResponse(List<TestProtocol> protocols, List<SharedProtocolView> shared) {}
 
     public record ProtocolRequest(String name, String description, Integer passThreshold) {}
 
@@ -651,15 +523,11 @@ public class TestProtocolRoutes implements Routes {
     public record ProtocolDetailResponse(
             TestProtocol protocol, List<TestProtocolSection> sections, List<TestProtocolItem> items) {}
 
-    // -- Federated endpoints (user-facing, aggregates from partners) --
-
     public record RunMemberWithProgress(TestProtocolRunMember member, int sectionsDone, int sectionsTotal) {}
 
     public record RunDetailResponse(TestProtocolRun run, List<RunMemberWithProgress> members) {}
 
     public record EvalMemberData(int memberId, Double totalScore, Map<Integer, Double> sectionScores) {}
-
-    // -- Remote endpoints (server-to-server, RSA signature auth) --
 
     public record EvaluationResponse(
             String protocolName,
@@ -668,11 +536,4 @@ public class TestProtocolRoutes implements Routes {
             Map<Integer, Double> sectionMaxPoints,
             List<EvalMemberData> members,
             Integer passThreshold) {}
-
-    private record RemoteProtocolSummary(int id, String name, String description, String updatedAt) {}
-
-    // -- Federation helpers --
-
-    private record RemoteProtocolDetail(
-            TestProtocol protocol, List<TestProtocolSection> sections, List<TestProtocolItem> items) {}
 }

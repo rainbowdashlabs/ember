@@ -387,6 +387,22 @@ class TestProtocolServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(202)
+    void browseSharedProtocolViewsResolvesStationName() {
+        var fedProto = testProtocolRepo.createProtocol(stationB.id(), "ViewProtocol", "view desc", 70);
+        federationRepo.createProtocolShare(stationB.id(), fedProto.id(), ShareScope.ALL_PARTNERS);
+        var views = service.browseSharedProtocolViews(station.id());
+        var view = views.stream()
+                .filter(v -> v.name().equals("ViewProtocol"))
+                .findFirst()
+                .orElseThrow();
+        assertEquals("view desc", view.description());
+        assertNotNull(view.stationName());
+        assertFalse(view.stationName().isBlank());
+        testProtocolRepo.deleteProtocol(fedProto.id());
+    }
+
+    @Test
     @Order(210)
     void getFederatedProtocolLocal() {
         var fedProto = testProtocolRepo.createProtocol(stationB.id(), "FedDetailProto", "detail desc", 80);
