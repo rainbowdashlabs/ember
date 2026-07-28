@@ -8,14 +8,7 @@ import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import {FieldType, defaultFieldConfig} from '@/api/inventoryFields'
-import type {
-    BooleanFieldConfig,
-    EnumFieldConfig,
-    FieldTypeName,
-    NumberFieldConfig,
-    TextFieldConfig,
-} from '@/api/inventoryFields'
+import {defaultFieldConfig, FieldType, type BooleanFieldConfig, type EnumFieldConfig, type FieldTypeName, type NumberFieldConfig, type TextFieldConfig} from '@/api/inventoryFields'
 import type {DraftField} from './types'
 import FieldDraftMetaForm from './FieldDraftMetaForm.vue'
 import TextFieldConfigForm from './TextFieldConfigForm.vue'

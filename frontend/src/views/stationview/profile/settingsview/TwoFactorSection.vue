@@ -6,8 +6,7 @@
 <script lang="ts" setup>
 import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import type {TwoFactorStatus, TotpBeginResponse} from '@/api/twoFactor'
-import {getTwoFactorStatus, beginTotpSetup, confirmTotpSetup, removeTotp, regenerateBackupCodes} from '@/api/twoFactor'
+import {beginTotpSetup, confirmTotpSetup, getTwoFactorStatus, regenerateBackupCodes, removeTotp, type TotpBeginResponse, type TwoFactorStatus} from '@/api/twoFactor'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'

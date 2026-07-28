@@ -5,7 +5,7 @@
  */
 <script setup lang="ts">
 import { ref, onBeforeUnmount, watch, nextTick, onMounted } from 'vue'
-import { useEditor, EditorContent } from '@tiptap/vue-3'
+import {EditorContent, useEditor, VueNodeViewRenderer} from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
 import Link from '@tiptap/extension-link'
@@ -19,7 +19,6 @@ import { Youtube } from '@tiptap/extension-youtube'
 import Image from '@tiptap/extension-image'
 import { Color } from '@tiptap/extension-color'
 import { TextStyle } from '@tiptap/extension-text-style'
-import { VueNodeViewRenderer } from '@tiptap/vue-3'
 import TurndownService from 'turndown'
 import { marked } from 'marked'
 import { uploadKbImage, kbImageUrl } from '@/api/knowledgeBase'

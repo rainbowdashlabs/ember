@@ -14,8 +14,7 @@ import AuthImage from '@/components/display/AuthImage.vue'
 import AuthIframe from '@/components/display/AuthIframe.vue'
 import KbMarkdownView from './KbMarkdownView.vue'
 import KbPresentationContent from './KbPresentationContent.vue'
-import type {KbFile} from '@/api/knowledgeBase'
-import {KbFileType} from '@/api/knowledgeBase'
+import {KbFileType, type KbFile} from '@/api/knowledgeBase'
 import {downloadAuthed} from '@/util/downloadAuthed'
 
 const props = defineProps<{

@@ -14,9 +14,8 @@ import EventCancelModal from './EventCancelModal.vue'
 import EventRegistrationsTab from './EventRegistrationsTab.vue'
 import EventDetailHeader from './EventDetailHeader.vue'
 import EventInfoTab from './EventInfoTab.vue'
-import type {EventField, StationEvent} from '@/api/events'
+import type {AbsentMember, EventField, StationEvent} from '@/api/events'
 import type {StationMember} from '@/api/types'
-import type {AbsentMember} from '@/api/events'
 import {formatDateTime} from '@/util/format'
 
 const props = defineProps<{

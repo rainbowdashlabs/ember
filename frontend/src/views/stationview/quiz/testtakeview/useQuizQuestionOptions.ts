@@ -4,8 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import { computed, ref, type Ref } from 'vue'
-import type { QuizQuestion, QuizTestAttemptQuestion } from '@/api/quiz'
-import { QuizQuestionTypes } from '@/api/quiz'
+import {QuizQuestionTypes, type QuizQuestion, type QuizTestAttemptQuestion} from '@/api/quiz'
 import { shuffle } from '@/util/shuffle'
 
 /**

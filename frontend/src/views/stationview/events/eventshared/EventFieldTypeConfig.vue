@@ -11,8 +11,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import {EventFieldTypes} from '@/api/events'
-import {StationUserType, StationUserTypeLabels, type StationUserTypeName} from '@/api/types'
-import type {MemberGroup, UserTag} from '@/api/types'
+import {StationUserType, StationUserTypeLabels, type MemberGroup, type StationUserTypeName, type UserTag} from '@/api/types'
 import {fieldConstraint, isMemberFieldType} from './eventFieldConfig'
 
 const props = defineProps<{

@@ -15,9 +15,8 @@ import EventFieldValueInput from './EventFieldValueInput.vue'
 import EventFieldTypeConfig from './EventFieldTypeConfig.vue'
 import {fieldConstraint, isMemberFieldType} from './eventFieldConfig'
 import type {AttendanceTemplateField} from '@/api/attendance'
-import type {EventFieldEntry} from '@/api/events'
+import {EventFieldTypes, type EventFieldEntry} from '@/api/events'
 import type {MemberGroup, StationMember, UserTag} from '@/api/types'
-import {EventFieldTypes} from '@/api/events'
 
 const modelValue = defineModel<EventFieldEntry>({required: true})
 

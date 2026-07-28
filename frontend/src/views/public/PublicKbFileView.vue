@@ -4,18 +4,16 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref, computed, inject} from 'vue'
+import {computed, inject, ref, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter, useRoute} from 'vue-router'
-import type {Ref} from 'vue'
 import type {PublicStationInfo as DiscoveryStationInfo} from '@/api/discovery'
 import Spinner from '@/components/feedback/Spinner.vue'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import * as publicKb from '@/api/publicKb'
 import type {PublicStationInfo} from '@/api/publicKb'
-import type {KbFile} from '@/api/knowledgeBase'
-import {KbFileType} from '@/api/knowledgeBase'
+import {KbFileType, type KbFile} from '@/api/knowledgeBase'
 import KbFileHeader from '@/views/public/publickbfileview/KbFileHeader.vue'
 import KbFileRenderer from '@/views/public/publickbfileview/KbFileRenderer.vue'
 import {youtubeEmbedUrl as toYoutubeEmbedUrl} from '@/util/youtube'

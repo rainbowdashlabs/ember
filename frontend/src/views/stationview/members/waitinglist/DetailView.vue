@@ -19,9 +19,8 @@ import type {
   WaitingListField,
   WaitingListInvite,
 } from '@/api/waitingList'
-import type {MemberGroup} from '@/api/types'
+import {StationPermission, type MemberGroup} from '@/api/types'
 import { waitingList, memberGroups } from '@/api'
-import { StationPermission } from '@/api/types'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'
 import { useSession } from '@/composables/useSession'

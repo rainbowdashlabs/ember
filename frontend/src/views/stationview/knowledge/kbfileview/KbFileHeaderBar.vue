@@ -9,8 +9,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
-import type {KbFile} from '@/api/knowledgeBase'
-import {KbFileType} from '@/api/knowledgeBase'
+import {KbFileType, type KbFile} from '@/api/knowledgeBase'
 
 defineProps<{
     file: KbFile

@@ -11,8 +11,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
-import { TicketPriority } from '@/api/boards'
-import type { BoardLane, TicketPriorityName } from '@/api/boards'
+import {TicketPriority, type BoardLane, type TicketPriorityName} from '@/api/boards'
 import type { MemberCompletion } from '@/api/stationMembers'
 
 const title = defineModel<string>('title', { required: true })

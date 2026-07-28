@@ -18,9 +18,8 @@ import RestrictionsField from '@/components/input/RestrictionsField.vue'
 import type {RestrictionSelection} from '@/components/input/restriction'
 import EventFieldList from './EventFieldList.vue'
 import type {AttendanceTemplate, AttendanceTemplateField} from '@/api/attendance'
-import type {EventCategory, EventFieldEntry} from '@/api/events'
+import {EventTypes, needsDayOfWeek, type EventCategory, type EventFieldEntry} from '@/api/events'
 import type {MemberGroup, StationMember, UserTag} from '@/api/types'
-import {EventTypes, needsDayOfWeek} from '@/api/events'
 
 defineProps<{
   categories: EventCategory[]

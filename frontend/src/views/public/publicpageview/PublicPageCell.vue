@@ -6,8 +6,7 @@
 <script setup lang="ts">
 import {computed} from 'vue'
 import {marked} from 'marked'
-import type {PageCell, ImageConfig, LayoutKindName} from '@/api/pageManage'
-import {CellContentType, isLayoutKind} from '@/api/pageManage'
+import {CellContentType, isLayoutKind, type ImageConfig, type LayoutKindName, type PageCell} from '@/api/pageManage'
 import {publicPageImageUrl} from '@/api/publicPages'
 import CellLayoutRender from '@/views/stationview/pages/pageeditorview/CellLayoutRender.vue'
 import CellImagePreview from '@/views/stationview/pages/pageeditorview/CellImagePreview.vue'

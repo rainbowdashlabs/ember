@@ -10,8 +10,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
-import { LinkType } from '@/api/boards'
-import type { LinkTypeName } from '@/api/boards'
+import {LinkType, type LinkTypeName} from '@/api/boards'
 
 export interface DraftLink { key: number; linkedTicketId: number; linkType: LinkTypeName }
 

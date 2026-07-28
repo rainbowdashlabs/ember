@@ -15,9 +15,7 @@ import FederatedBoardHeader from '@/views/stationview/federation/federatedboardv
 import FederatedBoardLane from '@/views/stationview/federation/federatedboardview/FederatedBoardLane.vue'
 import FederatedBoardCreateTicketModal
   from '@/views/stationview/federation/federatedboardview/FederatedBoardCreateTicketModal.vue'
-import type {BoardLane, BoardTicket, BoardLabel} from '@/api/boards'
-import {TicketPriority} from '@/api/boards'
-import type {TicketPriorityName} from '@/api/boards'
+import {TicketPriority, type BoardLabel, type BoardLane, type BoardTicket, type TicketPriorityName} from '@/api/boards'
 import {priorityIcon, priorityColor} from '@/util/ticketPriority'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'

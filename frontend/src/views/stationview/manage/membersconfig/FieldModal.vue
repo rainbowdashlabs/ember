@@ -15,8 +15,7 @@ import DefaultValueSection from './fieldmodal/DefaultValueSection.vue'
 import BehaviorToggles from './fieldmodal/BehaviorToggles.vue'
 import PositionField from './fieldmodal/PositionField.vue'
 import ModalActions from './fieldmodal/ModalActions.vue'
-import type {ProfileField} from '@/api/profileFields'
-import {FieldTypes, parseFieldConfig} from '@/api/profileFields'
+import {FieldTypes, parseFieldConfig, type ProfileField} from '@/api/profileFields'
 
 const {t} = useI18n()
 

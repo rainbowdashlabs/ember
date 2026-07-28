@@ -6,9 +6,8 @@
 import {ref, type Ref} from 'vue'
 import {attendance, events, memberGroups as memberGroupsApi, stationMembers, userTags as userTagsApi} from '@/api'
 import type { AttendanceTemplate } from '@/api/attendance'
-import type { EventCategory } from '@/api/events'
+import type {EventCategory, RegistrationCount} from '@/api/events'
 import type { MemberGroup, StationMember, UserTag } from '@/api/types'
-import type {RegistrationCount} from '@/api/events'
 import {useAsyncLoader} from './useAsyncLoader'
 
 export interface UseEventEditDepsOptions {

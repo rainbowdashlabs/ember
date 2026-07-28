@@ -12,8 +12,7 @@ import VChart from 'vue-echarts'
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type { FormQuestionAnalytics } from '@/api/forms'
-import { QuestionTypes } from '@/api/forms'
+import {QuestionTypes, type FormQuestionAnalytics} from '@/api/forms'
 
 use([CanvasRenderer, BarChart, PieChart, TitleComponent, TooltipComponent, LegendComponent, GridComponent])
 

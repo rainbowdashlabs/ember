@@ -4,8 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import type {BoardTicket} from '@/api/boards'
-import type {TicketPriorityName} from '@/api/boards'
+import type {BoardTicket, TicketPriorityName} from '@/api/boards'
 
 const props = defineProps<{
   results: BoardTicket[]

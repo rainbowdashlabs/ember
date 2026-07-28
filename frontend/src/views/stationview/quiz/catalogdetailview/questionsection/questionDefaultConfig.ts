@@ -3,8 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type { QuizQuestionTypeName } from '@/api/quiz'
-import { QuizQuestionTypes } from '@/api/quiz'
+import {QuizQuestionTypes, type QuizQuestionTypeName} from '@/api/quiz'
 
 /**
  * Builds the empty editor config a question of the given type starts from, so

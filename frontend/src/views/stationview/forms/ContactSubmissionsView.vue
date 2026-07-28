@@ -11,10 +11,8 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import SubmissionList from './contactsubmissionsview/SubmissionList.vue'
-import type {Form, FormResponse, FormAnswer, FormQuestion} from '@/api/forms'
-import {QuestionTypes} from '@/api/forms'
+import {acknowledgeContactResponse, FormAnalyticsBase, QuestionTypes, type Form, type FormAnswer, type FormQuestion, type FormResponse} from '@/api/forms'
 import {forms} from '@/api'
-import {FormAnalyticsBase, acknowledgeContactResponse} from '@/api/forms'
 import {formatDateTime} from '@/util/format'
 
 /**

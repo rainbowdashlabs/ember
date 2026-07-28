@@ -7,16 +7,7 @@
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {dataTracking} from '@/api'
-import type {
-  ColumnEntry,
-  DeletionStrategy,
-  GdprDeletionContext,
-  GdprExportContext,
-  TableEntry,
-  TrackingStatusName,
-  TransferContext,
-} from '@/api/dataTracking'
-import {TrackingStatus} from '@/api/dataTracking'
+import {TrackingStatus, type ColumnEntry, type DeletionStrategy, type GdprDeletionContext, type GdprExportContext, type TableEntry, type TrackingStatusName, type TransferContext} from '@/api/dataTracking'
 import TableDetailHeader from './TableDetailHeader.vue'
 import TableDetailBody from './TableDetailBody.vue'
 

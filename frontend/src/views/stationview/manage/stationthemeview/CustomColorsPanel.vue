@@ -14,8 +14,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import ColorFieldGrid from './ColorFieldGrid.vue'
-import {THEMES} from '@/theme/themes'
-import type {ModeColors, ThemeColors} from '@/theme/themes'
+import {THEMES, type ModeColors, type ThemeColors} from '@/theme/themes'
 
 const enabled = defineModel<boolean>('enabled', {required: true})
 const colors = defineModel<ThemeColors>('colors', {required: true})

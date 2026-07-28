@@ -18,11 +18,9 @@ import ChartsTab from '@/views/stationview/forms/analyticsview/ChartsTab.vue'
 import IndividualResponseTab from '@/views/stationview/forms/analyticsview/IndividualResponseTab.vue'
 import ExportModal from '@/views/stationview/forms/analyticsview/ExportModal.vue'
 import MissingResponsesPanel from '@/views/stationview/forms/analyticsview/MissingResponsesPanel.vue'
-import type { Form, FormAnalytics, FormResponse, FormAnswer } from '@/api/forms'
+import {FormAnalyticsBase, QuestionTypes, type Form, type FormAnalytics, type FormAnalyticsBaseName, type FormAnswer, type FormResponse} from '@/api/forms'
 import type { ProfileField } from '@/api/profileFields'
-import { QuestionTypes } from '@/api/forms'
 import { forms, profileFields, stationMembers } from '@/api'
-import { FormAnalyticsBase, type FormAnalyticsBaseName } from '@/api/forms'
 import { downloadExport, type ExportColumn } from '@/composables/useExport'
 
 const { t } = useI18n()

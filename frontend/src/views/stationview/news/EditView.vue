@@ -14,7 +14,7 @@ import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import type { MemberGroup, UserTag } from '@/api/types'
+import {StationPermission, type MemberGroup, type UserTag} from '@/api/types'
 import type { PartnerResponse } from '@/api/federation'
 import { news, memberGroups, userTags, federation } from '@/api'
 import ContentPanel from './editview/ContentPanel.vue'
@@ -26,7 +26,6 @@ import { useSession } from '@/composables/useSession'
 const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
-import { StationPermission } from '@/api/types'
 const { loaded, hasPermission } = useSession()
 const canFederateNews = () => hasPermission(StationPermission.NEWS_FEDERATE)
 

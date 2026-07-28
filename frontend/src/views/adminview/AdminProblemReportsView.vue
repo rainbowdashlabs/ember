@@ -11,8 +11,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import ReportCard from './adminproblemreportsview/ReportCard.vue'
-import type {ProblemReport} from '@/api/problemReports'
-import {listReports, acknowledgeReport, acknowledgeAllReports, deleteReport} from '@/api/problemReports'
+import {acknowledgeAllReports, acknowledgeReport, deleteReport, listReports, type ProblemReport} from '@/api/problemReports'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 
 const {t} = useI18n()

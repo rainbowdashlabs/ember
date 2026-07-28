@@ -4,17 +4,15 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref, inject} from 'vue'
+import {computed, inject, onMounted, ref, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute} from 'vue-router'
-import type {Ref} from 'vue'
 import type {PublicStationInfo} from '@/api/discovery'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PublicEventList from './publicstationcalendarview/PublicEventList.vue'
-import type {PublicEvent} from '@/api/publicEvents'
-import {getIcalFeedUrl, getIcalSubscribeUrl, listPublicEvents} from '@/api/publicEvents'
+import {getIcalFeedUrl, getIcalSubscribeUrl, listPublicEvents, type PublicEvent} from '@/api/publicEvents'
 
 const {t} = useI18n()
 const route = useRoute()

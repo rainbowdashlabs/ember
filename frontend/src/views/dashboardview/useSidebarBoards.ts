@@ -4,8 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {readonly, ref} from 'vue'
-import type {Board} from '@/api/boards'
-import {listBoards} from '@/api/boards'
+import {listBoards, type Board} from '@/api/boards'
 
 const boards = ref<Board[]>([])
 

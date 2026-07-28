@@ -17,10 +17,8 @@ import CategorySelect from './eventmodal/CategorySelect.vue'
 import RegistrationFields from './eventmodal/RegistrationFields.vue'
 import RestrictionsFields from './eventmodal/RestrictionsFields.vue'
 import type { AttendanceTemplate, AttendanceTemplateField } from '@/api/attendance'
-import type { StationEvent, EventCategory } from '@/api/events'
+import {EventTypes, type EventCategory, type EventFieldDefault, type StationEvent} from '@/api/events'
 import type { MemberGroup, UserTag } from '@/api/types'
-import { EventTypes } from '@/api/events'
-import type { EventFieldDefault } from '@/api/events'
 import { type RestrictionSelection, emptyRestriction } from '@/components/input/restriction'
 
 const { t } = useI18n()

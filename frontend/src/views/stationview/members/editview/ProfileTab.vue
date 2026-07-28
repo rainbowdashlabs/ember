@@ -18,9 +18,8 @@ import DataTable from '@/components/table/DataTable.vue'
 import Th from '@/components/table/Th.vue'
 import Td from '@/components/table/Td.vue'
 import TRow from '@/components/table/TRow.vue'
-import type {ProfileField} from '@/api/profileFields'
+import {parseFieldConfig, type ProfileField} from '@/api/profileFields'
 import type {StationMember} from '@/api/types'
-import {parseFieldConfig} from '@/api/profileFields'
 import {profileFields, members, stationMembers} from '@/api'
 
 const {t} = useI18n()

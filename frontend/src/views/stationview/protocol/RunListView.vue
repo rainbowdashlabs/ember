@@ -27,8 +27,7 @@ import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { protocol, stationMembers, memberGroups, userTags } from '@/api'
 import type { TestProtocol, TestProtocolRun } from '@/api/protocol'
-import type { StationMember, MemberGroup, UserTag } from '@/api/types'
-import { StationPermission } from '@/api/types'
+import {StationPermission, type MemberGroup, type StationMember, type UserTag} from '@/api/types'
 import { formatDate } from '@/util/format'
 
 const { t } = useI18n()

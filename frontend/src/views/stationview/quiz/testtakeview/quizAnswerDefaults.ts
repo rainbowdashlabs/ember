@@ -3,8 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type { QuizQuestion } from '@/api/quiz'
-import { QuizQuestionTypes } from '@/api/quiz'
+import {QuizQuestionTypes, type QuizQuestion} from '@/api/quiz'
 import { shuffle } from '@/util/shuffle'
 
 /**

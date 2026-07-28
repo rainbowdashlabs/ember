@@ -10,8 +10,7 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
-import type {LendingRequestDetail, LendingStatusName} from '@/api/lending'
-import {LendingStatus} from '@/api/lending'
+import {LendingStatus, type LendingRequestDetail, type LendingStatusName} from '@/api/lending'
 
 defineProps<{
   detail: LendingRequestDetail

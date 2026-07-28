@@ -18,9 +18,8 @@ import FormMetadataEditor from './builderview/FormMetadataEditor.vue'
 import FormRestrictionsEditor from './builderview/FormRestrictionsEditor.vue'
 import { type RestrictionSelection, emptyRestriction } from '@/components/input/restriction'
 import type { QuestionDraft } from './builderview/types'
-import type { FormPurposeName, FormQuestionRequest, QuestionType } from '@/api/forms'
+import {FormPurpose, QUESTION_TYPES_BY_PURPOSE, QuestionTypes, type FormPurposeName, type FormQuestionRequest, type QuestionType} from '@/api/forms'
 import type { MemberGroup, StationMember, UserTag } from '@/api/types'
-import { FormPurpose, QuestionTypes, QUESTION_TYPES_BY_PURPOSE } from '@/api/forms'
 import { forms, memberGroups, userTags, stationMembers } from '@/api'
 
 const { t } = useI18n()

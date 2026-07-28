@@ -3,8 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {computed, inject, readonly, ref} from 'vue'
-import type {InjectionKey, Ref} from 'vue'
+import {computed, inject, readonly, ref, type InjectionKey, type Ref} from 'vue'
 import {getItem, setItem} from '@/api/storage'
 
 const STORAGE_KEY = 'sidebar_collapsed'

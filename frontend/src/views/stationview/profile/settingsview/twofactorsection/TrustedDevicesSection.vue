@@ -5,8 +5,7 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import {listTrustedDevices, revokeAllTrustedDevices, revokeTrustedDevice} from '@/api/twoFactor'
-import type {TrustedDevice} from '@/api/twoFactor'
+import {listTrustedDevices, revokeAllTrustedDevices, revokeTrustedDevice, type TrustedDevice} from '@/api/twoFactor'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'

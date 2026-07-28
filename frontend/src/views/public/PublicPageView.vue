@@ -4,17 +4,15 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref, computed, onMounted, inject} from 'vue'
+import {computed, inject, onMounted, ref, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute} from 'vue-router'
-import type {Ref} from 'vue'
 import type {PublicStationInfo} from '@/api/discovery'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import {getPublicPage, publicPageImageUrl} from '@/api/publicPages'
-import {CellContentType} from '@/api/pageManage'
-import type {StationPage} from '@/api/pageManage'
+import {CellContentType, type StationPage} from '@/api/pageManage'
 import PublicPageRow from './publicpageview/PublicPageRow.vue'
 import {useCanonical} from '~/composables/useCanonical'
 

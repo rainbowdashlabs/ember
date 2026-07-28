@@ -14,8 +14,7 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
-import type {InventorySize} from '@/api/inventory'
-import type {MyInventoryItem} from '@/api/inventory'
+import type {InventorySize, MyInventoryItem} from '@/api/inventory'
 
 const modelValue = defineModel<boolean>({required: true})
 const reason = defineModel<string>('reason', {required: true})

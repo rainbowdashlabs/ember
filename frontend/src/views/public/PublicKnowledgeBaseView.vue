@@ -4,10 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref, computed, watch, onMounted, inject} from 'vue'
+import {computed, inject, onMounted, ref, watch, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter, useRoute} from 'vue-router'
-import type {Ref} from 'vue'
 import type {PublicStationInfo as StationInfo} from '@/api/discovery'
 import Alert from '@/components/feedback/Alert.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'

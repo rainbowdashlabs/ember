@@ -14,8 +14,7 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
-import { QuizTestStatus } from '@/api/quiz'
-import type { QuizTestDetail } from '@/api/quiz'
+import {QuizTestStatus, type QuizTestDetail} from '@/api/quiz'
 import { quiz } from '@/api'
 
 const props = defineProps<{

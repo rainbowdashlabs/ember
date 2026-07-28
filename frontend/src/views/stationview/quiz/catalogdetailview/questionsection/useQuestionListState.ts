@@ -4,8 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import { computed, ref, type Ref } from 'vue'
-import type { QuizQuestion, QuizQuestionTypeName } from '@/api/quiz'
-import { QuizQuestionTypes } from '@/api/quiz'
+import {QuizQuestionTypes, type QuizQuestion, type QuizQuestionTypeName} from '@/api/quiz'
 
 /**
  * Owns what the question list currently shows and which of its rows are ticked:

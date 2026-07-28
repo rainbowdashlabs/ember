@@ -3,8 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {EventFieldEntry} from '@/api/events'
-import {EventTypes} from '@/api/events'
+import {EventTypes, type EventFieldEntry} from '@/api/events'
 import {emptyRestriction} from '@/components/input/restriction'
 
 /**

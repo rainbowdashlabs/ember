@@ -8,8 +8,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import EventGroupHeader from './EventGroupHeader.vue'
 import StatusSections from './StatusSections.vue'
-import type {StationEvent} from '@/api/events'
-import type {EventRegistrationEntry, MemberRegistrationStats} from '@/api/events'
+import type {EventRegistrationEntry, MemberRegistrationStats, StationEvent} from '@/api/events'
 
 type StatusKey = 'PENDING' | 'ACCEPTED' | 'DENIED' | 'DECLINED' | 'WITHDRAWN'
 

@@ -9,8 +9,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
-import type {LendingRequestDetail} from '@/api/lending'
-import {LendingStatus} from '@/api/lending'
+import {LendingStatus, type LendingRequestDetail} from '@/api/lending'
 
 defineProps<{
   detail: LendingRequestDetail

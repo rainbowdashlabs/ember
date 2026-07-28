@@ -15,8 +15,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 import EventFieldValue from '../eventshared/EventFieldValue.vue'
 import EventRegistrationActions from './EventRegistrationActions.vue'
-import type {EventField, StationEvent} from '@/api/events'
-import type {EventRegistrationEntry} from '@/api/events'
+import type {EventField, EventRegistrationEntry, StationEvent} from '@/api/events'
 
 const props = defineProps<{
   event: StationEvent

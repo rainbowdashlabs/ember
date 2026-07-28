@@ -12,8 +12,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import EventFieldValueInput from '../eventshared/EventFieldValueInput.vue'
-import type {EventFieldEntry} from '@/api/events'
-import type {BatchRow} from '@/api/events'
+import type {BatchRow, EventFieldEntry} from '@/api/events'
 import {formatDate} from '@/util/format'
 
 const {t} = useI18n()

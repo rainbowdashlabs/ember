@@ -4,9 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {Comment as VComment, computed, ref, useSlots, watch} from 'vue'
+import {Comment as VComment, computed, ref, useSlots, watch, type VNode} from 'vue'
 import {useRoute} from 'vue-router'
-import type {VNode} from 'vue'
 import {useSidebarCollapse} from '@/composables/useSidebarCollapse'
 
 const {collapsed} = useSidebarCollapse()

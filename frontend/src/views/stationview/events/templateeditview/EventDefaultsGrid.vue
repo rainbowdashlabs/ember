@@ -8,9 +8,8 @@ import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import {EventTypes} from '@/api/events'
+import {EventTypes, type EventCategory} from '@/api/events'
 import type {AttendanceTemplate} from '@/api/attendance'
-import type {EventCategory} from '@/api/events'
 
 const {t} = useI18n()
 

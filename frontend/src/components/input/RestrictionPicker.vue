@@ -9,8 +9,7 @@ import {useI18n} from 'vue-i18n'
 import ToggleSwitch from '@/components/input/toggle/ToggleSwitch.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import MultiSelectDropdown from '@/components/input/select/MultiSelectDropdown.vue'
-import type {MemberGroup, StationMember, UserTag} from '@/api/types'
-import {StationUserType, StationUserTypeLabels} from '@/api/types'
+import {StationUserType, StationUserTypeLabels, type MemberGroup, type StationMember, type UserTag} from '@/api/types'
 import type {RestrictionSelection} from '@/components/input/restriction'
 
 const {t} = useI18n()

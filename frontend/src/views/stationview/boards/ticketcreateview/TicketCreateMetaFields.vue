@@ -10,8 +10,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import LabelSelectInput from '@/components/input/select/LabelSelectInput.vue'
-import { TicketPriority } from '@/api/boards'
-import type { TicketPriorityName, BoardLane, BoardLabel } from '@/api/boards'
+import {TicketPriority, type BoardLabel, type BoardLane, type TicketPriorityName} from '@/api/boards'
 import type { MemberCompletion } from '@/api/stationMembers'
 
 defineProps<{

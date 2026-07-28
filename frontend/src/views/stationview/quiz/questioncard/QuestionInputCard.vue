@@ -6,8 +6,7 @@
 <script setup lang="ts">
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
-import type { QuizQuestion } from '@/api/quiz'
-import { QuizQuestionTypes } from '@/api/quiz'
+import {QuizQuestionTypes, type QuizQuestion} from '@/api/quiz'
 import { useI18n } from 'vue-i18n'
 import QuestionHeader from './questioninputcard/QuestionHeader.vue'
 import MultipleChoiceInput from './questioninputcard/MultipleChoiceInput.vue'

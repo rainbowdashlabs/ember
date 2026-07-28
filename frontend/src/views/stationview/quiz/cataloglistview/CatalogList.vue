@@ -4,8 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import type { QuizCatalog } from '@/api/quiz'
-import type { SharedCatalogEntry } from '@/api/quiz'
+import type {QuizCatalog, SharedCatalogEntry} from '@/api/quiz'
 import LocalCatalogRow from './LocalCatalogRow.vue'
 import SharedCatalogRow from './SharedCatalogRow.vue'
 

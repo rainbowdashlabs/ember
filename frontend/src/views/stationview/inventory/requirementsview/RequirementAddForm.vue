@@ -9,8 +9,7 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type { Inventory } from '@/api/inventory'
-import type { MemberGroup } from '@/api/types'
-import { StationUserType } from '@/api/types'
+import {StationUserType, type MemberGroup} from '@/api/types'
 import { userTypeFriendlyNames } from './types'
 
 const targetType = defineModel<'userType' | 'group'>('targetType', { default: 'userType' })

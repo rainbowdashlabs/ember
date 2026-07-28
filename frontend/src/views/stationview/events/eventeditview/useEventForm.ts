@@ -5,8 +5,7 @@
  */
 import {reactive, watch} from 'vue'
 import {events} from '@/api'
-import type {EventField, EventFieldEntry, EventTemplateDetail, StationEvent} from '@/api/events'
-import {EventTypes, needsDayOfWeek} from '@/api/events'
+import {EventTypes, needsDayOfWeek, type EventField, type EventFieldEntry, type EventTemplateDetail, type StationEvent} from '@/api/events'
 import {createEventFormState} from './eventFormState'
 import {modelBindings} from './modelBindings'
 

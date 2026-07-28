@@ -13,13 +13,7 @@ import DecimalInput from '@/components/input/number/DecimalInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import {FieldType, numberFieldViolation} from '@/api/inventoryFields'
-import type {
-  EnumFieldConfig,
-  InventoryFieldDefinition,
-  NumberFieldConfig,
-  TextFieldConfig,
-} from '@/api/inventoryFields'
+import {FieldType, numberFieldViolation, type EnumFieldConfig, type InventoryFieldDefinition, type NumberFieldConfig, type TextFieldConfig} from '@/api/inventoryFields'
 
 const props = defineProps<{
   field: InventoryFieldDefinition

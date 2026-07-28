@@ -17,12 +17,7 @@ import TicketHeaderBar from './ticketdetailview/TicketHeaderBar.vue'
 import TicketBody from './ticketdetailview/TicketBody.vue'
 import { knowledgeBase, boards } from '@/api'
 import type { MemberCompletion } from '@/api/stationMembers'
-import type {
-    Board, BoardLane, BoardField, BoardLabel, BoardTicket, BoardChecklistItem,
-    BoardTicketLink, BoardTicketTransition, BoardTicketHistoryEntry, BoardComment,
-    BoardWeblink, BoardTicketAttachment, BoardTicketKbLink,
-} from '@/api/boards'
-import { TicketPriority, type TicketPriorityName } from '@/api/boards'
+import {TicketPriority, type Board, type BoardChecklistItem, type BoardComment, type BoardField, type BoardLabel, type BoardLane, type BoardTicket, type BoardTicketAttachment, type BoardTicketHistoryEntry, type BoardTicketKbLink, type BoardTicketLink, type BoardTicketTransition, type BoardWeblink, type TicketPriorityName} from '@/api/boards'
 import { useSession } from '@/composables/useSession'
 import { useBoardApi } from '@/composables/useBoardApi'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'

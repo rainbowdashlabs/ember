@@ -3,8 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {inject, provide} from 'vue'
-import type {InjectionKey} from 'vue'
+import {inject, provide, type InjectionKey} from 'vue'
 
 /**
  * Handlers of the flyout panel a sidebar entry is rendered in.

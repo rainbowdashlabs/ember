@@ -7,8 +7,7 @@
 import {onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import EntitySearchPicker from './EntitySearchPicker.vue'
-import {getFormPickerByUid, searchForms, type FormSearchResult} from '@/api/forms'
-import {FormStatus, type FormPurposeName} from '@/api/forms'
+import {FormStatus, getFormPickerByUid, searchForms, type FormPurposeName, type FormSearchResult} from '@/api/forms'
 
 const model = defineModel<string | null>()
 

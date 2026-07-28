@@ -19,7 +19,7 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useSession} from '@/composables/useSession'
 import {showToast} from '@/util/toast'
-import {StationPermission} from '@/api/types'
+import {StationPermission, type MemberGroup, type StationMember, type UserTag} from '@/api/types'
 import {checklists, memberGroups, stationMembers, userTags} from '@/api'
 import type {
   ChecklistAddMembersResult,
@@ -27,7 +27,6 @@ import type {
   ChecklistDetail,
   ChecklistRefreshResult,
 } from '@/api/checklists'
-import type {MemberGroup, StationMember, UserTag} from '@/api/types'
 import EditButton from '@/components/button/EditButton.vue'
 import ChecklistMatrix from './checklistdetailview/ChecklistMatrix.vue'
 import ChecklistFilterBar from './checklistdetailview/ChecklistFilterBar.vue'

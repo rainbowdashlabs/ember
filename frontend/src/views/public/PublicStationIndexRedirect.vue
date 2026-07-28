@@ -4,9 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {inject, watch} from 'vue'
+import {inject, watch, type Ref} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
-import type {Ref} from 'vue'
 import type {PublicStationInfo} from '@/api/discovery'
 
 const route = useRoute()

@@ -4,8 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import { readonly, ref } from 'vue'
-import type { FederatedBoardBookmark } from '@/api/federatedBoards'
-import { listBookmarks } from '@/api/federatedBoards'
+import {listBookmarks, type FederatedBoardBookmark} from '@/api/federatedBoards'
 
 const bookmarks = ref<FederatedBoardBookmark[]>([])
 

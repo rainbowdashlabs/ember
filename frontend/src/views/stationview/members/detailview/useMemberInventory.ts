@@ -6,8 +6,7 @@
 import { ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { InventorySize, MyInventoryItem } from '@/api/inventory'
-import type { ExchangeRequestEntry } from '@/api/exchanges'
-import { ExchangeStatus } from '@/api/exchanges'
+import {ExchangeStatus, type ExchangeRequestEntry} from '@/api/exchanges'
 import { exchanges, inventory } from '@/api'
 
 /**

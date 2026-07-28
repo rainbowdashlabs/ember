@@ -28,8 +28,7 @@ import { useConfirmAction } from '@/composables/useConfirmAction'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { procedures } from '@/api'
 import { StationPermission } from '@/api/types'
-import type { Procedure, ProcedureRequest, ProcedureTemplate } from '@/api/procedures'
-import { ProcedureStatus } from '@/api/procedures'
+import {ProcedureStatus, type Procedure, type ProcedureRequest, type ProcedureTemplate} from '@/api/procedures'
 import { formatDate } from '@/util/format'
 
 const { t } = useI18n()

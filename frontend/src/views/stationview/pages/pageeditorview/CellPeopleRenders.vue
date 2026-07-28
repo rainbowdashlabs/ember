@@ -9,8 +9,7 @@ import EmptyHint from '@/components/typography/EmptyHint.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import UserTagBadge from '@/components/badge/UserTagBadge.vue'
 import {getMemberPickerByUid, type MemberSearchResult} from '@/api/members'
-import {resolveMemberListSource} from '@/api/pageManage'
-import type {LayoutKindName, MemberSpotlightConfig, MemberListConfig, ResolvedMember} from '@/api/pageManage'
+import {resolveMemberListSource, type LayoutKindName, type MemberListConfig, type MemberSpotlightConfig, type ResolvedMember} from '@/api/pageManage'
 
 /**
  * Renderer for MEMBER_SPOTLIGHT and MEMBER_LIST_SPOTLIGHT (member-list spotlight).

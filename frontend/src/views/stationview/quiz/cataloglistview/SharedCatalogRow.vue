@@ -11,8 +11,7 @@ import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type { QuizCatalog } from '@/api/quiz'
-import type { SharedCatalogEntry } from '@/api/quiz'
+import type {QuizCatalog, SharedCatalogEntry} from '@/api/quiz'
 
 defineProps<{
   shared: SharedCatalogEntry
