@@ -8,8 +8,8 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import MemberListHeader from './memberlistview/MemberListHeader.vue'
 import MemberListBody from './memberlistview/MemberListBody.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
@@ -274,40 +274,40 @@ function goToMember(memberId: number) {
         @export-pdf="exportPdf"
       />
 
-      <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error || exportError" variant="error">{{ error || exportError }}</Alert>
 
-      <SearchInput v-if="!loading" v-model="filterText" :placeholder="t('membersList.filter')" autofocus />
+      <AsyncSection :loading="loading">
+        <SearchInput v-model="filterText" :placeholder="t('membersList.filter')" autofocus />
 
-      <MemberListBody
-        v-if="!loading"
-        v-model:show-empty="showEmpty"
-        :groups="groups"
-        :tags="tags"
-        :inventories="inventories"
-        :displayed-inventories="displayedInventories"
-        :visible-inventory-ids="visibleInventoryIds"
-        :show-name="showName"
-        :show-internal-id="showInternalId"
-        :show-size="showSize"
-        :export-mode="exportMode"
-        :all-fields="allFields"
-        :selected-export-fields="selectedExportFields"
-        :filtered-members="filteredMembers"
-        :selected-for-export="selectedForExport"
-        :is-mobile="isMobile"
-        :member-item-map="memberItemMap"
-        :size-map="sizeMap"
-        @update:show-name="showName = $event"
-        @update:show-internal-id="showInternalId = $event"
-        @update:show-size="showSize = $event"
-        @filter="onFilter"
-        @toggle-inventory="toggleInventory"
-        @toggle-export-field="toggleExportField"
-        @go-to-member="goToMember"
-        @toggle-export-selection="toggleExportSelection"
-        @toggle-select-all="toggleSelectAll"
-      />
+        <MemberListBody
+          v-model:show-empty="showEmpty"
+          :groups="groups"
+          :tags="tags"
+          :inventories="inventories"
+          :displayed-inventories="displayedInventories"
+          :visible-inventory-ids="visibleInventoryIds"
+          :show-name="showName"
+          :show-internal-id="showInternalId"
+          :show-size="showSize"
+          :export-mode="exportMode"
+          :all-fields="allFields"
+          :selected-export-fields="selectedExportFields"
+          :filtered-members="filteredMembers"
+          :selected-for-export="selectedForExport"
+          :is-mobile="isMobile"
+          :member-item-map="memberItemMap"
+          :size-map="sizeMap"
+          @update:show-name="showName = $event"
+          @update:show-internal-id="showInternalId = $event"
+          @update:show-size="showSize = $event"
+          @filter="onFilter"
+          @toggle-inventory="toggleInventory"
+          @toggle-export-field="toggleExportField"
+          @go-to-member="goToMember"
+          @toggle-export-selection="toggleExportSelection"
+          @toggle-select-all="toggleSelectAll"
+        />
+      </AsyncSection>
     </div>
   </ViewContent>
 </template>

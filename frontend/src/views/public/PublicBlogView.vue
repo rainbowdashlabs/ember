@@ -8,9 +8,7 @@ import {ref, computed, type ComputedRef} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
-import EmptyState from '@/components/feedback/EmptyState.vue'
+import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -68,26 +66,28 @@ function excerpt(html: string, maxLength = 200): string {
       </div>
     </div>
 
-    <Spinner v-if="loading" size="lg"/>
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
-
-    <EmptyState v-if="!loading && entries.length === 0">{{ t('publicStation.blogNoEntries') }}</EmptyState>
-
-    <div class="space-y-4">
-      <NeutralContainer
-          v-for="entry in entries"
-          :key="entry.id"
-          class="cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all"
-          @click="navigateToEntry(entry.id)"
-      >
-        <SubHeader class="mb-2">{{ entry.title }}</SubHeader>
-        <p class="text-sm text-(--text-muted) line-clamp-3">{{ excerpt(entry.contentHtml) }}</p>
-        <div class="mt-3 flex items-center gap-3 text-xs text-(--text-muted)">
-          <span v-if="entry.authorName">{{ t('publicStation.blogBy') }} {{ entry.authorName }}</span>
-          <span>{{ formatDateLong(entry.publishedAt) }}</span>
-        </div>
-      </NeutralContainer>
-    </div>
+    <AsyncSection
+        :empty="entries.length === 0"
+        :empty-message="t('publicStation.blogNoEntries')"
+        :error="error"
+        :loading="loading"
+    >
+      <div class="space-y-4">
+        <NeutralContainer
+            v-for="entry in entries"
+            :key="entry.id"
+            class="cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all"
+            @click="navigateToEntry(entry.id)"
+        >
+          <SubHeader class="mb-2">{{ entry.title }}</SubHeader>
+          <p class="text-sm text-(--text-muted) line-clamp-3">{{ excerpt(entry.contentHtml) }}</p>
+          <div class="mt-3 flex items-center gap-3 text-xs text-(--text-muted)">
+            <span v-if="entry.authorName">{{ t('publicStation.blogBy') }} {{ entry.authorName }}</span>
+            <span>{{ formatDateLong(entry.publishedAt) }}</span>
+          </div>
+        </NeutralContainer>
+      </div>
+    </AsyncSection>
   </div>
   </ViewContent>
 </template>

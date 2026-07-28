@@ -21,6 +21,7 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import PasswordInput from '@/components/input/text/PasswordInput.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -141,9 +142,7 @@ async function confirmRename() {
     <MutedText v-if="!supported" tag="p" size="sm">
       {{ t('twoFactor.webauthn.unsupported') }}
     </MutedText>
-    <MutedText v-else-if="securityKeys.length === 0" tag="p" size="sm">
-      {{ t('twoFactor.webauthn.empty') }}
-    </MutedText>
+    <EmptyState v-else-if="securityKeys.length === 0" :message="t('twoFactor.webauthn.empty')" compact/>
     <ul v-else class="space-y-2">
       <li v-for="key in securityKeys" :key="key.id"
           class="flex items-center justify-between gap-2 rounded border border-(--border) px-3 py-2">

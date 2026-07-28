@@ -10,9 +10,7 @@ import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
-import EmptyState from '@/components/feedback/EmptyState.vue'
+import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
@@ -158,36 +156,35 @@ function itemLabel(item: { id: number; name: string | null; internalId: string |
       </div>
     </div>
 
-    <Spinner v-if="loading"/>
-    <Alert v-else-if="error" variant="error">{{ error }}</Alert>
-
-    <EmptyState v-else-if="groupedBlocks.length === 0">{{ t('lending.noBlocks') }}</EmptyState>
-
-    <div v-else class="flex flex-col gap-2">
-      <NeutralContainer v-for="group in groupedBlocks" :key="group.key">
-        <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
-          <div class="min-w-0 flex-1">
-            <!-- Date + scope badge -->
-            <div class="flex items-center gap-2 flex-wrap">
-              <span class="font-medium">{{ formatDate(group.blockFrom) }} – {{ formatDate(group.blockTo) }}</span>
-              <PrimaryBadge v-if="group.isFullBlock">{{ t('lending.blockScopeAll') }}</PrimaryBadge>
-            </div>
-
-            <!-- Inventories -->
-            <div v-if="group.inventories.length > 0" class="mt-2 space-y-1">
-              <div v-for="inv in group.inventories" :key="inv.inventoryId" class="flex items-center gap-2 text-xs">
-                <SecondaryBadge>{{ inv.inventoryName || `#${inv.inventoryId}` }}</SecondaryBadge>
-                <MutedText v-if="inv.allItems" size="sm">{{ t('lending.blockItemAll') }}</MutedText>
-                <MutedText v-else size="sm">{{ inv.items.map(i => itemLabel(i)).join(', ') }}</MutedText>
+    <AsyncSection
+        :empty="groupedBlocks.length === 0"
+        :empty-message="t('lending.noBlocks')"
+        :error="error"
+        :loading="loading"
+    >
+      <div class="flex flex-col gap-2">
+        <NeutralContainer v-for="group in groupedBlocks" :key="group.key">
+          <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-medium">{{ formatDate(group.blockFrom) }} – {{ formatDate(group.blockTo) }}</span>
+                <PrimaryBadge v-if="group.isFullBlock">{{ t('lending.blockScopeAll') }}</PrimaryBadge>
               </div>
-            </div>
 
-            <!-- Reason -->
-            <MutedText v-if="group.reason" tag="div" size="sm" class="mt-1">{{ group.reason }}</MutedText>
+              <div v-if="group.inventories.length > 0" class="mt-2 space-y-1">
+                <div v-for="inv in group.inventories" :key="inv.inventoryId" class="flex items-center gap-2 text-xs">
+                  <SecondaryBadge>{{ inv.inventoryName || `#${inv.inventoryId}` }}</SecondaryBadge>
+                  <MutedText v-if="inv.allItems" size="sm">{{ t('lending.blockItemAll') }}</MutedText>
+                  <MutedText v-else size="sm">{{ inv.items.map(i => itemLabel(i)).join(', ') }}</MutedText>
+                </div>
+              </div>
+
+              <MutedText v-if="group.reason" tag="div" size="sm" class="mt-1">{{ group.reason }}</MutedText>
+            </div>
+            <DeleteButton @click="handleDeleteGroup(group)"/>
           </div>
-          <DeleteButton @click="handleDeleteGroup(group)"/>
-        </div>
-      </NeutralContainer>
-    </div>
+        </NeutralContainer>
+      </div>
+    </AsyncSection>
   </ViewContent>
 </template>

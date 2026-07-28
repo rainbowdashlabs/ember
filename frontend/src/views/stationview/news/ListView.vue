@@ -10,8 +10,7 @@ import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
-import EmptyState from '@/components/feedback/EmptyState.vue'
+import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import NewsList, { type UnifiedNewsItem } from './listview/NewsList.vue'
 import type { NewsEntry } from '@/api/types'
@@ -236,24 +235,28 @@ watch(() => entries.value.length, async () => {
         </PrimaryButton>
       </div>
 
-      <Spinner v-if="loading" size="lg" />
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <AsyncSection
+        :empty="allNews.length === 0"
+        :empty-message="t('news.empty')"
+        :error="error"
+        :loading="loading"
+      >
+        <NewsList
+          :items="allNews"
+          :can-edit-news="canEditNews"
+          :comments-open-key="commentsOpenId"
+          :item-key="itemKey"
+          :set-news-item-ref="setNewsItemRef"
+          :set-view-badge-ref="setViewBadgeRef"
+          :on-open="openItem"
+          :on-toggle-comments="toggleComments"
+          :on-request-delete="requestDelete"
+        />
 
-      <EmptyState v-if="!loading && allNews.length === 0">{{ t('news.empty') }}</EmptyState>
-
-      <NewsList
-        :items="allNews"
-        :can-edit-news="canEditNews"
-        :comments-open-key="commentsOpenId"
-        :item-key="itemKey"
-        :set-news-item-ref="setNewsItemRef"
-        :set-view-badge-ref="setViewBadgeRef"
-        :on-open="openItem"
-        :on-toggle-comments="toggleComments"
-        :on-request-delete="requestDelete"
-      />
-
-      <Spinner v-if="loadingMore" size="md" />
+        <div v-if="loadingMore" class="flex justify-center py-4">
+          <Spinner size="md" />
+        </div>
+      </AsyncSection>
 
       <ConfirmDeleteModal
         v-model="showDeleteModal"

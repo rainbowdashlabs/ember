@@ -8,8 +8,8 @@ import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import {inventory, exchanges, stationMembers} from '@/api'
 import type {ExchangeRequestEntry, InventoryItem, InventorySize, StationMember} from '@/api/types'
 import {ExchangeStatus, StationPermission} from '@/api/types'
@@ -184,27 +184,27 @@ watch(memberId, loadData)
     <div class="space-y-6">
       <MemberInventoryHeader :member="member" @back="goBack" />
 
-      <Spinner v-if="loading" size="lg"/>
       <Alert v-if="error || exchangeError" variant="error">{{ error || exchangeError }}</Alert>
 
-      <MemberInventoryScanPanel
-          v-if="canAssign && !loading"
-          v-model:scan-value="scanValue"
-          :scan-busy="scanBusy"
-          :scan-error="scanError"
-          :scan-success="scanSuccess"
-          @submit="handleScanAssign"
-          @decoded="onCameraScan"
-      />
+      <AsyncSection :loading="loading">
+        <MemberInventoryScanPanel
+            v-if="canAssign"
+            v-model:scan-value="scanValue"
+            :scan-busy="scanBusy"
+            :scan-error="scanError"
+            :scan-success="scanSuccess"
+            @submit="handleScanAssign"
+            @decoded="onCameraScan"
+        />
 
-      <MemberInventoryGroups
-          v-if="!loading"
-          :groups="grouped"
-          :items="items"
-          :item-exchange="itemExchange"
-          :show-exchange-button="canManageInventory()"
-          @request-exchange="openExchangeModal"
-      />
+        <MemberInventoryGroups
+            :groups="grouped"
+            :items="items"
+            :item-exchange="itemExchange"
+            :show-exchange-button="canManageInventory()"
+            @request-exchange="openExchangeModal"
+        />
+      </AsyncSection>
 
       <UnknownScanModal
           v-if="unknownScanCode"

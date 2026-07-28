@@ -7,9 +7,8 @@
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import EmptyState from '@/components/feedback/EmptyState.vue'
+import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import ExportFieldPicker from '@/components/export/ExportFieldPicker.vue'
 import ExchangeToolbar from './exchangeview/ExchangeToolbar.vue'
 import ExchangeListView from './exchangeview/ExchangeListView.vue'
@@ -191,7 +190,6 @@ watch(loaded, (isLoaded) => {
         @create="showCreateModal = true"
       />
 
-      <Spinner v-if="loading" size="lg" />
       <Alert v-if="error || exportError" variant="error">{{ error || exportError }}</Alert>
 
       <ExportFieldPicker
@@ -204,17 +202,20 @@ watch(loaded, (isLoaded) => {
         @toggle="toggleColumn"
       />
 
-      <EmptyState v-if="!loading && requests.length === 0">{{ t('exchanges.empty') }}</EmptyState>
-
-      <ExchangeListView
-        v-if="!loading && requests.length > 0"
-        :requests="requests" :show-member-column="showMemberColumn" :can-manage-exchanges="canManageExchanges()"
-        :export-mode="exportMode" :selected-for-export="selectedForExport" :updating-id="updatingId"
-        :available-items="availableItems" :next-statuses-for="nextStatusesFor"
-        @toggle-select-all="toggleAllRows" @toggle-export="toggleRow" @open-log="openLog"
-        @start-update="startStatusUpdate" @delete="deleteRequest" @status-done="onStatusUpdated"
-        @status-cancel="updatingId = null" @status-error="(msg) => error = msg"
-      />
+      <AsyncSection
+        :empty="requests.length === 0"
+        :empty-message="t('exchanges.empty')"
+        :loading="loading"
+      >
+        <ExchangeListView
+          :requests="requests" :show-member-column="showMemberColumn" :can-manage-exchanges="canManageExchanges()"
+          :export-mode="exportMode" :selected-for-export="selectedForExport" :updating-id="updatingId"
+          :available-items="availableItems" :next-statuses-for="nextStatusesFor"
+          @toggle-select-all="toggleAllRows" @toggle-export="toggleRow" @open-log="openLog"
+          @start-update="startStatusUpdate" @delete="deleteRequest" @status-done="onStatusUpdated"
+          @status-cancel="updatingId = null" @status-error="(msg) => error = msg"
+        />
+      </AsyncSection>
 
       <ExchangeModals
         v-model:show-create="showCreateModal" v-model:show-log="showLogModal"

@@ -12,8 +12,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {formatDateTime} from '@/util/format'
 
@@ -55,23 +54,27 @@ async function handleRevokeAll() {
       </SecondaryButton>
     </div>
     <MutedText tag="p" size="sm">{{ t('twoFactor.trustedDevices.description') }}</MutedText>
-    <Spinner v-if="loading" size="sm"/>
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
-    <MutedText v-if="!loading && devices.length === 0" tag="p" size="sm">
-      {{ t('twoFactor.trustedDevices.empty') }}
-    </MutedText>
-    <ul v-if="!loading && devices.length > 0" class="space-y-2">
-      <li v-for="device in devices" :key="device.id"
-          class="flex items-center justify-between gap-2 rounded border border-(--border) px-3 py-2">
-        <div class="min-w-0">
-          <div class="text-sm font-medium truncate">{{ device.userAgent || t('twoFactor.trustedDevices.unknownDevice') }}</div>
-          <MutedText tag="div" size="sm">
-            {{ t('twoFactor.trustedDevices.lastSeen') }}: {{ formatDateTime(device.lastSeenAt) }}
-            · {{ t('twoFactor.trustedDevices.expires') }}: {{ formatDateTime(device.trustedUntil) }}
-          </MutedText>
-        </div>
-        <ErrorButton compact @click="handleRevoke(device)">{{ t('common.remove') }}</ErrorButton>
-      </li>
-    </ul>
+    <AsyncSection
+        :empty="devices.length === 0"
+        :empty-compact="true"
+        :empty-message="t('twoFactor.trustedDevices.empty')"
+        :error="error"
+        :loading="loading"
+        spinner-size="sm"
+    >
+      <ul class="space-y-2">
+        <li v-for="device in devices" :key="device.id"
+            class="flex items-center justify-between gap-2 rounded border border-(--border) px-3 py-2">
+          <div class="min-w-0">
+            <div class="text-sm font-medium truncate">{{ device.userAgent || t('twoFactor.trustedDevices.unknownDevice') }}</div>
+            <MutedText tag="div" size="sm">
+              {{ t('twoFactor.trustedDevices.lastSeen') }}: {{ formatDateTime(device.lastSeenAt) }}
+              · {{ t('twoFactor.trustedDevices.expires') }}: {{ formatDateTime(device.trustedUntil) }}
+            </MutedText>
+          </div>
+          <ErrorButton compact @click="handleRevoke(device)">{{ t('common.remove') }}</ErrorButton>
+        </li>
+      </ul>
+    </AsyncSection>
   </NeutralContainer>
 </template>

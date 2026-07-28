@@ -7,7 +7,7 @@
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
+import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -53,23 +53,27 @@ watch(model, async (open) => {
   <Modal v-model="model">
     <div class="space-y-4">
       <SubHeader>{{ t('exchanges.logTitle') }}</SubHeader>
-      <Spinner v-if="logLoading" size="md" />
-      <div v-else-if="logEntries.length === 0" class="text-sm text-(--text-muted)">
-        {{ t('exchanges.noLogs') }}
-      </div>
-      <div v-else class="space-y-2">
-        <NeutralContainer v-for="entry in logEntries" :key="entry.id" class="text-sm space-y-1">
-          <div class="flex items-center gap-2 flex-wrap">
-            <span class="font-medium">{{ statusLabel(entry.oldStatus as ExchangeStatusName) }}</span>
-            <font-awesome-icon :icon="['fas', 'arrow-right']" class="text-(--text-muted)" />
-            <span class="font-medium">{{ statusLabel(entry.newStatus as ExchangeStatusName) }}</span>
-          </div>
-          <div class="text-(--text-muted)">
-            {{ entry.changedByName }} &mdash; {{ formatDate(entry.changedAt) }}
-          </div>
-          <div v-if="entry.note">{{ entry.note }}</div>
-        </NeutralContainer>
-      </div>
+      <AsyncSection
+          :empty="logEntries.length === 0"
+          :empty-compact="true"
+          :empty-message="t('exchanges.noLogs')"
+          :loading="logLoading"
+          spinner-size="md"
+      >
+        <div class="space-y-2">
+          <NeutralContainer v-for="entry in logEntries" :key="entry.id" class="text-sm space-y-1">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-medium">{{ statusLabel(entry.oldStatus as ExchangeStatusName) }}</span>
+              <font-awesome-icon :icon="['fas', 'arrow-right']" class="text-(--text-muted)" />
+              <span class="font-medium">{{ statusLabel(entry.newStatus as ExchangeStatusName) }}</span>
+            </div>
+            <div class="text-(--text-muted)">
+              {{ entry.changedByName }} &mdash; {{ formatDate(entry.changedAt) }}
+            </div>
+            <div v-if="entry.note">{{ entry.note }}</div>
+          </NeutralContainer>
+        </div>
+      </AsyncSection>
       <div class="flex justify-end">
         <SecondaryButton @click="model = false">{{ t('common.close') }}</SecondaryButton>
       </div>

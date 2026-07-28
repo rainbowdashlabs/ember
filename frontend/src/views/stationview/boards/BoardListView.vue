@@ -13,9 +13,8 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import EmptyState from '@/components/feedback/EmptyState.vue'
+import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -93,37 +92,39 @@ function handleCreate() {
             </PrimaryButton>
         </div>
 
-        <Spinner v-if="loading" />
-        <Alert v-else-if="error" variant="error">{{ error }}</Alert>
-        <EmptyState v-else-if="boardList.length === 0">{{ t('boards.noBoards') }}</EmptyState>
-
-        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <NeutralContainer
-                v-for="board in boardList"
-                :key="board.id"
-                class="cursor-pointer hover:border-[var(--accent)] transition-colors"
-                @click="router.push(`/station/boards/${board.shortKey}`)"
-            >
-                <div class="flex items-start justify-between">
-                    <div>
-                        <div class="flex items-center gap-2 mb-1">
-                            <span class="text-xs font-mono text-[var(--text-muted)] bg-[var(--bg-muted)] px-1.5 py-0.5 rounded">{{ board.shortKey }}</span>
-                            <SubHeader>{{ board.name }}</SubHeader>
+        <AsyncSection
+            :empty="boardList.length === 0"
+            :empty-message="t('boards.noBoards')"
+            :error="error"
+            :loading="loading"
+        >
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <NeutralContainer
+                    v-for="board in boardList"
+                    :key="board.id"
+                    class="cursor-pointer hover:border-[var(--accent)] transition-colors"
+                    @click="router.push(`/station/boards/${board.shortKey}`)"
+                >
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-xs font-mono text-[var(--text-muted)] bg-[var(--bg-muted)] px-1.5 py-0.5 rounded">{{ board.shortKey }}</span>
+                                <SubHeader>{{ board.name }}</SubHeader>
+                            </div>
+                            <p v-if="board.description" class="text-sm text-[var(--text-muted)] line-clamp-2">{{ board.description }}</p>
                         </div>
-                        <p v-if="board.description" class="text-sm text-[var(--text-muted)] line-clamp-2">{{ board.description }}</p>
+                        <div class="flex items-center gap-1 shrink-0">
+                            <IconButton :icon="['fas', 'gears']" :label="t('boards.settings')" @click.stop="router.push(`/station/boards/${board.shortKey}/settings`)" />
+                            <DeleteButton @click.stop="confirmDelete(board)" />
+                        </div>
                     </div>
-                    <div class="flex items-center gap-1 shrink-0">
-                        <IconButton :icon="['fas', 'gears']" label="Settings" @click.stop="router.push(`/station/boards/${board.shortKey}/settings`)" />
-                        <DeleteButton @click.stop="confirmDelete(board)" />
+                    <div class="mt-3 text-xs text-[var(--text-muted)]">
+                        {{ board.ticketCounter }} {{ board.ticketCounter === 1 ? 'Ticket' : 'Tickets' }}
                     </div>
-                </div>
-                <div class="mt-3 text-xs text-[var(--text-muted)]">
-                    {{ board.ticketCounter }} {{ board.ticketCounter === 1 ? 'Ticket' : 'Tickets' }}
-                </div>
-            </NeutralContainer>
-        </div>
+                </NeutralContainer>
+            </div>
+        </AsyncSection>
 
-        <!-- Create Modal -->
         <Modal v-model="showCreateModal">
             <SubHeader class="mb-4">{{ t('boards.createBoard') }}</SubHeader>
             <div class="space-y-4">

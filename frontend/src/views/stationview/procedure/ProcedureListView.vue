@@ -13,8 +13,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
@@ -158,41 +157,40 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
       </SelectionToggleButton>
     </div>
 
-    <Spinner v-if="loading" />
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
-
-    <div v-if="!loading && filteredItems.length === 0" class="text-center text-[var(--text-muted)] py-8">
-      {{ t('procedures.empty') }}
-    </div>
-
-    <div class="space-y-2">
-      <NeutralContainer
-        v-for="p in filteredItems"
-        :key="p.id"
-        class="flex items-center gap-3 cursor-pointer hover:border-[var(--primary)] transition-colors group"
-        @click="router.push({ name: 'procedure-detail', params: { id: p.id } })"
-      >
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2">
-            <span class="font-medium">{{ p.name }}</span>
-            <SuccessBadge v-if="p.status === ProcedureStatus.RESOLVED">{{ t('procedures.resolved') }}</SuccessBadge>
-            <PrimaryBadge v-else>{{ t('procedures.open') }}</PrimaryBadge>
+    <AsyncSection
+      :empty="filteredItems.length === 0"
+      :empty-message="t('procedures.empty')"
+      :error="error"
+      :loading="loading"
+    >
+      <div class="space-y-2">
+        <NeutralContainer
+          v-for="p in filteredItems"
+          :key="p.id"
+          class="flex items-center gap-3 cursor-pointer hover:border-[var(--primary)] transition-colors group"
+          @click="router.push({ name: 'procedure-detail', params: { id: p.id } })"
+        >
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="font-medium">{{ p.name }}</span>
+              <SuccessBadge v-if="p.status === ProcedureStatus.RESOLVED">{{ t('procedures.resolved') }}</SuccessBadge>
+              <PrimaryBadge v-else>{{ t('procedures.open') }}</PrimaryBadge>
+            </div>
+            <div v-if="p.description" class="text-sm text-[var(--text-muted)] truncate">{{ p.description }}</div>
           </div>
-          <div v-if="p.description" class="text-sm text-[var(--text-muted)] truncate">{{ p.description }}</div>
-        </div>
-        <div class="flex items-center gap-3 text-sm text-[var(--text-muted)] shrink-0">
-          <span v-if="p.dueAt" class="flex items-center gap-1">
-            <font-awesome-icon :icon="['fas', 'calendar']" class="w-3 h-3" />
-            {{ formatDate(p.dueAt) }}
-          </span>
-        </div>
-        <div v-if="canEdit" class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <DeleteButton :label="t('common.delete')" @click.stop="requestDelete(p)" />
-        </div>
-      </NeutralContainer>
-    </div>
+          <div class="flex items-center gap-3 text-sm text-[var(--text-muted)] shrink-0">
+            <span v-if="p.dueAt" class="flex items-center gap-1">
+              <font-awesome-icon :icon="['fas', 'calendar']" class="w-3 h-3" />
+              {{ formatDate(p.dueAt) }}
+            </span>
+          </div>
+          <div v-if="canEdit" class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <DeleteButton :label="t('common.delete')" @click.stop="requestDelete(p)" />
+          </div>
+        </NeutralContainer>
+      </div>
+    </AsyncSection>
 
-    <!-- Create Modal -->
     <Modal v-model="showCreateModal">
       <SubHeader class="mb-3">{{ t('procedures.createProcedure') }}</SubHeader>
       <div class="flex gap-2 mb-4">

@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import Spinner from '@/components/feedback/Spinner.vue'
+import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import FileCard from './FileCard.vue'
 import type {PageFile, PageFileListing} from '@/api/pageManage'
 
@@ -27,22 +27,23 @@ const {t} = useI18n()
 
 <template>
   <div class="flex-1 min-h-0 overflow-y-auto">
-    <div v-if="props.loading" class="flex items-center justify-center py-8">
-      <Spinner size="md"/>
-    </div>
-    <p v-else-if="props.filtered.length === 0" class="text-sm text-(--text-muted) text-center py-8">
-      {{ t('stationPages.editor.browseFilesEmpty') }}
-    </p>
-    <div v-else class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-      <FileCard
-          v-for="e in props.filtered" :key="e.file.id"
-          :entry="e"
-          :is-image="props.isImage"
-          :url-for="props.urlFor"
-          :format-size="props.formatSize"
-          @pick="(f: PageFile) => emit('pick', f)"
-          @edit="(f: PageFile) => emit('edit', f)"
-      />
-    </div>
+    <AsyncSection
+        :empty="props.filtered.length === 0"
+        :empty-message="t('stationPages.editor.browseFilesEmpty')"
+        :loading="props.loading"
+        spinner-size="md"
+    >
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+        <FileCard
+            v-for="e in props.filtered" :key="e.file.id"
+            :entry="e"
+            :is-image="props.isImage"
+            :url-for="props.urlFor"
+            :format-size="props.formatSize"
+            @pick="(f: PageFile) => emit('pick', f)"
+            @edit="(f: PageFile) => emit('edit', f)"
+        />
+      </div>
+    </AsyncSection>
   </div>
 </template>

@@ -9,9 +9,7 @@ import {useI18n} from 'vue-i18n'
 import {useRoute} from 'vue-router'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
-import EmptyState from '@/components/feedback/EmptyState.vue'
+import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import SubmissionList from './contactsubmissionsview/SubmissionList.vue'
 import type {Form, FormResponse, FormAnswer, FormQuestion} from '@/api/types'
 import {QuestionTypes} from '@/api/types'
@@ -121,23 +119,22 @@ function formatAnswer(answer: FormAnswer): string {
         :subtitle="t('pages.pages-forms-submissions.subtitle')"
     >
         <div class="space-y-6 max-w-3xl">
-            <Spinner v-if="loading" size="lg"/>
-            <Alert v-if="error" variant="error">{{ error }}</Alert>
-
-            <EmptyState v-if="!loading && submissions.length === 0">
-                {{ t('forms.contactSubmissions.empty') }}
-            </EmptyState>
-
-            <SubmissionList
-                v-if="!loading && submissions.length > 0"
-                :submissions="submissions"
-                :answers-by-response="answersByResponse"
-                :ack-in-flight="ackInFlight"
-                :question-title="questionTitle"
-                :format-answer="formatAnswer"
-                :format-timestamp="formatDateTime"
-                @acknowledge="acknowledge"
-            />
+            <AsyncSection
+                :empty="submissions.length === 0"
+                :empty-message="t('forms.contactSubmissions.empty')"
+                :error="error"
+                :loading="loading"
+            >
+                <SubmissionList
+                    :submissions="submissions"
+                    :answers-by-response="answersByResponse"
+                    :ack-in-flight="ackInFlight"
+                    :question-title="questionTitle"
+                    :format-answer="formatAnswer"
+                    :format-timestamp="formatDateTime"
+                    @acknowledge="acknowledge"
+                />
+            </AsyncSection>
         </div>
     </ViewContent>
 </template>

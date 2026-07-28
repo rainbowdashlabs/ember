@@ -9,8 +9,8 @@ import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import FederatedBoardStationGroup from './federatedboardsview/FederatedBoardStationGroup.vue'
 import {useSession} from '@/composables/useSession'
 import {
@@ -110,15 +110,13 @@ watch(loaded, (v) => {
         <MutedText size="sm" class="mb-4">{{ t('boards.federatedBoardsDesc') }}</MutedText>
 
         <Alert variant="info" class="mb-4">{{ t('boards.bookmarkHint') }}</Alert>
-        <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
 
-        <Spinner v-if="loading"/>
-
-        <template v-if="!loading && boards.length === 0">
-            <MutedText>{{ t('boards.noFederatedBoards') }}</MutedText>
-        </template>
-
-        <template v-if="!loading && boards.length > 0">
+        <AsyncSection
+            :empty="boards.length === 0"
+            :empty-message="t('boards.noFederatedBoards')"
+            :error="error"
+            :loading="loading"
+        >
             <div class="space-y-6">
                 <FederatedBoardStationGroup
                     v-for="[stationName, stationBoards] in groupedBoards"
@@ -130,6 +128,6 @@ watch(loaded, (v) => {
                     @navigate="navigateToBoard"
                 />
             </div>
-        </template>
+        </AsyncSection>
     </ViewContent>
 </template>

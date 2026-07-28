@@ -8,9 +8,8 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import EmptyState from '@/components/feedback/EmptyState.vue'
+import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import {lostAndFound} from '@/api'
 import type {LostAndFoundItem} from '@/api/types'
 import {useSession} from '@/composables/useSession'
@@ -101,16 +100,19 @@ const displayError = computed(() => error.value || createError.value || deleteEr
       </div>
 
       <Alert v-if="displayError" variant="error">{{ displayError }}</Alert>
-      <Spinner v-if="loading" size="lg"/>
 
-      <EmptyState v-if="!loading && items.length === 0">{{ t('lostAndFound.empty') }}</EmptyState>
-
-      <div v-if="!loading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <LostItemCard v-for="item in items" :key="item.id" :item="item"
-                      :image-src="srcFor(item.id) ?? undefined"
-                      :my-member-id="myMemberId()" :can-manage="canManage()"
-                      @claim="claim.request" @provided="provided.request" @delete="handleDelete"/>
-      </div>
+      <AsyncSection
+          :empty="items.length === 0"
+          :empty-message="t('lostAndFound.empty')"
+          :loading="loading"
+      >
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <LostItemCard v-for="item in items" :key="item.id" :item="item"
+                        :image-src="srcFor(item.id) ?? undefined"
+                        :my-member-id="myMemberId()" :can-manage="canManage()"
+                        @claim="claim.request" @provided="provided.request" @delete="handleDelete"/>
+        </div>
+      </AsyncSection>
 
       <LostItemConfirmModal v-model="claim.show.value" :title="t('lostAndFound.claimConfirmTitle')"
                             :message="t('lostAndFound.claimConfirmMessage')" :confirm-label="t('lostAndFound.claim')"

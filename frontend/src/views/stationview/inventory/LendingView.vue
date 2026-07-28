@@ -10,24 +10,20 @@ import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import ErrorBadge from '@/components/badge/ErrorBadge.vue'
-import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import InfoBadge from '@/components/badge/InfoBadge.vue'
+import AsyncSection from '@/components/feedback/AsyncSection.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
+import LendingRequestList from '@/views/stationview/inventory/lendingview/LendingRequestList.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
-import type {LendingRequestResponse, LendingStatusName, AvailableInventoryEntry} from '@/api/lending'
-import {LendingStatus} from '@/api/lending'
+import type {LendingRequestResponse, AvailableInventoryEntry} from '@/api/lending'
 import * as lending from '@/api/lending'
 import {useSession} from '@/composables/useSession'
 import {StationPermission} from '@/api/types'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import {formatDate} from '@/util/format'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -102,23 +98,6 @@ async function loadRequests() {
   }
 }
 
-function statusBadge(status: LendingStatusName) {
-  switch (status) {
-    case LendingStatus.APPROVED:
-    case LendingStatus.LENT:
-      return 'success'
-    case LendingStatus.DECLINED:
-      return 'error'
-    case LendingStatus.REQUESTED:
-    case LendingStatus.RETURNED:
-      return 'secondary'
-    case LendingStatus.CLOSED:
-      return 'info'
-    default:
-      return 'secondary'
-  }
-}
-
 onMounted(() => {
   if (loaded.value) {
     loadAvailable()
@@ -159,7 +138,6 @@ watch(loaded, (v) => {
 
     <Alert v-if="requestSuccess" variant="success" class="mb-4">{{ requestSuccess }}</Alert>
 
-    <!-- Offers tab -->
     <template v-if="activeTab === 'offers'">
       <SearchInput
           v-model="searchQuery"
@@ -167,7 +145,6 @@ watch(loaded, (v) => {
           class="mb-4"
       />
 
-      <!-- Date range filter -->
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
         <div>
           <FieldLabel class="mb-1">{{ t('lending.dateFrom') }}</FieldLabel>
@@ -179,104 +156,52 @@ watch(loaded, (v) => {
         </div>
       </div>
 
-      <Spinner v-if="loadingAvailable"/>
-      <Alert v-else-if="availableError" variant="error">{{ availableError }}</Alert>
-      <p v-else-if="filteredItems.length === 0" class="text-sm text-[var(--text-muted)]">
-        {{ t('lending.noAvailable') }}
-      </p>
-      <div v-else class="flex flex-col gap-2">
-        <SubHeader class="mb-1">{{ t('lending.availableItems') }}</SubHeader>
-        <NeutralContainer v-for="item in filteredItems" :key="`${item.stationId}-${item.inventoryId}`">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div class="flex flex-col gap-1">
-              <div class="flex items-center gap-2 flex-wrap">
-                <span class="font-medium">{{ item.inventoryName }}</span>
-                <StationBadge :station-name="item.stationName"/>
+      <AsyncSection
+          :empty="filteredItems.length === 0"
+          :empty-message="t('lending.noAvailable')"
+          :error="availableError"
+          :loading="loadingAvailable"
+      >
+        <div class="flex flex-col gap-2">
+          <SubHeader class="mb-1">{{ t('lending.availableItems') }}</SubHeader>
+          <NeutralContainer v-for="item in filteredItems" :key="`${item.stationId}-${item.inventoryId}`">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div class="flex flex-col gap-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="font-medium">{{ item.inventoryName }}</span>
+                  <StationBadge :station-name="item.stationName"/>
+                </div>
+                <span class="text-xs text-[var(--text-muted)]">
+                  {{ item.availableCount }} {{ t('lending.available') }}
+                  <template v-if="item.distanceKm != null">
+                    · {{ t('lendingDistance.distanceKm', {distance: item.distanceKm.toFixed(1)}) }}
+                  </template>
+                  <template v-else>
+                    · {{ t('lendingDistance.distanceUnknown') }}
+                  </template>
+                </span>
               </div>
-              <span class="text-xs text-[var(--text-muted)]">
-                {{ item.availableCount }} {{ t('lending.available') }}
-                <template v-if="item.distanceKm != null">
-                  · {{ t('lendingDistance.distanceKm', {distance: item.distanceKm.toFixed(1)}) }}
-                </template>
-                <template v-else>
-                  · {{ t('lendingDistance.distanceUnknown') }}
-                </template>
-              </span>
+              <PrimaryButton :icon="['fas', 'paper-plane']" @click="navigateToCreateRequest(item)">
+                {{ t('lending.requestItem') }}
+              </PrimaryButton>
             </div>
-            <PrimaryButton :icon="['fas', 'paper-plane']" @click="navigateToCreateRequest(item)">
-              {{ t('lending.requestItem') }}
-            </PrimaryButton>
-          </div>
-        </NeutralContainer>
-      </div>
+          </NeutralContainer>
+        </div>
+      </AsyncSection>
     </template>
 
-    <!-- Requests tab -->
     <template v-if="activeTab === 'requests'">
-      <Spinner v-if="loadingRequests"/>
-      <Alert v-else-if="requestsError" variant="error">{{ requestsError }}</Alert>
-
-      <template v-else>
-        <!-- Incoming requests (manager only) -->
+      <AsyncSection :error="requestsError" :loading="loadingRequests">
         <template v-if="isLendingManager">
-        <SubHeader class="mt-2 mb-2">{{ t('lending.incoming') }}</SubHeader>
-        <p v-if="incoming.length === 0" class="text-sm text-[var(--text-muted)]">{{ t('lending.noIncoming') }}</p>
-        <div class="flex flex-col gap-2">
-          <NeutralContainer v-for="req in incoming" :key="req.request.id"
-                            class="cursor-pointer hover:border-primary transition-colors"
-                            @click="router.push({name: 'inventory-lending-request', params: {id: req.request.id}})">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div class="flex flex-col gap-0.5">
-                <div>
-                  <span class="font-medium">{{ req.requestingStationName }}</span>
-                  <span class="text-sm text-[var(--text-muted)] ml-2">
-                    {{ formatDate(req.request.requestedDateFrom) || '-' }}
-                    <template v-if="req.request.requestedDateTo"> - {{ formatDate(req.request.requestedDateTo) }}</template>
-                  </span>
-                </div>
-                <span v-if="req.itemSummary" class="text-xs text-[var(--text-muted)]">{{ req.itemSummary }}</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <SuccessBadge v-if="statusBadge(req.request.status) === 'success'">{{ t(`lending.status.${req.request.status}`) }}</SuccessBadge>
-                <ErrorBadge v-else-if="statusBadge(req.request.status) === 'error'">{{ t(`lending.status.${req.request.status}`) }}</ErrorBadge>
-                <InfoBadge v-else-if="statusBadge(req.request.status) === 'info'">{{ t(`lending.status.${req.request.status}`) }}</InfoBadge>
-                <SecondaryBadge v-else>{{ t(`lending.status.${req.request.status}`) }}</SecondaryBadge>
-                <ErrorBadge v-if="req.overdue">{{ t('lending.overdue') }}</ErrorBadge>
-              </div>
-            </div>
-          </NeutralContainer>
-        </div>
+          <SubHeader class="mt-2 mb-2">{{ t('lending.incoming') }}</SubHeader>
+          <EmptyState v-if="incoming.length === 0" compact>{{ t('lending.noIncoming') }}</EmptyState>
+          <LendingRequestList :entries="incoming" direction="incoming"/>
         </template>
 
-        <!-- Outgoing requests -->
         <SubHeader class="mt-6 mb-2">{{ t('lending.outgoing') }}</SubHeader>
-        <p v-if="outgoing.length === 0" class="text-sm text-[var(--text-muted)]">{{ t('lending.noOutgoing') }}</p>
-        <div class="flex flex-col gap-2">
-          <NeutralContainer v-for="req in outgoing" :key="req.request.id"
-                            class="cursor-pointer hover:border-primary transition-colors"
-                            @click="router.push({name: 'inventory-lending-request', params: {id: req.request.id}})">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div class="flex flex-col gap-0.5">
-                <div>
-                  <span class="font-medium">{{ req.owningStationName }}</span>
-                  <span class="text-sm text-[var(--text-muted)] ml-2">
-                    {{ formatDate(req.request.requestedDateFrom) || '-' }}
-                    <template v-if="req.request.requestedDateTo"> - {{ formatDate(req.request.requestedDateTo) }}</template>
-                  </span>
-                </div>
-                <span v-if="req.itemSummary" class="text-xs text-[var(--text-muted)]">{{ req.itemSummary }}</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <SuccessBadge v-if="statusBadge(req.request.status) === 'success'">{{ t(`lending.status.${req.request.status}`) }}</SuccessBadge>
-                <ErrorBadge v-else-if="statusBadge(req.request.status) === 'error'">{{ t(`lending.status.${req.request.status}`) }}</ErrorBadge>
-                <InfoBadge v-else-if="statusBadge(req.request.status) === 'info'">{{ t(`lending.status.${req.request.status}`) }}</InfoBadge>
-                <SecondaryBadge v-else>{{ t(`lending.status.${req.request.status}`) }}</SecondaryBadge>
-                <ErrorBadge v-if="req.overdue">{{ t('lending.overdue') }}</ErrorBadge>
-              </div>
-            </div>
-          </NeutralContainer>
-        </div>
-      </template>
+        <EmptyState v-if="outgoing.length === 0" compact>{{ t('lending.noOutgoing') }}</EmptyState>
+        <LendingRequestList :entries="outgoing" direction="outgoing"/>
+      </AsyncSection>
     </template>
   </ViewContent>
 </template>
