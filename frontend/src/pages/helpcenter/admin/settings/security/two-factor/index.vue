@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import SecurityTwoFactorHelp from '~/views/helpcenter/adminview/SecurityTwoFactorHelp'
+import SecurityTwoFactorHelp from '~/views/helpcenter/adminview/SecurityTwoFactorHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter-admin',

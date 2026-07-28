@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import StationSelectView from '~/views/StationSelectView'
+import StationSelectView from '~/views/StationSelectView.vue'
 
 definePageMeta({
   layout: 'default',

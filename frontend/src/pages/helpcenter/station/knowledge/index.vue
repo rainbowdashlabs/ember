@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ModuleOverviewHelp from '~/views/helpcenter/stationview/knowledge/ModuleOverviewHelp'
+import ModuleOverviewHelp from '~/views/helpcenter/stationview/knowledge/ModuleOverviewHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

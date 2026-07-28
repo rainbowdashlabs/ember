@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import AdminProblemsView from '~/views/adminview/AdminProblemsView'
+import AdminProblemsView from '~/views/adminview/AdminProblemsView.vue'
 
 definePageMeta({
   layout: 'admin',

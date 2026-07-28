@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import PageEditorView from '~/views/stationview/pages/PageEditorView'
+import PageEditorView from '~/views/stationview/pages/PageEditorView.vue'
 
 definePageMeta({
   layout: 'station',

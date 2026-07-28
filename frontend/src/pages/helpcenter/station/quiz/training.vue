@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import TrainingHelp from '~/views/helpcenter/stationview/quiz/TrainingHelp'
+import TrainingHelp from '~/views/helpcenter/stationview/quiz/TrainingHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

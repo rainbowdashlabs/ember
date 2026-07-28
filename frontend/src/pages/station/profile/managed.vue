@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ManagedView from '~/views/stationview/profile/ManagedView'
+import ManagedView from '~/views/stationview/profile/ManagedView.vue'
 
 definePageMeta({
   layout: 'station',

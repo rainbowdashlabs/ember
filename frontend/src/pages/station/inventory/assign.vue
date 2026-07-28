@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import AssignView from '~/views/stationview/inventory/AssignView'
+import AssignView from '~/views/stationview/inventory/AssignView.vue'
 
 definePageMeta({
   layout: 'station',

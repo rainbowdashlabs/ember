@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ProcedureListView from '~/views/stationview/procedure/ProcedureListView'
+import ProcedureListView from '~/views/stationview/procedure/ProcedureListView.vue'
 
 definePageMeta({
   layout: 'station',

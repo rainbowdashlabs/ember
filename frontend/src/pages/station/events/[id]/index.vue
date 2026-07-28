@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import EventDetailView from '~/views/stationview/events/EventDetailView'
+import EventDetailView from '~/views/stationview/events/EventDetailView.vue'
 
 definePageMeta({
   layout: 'station',

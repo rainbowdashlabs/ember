@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ReportView from '~/views/stationview/attendance/ReportView'
+import ReportView from '~/views/stationview/attendance/ReportView.vue'
 
 definePageMeta({
   layout: 'station',

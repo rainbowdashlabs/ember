@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import AttendanceConfigHelp from '~/views/helpcenter/stationview/manage/AttendanceConfigHelp'
+import AttendanceConfigHelp from '~/views/helpcenter/stationview/manage/AttendanceConfigHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

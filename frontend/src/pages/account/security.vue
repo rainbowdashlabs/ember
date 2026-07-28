@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import AccountSecurityView from '~/views/accountview/AccountSecurityView'
+import AccountSecurityView from '~/views/accountview/AccountSecurityView.vue'
 
 definePageMeta({
   layout: 'account',

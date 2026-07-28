@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import HostingHelp from '~/views/helpcenter/basics/HostingHelp'
+import HostingHelp from '~/views/helpcenter/basics/HostingHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

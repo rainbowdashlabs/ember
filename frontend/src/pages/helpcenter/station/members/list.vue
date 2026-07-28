@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ListHelp from '~/views/helpcenter/stationview/members/ListHelp'
+import ListHelp from '~/views/helpcenter/stationview/members/ListHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

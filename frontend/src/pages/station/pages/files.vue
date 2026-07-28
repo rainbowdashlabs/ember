@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import PageFilesView from '~/views/stationview/pages/PageFilesView'
+import PageFilesView from '~/views/stationview/pages/PageFilesView.vue'
 
 definePageMeta({
   layout: 'station',

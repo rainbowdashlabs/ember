@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import PublicWaitlistView from '~/views/public/PublicWaitlistView'
+import PublicWaitlistView from '~/views/public/PublicWaitlistView.vue'
 
 definePageMeta({
   layout: 'public-station',

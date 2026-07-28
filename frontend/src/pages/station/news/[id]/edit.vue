@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import EditView from '~/views/stationview/news/EditView'
+import EditView from '~/views/stationview/news/EditView.vue'
 
 definePageMeta({
   layout: 'station',

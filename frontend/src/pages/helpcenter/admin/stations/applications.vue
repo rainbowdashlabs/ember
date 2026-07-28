@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ApplicationsHelp from '~/views/helpcenter/adminview/ApplicationsHelp'
+import ApplicationsHelp from '~/views/helpcenter/adminview/ApplicationsHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter-admin',

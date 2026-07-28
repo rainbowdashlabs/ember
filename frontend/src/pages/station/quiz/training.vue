@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import TrainingView from '~/views/stationview/quiz/TrainingView'
+import TrainingView from '~/views/stationview/quiz/TrainingView.vue'
 
 definePageMeta({
   layout: 'station',

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import FederatedBoardsView from '~/views/stationview/federation/FederatedBoardsView'
+import FederatedBoardsView from '~/views/stationview/federation/FederatedBoardsView.vue'
 
 definePageMeta({
   layout: 'station',

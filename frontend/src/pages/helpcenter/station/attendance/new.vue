@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import NewHelp from '~/views/helpcenter/stationview/attendance/NewHelp'
+import NewHelp from '~/views/helpcenter/stationview/attendance/NewHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

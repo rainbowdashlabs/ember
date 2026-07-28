@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import LendingBrowseHelp from '~/views/helpcenter/stationview/inventory/LendingBrowseHelp'
+import LendingBrowseHelp from '~/views/helpcenter/stationview/inventory/LendingBrowseHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

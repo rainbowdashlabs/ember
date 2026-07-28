@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ApplyView from '~/views/ApplyView'
+import ApplyView from '~/views/ApplyView.vue'
 
 definePageMeta({
   layout: 'default',

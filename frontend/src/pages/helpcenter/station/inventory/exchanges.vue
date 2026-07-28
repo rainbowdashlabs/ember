@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ExchangeHelp from '~/views/helpcenter/stationview/inventory/ExchangeHelp'
+import ExchangeHelp from '~/views/helpcenter/stationview/inventory/ExchangeHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

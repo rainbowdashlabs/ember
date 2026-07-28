@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import PastView from '~/views/stationview/attendance/PastView'
+import PastView from '~/views/stationview/attendance/PastView.vue'
 
 definePageMeta({
   layout: 'station',

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import StationMailingView from '~/views/stationview/manage/StationMailingView'
+import StationMailingView from '~/views/stationview/manage/StationMailingView.vue'
 
 definePageMeta({
   layout: 'station',

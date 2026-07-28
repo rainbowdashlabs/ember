@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import FillView from '~/views/stationview/forms/FillView'
+import FillView from '~/views/stationview/forms/FillView.vue'
 
 definePageMeta({
   layout: 'station',

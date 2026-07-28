@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import PermissionsHelp from '~/views/helpcenter/basics/PermissionsHelp'
+import PermissionsHelp from '~/views/helpcenter/basics/PermissionsHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import AdminMailingView from '~/views/adminview/AdminMailingView'
+import AdminMailingView from '~/views/adminview/AdminMailingView.vue'
 
 definePageMeta({
   layout: 'admin',

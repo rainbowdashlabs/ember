@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import TestEditHelp from '~/views/helpcenter/stationview/quiz/TestEditHelp'
+import TestEditHelp from '~/views/helpcenter/stationview/quiz/TestEditHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

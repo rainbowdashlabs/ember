@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import PageFormsView from '~/views/stationview/pages/PageFormsView'
+import PageFormsView from '~/views/stationview/pages/PageFormsView.vue'
 
 definePageMeta({
   layout: 'station',

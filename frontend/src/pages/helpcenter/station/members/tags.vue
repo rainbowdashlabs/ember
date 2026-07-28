@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import TagsHelp from '~/views/helpcenter/stationview/members/TagsHelp'
+import TagsHelp from '~/views/helpcenter/stationview/members/TagsHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

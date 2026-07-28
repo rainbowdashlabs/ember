@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import UpcomingHelp from '~/views/helpcenter/stationview/events/UpcomingHelp'
+import UpcomingHelp from '~/views/helpcenter/stationview/events/UpcomingHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

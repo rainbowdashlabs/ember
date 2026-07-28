@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import MembersConfigView from '~/views/stationview/manage/MembersConfigView'
+import MembersConfigView from '~/views/stationview/manage/MembersConfigView.vue'
 
 definePageMeta({
   layout: 'station',

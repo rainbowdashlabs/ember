@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import CheckContainerHelp from '~/views/helpcenter/stationview/inventory/CheckContainerHelp'
+import CheckContainerHelp from '~/views/helpcenter/stationview/inventory/CheckContainerHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

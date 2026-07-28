@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import TwoFactorVerifyView from '~/views/TwoFactorVerifyView'
+import TwoFactorVerifyView from '~/views/TwoFactorVerifyView.vue'
 
 definePageMeta({
   layout: 'default',

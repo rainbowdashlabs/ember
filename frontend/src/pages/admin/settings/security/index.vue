@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import AdminSecurityView from '~/views/adminview/AdminSecurityView'
+import AdminSecurityView from '~/views/adminview/AdminSecurityView.vue'
 
 definePageMeta({
   layout: 'admin',

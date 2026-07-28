@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ExchangeView from '~/views/stationview/inventory/ExchangeView'
+import ExchangeView from '~/views/stationview/inventory/ExchangeView.vue'
 
 definePageMeta({
   layout: 'station',

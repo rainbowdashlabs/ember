@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import DetailHelp from '~/views/helpcenter/stationview/inventory/DetailHelp'
+import DetailHelp from '~/views/helpcenter/stationview/inventory/DetailHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

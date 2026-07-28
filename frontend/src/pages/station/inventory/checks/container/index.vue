@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import CheckContainerOverviewView from '~/views/stationview/inventory/CheckContainerOverviewView'
+import CheckContainerOverviewView from '~/views/stationview/inventory/CheckContainerOverviewView.vue'
 
 definePageMeta({
   layout: 'station',

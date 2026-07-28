@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import CheckContainerWalkHelp from '~/views/helpcenter/stationview/inventory/CheckContainerWalkHelp'
+import CheckContainerWalkHelp from '~/views/helpcenter/stationview/inventory/CheckContainerWalkHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

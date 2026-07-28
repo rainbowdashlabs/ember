@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import SecurityHelp from '~/views/helpcenter/stationview/profile/SecurityHelp'
+import SecurityHelp from '~/views/helpcenter/stationview/profile/SecurityHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

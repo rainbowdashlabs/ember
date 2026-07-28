@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ListView from '~/views/stationview/forms/ListView'
+import ListView from '~/views/stationview/forms/ListView.vue'
 
 definePageMeta({
   layout: 'station',

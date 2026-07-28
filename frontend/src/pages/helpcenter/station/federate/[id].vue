@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import FederationPartnerHelp from '~/views/helpcenter/stationview/manage/FederationPartnerHelp'
+import FederationPartnerHelp from '~/views/helpcenter/stationview/manage/FederationPartnerHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

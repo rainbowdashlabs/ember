@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import AbsenceView from '~/views/stationview/profile/AbsenceView'
+import AbsenceView from '~/views/stationview/profile/AbsenceView.vue'
 
 definePageMeta({
   layout: 'station',

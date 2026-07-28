@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import PagePollsView from '~/views/stationview/pages/PagePollsView'
+import PagePollsView from '~/views/stationview/pages/PagePollsView.vue'
 
 definePageMeta({
   layout: 'station',

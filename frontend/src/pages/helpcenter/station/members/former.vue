@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import FormerHelp from '~/views/helpcenter/stationview/members/FormerHelp'
+import FormerHelp from '~/views/helpcenter/stationview/members/FormerHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

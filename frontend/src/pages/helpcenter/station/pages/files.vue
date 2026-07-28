@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import PageFilesHelp from '~/views/helpcenter/stationview/pages/PageFilesHelp'
+import PageFilesHelp from '~/views/helpcenter/stationview/pages/PageFilesHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

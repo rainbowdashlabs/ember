@@ -4,10 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import DiscoveryNetworkHelp from '~/views/helpcenter/stationview/discovery/DiscoveryNetworkHelp'
+import DiscoveryNetworkHelp from '~/views/helpcenter/stationview/discovery/DiscoveryNetworkHelp.vue'
 
 definePageMeta({
-  layout: 'helpcenter-station',
+  layout: 'helpcenter',
   name: 'help-station-discovery-network',
 })
 </script>

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import MapsHelp from '~/views/helpcenter/adminview/MapsHelp'
+import MapsHelp from '~/views/helpcenter/adminview/MapsHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter-admin',

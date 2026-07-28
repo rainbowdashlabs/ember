@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import KnowledgeBaseView from '~/views/stationview/knowledge/KnowledgeBaseView'
+import KnowledgeBaseView from '~/views/stationview/knowledge/KnowledgeBaseView.vue'
 
 definePageMeta({
   layout: 'station',

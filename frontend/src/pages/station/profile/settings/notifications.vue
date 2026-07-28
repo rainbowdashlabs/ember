@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import NotificationsView from '~/views/stationview/profile/NotificationsView'
+import NotificationsView from '~/views/stationview/profile/NotificationsView.vue'
 
 definePageMeta({
   layout: 'station',

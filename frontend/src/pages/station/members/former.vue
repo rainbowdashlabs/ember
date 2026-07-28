@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import FormerView from '~/views/stationview/members/FormerView'
+import FormerView from '~/views/stationview/members/FormerView.vue'
 
 definePageMeta({
   layout: 'station',

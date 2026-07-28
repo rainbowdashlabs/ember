@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import TestBuilderView from '~/views/stationview/quiz/TestBuilderView'
+import TestBuilderView from '~/views/stationview/quiz/TestBuilderView.vue'
 
 definePageMeta({
   layout: 'station',

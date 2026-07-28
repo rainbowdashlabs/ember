@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import CheckResultHelp from '~/views/helpcenter/stationview/inventory/CheckResultHelp'
+import CheckResultHelp from '~/views/helpcenter/stationview/inventory/CheckResultHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

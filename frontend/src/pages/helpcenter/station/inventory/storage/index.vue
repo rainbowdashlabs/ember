@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import StorageHelp from '~/views/helpcenter/stationview/inventory/StorageHelp'
+import StorageHelp from '~/views/helpcenter/stationview/inventory/StorageHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

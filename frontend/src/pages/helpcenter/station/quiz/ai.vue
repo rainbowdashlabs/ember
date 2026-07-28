@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import AiGenerationHelp from '~/views/helpcenter/stationview/quiz/AiGenerationHelp'
+import AiGenerationHelp from '~/views/helpcenter/stationview/quiz/AiGenerationHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

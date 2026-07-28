@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import PublicDiscoveryView from '~/views/public/PublicDiscoveryView'
+import PublicDiscoveryView from '~/views/public/PublicDiscoveryView.vue'
 import {useCanonical} from '~/composables/useCanonical'
 
 definePageMeta({
@@ -28,7 +28,7 @@ useHead({
   script: [
     {
       type: 'application/ld+json',
-      children: JSON.stringify({
+      innerHTML: JSON.stringify({
         '@context': 'https://schema.org',
         '@type': 'WebSite',
         name: 'Ember',

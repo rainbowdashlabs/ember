@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import PublicWaitlistVerifyView from '~/views/public/PublicWaitlistVerifyView'
+import PublicWaitlistVerifyView from '~/views/public/PublicWaitlistVerifyView.vue'
 
 definePageMeta({
   name: 'waitlist-verify',

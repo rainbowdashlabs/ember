@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import AdminTwoFactorView from '~/views/adminview/AdminTwoFactorView'
+import AdminTwoFactorView from '~/views/adminview/AdminTwoFactorView.vue'
 
 definePageMeta({
   layout: 'admin',

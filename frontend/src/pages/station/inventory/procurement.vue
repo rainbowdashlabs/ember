@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ProcurementView from '~/views/stationview/inventory/ProcurementView'
+import ProcurementView from '~/views/stationview/inventory/ProcurementView.vue'
 
 definePageMeta({
   layout: 'station',

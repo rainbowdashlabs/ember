@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ArchivedView from '~/views/stationview/boards/ArchivedView'
+import ArchivedView from '~/views/stationview/boards/ArchivedView.vue'
 
 definePageMeta({
   layout: 'station',

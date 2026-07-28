@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import PatchNotesView from '~/views/PatchNotesView'
+import PatchNotesView from '~/views/PatchNotesView.vue'
 
 definePageMeta({
   layout: 'default',

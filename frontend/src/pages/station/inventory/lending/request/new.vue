@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import LendingCreateRequestView from '~/views/stationview/inventory/LendingCreateRequestView'
+import LendingCreateRequestView from '~/views/stationview/inventory/LendingCreateRequestView.vue'
 
 definePageMeta({
   layout: 'station',

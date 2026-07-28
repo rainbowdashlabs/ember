@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import BacklogHelp from '~/views/helpcenter/stationview/boards/BacklogHelp'
+import BacklogHelp from '~/views/helpcenter/stationview/boards/BacklogHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

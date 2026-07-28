@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import StationThemeView from '~/views/stationview/manage/StationThemeView'
+import StationThemeView from '~/views/stationview/manage/StationThemeView.vue'
 
 definePageMeta({
   layout: 'station',

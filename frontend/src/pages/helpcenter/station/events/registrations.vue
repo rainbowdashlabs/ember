@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import RegistrationsHelp from '~/views/helpcenter/stationview/events/RegistrationsHelp'
+import RegistrationsHelp from '~/views/helpcenter/stationview/events/RegistrationsHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

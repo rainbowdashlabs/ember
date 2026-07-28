@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import TicketCreateView from '~/views/stationview/boards/TicketCreateView'
+import TicketCreateView from '~/views/stationview/boards/TicketCreateView.vue'
 
 definePageMeta({
   layout: 'station',

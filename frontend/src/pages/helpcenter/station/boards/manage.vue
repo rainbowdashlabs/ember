@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import BoardManageHelp from '~/views/helpcenter/stationview/boards/BoardManageHelp'
+import BoardManageHelp from '~/views/helpcenter/stationview/boards/BoardManageHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

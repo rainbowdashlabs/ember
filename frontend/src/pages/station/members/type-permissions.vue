@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import UserTypePermissionsView from '~/views/stationview/members/UserTypePermissionsView'
+import UserTypePermissionsView from '~/views/stationview/members/UserTypePermissionsView.vue'
 
 definePageMeta({
   layout: 'station',

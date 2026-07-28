@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import CategoryManageView from '~/views/stationview/events/CategoryManageView'
+import CategoryManageView from '~/views/stationview/events/CategoryManageView.vue'
 
 definePageMeta({
   layout: 'station',

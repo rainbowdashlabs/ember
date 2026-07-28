@@ -4,10 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import StationTrafficHelp from '~/views/helpcenter/stationview/manage/StationTrafficHelp'
+import StationTrafficHelp from '~/views/helpcenter/stationview/manage/StationTrafficHelp.vue'
 
 definePageMeta({
-  layout: 'helpcenter-station',
+  layout: 'helpcenter',
   name: 'help-station-traffic',
 })
 </script>

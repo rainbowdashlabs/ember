@@ -4,10 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import StationInsightsHelp from '~/views/helpcenter/stationview/manage/StationInsightsHelp'
+import StationInsightsHelp from '~/views/helpcenter/stationview/manage/StationInsightsHelp.vue'
 
 definePageMeta({
-  layout: 'helpcenter-station',
+  layout: 'helpcenter',
   name: 'help-station-insights',
 })
 </script>

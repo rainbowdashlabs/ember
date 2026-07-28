@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ContainerDetailHelp from '~/views/helpcenter/stationview/inventory/ContainerDetailHelp'
+import ContainerDetailHelp from '~/views/helpcenter/stationview/inventory/ContainerDetailHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

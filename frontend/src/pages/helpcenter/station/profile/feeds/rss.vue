@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import RssFeedHelp from '~/views/helpcenter/stationview/profile/RssFeedHelp'
+import RssFeedHelp from '~/views/helpcenter/stationview/profile/RssFeedHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

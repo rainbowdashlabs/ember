@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import EditorHelp from '~/views/helpcenter/stationview/knowledge/EditorHelp'
+import EditorHelp from '~/views/helpcenter/stationview/knowledge/EditorHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

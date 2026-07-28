@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ReconsentView from '~/views/ReconsentView'
+import ReconsentView from '~/views/ReconsentView.vue'
 
 definePageMeta({
   layout: 'default',

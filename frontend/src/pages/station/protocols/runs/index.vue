@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import RunListView from '~/views/stationview/protocol/RunListView'
+import RunListView from '~/views/stationview/protocol/RunListView.vue'
 
 definePageMeta({
   layout: 'station',

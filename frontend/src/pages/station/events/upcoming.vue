@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import UpcomingView from '~/views/stationview/events/UpcomingView'
+import UpcomingView from '~/views/stationview/events/UpcomingView.vue'
 
 definePageMeta({
   layout: 'station',

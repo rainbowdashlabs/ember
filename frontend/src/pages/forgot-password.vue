@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ForgotPasswordView from '~/views/ForgotPasswordView'
+import ForgotPasswordView from '~/views/ForgotPasswordView.vue'
 
 definePageMeta({
   layout: 'default',

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import SecurityTokensHelp from '~/views/helpcenter/adminview/SecurityTokensHelp'
+import SecurityTokensHelp from '~/views/helpcenter/adminview/SecurityTokensHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter-admin',

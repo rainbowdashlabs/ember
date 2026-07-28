@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import DataTrackingHelp from '~/views/helpcenter/adminview/DataTrackingHelp'
+import DataTrackingHelp from '~/views/helpcenter/adminview/DataTrackingHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter-admin',

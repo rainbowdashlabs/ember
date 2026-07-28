@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import SetPasswordView from '~/views/SetPasswordView'
+import SetPasswordView from '~/views/SetPasswordView.vue'
 
 definePageMeta({
   layout: 'default',

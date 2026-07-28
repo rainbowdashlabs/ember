@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ApiStatusDetailHelp from '~/views/helpcenter/adminview/ApiStatusDetailHelp'
+import ApiStatusDetailHelp from '~/views/helpcenter/adminview/ApiStatusDetailHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter-admin',

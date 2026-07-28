@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import VersionsHelp from '~/views/helpcenter/stationview/knowledge/VersionsHelp'
+import VersionsHelp from '~/views/helpcenter/stationview/knowledge/VersionsHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

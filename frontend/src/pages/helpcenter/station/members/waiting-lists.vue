@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import WaitingListHelp from '~/views/helpcenter/stationview/members/WaitingListHelp'
+import WaitingListHelp from '~/views/helpcenter/stationview/members/WaitingListHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

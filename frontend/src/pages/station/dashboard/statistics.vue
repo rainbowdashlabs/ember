@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import StatisticsView from '~/views/dashboardview/StatisticsView'
+import StatisticsView from '~/views/dashboardview/StatisticsView.vue'
 
 definePageMeta({
   layout: 'station',

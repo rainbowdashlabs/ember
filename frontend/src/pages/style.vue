@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import StyleView from '~/views/StyleView'
+import StyleView from '~/views/StyleView.vue'
 
 definePageMeta({
   layout: 'default',

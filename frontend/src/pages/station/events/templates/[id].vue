@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import TemplateEditView from '~/views/stationview/events/TemplateEditView'
+import TemplateEditView from '~/views/stationview/events/TemplateEditView.vue'
 
 definePageMeta({
   layout: 'station',

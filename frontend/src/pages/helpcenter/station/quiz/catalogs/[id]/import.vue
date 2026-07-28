@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import CatalogImportHelp from '~/views/helpcenter/stationview/quiz/CatalogImportHelp'
+import CatalogImportHelp from '~/views/helpcenter/stationview/quiz/CatalogImportHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

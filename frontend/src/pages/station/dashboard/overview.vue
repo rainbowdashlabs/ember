@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import OverviewView from '~/views/dashboardview/OverviewView'
+import OverviewView from '~/views/dashboardview/OverviewView.vue'
 
 definePageMeta({
   layout: 'station',

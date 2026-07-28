@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import CheckOverviewHelp from '~/views/helpcenter/stationview/inventory/CheckOverviewHelp'
+import CheckOverviewHelp from '~/views/helpcenter/stationview/inventory/CheckOverviewHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

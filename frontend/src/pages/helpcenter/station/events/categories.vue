@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import CategoriesHelp from '~/views/helpcenter/stationview/events/CategoriesHelp'
+import CategoriesHelp from '~/views/helpcenter/stationview/events/CategoriesHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

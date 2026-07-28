@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import WaitingListRegisterView from '~/views/WaitingListRegisterView'
+import WaitingListRegisterView from '~/views/WaitingListRegisterView.vue'
 
 definePageMeta({
   layout: 'default',

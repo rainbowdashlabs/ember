@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ThemingHelp from '~/views/helpcenter/stationview/profile/ThemingHelp'
+import ThemingHelp from '~/views/helpcenter/stationview/profile/ThemingHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

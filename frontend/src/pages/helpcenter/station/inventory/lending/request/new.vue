@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import LendingCreateHelp from '~/views/helpcenter/stationview/inventory/LendingCreateHelp'
+import LendingCreateHelp from '~/views/helpcenter/stationview/inventory/LendingCreateHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

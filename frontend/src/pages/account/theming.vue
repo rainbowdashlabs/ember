@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import AccountThemingView from '~/views/accountview/AccountThemingView'
+import AccountThemingView from '~/views/accountview/AccountThemingView.vue'
 
 definePageMeta({
   layout: 'account',

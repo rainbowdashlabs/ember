@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import AnalyticsView from '~/views/stationview/forms/AnalyticsView'
+import AnalyticsView from '~/views/stationview/forms/AnalyticsView.vue'
 
 definePageMeta({
   layout: 'station',

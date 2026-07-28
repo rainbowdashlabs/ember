@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import BatchHelp from '~/views/helpcenter/stationview/events/BatchHelp'
+import BatchHelp from '~/views/helpcenter/stationview/events/BatchHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

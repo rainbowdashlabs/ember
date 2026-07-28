@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import AdminOverviewView from '~/views/adminview/AdminOverviewView'
+import AdminOverviewView from '~/views/adminview/AdminOverviewView.vue'
 
 definePageMeta({
   layout: 'admin',

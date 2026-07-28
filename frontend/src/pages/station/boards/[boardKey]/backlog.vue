@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import BacklogView from '~/views/stationview/boards/BacklogView'
+import BacklogView from '~/views/stationview/boards/BacklogView.vue'
 
 definePageMeta({
   layout: 'station',

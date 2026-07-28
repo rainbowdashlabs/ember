@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import TermsOfServiceView from '~/views/TermsOfServiceView'
+import TermsOfServiceView from '~/views/TermsOfServiceView.vue'
 
 definePageMeta({
   layout: 'default',

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import FederationPartnerView from '~/views/stationview/manage/FederationPartnerView'
+import FederationPartnerView from '~/views/stationview/manage/FederationPartnerView.vue'
 
 definePageMeta({
   layout: 'station',

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import MemberListHelp from '~/views/helpcenter/stationview/inventory/MemberListHelp'
+import MemberListHelp from '~/views/helpcenter/stationview/inventory/MemberListHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

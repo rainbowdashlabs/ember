@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import PagePollsHelp from '~/views/helpcenter/stationview/pages/PagePollsHelp'
+import PagePollsHelp from '~/views/helpcenter/stationview/pages/PagePollsHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

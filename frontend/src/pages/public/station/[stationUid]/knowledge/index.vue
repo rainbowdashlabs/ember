@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import PublicKnowledgeBaseView from '~/views/public/PublicKnowledgeBaseView'
+import PublicKnowledgeBaseView from '~/views/public/PublicKnowledgeBaseView.vue'
 
 definePageMeta({
   layout: 'public-station',

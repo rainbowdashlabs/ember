@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ModulesHelp from '~/views/helpcenter/basics/ModulesHelp'
+import ModulesHelp from '~/views/helpcenter/basics/ModulesHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import MemberInventoryView from '~/views/stationview/inventory/MemberInventoryView'
+import MemberInventoryView from '~/views/stationview/inventory/MemberInventoryView.vue'
 
 definePageMeta({
   layout: 'station',

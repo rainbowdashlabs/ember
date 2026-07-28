@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import RunListHelp from '~/views/helpcenter/stationview/protocol/RunListHelp'
+import RunListHelp from '~/views/helpcenter/stationview/protocol/RunListHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

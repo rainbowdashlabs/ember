@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import FeedMetricsHelp from '~/views/helpcenter/adminview/FeedMetricsHelp'
+import FeedMetricsHelp from '~/views/helpcenter/adminview/FeedMetricsHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter-admin',

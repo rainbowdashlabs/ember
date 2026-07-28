@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import IndexHelp from '~/views/helpcenter/stationview/checklist/IndexHelp'
+import IndexHelp from '~/views/helpcenter/stationview/checklist/IndexHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',
