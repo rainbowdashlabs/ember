@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+#
+# Common build and verification commands for this repository.
+#
+# Every command runs from the repository root regardless of the caller's working
+# directory, so callers never need their own `cd`.
+#
+# Usage: ./toolchain.sh <command> [args...]
+#        ./toolchain.sh help
+
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+FRONTEND="$ROOT/frontend"
+NODE_HEAP="--max-old-space-size=8192"
+
+usage() {
+    cat <<'EOF'
+Usage: ./toolchain.sh <command> [args...]
+
+Frontend
+  fe-build              Full verification: all linters, vue-tsc, production build
+  fe-typecheck          vue-tsc only (silent on success)
+  fe-audit              All linters, non-gating; prints the warning backlog
+  fe-lint <name>        One linter, e.g. `fe-lint style` runs scripts/lint-style.mjs
+  fe-dev                Dev server
+
+Backend
+  be-verify             spotlessApply, all four test suites, and the coverage gate
+  be-test               All four test suites, no filter
+  be-test1 <pattern> [suite]
+                        One test class, e.g. be-test1 '*PageServiceTest*'. Defaults to the
+                        testServices suite. A --tests filter must target a single suite: Gradle
+                        fails any suite the pattern matches nothing in.
+                        Suites: testServices, testRepositories, testOther, testTracking
+  be-compile            Compile main and test sources
+  be-spotless           Apply Java formatting
+  be-coverage           Coverage gate only (needs a prior test run)
+  be-report             Generate the full JaCoCo report
+  be-federation-version Regenerate the federation contract version
+
+Combined
+  verify                be-verify then fe-build
+EOF
+}
+
+fe() { cd "$FRONTEND"; }
+
+cmd="${1:-help}"
+shift || true
+
+case "$cmd" in
+    fe-build)      fe; NODE_OPTIONS="$NODE_HEAP" npm run build ;;
+    fe-typecheck)  fe; NODE_OPTIONS="$NODE_HEAP" npx nuxi typecheck ;;
+    fe-audit)      fe; NODE_OPTIONS="$NODE_HEAP" npm run lint:audit ;;
+    fe-lint)
+        [ $# -ge 1 ] || { echo "fe-lint needs a linter name, e.g. style" >&2; exit 2; }
+        fe; node "scripts/lint-$1.mjs"
+        ;;
+    fe-dev)        fe; npm run dev ;;
+
+    be-verify)
+        cd "$ROOT"
+        ./gradlew spotlessJavaApply testRepositories testServices testOther testTracking jacocoCoverageCheck "$@"
+        ;;
+    be-test)
+        cd "$ROOT"
+        ./gradlew testRepositories testServices testOther testTracking "$@"
+        ;;
+    be-test1)
+        [ $# -ge 1 ] || { echo "be-test1 needs a test pattern, e.g. '*PageServiceTest*'" >&2; exit 2; }
+        pattern="$1"; shift
+        suite="${1:-testServices}"; shift || true
+        cd "$ROOT"
+        ./gradlew "$suite" --tests "$pattern" "$@"
+        ;;
+    be-compile)    cd "$ROOT"; ./gradlew compileJava compileTestJava "$@" ;;
+    be-spotless)   cd "$ROOT"; ./gradlew spotlessJavaApply "$@" ;;
+    be-coverage)   cd "$ROOT"; ./gradlew jacocoCoverageCheck "$@" ;;
+    be-report)     cd "$ROOT"; ./gradlew jacocoFullReport "$@" ;;
+    be-federation-version) cd "$ROOT"; ./gradlew generateFederationVersion "$@" ;;
+
+    verify)
+        "$ROOT/toolchain.sh" be-verify
+        "$ROOT/toolchain.sh" fe-build
+        ;;
+
+    help|-h|--help) usage ;;
+    *) echo "Unknown command: $cmd" >&2; echo >&2; usage >&2; exit 2 ;;
+esac
