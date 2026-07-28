@@ -27,6 +27,7 @@ import dev.chojo.ember.feature.station.service.StationImportService;
 import dev.chojo.ember.feature.station.service.StationLocationService;
 import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.feature.station.service.StationService;
+import dev.chojo.ember.feature.station.transfer.ImportProgress;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -811,7 +812,7 @@ public class StationManageRoutes implements Routes {
     public record ImportProgressResponse(
             int stationId,
             String stationName,
-            StationImportService.ImportProgress.Status status,
+            ImportProgress.Status status,
             List<String> phases,
             int completedPhases,
             String currentPhase,

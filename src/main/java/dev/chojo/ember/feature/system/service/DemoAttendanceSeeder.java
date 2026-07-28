@@ -29,7 +29,7 @@ import java.util.Random;
  * Seeder for demo attendance session data spanning 14 months of history.
  */
 @Singleton
-public class DemoAttendanceSeeder {
+public class DemoAttendanceSeeder implements DemoSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoAttendanceSeeder.class);
 
     private final AttendanceRepository attendanceRepository;
@@ -37,6 +37,27 @@ public class DemoAttendanceSeeder {
     @Inject
     public DemoAttendanceSeeder(AttendanceRepository attendanceRepository) {
         this.attendanceRepository = attendanceRepository;
+    }
+
+    @Override
+    public int order() {
+        return MODULES;
+    }
+
+    @Override
+    public void seed(DemoSeederContext context) {
+        var members = context.members();
+        var events = context.events();
+        seedAttendanceSessions(
+                new Random(42_001),
+                events.templateUebung(),
+                events.templateGesamt(),
+                events.evUebung(),
+                events.evGesamt(),
+                members.anfaenger(),
+                members.fortgeschritten(),
+                members.betreuer());
+        log.info("Demo: Created attendance sessions");
     }
 
     public void seedAttendanceSessions(

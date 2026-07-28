@@ -26,7 +26,7 @@ import java.util.Random;
  * partially-checked state.
  */
 @Singleton
-public class DemoChecklistSeeder {
+public class DemoChecklistSeeder implements DemoSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoChecklistSeeder.class);
 
     private final ChecklistService service;
@@ -34,6 +34,16 @@ public class DemoChecklistSeeder {
     @Inject
     public DemoChecklistSeeder(ChecklistService service) {
         this.service = service;
+    }
+
+    @Override
+    public int order() {
+        return MODULES;
+    }
+
+    @Override
+    public void seed(DemoSeederContext context) {
+        seed(context.stationId(), context.adminMember().id(), new Random(42_030));
     }
 
     public void seed(int stationId, int adminMemberId, Random rng) {

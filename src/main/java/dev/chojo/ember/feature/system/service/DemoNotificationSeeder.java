@@ -5,19 +5,29 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import dev.chojo.ember.feature.board.service.BoardService;
+import dev.chojo.ember.feature.board.service.BoardTicketService;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
+import dev.chojo.ember.feature.federation.entity.LendingRequest;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
+import dev.chojo.ember.feature.federation.service.LendingService;
 import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
+import dev.chojo.ember.feature.inventory.entity.Inventory;
+import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
+import dev.chojo.ember.feature.procedure.entity.Procedure;
+import dev.chojo.ember.feature.procedure.entity.ProcedureStatus;
+import dev.chojo.ember.feature.procedure.service.ProcedureService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -34,14 +44,106 @@ import java.util.Map;
  * ids are taken from real seeded records so deep links resolve.
  */
 @Singleton
-public class DemoNotificationSeeder {
+public class DemoNotificationSeeder implements DemoSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoNotificationSeeder.class);
 
     private final NotificationRepository notificationRepository;
+    private final InventoryRepository inventoryRepository;
+    private final BoardService boardService;
+    private final BoardTicketService boardTicketService;
+    private final ProcedureService procedureService;
+    private final LendingService lendingService;
 
     @Inject
-    public DemoNotificationSeeder(NotificationRepository notificationRepository) {
+    public DemoNotificationSeeder(
+            NotificationRepository notificationRepository,
+            InventoryRepository inventoryRepository,
+            BoardService boardService,
+            BoardTicketService boardTicketService,
+            ProcedureService procedureService,
+            LendingService lendingService) {
         this.notificationRepository = notificationRepository;
+        this.inventoryRepository = inventoryRepository;
+        this.boardService = boardService;
+        this.boardTicketService = boardTicketService;
+        this.procedureService = procedureService;
+        this.lendingService = lendingService;
+    }
+
+    /**
+     * Runs last so every entity the showcase links to already exists. The lookups go through the
+     * domain services, matching the demo's convention of using services so domain events fire,
+     * even though these particular reads are side-effect free.
+     */
+    @Override
+    public int order() {
+        return SHOWCASE;
+    }
+
+    @Override
+    public void seed(DemoSeederContext context) {
+        int stationId = context.stationId();
+        var nextMonday = LocalDate.now()
+                .with(DayOfWeek.MONDAY)
+                .plusWeeks(LocalDate.now().getDayOfWeek().getValue() > 1 ? 1 : 0);
+
+        Integer inventoryId = inventoryRepository.findByStation(stationId).stream()
+                .filter(inv -> "Blouson".equals(inv.name()))
+                .map(Inventory::id)
+                .findFirst()
+                .orElseGet(() -> inventoryRepository.findByStation(stationId).stream()
+                        .map(Inventory::id)
+                        .findFirst()
+                        .orElse(null));
+
+        Integer lendingRequestId = lendingService.findRequestsByStation(stationId).stream()
+                .map(LendingRequest::id)
+                .findFirst()
+                .orElse(null);
+
+        var board = boardService.findByStation(stationId).stream().findFirst().orElse(null);
+        Integer boardId = board == null ? null : board.id();
+        String boardKey = board == null ? null : board.shortKey();
+        Integer boardTicketId = null;
+        Integer boardTicketNumber = null;
+        if (board != null) {
+            var ticket = boardTicketService.findByBoard(board.id()).stream()
+                    .findFirst()
+                    .orElse(null);
+            if (ticket != null) {
+                boardTicketId = ticket.id();
+                boardTicketNumber = ticket.ticketNumber();
+            }
+        }
+
+        Integer procedureId = procedureService.findProceduresByStation(stationId, ProcedureStatus.OPEN).stream()
+                .map(Procedure::id)
+                .findFirst()
+                .orElseGet(() -> procedureService.findProceduresByStation(stationId, ProcedureStatus.RESOLVED).stream()
+                        .map(Procedure::id)
+                        .findFirst()
+                        .orElse(null));
+
+        var showcase = new ShowcaseContext(
+                context.news().firstNewsId(),
+                context.events().stadtfestId(),
+                context.events().evUebung().id(),
+                nextMonday.toString(),
+                null,
+                context.lostAndFoundItem() == null
+                        ? null
+                        : context.lostAndFoundItem().id(),
+                lendingRequestId,
+                boardId,
+                boardKey,
+                boardTicketId,
+                boardTicketNumber,
+                procedureId,
+                inventoryId,
+                null,
+                stationId);
+        seedShowcase(context.adminMember(), context.members().anfaenger(), showcase);
+        log.info("Demo: Created showcase notification for every NotificationType");
     }
 
     public void seedShowcase(StationMember admin, List<StationMember> anfaenger, ShowcaseContext ctx) {

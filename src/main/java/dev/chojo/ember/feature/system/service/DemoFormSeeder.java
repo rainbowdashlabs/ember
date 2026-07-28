@@ -30,7 +30,7 @@ import java.util.Random;
  * Seeder for demo form data including surveys, feedback forms, and restricted forms.
  */
 @Singleton
-public class DemoFormSeeder {
+public class DemoFormSeeder implements DemoSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoFormSeeder.class);
 
     private final FormRepository formRepository;
@@ -40,6 +40,27 @@ public class DemoFormSeeder {
     public DemoFormSeeder(FormRepository formRepository, RestrictionService restrictionService) {
         this.formRepository = formRepository;
         this.restrictionService = restrictionService;
+    }
+
+    @Override
+    public int order() {
+        return MODULES;
+    }
+
+    @Override
+    public void seed(DemoSeederContext context) {
+        var members = context.members();
+        seedForms(
+                context.stationId(),
+                context.adminMember(),
+                members.anfaenger(),
+                members.fortgeschritten(),
+                StationUserType.MEMBER,
+                StationUserType.GUARDIAN,
+                members.groupAnfaenger().id(),
+                members.tagWettkampf().id(),
+                new Random(42_003));
+        log.info("Demo: Created forms");
     }
 
     public void seedForms(

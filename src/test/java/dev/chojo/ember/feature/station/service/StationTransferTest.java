@@ -25,6 +25,10 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.StationModule;
+import dev.chojo.ember.feature.station.transfer.AccountCredentialTableImporter;
+import dev.chojo.ember.feature.station.transfer.AccountTableImporter;
+import dev.chojo.ember.feature.station.transfer.DisabledModuleTableImporter;
+import dev.chojo.ember.feature.station.transfer.StationTableImporter;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.TestRemoteUrlValidator;
 import org.junit.jupiter.api.BeforeAll;
@@ -91,19 +95,21 @@ class StationTransferTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         exportService = new StationExportService(stationRepo, new Api());
+        var stationImporter = new StationTableImporter(stationRepo);
         importService = new StationImportService(
                 stationRepo,
-                accountRepo,
                 exportService,
                 new Api(),
                 null,
                 null,
-                null,
-                null,
-                null,
-                null,
                 new FederationPartnerTransferFixupService(new FederationRepository(), null, stationRepo),
-                TestRemoteUrlValidator.permissive());
+                TestRemoteUrlValidator.permissive(),
+                stationImporter,
+                Set.of(
+                        stationImporter,
+                        new AccountTableImporter(accountRepo),
+                        new AccountCredentialTableImporter(accountRepo),
+                        new DisabledModuleTableImporter(stationRepo)));
 
         // Create station with full settings
         var station = stationRepo.create("Jugendfeuerwehr Musterstadt");
@@ -219,8 +225,8 @@ class StationTransferTest extends RepositoryTestBase {
                 0);
 
         // --- Event categories ---
-        var catTraining = eventRepo.createCategory(sourceStationId, "Training", 0, "#ff6421");
-        var catSonder = eventRepo.createCategory(sourceStationId, "Sondertermin", 1, null);
+        var catTraining = eventCategoryRepo.create(sourceStationId, "Training", 0, "#ff6421");
+        var catSonder = eventCategoryRepo.create(sourceStationId, "Sondertermin", 1, null);
 
         // --- Events ---
         var now = Instant.now();

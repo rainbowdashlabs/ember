@@ -33,7 +33,7 @@ import java.nio.file.Path;
  * disk.
  */
 @Singleton
-public class DemoMediaSeeder {
+public class DemoMediaSeeder implements DemoSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoMediaSeeder.class);
     private static final Path AVATAR_CACHE_DIR = Path.of("data", "demo-avatars");
 
@@ -58,6 +58,17 @@ public class DemoMediaSeeder {
      * Seeds a DiceBear avatar (keyed by {@code account.uid}) for every account
      * that does not yet have one, and the demo station logo for {@code stationId}.
      */
+    @Override
+    public int order() {
+        return MODULES;
+    }
+
+    @Override
+    public void seed(DemoSeederContext context) {
+        seedProfilePictures(context.stationId());
+        log.info("Demo: Created profile pictures");
+    }
+
     public void seedProfilePictures(int stationId) {
         try {
             Files.createDirectories(AVATAR_CACHE_DIR);

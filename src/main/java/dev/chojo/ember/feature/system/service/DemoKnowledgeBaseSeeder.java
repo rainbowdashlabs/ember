@@ -19,7 +19,7 @@ import java.util.List;
  * Seeds demo knowledge base content with folders, markdown files, a YouTube video, and a PDF.
  */
 @Singleton
-public class DemoKnowledgeBaseSeeder {
+public class DemoKnowledgeBaseSeeder implements DemoSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoKnowledgeBaseSeeder.class);
 
     private final KnowledgeBaseService kbService;
@@ -29,6 +29,17 @@ public class DemoKnowledgeBaseSeeder {
     public DemoKnowledgeBaseSeeder(KnowledgeBaseService kbService, KnowledgeBaseRepository kbRepository) {
         this.kbService = kbService;
         this.kbRepository = kbRepository;
+    }
+
+    @Override
+    public int order() {
+        return MODULES;
+    }
+
+    @Override
+    public void seed(DemoSeederContext context) {
+        seed(context.stationId(), context.adminMember().id());
+        log.info("Demo: Created Knowledge Base content");
     }
 
     public void seed(int stationId, int createdBy) {

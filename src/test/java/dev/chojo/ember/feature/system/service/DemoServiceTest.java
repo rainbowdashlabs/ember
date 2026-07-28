@@ -24,7 +24,6 @@ import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import dev.chojo.ember.feature.events.service.EventFederationService;
-import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.events.service.EventTemplateService;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
@@ -43,6 +42,7 @@ import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.inventory.service.ProcurementService;
 import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
+import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.knowledgebase.service.TextCompressionPolicy;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
@@ -115,7 +115,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var federationFanout = new FederationFanout();
         var federationEntityResolver = new FederationEntityResolver(federationRepo, stationRepo, federationHttpClient);
 
-        var eventService = new EventService(eventRepo, restrictionService, noOpBus);
+        var eventService = newEventService(noOpBus);
         var newsService = new NewsService(newsRepo, restrictionService, noOpBus, stationMemberRepo, accountRepo);
         var inventoryService = new InventoryService(inventoryRepo);
         var exchangeService = new ExchangeService(exchangeRepo, inventoryRepo, inventoryService, noOpBus);
@@ -134,17 +134,26 @@ class DemoServiceTest extends RepositoryTestBase {
         var kbService = new KnowledgeBaseService(
                 knowledgeBaseRepo,
                 stationRepo,
+                stationMemberRepo,
+                accountRepo,
+                memberGroupRepo,
+                userTagRepo,
                 kbFileStorage,
-                federationService,
-                federationRepo,
-                federationHttpClient,
                 kbCommentRepo,
-                eventFederationRepo,
                 memberIdentityFactory,
                 noOpBus,
                 memberSvc,
                 new PresentationCompressor(kbStorageConfig),
-                new PdfCompressor(kbStorageConfig),
+                new PdfCompressor(kbStorageConfig));
+        var kbFederationService = new KnowledgeBaseFederationService(
+                kbService,
+                federationService,
+                federationRepo,
+                federationHttpClient,
+                stationRepo,
+                kbCommentRepo,
+                eventFederationRepo,
+                memberNameResolver,
                 federationFanout,
                 federationEntityResolver);
         var quizService = new QuizService(
@@ -235,16 +244,35 @@ class DemoServiceTest extends RepositoryTestBase {
 
         // -- Seeders --
         var memberSeeder = new DemoMemberSeeder(
-                accountRepo, stationMemberRepo, memberGroupRepo, profileFieldRepo, profileFieldChangeRepo, userTagRepo);
-        var eventSeeder =
-                new DemoEventSeeder(eventRepo, eventFieldRepo, attendanceRepo, eventService, eventTemplateService);
+                accountRepo,
+                stationMemberRepo,
+                memberGroupRepo,
+                profileFieldRepo,
+                profileFieldChangeRepo,
+                userTagRepo,
+                stationRepo);
+        var eventSeeder = new DemoEventSeeder(
+                eventCategoryRepo,
+                eventRegistrationRepo,
+                eventFieldRepo,
+                attendanceRepo,
+                eventService,
+                eventTemplateService);
         var attendanceSeeder = new DemoAttendanceSeeder(attendanceRepo);
         var containerSvc = new InventoryContainerService(containerRepo, containerKindRepo, inventoryRepo);
         var fieldDefSvc = new InventoryFieldDefinitionService(fieldDefinitionRepo);
-        var inventorySeeder =
-                new DemoInventorySeeder(inventoryRepo, inventoryCheckRepo, accountRepo, containerSvc, fieldDefSvc);
+        var inventorySeeder = new DemoInventorySeeder(
+                inventoryRepo,
+                inventoryCheckRepo,
+                accountRepo,
+                containerSvc,
+                fieldDefSvc,
+                exchangeService,
+                exchangeRepo,
+                procurementService);
         var formSeeder = new DemoFormSeeder(formRepo, restrictionService);
-        var notificationSeeder = new DemoNotificationSeeder(notificationRepo);
+        var notificationSeeder = new DemoNotificationSeeder(
+                notificationRepo, inventoryRepo, boardService, boardTicketService, procedureService, lendingService);
         var waitingListSeeder = new DemoWaitingListSeeder(
                 waitingListRepo, memberGroupRepo, stationMemberRepo, attendanceRepo, accountRepo);
         var quizSeeder = new DemoQuizSeeder(quizCatalogRepo, quizTestRepo, quizService, quizImageService);
@@ -259,6 +287,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 stationRepo,
                 federationService,
                 kbService,
+                kbFederationService,
                 quizService,
                 protocolService,
                 eventService,
@@ -299,45 +328,44 @@ class DemoServiceTest extends RepositoryTestBase {
         var checklistService =
                 new ChecklistService(new ChecklistRepository(), stationMemberRepo, memberGroupRepo, userTagRepo);
         var checklistSeederLocal = new DemoChecklistSeeder(checklistService);
+        var stationSeeder = new DemoStationSeeder(accountRepo, stationRepo);
+        var mirrorStationSeeder = new DemoMirrorStationSeeder(
+                stationRepo, stationMemberRepo, accountRepo, federationService, demoConfig, apiConfig);
+        var sessionSeeder = new DemoSessionSeeder(accountRepo);
+        var settingsSeeder = new DemoSettingsSeeder(feedTokenService, stationRepo, applicationSettingRepo);
+        var setupSeeder = new DemoSetupSeeder(stationRepo, accountRepo, stationMemberRepo);
 
         // -- DemoService --
         demoService = new DemoService(
                 demoConfig,
                 databaseConfig,
                 dataSource,
-                accountRepo,
-                stationRepo,
-                stationMemberRepo,
-                inventoryRepo,
-                exchangeRepo,
                 passwordHasher,
-                memberSeeder,
-                eventSeeder,
-                formSeeder,
-                notificationSeeder,
-                attendanceSeeder,
-                inventorySeeder,
-                waitingListSeeder,
-                quizSeeder,
-                mediaSeeder,
-                kbSeeder,
-                protocolSeeder,
-                federationSeeder,
-                lendingSeeder,
-                boardSeeder,
-                procedureSeeder,
-                pageSeeder,
-                newsSeeder,
-                lostAndFoundSeederLocal,
-                checklistSeederLocal,
-                applicationSettingRepo,
-                exchangeService,
-                procurementService,
-                feedTokenService,
-                boardService,
-                boardTicketService,
-                procedureService,
-                lendingService);
+                Set.of(
+                        stationSeeder,
+                        memberSeeder,
+                        mirrorStationSeeder,
+                        eventSeeder,
+                        newsSeeder,
+                        lostAndFoundSeederLocal,
+                        attendanceSeeder,
+                        inventorySeeder,
+                        formSeeder,
+                        sessionSeeder,
+                        waitingListSeeder,
+                        quizSeeder,
+                        kbSeeder,
+                        protocolSeeder,
+                        procedureSeeder,
+                        mediaSeeder,
+                        federationSeeder,
+                        settingsSeeder,
+                        checklistSeederLocal,
+                        boardSeeder,
+                        pageSeeder,
+                        lendingSeeder,
+                        notificationSeeder,
+                        setupSeeder));
     }
 
     @Test

@@ -17,6 +17,8 @@ import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,7 +28,8 @@ import java.util.UUID;
  * Seeds demo public pages with a landing page, about section, and join page.
  */
 @Singleton
-public class DemoPageSeeder {
+public class DemoPageSeeder implements DemoSeeder {
+    private static final Logger log = LoggerFactory.getLogger(DemoPageSeeder.class);
     private final PageService pageService;
     private final FormRepository formRepository;
     private final QuizCatalogRepository quizCatalogRepository;
@@ -41,6 +44,20 @@ public class DemoPageSeeder {
 
     private static PageService.RowData row(int sortOrder, CellContentType type, String content, CellConfig config) {
         return new PageService.RowData(sortOrder, List.of(new PageService.CellData(0, 100, type, content, config)));
+    }
+
+    /**
+     * Runs after the quiz band because the landing page embeds a seeded quiz catalog.
+     */
+    @Override
+    public int order() {
+        return FEDERATED_MODULES;
+    }
+
+    @Override
+    public void seed(DemoSeederContext context) {
+        seed(context.stationId(), context.adminMember().id());
+        log.info("Demo: Created Public Pages");
     }
 
     public void seed(int stationId, int memberId) {

@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationExportService;
 import dev.chojo.ember.feature.station.service.StationImportService;
+import dev.chojo.ember.feature.station.transfer.ImportProgress;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -335,7 +336,7 @@ public class TransferRoutes implements Routes {
     public record ImportProgressResponse(
             int stationId,
             String stationName,
-            StationImportService.ImportProgress.Status status,
+            ImportProgress.Status status,
             List<String> phases,
             int completedPhases,
             String currentPhase,

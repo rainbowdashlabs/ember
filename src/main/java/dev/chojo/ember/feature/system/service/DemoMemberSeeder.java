@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -34,7 +35,7 @@ import java.util.Random;
  * manager assignments, and user tags.
  */
 @Singleton
-public class DemoMemberSeeder {
+public class DemoMemberSeeder implements DemoSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoMemberSeeder.class);
 
     private final AccountRepository accountRepository;
@@ -43,6 +44,7 @@ public class DemoMemberSeeder {
     private final ProfileFieldRepository profileFieldRepository;
     private final ProfileFieldChangeRepository profileFieldChangeRepository;
     private final UserTagRepository userTagRepository;
+    private final StationRepository stationRepository;
 
     @Inject
     public DemoMemberSeeder(
@@ -51,13 +53,28 @@ public class DemoMemberSeeder {
             MemberGroupRepository memberGroupRepository,
             ProfileFieldRepository profileFieldRepository,
             ProfileFieldChangeRepository profileFieldChangeRepository,
-            UserTagRepository userTagRepository) {
+            UserTagRepository userTagRepository,
+            StationRepository stationRepository) {
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberGroupRepository = memberGroupRepository;
         this.profileFieldRepository = profileFieldRepository;
         this.profileFieldChangeRepository = profileFieldChangeRepository;
         this.userTagRepository = userTagRepository;
+        this.stationRepository = stationRepository;
+    }
+
+    @Override
+    public int order() {
+        return MEMBERS;
+    }
+
+    @Override
+    public void seed(DemoSeederContext context) {
+        var members = seed(context.stationId(), context.passwordHash(), new Random(42));
+        context.members(members);
+        context.adminMember(members.head());
+        stationRepository.setOwner(context.stationId(), members.head().id());
     }
 
     public SeedResult seed(int stationId, String passwordHash, Random rng) {

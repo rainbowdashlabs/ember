@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.CheckResult;
+import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
 import dev.chojo.ember.feature.inventory.entity.FieldConfig;
 import dev.chojo.ember.feature.inventory.entity.FieldType;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
@@ -14,12 +15,16 @@ import dev.chojo.ember.feature.inventory.entity.InventoryContainer;
 import dev.chojo.ember.feature.inventory.entity.InventoryContainerKind;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
+import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemFieldValues;
+import dev.chojo.ember.feature.inventory.repository.ExchangeRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
+import dev.chojo.ember.feature.inventory.service.ExchangeService;
 import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryFieldDefinitionService;
+import dev.chojo.ember.feature.inventory.service.ProcurementService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -38,17 +43,36 @@ import java.util.Random;
 import java.util.function.Function;
 
 /**
- * Seeder for demo inventory items, assignments, history, and inventory checks.
+ * Seeder for demo inventory items, assignments, history, inventory checks, exchange requests
+ * and procurements. The stages run in one step because each consumes the items the previous
+ * one assigned.
  */
 @Singleton
-public class DemoInventorySeeder {
+public class DemoInventorySeeder implements DemoSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoInventorySeeder.class);
+    private static final List<String> EXCHANGE_REASONS = List.of(
+            "Zu klein geworden",
+            "Beschädigt",
+            "Verschlissen",
+            "Falsche Größe erhalten",
+            "Verloren und brauche Ersatz",
+            "Riss im Material",
+            "Reißverschluss defekt");
+    private static final List<ExchangeStatus> EXCHANGE_STATUSES = List.of(
+            ExchangeStatus.ANNOUNCED,
+            ExchangeStatus.ANNOUNCED,
+            ExchangeStatus.RECEIVED,
+            ExchangeStatus.ANNOUNCED,
+            ExchangeStatus.RECEIVED);
 
     private final InventoryRepository inventoryRepository;
     private final InventoryCheckRepository inventoryCheckRepository;
     private final AccountRepository accountRepository;
     private final InventoryContainerService containerService;
     private final InventoryFieldDefinitionService fieldDefinitionService;
+    private final ExchangeService exchangeService;
+    private final ExchangeRepository exchangeRepository;
+    private final ProcurementService procurementService;
 
     @Inject
     public DemoInventorySeeder(
@@ -56,12 +80,159 @@ public class DemoInventorySeeder {
             InventoryCheckRepository inventoryCheckRepository,
             AccountRepository accountRepository,
             InventoryContainerService containerService,
-            InventoryFieldDefinitionService fieldDefinitionService) {
+            InventoryFieldDefinitionService fieldDefinitionService,
+            ExchangeService exchangeService,
+            ExchangeRepository exchangeRepository,
+            ProcurementService procurementService) {
         this.inventoryRepository = inventoryRepository;
         this.inventoryCheckRepository = inventoryCheckRepository;
         this.accountRepository = accountRepository;
         this.containerService = containerService;
         this.fieldDefinitionService = fieldDefinitionService;
+        this.exchangeService = exchangeService;
+        this.exchangeRepository = exchangeRepository;
+        this.procurementService = procurementService;
+    }
+
+    @Override
+    public int order() {
+        return MODULES;
+    }
+
+    @Override
+    public void seed(DemoSeederContext context) {
+        var members = context.members();
+        var rng = new Random(42_002);
+        seedInventory(
+                context.stationId(),
+                rng,
+                members.anfaenger(),
+                members.fortgeschritten(),
+                members.groupAnfaenger().id(),
+                members.groupFortgeschritten().id());
+        seedInventoryChecks(
+                context.stationId(), rng, members.betreuer(), members.anfaenger(), members.fortgeschritten());
+        seedExchanges(context.stationId(), rng, members.anfaenger(), members.fortgeschritten(), members.betreuer());
+        seedProcurements(context.stationId(), members.anfaenger(), members.fortgeschritten());
+    }
+
+    /**
+     * Creates exchange requests for randomly picked assigned items, moving a portion of them to
+     * the received state so the exchange list shows both stages.
+     */
+    private void seedExchanges(
+            int stationId,
+            Random rng,
+            List<StationMember> anfaengerMembers,
+            List<StationMember> fortgeschrittenMembers,
+            List<StationMember> betreuerMembers) {
+        var allKids = new ArrayList<>(anfaengerMembers);
+        allKids.addAll(fortgeschrittenMembers);
+        int exchangeCount = 0;
+        for (var kid : allKids) {
+            if (rng.nextInt(5) == 0) continue;
+            var memberItems = inventoryRepository.findItemsByMember(kid.id());
+            if (memberItems.isEmpty()) continue;
+            var item = memberItems.get(rng.nextInt(memberItems.size()));
+            var reason = EXCHANGE_REASONS.get(rng.nextInt(EXCHANGE_REASONS.size()));
+            Integer newSizeId = item.sizeId();
+            var sizes = item.sizeId() != null
+                    ? inventoryRepository.findSizes(item.inventoryId())
+                    : List.<InventorySize>of();
+            int currentIdx = -1;
+            for (int si = 0; si < sizes.size(); si++) {
+                if (sizes.get(si).id() == item.sizeId()) {
+                    currentIdx = si;
+                    break;
+                }
+            }
+            switch (reason) {
+                case "Zu klein geworden" -> {
+                    if (currentIdx >= 0 && currentIdx < sizes.size() - 1) {
+                        newSizeId = sizes.get(currentIdx + 1).id();
+                    } else {
+                        reason = "Beschädigt";
+                    }
+                }
+                case "Beschädigt",
+                        "Verschlissen",
+                        "Riss im Material",
+                        "Reißverschluss defekt",
+                        "Verloren und brauche Ersatz" -> {}
+                case "Falsche Größe erhalten" -> {
+                    if (sizes.size() > 1 && currentIdx >= 0) {
+                        int offset = rng.nextBoolean() && currentIdx > 0 ? -1 : 1;
+                        int newIdx = Math.clamp(currentIdx + offset, 0, sizes.size() - 1);
+                        if (newIdx == currentIdx) {
+                            newIdx = currentIdx > 0 ? currentIdx - 1 : currentIdx + 1;
+                        }
+                        newSizeId = sizes.get(newIdx).id();
+                    }
+                }
+                default -> {}
+            }
+            var exchange = exchangeService.create(
+                    stationId,
+                    kid.id(),
+                    "Demo User",
+                    item.id(),
+                    item.inventoryId(),
+                    item.sizeId(),
+                    newSizeId,
+                    reason,
+                    null);
+            var targetStatus = EXCHANGE_STATUSES.get(rng.nextInt(EXCHANGE_STATUSES.size()));
+            if (targetStatus != ExchangeStatus.ANNOUNCED) {
+                exchangeRepository.updateStatus(exchange.id(), ExchangeStatus.RECEIVED);
+                exchangeRepository.createLog(
+                        exchange.id(),
+                        ExchangeStatus.ANNOUNCED,
+                        ExchangeStatus.RECEIVED,
+                        betreuerMembers.get(rng.nextInt(betreuerMembers.size())).id(),
+                        "In Bearbeitung");
+            }
+            exchangeCount++;
+        }
+        log.info("Demo: Created {} exchange requests", exchangeCount);
+    }
+
+    /**
+     * Requests replacements for a lost pair of gloves and for every member still missing a sports
+     * bag, so the procurement list has both single and bulk demand.
+     */
+    private void seedProcurements(
+            int stationId, List<StationMember> anfaengerMembers, List<StationMember> fortgeschrittenMembers) {
+        var inventories = inventoryRepository.findByStation(stationId);
+        if (!inventories.isEmpty()) {
+            var handschuheInv = inventories.stream()
+                    .filter(i -> "Handschuhe".equals(i.name()))
+                    .findFirst();
+            if (handschuheInv.isPresent()) {
+                var sizes = inventoryRepository.findSizes(handschuheInv.get().id());
+                procurementService.create(
+                        stationId,
+                        handschuheInv.get().id(),
+                        anfaengerMembers.get(2).id(),
+                        sizes.isEmpty() ? null : sizes.get(2 % sizes.size()).id(),
+                        "Handschuhe verloren");
+            }
+        }
+        var sporttascheInv =
+                inventories.stream().filter(i -> "Sporttasche".equals(i.name())).findFirst();
+        if (sporttascheInv.isPresent()) {
+            var allKids = new ArrayList<>(anfaengerMembers);
+            allKids.addAll(fortgeschrittenMembers);
+            for (var kid : allKids) {
+                var items = inventoryRepository.findItemsByMember(kid.id());
+                boolean hasSporttasche = items.stream()
+                        .anyMatch(i -> i.inventoryId() == sporttascheInv.get().id());
+                if (!hasSporttasche) {
+                    procurementService.create(
+                            stationId, sporttascheInv.get().id(), kid.id(), null, "Sporttasche fehlt");
+                }
+            }
+        }
+        log.info("Demo: Created procurements");
     }
 
     public void seedInventory(

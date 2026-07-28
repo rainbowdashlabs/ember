@@ -17,7 +17,7 @@ import java.util.List;
  * Seeds demo news articles with comments.
  */
 @Singleton
-public class DemoNewsSeeder {
+public class DemoNewsSeeder implements DemoSeeder {
     private final NewsService newsService;
     private final StationMemberRepository stationMemberRepository;
 
@@ -25,6 +25,22 @@ public class DemoNewsSeeder {
     public DemoNewsSeeder(NewsService newsService, StationMemberRepository stationMemberRepository) {
         this.newsService = newsService;
         this.stationMemberRepository = stationMemberRepository;
+    }
+
+    @Override
+    public int order() {
+        return NEWS;
+    }
+
+    @Override
+    public void seed(DemoSeederContext context) {
+        var members = context.members();
+        context.news(seed(
+                context.stationId(),
+                context.adminMember().id(),
+                members.betreuer(),
+                members.eltern(),
+                members.fortgeschritten()));
     }
 
     public SeedResult seed(
