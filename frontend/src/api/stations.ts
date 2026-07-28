@@ -4,7 +4,28 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {createCrudResource} from './crud'
-import type {Station, StationDetail, StationRequest} from './types'
+export interface Station {
+    id: number
+    name?: string
+}
+
+export interface StationRequest {
+    name?: string
+    managerEmail?: string
+}
+
+export interface StationDetail {
+    id: number
+    name?: string
+    manager?: ManagerDetail | null
+}
+
+export interface ManagerDetail {
+    email?: string
+    firstName?: string
+    lastName?: string
+    accountReady: boolean
+}
 
 const stations = createCrudResource<
     Station,

@@ -5,7 +5,28 @@
  */
 import client from './client'
 import { createCrudResource } from './crud'
-import type { CreateProcurementRequest, ProcurementEntry } from './types'
+import type { MemberIdentity } from './types'
+
+export interface ProcurementEntry {
+    id: number
+    inventoryId: number
+    inventoryName: string
+    memberId: number
+    memberName: string
+    sizeId?: number | null
+    sizeLabel: string
+    notes: string
+    requestedAt: string
+    fulfilledAt?: string | null
+    memberIdentity?: MemberIdentity | null
+}
+
+export interface CreateProcurementRequest {
+    inventoryId: number
+    memberId: number
+    sizeId?: number | null
+    notes?: string
+}
 
 const procurement = createCrudResource<ProcurementEntry, CreateProcurementRequest>('/procurement')
 

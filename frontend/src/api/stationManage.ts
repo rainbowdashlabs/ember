@@ -5,7 +5,47 @@
  */
 import client from './client'
 import {uploadFile} from './upload'
-import type {MessageResponse, StationManageInfo, UpdateStationNameRequest} from './types'
+import type {MessageResponse} from './types'
+
+export interface StationManageInfo {
+    id: string
+    name?: string
+    timezone?: string
+    locale?: string
+    hasLogo: boolean
+    ownerMemberId?: number | null
+    isOwner: boolean
+    defaultTheme?: string
+    allowUserTheme?: boolean
+    customThemeColors?: string | null
+    defaultFeel?: string
+    allowUserFeel?: boolean
+    publicKbMode?: string
+    discoveryVisibility?: string
+    discoveryDescription?: string | null
+    discoveryShowKb?: boolean
+    publicCalendarEnabled?: boolean
+    publicPagesEnabled?: boolean
+    publicSlug?: string | null
+}
+
+export interface UpdateStationNameRequest {
+    name?: string
+    timezone?: string
+    locale?: string
+    defaultTheme?: string
+    allowUserTheme?: boolean
+    customThemeColors?: string | null
+    defaultFeel?: string
+    allowUserFeel?: boolean
+    publicKbMode?: string
+    discoveryVisibility?: string
+    discoveryDescription?: string | null
+    discoveryShowKb?: boolean
+    publicCalendarEnabled?: boolean
+    publicPagesEnabled?: boolean
+    publicSlug?: string | null
+}
 
 export async function getStationInfo(): Promise<StationManageInfo> {
     const res = await client.get<StationManageInfo>('/station/manage')

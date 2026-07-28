@@ -5,7 +5,32 @@
  */
 import client from './client'
 import {createCrudResource} from './crud'
-import type {CodeDetail, CreateCodeRequest, RegistrationCode, SetGroupsRequest,} from './types'
+export interface RegistrationCode {
+    id: number
+    stationId: string
+    code?: string
+    maxUses: number
+    uses: number
+    hasUsesLeft: boolean
+}
+
+export interface CreateCodeRequest {
+    code?: string
+    maxUses: number
+}
+
+export interface CodeDetail {
+    id: number
+    stationId: string
+    code?: string
+    maxUses: number
+    uses: number
+    groupIds?: number[]
+}
+
+export interface SetGroupsRequest {
+    groupIds?: number[]
+}
 
 const codes = createCrudResource<RegistrationCode, CreateCodeRequest, CreateCodeRequest, CodeDetail>(
     '/registration-codes',

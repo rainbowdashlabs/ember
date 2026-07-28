@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {ProfileField, ProfileFieldValue} from './types'
+import type {ProfileField, ProfileFieldValue} from './profileFields'
 import type {MyInventoryItem, MyRequirement} from './inventory'
 
 export interface ManagedMember {

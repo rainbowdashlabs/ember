@@ -5,7 +5,66 @@
  */
 import client from './client'
 import { createCrudResource, createScopedCrudResource, pageParams } from './crud'
-import type { CommentRequest, NewsComment, NewsEntry, NewsRequest, PublicBlogEntry } from './types'
+import type { MemberIdentity } from './types'
+
+export interface NewsEntry {
+    id: number
+    stationId: string
+    title: string
+    contentMarkdown: string
+    contentHtml: string
+    author: MemberIdentity | null
+    authorName: string
+    publishedAt?: string
+    createdAt?: string
+    userTypes: string[]
+    groupIds: number[]
+    tagIds: number[]
+    memberIds: number[]
+    commentCount: number
+    restricted?: boolean
+    publicBlog?: boolean
+    viewCount: number
+    viewedByMe: boolean
+}
+
+export interface NewsRequest {
+    title: string
+    contentMarkdown: string
+    contentHtml: string
+    userTypes: string[]
+    groupIds: number[]
+    tagIds: number[]
+    memberIds: number[]
+    publicBlog?: boolean
+}
+
+export interface PublicBlogEntry {
+    id: number
+    /** Stable opaque public identifier — referenced by NEWS_TEASER cells. */
+    publicUid: string
+    title: string
+    contentHtml: string
+    authorName: string
+    publishedAt: string
+}
+
+export interface NewsComment {
+    id: number
+    newsId: number
+    parentId: number | null
+    author: MemberIdentity | null
+    authorName: string
+    content: string
+    deleted?: boolean
+    createdAt: string
+    updatedAt?: string | null
+}
+
+export interface CommentRequest {
+    parentId?: number | null
+    content: string
+}
 
 const news = createCrudResource<NewsEntry, NewsRequest>('/news')
 

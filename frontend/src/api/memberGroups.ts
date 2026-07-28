@@ -6,13 +6,27 @@
 import client from './client'
 import {createCrudResource} from './crud'
 import type {
-    GroupDetail,
-    GroupRequest,
     MemberGroup,
     PermissionGrant,
-    SetMembersRequest,
     StationMember,
 } from './types'
+
+export interface GroupRequest {
+    name?: string
+    color?: string | null
+    position?: number
+}
+
+export interface GroupDetail {
+    id: number
+    stationId: string
+    name?: string
+    members?: StationMember[]
+}
+
+export interface SetMembersRequest {
+    memberIds?: number[]
+}
 
 const groups = createCrudResource<MemberGroup, GroupRequest, GroupRequest, GroupDetail>('/groups')
 

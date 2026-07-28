@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {FormPurposeName, QuestionType} from './types'
+import type {FormPurposeName, QuestionType} from './forms'
 
 export interface PublicFormQuestion {
     id: number

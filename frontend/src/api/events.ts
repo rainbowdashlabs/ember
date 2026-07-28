@@ -5,24 +5,233 @@
  */
 import client from './client'
 import {createCrudResource} from './crud'
-import type {
-    AllEventRestrictions,
-    BatchFieldEntry,
-    BreakRequest,
-    CategoryRequest,
-    EventBreak,
-    EventCategory,
-    EventField,
-    EventRequest,
-    EventRestrictions,
-    RestrictionSelection,
-    EventTemplate,
-    EventTemplateDetail,
-    EventTemplateFieldEntry,
-    MemberIdentity,
-    SetEventFieldsRequest,
-    StationEvent
-} from './types'
+import type {MemberIdentity, RestrictionSelection} from './types'
+
+export interface EventCategory {
+    id: number
+    stationId: string
+    name?: string
+    position: number
+    maxShownEvents?: number | null
+    isPublic?: boolean
+    registrationLimit?: number | null
+    color?: string | null
+}
+
+export interface CategoryRequest {
+    name?: string
+    position: number
+    maxShownEvents?: number | null
+    isPublic?: boolean
+    registrationLimit?: number | null
+    color?: string | null
+}
+
+export interface StationEvent {
+    id: number
+    stationId: string
+    name?: string
+    description?: string
+    eventType?: string
+    dayOfWeek?: number | null
+    startTime?: string
+    endTime?: string
+    templateId?: number | null
+    requiresRegistration?: boolean
+    registrationDeadline?: string | null
+    requiresConfirmation?: boolean
+    categoryId?: number | null
+    restrictionMode?: string
+    restricted?: boolean
+    isPublic?: boolean
+    registrationLimit?: number | null
+    cancelled?: boolean
+    cancelledAt?: string | null
+    cancelReason?: string | null
+    minRegistrations?: number | null
+    thresholdDate?: string | null
+    thresholdNotified?: boolean
+    registrationCloseDays?: number | null
+}
+
+export interface EventRequest {
+    name?: string
+    description?: string
+    eventType?: string
+    dayOfWeek?: number | null
+    startTime?: string
+    endTime?: string
+    templateId?: number | null
+    requiresRegistration?: boolean
+    registrationDeadline?: string | null
+    requiresConfirmation?: boolean
+    categoryId?: number | null
+    restriction?: RestrictionSelection
+    isPublic?: boolean
+    registrationLimit?: number | null
+    minRegistrations?: number | null
+    thresholdDate?: string | null
+    registrationCloseDays?: number | null
+}
+
+export interface EventRestrictions {
+    userTypes: string[]
+    groupIds: number[]
+    tagIds: number[]
+    memberIds: number[]
+    mode?: string
+}
+
+export interface AllEventRestrictions {
+    [eventId: number]: EventRestrictions
+}
+
+export interface EventBreak {
+    id: number
+    stationId: string
+    name?: string
+    startDate?: string
+    endDate?: string
+}
+
+export interface BreakRequest {
+    name?: string
+    startDate?: string
+    endDate?: string
+}
+
+export const EventFieldTypes = {
+    STRING: 'STRING',
+    NUMBER: 'NUMBER',
+    TIME: 'TIME',
+    DATE: 'DATE',
+    BOOLEAN: 'BOOLEAN',
+    ENUM: 'ENUM',
+    URL: 'URL',
+    TEXTAREA: 'TEXTAREA',
+    LOCATION: 'LOCATION',
+    MEMBER: 'MEMBER',
+    MEMBER_LIST: 'MEMBER_LIST',
+    MEMBER_OF_GROUP: 'MEMBER_OF_GROUP',
+    MEMBER_LIST_OF_GROUP: 'MEMBER_LIST_OF_GROUP',
+    MEMBER_OF_TYPE: 'MEMBER_OF_TYPE',
+    MEMBER_LIST_OF_TYPE: 'MEMBER_LIST_OF_TYPE',
+    MEMBER_OF_TAG: 'MEMBER_OF_TAG',
+    MEMBER_LIST_OF_TAG: 'MEMBER_LIST_OF_TAG',
+} as const
+
+export type EventFieldTypeName = (typeof EventFieldTypes)[keyof typeof EventFieldTypes]
+
+export interface EventField {
+    id: number
+    eventId: number
+    name?: string
+    fieldType?: string
+    config?: Record<string, unknown>
+    value?: string
+    position: number
+    overview?: boolean
+    attendanceFieldId?: number | null
+    isPublic?: boolean
+    registrationLimit?: number | null
+}
+
+export interface EventFieldEntry {
+    name: string
+    fieldType?: string
+    config?: Record<string, unknown>
+    value?: string
+    overview?: boolean
+    attendanceFieldId?: number | null
+    isPublic?: boolean
+    registrationLimit?: number | null
+}
+
+export interface SetEventFieldsRequest {
+    fields: EventFieldEntry[]
+}
+
+export interface BatchFieldEntry {
+    name: string
+    fieldType?: string
+    config?: Record<string, unknown>
+    overview?: boolean
+    attendanceFieldId?: number | null
+}
+
+export interface EventTemplate {
+    id: number
+    stationId: string
+    name: string
+    title?: string | null
+    description?: string | null
+    categoryId?: number | null
+    eventType?: string | null
+    requiresRegistration?: boolean | null
+    registrationDeadlineOffset?: string | null
+    requiresConfirmation?: boolean | null
+    restrictionMode?: string | null
+    attendanceTemplateId?: number | null
+    registrationLimit?: number | null
+}
+
+export interface EventTemplateField {
+    id: number
+    templateId: number
+    name: string
+    fieldType: string
+    config: string
+    position: number
+    overview: boolean
+    isPublic: boolean
+    attendanceFieldId?: number | null
+}
+
+export interface EventTemplateDetail {
+    template: EventTemplate
+    fields: EventTemplateField[]
+    restrictionUserTypes: string[]
+    reminderDays: number[]
+}
+
+export interface EventTemplateFieldEntry {
+    name: string
+    fieldType?: string
+    config?: Record<string, unknown>
+    position: number
+    overview?: boolean
+    isPublic?: boolean
+    registrationLimit?: number | null
+    attendanceFieldId?: number | null
+}
+
+export const RegistrationStatus = {
+    PENDING: 'PENDING',
+    ACCEPTED: 'ACCEPTED',
+    DENIED: 'DENIED',
+    DECLINED: 'DECLINED',
+    WITHDRAWN: 'WITHDRAWN',
+} as const
+
+export type RegistrationStatusName = (typeof RegistrationStatus)[keyof typeof RegistrationStatus]
+
+export const EventTypes = {
+    ONE_TIME: 'ONE_TIME',
+    RECURRING: 'RECURRING',
+    MONTHLY_FIRST: 'MONTHLY_FIRST',
+    QUARTERLY: 'QUARTERLY',
+    YEARLY: 'YEARLY',
+} as const
+
+export type EventTypeName = (typeof EventTypes)[keyof typeof EventTypes]
+
+export function isRecurringEvent(eventType?: string): boolean {
+    return eventType != null && eventType !== EventTypes.ONE_TIME
+}
+
+export function needsDayOfWeek(eventType?: string): boolean {
+    return eventType === EventTypes.RECURRING || eventType === EventTypes.MONTHLY_FIRST || eventType === EventTypes.QUARTERLY
+}
 
 // -- Events --
 

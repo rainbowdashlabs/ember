@@ -5,7 +5,57 @@
  */
 import client from './client'
 import {createCrudResource} from './crud'
-import type {ProfileField, ProfileFieldRequest, ProfileFieldValue, SetValuesRequest,} from './types'
+export const FieldTypes = {
+    TEXT: 'TEXT',
+    NUMBER: 'NUMBER',
+    DATE: 'DATE',
+    BOOLEAN: 'BOOLEAN',
+    ENUM: 'ENUM',
+    AGE: 'AGE',
+} as const
+
+export type FieldTypeName = (typeof FieldTypes)[keyof typeof FieldTypes]
+
+export interface ProfileField {
+    id: number
+    stationId: string
+    name?: string
+    fieldType?: string
+    config?: string | Record<string, unknown>
+    position: number
+    scope?: string
+    keepOnArchive?: boolean
+}
+
+export function parseFieldConfig(config: string | Record<string, unknown> | undefined | null): Record<string, unknown> {
+    if (!config) return {}
+    if (typeof config === 'object') return config
+    try { return JSON.parse(config) } catch { return {} }
+}
+
+export interface ProfileFieldRequest {
+    name?: string
+    fieldType?: string
+    config?: string
+    position: number
+    scope?: string
+    keepOnArchive?: boolean
+}
+
+export interface ProfileFieldValue {
+    memberId: number
+    fieldId: number
+    value?: string
+}
+
+export interface ProfileFieldValueEntry {
+    fieldId: number
+    value?: string
+}
+
+export interface SetValuesRequest {
+    values?: ProfileFieldValueEntry[]
+}
 
 // -- Field Definitions --
 

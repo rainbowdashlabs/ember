@@ -5,19 +5,152 @@
  */
 import client from './client'
 import {createCrudResource, createScopedCrudResource} from './crud'
-import type {
-    GuardianInput,
-    PublicWaitlistFormResponse,
-    PublicWaitlistSummary,
-    WaitingList,
-    WaitingListEntry,
-    WaitingListEntryWithScore,
-    WaitingListField,
-    WaitingListInvite,
-    WaitingListInviteInfo,
-    WaitingListPublicStatus,
-    WaitingListWithCount,
-} from './types'
+export const WaitingListEntryStatus = {
+    PENDING: 'PENDING',
+    WAITING: 'WAITING',
+    INVITED: 'INVITED',
+    TESTING: 'TESTING',
+    WITHDRAWN: 'WITHDRAWN',
+    JOINED: 'JOINED',
+} as const
+
+export type WaitingListEntryStatusName = (typeof WaitingListEntryStatus)[keyof typeof WaitingListEntryStatus]
+
+export const WaitingListFieldTypes = {
+    TEXT: 'TEXT',
+    NUMBER: 'NUMBER',
+    DATE: 'DATE',
+    BOOLEAN: 'BOOLEAN',
+    ENUM: 'ENUM',
+} as const
+
+export type WaitingListFieldTypeName = (typeof WaitingListFieldTypes)[keyof typeof WaitingListFieldTypes]
+
+export interface WaitingList {
+    id: number
+    stationId: string
+    name: string
+    description: string
+    scoringFormula?: string | null
+    confirmIntervalDays: number
+    createdAt: string
+    visibleFields: number[]
+    testingGroupId?: number | null
+    joinGroupId?: number | null
+    attendanceThreshold: number
+    isPublic: boolean
+}
+
+export interface WaitingListField {
+    id: number
+    listId: number
+    name: string
+    fieldType: WaitingListFieldTypeName
+    config: string
+    position: number
+    required: boolean
+    isPublic: boolean
+}
+
+export interface WaitingListInvite {
+    id: number
+    listId: number
+    code: string
+    maxUses: number
+    uses: number
+    expiresAt?: string | null
+    createdAt: string
+}
+
+export interface WaitingListEntry {
+    id: number
+    listId: number
+    firstname: string
+    lastname: string
+    parentName: string
+    email: string
+    accessToken: string
+    status: WaitingListEntryStatusName
+    confirmedAt: string
+    reminderSentAt?: string | null
+    createdAt: string
+    notes: string
+    memberId?: number | null
+    invitedAt?: string | null
+    testingAt?: string | null
+    joinedAt?: string | null
+    withdrawnAt?: string | null
+    attendanceCount: number
+}
+
+export interface WaitingListEntryValue {
+    entryId: number
+    fieldId: number
+    value: unknown
+}
+
+export interface WaitingListEntryGuardian {
+    id: number
+    entryId: number
+    firstname: string
+    lastname: string
+    email: string
+    phone: string
+    position: number
+}
+
+export interface WaitingListEntryWithScore {
+    entry: WaitingListEntry
+    values: WaitingListEntryValue[]
+    score: number
+    guardians: WaitingListEntryGuardian[]
+}
+
+export interface WaitingListWithCount {
+    list: WaitingList
+    entryCount: number
+}
+
+export interface WaitingListPublicStatus {
+    firstname: string
+    lastname: string
+    parentName: string
+    email: string
+    status: string
+    confirmedAt: string
+    createdAt: string
+    confirmIntervalDays: number
+    position: number
+    listName: string
+    fields: WaitingListField[]
+    values: WaitingListEntryValue[]
+    guardians: WaitingListEntryGuardian[]
+}
+
+export interface WaitingListInviteInfo {
+    listName: string
+    listDescription: string
+    fields: WaitingListField[]
+}
+
+export interface GuardianInput {
+    firstname: string
+    lastname: string
+    email: string
+    phone: string
+}
+
+export interface PublicWaitlistSummary {
+    id: number
+    name: string
+    description: string
+}
+
+export interface PublicWaitlistFormResponse {
+    listName: string
+    listDescription: string
+    fields: WaitingListField[]
+}
 
 interface WaitingListRequest {
     name: string

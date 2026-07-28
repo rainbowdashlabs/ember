@@ -5,14 +5,44 @@
  */
 import client from './client'
 import {pageParams} from './crud'
-import type {
-    AcknowledgeRequest,
-    MemberChangeSummary,
-    MemberIdentity,
-    PageMeta,
-    ProfileFieldChange,
-    ProfileFieldChangeAcknowledgement,
-} from './types'
+import type {MemberIdentity, PageMeta} from './types'
+
+export interface ProfileFieldChangeAcknowledgement {
+    id: number
+    changeId: number
+    acknowledgedBy: number
+    acknowledgedAt?: string
+    comment?: string
+    acknowledgedByName?: string
+}
+
+export interface ProfileFieldChange {
+    id: number
+    fieldId: number
+    memberId: number
+    oldValue?: string
+    newValue?: string
+    changedBy: number
+    changedAt?: string
+    requiresAcknowledgement: boolean
+    changedByName?: string
+    fieldName?: string
+    acknowledgements: ProfileFieldChangeAcknowledgement[]
+    memberName?: string | null
+    memberIdentity?: MemberIdentity | null
+}
+
+export interface MemberChangeSummary {
+    memberId: number
+    memberName?: string
+    pendingCount: number
+    latestChange?: string
+    identity?: MemberIdentity | null
+}
+
+export interface AcknowledgeRequest {
+    comment?: string
+}
 
 interface EnrichedProfileFieldChange {
     change: ProfileFieldChange

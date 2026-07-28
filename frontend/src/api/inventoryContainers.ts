@@ -5,7 +5,7 @@
  */
 import client from './client'
 import {createCrudResource} from './crud'
-import type {InventoryItem} from './types'
+import type {InventoryItem} from './inventory'
 
 export interface InventoryContainerKind {
     id: number

@@ -5,20 +5,192 @@
  */
 import client from './client'
 import {createCrudResource, createScopedCrudResource} from './crud'
-import type {
-    QuizCatalog,
-    QuizCatalogDetail,
-    QuizCatalogExport,
-    QuizCategory,
-    QuizQuestion,
-    QuizTest,
-    QuizTestSummary,
-    QuizTestDetail,
-    QuizTestSection,
-    QuizTestAttempt,
-    QuizAttemptDetail,
-    QuizAvailableTest,
-} from './types'
+import type {MemberIdentity} from './types'
+
+export const QuizQuestionTypes = {
+    MULTIPLE_CHOICE: 'MULTIPLE_CHOICE',
+    FILL_IN_THE_BLANK: 'FILL_IN_THE_BLANK',
+    FREE_ANSWER: 'FREE_ANSWER',
+    CONNECT: 'CONNECT',
+    IMAGE_TEXT: 'IMAGE_TEXT',
+    TRUE_FALSE: 'TRUE_FALSE',
+    ORDERING: 'ORDERING',
+    ENUMERATION: 'ENUMERATION',
+} as const
+
+export type QuizQuestionTypeName = (typeof QuizQuestionTypes)[keyof typeof QuizQuestionTypes]
+
+export const QuizTestStatus = {
+    DRAFT: 'DRAFT',
+    ACTIVE: 'ACTIVE',
+    CLOSED: 'CLOSED',
+} as const
+
+export type QuizTestStatusName = (typeof QuizTestStatus)[keyof typeof QuizTestStatus]
+
+export const QuizAttemptStatus = {
+    IN_PROGRESS: 'IN_PROGRESS',
+    SUBMITTED: 'SUBMITTED',
+    GRADED: 'GRADED',
+} as const
+
+export type QuizAttemptStatusName = (typeof QuizAttemptStatus)[keyof typeof QuizAttemptStatus]
+
+export interface QuizCatalog {
+    id: number
+    stationId: string
+    name: string
+    description: string
+    trainingEnabled: boolean
+    createdAt: string
+    updatedAt: string
+}
+
+export interface QuizCategory {
+    id: number
+    stationId: string
+    name: string
+    description: string
+    position: number
+}
+
+export interface QuizQuestion {
+    id: number
+    catalogId: number
+    categoryId: number | null
+    quizQuestionType: QuizQuestionTypeName
+    title: string
+    description: string
+    imageUrl: string | null
+    points: number
+    autoPoints: boolean
+    config: Record<string, unknown>
+    position: number
+    createdAt: string
+    updatedAt: string
+}
+
+export interface QuizCatalogDetail {
+    id: number
+    stationId: string
+    name: string
+    description: string
+    trainingEnabled: boolean
+    questionCount: number
+    questionTypeCounts: Record<string, number>
+    categories: QuizCategory[]
+    createdAt: string
+    updatedAt: string
+}
+
+export interface QuizTest {
+    id: number
+    stationId: string
+    title: string
+    description: string
+    status: QuizTestStatusName
+    timeLimit: number | null
+    shuffle: boolean
+    forced?: boolean
+    startAt: string | null
+    endAt: string | null
+    createdBy: number
+    createdAt: string
+    updatedAt: string
+    restrictionMode?: string
+    restricted?: boolean
+}
+
+export interface QuizAvailableTest {
+    test: QuizTest
+    attemptStatus: string | null
+    startedAt: string | null
+    submittedAt: string | null
+}
+
+export interface QuizTestSummary {
+    test: QuizTest
+    attemptCount: number
+}
+
+export interface QuizTestSection {
+    id: number
+    testId: number
+    title: string
+    description: string
+    position: number
+}
+
+export interface QuizTestSectionSource {
+    id: number
+    sectionId: number
+    catalogId: number
+    categoryId: number | null
+    questionCount: number
+}
+
+export interface QuizSectionDetail {
+    id: number
+    testId: number
+    title: string
+    description: string
+    position: number
+    sources: QuizTestSectionSource[]
+}
+
+export interface QuizTestDetail {
+    test: QuizTest
+    sections: QuizSectionDetail[]
+    attemptCount: number
+}
+
+export interface QuizTestAttempt {
+    id: number
+    testId: number
+    memberId: number
+    status: QuizAttemptStatusName
+    startedAt: string
+    submittedAt: string | null
+    gradedAt: string | null
+    gradedBy: number | null
+    totalPoints: number
+    maxPoints: number
+}
+
+export interface QuizTestAttemptQuestion {
+    id: number
+    attemptId: number
+    questionId: number
+    sectionId: number | null
+    position: number
+}
+
+export interface QuizTestAnswer {
+    id: number
+    attemptId: number
+    questionId: number
+    sectionId: number | null
+    answer: string
+    points: number | null
+    graded: boolean
+    position: number
+}
+
+export interface QuizAttemptDetail {
+    attempt: QuizTestAttempt
+    questions: QuizTestAttemptQuestion[]
+    answers: QuizTestAnswer[]
+    questionDetails?: QuizQuestion[] | null
+    memberIdentity?: MemberIdentity | null
+}
+
+export interface QuizCatalogExport {
+    name: string
+    description: string
+    trainingEnabled: boolean
+    categories: QuizCategory[]
+    questions: QuizQuestion[]
+}
 import {uploadFile} from './upload'
 import {downloadAuthed} from '@/util/downloadAuthed'
 

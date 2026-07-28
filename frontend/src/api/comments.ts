@@ -5,7 +5,38 @@
  */
 import client from './client'
 import { createCrudResource, createScopedCrudResource } from './crud'
-import type { Comment, EntityNote, NoteVersion } from './types'
+import type { MemberIdentity } from './types'
+
+export interface Comment {
+    id: number
+    parentId?: number | null
+    author: MemberIdentity | null
+    authorName: string
+    content: string
+    deleted?: boolean
+    createdAt: string
+    updatedAt?: string | null
+    /** ISO yyyy-MM-dd for date-scoped comments on recurring events; null otherwise. */
+    eventDate?: string | null
+}
+
+export interface EntityNote {
+    id: number
+    entityType: string
+    entityId: number
+    stationId: string
+    content: string
+    updatedBy?: number | null
+    updatedAt: string
+}
+
+export interface NoteVersion {
+    id: number
+    noteId: number
+    diffPatch: string
+    authorId: number
+    createdAt: string
+}
 
 // -- Event Comments --
 

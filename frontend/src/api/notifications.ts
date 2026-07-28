@@ -4,7 +4,25 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type { NotificationEntry } from './types'
+export type NotificationType = 'NEW_NEWS' | 'NEWS_COMMENT' | 'COMMENT_MENTION' | 'EVENT_REGISTRATION_STATUS'
+    | 'EXCHANGE_STATUS_CHANGE' | 'EXCHANGE_NEW_REQUEST' | 'NEW_EVENT' | 'MEMBER_ADDED_TO_GROUP'
+    | 'PROFILE_FIELD_CHANGED' | 'PROCUREMENT_REQUESTED' | 'PROCUREMENT_FULFILLED'
+    | 'LOST_AND_FOUND_NEW' | 'LOST_AND_FOUND_CLAIMED'
+
+export interface NotificationLink {
+    route: string
+    routeParams?: Record<string, string | number>
+}
+
+export interface NotificationEntry {
+    id: number
+    type: NotificationType
+    localeKey: string
+    params: Record<string, string>
+    link?: NotificationLink | null
+    createdAt: string
+    acknowledgedAt?: string | null
+}
 
 export async function listAll(): Promise<NotificationEntry[]> {
     const res = await client.get<NotificationEntry[]>('/notifications')

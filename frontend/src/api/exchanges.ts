@@ -5,7 +5,62 @@
  */
 import client from './client'
 import { createCrudResource } from './crud'
-import type { CreateExchangeRequest, ExchangeLogEntry, ExchangeRequestEntry, UpdateStatusRequest } from './types'
+import type { MemberIdentity } from './types'
+
+export const ExchangeStatus = {
+    ANNOUNCED: 'ANNOUNCED',
+    RECEIVED: 'RECEIVED',
+    SHIPPED: 'SHIPPED',
+    ARRIVED: 'ARRIVED',
+    DONE: 'DONE',
+} as const
+
+export type ExchangeStatusName = (typeof ExchangeStatus)[keyof typeof ExchangeStatus]
+
+export interface ExchangeRequestEntry {
+    id: number
+    memberId: number
+    memberName: string
+    itemId?: number | null
+    inventoryId: number
+    inventoryName: string
+    oldSizeId?: number | null
+    oldSizeLabel?: string | null
+    newSizeId?: number | null
+    newSizeLabel?: string | null
+    inventoryType: string
+    status: ExchangeStatusName
+    reason: string
+    createdAt: string
+    updatedAt: string
+    createdByName?: string | null
+    memberIdentity?: MemberIdentity | null
+}
+
+export interface ExchangeLogEntry {
+    id: number
+    oldStatus: string
+    newStatus: string
+    changedBy: number
+    changedByName: string
+    changedAt: string
+    note: string
+}
+
+export interface CreateExchangeRequest {
+    memberId?: number | null
+    itemId?: number | null
+    inventoryId: number
+    oldSizeId?: number | null
+    newSizeId?: number | null
+    reason: string
+}
+
+export interface UpdateStatusRequest {
+    status: string
+    note?: string
+    exchangedItemId?: number | null
+}
 
 const exchanges = createCrudResource<ExchangeRequestEntry, CreateExchangeRequest>('/exchanges')
 

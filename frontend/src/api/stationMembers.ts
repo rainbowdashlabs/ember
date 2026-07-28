@@ -5,7 +5,28 @@
  */
 import client from './client'
 import {createCrudResource} from './crud'
-import type {CreateMemberRequest, MemberIdentity, PermissionGrant, SetManagersRequest, StationMember,} from './types'
+import type {MemberIdentity, PermissionGrant, StationMember} from './types'
+
+export interface CreateMemberRequest {
+    stationId?: number
+    accountId?: number
+}
+
+export interface SetRolesRequest {
+    roleIds?: number[]
+}
+
+export interface SetPermissionsRequest {
+    permissions?: string[]
+}
+
+export interface SetUserTypeRequest {
+    userType?: string
+}
+
+export interface SetManagersRequest {
+    managerIds?: number[]
+}
 
 export async function listAllPermissions(): Promise<PermissionGrant[]> {
     const res = await client.get<PermissionGrant[]>('/permissions')

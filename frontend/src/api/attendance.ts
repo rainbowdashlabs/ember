@@ -5,24 +5,114 @@
  */
 import client from './client'
 import {createCrudResource, createScopedCrudResource} from './crud'
-import type {
-    AttendanceEntry,
-    AttendanceSession,
-    AttendanceSessionField,
-    AttendanceTemplate,
-    AttendanceTemplateField,
-    CreateEntryRequest,
-    SessionDetail,
-    SessionRequest,
-    SetSessionFieldsRequest,
-    SetTemplateGroupsRequest,
-    TemplateDetail,
-    TemplateFieldRequest,
-    TemplateGroupEntry,
-    TemplateRequest,
-    TimestampRequest,
-    TimestampResponse,
-} from './types'
+export interface AttendanceTemplate {
+    id: number
+    stationId: string
+    name?: string
+}
+
+export interface TemplateRequest {
+    name?: string
+}
+
+export interface AttendanceTemplateField {
+    id: number
+    templateId: number
+    name?: string
+    fieldType?: string
+    config?: Record<string, unknown>
+    position: number
+}
+
+export interface TemplateFieldRequest {
+    name?: string
+    fieldType?: string
+    config?: Record<string, unknown>
+    position: number
+}
+
+export interface TemplateDetail {
+    id: number
+    stationId: string
+    name?: string
+    fields?: AttendanceTemplateField[]
+    groups?: TemplateGroupEntry[]
+}
+
+export interface TemplateGroupEntry {
+    groupId: number
+    position: number
+}
+
+export interface SetTemplateGroupsRequest {
+    groups?: TemplateGroupEntry[]
+}
+
+export interface AttendanceSession {
+    id: number
+    templateId: number
+    startTime?: string
+    endTime?: string
+    createdAt?: string
+    eventId?: number | null
+    title?: string
+}
+
+export interface SessionRequest {
+    startTime?: string
+    endTime?: string
+    eventId?: number | null
+    title?: string
+}
+
+export interface AttendanceSessionField {
+    sessionId: number
+    fieldId: number
+    value?: string
+}
+
+export interface AttendanceFieldValueEntry {
+    fieldId: number
+    value?: string
+}
+
+export interface SetSessionFieldsRequest {
+    fields?: AttendanceFieldValueEntry[]
+}
+
+export interface SessionDetail {
+    session?: AttendanceSession
+    fields?: AttendanceSessionField[]
+    entries?: AttendanceEntry[]
+}
+
+export type AttendanceStatus = 'UNCONFIRMED' | 'PRESENT' | 'ABSENT' | 'DECLINED'
+
+export type EntrySource = 'EXPECTED' | 'EXTRA'
+
+export interface AttendanceEntry {
+    id: number
+    sessionId: number
+    memberId: number
+    status: AttendanceStatus
+    checkIn?: string
+    checkOut?: string
+    source: EntrySource
+}
+
+export interface CreateEntryRequest {
+    memberId?: number
+    source?: EntrySource
+}
+
+export interface TimestampRequest {
+    time?: string
+}
+
+export interface TimestampResponse {
+    entryId: number
+    time?: string
+}
 
 const templates = createCrudResource<
     AttendanceTemplate,

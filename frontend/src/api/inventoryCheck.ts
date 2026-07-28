@@ -4,14 +4,93 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {
-    CheckDetail,
-    CompleteCheckRequest,
-    InventoryCheck,
-    MemberCheckState,
-    MemberCheckSummary,
-    NextMemberResponse,
-} from './types'
+import type {InventoryItem, InventorySize} from './inventory'
+import type {MemberIdentity} from './types'
+
+export interface MemberCheckSummary {
+    memberId: number
+    firstName?: string
+    lastName?: string
+    lastCheckedAt?: string | null
+    checkerFirstName?: string | null
+    checkerLastName?: string | null
+    locked: boolean
+    lockedBy?: number | null
+    lockerFirstName?: string | null
+    lockerLastName?: string | null
+    userType?: string
+    identity?: MemberIdentity | null
+}
+
+export interface CheckDetail {
+    check: InventoryCheck
+    checkerFirstName?: string
+    checkerLastName?: string
+    items: EnrichedCheckItem[]
+}
+
+export interface EnrichedCheckItem {
+    id: number
+    itemId?: number | null
+    itemName?: string | null
+    internalId?: string | null
+    inventoryName: string
+    sizeName?: string | null
+    result: CheckResult
+    note: string
+}
+
+export interface InventoryCheckItem {
+    id: number
+    checkId: number
+    itemId: number
+    result: CheckResult
+    note: string
+}
+
+export interface MemberCheckState {
+    memberName: string
+    memberIdentity?: MemberIdentity | null
+    required: RequiredInventoryItem[]
+    assigned: InventoryItem[]
+    lastCheck?: InventoryCheck | null
+    unassigned: Record<number, InventoryItem[]>
+}
+
+export interface RequiredInventoryItem {
+    inventoryId: number
+    inventoryName: string
+    inventoryType: string
+    hasSizes: boolean
+    sizes: InventorySize[]
+    requiredQuantity: number
+    assignedQuantity: number
+}
+
+export interface InventoryCheck {
+    id: number
+    stationId: string
+    memberId: number
+    checkedBy: number
+    checkedAt: string
+}
+
+export type CheckResult = 'CONFIRMED' | 'NOT_IN_POSSESSION' | 'LOST'
+
+export interface CheckItemResult {
+    itemId?: number | null
+    inventoryId?: number | null
+    result: CheckResult
+    note?: string
+}
+
+export interface CompleteCheckRequest {
+    items: CheckItemResult[]
+}
+
+export interface NextMemberResponse {
+    memberId: number | null
+}
 
 export async function getCheckOverview(): Promise<MemberCheckSummary[]> {
     const res = await client.get<MemberCheckSummary[]>('/inventory-checks')

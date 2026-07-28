@@ -5,19 +5,116 @@
  */
 import client from './client'
 import {createCrudResource} from './crud'
-import type {
-    AssignRequest,
-    Inventory,
-    InventoryDetail,
-    InventoryItem,
-    InventoryItemHistory,
-    InventoryRequest,
-    InventoryRequirement,
-    InventorySize,
-    ItemRequest,
-    RequirementRequest,
-    SizeRequest,
-} from './types'
+import type {MemberIdentity} from './types'
+
+export const InventoryTypes = {
+    INTERNAL: 'INTERNAL',
+    EXTERNAL: 'EXTERNAL',
+    MIXED: 'MIXED',
+} as const
+
+export type InventoryTypeName = (typeof InventoryTypes)[keyof typeof InventoryTypes]
+
+export const ItemSource = {
+    INTERNAL: 'INTERNAL',
+    EXTERNAL: 'EXTERNAL',
+} as const
+
+export type ItemSourceName = (typeof ItemSource)[keyof typeof ItemSource]
+
+export interface Inventory {
+    id: number
+    stationId: string
+    name?: string
+    inventoryType?: InventoryTypeName
+    hasSizes: boolean
+}
+
+export interface InventoryRequest {
+    name?: string
+    inventoryType?: InventoryTypeName
+    hasSizes: boolean
+}
+
+export interface InventoryDetail {
+    id: number
+    stationId: string
+    name?: string
+    inventoryType?: InventoryTypeName
+    hasSizes: boolean
+    sizes?: InventorySize[]
+}
+
+export interface InventorySize {
+    id: number
+    inventoryId: number
+    label?: string
+    position: number
+    note?: string
+}
+
+export interface SizeRequest {
+    label?: string
+    position: number
+    note?: string
+}
+
+export interface InventoryItem {
+    id: number
+    inventoryId: number
+    internalId?: string
+    name?: string
+    sizeId?: number | null
+    metadata?: string | ItemMetadata | null
+    assignedTo?: number | null
+    lostAt?: string | null
+    itemSource?: string | null
+    containerId?: number | null
+}
+
+export interface ItemMetadata {
+    owned: boolean
+    fields: Record<string, {kind: string; value: unknown}>
+}
+
+export interface ItemRequest {
+    internalId?: string
+    name?: string
+    sizeId?: number
+    metadata?: ItemMetadata
+    itemSource?: string
+}
+
+export interface AssignRequest {
+    memberId?: number | null
+    memberName?: string
+}
+
+export interface InventoryRequirement {
+    id: number
+    inventoryId: number
+    userType: string
+    groupId: number
+    quantity: number
+    position: number
+}
+
+export interface RequirementRequest {
+    inventoryId: number
+    userType?: string
+    groupId?: number
+    quantity?: number
+}
+
+export interface InventoryItemHistory {
+    id: number
+    itemId: number
+    memberId?: number | null
+    memberName?: string
+    givenOut?: string
+    returned?: string | null
+    memberIdentity?: MemberIdentity | null
+}
 
 export interface MyInventoryItem {
     id: number

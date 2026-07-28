@@ -6,7 +6,29 @@
 import client from './client'
 import {createCrudResource} from './crud'
 import {uploadFile} from './upload'
-import type {ClaimLostAndFoundRequest, CreateLostAndFoundRequest, LostAndFoundItem, MessageResponse} from './types'
+import type {MessageResponse} from './types'
+
+export interface LostAndFoundItem {
+    id: number
+    stationId: string
+    description?: string
+    foundAt?: string
+    hasImage: boolean
+    claimedBy?: number | null
+    claimedByName?: string | null
+    claimedAt?: string | null
+    createdBy: number
+    createdAt: string
+}
+
+export interface CreateLostAndFoundRequest {
+    description?: string
+    foundAt?: string
+}
+
+export interface ClaimLostAndFoundRequest {
+    memberId?: number | null
+}
 
 const items = createCrudResource<LostAndFoundItem, CreateLostAndFoundRequest>('/lost-and-found')
 

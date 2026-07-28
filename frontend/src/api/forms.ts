@@ -5,19 +5,188 @@
  */
 import client from './client'
 import {createCrudResource} from './crud'
-import type {
-    Form,
-    FormAnalytics,
-    FormListEntry,
-    FormPurposeName,
-    FormQuestion,
-    FormQuestionRequest,
-    FormRequest,
-    FormRestrictions,
-    FormResponse,
-    FormResponseDetail,
-    FormSubmitRequest
-} from './types'
+import type {MemberIdentity} from './types'
+
+export const FormStatus = {
+    DRAFT: 'DRAFT',
+    OPEN: 'OPEN',
+    CLOSED: 'CLOSED',
+} as const
+
+export type FormStatusName = (typeof FormStatus)[keyof typeof FormStatus]
+
+export const QuestionTypes = {
+    CHOICE: 'CHOICE',
+    TEXT: 'TEXT',
+    RATING: 'RATING',
+    DATE: 'DATE',
+    RANKING: 'RANKING',
+    LIKERT: 'LIKERT',
+} as const
+
+export type QuestionType = (typeof QuestionTypes)[keyof typeof QuestionTypes]
+
+export const FormPurpose = {
+    INTERNAL: 'INTERNAL',
+    CONTACT: 'CONTACT',
+    POLL: 'POLL',
+} as const
+
+export type FormPurposeName = (typeof FormPurpose)[keyof typeof FormPurpose]
+
+/**
+ * Whitelist of question types allowed per form purpose. Mirrors
+ * {@code FormQuestionType.allowedFor(FormPurpose)} on the backend; the
+ * editor hides non-whitelisted types in the question-type picker.
+ */
+export const QUESTION_TYPES_BY_PURPOSE: Record<FormPurposeName, QuestionType[]> = {
+    INTERNAL: [
+        QuestionTypes.CHOICE,
+        QuestionTypes.TEXT,
+        QuestionTypes.RATING,
+        QuestionTypes.DATE,
+        QuestionTypes.RANKING,
+        QuestionTypes.LIKERT,
+    ],
+    CONTACT: [QuestionTypes.TEXT, QuestionTypes.CHOICE, QuestionTypes.DATE],
+    POLL: [
+        QuestionTypes.CHOICE,
+        QuestionTypes.TEXT,
+        QuestionTypes.RATING,
+        QuestionTypes.DATE,
+        QuestionTypes.RANKING,
+        QuestionTypes.LIKERT,
+    ],
+}
+
+export type MultiLimitType = 'NONE' | 'EQUAL_TO' | 'AT_MOST' | 'AT_LEAST'
+
+export type RatingIcon = 'STAR' | 'NUMBER' | 'HEART' | 'THUMB_UP'
+
+export interface Form {
+    id: number
+    stationId: string
+    title: string
+    description: string
+    status: FormStatusName
+    shuffleQuestions: boolean
+    allowEdit: boolean
+    forced?: boolean
+    startAt?: string | null
+    endAt?: string | null
+    closedAt?: string | null
+    createdBy: number
+    createdAt: string
+    updatedAt: string
+    lastActivityAt: string
+    restrictionMode?: string
+    restricted?: boolean
+    purpose: FormPurposeName
+    publicUid: string
+    responseCount: number
+}
+
+export interface FormListEntry {
+    id: number
+    stationId: string
+    title: string
+    description: string
+    status: string
+    startAt?: string | null
+    endAt?: string | null
+    responseCount: number
+    hasResponded: boolean
+    restricted?: boolean
+}
+
+export interface FormQuestion {
+    id: number
+    formId: number
+    position: number
+    formQuestionType: QuestionType
+    title: string
+    description: string
+    required: boolean
+    shuffle: boolean
+    config: Record<string, unknown>
+}
+
+export interface FormResponse {
+    id: number
+    formId: number
+    /** {@code null} for anonymous CONTACT / POLL submissions. */
+    memberId: number | null
+    /** {@code null} for anonymous CONTACT / POLL submissions. */
+    submittedBy: number | null
+    submittedByName?: string | null
+    submittedAt: string
+    updatedAt: string
+    memberIdentity?: MemberIdentity | null
+    /** Set when a manager has acknowledged a CONTACT submission. */
+    acknowledgedAt?: string | null
+    /** Set together with {@code acknowledgedAt} — kept around for backwards compat with code that asks for the id. */
+    acknowledgedBy?: number | null
+    /** Enriched identity of the acknowledger so the UI can render it via {@code MemberName}. */
+    acknowledgedByIdentity?: MemberIdentity | null
+}
+
+export interface FormAnswer {
+    id: number
+    responseId: number
+    questionId: number
+    value: string
+}
+
+export interface FormRequest {
+    title: string
+    description?: string
+    shuffleQuestions?: boolean
+    allowEdit?: boolean
+    startAt?: string | null
+    endAt?: string | null
+    purpose?: FormPurposeName
+}
+
+export interface FormQuestionRequest {
+    questionType: string
+    title: string
+    description?: string
+    required?: boolean
+    shuffle?: boolean
+    config?: unknown
+}
+
+export interface FormRestrictions {
+    userTypes: string[]
+    groupIds: number[]
+    tagIds: number[]
+    memberIds?: number[]
+    mode?: string
+}
+
+export interface FormSubmitRequest {
+    answers: Record<number, Record<string, unknown>>
+}
+
+export interface FormResponseDetail {
+    response: FormResponse | null
+    answers: FormAnswer[]
+}
+
+export interface FormAnalytics {
+    formId: number
+    totalResponses: number
+    questions: FormQuestionAnalytics[]
+    missingResponses: MemberIdentity[]
+}
+
+export interface FormQuestionAnalytics {
+    questionId: number
+    questionType: string
+    title: string
+    config: Record<string, unknown>
+    values: string[]
+}
 
 // -- Form CRUD --
 
