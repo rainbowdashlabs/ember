@@ -8,7 +8,7 @@ import {onUnmounted, readonly, ref} from 'vue'
 /**
  * Transient inline status message that clears itself after a delay. For feedback that
  * belongs inside the page flow (scanner banners, inline save confirmations); overlay
- * notifications go through useToast instead.
+ * notifications go through {@code util/toast} instead.
  */
 export function useFlashMessage(defaultMs = 2500) {
     const message = ref('')

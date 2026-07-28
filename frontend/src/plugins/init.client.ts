@@ -4,12 +4,13 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {initTokenRefresh} from '~/api/client'
-import {useTheme} from '~/composables/useTheme'
+import {syncThemeWithSession, useTheme} from '~/composables/useTheme'
 import {installDevErrorHandlers} from '~/util/devErrorReporter'
 
 export default defineNuxtPlugin(async (nuxtApp) => {
     initTokenRefresh()
 
+    syncThemeWithSession()
     const themeReady = useTheme().initFromLocalStorage()
     const timeout = new Promise<void>(resolve => setTimeout(resolve, 1000))
     await Promise.race([themeReady, timeout])

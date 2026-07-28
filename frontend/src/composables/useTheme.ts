@@ -3,12 +3,13 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import { ref, readonly } from 'vue'
+import { ref, readonly, watch } from 'vue'
 import { THEMES, DarkMode, Feel, FEEL_RADIUS, type ThemeColors, type ModeColors, type DarkModeValue, type FeelValue } from '@/theme/themes'
 import { contrastTextColor, ensureContrast } from '@/theme/contrast'
 import { getItem, setItem } from '@/api/storage'
 import { userSettings } from '@/api'
 import { usePride } from '@/composables/usePride'
+import { sessionInfo } from '@/util/sessionState'
 
 const activeTheme = ref<string>('ember')
 const activeFeel = ref<FeelValue>(Feel.ROUNDED)
@@ -357,6 +358,15 @@ function resetToInstanceDefaults() {
     applyTheme(activeTheme.value)
     applyFeel(activeFeel.value)
     applyDarkMode(darkMode.value)
+}
+
+/**
+ * Applies the theme the server reports for the signed-in session whenever that session
+ * changes — sign-in, session refresh and station switch all go through it. Wired once
+ * during app bootstrap, so reading the session carries no hidden theme side effect.
+ */
+export function syncThemeWithSession() {
+    watch(sessionInfo, info => initFromSession(info?.theme), {flush: 'sync', immediate: true})
 }
 
 export function useTheme() {

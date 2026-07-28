@@ -7,7 +7,7 @@ import type {Component} from 'vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import {InventoryTypes} from '@/api/types'
+import {InventoryTypes} from '@/api/inventory'
 
 /**
  * Translation function shape compatible with the {@code t} returned by

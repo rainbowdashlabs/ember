@@ -7,7 +7,7 @@ import {computed, readonly, ref} from 'vue'
 import {session} from '@/api'
 import client from '@/api/client'
 import {getItem, removeItem, setItem} from '@/api/storage'
-import type {StationMembership} from '@/api/types'
+import type {StationMembership} from '@/api/session'
 
 const stationList = ref<StationMembership[]>([])
 const loaded = ref(false)
