@@ -12,7 +12,8 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FormulaInput from '@/components/input/FormulaInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type { WaitingListField, MemberGroup } from '@/api/types'
+import type { WaitingListField } from '@/api/waitingList'
+import type { MemberGroup } from '@/api/types'
 
 const name = defineModel<string>('name', { required: true })
 const description = defineModel<string>('description', { required: true })

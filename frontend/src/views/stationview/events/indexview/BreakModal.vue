@@ -13,7 +13,7 @@ import DateInput from '@/components/input/datetime/DateInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type {EventBreak} from '@/api/types'
+import type {EventBreak} from '@/api/events'
 
 const {t} = useI18n()
 

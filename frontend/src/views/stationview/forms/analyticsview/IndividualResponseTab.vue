@@ -9,7 +9,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
-import type { FormResponse, FormQuestionAnalytics } from '@/api/types'
+import type { FormResponse, FormQuestionAnalytics } from '@/api/forms'
 import { formatDateTime } from '@/util/format'
 
 defineProps<{

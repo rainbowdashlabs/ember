@@ -12,7 +12,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
-import type { WaitingListEntryWithScore } from '@/api/types'
+import type { WaitingListEntryWithScore } from '@/api/waitingList'
 import { formatDate } from '@/util/format'
 
 const props = defineProps<{

@@ -8,7 +8,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import StatusFieldGrid from './StatusFieldGrid.vue'
 import StatusFieldValues from './StatusFieldValues.vue'
-import type { WaitingListPublicStatus } from '@/api/types'
+import type { WaitingListPublicStatus } from '@/api/waitingList'
 
 const props = defineProps<{ status: WaitingListPublicStatus }>()
 </script>

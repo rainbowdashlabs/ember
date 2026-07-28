@@ -13,7 +13,8 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import FieldValueDisplay from '@/components/display/FieldValueDisplay.vue'
 import MemberTypeBadge from './MemberTypeBadge.vue'
-import type {ProfileField, StationMember} from '@/api/types'
+import type {ProfileField} from '@/api/profileFields'
+import type {StationMember} from '@/api/types'
 
 const {t} = useI18n()
 

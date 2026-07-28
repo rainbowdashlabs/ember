@@ -19,7 +19,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
-import type {InventorySize} from '@/api/types'
+import type {InventorySize} from '@/api/inventory'
 import {inventory} from '@/api'
 
 const {t} = useI18n()

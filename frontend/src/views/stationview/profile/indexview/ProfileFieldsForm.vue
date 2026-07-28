@@ -12,8 +12,8 @@ import MutedText from '@/components/typography/MutedText.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import ProfileFieldInput from '@/components/input/ProfileFieldInput.vue'
-import type { ProfileField } from '@/api/types'
-import { parseFieldConfig } from '@/api/types'
+import type { ProfileField } from '@/api/profileFields'
+import { parseFieldConfig } from '@/api/profileFields'
 
 const props = defineProps<{
   editableFields: ProfileField[]

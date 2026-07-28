@@ -18,7 +18,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type { QuizCategory } from '@/api/types'
+import type { QuizCategory } from '@/api/quiz'
 import { quiz } from '@/api'
 
 const props = defineProps<{

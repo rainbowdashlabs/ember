@@ -10,7 +10,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type {ChecklistSummary} from '@/api/types'
+import type {ChecklistSummary} from '@/api/checklists'
 import {formatDateTime} from '@/util/format'
 
 const {t} = useI18n()

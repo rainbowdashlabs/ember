@@ -10,7 +10,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
-import type {GuardianInput} from '@/api/types'
+import type {GuardianInput} from '@/api/waitingList'
 
 defineProps<{
   guardians: GuardianInput[]

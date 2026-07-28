@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 </script>
@@ -17,9 +18,9 @@ const {t} = useI18n()
     <div class="flex items-center justify-between flex-wrap gap-2">
       <div>
         <span class="font-medium text-primary">Erste-Hilfe-Kurs</span>
-        <span class="text-xs text-(--text-muted) ml-2">
+        <MutedText class="ml-2">
           {{ t('eventsRegistrations.deadline') }}: 10.05.2026 12:00
-        </span>
+        </MutedText>
       </div>
       <div class="flex items-center gap-2">
         <InfoBadge>1 {{ t('eventsRegistrations.pending') }}</InfoBadge>

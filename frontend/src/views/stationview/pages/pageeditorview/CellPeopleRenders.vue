@@ -6,6 +6,7 @@
 <script lang="ts" setup>
 import {computed, onMounted, ref, watch} from 'vue'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import UserTagBadge from '@/components/badge/UserTagBadge.vue'
 import {getMemberPickerByUid, type MemberSearchResult} from '@/api/members'
 import {resolveMemberListSource} from '@/api/pageManage'
@@ -86,8 +87,8 @@ watch(() => memberList.value.resolvedMembers, resolveMemberList, {immediate: fal
                     :color="memberResolved.displayTagColor"
                 >{{ memberResolved.displayTag }}</UserTagBadge>
             </p>
-            <p v-if="spotlightShowUserType && memberResolved.userType" class="text-xs text-(--text-muted)">{{ memberResolved.userType }}</p>
-            <p v-if="memberSpotlight.blurb" class="text-sm text-(--text-muted) mt-1">{{ memberSpotlight.blurb }}</p>
+            <MutedText v-if="spotlightShowUserType && memberResolved.userType" tag="p">{{ memberResolved.userType }}</MutedText>
+            <MutedText v-if="memberSpotlight.blurb" tag="p" size="sm" class="mt-1">{{ memberSpotlight.blurb }}</MutedText>
         </div>
     </div>
     <EmptyHint v-else-if="kind === 'MEMBER_SPOTLIGHT'">Mitglied nicht mehr verfügbar</EmptyHint>
@@ -112,8 +113,8 @@ watch(() => memberList.value.resolvedMembers, resolveMemberList, {immediate: fal
                             class="shrink-0"
                         >{{ m.displayTag }}</UserTagBadge>
                     </p>
-                    <p v-if="memberListShowUserType && m.userType" class="text-xs text-(--text-muted) truncate">{{ m.userType }}</p>
-                    <p v-if="m.description" class="text-sm text-(--text-muted) mt-1">{{ m.description }}</p>
+                    <MutedText v-if="memberListShowUserType && m.userType" tag="p" class="truncate">{{ m.userType }}</MutedText>
+                    <MutedText v-if="m.description" tag="p" size="sm" class="mt-1">{{ m.description }}</MutedText>
                 </div>
             </li>
         </ul>

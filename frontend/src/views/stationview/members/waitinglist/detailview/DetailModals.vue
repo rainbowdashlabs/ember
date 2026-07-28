@@ -9,7 +9,7 @@ import CreateInviteModal from './CreateInviteModal.vue'
 import DeleteListModal from './DeleteListModal.vue'
 import TransitionConfirmModal from './TransitionConfirmModal.vue'
 import DeleteEntryModal from './DeleteEntryModal.vue'
-import type { WaitingListEntryWithScore } from '@/api/types'
+import type { WaitingListEntryWithScore } from '@/api/waitingList'
 
 type TransitionKind = 'invite' | 'testing' | 'join' | 'approve' | 'reject' | 'withdraw'
 

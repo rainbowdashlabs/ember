@@ -18,8 +18,9 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import ProfileFieldModal from './membersconfig/FieldModal.vue'
 import FieldsPanel from './membersconfig/FieldsPanel.vue'
 import type {FieldTemplate} from './membersconfig/fieldTemplates'
-import type {MemberGroup, ProfileField} from '@/api/types'
-import {parseFieldConfig} from '@/api/types'
+import type {ProfileField} from '@/api/profileFields'
+import type {MemberGroup} from '@/api/types'
+import {parseFieldConfig} from '@/api/profileFields'
 import {memberGroups, profileFields} from '@/api'
 
 const {t} = useI18n()

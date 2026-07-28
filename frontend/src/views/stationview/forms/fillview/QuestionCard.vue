@@ -6,8 +6,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import { QuestionTypes } from '@/api/types'
-import type { FormQuestion } from '@/api/types'
+import MutedText from '@/components/typography/MutedText.vue'
+import { QuestionTypes } from '@/api/forms'
+import type { FormQuestion } from '@/api/forms'
 import ChoiceQuestion from './ChoiceQuestion.vue'
 import TextQuestion from './TextQuestion.vue'
 import RatingQuestion from './RatingQuestion.vue'
@@ -35,7 +36,7 @@ const config = computed(() => parseConfig(props.question.config))
       <div>
         <span class="font-medium">{{ question.title }}</span>
         <span v-if="question.required" class="text-error ml-1">*</span>
-        <p v-if="question.description" class="text-xs text-(--text-muted) mt-0.5">{{ question.description }}</p>
+        <MutedText v-if="question.description" tag="p" class="mt-0.5">{{ question.description }}</MutedText>
       </div>
 
       <ChoiceQuestion v-if="question.formQuestionType === QuestionTypes.CHOICE"

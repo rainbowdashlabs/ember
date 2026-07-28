@@ -11,7 +11,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
-import { QuizQuestionTypes } from '@/api/types'
+import { QuizQuestionTypes } from '@/api/quiz'
 import { ANSWER_SEPARATOR_PRESETS, needsSplit, type ImportQuestion } from './quizCsvImport'
 
 const props = defineProps<{

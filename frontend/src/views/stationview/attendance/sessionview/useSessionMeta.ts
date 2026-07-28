@@ -6,7 +6,7 @@
 import type {Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {attendance} from '@/api'
-import type {AttendanceSession} from '@/api/types'
+import type {AttendanceSession} from '@/api/attendance'
 
 export function useSessionMeta(
     sessionId: Ref<number>,

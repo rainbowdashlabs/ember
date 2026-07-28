@@ -11,7 +11,7 @@ import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type { ExchangeLogEntry, ExchangeStatusName } from '@/api/types'
+import type { ExchangeLogEntry, ExchangeStatusName } from '@/api/exchanges'
 import { exchanges } from '@/api'
 import { formatDate } from '@/util/format'
 

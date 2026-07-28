@@ -18,7 +18,7 @@ import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useSession} from '@/composables/useSession'
-import {useToast} from '@/composables/useToast'
+import {showToast} from '@/util/toast'
 import {StationPermission} from '@/api/types'
 import {checklists, memberGroups, stationMembers, userTags} from '@/api'
 import type {
@@ -26,10 +26,8 @@ import type {
   ChecklistCellDto,
   ChecklistDetail,
   ChecklistRefreshResult,
-  MemberGroup,
-  StationMember,
-  UserTag,
-} from '@/api/types'
+} from '@/api/checklists'
+import type {MemberGroup, StationMember, UserTag} from '@/api/types'
 import EditButton from '@/components/button/EditButton.vue'
 import ChecklistMatrix from './checklistdetailview/ChecklistMatrix.vue'
 import ChecklistFilterBar from './checklistdetailview/ChecklistFilterBar.vue'
@@ -42,7 +40,6 @@ import ChecklistEditModal from './ChecklistEditModal.vue'
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
-const toast = useToast()
 const {hasPermission} = useSession()
 
 const canManage = computed(() => hasPermission(StationPermission.CHECKLIST_MANAGE))
@@ -125,7 +122,7 @@ async function onRefresh(): Promise<ChecklistRefreshResult> {
   if (!detail.value) throw new Error('Not loaded')
   const result = await checklists.refreshChecklist(detail.value.id)
   await reload()
-  toast.show(
+  showToast(
       t('checklist.refreshDone', {added: result.added, already: result.alreadyPresent}),
       'success',
   )
@@ -138,7 +135,7 @@ const {running: addingMembers, error: addMembersError, run: runAddMembers} = use
       const result: ChecklistAddMembersResult = await checklists.addMembers(detail.value.id, memberIds)
       showAddMembers.value = false
       await reload()
-      toast.show(
+      showToast(
           t('checklist.addedToast', {added: result.added, restored: result.restored, skipped: result.skipped}),
           'success',
       )
@@ -160,7 +157,7 @@ async function onBulkSet(columnId: number, entryIds: number[], checked: boolean)
   if (!detail.value || entryIds.length === 0) return
   const result = await checklists.bulkSetColumn(detail.value.id, columnId, {entryIds, checked})
   await reload()
-  toast.show(t('checklist.bulkDone', {count: result.updated}), 'success')
+  showToast(t('checklist.bulkDone', {count: result.updated}), 'success')
 }
 
 const {running: savingMeta, error: saveMetaError, run: runSaveMeta} = useAsyncAction(

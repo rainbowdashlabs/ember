@@ -11,7 +11,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ManagedFormTile from './ManagedFormTile.vue'
-import type { Form } from '@/api/types'
+import type { Form } from '@/api/forms'
 import { byDate, byValue, useSortable } from '@/composables/useSortable'
 
 const props = defineProps<{

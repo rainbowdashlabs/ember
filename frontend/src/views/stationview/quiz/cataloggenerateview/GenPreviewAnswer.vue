@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const props = defineProps<{
   quizQuestionType: string
@@ -44,9 +45,9 @@ const orderingItems = computed(() => (cfg.value.items as string[]) ?? [])
     </p>
   </template>
   <template v-else-if="quizQuestionType === 'FREE_ANSWER'">
-    <p v-for="(ans, ai2) in freeAnswers" :key="ai2" class="text-xs text-(--text-muted) mt-0.5">
+    <MutedText v-for="(ans, ai2) in freeAnswers" :key="ai2" tag="p" class="mt-0.5">
       {{ ai2 + 1 }}. {{ ans }}
-    </p>
+    </MutedText>
   </template>
   <template v-else-if="quizQuestionType === 'FILL_IN_THE_BLANK'">
     <p class="text-xs text-success mt-1">{{ fillAnswers.join(', ') }}</p>
@@ -54,16 +55,16 @@ const orderingItems = computed(() => (cfg.value.items as string[]) ?? [])
   </template>
   <template v-else-if="quizQuestionType === 'CONNECT'">
     <div class="mt-1 space-y-0.5">
-      <p v-for="(pair, pi) in connectPairs" :key="pi" class="text-xs text-(--text-muted)">
+      <MutedText v-for="(pair, pi) in connectPairs" :key="pi" tag="p">
         {{ pair.left }} &rarr; {{ pair.right }}
-      </p>
+      </MutedText>
     </div>
   </template>
   <template v-else-if="quizQuestionType === 'ORDERING'">
     <div class="mt-1 space-y-0.5">
-      <p v-for="(item, ii) in orderingItems" :key="ii" class="text-xs text-(--text-muted)">
+      <MutedText v-for="(item, ii) in orderingItems" :key="ii" tag="p">
         {{ ii + 1 }}. {{ item }}
-      </p>
+      </MutedText>
     </div>
   </template>
 </template>

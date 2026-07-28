@@ -7,8 +7,8 @@
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import DataTable from '@/components/table/DataTable.vue'
 import Th from '@/components/table/Th.vue'
-import THead from '@/components/table/THead.vue'
 import DummyAvailableRow from '@/views/helpcenter/stationview/inventory/lendingbrowsehelp/DummyAvailableRow.vue'
 
 const {t} = useI18n()
@@ -23,28 +23,22 @@ const rows = [
 <template>
   <NeutralContainer class="space-y-3">
     <SectionHeader>{{ t('helpCenter.inventoryLendingBrowse.dummyTitle') }}</SectionHeader>
-    <NeutralContainer class="overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead>
-          <THead>
-            <Th>{{ t('helpCenter.inventoryLendingBrowse.colStation') }}</Th>
-            <Th>{{ t('helpCenter.inventoryLendingBrowse.colItem') }}</Th>
-            <Th>{{ t('helpCenter.inventoryLendingBrowse.colQuantity') }}</Th>
-            <Th>{{ t('helpCenter.inventoryLendingBrowse.colAvailable') }}</Th>
-            <th class="px-3 py-2"></th>
-          </THead>
-        </thead>
-        <tbody>
-          <DummyAvailableRow
-            v-for="(r, i) in rows"
-            :key="i"
-            :station="r.station"
-            :item="r.item"
-            :quantity="r.quantity"
-            :available="r.available"
-          />
-        </tbody>
-      </table>
-    </NeutralContainer>
+    <DataTable>
+      <template #head>
+        <Th>{{ t('helpCenter.inventoryLendingBrowse.colStation') }}</Th>
+        <Th>{{ t('helpCenter.inventoryLendingBrowse.colItem') }}</Th>
+        <Th>{{ t('helpCenter.inventoryLendingBrowse.colQuantity') }}</Th>
+        <Th>{{ t('helpCenter.inventoryLendingBrowse.colAvailable') }}</Th>
+        <th class="px-3 py-2"></th>
+      </template>
+      <DummyAvailableRow
+        v-for="(r, i) in rows"
+        :key="i"
+        :station="r.station"
+        :item="r.item"
+        :quantity="r.quantity"
+        :available="r.available"
+      />
+    </DataTable>
   </NeutralContainer>
 </template>

@@ -23,6 +23,7 @@ import {GridComponent, TooltipComponent, LegendComponent, DataZoomComponent} fro
 import * as apiStatus from '@/api/apiStatus'
 import type {EndpointStats, HourlyStats, StatusBreakdown} from '@/api/apiStatus'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import Td from '@/components/table/Td.vue'
 
 use([CanvasRenderer, BarChart, LineChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent])
 
@@ -229,10 +230,10 @@ function openDetail(ep: EndpointStats) {
                                 <span :class="methodColor(ep.method)" class="font-semibold mr-1">{{ ep.method }}</span>
                                 {{ ep.path }}
                             </td>
-                            <td class="py-2 pr-3 text-right tabular-nums">{{ ep.requestCount }}</td>
-                            <td class="py-2 pr-3 text-right tabular-nums">{{ formatMs(ep.avgDurationMs) }}</td>
-                            <td class="py-2 pr-3 text-right tabular-nums text-[var(--text-muted)]">{{ formatMs(ep.minDurationMs) }}</td>
-                            <td class="py-2 pr-3 text-right tabular-nums text-[var(--text-muted)]">{{ formatMs(ep.maxDurationMs) }}</td>
+                            <Td dense align="right" class="tabular-nums">{{ ep.requestCount }}</Td>
+                            <Td dense align="right" class="tabular-nums">{{ formatMs(ep.avgDurationMs) }}</Td>
+                            <Td dense align="right" class="tabular-nums text-[var(--text-muted)]">{{ formatMs(ep.minDurationMs) }}</Td>
+                            <Td dense align="right" class="tabular-nums text-[var(--text-muted)]">{{ formatMs(ep.maxDurationMs) }}</Td>
                             <td class="py-2 text-right tabular-nums" :class="ep.errorRate > 0.1 ? 'text-red-500 font-semibold' : ''">
                                 {{ formatPercent(ep.errorRate) }}
                             </td>

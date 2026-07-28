@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import type {MemberCheckSummary} from '@/api/types'
+import type {MemberCheckSummary} from '@/api/inventoryCheck'
 import MemberName from '@/components/avatar/MemberName.vue'
 import Td from '@/components/table/Td.vue'
 import TRow from '@/components/table/TRow.vue'

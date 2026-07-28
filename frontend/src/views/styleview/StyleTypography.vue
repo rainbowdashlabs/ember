@@ -20,6 +20,9 @@ import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import CodeSnippet from '@/components/display/CodeSnippet.vue'
 import KeyBadge from '@/components/display/KeyBadge.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
+import AccentIcon from '@/components/display/AccentIcon.vue'
+import ColorDot from '@/components/display/ColorDot.vue'
+import ProseContent from '@/components/display/ProseContent.vue'
 </script>
 
 <template>
@@ -41,6 +44,9 @@ import MutedIcon from '@/components/display/MutedIcon.vue'
       </div>
       <div>
         <MutedText tag="p" size="sm">Muted text as paragraph</MutedText>
+      </div>
+      <div>
+        <MutedText size="base">Muted text (base, inherits the surrounding size)</MutedText>
       </div>
     </div>
   </section>
@@ -111,8 +117,35 @@ console.log(x);</CodeSnippet>
         <MutedIcon :icon="['fas', 'chevron-right']" size="xs"/>
         <MutedIcon :icon="['fas', 'chevron-right']"/>
         <MutedIcon :icon="['fas', 'chevron-right']" size="md"/>
-        <MutedText>xs / sm (default) / md</MutedText>
+        <MutedIcon :icon="['fas', 'chevron-right']" size="inline"/>
+        <MutedText>xs / sm (default) / md / inline</MutedText>
       </div>
+    </div>
+  </section>
+
+  <section class="space-y-4">
+    <SectionHeader>Markers and Rich Text</SectionHeader>
+    <div class="space-y-3">
+      <SubHeader>Accent Icon</SubHeader>
+      <div class="flex gap-3 items-start">
+        <AccentIcon :icon="['fas', 'server']"/>
+        <MutedText>Leading icon for feature and requirement rows</MutedText>
+      </div>
+    </div>
+    <div class="space-y-3">
+      <SubHeader>Color Dot</SubHeader>
+      <div class="flex gap-3 items-center">
+        <ColorDot color="#FF6421"/>
+        <ColorDot color="#3694FF"/>
+        <ColorDot color="#00C507"/>
+        <MutedText>Group and tag colours</MutedText>
+      </div>
+    </div>
+    <div class="space-y-3">
+      <SubHeader>Prose Content</SubHeader>
+      <ProseContent>
+        <p>Rendered markdown lands here with headings, lists and links already styled.</p>
+      </ProseContent>
     </div>
   </section>
 </template>

@@ -5,7 +5,8 @@
  */
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import type { QuizTestDetail } from '@/api/types'
+import type { QuizTestDetail } from '@/api/quiz'
+import MutedText from '@/components/typography/MutedText.vue'
 
 defineProps<{
   test: QuizTestDetail['test']
@@ -16,11 +17,11 @@ const { t } = useI18n()
 
 <template>
   <div>
-    <span class="text-xs text-(--text-muted) block">{{ t('quiz.tests.timeLimit') }}</span>
+    <MutedText class="block">{{ t('quiz.tests.timeLimit') }}</MutedText>
     <span>{{ test.timeLimit ? t('quiz.tests.timeLimitValue', { minutes: test.timeLimit }) : t('quiz.tests.noTimeLimit') }}</span>
   </div>
   <div>
-    <span class="text-xs text-(--text-muted) block">{{ t('quiz.tests.shuffle') }}</span>
+    <MutedText class="block">{{ t('quiz.tests.shuffle') }}</MutedText>
     <span>{{ test.shuffle ? t('common.yes') : t('common.no') }}</span>
   </div>
 </template>

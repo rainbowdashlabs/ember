@@ -12,9 +12,9 @@ import SizeBadge from '@/components/badge/SizeBadge.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import Th from '@/components/table/Th.vue'
 import Td from '@/components/table/Td.vue'
-import THead from '@/components/table/THead.vue'
+import DataTable from '@/components/table/DataTable.vue'
 import TRow from '@/components/table/TRow.vue'
-import type { ProcurementEntry } from '@/api/types'
+import type { ProcurementEntry } from '@/api/procurement'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { inventoryTypeBadge, inventoryTypeLabel as toInventoryTypeLabel } from '@/util/inventoryType'
 import { formatDate } from '@/util/format'
@@ -53,34 +53,28 @@ function inventoryTypeLabel(type?: string | null): string {
         <div class="text-xs text-(--text-muted)">{{ t('inventory.overview.requestedAt') }}: {{ formatDate(p.requestedAt) }}</div>
       </NeutralContainer>
     </div>
-    <NeutralContainer v-else class="overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead>
-          <THead>
-            <Th>{{ t('inventory.overview.colItem') }}</Th>
-            <Th>{{ t('inventory.overview.colType') }}</Th>
-            <Th>{{ t('inventory.overview.colOwner') }}</Th>
-            <Th>{{ t('inventory.overview.colNotes') }}</Th>
-            <Th>{{ t('inventory.overview.colRequested') }}</Th>
-          </THead>
-        </thead>
-        <tbody>
-          <TRow v-for="p in entries" :key="p.id"
-              class="cursor-pointer hover:bg-(--bg-accent)"
-              @click="router.push({ name: 'inventory-procurement' })">
-            <Td>
-              {{ p.inventoryName }}
-              <SizeBadge>{{ p.sizeLabel || t('common.unisize') }}</SizeBadge>
-            </Td>
-            <Td>
-              <component :is="inventoryTypeBadge(inventoryTypeMap.get(p.inventoryId))">{{ inventoryTypeLabel(inventoryTypeMap.get(p.inventoryId)) }}</component>
-            </Td>
-            <Td><MemberName :identity="p.memberIdentity ?? null"/></Td>
-            <Td muted>{{ p.notes || '-' }}</Td>
-            <Td muted>{{ formatDate(p.requestedAt) }}</Td>
-          </TRow>
-        </tbody>
-      </table>
-    </NeutralContainer>
+    <DataTable v-else>
+      <template #head>
+        <Th>{{ t('inventory.overview.colItem') }}</Th>
+        <Th>{{ t('inventory.overview.colType') }}</Th>
+        <Th>{{ t('inventory.overview.colOwner') }}</Th>
+        <Th>{{ t('inventory.overview.colNotes') }}</Th>
+        <Th>{{ t('inventory.overview.colRequested') }}</Th>
+      </template>
+      <TRow v-for="p in entries" :key="p.id"
+          class="cursor-pointer hover:bg-(--bg-accent)"
+          @click="router.push({ name: 'inventory-procurement' })">
+        <Td>
+          {{ p.inventoryName }}
+          <SizeBadge>{{ p.sizeLabel || t('common.unisize') }}</SizeBadge>
+        </Td>
+        <Td>
+          <component :is="inventoryTypeBadge(inventoryTypeMap.get(p.inventoryId))">{{ inventoryTypeLabel(inventoryTypeMap.get(p.inventoryId)) }}</component>
+        </Td>
+        <Td><MemberName :identity="p.memberIdentity ?? null"/></Td>
+        <Td muted>{{ p.notes || '-' }}</Td>
+        <Td muted>{{ formatDate(p.requestedAt) }}</Td>
+      </TRow>
+    </DataTable>
   </div>
 </template>

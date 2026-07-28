@@ -11,8 +11,10 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import CommentSection from '@/components/comment/CommentSection.vue'
 import NoteEditor from '@/components/comment/NoteEditor.vue'
 import EventGeneralInfoPanel from './EventGeneralInfoPanel.vue'
-import type {EventField, StationEvent, StationMember} from '@/api/types'
-import {isRecurringEvent, StationPermission} from '@/api/types'
+import type {EventField, StationEvent} from '@/api/events'
+import type {StationMember} from '@/api/types'
+import {isRecurringEvent} from '@/api/events'
+import {StationPermission} from '@/api/types'
 import type {AbsentMember} from '@/api/events'
 
 const props = defineProps<{

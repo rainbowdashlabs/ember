@@ -13,9 +13,9 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
-import EventFieldValue from '@/components/display/EventFieldValue.vue'
+import EventFieldValue from '../eventshared/EventFieldValue.vue'
 import EventRegistrationActions from './EventRegistrationActions.vue'
-import type {EventField, StationEvent} from '@/api/types'
+import type {EventField, StationEvent} from '@/api/events'
 import type {EventRegistrationEntry} from '@/api/events'
 
 const props = defineProps<{

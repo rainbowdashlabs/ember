@@ -9,7 +9,8 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import type { QuizCatalog } from '@/api/types'
+import MutedText from '@/components/typography/MutedText.vue'
+import type { QuizCatalog } from '@/api/quiz'
 
 defineProps<{
   catalog: QuizCatalog
@@ -35,9 +36,9 @@ const { t } = useI18n()
         <span class="font-medium">{{ catalog.name }}</span>
         <SuccessBadge v-if="catalog.trainingEnabled">{{ t('quiz.catalogs.trainingEnabled') }}</SuccessBadge>
       </div>
-      <p v-if="catalog.description" class="text-xs text-(--text-muted)">{{ catalog.description }}</p>
+      <MutedText v-if="catalog.description" tag="p">{{ catalog.description }}</MutedText>
       <div class="flex items-center justify-between border-t border-bg-light-accent dark:border-bg-dark-accent pt-2 mt-2">
-        <span class="text-xs text-(--text-muted)">{{ t('quiz.catalogs.questionCount') }}</span>
+        <MutedText>{{ t('quiz.catalogs.questionCount') }}</MutedText>
         <div class="flex items-center gap-2" @click.stop>
           <MutedIconButton :icon="['fas', 'file-export']" :label="t('quiz.catalogs.export')" @click="emit('exportCatalog', catalog)" />
           <DeleteButton @click="emit('confirmDelete', catalog)" />
@@ -51,7 +52,7 @@ const { t } = useI18n()
           <span class="font-medium">{{ catalog.name }}</span>
           <SuccessBadge v-if="catalog.trainingEnabled">{{ t('quiz.catalogs.trainingEnabled') }}</SuccessBadge>
         </div>
-        <p v-if="catalog.description" class="text-xs text-(--text-muted) truncate">{{ catalog.description }}</p>
+        <MutedText v-if="catalog.description" tag="p" class="truncate">{{ catalog.description }}</MutedText>
       </div>
       <div class="flex items-center gap-2 shrink-0" @click.stop>
         <MutedIconButton :icon="['fas', 'file-export']" :label="t('quiz.catalogs.export')" @click="emit('exportCatalog', catalog)" />

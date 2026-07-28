@@ -12,7 +12,8 @@ import DragList from '@/components/input/DragList.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import type {AttendanceTemplateField, MemberGroup} from '@/api/types'
+import type {AttendanceTemplateField} from '@/api/attendance'
+import type {MemberGroup} from '@/api/types'
 import MutedText from '@/components/typography/MutedText.vue'
 
 const props = defineProps<{

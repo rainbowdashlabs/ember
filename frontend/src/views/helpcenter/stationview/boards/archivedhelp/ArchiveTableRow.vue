@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import BaseBadge from '@/components/badge/BaseBadge.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
+import Td from '@/components/table/Td.vue'
 import {contrastTextColor} from '@/theme/contrast'
 
 defineProps<{
@@ -26,7 +27,7 @@ const {t} = useI18n()
 
 <template>
     <tr :class="['border-b border-(--border) cursor-pointer hover:bg-primary/5', last ? 'last:border-0' : '']">
-        <td class="py-2 pr-3 font-mono text-(--text-muted) whitespace-nowrap">{{ ticketId }}</td>
+        <Td dense muted class="font-mono whitespace-nowrap">{{ ticketId }}</Td>
         <td class="py-2 pr-3">{{ title }}</td>
         <td class="py-2 pr-3">
             <div class="flex gap-1">

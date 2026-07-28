@@ -12,8 +12,9 @@ import StationBadge from '@/components/badge/StationBadge.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import NewsViewBadge from '@/components/news/NewsViewBadge.vue'
-import type {NewsEntry, MemberIdentity} from '@/api/types'
+import NewsViewBadge from '../newsshared/NewsViewBadge.vue'
+import type {NewsEntry} from '@/api/news'
+import type {MemberIdentity} from '@/api/types'
 import {formatDateTime} from '@/util/format'
 
 interface BadgeHandle {refresh: () => Promise<void>}

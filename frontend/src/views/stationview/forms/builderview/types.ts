@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type { QuestionType } from '@/api/types'
+import type { QuestionType } from '@/api/forms'
 
 export interface QuestionDraft {
   id: string

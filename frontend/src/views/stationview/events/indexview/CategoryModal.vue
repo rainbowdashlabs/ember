@@ -12,7 +12,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type {EventCategory} from '@/api/types'
+import type {EventCategory} from '@/api/events'
 
 const {t} = useI18n()
 

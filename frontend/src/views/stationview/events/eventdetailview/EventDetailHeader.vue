@@ -12,8 +12,8 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
-import type {StationEvent} from '@/api/types'
-import {isRecurringEvent} from '@/api/types'
+import type {StationEvent} from '@/api/events'
+import {isRecurringEvent} from '@/api/events'
 
 const props = defineProps<{
   event: StationEvent

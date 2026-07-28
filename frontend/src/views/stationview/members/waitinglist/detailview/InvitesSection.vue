@@ -11,7 +11,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type { WaitingListInvite } from '@/api/types'
+import type { WaitingListInvite } from '@/api/waitingList'
 import { formatDate, formatDateTime } from '@/util/format'
 
 defineProps<{

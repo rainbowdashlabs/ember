@@ -11,7 +11,7 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import type {WaitingListField} from '@/api/types'
+import type {WaitingListField} from '@/api/waitingList'
 
 const props = defineProps<{
   field: WaitingListField

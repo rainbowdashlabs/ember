@@ -8,9 +8,10 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import PublicFormQuestionChoiceField from './PublicFormQuestionChoiceField.vue'
 import type {PublicFormQuestion} from '@/api/publicForms'
-import {QuestionTypes} from '@/api/types'
+import {QuestionTypes} from '@/api/forms'
 
 interface TextAnswer { text: string }
 interface DateAnswer { date: string }
@@ -48,7 +49,7 @@ function choiceAnswer(): ChoiceAnswer {
       <div>
         <span class="font-medium">{{ question.title }}</span>
         <span v-if="question.required" class="ml-1 text-error">*</span>
-        <p v-if="question.description" class="mt-0.5 text-xs text-(--text-muted)">{{ question.description }}</p>
+        <MutedText v-if="question.description" tag="p" class="mt-0.5">{{ question.description }}</MutedText>
       </div>
 
       <template v-if="question.questionType === QuestionTypes.TEXT">

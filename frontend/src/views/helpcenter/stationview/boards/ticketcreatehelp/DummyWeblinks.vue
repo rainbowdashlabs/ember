@@ -9,6 +9,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import MutedIcon from '@/components/display/MutedIcon.vue'
 
 const {t} = useI18n()
 </script>
@@ -17,7 +18,7 @@ const {t} = useI18n()
   <NeutralContainer>
     <SubHeader class="mb-2">{{ t('boards.weblinks') }}</SubHeader>
     <div class="flex items-center gap-2 py-0.5">
-      <font-awesome-icon :icon="['fas', 'globe']" class="text-(--text-muted) text-xs shrink-0" />
+      <MutedIcon :icon="['fas', 'globe']" size="inline" class="shrink-0"/>
       <span class="text-sm truncate flex-1">{{ t('helpCenter.ticketCreate.weblinkExample') }}</span>
       <IconButton :icon="['fas', 'xmark']" label="Remove" class="text-xs" />
     </div>

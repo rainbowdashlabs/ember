@@ -7,12 +7,13 @@
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
+import DataTable from '@/components/table/DataTable.vue'
 import Th from '@/components/table/Th.vue'
 import Td from '@/components/table/Td.vue'
-import THead from '@/components/table/THead.vue'
 import TRow from '@/components/table/TRow.vue'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { inventoryTypeBadge, inventoryTypeLabel as toInventoryTypeLabel } from '@/util/inventoryType'
@@ -43,40 +44,34 @@ function inventoryTypeLabel(type?: string | null): string {
         <div class="flex items-center gap-2">
           <component :is="inventoryTypeBadge(a.inventoryType)">{{ inventoryTypeLabel(a.inventoryType) }}</component>
           <SizeBadge lost>{{ a.sizeName || t('common.unisize') }}</SizeBadge>
-          <span v-if="a.item.internalId" class="text-xs text-(--text-muted)">{{ a.item.internalId }}</span>
+          <MutedText v-if="a.item.internalId">{{ a.item.internalId }}</MutedText>
         </div>
-        <div class="text-xs text-(--text-muted)"><MemberName :identity="a.ownerIdentity"/></div>
+        <MutedText tag="div"><MemberName :identity="a.ownerIdentity"/></MutedText>
       </NeutralContainer>
     </div>
-    <NeutralContainer v-else class="overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead>
-          <THead>
-            <Th>{{ t('inventory.overview.colItem') }}</Th>
-            <Th>{{ t('inventory.overview.colType') }}</Th>
-            <Th>{{ t('inventory.overview.colOwner') }}</Th>
-            <Th>{{ t('inventory.overview.colLostSince') }}</Th>
-          </THead>
-        </thead>
-        <tbody>
-          <TRow v-for="a in items" :key="a.item.id">
-            <Td>
-              <div class="font-medium">
-                {{ a.item.name }}
-                <SizeBadge lost>{{ a.sizeName || t('common.unisize') }}</SizeBadge>
-              </div>
-              <div v-if="a.item.internalId" class="text-xs text-(--text-muted)">{{ a.item.internalId }}</div>
-            </Td>
-            <Td>
-              <component :is="inventoryTypeBadge(a.inventoryType)">{{ inventoryTypeLabel(a.inventoryType) }}</component>
-            </Td>
-            <Td><MemberName :identity="a.ownerIdentity"/></Td>
-            <Td>
-              <ErrorBadge>{{ formatDate(a.item.lostAt) }}</ErrorBadge>
-            </Td>
-          </TRow>
-        </tbody>
-      </table>
-    </NeutralContainer>
+    <DataTable v-else>
+      <template #head>
+        <Th>{{ t('inventory.overview.colItem') }}</Th>
+        <Th>{{ t('inventory.overview.colType') }}</Th>
+        <Th>{{ t('inventory.overview.colOwner') }}</Th>
+        <Th>{{ t('inventory.overview.colLostSince') }}</Th>
+      </template>
+      <TRow v-for="a in items" :key="a.item.id">
+        <Td>
+          <div class="font-medium">
+            {{ a.item.name }}
+            <SizeBadge lost>{{ a.sizeName || t('common.unisize') }}</SizeBadge>
+          </div>
+          <MutedText v-if="a.item.internalId" tag="div">{{ a.item.internalId }}</MutedText>
+        </Td>
+        <Td>
+          <component :is="inventoryTypeBadge(a.inventoryType)">{{ inventoryTypeLabel(a.inventoryType) }}</component>
+        </Td>
+        <Td><MemberName :identity="a.ownerIdentity"/></Td>
+        <Td>
+          <ErrorBadge>{{ formatDate(a.item.lostAt) }}</ErrorBadge>
+        </Td>
+      </TRow>
+    </DataTable>
   </div>
 </template>

@@ -7,14 +7,15 @@
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import { QuizTestStatus } from '@/api/types'
-import type { QuizQuestion, QuizTestDetail } from '@/api/types'
+import { QuizTestStatus } from '@/api/quiz'
+import type { QuizQuestion, QuizTestDetail } from '@/api/quiz'
 import type { FrozenQuestionDetail } from '@/api/quiz'
 
 defineProps<{
@@ -46,14 +47,14 @@ const { t } = useI18n()
     <EmptyState compact v-if="frozenQuestions.length === 0">{{ t('quiz.frozenQuestions.empty') }}</EmptyState>
     <NeutralContainer v-for="fq in frozenQuestions" :key="fq.position">
       <div v-if="fq.question" class="flex items-start gap-3">
-        <span class="text-xs text-(--text-muted) w-6 shrink-0 pt-0.5">{{ fq.position + 1 }}.</span>
+        <MutedText class="w-6 shrink-0 pt-0.5">{{ fq.position + 1 }}.</MutedText>
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 flex-wrap">
             <span class="text-sm font-medium">{{ fq.question.title }}</span>
             <SecondaryBadge>{{ questionTypeName(fq.question) }}</SecondaryBadge>
             <InfoBadge>{{ fq.question.points }} {{ t('quiz.points') }}</InfoBadge>
           </div>
-          <p v-if="fq.question.description" class="text-xs text-(--text-muted) mt-0.5">{{ fq.question.description }}</p>
+          <MutedText v-if="fq.question.description" tag="p" class="mt-0.5">{{ fq.question.description }}</MutedText>
         </div>
         <div v-if="test.status === QuizTestStatus.DRAFT" class="flex gap-1 shrink-0">
           <MutedIconButton :icon="['fas', 'shuffle']" :label="t('quiz.frozenQuestions.randomReplace')" @click="emit('random-replace', fq.position)" />

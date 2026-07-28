@@ -15,7 +15,7 @@ import BlockFormBody from './lendingblockscreateview/BlockFormBody.vue'
 import type {BlockEntry} from './lendingblockscreateview/types'
 import * as lending from '@/api/lending'
 import {inventory} from '@/api'
-import type {Inventory} from '@/api/types'
+import type {Inventory} from '@/api/inventory'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 

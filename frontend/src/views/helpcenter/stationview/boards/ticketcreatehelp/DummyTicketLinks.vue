@@ -9,6 +9,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import MutedIcon from '@/components/display/MutedIcon.vue'
 
 const {t} = useI18n()
 </script>
@@ -17,7 +18,7 @@ const {t} = useI18n()
   <NeutralContainer>
     <SubHeader class="mb-2">{{ t('boards.links') }}</SubHeader>
     <div class="flex items-center gap-2 py-0.5">
-      <font-awesome-icon :icon="['fas', 'link']" class="text-(--text-muted) text-xs shrink-0" />
+      <MutedIcon :icon="['fas', 'link']" size="inline" class="shrink-0"/>
       <span class="text-xs text-(--text-muted)">{{ t('boards.linkBlockedBy') }}</span>
       <span class="text-sm truncate flex-1">JF-12 {{ t('helpCenter.ticketCreate.linkedTicketExample') }}</span>
       <IconButton :icon="['fas', 'xmark']" label="Remove" class="text-xs" />

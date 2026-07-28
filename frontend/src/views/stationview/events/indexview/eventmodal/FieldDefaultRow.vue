@@ -7,7 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
-import type {AttendanceTemplateField} from '@/api/types'
+import type {AttendanceTemplateField} from '@/api/attendance'
 
 const {t} = useI18n()
 

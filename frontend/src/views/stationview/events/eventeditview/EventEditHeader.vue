@@ -7,7 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import type {EventTemplate} from '@/api/types'
+import type {EventTemplate} from '@/api/events'
 
 defineProps<{
   isEdit: boolean

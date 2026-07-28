@@ -5,7 +5,8 @@
  */
 <script setup lang="ts">
 import ExchangeMobileCard from './ExchangeMobileCard.vue'
-import type { ExchangeRequestEntry, ExchangeStatusName, InventoryItem } from '@/api/types'
+import type { ExchangeRequestEntry, ExchangeStatusName } from '@/api/exchanges'
+import type { InventoryItem } from '@/api/inventory'
 
 defineProps<{
   requests: ExchangeRequestEntry[]

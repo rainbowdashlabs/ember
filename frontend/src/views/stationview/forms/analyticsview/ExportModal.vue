@@ -11,7 +11,8 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ExportFieldPicker from '@/components/export/ExportFieldPicker.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type { FormQuestionAnalytics, ProfileField } from '@/api/types'
+import type { FormQuestionAnalytics } from '@/api/forms'
+import type { ProfileField } from '@/api/profileFields'
 import type { ExportFieldOption } from '@/composables/useExport'
 
 const modelValue = defineModel<boolean>({required: true})

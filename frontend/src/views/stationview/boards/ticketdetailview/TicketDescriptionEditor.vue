@@ -9,6 +9,7 @@ import { marked } from 'marked'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import ProseContent from '@/components/display/ProseContent.vue'
 
 defineProps<{
     canEdit: boolean
@@ -31,7 +32,7 @@ function renderMarkdown(md: string): string {
 <template>
     <div>
         <FieldLabel class="mb-1">{{ t('boards.ticketDescription') }}</FieldLabel>
-        <div v-if="!editing && description" class="prose prose-sm dark:prose-invert max-w-none rounded-theme p-2 min-h-[2rem]" :class="canEdit ? 'cursor-pointer hover:bg-[var(--bg-accent)]' : ''" @click="canEdit && (editing = true)" v-html="renderMarkdown(description)" />
+        <ProseContent v-if="!editing && description" class="rounded-theme p-2 min-h-[2rem]" :class="canEdit ? 'cursor-pointer hover:bg-[var(--bg-accent)]' : ''" @click="canEdit && (editing = true)" v-html="renderMarkdown(description)"/>
         <div v-else-if="!editing && canEdit" class="text-sm text-[var(--text-muted)] cursor-pointer rounded-theme p-2 hover:bg-[var(--bg-accent)] italic" @click="editing = true">
             {{ t('boards.clickToAddDescription') }}
         </div>

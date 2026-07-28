@@ -12,9 +12,8 @@ import type {
   AttendanceSessionField,
   AttendanceStatus,
   AttendanceTemplateField,
-  MemberGroup,
-  StationMember,
-} from '@/api/types'
+} from '@/api/attendance'
+import type {MemberGroup, StationMember} from '@/api/types'
 import SessionToolbar from './SessionToolbar.vue'
 import SessionHeader from './SessionHeader.vue'
 import CheckModePanel from './CheckModePanel.vue'

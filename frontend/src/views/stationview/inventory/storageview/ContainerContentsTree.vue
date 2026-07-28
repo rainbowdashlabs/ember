@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import ContainerContentsTreeNode from './ContainerContentsTreeNode.vue'
 import TreeNodeButton from '@/components/button/TreeNodeButton.vue'
 import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
-import type {InventoryItem} from '@/api/types'
+import type {InventoryItem} from '@/api/inventory'
 
 const props = defineProps<{
   rootContainerId: number

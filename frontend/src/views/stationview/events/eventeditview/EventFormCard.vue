@@ -8,7 +8,9 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EventFormPanel from '../eventshared/EventFormPanel.vue'
 import EventReminderEditor from '../eventshared/EventReminderEditor.vue'
 import type {RestrictionSelection} from '@/components/input/restriction'
-import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, EventFieldEntry, MemberGroup, StationMember, UserTag} from '@/api/types'
+import type {AttendanceTemplate, AttendanceTemplateField} from '@/api/attendance'
+import type {EventCategory, EventFieldEntry} from '@/api/events'
+import type {MemberGroup, StationMember, UserTag} from '@/api/types'
 
 defineProps<{
   categories: EventCategory[]

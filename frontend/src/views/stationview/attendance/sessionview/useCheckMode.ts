@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {computed, type Ref, ref} from 'vue'
-import type {AttendanceEntry, AttendanceStatus} from '@/api/types'
+import type {AttendanceEntry, AttendanceStatus} from '@/api/attendance'
 
 export function useCheckMode(
     entries: Ref<AttendanceEntry[]>,

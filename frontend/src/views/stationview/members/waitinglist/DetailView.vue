@@ -18,8 +18,8 @@ import type {
   WaitingListEntryWithScore,
   WaitingListField,
   WaitingListInvite,
-  MemberGroup,
-} from '@/api/types'
+} from '@/api/waitingList'
+import type {MemberGroup} from '@/api/types'
 import { waitingList, memberGroups } from '@/api'
 import { StationPermission } from '@/api/types'
 import { useBreakpoint } from '@/composables/useBreakpoint'

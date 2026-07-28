@@ -10,7 +10,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type {WaitingListEntryWithScore, WaitingListField} from '@/api/types'
+import type {WaitingListEntryWithScore, WaitingListField} from '@/api/waitingList'
 import {formatDate} from '@/util/format'
 
 const props = defineProps<{

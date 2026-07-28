@@ -15,7 +15,7 @@ import EventSearchPicker from '@/components/input/search/EventSearchPicker.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import * as publicEvents from '@/api/publicEvents'
 import * as events from '@/api/events'
-import type {EventCategory} from '@/api/types'
+import type {EventCategory} from '@/api/events'
 import {useConfigPatch} from '@/composables/useConfigPatch'
 
 /**

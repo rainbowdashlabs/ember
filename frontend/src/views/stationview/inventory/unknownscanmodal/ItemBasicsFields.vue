@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import {ItemSource} from '@/api/types'
+import {ItemSource} from '@/api/inventory'
 
 const itemName = defineModel<string>('itemName', {required: true})
 const pickedSize = defineModel<string>('pickedSize', {required: true})

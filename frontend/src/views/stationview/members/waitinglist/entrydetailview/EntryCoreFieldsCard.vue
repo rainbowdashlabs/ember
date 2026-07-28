@@ -11,7 +11,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import EntryGuardiansEditor from './EntryGuardiansEditor.vue'
-import type { GuardianInput } from '@/api/types'
+import type { GuardianInput } from '@/api/waitingList'
 
 const firstname = defineModel<string>('firstname', { required: true })
 const lastname = defineModel<string>('lastname', { required: true })

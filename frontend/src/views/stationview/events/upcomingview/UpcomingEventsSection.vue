@@ -10,7 +10,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import UpcomingEventItem from './UpcomingEventItem.vue'
-import type {EventField, StationEvent} from '@/api/types'
+import type {EventField, StationEvent} from '@/api/events'
 import type {EventRegistrationEntry, UpcomingEventOccurrence} from '@/api/events'
 
 defineProps<{

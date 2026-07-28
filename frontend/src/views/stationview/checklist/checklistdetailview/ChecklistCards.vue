@@ -11,7 +11,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
-import type {ChecklistCellDto, ChecklistColumnDto, ChecklistEntryDto} from '@/api/types'
+import type {ChecklistCellDto, ChecklistColumnDto, ChecklistEntryDto} from '@/api/checklists'
 import ChecklistCellToggle from './ChecklistCellToggle.vue'
 
 const props = defineProps<{

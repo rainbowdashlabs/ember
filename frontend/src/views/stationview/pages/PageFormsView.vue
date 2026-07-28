@@ -5,7 +5,7 @@
  */
 <script setup lang="ts">
 import FormsListView from '@/views/stationview/forms/ListView.vue'
-import { FormPurpose } from '@/api/types'
+import { FormPurpose } from '@/api/forms'
 </script>
 
 <template>

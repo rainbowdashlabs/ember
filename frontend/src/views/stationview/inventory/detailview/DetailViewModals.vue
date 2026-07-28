@@ -12,8 +12,9 @@ import HistoryModal from './HistoryModal.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import ItemModals from '../editview/ItemModals.vue'
 import { inventory, procurement } from '@/api'
-import { InventoryTypes } from '@/api/types'
-import type { InventoryDetail, InventoryItem, StationMember } from '@/api/types'
+import { InventoryTypes } from '@/api/inventory'
+import type { InventoryDetail, InventoryItem } from '@/api/inventory'
+import type { StationMember } from '@/api/types'
 import { useModalTarget } from '@/composables/useModalTarget'
 
 const props = defineProps<{

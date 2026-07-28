@@ -14,7 +14,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import type {InventorySize} from '@/api/types'
+import type {InventorySize} from '@/api/inventory'
 import type {MyInventoryItem} from '@/api/inventory'
 import {useModelProxy} from '@/composables/useModelProxy'
 

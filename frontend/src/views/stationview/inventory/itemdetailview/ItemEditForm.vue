@@ -10,7 +10,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import type {InventorySize} from '@/api/types'
+import type {InventorySize} from '@/api/inventory'
 
 const name = defineModel<string>('name', {required: true})
 const internalId = defineModel<string>('internalId', {required: true})

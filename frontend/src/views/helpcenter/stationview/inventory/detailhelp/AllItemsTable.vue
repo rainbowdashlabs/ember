@@ -5,9 +5,8 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import DataTable from '@/components/table/DataTable.vue'
 import Th from '@/components/table/Th.vue'
-import THead from '@/components/table/THead.vue'
 import AllItemsRow from '@/views/helpcenter/stationview/inventory/detailhelp/AllItemsRow.vue'
 
 const {t} = useI18n()
@@ -20,29 +19,23 @@ const rows = [
 </script>
 
 <template>
-  <NeutralContainer class="overflow-x-auto">
-    <table class="w-full text-sm">
-      <thead>
-        <THead>
-          <Th>{{ t('inventory.edit.colName') }}</Th>
-          <Th>{{ t('inventory.edit.colId') }}</Th>
-          <Th>{{ t('inventory.edit.colSize') }}</Th>
-          <Th>{{ t('inventory.edit.colAssigned') }}</Th>
-          <th class="px-3 py-2"></th>
-        </THead>
-      </thead>
-      <tbody>
-        <AllItemsRow
-          v-for="r in rows"
-          :key="r.inventoryId"
-          :name="r.name"
-          :inventory-id="r.inventoryId"
-          :size="r.size"
-          :assignee="r.assignee"
-          :faded="r.faded"
-          :lost-note="r.lostNote"
-        />
-      </tbody>
-    </table>
-  </NeutralContainer>
+  <DataTable>
+    <template #head>
+      <Th>{{ t('inventory.edit.colName') }}</Th>
+      <Th>{{ t('inventory.edit.colId') }}</Th>
+      <Th>{{ t('inventory.edit.colSize') }}</Th>
+      <Th>{{ t('inventory.edit.colAssigned') }}</Th>
+      <th class="px-3 py-2"></th>
+    </template>
+    <AllItemsRow
+      v-for="r in rows"
+      :key="r.inventoryId"
+      :name="r.name"
+      :inventory-id="r.inventoryId"
+      :size="r.size"
+      :assignee="r.assignee"
+      :faded="r.faded"
+      :lost-note="r.lostNote"
+    />
+  </DataTable>
 </template>

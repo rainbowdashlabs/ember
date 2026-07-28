@@ -7,7 +7,8 @@
 import TabBar from '@/components/navigation/TabBar.vue'
 import MemberFilterBar from './FilterBar.vue'
 import MemberTable from './Table.vue'
-import type { StationMember, ProfileField, MemberGroup, UserTag } from '@/api/types'
+import type { ProfileField } from '@/api/profileFields'
+import type { StationMember, MemberGroup, UserTag } from '@/api/types'
 import type { SortDirection } from '@/composables/useSortable'
 import type { MemberSortKey } from './useSavedFilters'
 

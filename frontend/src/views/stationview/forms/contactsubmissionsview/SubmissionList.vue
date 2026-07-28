@@ -5,7 +5,7 @@
  */
 <script setup lang="ts">
 import SubmissionCard from './SubmissionCard.vue'
-import type {FormAnswer, FormResponse} from '@/api/types'
+import type {FormAnswer, FormResponse} from '@/api/forms'
 
 /**
  * Vertically stacked list of contact-form submission cards.

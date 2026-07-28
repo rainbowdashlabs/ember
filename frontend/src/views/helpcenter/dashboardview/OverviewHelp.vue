@@ -15,6 +15,7 @@ import {StationPermission} from '@/api/types'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import AccentIcon from '@/components/display/AccentIcon.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
@@ -72,7 +73,7 @@ const activeView = ref('')
       </div>
       <NeutralContainer class="flex items-start justify-between gap-3 py-2 px-3">
         <div class="flex items-start gap-3">
-          <font-awesome-icon :icon="['fas', 'newspaper']" class="text-primary mt-0.5 h-4 w-4 shrink-0"/>
+          <AccentIcon :icon="['fas', 'newspaper']"/>
           <div>
             <span class="text-xs font-semibold text-(--text-muted)">{{ t('notification.typeLabel.NEW_NEWS') }}</span>
             <p class="text-sm">{{ t('notification.newNews', {title: 'Dienstplanänderung Mai'}) }}</p>
@@ -86,7 +87,7 @@ const activeView = ref('')
       </NeutralContainer>
       <NeutralContainer class="flex items-start justify-between gap-3 py-2 px-3">
         <div class="flex items-start gap-3">
-          <font-awesome-icon :icon="['fas', 'calendar-plus']" class="text-primary mt-0.5 h-4 w-4 shrink-0"/>
+          <AccentIcon :icon="['fas', 'calendar-plus']"/>
           <div>
             <span class="text-xs font-semibold text-(--text-muted)">{{ t('notification.typeLabel.NEW_EVENT') }}</span>
             <p class="text-sm">{{ t('notification.newEvent', {title: 'Übungsabend'}) }}</p>

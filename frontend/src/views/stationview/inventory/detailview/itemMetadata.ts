@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {FieldTypeName, InventoryFieldDefinition} from '@/api/inventoryFields'
-import type {ItemMetadata} from '@/api/types'
+import type {ItemMetadata} from '@/api/inventory'
 
 export interface ParsedItemMetadata {
     owned: boolean

@@ -14,8 +14,8 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type {ProfileField} from '@/api/types'
-import {parseFieldConfig} from '@/api/types'
+import type {ProfileField} from '@/api/profileFields'
+import {parseFieldConfig} from '@/api/profileFields'
 
 const {t} = useI18n()
 

@@ -7,7 +7,7 @@
 import { useI18n } from 'vue-i18n'
 import StatusFieldRow from './StatusFieldRow.vue'
 import WaitingListStatusBadge from '@/components/badge/WaitingListStatusBadge.vue'
-import type { WaitingListPublicStatus } from '@/api/types'
+import type { WaitingListPublicStatus } from '@/api/waitingList'
 import { formatDate } from '@/util/format'
 
 const props = defineProps<{

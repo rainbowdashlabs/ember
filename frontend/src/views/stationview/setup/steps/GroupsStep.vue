@@ -8,19 +8,12 @@ import {computed, onMounted, reactive, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import SetupLayout from '@/views/stationview/setup/SetupLayout.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import ColorInput from '@/components/input/ColorInput.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import DeleteButton from '@/components/button/DeleteButton.vue'
-import IconButton from '@/components/button/IconButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import PermissionPicker from '@/components/input/PermissionPicker.vue'
+import GroupList from './groupsstep/GroupList.vue'
+import GroupEditor from './groupsstep/GroupEditor.vue'
 import {memberGroups, stationMembers} from '@/api'
 import type {MemberGroup, PermissionGrant} from '@/api/types'
 import {useSetupStatus} from '@/composables/useSetupStatus'
@@ -178,75 +171,26 @@ const {running: saving, run: save} = useAsyncAction(async () => {
 
     <Spinner v-if="loading" size="lg"/>
     <div v-else class="grid gap-6 lg:grid-cols-2">
-      <!-- Left: list of groups -->
-      <div class="space-y-3">
-        <SectionHeader>{{ t('setup.steps.groups.listTitle') }}</SectionHeader>
-        <ul v-if="groups.length > 0" class="space-y-2">
-          <li v-for="(g, idx) in groups" :key="g.id">
-            <NeutralContainer
-                :class="selectedId === g.id ? 'border-primary' : 'hover:border-primary'"
-                class="cursor-pointer transition-colors"
-                @click="selectGroup(g.id)"
-            >
-              <div class="flex items-center gap-2">
-                <span
-                    v-if="g.color"
-                    class="inline-block h-3 w-3 rounded-full shrink-0"
-                    :style="{backgroundColor: g.color}"
-                />
-                <span v-else class="inline-block h-3 w-3 rounded-full border border-(--border) shrink-0"/>
-                <span class="flex-1 font-medium truncate">{{ g.name }}</span>
-                <IconButton
-                    :icon="['fas', 'chevron-up']"
-                    :label="t('setup.steps.groups.moveUp')"
-                    :disabled="idx === 0"
-                    @click.stop="moveGroup(g.id, -1)"
-                />
-                <IconButton
-                    :icon="['fas', 'chevron-down']"
-                    :label="t('setup.steps.groups.moveDown')"
-                    :disabled="idx === groups.length - 1"
-                    @click.stop="moveGroup(g.id, 1)"
-                />
-                <DeleteButton :title="t('common.delete')" @click.stop="removeGroup(g.id)"/>
-              </div>
-            </NeutralContainer>
-          </li>
-        </ul>
-        <MutedText v-else size="sm">{{ t('setup.steps.groups.emptyHint') }}</MutedText>
+      <GroupList
+          v-model:draft="draft"
+          :groups="groups"
+          :selected-id="selectedId"
+          @select="selectGroup"
+          @move="moveGroup"
+          @remove="removeGroup"
+          @add="addGroup"
+      />
 
-        <form class="flex items-center gap-2" @submit.prevent="addGroup">
-          <TextInput v-model="draft" :placeholder="t('setup.steps.groups.placeholder')" class="flex-1"/>
-          <SecondaryButton type="submit">{{ t('setup.actions.addRow') }}</SecondaryButton>
-        </form>
-      </div>
-
-      <!-- Right: selected group editor -->
-      <div v-if="selectedGroup" class="space-y-4">
-        <SectionHeader>{{ selectedGroup.name }}</SectionHeader>
-
-        <div class="space-y-1">
-          <FieldLabel>{{ t('memberGroups.color') }}</FieldLabel>
-          <div class="flex items-center gap-2">
-            <ColorInput :model-value="colorDraft" @update:model-value="onColorChange"/>
-            <SecondaryButton v-if="colorDraft" compact @click="onColorChange('')">
-              <font-awesome-icon :icon="['fas', 'xmark']"/>
-            </SecondaryButton>
-            <MutedText size="sm">{{ t('memberGroups.colorHint') }}</MutedText>
-          </div>
-        </div>
-
-        <div class="space-y-1">
-          <FieldLabel>{{ t('setup.steps.groups.permissionsTitle') }}</FieldLabel>
-          <Spinner v-if="permissionLoading[selectedGroup.id]" size="md"/>
-          <PermissionPicker
-              v-else
-              :model-value="permissionsByGroup[selectedGroup.id] ?? new Set()"
-              :all-roles="allRoles"
-              @update:model-value="(ids) => onPermissionsChange(selectedGroup.id, ids)"
-          />
-        </div>
-      </div>
+      <GroupEditor
+          v-if="selectedGroup"
+          :group="selectedGroup"
+          :color="colorDraft"
+          :all-roles="allRoles"
+          :permissions="permissionsByGroup[selectedGroup.id] ?? new Set()"
+          :permissions-loading="permissionLoading[selectedGroup.id] ?? false"
+          @color-change="onColorChange"
+          @permissions-change="ids => onPermissionsChange(selectedGroup!.id, ids)"
+      />
       <MutedText v-else size="sm">{{ t('setup.steps.groups.selectHint') }}</MutedText>
     </div>
   </SetupLayout>

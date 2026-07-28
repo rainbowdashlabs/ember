@@ -8,8 +8,8 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SuccessContainer from '@/components/container/SuccessContainer.vue'
 import QuestionInputCard from '../questioncard/QuestionInputCard.vue'
-import type { QuizQuestion } from '@/api/types'
-import { QuizQuestionTypes } from '@/api/types'
+import type { QuizQuestion } from '@/api/quiz'
+import { QuizQuestionTypes } from '@/api/quiz'
 
 const userTfAnswer = defineModel<boolean | null>('userTfAnswer', {required: true})
 const userAnswer = defineModel<string>('userAnswer', {required: true})

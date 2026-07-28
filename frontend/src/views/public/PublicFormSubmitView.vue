@@ -15,7 +15,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import PublicFormBody from './publicformsubmitview/PublicFormBody.vue'
 import {publicForms} from '@/api'
 import type {PublicForm, PublicFormQuestion} from '@/api/publicForms'
-import {QuestionTypes} from '@/api/types'
+import {QuestionTypes} from '@/api/forms'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 

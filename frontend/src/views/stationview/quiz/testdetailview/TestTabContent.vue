@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import type { QuizTest, MemberGroup, UserTag, QuizQuestion, StationMember } from '@/api/types'
+import type { QuizTest, QuizQuestion } from '@/api/quiz'
+import type { MemberGroup, UserTag, StationMember } from '@/api/types'
 import type { FrozenQuestionDetail } from '@/api/quiz'
 import TestInfoCard from './TestInfoCard.vue'
 import TestSectionsList from './TestSectionsList.vue'

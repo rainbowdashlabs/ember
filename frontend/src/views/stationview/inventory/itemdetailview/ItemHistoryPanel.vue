@@ -7,7 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type {InventoryItemHistory} from '@/api/types'
+import type {InventoryItemHistory} from '@/api/inventory'
 import {formatDate} from '@/util/format'
 
 const props = defineProps<{

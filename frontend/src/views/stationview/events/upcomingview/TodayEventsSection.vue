@@ -9,7 +9,7 @@ import type {RouteLocationRaw} from 'vue-router'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import TodayEventCard from './TodayEventCard.vue'
-import type {EventField, StationEvent} from '@/api/types'
+import type {EventField, StationEvent} from '@/api/events'
 
 defineProps<{
   events: StationEvent[]

@@ -14,8 +14,8 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
-import {FormStatus} from '@/api/types'
-import type {Form} from '@/api/types'
+import {FormStatus} from '@/api/forms'
+import type {Form} from '@/api/forms'
 import {formatDate} from '@/util/format'
 
 const props = defineProps<{

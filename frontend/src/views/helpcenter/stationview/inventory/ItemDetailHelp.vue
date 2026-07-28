@@ -19,7 +19,7 @@ import SuccessButton from '@/components/button/SuccessButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import Th from '@/components/table/Th.vue'
 import Td from '@/components/table/Td.vue'
-import THead from '@/components/table/THead.vue'
+import DataTable from '@/components/table/DataTable.vue'
 import TRow from '@/components/table/TRow.vue'
 import MetadataSection from './itemdetailhelp/MetadataSection.vue'
 
@@ -85,34 +85,28 @@ const {t} = useI18n()
 
       <NeutralContainer class="space-y-3">
         <SubHeader>{{ t('itemDetail.history') }}</SubHeader>
-        <NeutralContainer class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead>
-              <THead>
-                <Th>{{ t('itemDetail.member') }}</Th>
-                <Th>{{ t('itemDetail.givenOut') }}</Th>
-                <Th>{{ t('itemDetail.returned') }}</Th>
-              </THead>
-            </thead>
-            <tbody>
-              <TRow>
-                <Td class="font-medium">Max Mustermann</Td>
-                <Td muted>15.03.2026</Td>
-                <Td muted>{{ t('itemDetail.current') }}</Td>
-              </TRow>
-              <TRow>
-                <Td class="font-medium">Jan Schmidt</Td>
-                <Td muted>10.01.2026</Td>
-                <Td muted>14.03.2026</Td>
-              </TRow>
-              <TRow>
-                <Td class="font-medium">Erika Musterfrau</Td>
-                <Td muted>01.09.2025</Td>
-                <Td muted>09.01.2026</Td>
-              </TRow>
-            </tbody>
-          </table>
-        </NeutralContainer>
+        <DataTable>
+          <template #head>
+            <Th>{{ t('itemDetail.member') }}</Th>
+            <Th>{{ t('itemDetail.givenOut') }}</Th>
+            <Th>{{ t('itemDetail.returned') }}</Th>
+          </template>
+          <TRow>
+            <Td class="font-medium">Max Mustermann</Td>
+            <Td muted>15.03.2026</Td>
+            <Td muted>{{ t('itemDetail.current') }}</Td>
+          </TRow>
+          <TRow>
+            <Td class="font-medium">Jan Schmidt</Td>
+            <Td muted>10.01.2026</Td>
+            <Td muted>14.03.2026</Td>
+          </TRow>
+          <TRow>
+            <Td class="font-medium">Erika Musterfrau</Td>
+            <Td muted>01.09.2025</Td>
+            <Td muted>09.01.2026</Td>
+          </TRow>
+        </DataTable>
       </NeutralContainer>
     </HelpSection>
 

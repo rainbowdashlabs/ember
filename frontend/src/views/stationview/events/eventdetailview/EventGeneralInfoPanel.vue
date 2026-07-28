@@ -10,7 +10,9 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import DetailLabel from '@/components/typography/DetailLabel.vue'
 import EventMetaGrid from './EventMetaGrid.vue'
-import type {EventField, StationEvent, StationMember} from '@/api/types'
+import type {EventField, StationEvent} from '@/api/events'
+import type {StationMember} from '@/api/types'
+import ProseContent from '@/components/display/ProseContent.vue'
 
 defineProps<{
   event: StationEvent
@@ -41,7 +43,7 @@ function renderMarkdown(md: string): string {
     <SubHeader>{{ t('events.general') }}</SubHeader>
     <div>
       <DetailLabel>{{ t('events.description') }}</DetailLabel>
-      <div v-if="event.description" class="prose prose-sm dark:prose-invert max-w-none mt-1" v-html="renderMarkdown(event.description)"/>
+      <ProseContent v-if="event.description" class="mt-1" v-html="renderMarkdown(event.description)"/>
       <p v-else class="text-sm">–</p>
     </div>
     <EventMetaGrid

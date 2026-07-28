@@ -11,7 +11,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
-import {InventoryTypes} from '@/api/types'
+import {InventoryTypes} from '@/api/inventory'
 
 const name = defineModel<string>('name', {required: true})
 const type = defineModel<'INTERNAL' | 'EXTERNAL' | 'MIXED'>('type', {required: true})

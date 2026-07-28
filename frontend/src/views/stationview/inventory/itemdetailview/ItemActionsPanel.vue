@@ -11,7 +11,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
-import type {InventoryItem} from '@/api/types'
+import type {InventoryItem} from '@/api/inventory'
 
 const props = defineProps<{
   item: InventoryItem

@@ -9,11 +9,9 @@ import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
-import type {
-  ProcurementEntry,
-  Inventory,
-  StationMember,
-} from '@/api/types'
+import type {Inventory} from '@/api/inventory'
+import type {ProcurementEntry} from '@/api/procurement'
+import type {StationMember} from '@/api/types'
 import { StationPermission } from '@/api/types'
 import { procurement, inventory, stationMembers } from '@/api'
 import { useSession } from '@/composables/useSession'

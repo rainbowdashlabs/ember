@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import TableHeaderCell from '@/components/typography/TableHeaderCell.vue'
 
 export interface StationTotal {
   stationId: string | null
@@ -32,10 +33,10 @@ const {t, n} = useI18n()
     <table v-if="entries.length > 0" class="w-full text-sm">
       <thead>
       <tr class="text-left text-(--text-muted)">
-        <th class="py-1 pr-3 font-medium">{{ t('traffic.stationLeaderboard.station') }}</th>
-        <th class="py-1 pr-3 font-medium">{{ t('traffic.totals.ingress') }}</th>
-        <th class="py-1 pr-3 font-medium">{{ t('traffic.totals.egress') }}</th>
-        <th class="py-1 pr-3 font-medium">{{ t('traffic.totals.requests') }}</th>
+        <TableHeaderCell>{{ t('traffic.stationLeaderboard.station') }}</TableHeaderCell>
+        <TableHeaderCell>{{ t('traffic.totals.ingress') }}</TableHeaderCell>
+        <TableHeaderCell>{{ t('traffic.totals.egress') }}</TableHeaderCell>
+        <TableHeaderCell>{{ t('traffic.totals.requests') }}</TableHeaderCell>
       </tr>
       </thead>
       <tbody>

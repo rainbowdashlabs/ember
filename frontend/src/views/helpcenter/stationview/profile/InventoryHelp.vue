@@ -23,7 +23,7 @@ import InventoryItemCard from '@/views/stationview/inventory/InventoryItemCard.v
 import Modal from '@/components/feedback/Modal.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import type {MyInventoryItem} from '@/api/inventory'
-import type {ExchangeRequestEntry} from '@/api/types'
+import type {ExchangeRequestEntry} from '@/api/exchanges'
 
 const {t} = useI18n()
 

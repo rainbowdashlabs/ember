@@ -15,7 +15,8 @@ import DefaultValueSection from './fieldmodal/DefaultValueSection.vue'
 import BehaviorToggles from './fieldmodal/BehaviorToggles.vue'
 import PositionField from './fieldmodal/PositionField.vue'
 import ModalActions from './fieldmodal/ModalActions.vue'
-import type {AttendanceTemplateField, MemberGroup} from '@/api/types'
+import type {AttendanceTemplateField} from '@/api/attendance'
+import type {MemberGroup} from '@/api/types'
 
 const props = defineProps<{
   field: AttendanceTemplateField | null

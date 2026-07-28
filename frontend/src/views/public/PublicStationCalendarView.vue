@@ -12,7 +12,7 @@ import type {PublicStationInfo} from '@/api/discovery'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import PublicEventList from '@/components/display/PublicEventList.vue'
+import PublicEventList from './publicstationcalendarview/PublicEventList.vue'
 import type {PublicEvent} from '@/api/publicEvents'
 import {getIcalFeedUrl, getIcalSubscribeUrl, listPublicEvents} from '@/api/publicEvents'
 

@@ -10,7 +10,8 @@ import IconButton from '@/components/button/IconButton.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import type { QuizCatalog } from '@/api/types'
+import MutedText from '@/components/typography/MutedText.vue'
+import type { QuizCatalog } from '@/api/quiz'
 import type { SharedCatalogEntry } from '@/api/quiz'
 
 defineProps<{
@@ -37,7 +38,7 @@ const { t } = useI18n()
         <StationBadge :station-name="shared.stationName" />
         <SuccessBadge v-if="shared.catalog.trainingEnabled">{{ t('quiz.catalogs.trainingEnabled') }}</SuccessBadge>
       </div>
-      <p v-if="shared.catalog.description" class="text-xs text-(--text-muted)">{{ shared.catalog.description }}</p>
+      <MutedText v-if="shared.catalog.description" tag="p">{{ shared.catalog.description }}</MutedText>
       <div class="flex items-center justify-end border-t border-bg-light-accent dark:border-bg-dark-accent pt-2 mt-2">
         <IconButton
           :icon="['fas', 'copy']"
@@ -54,7 +55,7 @@ const { t } = useI18n()
           <StationBadge :station-name="shared.stationName" />
           <SuccessBadge v-if="shared.catalog.trainingEnabled">{{ t('quiz.catalogs.trainingEnabled') }}</SuccessBadge>
         </div>
-        <p v-if="shared.catalog.description" class="text-xs text-(--text-muted) truncate">{{ shared.catalog.description }}</p>
+        <MutedText v-if="shared.catalog.description" tag="p" class="truncate">{{ shared.catalog.description }}</MutedText>
       </div>
       <div class="flex items-center gap-2 shrink-0" @click.stop>
         <MutedIconButton

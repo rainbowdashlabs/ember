@@ -7,9 +7,10 @@
 import { useI18n } from 'vue-i18n'
 import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import { QuizTestStatus } from '@/api/types'
-import type { QuizTestDetail } from '@/api/types'
+import { QuizTestStatus } from '@/api/quiz'
+import type { QuizTestDetail } from '@/api/quiz'
 import { formatDateTime } from '@/util/format'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const editStartAt = defineModel<string>('editStartAt', {required: true})
 const editEndAt = defineModel<string>('editEndAt', {required: true})
@@ -42,7 +43,7 @@ function onEnd(v: string) {
     <DateTimeInput :model-value="editStartAt" @update:model-value="onStart" />
   </div>
   <div v-else>
-    <span class="text-xs text-(--text-muted) block">{{ t('quiz.tests.startAt') }}</span>
+    <MutedText class="block">{{ t('quiz.tests.startAt') }}</MutedText>
     <span>{{ formatDateTime(test.startAt) || '-' }}</span>
   </div>
   <div v-if="canConfigure && test.status !== QuizTestStatus.CLOSED">
@@ -50,7 +51,7 @@ function onEnd(v: string) {
     <DateTimeInput :model-value="editEndAt" @update:model-value="onEnd" />
   </div>
   <div v-else>
-    <span class="text-xs text-(--text-muted) block">{{ t('quiz.tests.endAt') }}</span>
+    <MutedText class="block">{{ t('quiz.tests.endAt') }}</MutedText>
     <span>{{ formatDateTime(test.endAt) || '-' }}</span>
   </div>
 </template>

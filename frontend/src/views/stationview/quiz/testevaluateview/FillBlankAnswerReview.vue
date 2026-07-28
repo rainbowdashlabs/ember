@@ -7,7 +7,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
-import type {QuizQuestion, QuizTestAnswer} from '@/api/types'
+import type {QuizQuestion, QuizTestAnswer} from '@/api/quiz'
 
 const props = defineProps<{
   question: QuizQuestion

@@ -18,7 +18,7 @@ import {notifications} from '@/api'
 import {getFeedStatus} from '@/api/feedToken'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import type {FeedStatusResponse} from '@/api/feedToken'
-import type {NotificationEntry} from '@/api/types'
+import type {NotificationEntry} from '@/api/notifications'
 import {formatDateTime} from '@/util/format'
 
 const {t} = useI18n()

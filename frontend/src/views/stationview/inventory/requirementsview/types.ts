@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type { InventoryRequirement } from '@/api/types'
+import type { InventoryRequirement } from '@/api/inventory'
 
 /**
  * A grouping of inventory requirements rendered as a single card in the

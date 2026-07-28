@@ -11,7 +11,7 @@ import FederatedEventsSection from './FederatedEventsSection.vue'
 import UpcomingHeaderBar from './UpcomingHeaderBar.vue'
 import TodayEventsSection from './TodayEventsSection.vue'
 import UpcomingEventsSection from './UpcomingEventsSection.vue'
-import type {EventBreak, EventCategory, EventField, StationEvent} from '@/api/types'
+import type {EventBreak, EventCategory, EventField, StationEvent} from '@/api/events'
 import type {EventRegistrationEntry, UpcomingEventOccurrence} from '@/api/events'
 
 type ViewMode = 'list' | 'calendar'

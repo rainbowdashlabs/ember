@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import EventChipButton from '@/components/button/EventChipButton.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
-import type {StationEvent} from '@/api/types'
+import type {StationEvent} from '@/api/events'
 
 interface DayCellData {
   date: Date

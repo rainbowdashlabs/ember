@@ -7,7 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import PrimaryContainer from '@/components/container/PrimaryContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type {StationEvent} from '@/api/types'
+import type {StationEvent} from '@/api/events'
 import {formatTime} from '@/util/format'
 
 const props = defineProps<{

@@ -13,7 +13,8 @@ import InfoButton from '@/components/button/InfoButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import {useBreakpoint} from '@/composables/useBreakpoint'
-import type {AttendanceEntry, AttendanceStatus, MemberIdentity} from '@/api/types'
+import type {AttendanceEntry, AttendanceStatus} from '@/api/attendance'
+import type {MemberIdentity} from '@/api/types'
 
 const {t} = useI18n()
 const {isMobile} = useBreakpoint()

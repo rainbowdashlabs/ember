@@ -14,10 +14,9 @@ import type {
   AttendanceSessionField,
   AttendanceStatus,
   AttendanceTemplateField,
-  MemberGroup,
-  StationMember,
   TemplateGroupEntry,
-} from '@/api/types'
+} from '@/api/attendance'
+import type {MemberGroup, StationMember} from '@/api/types'
 import {StationPermission} from '@/api/types'
 import {attendance, memberGroups, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'

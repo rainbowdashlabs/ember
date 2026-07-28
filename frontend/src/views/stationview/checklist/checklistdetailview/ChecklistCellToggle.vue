@@ -14,7 +14,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {checklists} from '@/api'
-import type {ChecklistCellDto, ChecklistNoteHistoryEntry} from '@/api/types'
+import type {ChecklistCellDto, ChecklistNoteHistoryEntry} from '@/api/checklists'
 import {formatDateTime} from '@/util/format'
 
 const props = defineProps<{

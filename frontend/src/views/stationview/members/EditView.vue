@@ -9,16 +9,13 @@ import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import TabBar from '@/components/navigation/TabBar.vue'
-import NoteEditor from '@/components/comment/NoteEditor.vue'
-import GeneralTab from './editview/GeneralTab.vue'
-import ProfileTab from './editview/ProfileTab.vue'
-import RelationsTab from './editview/RelationsTab.vue'
-import type {ProfileField, StationMember, PermissionGrant, MemberGroup, UserTag} from '@/api/types'
+import MemberEditTabs from './editview/MemberEditTabs.vue'
+import type {MemberEditData} from './editview/types'
+import type {ProfileField} from '@/api/profileFields'
+import type {StationMember, PermissionGrant, MemberGroup, UserTag} from '@/api/types'
 import {StationPermission, StationUserType} from '@/api/types'
 import {profileFields, stationMembers, memberGroups, userTags, inventory} from '@/api'
 import type {MyInventoryItem} from '@/api/inventory'
@@ -47,16 +44,23 @@ const groupLockedPermissions = ref<Map<string, string>>(new Map())
 const lockedPermissions = computed(() => new Map([...groupLockedPermissions.value, ...typeLockedPermissions.value]))
 const editUserType = ref('')
 const memberInventory = ref<MyInventoryItem[]>([])
-const activeTab = ref('profile')
 
 const allMembers = ref<StationMember[]>([])
 
-const tabs = computed(() => [
-  {key: 'profile', label: t('memberEdit.tabProfile')},
-  {key: 'permissions', label: t('memberEdit.tabPermissions')},
-  {key: 'relations', label: t('memberEdit.tabRelations')},
-  {key: 'notes', label: t('memberEdit.tabNotes')},
-])
+const editData = computed<MemberEditData>(() => ({
+  fields: fields.value,
+  values: editValues.value,
+  allRoles: allRoles.value,
+  allGroups: allGroups.value,
+  allTags: allTags.value,
+  allMembers: allMembers.value,
+  userType: editUserType.value,
+  roleIds: editRoleIds.value,
+  groupIds: editGroupIds.value,
+  tagIds: editTagIds.value,
+  lockedPermissions: lockedPermissions.value,
+  memberInventory: memberInventory.value,
+}))
 
 async function loadTypePermissions(userType: string) {
   try {
@@ -150,43 +154,13 @@ function goBack() {
       <template v-if="!loading && member">
         <SectionHeader>{{ member.name || member.email }}</SectionHeader>
 
-        <TabBar v-model="activeTab" :tabs="tabs"/>
-
-        <ProfileTab
-            v-if="activeTab === 'profile'"
+        <MemberEditTabs
             :member="member"
             :member-id="memberId"
-            :fields="fields"
-            :initial-values="editValues"
-        />
-
-        <GeneralTab
-            v-if="activeTab === 'permissions'"
-            :member="member"
-            :member-id="memberId"
-            :all-roles="allRoles"
-            :all-groups="allGroups"
-            :all-tags="allTags"
-            :initial-user-type="editUserType"
-            :initial-role-ids="editRoleIds"
-            :initial-group-ids="editGroupIds"
-            :initial-tag-ids="editTagIds"
-            :locked-permissions="lockedPermissions"
-            :member-inventory="memberInventory"
+            :data="editData"
             @user-type-changed="onUserTypeChanged"
             @groups-changed="onGroupsChanged"
         />
-
-        <RelationsTab
-            v-if="activeTab === 'relations'"
-            :member-id="memberId"
-            :user-type="editUserType"
-            :all-members="allMembers"
-        />
-
-        <NeutralContainer v-if="activeTab === 'notes'">
-          <NoteEditor :entity-type="'MEMBER'" :entity-id="memberId"/>
-        </NeutralContainer>
       </template>
     </div>
   </ViewContent>

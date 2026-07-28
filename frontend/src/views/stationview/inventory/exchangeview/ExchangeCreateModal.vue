@@ -8,14 +8,11 @@ import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type {
-  ExchangeRequestEntry,
-  InventorySize,
-  CreateExchangeRequest,
-  StationMember,
-} from '@/api/types'
+import type {ExchangeRequestEntry, CreateExchangeRequest} from '@/api/exchanges'
+import type {InventorySize} from '@/api/inventory'
+import type {StationMember} from '@/api/types'
 import type { ManagedMember } from '@/api/managedMembers'
-import { ExchangeStatus } from '@/api/types'
+import { ExchangeStatus } from '@/api/exchanges'
 import { exchanges, inventory, managedMembers } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useAsyncAction } from '@/composables/useAsyncAction'

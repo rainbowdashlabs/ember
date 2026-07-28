@@ -17,7 +17,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {checklists} from '@/api'
-import type {ChecklistColumnDto} from '@/api/types'
+import type {ChecklistColumnDto} from '@/api/checklists'
 
 const props = defineProps<{
   checklistId: number

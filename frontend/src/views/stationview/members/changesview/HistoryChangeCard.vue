@@ -9,7 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
-import type {ProfileFieldChange} from '@/api/types'
+import type {ProfileFieldChange} from '@/api/profileFieldChanges'
 import ChangeValueDiff from './ChangeValueDiff.vue'
 import AcknowledgementList from './AcknowledgementList.vue'
 

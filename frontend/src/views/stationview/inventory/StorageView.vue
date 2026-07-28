@@ -22,7 +22,7 @@ import ContainerTree from '@/views/stationview/inventory/storageview/ContainerTr
 import {inventory, inventoryContainers} from '@/api'
 import {containerPathFor} from '@/util/containerPath'
 import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
-import type {InventoryItem} from '@/api/types'
+import type {InventoryItem} from '@/api/inventory'
 
 const {t} = useI18n()
 const router = useRouter()

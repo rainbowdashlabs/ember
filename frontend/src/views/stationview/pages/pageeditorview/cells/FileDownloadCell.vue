@@ -6,6 +6,7 @@
 <script lang="ts" setup>
 import {onMounted, ref, watch} from 'vue'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import {listStationPageFiles, type FileDownloadConfig, type PageFile} from '@/api/pageManage'
 
 const props = defineProps<{
@@ -45,11 +46,11 @@ watch(() => props.config.url, resolveFileDownload)
         <font-awesome-icon :icon="['fas', 'file']" class="text-2xl text-primary shrink-0"/>
         <div class="flex-1 min-w-0">
             <p class="font-medium truncate">{{ config.label || fileResolved?.fileName || config.url.split('/').pop() || 'Datei' }}</p>
-            <p v-if="fileResolved || config.description" class="text-xs text-(--text-muted) truncate">
+            <MutedText v-if="fileResolved || config.description" tag="p" class="truncate">
                 <span v-if="fileResolved">{{ formatFileBytes(fileResolved.fileSize) }}</span>
                 <span v-if="fileResolved && config.description" class="mx-1">·</span>
                 <span v-if="config.description">{{ config.description }}</span>
-            </p>
+            </MutedText>
         </div>
         <font-awesome-icon :icon="['fas', 'download']" class="text-(--text-muted)"/>
     </a>

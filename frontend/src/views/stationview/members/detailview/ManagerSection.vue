@@ -16,7 +16,8 @@ import SingleSelectDropdown from '@/components/input/select/SingleSelectDropdown
 import FieldValueDisplay from '@/components/display/FieldValueDisplay.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type { ProfileField, StationMember } from '@/api/types'
+import type { ProfileField } from '@/api/profileFields'
+import type { StationMember } from '@/api/types'
 import MutedText from '@/components/typography/MutedText.vue'
 
 const { t } = useI18n()

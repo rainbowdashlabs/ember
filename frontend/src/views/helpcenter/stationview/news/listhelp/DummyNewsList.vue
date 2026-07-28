@@ -11,6 +11,8 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
+import ProseContent from '@/components/display/ProseContent.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 
 defineProps<{
   activeView: string
@@ -25,16 +27,16 @@ const {t} = useI18n()
       <div class="flex items-start justify-between gap-3">
         <div>
           <SubHeader>Dienstplanänderung Mai</SubHeader>
-          <p class="text-xs text-(--text-muted)">Admin &middot; 14.05.2026, 10:30</p>
+          <MutedText tag="p">Admin &middot; 14.05.2026, 10:30</MutedText>
         </div>
         <div v-if="activeView === 'manager'" class="flex items-center gap-1 shrink-0">
           <EditButton/>
           <DeleteButton/>
         </div>
       </div>
-      <div class="prose prose-sm dark:prose-invert max-w-none">
+      <ProseContent>
         <p>Ab dem 20. Mai gilt ein neuer Dienstplan. Bitte prüft eure Einteilungen.</p>
-      </div>
+      </ProseContent>
       <div class="pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">
         <SecondaryButton>
           <font-awesome-icon :icon="['fas', 'comment']" class="h-3.5 w-3.5"/>
@@ -48,16 +50,16 @@ const {t} = useI18n()
       <div class="flex items-start justify-between gap-3">
         <div>
           <SubHeader>Neue Ausrüstung eingetroffen</SubHeader>
-          <p class="text-xs text-(--text-muted)">Admin &middot; 10.05.2026, 14:00</p>
+          <MutedText tag="p">Admin &middot; 10.05.2026, 14:00</MutedText>
         </div>
         <div v-if="activeView === 'manager'" class="flex items-center gap-1 shrink-0">
           <EditButton/>
           <DeleteButton/>
         </div>
       </div>
-      <div class="prose prose-sm dark:prose-invert max-w-none">
+      <ProseContent>
         <p>Die bestellten Helme und Jacken sind da. Bitte meldet euch bei eurem Betreuer zur Ausgabe.</p>
-      </div>
+      </ProseContent>
       <div class="pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">
         <SecondaryButton>
           <font-awesome-icon :icon="['fas', 'comment']" class="h-3.5 w-3.5"/>
@@ -74,12 +76,12 @@ const {t} = useI18n()
             {{ t('helpCenter.newsList.federatedTitle') }}
             <StationBadge station-name="JF Partnerwache" class="ml-1"/>
           </SubHeader>
-          <p class="text-xs text-(--text-muted)">08.05.2026, 09:00</p>
+          <MutedText tag="p">08.05.2026, 09:00</MutedText>
         </div>
       </div>
-      <div class="prose prose-sm dark:prose-invert max-w-none">
+      <ProseContent>
         <p>{{ t('helpCenter.newsList.federatedContent') }}</p>
-      </div>
+      </ProseContent>
     </NeutralContainer>
   </div>
 </template>

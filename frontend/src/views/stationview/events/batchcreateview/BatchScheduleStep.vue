@@ -15,7 +15,7 @@ import ToggleSwitch from '@/components/input/toggle/ToggleSwitch.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type {EventFieldEntry} from '@/api/types'
+import type {EventFieldEntry} from '@/api/events'
 import type {BatchRow} from '@/api/events'
 import {events} from '@/api'
 

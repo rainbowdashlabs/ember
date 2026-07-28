@@ -8,7 +8,7 @@ import { useI18n } from 'vue-i18n'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SectionLabel from '@/components/typography/SectionLabel.vue'
-import type { QuestionType } from '@/api/types'
+import type { QuestionType } from '@/api/forms'
 
 defineProps<{
   questionType: QuestionType

@@ -8,7 +8,7 @@ import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import EntryCustomFieldInput from './EntryCustomFieldInput.vue'
-import type { WaitingListField } from '@/api/types'
+import type { WaitingListField } from '@/api/waitingList'
 
 defineProps<{
   fields: WaitingListField[]

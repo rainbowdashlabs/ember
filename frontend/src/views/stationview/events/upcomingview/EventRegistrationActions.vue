@@ -14,7 +14,7 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import type {EventRegistrationEntry} from '@/api/events'
-import {RegistrationStatus} from '@/api/types'
+import {RegistrationStatus} from '@/api/events'
 
 const props = defineProps<{
   eligibleMembers: { id: number; name: string }[]

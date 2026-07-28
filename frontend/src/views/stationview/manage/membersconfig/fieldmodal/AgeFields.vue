@@ -7,7 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type {ProfileField} from '@/api/types'
+import type {ProfileField} from '@/api/profileFields'
 
 defineProps<{
   dateFields: ProfileField[]

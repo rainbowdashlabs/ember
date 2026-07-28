@@ -10,7 +10,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import TestQuestionCard from './TestQuestionCard.vue'
-import type { QuizTestAttemptQuestion, QuizQuestion } from '@/api/types'
+import type { QuizTestAttemptQuestion, QuizQuestion } from '@/api/quiz'
 
 const props = defineProps<{
   sortedQuestions: QuizTestAttemptQuestion[]

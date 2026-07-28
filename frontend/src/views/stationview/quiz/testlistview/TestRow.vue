@@ -14,8 +14,8 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
-import { QuizTestStatus } from '@/api/types'
-import type { QuizTest } from '@/api/types'
+import { QuizTestStatus } from '@/api/quiz'
+import type { QuizTest } from '@/api/quiz'
 import { formatDateTime } from '@/util/format'
 
 defineProps<{

@@ -15,7 +15,8 @@ import StationBadge from '@/components/badge/StationBadge.vue'
 import UserTagBadge from '@/components/badge/UserTagBadge.vue'
 import WaitingListStatusBadge from '@/components/badge/WaitingListStatusBadge.vue'
 import ExchangeStatusBadge from '@/views/stationview/inventory/exchangeview/ExchangeStatusBadge.vue'
-import {ExchangeStatus, WaitingListEntryStatus} from '@/api/types'
+import {ExchangeStatus} from '@/api/exchanges'
+import {WaitingListEntryStatus} from '@/api/waitingList'
 </script>
 
 <template>

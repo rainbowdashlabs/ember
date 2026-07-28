@@ -12,7 +12,7 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import PublicConsentCheckbox from '@/components/public/PublicConsentCheckbox.vue'
 import WaitlistGuardiansSection from './WaitlistGuardiansSection.vue'
 import WaitlistCustomField from './WaitlistCustomField.vue'
-import type {GuardianInput, PublicWaitlistFormResponse, WaitingListField} from '@/api/types'
+import type {GuardianInput, PublicWaitlistFormResponse, WaitingListField} from '@/api/waitingList'
 
 defineProps<{
   form: PublicWaitlistFormResponse

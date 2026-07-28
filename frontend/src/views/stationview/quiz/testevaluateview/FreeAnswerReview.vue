@@ -8,8 +8,8 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import IconButton from '@/components/button/IconButton.vue'
-import {QuizQuestionTypes} from '@/api/types'
-import type {QuizQuestion, QuizTestAnswer} from '@/api/types'
+import {QuizQuestionTypes} from '@/api/quiz'
+import type {QuizQuestion, QuizTestAnswer} from '@/api/quiz'
 
 const props = defineProps<{
   question: QuizQuestion

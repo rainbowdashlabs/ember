@@ -9,6 +9,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TreeNodeButton from '@/components/button/TreeNodeButton.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 
 defineProps<{
   open: boolean
@@ -39,7 +40,7 @@ function pick(target: 'existing' | 'new') {
         <font-awesome-icon :icon="['fas', 'arrow-right']" class="mt-1 text-primary" />
         <span class="flex-1">
           <span class="block font-medium">{{ t('inventory.storage.addChoice.existing') }}</span>
-          <span class="block text-xs text-(--text-muted)">{{ t('inventory.storage.addChoice.existingHint') }}</span>
+          <MutedText class="block">{{ t('inventory.storage.addChoice.existingHint') }}</MutedText>
         </span>
       </TreeNodeButton>
       <TreeNodeButton
@@ -49,7 +50,7 @@ function pick(target: 'existing' | 'new') {
         <font-awesome-icon :icon="['fas', 'plus']" class="mt-1 text-primary" />
         <span class="flex-1">
           <span class="block font-medium">{{ t('inventory.storage.addChoice.new') }}</span>
-          <span class="block text-xs text-(--text-muted)">{{ t('inventory.storage.addChoice.newHint') }}</span>
+          <MutedText class="block">{{ t('inventory.storage.addChoice.newHint') }}</MutedText>
         </span>
       </TreeNodeButton>
     </div>

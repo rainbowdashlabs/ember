@@ -9,7 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import type {ActiveSession} from '@/api/types'
+import type {ActiveSession} from '@/api/session'
 import {formatDateTime} from '@/util/format'
 
 defineProps<{

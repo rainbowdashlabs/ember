@@ -7,7 +7,7 @@
 import {computed, ref} from 'vue'
 import TreeNodeButton from '@/components/button/TreeNodeButton.vue'
 import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
-import type {InventoryItem} from '@/api/types'
+import type {InventoryItem} from '@/api/inventory'
 
 const props = defineProps<{
   container: InventoryContainer

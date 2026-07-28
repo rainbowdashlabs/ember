@@ -6,7 +6,8 @@
 <script lang="ts" setup>
 import MemberRowDesktop from './MemberRowDesktop.vue'
 import MemberExpansion from './MemberExpansion.vue'
-import type {ProfileField, StationMember} from '@/api/types'
+import type {ProfileField} from '@/api/profileFields'
+import type {StationMember} from '@/api/types'
 
 defineProps<{
   members: StationMember[]

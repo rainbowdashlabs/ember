@@ -8,7 +8,7 @@ import { useI18n } from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import type { WaitingListEntryWithScore } from '@/api/types'
+import type { WaitingListEntryWithScore } from '@/api/waitingList'
 
 const props = defineProps<{
   item: WaitingListEntryWithScore

@@ -7,7 +7,7 @@
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import DesktopFieldToggles from './DesktopFieldToggles.vue'
-import {type ProfileField} from '@/api/types'
+import {type ProfileField} from '@/api/profileFields'
 
 defineProps<{
   field: ProfileField

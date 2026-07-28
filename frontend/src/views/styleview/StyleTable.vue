@@ -6,6 +6,7 @@
 <script lang="ts" setup>
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import DataTable from '@/components/table/DataTable.vue'
 import THead from '@/components/table/THead.vue'
 import TRow from '@/components/table/TRow.vue'
 import Th from '@/components/table/Th.vue'
@@ -42,6 +43,19 @@ const samplePatch = `--- a/notes.md
         </tbody>
       </table>
     </NeutralContainer>
+  </section>
+
+  <section class="space-y-4">
+    <SectionHeader>Data Table</SectionHeader>
+    <DataTable>
+      <template #head>
+        <Th>Name</Th>
+        <Th>PermissionGrant</Th>
+        <Th align="right">Score</Th>
+      </template>
+      <TRow><Td>Alice</Td><Td>Admin</Td><Td align="right">95</Td></TRow>
+      <TRow><Td>Bob</Td><Td muted>Member</Td><Td align="right">72</Td></TRow>
+    </DataTable>
   </section>
 
   <section>

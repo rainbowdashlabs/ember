@@ -11,7 +11,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import CustomFieldsSection from '@/views/stationview/inventory/detailview/CustomFieldsSection.vue'
 import NewInventoryFields from '@/views/stationview/inventory/unknownscanmodal/NewInventoryFields.vue'
 import ItemBasicsFields from '@/views/stationview/inventory/unknownscanmodal/ItemBasicsFields.vue'
-import type {Inventory} from '@/api/types'
+import type {Inventory} from '@/api/inventory'
 import type {InventoryFieldDefinition} from '@/api/inventoryFields'
 
 const targetInventoryId = defineModel<number | 'new'>('targetInventoryId', {required: true})

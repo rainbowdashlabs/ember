@@ -11,6 +11,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
+import ColorDot from '@/components/display/ColorDot.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type {MemberGroup} from '@/api/types'
 
@@ -51,7 +52,7 @@ const emit = defineEmits<{
           @click="emit('select', group)"
       >
         <span class="flex items-center gap-2">
-          <span v-if="group.color" class="inline-block h-3 w-3 rounded-full" :style="{ backgroundColor: group.color }"></span>
+          <ColorDot v-if="group.color" :color="group.color"/>
           <span class="font-medium">{{ group.name }}</span>
         </span>
         <div class="flex items-center gap-2">

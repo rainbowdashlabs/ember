@@ -21,6 +21,7 @@ import type { Board, BoardTicket, BoardLabel } from '@/api/boards'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { formatDate } from '@/util/format'
 import { priorityIcon, priorityColor } from '@/util/ticketPriority'
+import Td from '@/components/table/Td.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -85,7 +86,7 @@ function toggleLabelFilter(id: number) { const n = new Set(labelFilter.value); i
                 </tr></thead>
                 <tbody>
                     <tr v-for="ticket in filteredTickets" :key="ticket.id" class="border-b border-(--border) last:border-0 cursor-pointer hover:bg-primary/5" @click="router.push(`/station/boards/${board.shortKey}/tickets/${ticket.ticketNumber}`)">
-                        <td class="py-2 pr-3 font-mono text-(--text-muted) whitespace-nowrap">{{ board.shortKey }}-{{ ticket.ticketNumber }}</td>
+                        <Td dense muted class="font-mono whitespace-nowrap">{{ board.shortKey }}-{{ ticket.ticketNumber }}</Td>
                         <td class="py-2 pr-3">{{ ticket.title }}</td>
                         <td class="py-2 pr-3"><div class="flex gap-1"><BaseBadge v-for="l in labelsForTicket(ticket.id)" :key="l.id" bg-class="" :style="{ backgroundColor: l.color, color: contrastTextColor(l.color) }">{{ l.name }}</BaseBadge></div></td>
                         <td class="py-2 pr-3"><font-awesome-icon :icon="priorityIcon(ticket.priority)" :class="priorityColor(ticket.priority)" class="text-xs" /></td>

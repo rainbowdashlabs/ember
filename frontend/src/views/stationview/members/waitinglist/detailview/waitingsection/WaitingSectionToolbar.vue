@@ -8,7 +8,7 @@ import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type { WaitingListField } from '@/api/types'
+import type { WaitingListField } from '@/api/waitingList'
 
 const props = defineProps<{
   entriesCount: number

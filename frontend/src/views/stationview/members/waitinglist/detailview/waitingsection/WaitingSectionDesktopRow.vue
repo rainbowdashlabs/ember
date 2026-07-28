@@ -8,7 +8,7 @@ import TRow from '@/components/table/TRow.vue'
 import WaitingListStatusBadge from '@/components/badge/WaitingListStatusBadge.vue'
 import WaitingSectionActions from './WaitingSectionActions.vue'
 import WaitingSectionGuardians from './WaitingSectionGuardians.vue'
-import type { WaitingListEntryWithScore, WaitingListField } from '@/api/types'
+import type { WaitingListEntryWithScore, WaitingListField } from '@/api/waitingList'
 import { formatDate } from '@/util/format'
 
 const props = defineProps<{

@@ -15,7 +15,8 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import Th from '@/components/table/Th.vue'
 import Td from '@/components/table/Td.vue'
-import THead from '@/components/table/THead.vue'
+import DataTable from '@/components/table/DataTable.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import TRow from '@/components/table/TRow.vue'
 
 const {t} = useI18n()
@@ -36,29 +37,23 @@ const {t} = useI18n()
         <font-awesome-icon :icon="['fas', 'rotate']" class="mr-2" />
         {{ t('inventory.overview.exchanges') }} (2)
       </SubHeader>
-      <NeutralContainer class="overflow-x-auto">
-        <table class="w-full text-sm">
-          <thead>
-            <THead>
-              <Th>{{ t('inventory.overview.colItem') }}</Th>
-              <Th>{{ t('inventory.overview.colOwner') }}</Th>
-              <Th>{{ t('inventory.overview.colStatus') }}</Th>
-            </THead>
-          </thead>
-          <tbody>
-            <TRow>
-              <Td>Helme <span class="text-(--text-muted)">[M &rarr; L]</span></Td>
-              <Td>Max Mustermann</Td>
-              <Td><InfoBadge>{{ t('exchanges.status.ANNOUNCED') }}</InfoBadge></Td>
-            </TRow>
-            <TRow>
-              <Td>Jacken <span class="text-(--text-muted)">[S &rarr; M]</span></Td>
-              <Td>Erika Musterfrau</Td>
-              <Td><SecondaryBadge>{{ t('exchanges.status.RECEIVED') }}</SecondaryBadge></Td>
-            </TRow>
-          </tbody>
-        </table>
-      </NeutralContainer>
+      <DataTable>
+        <template #head>
+          <Th>{{ t('inventory.overview.colItem') }}</Th>
+          <Th>{{ t('inventory.overview.colOwner') }}</Th>
+          <Th>{{ t('inventory.overview.colStatus') }}</Th>
+        </template>
+        <TRow>
+          <Td>Helme <MutedText size="base">[M &rarr; L]</MutedText></Td>
+          <Td>Max Mustermann</Td>
+          <Td><InfoBadge>{{ t('exchanges.status.ANNOUNCED') }}</InfoBadge></Td>
+        </TRow>
+        <TRow>
+          <Td>Jacken <MutedText size="base">[S &rarr; M]</MutedText></Td>
+          <Td>Erika Musterfrau</Td>
+          <Td><SecondaryBadge>{{ t('exchanges.status.RECEIVED') }}</SecondaryBadge></Td>
+        </TRow>
+      </DataTable>
     </NeutralContainer>
 
     <!-- Dummy: Open procurement -->
@@ -67,50 +62,38 @@ const {t} = useI18n()
         <font-awesome-icon :icon="['fas', 'folder-plus']" class="mr-2" />
         {{ t('inventory.overview.procurement') }} (1)
       </SubHeader>
-      <NeutralContainer class="overflow-x-auto">
-        <table class="w-full text-sm">
-          <thead>
-            <THead>
-              <Th>{{ t('inventory.overview.colItem') }}</Th>
-              <Th>{{ t('inventory.overview.colOwner') }}</Th>
-              <Th>{{ t('inventory.overview.colNotes') }}</Th>
-            </THead>
-          </thead>
-          <tbody>
-            <TRow>
-              <Td>Stiefel <span class="text-(--text-muted)">[42]</span></Td>
-              <Td>Max Mustermann</Td>
-              <Td muted>Alter Stiefel gerissen</Td>
-            </TRow>
-          </tbody>
-        </table>
-      </NeutralContainer>
+      <DataTable>
+        <template #head>
+          <Th>{{ t('inventory.overview.colItem') }}</Th>
+          <Th>{{ t('inventory.overview.colOwner') }}</Th>
+          <Th>{{ t('inventory.overview.colNotes') }}</Th>
+        </template>
+        <TRow>
+          <Td>Stiefel <MutedText size="base">[42]</MutedText></Td>
+          <Td>Max Mustermann</Td>
+          <Td muted>Alter Stiefel gerissen</Td>
+        </TRow>
+      </DataTable>
     </NeutralContainer>
 
     <!-- Dummy: Lost items -->
     <NeutralContainer class="space-y-3">
       <SubHeader>{{ t('inventory.overview.lost') }}</SubHeader>
-      <NeutralContainer class="overflow-x-auto">
-        <table class="w-full text-sm">
-          <thead>
-            <THead>
-              <Th>{{ t('inventory.overview.colItem') }}</Th>
-              <Th>{{ t('inventory.overview.colOwner') }}</Th>
-              <Th>{{ t('inventory.overview.colLostSince') }}</Th>
-            </THead>
-          </thead>
-          <tbody>
-            <TRow>
-              <Td>
-                <div class="font-medium">Helm <span class="font-normal text-(--text-muted)">[M]</span></div>
-                <div class="text-xs text-(--text-muted)">INV-0042</div>
-              </Td>
-              <Td>Erika Musterfrau</Td>
-              <Td><ErrorBadge>01.05.2026</ErrorBadge></Td>
-            </TRow>
-          </tbody>
-        </table>
-      </NeutralContainer>
+      <DataTable>
+        <template #head>
+          <Th>{{ t('inventory.overview.colItem') }}</Th>
+          <Th>{{ t('inventory.overview.colOwner') }}</Th>
+          <Th>{{ t('inventory.overview.colLostSince') }}</Th>
+        </template>
+        <TRow>
+          <Td>
+            <div class="font-medium">Helm <MutedText size="base" class="font-normal">[M]</MutedText></div>
+            <MutedText tag="div">INV-0042</MutedText>
+          </Td>
+          <Td>Erika Musterfrau</Td>
+          <Td><ErrorBadge>01.05.2026</ErrorBadge></Td>
+        </TRow>
+      </DataTable>
     </NeutralContainer>
 
     <HelpTip>{{ t('helpCenter.inventoryOverview.tip') }}</HelpTip>

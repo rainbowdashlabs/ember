@@ -10,7 +10,7 @@ import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
-import type { ExchangeRequestEntry } from '@/api/types'
+import type { ExchangeRequestEntry } from '@/api/exchanges'
 import type { MyInventoryItem } from '@/api/inventory'
 import { formatDate } from '@/util/format'
 

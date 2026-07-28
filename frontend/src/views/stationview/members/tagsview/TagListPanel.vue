@@ -11,6 +11,7 @@ import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
+import ColorDot from '@/components/display/ColorDot.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type {UserTag} from '@/api/types'
 
@@ -51,7 +52,7 @@ const emit = defineEmits<{
           @click="emit('select', tag)"
       >
         <span class="flex items-center gap-2">
-          <span v-if="tag.color" class="inline-block h-3 w-3 rounded-full" :style="{ backgroundColor: tag.color }"></span>
+          <ColorDot v-if="tag.color" :color="tag.color"/>
           <span class="font-medium">{{ tag.name }}</span>
           <font-awesome-icon v-if="tag.visible" :icon="['fas', 'eye']" class="text-xs text-(--text-muted)"/>
         </span>

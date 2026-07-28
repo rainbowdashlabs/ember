@@ -13,6 +13,7 @@ import DummyChecklist from './DummyChecklist.vue'
 import DummyLinkedTickets from './DummyLinkedTickets.vue'
 import DummyAttachments from './DummyAttachments.vue'
 import DummyActivity from './DummyActivity.vue'
+import MutedIcon from '@/components/display/MutedIcon.vue'
 
 const {t} = useI18n()
 
@@ -53,7 +54,7 @@ const dummyTabs = [
     <div>
       <FieldLabel class="mb-1 text-sm">{{ t('boards.kbLinks') }}</FieldLabel>
       <div class="flex items-center gap-2 text-sm">
-        <font-awesome-icon :icon="['fas', 'book']" class="text-(--text-muted) text-xs shrink-0"/>
+        <MutedIcon :icon="['fas', 'book']" size="inline" class="shrink-0"/>
         <span class="text-primary">{{ t('helpCenter.ticketDetail.kbLinkExample') }}</span>
       </div>
     </div>

@@ -9,7 +9,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type { WaitingListField } from '@/api/types'
+import type { WaitingListField } from '@/api/waitingList'
 
 const props = defineProps<{
   field: WaitingListField

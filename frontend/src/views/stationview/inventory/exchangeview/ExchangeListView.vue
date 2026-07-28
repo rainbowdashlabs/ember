@@ -7,7 +7,8 @@
 import ExchangeMobileList from './ExchangeMobileList.vue'
 import ExchangeDesktopTable from './ExchangeDesktopTable.vue'
 import { useBreakpoint } from '@/composables/useBreakpoint'
-import type { ExchangeRequestEntry, ExchangeStatusName, InventoryItem } from '@/api/types'
+import type { ExchangeRequestEntry, ExchangeStatusName } from '@/api/exchanges'
+import type { InventoryItem } from '@/api/inventory'
 
 defineProps<{
   requests: ExchangeRequestEntry[]

@@ -9,7 +9,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import type { InventorySize } from '@/api/types'
+import type { InventorySize } from '@/api/inventory'
 import type { MemberItemOption } from './ExchangeCreateStepItem.vue'
 
 const { t } = useI18n()

@@ -10,7 +10,7 @@ import EditButton from '@/components/button/EditButton.vue'
 import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import WaitingListStatusBadge from '@/components/badge/WaitingListStatusBadge.vue'
-import type { WaitingListEntryWithScore } from '@/api/types'
+import type { WaitingListEntryWithScore } from '@/api/waitingList'
 import { formatDateTime } from '@/util/format'
 
 defineProps<{

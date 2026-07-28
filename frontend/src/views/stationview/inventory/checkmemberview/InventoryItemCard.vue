@@ -12,7 +12,8 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import type { CheckResult, InventoryItem, RequiredInventoryItem } from '@/api/types'
+import type { InventoryItem } from '@/api/inventory'
+import type { CheckResult, RequiredInventoryItem } from '@/api/inventoryCheck'
 
 const props = defineProps<{
   item: InventoryItem

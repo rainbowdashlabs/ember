@@ -17,8 +17,9 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import ItemSearchPicker from '@/components/input/search/ItemSearchPicker.vue'
-import type { StationMember, InventoryItem } from '@/api/types'
-import type { InventorySize } from '@/api/types'
+import type { InventoryItem } from '@/api/inventory'
+import type { StationMember } from '@/api/types'
+import type { InventorySize } from '@/api/inventory'
 import type { MyInventoryItem } from '@/api/inventory'
 
 const { t } = useI18n()

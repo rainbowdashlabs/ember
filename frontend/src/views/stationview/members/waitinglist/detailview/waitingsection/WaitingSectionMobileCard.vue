@@ -9,7 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import WaitingListStatusBadge from '@/components/badge/WaitingListStatusBadge.vue'
 import WaitingSectionActions from './WaitingSectionActions.vue'
 import WaitingSectionGuardians from './WaitingSectionGuardians.vue'
-import type { WaitingListEntryWithScore } from '@/api/types'
+import type { WaitingListEntryWithScore } from '@/api/waitingList'
 import { formatDate } from '@/util/format'
 
 const props = defineProps<{

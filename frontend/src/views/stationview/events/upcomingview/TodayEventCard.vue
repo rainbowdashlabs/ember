@@ -9,8 +9,8 @@ import type {RouteLocationRaw} from 'vue-router'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import PrimaryContainer from '@/components/container/PrimaryContainer.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
-import EventFieldValue from '@/components/display/EventFieldValue.vue'
-import type {EventField, StationEvent} from '@/api/types'
+import EventFieldValue from '../eventshared/EventFieldValue.vue'
+import type {EventField, StationEvent} from '@/api/events'
 
 defineProps<{
   event: StationEvent

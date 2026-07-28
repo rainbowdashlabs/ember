@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import type { WaitingListInviteInfo } from '@/api/types'
+import type { WaitingListInviteInfo } from '@/api/waitingList'
 
 const props = defineProps<{ inviteInfo: WaitingListInviteInfo }>()
 </script>

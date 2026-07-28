@@ -28,15 +28,14 @@ import {
     type SaveCellRequest,
 } from '@/api/pageManage'
 import {useSession} from '@/composables/useSession'
-import {useToast} from '@/composables/useToast'
 import {usePageClipboard} from '@/composables/usePageClipboard'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {showToast} from '@/util/toast'
 
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
 const {sessionInfo} = useSession()
-const {show: showToast} = useToast()
 const {pasteRow, hasClipboard, clipboardType} = usePageClipboard()
 
 const page = ref<StationPage | null>(null)

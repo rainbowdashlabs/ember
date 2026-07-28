@@ -3,8 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {QuizQuestionTypeName} from '@/api/types'
-import {QuizQuestionTypes} from '@/api/types'
+import type {QuizQuestionTypeName} from '@/api/quiz'
+import {QuizQuestionTypes} from '@/api/quiz'
 
 /** Column assignment shared by the quiz CSV importers. */
 export interface QuizCsvMapping {

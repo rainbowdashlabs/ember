@@ -7,7 +7,8 @@
 import {useI18n} from 'vue-i18n'
 import FieldValueDisplay from '@/components/display/FieldValueDisplay.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
-import type {ProfileField, StationMember} from '@/api/types'
+import type {ProfileField} from '@/api/profileFields'
+import type {StationMember} from '@/api/types'
 
 const {t} = useI18n()
 

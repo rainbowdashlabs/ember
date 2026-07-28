@@ -13,7 +13,8 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import type {ChecklistEntryDto, StationMember} from '@/api/types'
+import type {ChecklistEntryDto} from '@/api/checklists'
+import type {StationMember} from '@/api/types'
 
 const visible = defineModel<boolean>({required: true})
 

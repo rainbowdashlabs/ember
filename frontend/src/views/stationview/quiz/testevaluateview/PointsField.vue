@@ -6,7 +6,8 @@
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
 import DecimalInput from '@/components/input/number/DecimalInput.vue'
-import type {QuizQuestion, QuizTestAnswer} from '@/api/types'
+import MutedText from '@/components/typography/MutedText.vue'
+import type {QuizQuestion, QuizTestAnswer} from '@/api/quiz'
 
 const props = defineProps<{
   question: QuizQuestion
@@ -37,7 +38,7 @@ function onUpdate(value: number | undefined) {
         class="w-20"
         @update:model-value="onUpdate"
       />
-      <span class="text-sm text-(--text-muted) shrink-0">/ {{ props.question.points }}</span>
+      <MutedText size="sm" class="shrink-0">/ {{ props.question.points }}</MutedText>
     </div>
     <span v-else class="text-sm font-mono">{{ props.points }} / {{ props.question.points }}</span>
   </div>

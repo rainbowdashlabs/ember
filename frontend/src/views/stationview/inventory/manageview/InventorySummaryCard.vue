@@ -9,7 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import {InventoryTypes} from '@/api/types'
+import {InventoryTypes} from '@/api/inventory'
 import type {InventorySummary} from '@/api/inventory'
 
 const props = defineProps<{

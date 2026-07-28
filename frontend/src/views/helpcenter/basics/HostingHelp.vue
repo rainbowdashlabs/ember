@@ -11,8 +11,16 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import BulletList from '@/components/typography/BulletList.vue'
+import HelpFeatureItem from '@/components/helpcenter/HelpFeatureItem.vue'
 
 const {t} = useI18n()
+
+const requirements = [
+  {icon: ['fas', 'server'], key: 'server'},
+  {icon: ['fas', 'database'], key: 'database'},
+  {icon: ['fas', 'envelope'], key: 'mail'},
+  {icon: ['fas', 'lock'], key: 'domain'},
+]
 </script>
 
 <template>
@@ -20,34 +28,10 @@ const {t} = useI18n()
     <HelpSection :title="t('helpCenter.basics.hosting.whatNeeded')">
       <p>{{ t('helpCenter.basics.hosting.whatNeededText') }}</p>
       <div class="space-y-2 mt-3">
-        <NeutralContainer class="flex items-start gap-3 p-3">
-          <font-awesome-icon :icon="['fas', 'server']" class="h-4 w-4 text-primary mt-0.5 shrink-0"/>
-          <div>
-            <p class="font-semibold text-sm">{{ t('helpCenter.basics.hosting.req.server.name') }}</p>
-            <p class="text-xs text-(--text-muted)">{{ t('helpCenter.basics.hosting.req.server.desc') }}</p>
-          </div>
-        </NeutralContainer>
-        <NeutralContainer class="flex items-start gap-3 p-3">
-          <font-awesome-icon :icon="['fas', 'database']" class="h-4 w-4 text-primary mt-0.5 shrink-0"/>
-          <div>
-            <p class="font-semibold text-sm">{{ t('helpCenter.basics.hosting.req.database.name') }}</p>
-            <p class="text-xs text-(--text-muted)">{{ t('helpCenter.basics.hosting.req.database.desc') }}</p>
-          </div>
-        </NeutralContainer>
-        <NeutralContainer class="flex items-start gap-3 p-3">
-          <font-awesome-icon :icon="['fas', 'envelope']" class="h-4 w-4 text-primary mt-0.5 shrink-0"/>
-          <div>
-            <p class="font-semibold text-sm">{{ t('helpCenter.basics.hosting.req.mail.name') }}</p>
-            <p class="text-xs text-(--text-muted)">{{ t('helpCenter.basics.hosting.req.mail.desc') }}</p>
-          </div>
-        </NeutralContainer>
-        <NeutralContainer class="flex items-start gap-3 p-3">
-          <font-awesome-icon :icon="['fas', 'lock']" class="h-4 w-4 text-primary mt-0.5 shrink-0"/>
-          <div>
-            <p class="font-semibold text-sm">{{ t('helpCenter.basics.hosting.req.domain.name') }}</p>
-            <p class="text-xs text-(--text-muted)">{{ t('helpCenter.basics.hosting.req.domain.desc') }}</p>
-          </div>
-        </NeutralContainer>
+        <HelpFeatureItem
+            v-for="req in requirements" :key="req.key" :icon="req.icon"
+            :title="t(`helpCenter.basics.hosting.req.${req.key}.name`)"
+            :description="t(`helpCenter.basics.hosting.req.${req.key}.desc`)"/>
       </div>
     </HelpSection>
 

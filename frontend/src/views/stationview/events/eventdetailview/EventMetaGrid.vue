@@ -8,13 +8,14 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {AxiosError} from 'axios'
 import DetailLabel from '@/components/typography/DetailLabel.vue'
-import EventFieldValue from '@/components/display/EventFieldValue.vue'
+import EventFieldValue from '../eventshared/EventFieldValue.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import type {EventField, StationMember} from '@/api/types'
-import {EventFieldTypes} from '@/api/types'
+import type {EventField} from '@/api/events'
+import type {StationMember} from '@/api/types'
+import {EventFieldTypes} from '@/api/events'
 import {events} from '@/api'
-import {useToast} from '@/composables/useToast'
+import {showToast} from '@/util/toast'
 
 const props = defineProps<{
   eventId: number
@@ -33,7 +34,6 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
-const {show: showToast} = useToast()
 
 const memberById = computed(() => {
   const map = new Map<number, StationMember>()

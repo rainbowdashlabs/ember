@@ -20,12 +20,13 @@ import Modal from '@/components/feedback/Modal.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import NewsCommentSection from '@/components/comment/NewsCommentSection.vue'
-import NewsViewBadge from '@/components/news/NewsViewBadge.vue'
-import type {NewsEntry} from '@/api/types'
+import NewsViewBadge from './newsshared/NewsViewBadge.vue'
+import type {NewsEntry} from '@/api/news'
 import {news} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useConfirmAction} from '@/composables/useConfirmAction'
 import {formatDateTime} from '@/util/format'
+import ProseContent from '@/components/display/ProseContent.vue'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -120,7 +121,7 @@ watch(loading, (isLoading) => {
           </div>
         </div>
 
-        <div class="prose prose-sm dark:prose-invert max-w-none" v-html="entry.contentHtml"/>
+        <ProseContent v-html="entry.contentHtml"/>
 
         <div class="pt-3 border-t border-bg-light-accent dark:border-bg-dark-accent">
           <NewsCommentSection :news-id="entry.id" :highlight-comment-id="highlightCommentId"/>

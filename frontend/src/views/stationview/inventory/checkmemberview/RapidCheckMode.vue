@@ -17,7 +17,8 @@ import InfoButton from '@/components/button/InfoButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
-import type { CheckResult, InventoryItem, RequiredInventoryItem } from '@/api/types'
+import type { InventoryItem } from '@/api/inventory'
+import type { CheckResult, RequiredInventoryItem } from '@/api/inventoryCheck'
 
 export type CheckEntry =
   | { type: 'item'; item: InventoryItem; req: RequiredInventoryItem }

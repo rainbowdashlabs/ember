@@ -9,7 +9,8 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import InfoButton from '@/components/button/InfoButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import type { InventoryItem, RequiredInventoryItem } from '@/api/types'
+import type { InventoryItem } from '@/api/inventory'
+import type { RequiredInventoryItem } from '@/api/inventoryCheck'
 
 const props = defineProps<{
   req: RequiredInventoryItem

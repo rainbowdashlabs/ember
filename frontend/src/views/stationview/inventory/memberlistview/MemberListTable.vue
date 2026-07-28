@@ -9,10 +9,12 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
-import type { Inventory, InventoryItem, StationMember } from '@/api/types'
+import type { Inventory, InventoryItem } from '@/api/inventory'
+import type { StationMember } from '@/api/types'
+import MutedText from '@/components/typography/MutedText.vue'
+import DataTable from '@/components/table/DataTable.vue'
 import Th from '@/components/table/Th.vue'
 import Td from '@/components/table/Td.vue'
-import THead from '@/components/table/THead.vue'
 import TRow from '@/components/table/TRow.vue'
 
 const { t } = useI18n()
@@ -99,46 +101,40 @@ function handleRowClick(member: StationMember) {
   </div>
 
   <!-- Member table (desktop) -->
-  <NeutralContainer v-else class="overflow-x-auto">
-    <table class="w-full text-sm">
-      <thead>
-        <THead>
-          <th v-if="exportMode" class="px-1 py-2 w-8">
-            <CheckboxInput :model-value="selectedForExport.size === members.length && members.length > 0" @update:model-value="emit('toggleSelectAll')" />
-          </th>
-          <Th>{{ t('membersList.colName') }}</Th>
-          <Th v-for="inv in inventories" :key="inv.id">{{ inv.name }}</Th>
-        </THead>
-      </thead>
-      <tbody>
-        <TRow v-for="member in members" :key="member.id"
-            class="hover:bg-(--bg-accent)/30 cursor-pointer"
-            @click="handleRowClick(member)">
-          <td v-if="exportMode" class="px-1 py-2.5 w-8" @click.stop>
-            <CheckboxInput :model-value="selectedForExport.has(member.id)" @update:model-value="emit('toggleExportSelection', member.id)" />
-          </td>
-          <Td class="font-medium text-primary">
-            <div class="flex items-center gap-2">
-              <UserAvatar :identity="member.identity" :name="memberDisplayName(member)" size="sm" />
-              {{ memberDisplayName(member) }}
-            </div>
-          </Td>
-          <Td v-for="inv in inventories" :key="inv.id">
-            <template v-if="memberInventoryCount(member.id, inv.id) > 0">
-              <div class="flex flex-wrap gap-1">
-                <span v-for="item in memberInventoryItems(member.id, inv.id)" :key="item.id"
-                      :class="item.lostAt ? 'text-error' : ''"
-                      class="inline-flex items-center gap-1 text-xs">
-                  <template v-if="itemNamePart(item)">{{ itemNamePart(item) }}</template>
-                  <SizeBadge v-if="itemSizeLabel(item)" :lost="!!item.lostAt">{{ itemSizeLabel(item) }}</SizeBadge>
-                  <span v-if="item.lostAt" class="text-[10px]">({{ t('inventoryMembers.lost') }})</span>
-                </span>
-              </div>
-            </template>
-            <span v-else class="text-(--text-muted)">&mdash;</span>
-          </Td>
-        </TRow>
-      </tbody>
-    </table>
-  </NeutralContainer>
+  <DataTable v-else>
+    <template #head>
+      <th v-if="exportMode" class="px-1 py-2 w-8">
+        <CheckboxInput :model-value="selectedForExport.size === members.length && members.length > 0" @update:model-value="emit('toggleSelectAll')" />
+      </th>
+      <Th>{{ t('membersList.colName') }}</Th>
+      <Th v-for="inv in inventories" :key="inv.id">{{ inv.name }}</Th>
+    </template>
+    <TRow v-for="member in members" :key="member.id"
+        class="hover:bg-(--bg-accent)/30 cursor-pointer"
+        @click="handleRowClick(member)">
+      <td v-if="exportMode" class="px-1 py-2.5 w-8" @click.stop>
+        <CheckboxInput :model-value="selectedForExport.has(member.id)" @update:model-value="emit('toggleExportSelection', member.id)" />
+      </td>
+      <Td class="font-medium text-primary">
+        <div class="flex items-center gap-2">
+          <UserAvatar :identity="member.identity" :name="memberDisplayName(member)" size="sm" />
+          {{ memberDisplayName(member) }}
+        </div>
+      </Td>
+      <Td v-for="inv in inventories" :key="inv.id">
+        <template v-if="memberInventoryCount(member.id, inv.id) > 0">
+          <div class="flex flex-wrap gap-1">
+            <span v-for="item in memberInventoryItems(member.id, inv.id)" :key="item.id"
+                  :class="item.lostAt ? 'text-error' : ''"
+                  class="inline-flex items-center gap-1 text-xs">
+              <template v-if="itemNamePart(item)">{{ itemNamePart(item) }}</template>
+              <SizeBadge v-if="itemSizeLabel(item)" :lost="!!item.lostAt">{{ itemSizeLabel(item) }}</SizeBadge>
+              <span v-if="item.lostAt" class="text-[10px]">({{ t('inventoryMembers.lost') }})</span>
+            </span>
+          </div>
+        </template>
+        <MutedText v-else size="base">&mdash;</MutedText>
+      </Td>
+    </TRow>
+  </DataTable>
 </template>

@@ -27,7 +27,8 @@ import {quiz, ai} from '@/api'
 import {getItem} from '@/api/storage'
 import {useSession} from '@/composables/useSession'
 import {useConfigPanel} from '@/composables/useConfigPanel'
-import {QuizQuestionTypes} from '@/api/types'
+import {QuizQuestionTypes} from '@/api/quiz'
+import MutedIcon from '@/components/display/MutedIcon.vue'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -247,7 +248,7 @@ watch(loaded, v => { if (v) loadData() }, {immediate: true})
             <!-- Existing wrong answers -->
             <div v-for="opt in item.existingOptions.filter(o => !o.correct)" :key="'e-' + opt.text"
                  class="flex items-center gap-2 px-3 py-1.5 rounded bg-[var(--bg-accent)]">
-              <font-awesome-icon :icon="['fas', 'xmark']" class="text-(--text-muted) text-xs shrink-0"/>
+              <MutedIcon :icon="['fas', 'xmark']" size="inline" class="shrink-0"/>
               <span class="text-sm text-(--text-muted)">{{ opt.text }}</span>
             </div>
             <!-- New generated answers (highlighted) -->

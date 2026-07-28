@@ -10,7 +10,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import WaitingSectionToolbar from './waitingsection/WaitingSectionToolbar.vue'
 import WaitingSectionDesktop from './waitingsection/WaitingSectionDesktop.vue'
 import WaitingSectionMobile from './waitingsection/WaitingSectionMobile.vue'
-import type { WaitingListEntryWithScore, WaitingListField } from '@/api/types'
+import type { WaitingListEntryWithScore, WaitingListField } from '@/api/waitingList'
 import { ref, computed } from 'vue'
 
 const props = defineProps<{

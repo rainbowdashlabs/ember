@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import TableHeaderCell from '@/components/typography/TableHeaderCell.vue'
 import type {FeedUserAgentStat} from '@/api/feedMetrics'
 import {formatDateTime} from '@/util/format'
 
@@ -26,8 +27,8 @@ const {t, n} = useI18n()
       <table v-if="statusBreakdown.length > 0" class="w-full text-sm">
         <thead>
         <tr class="text-left text-(--text-muted)">
-          <th class="py-1 pr-3 font-medium">{{ t('feedMetrics.status') }}</th>
-          <th class="py-1 pr-3 font-medium">{{ t('feedMetrics.count') }}</th>
+          <TableHeaderCell>{{ t('feedMetrics.status') }}</TableHeaderCell>
+          <TableHeaderCell>{{ t('feedMetrics.count') }}</TableHeaderCell>
         </tr>
         </thead>
         <tbody>
@@ -46,9 +47,9 @@ const {t, n} = useI18n()
       <table v-if="userAgents.length > 0" class="w-full text-sm">
         <thead>
         <tr class="text-left text-(--text-muted)">
-          <th class="py-1 pr-3 font-medium">{{ t('feedMetrics.userAgent') }}</th>
-          <th class="py-1 pr-3 font-medium">{{ t('feedMetrics.requests') }}</th>
-          <th class="py-1 pr-3 font-medium">{{ t('feedMetrics.lastSeen') }}</th>
+          <TableHeaderCell>{{ t('feedMetrics.userAgent') }}</TableHeaderCell>
+          <TableHeaderCell>{{ t('feedMetrics.requests') }}</TableHeaderCell>
+          <TableHeaderCell>{{ t('feedMetrics.lastSeen') }}</TableHeaderCell>
         </tr>
         </thead>
         <tbody>

@@ -9,7 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import CommentThread from '@/components/comment/CommentThread.vue'
-import type {Comment} from '@/api/types'
+import type {Comment} from '@/api/comments'
 import type {MemberCompletion} from '@/api/stationMembers'
 
 defineOptions({inheritAttrs: false})

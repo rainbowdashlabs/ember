@@ -11,7 +11,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import CsvColumnSelect from '@/components/csv/CsvColumnSelect.vue'
-import type {QuizQuestionTypeName} from '@/api/types'
+import type {QuizQuestionTypeName} from '@/api/quiz'
 import {ANSWER_SEPARATOR_PRESETS, QUIZ_CSV_TYPES, type QuizCsvMapping} from './quizCsvImport'
 
 const mapping = defineModel<QuizCsvMapping>('mapping', {required: true})

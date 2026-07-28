@@ -12,7 +12,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
-import type { QuizQuestion } from '@/api/types'
+import type { QuizQuestion } from '@/api/quiz'
 
 const modelValue = defineModel<boolean>({required: true})
 const search = defineModel<string>('search', {required: true})

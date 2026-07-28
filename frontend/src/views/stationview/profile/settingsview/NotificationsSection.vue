@@ -9,7 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import type {UserSettings, NotificationToggle} from '@/api/types'
+import type {UserSettings, NotificationToggle} from '@/api/userSettings'
 
 const props = defineProps<{
   settings: UserSettings

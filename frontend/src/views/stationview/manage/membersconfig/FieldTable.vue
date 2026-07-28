@@ -8,7 +8,7 @@ import DragList from '@/components/input/DragList.vue'
 import DesktopHeaderRow from './fieldtable/DesktopHeaderRow.vue'
 import DesktopFieldRow from './fieldtable/DesktopFieldRow.vue'
 import MobileFieldCard from './fieldtable/MobileFieldCard.vue'
-import {type ProfileField} from '@/api/types'
+import {type ProfileField} from '@/api/profileFields'
 import {useBreakpoint} from '@/composables/useBreakpoint'
 
 const {isMobile} = useBreakpoint()

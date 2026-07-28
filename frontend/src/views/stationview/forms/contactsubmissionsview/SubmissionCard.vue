@@ -10,7 +10,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
-import type {FormAnswer, FormResponse} from '@/api/types'
+import type {FormAnswer, FormResponse} from '@/api/forms'
 
 /**
  * Single contact-form submission card showing the answers and the acknowledge action.

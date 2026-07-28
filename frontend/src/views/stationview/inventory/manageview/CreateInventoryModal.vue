@@ -10,7 +10,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import CreateInventoryBasicStep from './CreateInventoryBasicStep.vue'
 import CreateInventorySizesStep from './CreateInventorySizesStep.vue'
-import {InventoryTypes, type InventoryTypeName} from '@/api/types'
+import {InventoryTypes, type InventoryTypeName} from '@/api/inventory'
 import {inventory} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 

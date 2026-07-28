@@ -11,8 +11,9 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
-import {QuizAttemptStatus} from '@/api/types'
-import type {QuizTestAttempt, StationMember} from '@/api/types'
+import {QuizAttemptStatus} from '@/api/quiz'
+import type {QuizTestAttempt} from '@/api/quiz'
+import type {StationMember} from '@/api/types'
 import {formatDateTime} from '@/util/format'
 
 const props = defineProps<{

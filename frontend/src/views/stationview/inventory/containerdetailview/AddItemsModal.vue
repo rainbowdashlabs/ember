@@ -21,7 +21,7 @@ import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import {containerPathFor} from '@/util/containerPath'
 import {inventory, inventoryContainers} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import type {InventoryItem, InventorySize} from '@/api/types'
+import type {InventoryItem, InventorySize} from '@/api/inventory'
 import type {InventoryContainer} from '@/api/inventoryContainers'
 
 const props = defineProps<{

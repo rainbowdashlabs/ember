@@ -9,7 +9,8 @@ import { useRouter } from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import ManagerSection from './ManagerSection.vue'
-import type { ProfileField, StationMember } from '@/api/types'
+import type { ProfileField } from '@/api/profileFields'
+import type { StationMember } from '@/api/types'
 
 defineProps<{
   showManagerSection: boolean

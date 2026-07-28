@@ -11,6 +11,7 @@ import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
+import ColorDot from '@/components/display/ColorDot.vue'
 
 const {t} = useI18n()
 </script>
@@ -26,7 +27,7 @@ const {t} = useI18n()
     <div class="space-y-2">
       <NeutralContainer class="flex items-center justify-between gap-2 flex-wrap cursor-pointer border-primary">
         <span class="flex items-center gap-2">
-          <span class="inline-block h-3 w-3 rounded-full" style="background-color: #3694FF"></span>
+          <ColorDot color="#3694FF"/>
           <span class="font-medium">Anfänger</span>
         </span>
         <div class="flex items-center gap-2">
@@ -37,7 +38,7 @@ const {t} = useI18n()
       </NeutralContainer>
       <NeutralContainer class="flex items-center justify-between gap-2 flex-wrap cursor-pointer hover:border-primary">
         <span class="flex items-center gap-2">
-          <span class="inline-block h-3 w-3 rounded-full" style="background-color: #00C507"></span>
+          <ColorDot color="#00C507"/>
           <span class="font-medium">Fortgeschrittene</span>
         </span>
         <div class="flex items-center gap-2">

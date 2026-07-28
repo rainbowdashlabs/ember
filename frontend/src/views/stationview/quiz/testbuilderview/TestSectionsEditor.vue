@@ -9,7 +9,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import TestSectionCard from './TestSectionCard.vue'
-import type { QuizCatalog, QuizCategory } from '@/api/types'
+import type { QuizCatalog, QuizCategory } from '@/api/quiz'
 
 interface SourceDraft {
   key: string

@@ -12,7 +12,7 @@ import EditButton from '@/components/button/EditButton.vue'
 import SuccessContainer from '@/components/container/SuccessContainer.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type {ManagerDetail} from '@/api/types'
+import type {ManagerDetail} from '@/api/stations'
 
 const props = defineProps<{
   manager: ManagerDetail | null

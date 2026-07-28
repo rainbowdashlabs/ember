@@ -7,7 +7,7 @@
 import { useI18n } from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import { InventoryTypes, type InventoryTypeName } from '@/api/types'
+import { InventoryTypes, type InventoryTypeName } from '@/api/inventory'
 
 defineProps<{
   name: string

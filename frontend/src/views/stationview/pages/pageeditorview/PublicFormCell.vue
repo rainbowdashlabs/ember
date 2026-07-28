@@ -13,9 +13,10 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import {publicForms} from '@/api'
 import type {PublicForm, PublicFormQuestion} from '@/api/publicForms'
-import {QuestionTypes} from '@/api/types'
+import {QuestionTypes} from '@/api/forms'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 
 const props = defineProps<{
@@ -116,7 +117,7 @@ watch(() => [props.stationUid, props.formPublicUid], load)
             </div>
             <div v-else>
                 <p class="text-lg font-semibold">{{ form.title }}</p>
-                <p v-if="form.description" class="text-sm text-(--text-muted)">{{ form.description }}</p>
+                <MutedText v-if="form.description" tag="p" size="sm">{{ form.description }}</MutedText>
             </div>
 
             <Alert v-if="error || submitError" variant="error">{{ error || submitError }}</Alert>
@@ -126,7 +127,7 @@ watch(() => [props.stationUid, props.formPublicUid], load)
                     <div>
                         <span class="font-medium text-sm">{{ q.title }}</span>
                         <span v-if="q.required" class="ml-1 text-error">*</span>
-                        <p v-if="q.description" class="mt-0.5 text-xs text-(--text-muted)">{{ q.description }}</p>
+                        <MutedText v-if="q.description" tag="p" class="mt-0.5">{{ q.description }}</MutedText>
                     </div>
 
                     <template v-if="q.questionType === QuestionTypes.TEXT">

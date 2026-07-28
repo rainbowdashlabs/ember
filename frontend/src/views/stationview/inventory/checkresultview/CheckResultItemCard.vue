@@ -8,7 +8,7 @@ import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type { EnrichedCheckItem } from '@/api/types'
+import type { EnrichedCheckItem } from '@/api/inventoryCheck'
 
 defineProps<{
   item: EnrichedCheckItem

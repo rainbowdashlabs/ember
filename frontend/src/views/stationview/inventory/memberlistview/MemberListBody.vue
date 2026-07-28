@@ -10,7 +10,9 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import ExportFieldPicker from '@/components/export/ExportFieldPicker.vue'
 import MemberListFilters from './MemberListFilters.vue'
 import MemberListTable from './MemberListTable.vue'
-import type { Inventory, InventoryItem, MemberGroup, ProfileField, StationMember, UserTag } from '@/api/types'
+import type { Inventory, InventoryItem } from '@/api/inventory'
+import type { ProfileField } from '@/api/profileFields'
+import type { MemberGroup, StationMember, UserTag } from '@/api/types'
 import type { ExportFieldOption } from '@/composables/useExport'
 
 const { t } = useI18n()

@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import Spinner from '@/components/feedback/Spinner.vue'
-import type {MemberChangeSummary, ProfileFieldChange} from '@/api/types'
+import type {MemberChangeSummary, ProfileFieldChange} from '@/api/profileFieldChanges'
 import PendingMemberCard from './PendingMemberCard.vue'
 
 const {t} = useI18n()

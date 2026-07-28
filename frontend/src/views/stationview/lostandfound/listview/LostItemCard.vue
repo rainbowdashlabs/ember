@@ -9,7 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import type {LostAndFoundItem} from '@/api/types'
+import type {LostAndFoundItem} from '@/api/lostAndFound'
 import {formatDate} from '@/util/format'
 
 const props = defineProps<{

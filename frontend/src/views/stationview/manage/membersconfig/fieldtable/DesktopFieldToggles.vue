@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import CompactToggle from '@/components/input/toggle/CompactToggle.vue'
-import {type ProfileField, parseFieldConfig} from '@/api/types'
+import {type ProfileField, parseFieldConfig} from '@/api/profileFields'
 
 const props = defineProps<{
   field: ProfileField

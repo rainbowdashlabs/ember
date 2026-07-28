@@ -6,7 +6,8 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import type { QuizCatalog } from '@/api/types'
+import MutedText from '@/components/typography/MutedText.vue'
+import type { QuizCatalog } from '@/api/quiz'
 
 defineProps<{
   catalogs: QuizCatalog[]
@@ -22,11 +23,11 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <p class="text-(--text-muted)">{{ t('quiz.training.selectCatalogs') }}</p>
+  <MutedText tag="p" size="base">{{ t('quiz.training.selectCatalogs') }}</MutedText>
 
-  <div v-if="catalogs.length === 0" class="text-(--text-muted) text-sm">
+  <MutedText v-if="catalogs.length === 0" tag="div" size="sm">
     {{ t('quiz.training.noCatalogs') }}
-  </div>
+  </MutedText>
 
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
     <div
@@ -44,9 +45,9 @@ const { t } = useI18n()
         />
         <div>
           <span class="font-medium">{{ catalog.name }}</span>
-          <p v-if="catalog.description" class="text-xs text-(--text-muted) mt-0.5">
+          <MutedText v-if="catalog.description" tag="p" class="mt-0.5">
             {{ catalog.description }}
-          </p>
+          </MutedText>
         </div>
       </div>
     </div>

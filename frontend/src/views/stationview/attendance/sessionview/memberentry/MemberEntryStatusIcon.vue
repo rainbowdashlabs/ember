@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import type {AttendanceStatus} from '@/api/types'
+import type {AttendanceStatus} from '@/api/attendance'
 
 defineProps<{
   status?: AttendanceStatus

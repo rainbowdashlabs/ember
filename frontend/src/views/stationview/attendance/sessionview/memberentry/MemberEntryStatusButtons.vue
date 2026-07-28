@@ -8,7 +8,7 @@ import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import InfoButton from '@/components/button/InfoButton.vue'
 import {useBreakpoint} from '@/composables/useBreakpoint'
-import type {AttendanceStatus} from '@/api/types'
+import type {AttendanceStatus} from '@/api/attendance'
 
 const {isMobile} = useBreakpoint()
 

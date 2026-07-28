@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import InventorySection from './InventorySection.vue'
 import type { MyInventoryItem } from '@/api/inventory'
-import type { ExchangeRequestEntry } from '@/api/types'
+import type { ExchangeRequestEntry } from '@/api/exchanges'
 
 defineProps<{
   memberInventory: MyInventoryItem[]

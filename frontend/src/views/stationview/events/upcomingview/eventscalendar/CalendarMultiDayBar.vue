@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import EventChipButton from '@/components/button/EventChipButton.vue'
-import type {StationEvent} from '@/api/types'
+import type {StationEvent} from '@/api/events'
 
 interface MultiDayBarData {
   event: StationEvent

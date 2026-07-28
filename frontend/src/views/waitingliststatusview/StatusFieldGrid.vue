@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import StatusPersonInfo from './StatusPersonInfo.vue'
 import StatusPositionInfo from './StatusPositionInfo.vue'
-import type { WaitingListPublicStatus } from '@/api/types'
+import type { WaitingListPublicStatus } from '@/api/waitingList'
 
 const props = defineProps<{
   status: WaitingListPublicStatus

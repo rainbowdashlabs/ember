@@ -12,7 +12,8 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import GroupsEditor from './GroupsEditor.vue'
 import FieldsList from './FieldsList.vue'
-import type {AttendanceTemplateField, MemberGroup, TemplateGroupEntry} from '@/api/types'
+import type {AttendanceTemplateField, TemplateGroupEntry} from '@/api/attendance'
+import type {MemberGroup} from '@/api/types'
 
 const props = defineProps<{
   isEdit: boolean
