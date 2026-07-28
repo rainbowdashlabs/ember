@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.board.entity.BoardLane;
 import dev.chojo.ember.feature.board.entity.BoardShareMode;
 import dev.chojo.ember.feature.board.entity.BoardTicket;
 import dev.chojo.ember.feature.board.entity.LanePreset;
+import dev.chojo.ember.feature.board.entity.LinkType;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.board.entity.TicketSummary;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
@@ -58,6 +59,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
@@ -109,7 +111,7 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
         federatedBoardService = new FederatedBoardService(federatedBoardRepo);
         boardService = new BoardService(boardRepo, memberService, groupService, tagService);
         var resolver = new MemberNameResolver(
-                new StationMemberService(stationMemberRepo, stationRepo, null, null),
+                newStationMemberService(null, null),
                 accountRepo,
                 new EventFederationRepository(),
                 mock(FederationRepository.class),
@@ -124,29 +126,49 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
                 boardTicketRepo,
                 boardRepo,
                 new DomainEventBus(Set.of()),
-                new StationMemberService(stationMemberRepo, stationRepo, null, null),
+                newStationMemberService(null, null),
                 memberIdentityFactory,
                 resolver,
                 attachmentSvc);
         federationRepository = mock(FederationRepository.class);
 
-        proxyService = new FederatedBoardProxyService(
+        var gateway = new FederatedBoardRemoteGateway(httpClient, stationRepo);
+        var locator = new FederatedBoardLocator(
+                federationRepository, stationRepo, boardService, ticketService, new EventFederationRepository());
+        var accessService = new FederatedBoardAccessService(
                 federatedBoardService,
                 federatedBoardRepo,
                 boardService,
-                ticketService,
-                federationService,
                 federationRepository,
-                httpClient,
                 stationRepo,
                 memberService,
-                stationMemberRepo,
                 groupService,
-                tagService,
-                new EventFederationRepository(),
-                resolver,
-                memberIdentityFactory,
+                tagService);
+        var discoveryService = new FederatedBoardDiscoveryService(
+                federatedBoardService,
+                accessService,
+                boardService,
+                federationService,
+                federationRepository,
+                stationRepo,
+                memberService,
+                gateway,
+                locator,
                 new FederationFanout());
+        var structureProxy = new FederatedBoardStructureProxy(boardService, gateway, locator);
+        var ticketProxy = new FederatedTicketProxy(
+                boardService, ticketService, resolver, memberIdentityFactory, gateway, locator);
+        var ticketDetailProxy = new FederatedTicketDetailProxy(boardService, ticketService, resolver, gateway, locator);
+
+        proxyService = new FederatedBoardProxyService(
+                federatedBoardService,
+                federatedBoardRepo,
+                accessService,
+                discoveryService,
+                structureProxy,
+                ticketProxy,
+                ticketDetailProxy,
+                locator);
 
         station1 = stationRepo.create("ProxyStation1");
         station2 = stationRepo.create("ProxyStation2");
@@ -1896,5 +1918,407 @@ class FederatedBoardProxyServiceTest extends RepositoryTestBase {
 
         assertThrows(
                 NotFoundResponse.class, () -> proxyService.proxyMoveTicket(partnerId, BOARD_KEY, 1, 2, 0, null, null));
+    }
+
+    @Test
+    @Order(300)
+    void proxyGetMembersLocal() {
+        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
+        when(memberService.findCompletions(station2.id())).thenReturn(List.of());
+
+        var members = proxyService.proxyGetMembers(partnerId, BOARD_KEY);
+        assertNotNull(members);
+        assertTrue(members.isEmpty());
+    }
+
+    @Test
+    @Order(301)
+    void proxyGetAllTicketLabelsLocal() {
+        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
+
+        var mappings = proxyService.proxyGetAllTicketLabels(partnerId, BOARD_KEY);
+        assertNotNull(mappings);
+    }
+
+    @Test
+    @Order(302)
+    void proxyCreateTicketLocalFallsBackToFirstLane() {
+        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
+
+        var created = proxyService.proxyCreateTicket(
+                partnerId, BOARD_KEY, null, "Federated Ticket", "From partner", null, null, REMOTE_MEMBER_1);
+        assertNotNull(created);
+        assertEquals("Federated Ticket", created.title());
+        assertEquals(TicketPriority.MEDIUM, created.priority());
+        assertEquals(boardService.findLanes(boardId).getFirst().id(), created.laneId());
+    }
+
+    @Test
+    @Order(315)
+    void proxyCreateTicketLocalUsesGivenLane() {
+        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
+        int targetLaneId = boardService.findLanes(boardId).getLast().id();
+
+        var created = proxyService.proxyCreateTicket(
+                partnerId,
+                BOARD_KEY,
+                targetLaneId,
+                "Lane Pinned Ticket",
+                null,
+                TicketPriority.LOW,
+                null,
+                REMOTE_MEMBER_1);
+        assertEquals(targetLaneId, created.laneId());
+        assertEquals(TicketPriority.LOW, created.priority());
+    }
+
+    @Test
+    @Order(303)
+    void proxyMoveTicketLocalRecordsTransition() {
+        var lanes = boardService.findLanes(boardId);
+        assertTrue(lanes.size() > 1);
+        int targetLaneId = lanes.getLast().id();
+        var ticket = createLocalTicket("Move me");
+        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
+
+        var moved = proxyService.proxyMoveTicket(
+                partnerId, BOARD_KEY, ticket.ticketNumber(), targetLaneId, 0, REMOTE_MEMBER_1, "Partner Member");
+        assertEquals(targetLaneId, moved.laneId());
+
+        var transitions = proxyService.proxyGetTransitions(partnerId, BOARD_KEY, ticket.ticketNumber());
+        assertFalse(transitions.isEmpty());
+    }
+
+    @Test
+    @Order(304)
+    void proxyUpdateTicketLocalCachesActorName() {
+        var ticket = createLocalTicket("Rename me");
+        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
+
+        var updated = proxyService.proxyUpdateTicket(
+                partnerId,
+                BOARD_KEY,
+                ticket.ticketNumber(),
+                "Renamed by partner",
+                ticket.description(),
+                null,
+                ticket.priority(),
+                null,
+                REMOTE_MEMBER_1,
+                "Partner Member");
+        assertEquals("Renamed by partner", updated.title());
+
+        var history = proxyService.proxyGetHistory(partnerId, BOARD_KEY, ticket.ticketNumber());
+        assertFalse(history.isEmpty());
+    }
+
+    @Test
+    @Order(305)
+    void proxyAddCommentLocalFromPartnerMember() {
+        var ticket = createLocalTicket("Comment me");
+        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
+
+        var comment = proxyService.proxyAddComment(
+                partnerId,
+                BOARD_KEY,
+                ticket.ticketNumber(),
+                null,
+                "Partner comment",
+                REMOTE_MEMBER_1,
+                "Partner Member");
+        assertNotNull(comment);
+        assertEquals("Partner comment", comment.content());
+
+        var comments = proxyService.proxyGetComments(partnerId, BOARD_KEY, ticket.ticketNumber());
+        assertFalse(comments.isEmpty());
+        assertEquals("Partner comment", comments.getFirst().content());
+    }
+
+    @Test
+    @Order(306)
+    void proxyChecklistLifecycleLocalFromPartnerMember() {
+        var ticket = createLocalTicket("Checklist me");
+        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
+
+        var item = proxyService.proxyAddChecklistItem(
+                partnerId, BOARD_KEY, ticket.ticketNumber(), "Step one", REMOTE_MEMBER_1, "Partner Member");
+        assertEquals("Step one", item.title());
+
+        proxyService.proxyUpdateChecklistItem(
+                partnerId,
+                BOARD_KEY,
+                ticket.ticketNumber(),
+                item.id(),
+                "Step one done",
+                true,
+                REMOTE_MEMBER_1,
+                "Partner Member");
+        var updated = proxyService.proxyGetChecklist(partnerId, BOARD_KEY, ticket.ticketNumber());
+        assertEquals("Step one done", updated.getFirst().title());
+        assertTrue(updated.getFirst().checked());
+
+        proxyService.proxyDeleteChecklistItem(
+                partnerId, BOARD_KEY, ticket.ticketNumber(), item.id(), REMOTE_MEMBER_1, "Partner Member");
+        assertTrue(proxyService
+                .proxyGetChecklist(partnerId, BOARD_KEY, ticket.ticketNumber())
+                .isEmpty());
+    }
+
+    @Test
+    @Order(307)
+    void proxyTicketLabelLocalLogsHistory() {
+        var ticket = createLocalTicket("Label me");
+        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
+        var label = proxyService.proxyCreateLabel(partnerId, BOARD_KEY, "Federated Label", "#123456");
+
+        var assigned = proxyService.proxyAddTicketLabel(
+                partnerId, BOARD_KEY, ticket.ticketNumber(), label.id(), REMOTE_MEMBER_1, "Partner Member");
+        assertFalse(assigned.isEmpty());
+
+        var history = proxyService.proxyGetHistory(partnerId, BOARD_KEY, ticket.ticketNumber());
+        assertFalse(history.isEmpty());
+
+        proxyService.proxyRemoveTicketLabel(
+                partnerId, BOARD_KEY, ticket.ticketNumber(), label.id(), REMOTE_MEMBER_1, "Partner Member");
+        assertTrue(proxyService
+                .proxyGetTicketLabels(partnerId, BOARD_KEY, ticket.ticketNumber())
+                .isEmpty());
+    }
+
+    @Test
+    @Order(308)
+    void proxyLinkLifecycleLocal() {
+        var first = createLocalTicket("Link source");
+        var second = createLocalTicket("Link target");
+        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
+
+        proxyService.proxyCreateLink(
+                partnerId,
+                BOARD_KEY,
+                first.ticketNumber(),
+                second.ticketNumber(),
+                LinkType.RELATES_TO,
+                REMOTE_MEMBER_1,
+                "Partner Member");
+        var links = proxyService.proxyGetLinks(partnerId, BOARD_KEY, first.ticketNumber());
+        assertFalse(links.isEmpty());
+
+        proxyService.proxyDeleteLink(
+                partnerId, BOARD_KEY, first.ticketNumber(), second.ticketNumber(), REMOTE_MEMBER_1, "Partner Member");
+        assertTrue(proxyService
+                .proxyGetLinks(partnerId, BOARD_KEY, first.ticketNumber())
+                .isEmpty());
+    }
+
+    @Test
+    @Order(309)
+    void proxyWatchAndUnwatchLocalPartnerMember() {
+        var ticket = createLocalTicket("Watch me");
+        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
+
+        proxyService.proxyWatchTicket(partnerId, BOARD_KEY, ticket.ticketNumber(), REMOTE_MEMBER_1);
+        assertNotNull(proxyService
+                .proxyGetWatchers(partnerId, BOARD_KEY, ticket.ticketNumber())
+                .local());
+
+        proxyService.proxyUnwatchTicket(partnerId, BOARD_KEY, ticket.ticketNumber(), REMOTE_MEMBER_1);
+        assertTrue(proxyService
+                .proxyGetWatchers(partnerId, BOARD_KEY, ticket.ticketNumber())
+                .local()
+                .isEmpty());
+    }
+
+    @Test
+    @Order(310)
+    void resolveFederatedBoardResolvesLocalPartnerBoard() {
+        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
+
+        var board = proxyService.resolveFederatedBoard(partnerId, BOARD_KEY);
+        assertNotNull(board);
+        assertEquals(boardUid, board.uid());
+        assertEquals(boardUid, proxyService.resolveFederatedBoardUid(partnerId, BOARD_KEY));
+    }
+
+    @Test
+    @Order(311)
+    void resolveFederatedBoardReturnsNullForUnknownPartner() {
+        when(federationRepository.findPartnerById(998)).thenReturn(Optional.empty());
+
+        assertNull(proxyService.resolveFederatedBoard(998, BOARD_KEY));
+        assertNull(proxyService.resolveFederatedBoardUid(998, BOARD_KEY));
+    }
+
+    @Test
+    @Order(312)
+    void resolveFederatedBoardReturnsNullForUnknownKey() {
+        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
+
+        assertNull(proxyService.resolveFederatedBoard(partnerId, "NOPE"));
+    }
+
+    @Test
+    @Order(313)
+    void canViewHonoursSharedRequiredUserType() {
+        federatedBoardService.shareBoard(
+                boardId,
+                List.of(new FederatedBoardService.PartnerShareConfig(
+                        partnerId, BoardShareMode.FULL, StationUserType.MANAGER)));
+        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(localPartner()));
+        when(federationRepository.findPartnerByStationAndRemoteUid(station2.id(), station1.uid()))
+                .thenReturn(Optional.of(localPartner()));
+        when(memberService.findById(memberId))
+                .thenReturn(Optional.of(new StationMember(
+                        memberId, station1.id(), null, null, false, null, null, StationUserType.MEMBER, null)));
+
+        assertFalse(proxyService.canView(partnerId, boardUid, boardId, memberId));
+
+        when(memberService.findById(memberId))
+                .thenReturn(Optional.of(new StationMember(
+                        memberId, station1.id(), null, null, false, null, null, StationUserType.MANAGER, null)));
+        assertTrue(proxyService.canView(partnerId, boardUid, boardId, memberId));
+
+        federatedBoardService.shareBoard(
+                boardId, List.of(new FederatedBoardService.PartnerShareConfig(partnerId, BoardShareMode.FULL)));
+        reset(memberService);
+    }
+
+    @Test
+    @Order(314)
+    void discoverBoardsMergesReverseSharedBoards() {
+        when(federationService.findPartners(station1.id())).thenReturn(List.of(localPartner()));
+        when(federationService.hasCapability(partnerId, CapabilityType.BOARD_SHARE, Direction.IMPORT))
+                .thenReturn(true);
+        when(federationRepository.findPartnerByStationAndRemoteUid(station2.id(), station1.uid()))
+                .thenReturn(Optional.of(localPartner()));
+
+        var discovered = proxyService.discoverBoards(station1.id());
+        assertEquals(1, discovered.size());
+        assertEquals(boardUid, discovered.getFirst().remoteBoardUid());
+    }
+
+    @Test
+    @Order(320)
+    void proxyGetMembersRemote() {
+        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
+        when(httpClient.getList(
+                        eq("https://remote.example.com"),
+                        eq("/remote/boards/" + BOARD_KEY + "/members"),
+                        any(),
+                        anyInt(),
+                        any(),
+                        any()))
+                .thenReturn(List.of());
+
+        var members = proxyService.proxyGetMembers(partnerId, BOARD_KEY);
+        assertNotNull(members);
+        assertTrue(members.isEmpty());
+    }
+
+    @Test
+    @Order(321)
+    void proxyGetAllTicketLabelsRemote() {
+        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
+        when(httpClient.getList(
+                        eq("https://remote.example.com"),
+                        eq("/remote/boards/" + BOARD_KEY + "/ticket-labels"),
+                        any(),
+                        anyInt(),
+                        any(),
+                        any()))
+                .thenReturn(List.of());
+
+        var mappings = proxyService.proxyGetAllTicketLabels(partnerId, BOARD_KEY);
+        assertNotNull(mappings);
+        assertTrue(mappings.isEmpty());
+    }
+
+    @Test
+    @Order(322)
+    void proxySearchTicketsRemoteBlankQuery() {
+        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
+        when(httpClient.getList(
+                        eq("https://remote.example.com"),
+                        eq("/remote/boards/" + BOARD_KEY + "/tickets/search"),
+                        any(),
+                        anyInt(),
+                        any(),
+                        any()))
+                .thenReturn(List.of());
+
+        var tickets = proxyService.proxySearchTickets(partnerId, BOARD_KEY, "  ");
+        assertNotNull(tickets);
+        assertTrue(tickets.isEmpty());
+    }
+
+    @Test
+    @Order(323)
+    void proxyCreateLinkRemote() {
+        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
+
+        proxyService.proxyCreateLink(partnerId, BOARD_KEY, 1, 2, LinkType.BLOCKS, REMOTE_MEMBER_1, "Partner Member");
+        verify(httpClient)
+                .post(
+                        eq("https://remote.example.com"),
+                        eq("/remote/boards/" + BOARD_KEY + "/tickets/1/links"),
+                        any(),
+                        any(),
+                        anyInt(),
+                        any());
+    }
+
+    @Test
+    @Order(324)
+    void proxyDeleteLinkRemote() {
+        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
+
+        proxyService.proxyDeleteLink(partnerId, BOARD_KEY, 1, 2, REMOTE_MEMBER_1, "Partner Member");
+        verify(httpClient)
+                .delete(
+                        eq("https://remote.example.com"),
+                        eq("/remote/boards/" + BOARD_KEY + "/tickets/1/links/2"),
+                        any(),
+                        any(),
+                        anyInt(),
+                        any());
+    }
+
+    @Test
+    @Order(325)
+    void remoteGetWrapsTransportFailure() {
+        when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
+        when(httpClient.get(
+                        eq("https://remote.example.com"),
+                        eq("/remote/boards/" + BOARD_KEY),
+                        any(),
+                        anyInt(),
+                        any(),
+                        any()))
+                .thenThrow(new RuntimeException("Connection refused"));
+
+        assertThrows(NotFoundResponse.class, () -> proxyService.proxyGetBoard(partnerId, BOARD_KEY));
+    }
+
+    @Test
+    @Order(326)
+    void remoteBoardReportsBacklogLane() {
+        var withBacklog = new FederatedBoardProxyService.RemoteBoard(
+                1, "station", "Board", "Desc", "BRD", 0, 0, 42, "2026-01-01T00:00:00Z");
+        var withoutBacklog =
+                new FederatedBoardProxyService.RemoteBoard(1, "station", "Board", "Desc", "BRD", 0, 0, null, null);
+
+        assertTrue(withBacklog.hasBacklog());
+        assertFalse(withoutBacklog.hasBacklog());
+    }
+
+    private static BoardTicket createLocalTicket(String title) {
+        return ticketService.createTicket(
+                boardId,
+                boardService.findLanes(boardId).getFirst().id(),
+                title,
+                "Description",
+                null,
+                TicketPriority.MEDIUM,
+                null,
+                memberIdentityFactory.local(station1.id(), memberId));
     }
 }

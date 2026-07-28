@@ -75,7 +75,7 @@ class BoardServiceTest extends RepositoryTestBase {
                 boardTicketRepo,
                 boardRepo,
                 new DomainEventBus(Set.of()),
-                new StationMemberService(stationMemberRepo, stationRepo, null, null),
+                newStationMemberService(null, null),
                 memberIdentityFactory,
                 memberNameResolver,
                 attachmentSvc);

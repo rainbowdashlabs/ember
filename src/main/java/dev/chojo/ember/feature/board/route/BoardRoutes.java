@@ -20,8 +20,8 @@ import dev.chojo.ember.feature.board.entity.LaneData;
 import dev.chojo.ember.feature.board.entity.LanePreset;
 import dev.chojo.ember.feature.board.service.BoardService;
 import dev.chojo.ember.feature.board.service.FederatedBoardService;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.feature.members.service.StationMemberService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -53,19 +53,22 @@ public class BoardRoutes implements Routes {
 
     private final BoardService boardService;
     private final FederatedBoardService federatedBoardService;
-    private final StationMemberRepository stationMemberRepository;
+    private final StationMemberService memberService;
     private final MemberIdentityFactory memberIdentityFactory;
+    private final BoardRouteGuards guards;
 
     @Inject
     public BoardRoutes(
             BoardService boardService,
             FederatedBoardService federatedBoardService,
-            StationMemberRepository stationMemberRepository,
-            MemberIdentityFactory memberIdentityFactory) {
+            StationMemberService memberService,
+            MemberIdentityFactory memberIdentityFactory,
+            BoardRouteGuards guards) {
         this.boardService = boardService;
         this.federatedBoardService = federatedBoardService;
-        this.stationMemberRepository = stationMemberRepository;
+        this.memberService = memberService;
         this.memberIdentityFactory = memberIdentityFactory;
+        this.guards = guards;
     }
 
     private static String randomColor() {
@@ -105,14 +108,11 @@ public class BoardRoutes implements Routes {
     }
 
     private Board resolveBoard(Context ctx, int stationId) {
-        String boardKey = ctx.pathParam("boardKey");
-        return boardService
-                .findByShortKey(stationId, boardKey)
-                .orElseThrow(() -> new NotFoundResponse("Board not found: " + boardKey));
+        return guards.resolveBoard(ctx, stationId);
     }
 
     private int resolveBoardId(Context ctx, int stationId) {
-        return resolveBoard(ctx, stationId).id();
+        return guards.resolveBoardId(ctx, stationId);
     }
 
     @OpenApi(
@@ -513,7 +513,7 @@ public class BoardRoutes implements Routes {
     private void listBoardMembers(Context ctx) {
         UserSession session = UserSession.from(ctx);
         resolveBoardId(ctx, session.stationId());
-        ctx.json(memberIdentityFactory.enrichCompletions(stationMemberRepository.findCompletions(session.stationId())));
+        ctx.json(memberIdentityFactory.enrichCompletions(memberService.findCompletions(session.stationId())));
     }
 
     @OpenApi(

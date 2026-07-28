@@ -60,6 +60,24 @@ class RouteSourceConventionsTest {
                         + " are matched before /events/{id}; found lines %d and %d".formatted(structure, events));
     }
 
+    /**
+     * {@code RemoteBoardWebhookRoutes} registers literal paths such as
+     * {@code /remote/boards/webhook/mention} that the {@code /remote/boards/{boardKey}/...} routes of
+     * the other remote board classes match just as well, so its binding has to come first.
+     */
+    @Test
+    void remoteBoardWebhookRoutesAreBoundBeforeRemoteBoardRoutes() throws IOException {
+        List<String> lines =
+                Files.readAllLines(Path.of("src", "main", "java", "dev", "chojo", "ember", "EmberModule.java"));
+        int webhooks = bindingLine(lines, "RemoteBoardWebhookRoutes");
+        int boards = bindingLine(lines, "RemoteBoardRoutes");
+        assertTrue(
+                webhooks < boards,
+                () -> "RemoteBoardWebhookRoutes must be bound before RemoteBoardRoutes so its literal"
+                        + " /remote/boards/webhook/* paths are matched before /remote/boards/{boardKey}/*;"
+                        + " found lines %d and %d".formatted(webhooks, boards));
+    }
+
     private int bindingLine(List<String> lines, String routeClass) {
         String binding = "addBinding().to(%s.class)".formatted(routeClass);
         return Stream.iterate(0, i -> i + 1)
