@@ -41,7 +41,13 @@ import dev.chojo.ember.feature.inventory.service.InventoryFieldDefinitionService
 import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.inventory.service.ProcurementService;
 import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
+import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
+import dev.chojo.ember.feature.knowledgebase.service.KbCommentService;
+import dev.chojo.ember.feature.knowledgebase.service.KbContentService;
 import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
+import dev.chojo.ember.feature.knowledgebase.service.KbLinkMetadataService;
+import dev.chojo.ember.feature.knowledgebase.service.KbPresentationService;
+import dev.chojo.ember.feature.knowledgebase.service.KbSearchService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.knowledgebase.service.TextCompressionPolicy;
@@ -50,7 +56,6 @@ import dev.chojo.ember.feature.media.service.ImageVariantService;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
-import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.news.repository.NewsFederationRepository;
 import dev.chojo.ember.feature.news.service.NewsFederationService;
@@ -62,8 +67,14 @@ import dev.chojo.ember.feature.page.service.PageImageVariantService;
 import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
+import dev.chojo.ember.feature.quiz.service.QuizAnswerGrader;
+import dev.chojo.ember.feature.quiz.service.QuizAttemptService;
+import dev.chojo.ember.feature.quiz.service.QuizCatalogService;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionImageService;
+import dev.chojo.ember.feature.quiz.service.QuizQuestionSelector;
+import dev.chojo.ember.feature.quiz.service.QuizQuestionService;
 import dev.chojo.ember.feature.quiz.service.QuizService;
+import dev.chojo.ember.feature.quiz.service.QuizTestService;
 import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
@@ -116,14 +127,15 @@ class DemoServiceTest extends RepositoryTestBase {
         var federationEntityResolver = new FederationEntityResolver(federationRepo, stationRepo, federationHttpClient);
 
         var eventService = newEventService(noOpBus);
-        var newsService = new NewsService(newsRepo, restrictionService, noOpBus, stationMemberRepo, accountRepo);
+        var newsService = new NewsService(
+                newsRepo, restrictionService, noOpBus, stationMemberRepo, memberLookupService, accountRepo);
         var inventoryService = new InventoryService(inventoryRepo);
         var exchangeService = new ExchangeService(exchangeRepo, inventoryRepo, inventoryService, noOpBus);
         var procurementService = new ProcurementService(procurementRepo, inventoryService, inventoryRepo, noOpBus);
         var eventTemplateService = new EventTemplateService(eventTemplateRepo);
         var feedTokenService = new FeedTokenService(feedTokenRepo);
 
-        var memberSvc = new StationMemberService(stationMemberRepo, stationRepo, accountRepo, mock(AuthService.class));
+        var memberSvc = newStationMemberService(accountRepo, mock(AuthService.class));
         var commentService = new CommentService(eventCommentRepo, noOpBus, memberSvc, stationRepo);
         var kbStorageConfig = new Storage();
         var kbBackend = new LocalStorageBackend();
@@ -131,22 +143,23 @@ class DemoServiceTest extends RepositoryTestBase {
         var kbStorageSvc = new StorageService(kbResolver, kbBackend);
         var kbCompression = new TextCompressionPolicy(kbStorageConfig);
         var kbFileStorage = new KbFileStorageService(kbStorageSvc, stationRepo, kbBackend, kbCompression);
+        var kbSearchService = new KbSearchService(knowledgeBaseRepo, stationRepo);
+        var kbContentService = new KbContentService(knowledgeBaseRepo, kbFileStorage, kbSearchService);
+        var kbCommentService =
+                new KbCommentService(knowledgeBaseRepo, kbCommentRepo, memberIdentityFactory, memberSvc, noOpBus);
         var kbService = new KnowledgeBaseService(
                 knowledgeBaseRepo,
-                stationRepo,
-                stationMemberRepo,
-                accountRepo,
-                memberGroupRepo,
-                userTagRepo,
                 kbFileStorage,
-                kbCommentRepo,
-                memberIdentityFactory,
-                noOpBus,
-                memberSvc,
+                kbContentService,
+                new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo),
+                new KbPresentationService(knowledgeBaseRepo, kbFileStorage, kbContentService),
+                new KbLinkMetadataService(),
                 new PresentationCompressor(kbStorageConfig),
                 new PdfCompressor(kbStorageConfig));
         var kbFederationService = new KnowledgeBaseFederationService(
                 kbService,
+                kbContentService,
+                kbSearchService,
                 federationService,
                 federationRepo,
                 federationHttpClient,
@@ -156,16 +169,12 @@ class DemoServiceTest extends RepositoryTestBase {
                 memberNameResolver,
                 federationFanout,
                 federationEntityResolver);
+        var quizQuestionService = new QuizQuestionService(quizCatalogRepo);
         var quizService = new QuizService(
-                quizCatalogRepo,
-                quizTestRepo,
-                restrictionService,
-                federationService,
-                federationRepo,
-                federationHttpClient,
-                stationRepo,
-                federationFanout,
-                federationEntityResolver);
+                new QuizCatalogService(quizCatalogRepo),
+                quizQuestionService,
+                new QuizTestService(quizTestRepo, new QuizQuestionSelector(quizCatalogRepo, quizTestRepo)),
+                new QuizAttemptService(quizTestRepo, quizQuestionService, new QuizAnswerGrader()));
         var protocolService = new TestProtocolService(
                 testProtocolRepo,
                 federationService,
@@ -190,7 +199,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo, new DomainEventBus(Set.of()));
         var tagService = new UserTagService(userTagRepo, memberGroupRepo);
         var memberNameResolver = new MemberNameResolver(
-                new StationMemberService(stationMemberRepo, stationRepo, accountRepo, mock(AuthService.class)),
+                newStationMemberService(accountRepo, mock(AuthService.class)),
                 accountRepo,
                 eventFederationRepo,
                 federationRepo,
@@ -246,6 +255,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var memberSeeder = new DemoMemberSeeder(
                 accountRepo,
                 stationMemberRepo,
+                memberLookupService,
                 memberGroupRepo,
                 profileFieldRepo,
                 profileFieldChangeRepo,
@@ -276,7 +286,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var waitingListSeeder = new DemoWaitingListSeeder(
                 waitingListRepo, memberGroupRepo, stationMemberRepo, attendanceRepo, accountRepo);
         var quizSeeder = new DemoQuizSeeder(quizCatalogRepo, quizTestRepo, quizService, quizImageService);
-        var kbSeeder = new DemoKnowledgeBaseSeeder(kbService, knowledgeBaseRepo);
+        var kbSeeder = new DemoKnowledgeBaseSeeder(kbService, kbContentService, knowledgeBaseRepo);
         var protocolSeeder = new DemoProtocolSeeder(testProtocolRepo);
         var mediaSeeder = new DemoMediaSeeder(
                 avatarService,
@@ -287,6 +297,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 stationRepo,
                 federationService,
                 kbService,
+                kbCommentService,
                 kbFederationService,
                 quizService,
                 protocolService,
@@ -295,6 +306,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 eventFederationRepo,
                 accountRepo,
                 stationMemberRepo,
+                memberLookupService,
                 passwordHasher,
                 newsService,
                 newsFederationService,
@@ -330,7 +342,13 @@ class DemoServiceTest extends RepositoryTestBase {
         var checklistSeederLocal = new DemoChecklistSeeder(checklistService);
         var stationSeeder = new DemoStationSeeder(accountRepo, stationRepo);
         var mirrorStationSeeder = new DemoMirrorStationSeeder(
-                stationRepo, stationMemberRepo, accountRepo, federationService, demoConfig, apiConfig);
+                stationRepo,
+                stationMemberRepo,
+                memberLookupService,
+                accountRepo,
+                federationService,
+                demoConfig,
+                apiConfig);
         var sessionSeeder = new DemoSessionSeeder(accountRepo);
         var settingsSeeder = new DemoSettingsSeeder(feedTokenService, stationRepo, applicationSettingRepo);
         var setupSeeder = new DemoSetupSeeder(stationRepo, accountRepo, stationMemberRepo);

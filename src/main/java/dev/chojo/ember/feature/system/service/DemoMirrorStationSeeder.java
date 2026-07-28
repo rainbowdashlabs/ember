@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.MemberLookupService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -33,6 +34,7 @@ public class DemoMirrorStationSeeder implements DemoSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoMirrorStationSeeder.class);
     private final StationRepository stationRepository;
     private final StationMemberRepository stationMemberRepository;
+    private final MemberLookupService memberLookupService;
     private final AccountRepository accountRepository;
     private final FederationService federationService;
     private final Demo demoConfig;
@@ -42,12 +44,14 @@ public class DemoMirrorStationSeeder implements DemoSeeder {
     public DemoMirrorStationSeeder(
             StationRepository stationRepository,
             StationMemberRepository stationMemberRepository,
+            MemberLookupService memberLookupService,
             AccountRepository accountRepository,
             FederationService federationService,
             Demo demoConfig,
             Api apiConfig) {
         this.stationRepository = stationRepository;
         this.stationMemberRepository = stationMemberRepository;
+        this.memberLookupService = memberLookupService;
         this.accountRepository = accountRepository;
         this.federationService = federationService;
         this.demoConfig = demoConfig;
@@ -81,7 +85,7 @@ public class DemoMirrorStationSeeder implements DemoSeeder {
                         .map(Account::email)
                         .orElseThrow();
                 var ffMember = stationMemberRepository.create(ffStation.id(), jfMember.accountId());
-                stationMemberRepository.setUid(ffMember.id(), DemoUids.member(email, ffStation.id()));
+                memberLookupService.setUid(ffMember.id(), DemoUids.member(email, ffStation.id()));
                 stationMemberRepository.setUserType(ffMember.id(), userType);
                 stationMemberRepository.grantPermission(ffMember.id(), loginRole.id());
                 if (userType == StationUserType.MANAGER) {

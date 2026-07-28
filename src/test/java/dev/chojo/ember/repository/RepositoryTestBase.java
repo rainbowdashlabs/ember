@@ -17,6 +17,7 @@ import dev.chojo.ember.TestContainers;
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.board.repository.BoardRepository;
 import dev.chojo.ember.feature.board.repository.BoardTicketRepository;
@@ -36,6 +37,14 @@ import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventReminderRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
+import dev.chojo.ember.feature.events.service.EventBreakService;
+import dev.chojo.ember.feature.events.service.EventCategoryService;
+import dev.chojo.ember.feature.events.service.EventCrudService;
+import dev.chojo.ember.feature.events.service.EventFieldDefaultService;
+import dev.chojo.ember.feature.events.service.EventOccurrenceService;
+import dev.chojo.ember.feature.events.service.EventRegistrationService;
+import dev.chojo.ember.feature.events.service.EventReminderService;
+import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.feed.repository.FeedMetricsRepository;
@@ -62,6 +71,7 @@ import dev.chojo.ember.feature.members.repository.UserSettingsRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.feature.members.service.MemberLookupService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
@@ -186,6 +196,7 @@ public abstract class RepositoryTestBase {
     protected static TwoFactorRepository twoFactorRepo;
     protected static MemberIdentityFactory memberIdentityFactory;
     protected static MemberNameResolver memberNameResolver;
+    protected static MemberLookupService memberLookupService;
     protected static DataSource dataSource;
     protected static String schemaName;
 
@@ -240,7 +251,8 @@ public abstract class RepositoryTestBase {
         QueryConfiguration.setDefault(config);
         accountRepo = new AccountRepository(TokenHasher.forTesting("repository-test-pepper"));
         stationRepo = new StationRepository();
-        stationMemberRepo = new StationMemberRepository(stationRepo);
+        stationMemberRepo = new StationMemberRepository();
+        memberLookupService = new MemberLookupService(stationMemberRepo, stationRepo);
         attendanceRepo = new AttendanceRepository();
         inventoryRepo = new InventoryRepository();
         memberGroupRepo = new MemberGroupRepository();
@@ -286,7 +298,7 @@ public abstract class RepositoryTestBase {
         applicationSettingRepo = new ApplicationSettingRepository();
         problemReportRepo = new ProblemReportRepository();
         boardRepo = new BoardRepository();
-        boardTicketRepo = new BoardTicketRepository(stationMemberRepo, stationRepo);
+        boardTicketRepo = new BoardTicketRepository();
         federatedBoardRepo = new FederatedBoardRepository();
         checklistRepo = new ChecklistRepository();
         procedureRepo = new ProcedureRepository();
@@ -303,29 +315,41 @@ public abstract class RepositoryTestBase {
         twoFactorRepo = new TwoFactorRepository();
         var eventFedRepo = new EventFederationRepository();
         var fedRepo = new FederationRepository();
-        var memberSvc = new StationMemberService(stationMemberRepo, stationRepo, accountRepo, null);
+        var memberSvc = newStationMemberService(accountRepo, null);
         var groupSvc =
                 new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo, new DomainEventBus(Set.of()));
         var tagSvc = new UserTagService(userTagRepo, memberGroupRepo);
         memberNameResolver =
                 new MemberNameResolver(memberSvc, accountRepo, eventFedRepo, fedRepo, stationRepo, groupSvc, tagSvc);
-        memberIdentityFactory = new MemberIdentityFactory(stationRepo, stationMemberRepo, memberNameResolver);
+        memberIdentityFactory = new MemberIdentityFactory(stationRepo, memberLookupService, memberNameResolver);
     }
 
     /**
-     * Builds an {@link EventService} over the split event repositories, so no test has to repeat
-     * the repository list its constructor takes.
+     * Builds a {@link StationMemberService} over the shared repositories and lookup service, so no
+     * test has to repeat the fixed half of its constructor argument list.
+     */
+    protected static StationMemberService newStationMemberService(
+            AccountRepository accountRepository, AuthService authService) {
+        return new StationMemberService(
+                stationMemberRepo, stationRepo, accountRepository, authService, memberLookupService);
+    }
+
+    /**
+     * Builds an {@link EventService} over the split event services, so no test has to repeat the
+     * service list its constructor takes.
      */
     protected static EventService newEventService(DomainEventBus eventBus) {
+        var crudService = new EventCrudService(eventRepo, eventBus);
+        var breakService = new EventBreakService(eventBreakRepo);
         return new EventService(
-                eventRepo,
-                eventBreakRepo,
-                eventCategoryRepo,
-                eventFieldDefaultRepo,
-                eventRegistrationRepo,
-                eventReminderRepo,
-                restrictionService,
-                eventBus);
+                crudService,
+                new EventOccurrenceService(crudService, breakService),
+                new EventCategoryService(eventCategoryRepo),
+                breakService,
+                new EventRestrictionService(eventRepo, restrictionService),
+                new EventFieldDefaultService(eventFieldDefaultRepo, eventRepo),
+                new EventRegistrationService(eventRegistrationRepo, eventRepo, eventBus),
+                new EventReminderService(eventReminderRepo));
     }
 
     /**

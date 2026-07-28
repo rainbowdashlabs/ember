@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
+import dev.chojo.ember.feature.members.service.MemberLookupService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -40,6 +41,7 @@ public class DemoMemberSeeder implements DemoSeeder {
 
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
+    private final MemberLookupService memberLookupService;
     private final MemberGroupRepository memberGroupRepository;
     private final ProfileFieldRepository profileFieldRepository;
     private final ProfileFieldChangeRepository profileFieldChangeRepository;
@@ -50,6 +52,7 @@ public class DemoMemberSeeder implements DemoSeeder {
     public DemoMemberSeeder(
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
+            MemberLookupService memberLookupService,
             MemberGroupRepository memberGroupRepository,
             ProfileFieldRepository profileFieldRepository,
             ProfileFieldChangeRepository profileFieldChangeRepository,
@@ -57,6 +60,7 @@ public class DemoMemberSeeder implements DemoSeeder {
             StationRepository stationRepository) {
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
+        this.memberLookupService = memberLookupService;
         this.memberGroupRepository = memberGroupRepository;
         this.profileFieldRepository = profileFieldRepository;
         this.profileFieldChangeRepository = profileFieldChangeRepository;
@@ -607,7 +611,7 @@ public class DemoMemberSeeder implements DemoSeeder {
         accountRepository.setUid(account.id(), DemoUids.account(email));
         accountRepository.createCredential(account.id(), hash);
         var member = stationMemberRepository.create(stationId, account.id());
-        stationMemberRepository.setUid(member.id(), DemoUids.member(email, stationId));
+        memberLookupService.setUid(member.id(), DemoUids.member(email, stationId));
         stationMemberRepository.setUserType(member.id(), StationUserType.MEMBER);
         stationMemberRepository.grantPermission(member.id(), loginRoleId);
         stationMemberRepository.grantPermission(member.id(), memberRoleId);
@@ -621,7 +625,7 @@ public class DemoMemberSeeder implements DemoSeeder {
         accountRepository.setUid(account.id(), DemoUids.account(email));
         accountRepository.createCredential(account.id(), hash);
         var member = stationMemberRepository.create(stationId, account.id());
-        stationMemberRepository.setUid(member.id(), DemoUids.member(email, stationId));
+        memberLookupService.setUid(member.id(), DemoUids.member(email, stationId));
         stationMemberRepository.setUserType(member.id(), StationUserType.TEAM);
         stationMemberRepository.grantPermission(member.id(), loginRoleId);
         return member;
@@ -634,7 +638,7 @@ public class DemoMemberSeeder implements DemoSeeder {
         accountRepository.setUid(account.id(), DemoUids.account(email));
         accountRepository.createCredential(account.id(), hash);
         var member = stationMemberRepository.create(stationId, account.id());
-        stationMemberRepository.setUid(member.id(), DemoUids.member(email, stationId));
+        memberLookupService.setUid(member.id(), DemoUids.member(email, stationId));
         stationMemberRepository.setUserType(member.id(), StationUserType.GUARDIAN);
         stationMemberRepository.grantPermission(member.id(), loginRoleId);
         stationMemberRepository.grantPermission(member.id(), guardianRoleId);

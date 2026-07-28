@@ -22,7 +22,7 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.TransferTimeoutWatchdog;
 import dev.chojo.ember.feature.system.service.DataInitializer;
 import dev.chojo.ember.feature.system.service.DemoService;
-import dev.chojo.ember.util.CloudflareRangesService;
+import dev.chojo.ember.util.service.CloudflareRangesService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

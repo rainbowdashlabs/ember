@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.legal.service;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.MemberLookupService;
 import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.DataTrackingLoader;
 import dev.chojo.ember.tracking.IdentityType;
@@ -37,6 +38,7 @@ public class GdprDeletionService {
 
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
+    private final MemberLookupService memberLookupService;
     private final AvatarService avatarService;
     private final GenericGdprDeleter engine;
 
@@ -44,9 +46,11 @@ public class GdprDeletionService {
     public GdprDeletionService(
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
+            MemberLookupService memberLookupService,
             AvatarService avatarService) {
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
+        this.memberLookupService = memberLookupService;
         this.avatarService = avatarService;
         DataTracking t;
         try {
@@ -81,7 +85,7 @@ public class GdprDeletionService {
     public void anonymizeMember(int memberId) {
         var member = stationMemberRepository.findById(memberId).orElse(null);
         Integer accountId = member != null ? member.accountId() : null;
-        UUID memberUid = stationMemberRepository.resolveUid(memberId);
+        UUID memberUid = memberLookupService.resolveUid(memberId);
 
         var memberReport = engine.deleteByIdentity(IdentityType.MEMBER_ID, memberId);
         memberReport.log(log);

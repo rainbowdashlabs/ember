@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.MemberLookupService;
 import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.DataTrackingLoader;
 import dev.chojo.ember.tracking.IdentityType;
@@ -54,6 +55,7 @@ public class GdprExportService {
 
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
+    private final MemberLookupService memberLookupService;
     private final KbFileStorageService kbFileStorageService;
     private final GenericGdprExporter engine;
 
@@ -61,9 +63,11 @@ public class GdprExportService {
     public GdprExportService(
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
+            MemberLookupService memberLookupService,
             KbFileStorageService kbFileStorageService) {
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
+        this.memberLookupService = memberLookupService;
         this.kbFileStorageService = kbFileStorageService;
         DataTracking t;
         try {
@@ -175,7 +179,7 @@ public class GdprExportService {
 
         // Tables matching by member UUID — federation-aware columns like news.author_member_uid or
         // board_ticket.creator_member_uid carry the UUID instead of the int id.
-        UUID memberUid = stationMemberRepository.resolveUid(mid);
+        UUID memberUid = memberLookupService.resolveUid(mid);
         data.put(
                 "memberUidTables",
                 memberUid == null ? Map.of() : engine.exportByIdentity(IdentityType.MEMBER_UID, memberUid));

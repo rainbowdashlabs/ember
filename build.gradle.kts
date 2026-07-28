@@ -322,12 +322,10 @@ tasks {
                 element = "CLASS"
                 includes = listOf("*.service.*")
                 excludes = listOf(
-                    "*.route.*",
                     // Infrastructure that calls external systems
                     "*.mail.service.*",
                     "*.FederationHttpClient*",
                     "*.FederationWebhookService*",
-                    "*.FederatedBoardProxyService*",
                     "*.ApiRequestLogger*",
                     "*.DataInitializer",
                     "*.ProblemLogAppender*",
@@ -343,19 +341,15 @@ tasks {
                     // File I/O services
                     "*.KbFileStorageService*",
                     "*.PageFileStorageService*",
-                    "*.PageImageVariantService*",
                     "*.PdfCompressor*",
                     "*.BoardAttachmentService*",
                     "*.TextCompressionPolicy*",
                     // Unified storage façade — heavy I/O against the backend layer,
                     // public-surface paths covered by StorageServiceTest
                     "*.StorageService*",
-                    "*.StorageBackendResolver*",
-                    "*.LocalStorageBackend*",
                     // Image variant pipeline and the thin per-domain wrappers over it —
                     // exercised end-to-end via route tests, not unit-covered.
                     "*.ImageVariantService*",
-                    "*.AvatarService*",
                     "*.LostAndFoundImageService*",
                     "*.QuizQuestionImageService*",
                     "*.KbIconService*",
@@ -366,22 +360,20 @@ tasks {
                     // Daemon/scheduler threads
                     "*.RegistrationDeadlineChecker*",
                     "*.DueDateReminderChecker*",
-                    // Federated content service (HTTP federation calls)
-                    "*.FederatedContentService*",
-                    // Services with embedded daemon threads / federation HTTP code (>85% covered)
-                    "*.KnowledgeBaseService*",
-                    "*.WaitingListService*",
                     // Import services (complex CSV parsing with many edge cases)
                     "*.MemberImportService*",
                     "*.StationImportService*",
                     // Storage monitoring (filesystem walks, scheduled reconciliation, ZIP compression)
                     "*.StorageReconciliationService*",
-                    "*.PresentationCompressor*",
                     "*.StorageQuotaService*",
                     // Federation version broadcaster (daemon thread, startup-only)
                     "*.FederationVersionBroadcaster*",
                     // Maps tile cache (filesystem walks + outbound HTTP, exercised manually)
                     "*.MapTileCacheService*",
+                    // Startup refresh of Cloudflare's published edge ranges — outbound HTTP to
+                    // cloudflare.com with a hard-wired client; the parsing and matching logic it
+                    // delegates to lives in ClientIp and is covered there.
+                    "*.CloudflareRangesService*",
                     // Discovery chain (HTTP + daemon threads, exercised by integration tests)
                     "*.DiscoveryHttpClient*",
                     "*.DiscoveryPingScheduler*",

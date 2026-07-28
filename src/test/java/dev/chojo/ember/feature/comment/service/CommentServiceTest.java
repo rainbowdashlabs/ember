@@ -13,7 +13,6 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -47,11 +46,7 @@ class CommentServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         eventBus = mock(DomainEventBus.class);
-        service = new CommentService(
-                eventCommentRepo,
-                eventBus,
-                new StationMemberService(stationMemberRepo, stationRepo, null, null),
-                stationRepo);
+        service = new CommentService(eventCommentRepo, eventBus, newStationMemberService(null, null), stationRepo);
 
         station = stationRepo.create("CommentStation");
         account1 = accountRepo.create("comment1@test.com", "Alice", "Author");

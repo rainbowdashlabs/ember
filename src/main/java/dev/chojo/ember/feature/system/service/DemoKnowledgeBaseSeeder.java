@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
+import dev.chojo.ember.feature.knowledgebase.service.KbContentService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.util.TypstCompiler;
 import jakarta.inject.Inject;
@@ -23,11 +24,14 @@ public class DemoKnowledgeBaseSeeder implements DemoSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoKnowledgeBaseSeeder.class);
 
     private final KnowledgeBaseService kbService;
+    private final KbContentService contentService;
     private final KnowledgeBaseRepository kbRepository;
 
     @Inject
-    public DemoKnowledgeBaseSeeder(KnowledgeBaseService kbService, KnowledgeBaseRepository kbRepository) {
+    public DemoKnowledgeBaseSeeder(
+            KnowledgeBaseService kbService, KbContentService contentService, KnowledgeBaseRepository kbRepository) {
         this.kbService = kbService;
+        this.contentService = contentService;
         this.kbRepository = kbRepository;
     }
 
@@ -61,7 +65,7 @@ public class DemoKnowledgeBaseSeeder implements DemoSeeder {
                         """, createdBy);
 
         // Edit the welcome file to create a version history
-        kbService.updateMarkdownContent(welcomeFile.id(), """
+        contentService.updateMarkdownContent(welcomeFile.id(), """
                 # Willkommen im Wiki
 
                 Hier findest du alle wichtigen Informationen rund um die Jugendfeuerwehr.
@@ -266,7 +270,7 @@ public class DemoKnowledgeBaseSeeder implements DemoSeeder {
                 createdBy);
 
         // Edit PSA file to show version history
-        kbService.updateMarkdownContent(psaFile.id(), """
+        contentService.updateMarkdownContent(psaFile.id(), """
                 # Persönliche Schutzausrüstung (PSA)
 
                 Die PSA schützt dich bei Einsätzen und Übungen. Sie muss regelmäßig gepflegt und kontrolliert werden.

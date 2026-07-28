@@ -20,10 +20,12 @@ import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.knowledgebase.service.KbCommentService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.feature.members.service.MemberLookupService;
 import dev.chojo.ember.feature.news.entity.NewsVisibilityRole;
 import dev.chojo.ember.feature.news.service.NewsFederationService;
 import dev.chojo.ember.feature.news.service.NewsService;
@@ -58,6 +60,7 @@ public class DemoFederationSeeder implements DemoSeeder {
     private final StationRepository stationRepository;
     private final FederationService federationService;
     private final KnowledgeBaseService kbService;
+    private final KbCommentService kbCommentService;
     private final KnowledgeBaseFederationService kbFederationService;
     private final QuizService quizService;
     private final TestProtocolService protocolService;
@@ -66,6 +69,7 @@ public class DemoFederationSeeder implements DemoSeeder {
     private final EventFederationRepository eventFederationRepository;
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
+    private final MemberLookupService memberLookupService;
     private final PasswordHasher passwordHasher;
     private final NewsService newsService;
     private final NewsFederationService newsFederationService;
@@ -79,6 +83,7 @@ public class DemoFederationSeeder implements DemoSeeder {
             StationRepository stationRepository,
             FederationService federationService,
             KnowledgeBaseService kbService,
+            KbCommentService kbCommentService,
             KnowledgeBaseFederationService kbFederationService,
             QuizService quizService,
             TestProtocolService protocolService,
@@ -87,6 +92,7 @@ public class DemoFederationSeeder implements DemoSeeder {
             EventFederationRepository eventFederationRepository,
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
+            MemberLookupService memberLookupService,
             PasswordHasher passwordHasher,
             NewsService newsService,
             NewsFederationService newsFederationService,
@@ -97,6 +103,7 @@ public class DemoFederationSeeder implements DemoSeeder {
         this.stationRepository = stationRepository;
         this.federationService = federationService;
         this.kbService = kbService;
+        this.kbCommentService = kbCommentService;
         this.kbFederationService = kbFederationService;
         this.quizService = quizService;
         this.protocolService = protocolService;
@@ -105,6 +112,7 @@ public class DemoFederationSeeder implements DemoSeeder {
         this.eventFederationRepository = eventFederationRepository;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
+        this.memberLookupService = memberLookupService;
         this.passwordHasher = passwordHasher;
         this.newsService = newsService;
         this.newsFederationService = newsFederationService;
@@ -173,7 +181,7 @@ public class DemoFederationSeeder implements DemoSeeder {
         accountRepository.setUid(partnerAccount.id(), DemoUids.account("partner@demo.ember"));
         accountRepository.createCredential(partnerAccount.id(), passwordHasher.hash("demo"));
         var partnerMember = stationMemberRepository.create(partnerStation.id(), partnerAccount.id());
-        stationMemberRepository.setUid(partnerMember.id(), DemoUids.member("partner@demo.ember", partnerStation.id()));
+        memberLookupService.setUid(partnerMember.id(), DemoUids.member("partner@demo.ember", partnerStation.id()));
         var managerRole = stationMemberRepository
                 .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
                 .orElseThrow();
@@ -197,7 +205,7 @@ public class DemoFederationSeeder implements DemoSeeder {
         accountRepository.setUid(team1Account.id(), DemoUids.account("team1@partner.ember"));
         accountRepository.createCredential(team1Account.id(), passwordHasher.hash("demo"));
         var team1 = stationMemberRepository.create(partnerStation.id(), team1Account.id());
-        stationMemberRepository.setUid(team1.id(), DemoUids.member("team1@partner.ember", partnerStation.id()));
+        memberLookupService.setUid(team1.id(), DemoUids.member("team1@partner.ember", partnerStation.id()));
         stationMemberRepository.setUserType(team1.id(), StationUserType.TEAM);
         stationMemberRepository.grantPermission(team1.id(), loginRole.id());
 
@@ -205,7 +213,7 @@ public class DemoFederationSeeder implements DemoSeeder {
         accountRepository.setUid(team2Account.id(), DemoUids.account("team2@partner.ember"));
         accountRepository.createCredential(team2Account.id(), passwordHasher.hash("demo"));
         var team2 = stationMemberRepository.create(partnerStation.id(), team2Account.id());
-        stationMemberRepository.setUid(team2.id(), DemoUids.member("team2@partner.ember", partnerStation.id()));
+        memberLookupService.setUid(team2.id(), DemoUids.member("team2@partner.ember", partnerStation.id()));
         stationMemberRepository.setUserType(team2.id(), StationUserType.TEAM);
         stationMemberRepository.grantPermission(team2.id(), loginRole.id());
 
@@ -213,7 +221,7 @@ public class DemoFederationSeeder implements DemoSeeder {
         accountRepository.setUid(member1Account.id(), DemoUids.account("member1@partner.ember"));
         accountRepository.createCredential(member1Account.id(), passwordHasher.hash("demo"));
         var member1 = stationMemberRepository.create(partnerStation.id(), member1Account.id());
-        stationMemberRepository.setUid(member1.id(), DemoUids.member("member1@partner.ember", partnerStation.id()));
+        memberLookupService.setUid(member1.id(), DemoUids.member("member1@partner.ember", partnerStation.id()));
         stationMemberRepository.setUserType(member1.id(), StationUserType.MEMBER);
         stationMemberRepository.grantPermission(member1.id(), loginRole.id());
         stationMemberRepository.grantPermission(member1.id(), memberRole.id());
@@ -222,7 +230,7 @@ public class DemoFederationSeeder implements DemoSeeder {
         accountRepository.setUid(member2Account.id(), DemoUids.account("member2@partner.ember"));
         accountRepository.createCredential(member2Account.id(), passwordHasher.hash("demo"));
         var member2 = stationMemberRepository.create(partnerStation.id(), member2Account.id());
-        stationMemberRepository.setUid(member2.id(), DemoUids.member("member2@partner.ember", partnerStation.id()));
+        memberLookupService.setUid(member2.id(), DemoUids.member("member2@partner.ember", partnerStation.id()));
         stationMemberRepository.setUserType(member2.id(), StationUserType.MEMBER);
         stationMemberRepository.grantPermission(member2.id(), loginRole.id());
         stationMemberRepository.grantPermission(member2.id(), memberRole.id());
@@ -231,7 +239,7 @@ public class DemoFederationSeeder implements DemoSeeder {
         accountRepository.setUid(guardianAccount.id(), DemoUids.account("guardian@partner.ember"));
         accountRepository.createCredential(guardianAccount.id(), passwordHasher.hash("demo"));
         var guardian = stationMemberRepository.create(partnerStation.id(), guardianAccount.id());
-        stationMemberRepository.setUid(guardian.id(), DemoUids.member("guardian@partner.ember", partnerStation.id()));
+        memberLookupService.setUid(guardian.id(), DemoUids.member("guardian@partner.ember", partnerStation.id()));
         stationMemberRepository.setUserType(guardian.id(), StationUserType.GUARDIAN);
         stationMemberRepository.grantPermission(guardian.id(), loginRole.id());
         stationMemberRepository.grantPermission(guardian.id(), guardianRole.id());
@@ -595,7 +603,8 @@ public class DemoFederationSeeder implements DemoSeeder {
         if (!primaryKbFilesForComments.isEmpty()) {
             var kbFile = primaryKbFilesForComments.getFirst();
             // Local comment on a KB file
-            kbService.createComment(primaryStationId, kbFile.id(), null, createdBy, "Admin", "Sehr hilfreich, danke!");
+            kbCommentService.createComment(
+                    primaryStationId, kbFile.id(), null, createdBy, "Admin", "Sehr hilfreich, danke!");
         }
         var partnerKbFiles = kbService.findFiles(partnerStation.id(), null);
         if (!partnerKbFiles.isEmpty() && reversePartnerForEvents != null) {
@@ -609,7 +618,7 @@ public class DemoFederationSeeder implements DemoSeeder {
                     null,
                     "Können wir den Ausbildungsleitfaden auch als PDF bekommen?");
             // Reply from the partner station member (local on partner station)
-            kbService.createComment(
+            kbCommentService.createComment(
                     partnerStation.id(),
                     sharedKbFile.id(),
                     kc1.id(),
@@ -632,7 +641,7 @@ public class DemoFederationSeeder implements DemoSeeder {
         accountRepository.setUid(thirdAccount.id(), DemoUids.account("nachbar@demo.ember"));
         accountRepository.createCredential(thirdAccount.id(), passwordHasher.hash("demo"));
         var thirdMember = stationMemberRepository.create(thirdStation.id(), thirdAccount.id());
-        stationMemberRepository.setUid(thirdMember.id(), DemoUids.member("nachbar@demo.ember", thirdStation.id()));
+        memberLookupService.setUid(thirdMember.id(), DemoUids.member("nachbar@demo.ember", thirdStation.id()));
         stationMemberRepository.setUserType(thirdMember.id(), StationUserType.MANAGER);
         stationMemberRepository.grantPermission(thirdMember.id(), managerRole.id());
         stationMemberRepository.grantPermission(thirdMember.id(), loginRole.id());

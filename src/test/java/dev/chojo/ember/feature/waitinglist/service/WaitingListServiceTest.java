@@ -778,4 +778,71 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var entry = service.createEntry(listId, "NotPending2", "", guardians("", "np2@test.com"), Map.of(), "");
         assertThrows(IllegalStateException.class, () -> service.rejectPendingEntry(entry.id()));
     }
+
+    /**
+     * Edits aimed at a list or field that no longer exists change nothing and report the miss
+     * rather than inventing a row.
+     */
+    @Test
+    void editsToVanishedListsAndFieldsChangeNothing() {
+        int gone = 99_999_999;
+
+        assertTrue(service.update(gone, "Ghost", "", null, 180, null, null, 5, false)
+                .isEmpty());
+        assertTrue(service.updateVisibleFields(gone, "[]").isEmpty());
+        assertTrue(service.updateField(
+                        gone, "Ghost", WaitingListFieldType.TEXT, WaitingListFieldConfig.parse("{}"), 0, false, true)
+                .isEmpty());
+    }
+
+    /**
+     * The public queue position is driven by the list's scoring formula, not by arrival order:
+     * the highest scoring entry is first even when it registered last.
+     */
+    @Test
+    void waitingPositionRanksByScoreHighestFirst() {
+        var ageField = service.createField(
+                listId, "Alter", WaitingListFieldType.NUMBER, WaitingListFieldConfig.parse("{}"), 0, true, true);
+        service.update(listId, "Ranked", "", "[Alter]", 180, null, null, 5, false)
+                .orElseThrow();
+
+        var youngest = service.createEntry(
+                listId, "Young", "", guardians("", "young@test.com"), Map.of(ageField.id(), IntNode.valueOf(5)), "");
+        var middle = service.createEntry(
+                listId, "Middle", "", guardians("", "middle@test.com"), Map.of(ageField.id(), IntNode.valueOf(12)), "");
+        var oldest = service.createEntry(
+                listId, "Old", "", guardians("", "old@test.com"), Map.of(ageField.id(), IntNode.valueOf(20)), "");
+
+        assertEquals(1, service.findWaitingPositionByScore(oldest));
+        assertEquals(2, service.findWaitingPositionByScore(middle));
+        assertEquals(3, service.findWaitingPositionByScore(youngest));
+    }
+
+    /**
+     * Without a formula every entry scores the same, so the queue falls back to registration
+     * order and stays stable.
+     */
+    @Test
+    void waitingPositionFallsBackToRegistrationOrderOnATie() {
+        var first = service.createEntry(listId, "First", "", guardians("", "first@test.com"), Map.of(), "");
+        var second = service.createEntry(listId, "Second", "", guardians("", "second@test.com"), Map.of(), "");
+
+        assertEquals(1, service.findWaitingPositionByScore(first));
+        assertEquals(2, service.findWaitingPositionByScore(second));
+    }
+
+    /**
+     * Only entries still waiting have a position; once an entry has been invited it has left the
+     * queue and reports no position at all.
+     */
+    @Test
+    void waitingPositionIsZeroOnceAnEntryLeavesTheQueue() {
+        var list = service.create(station.id(), "Position Exit", "", null, 180, null, null, 5, false);
+        var entry = service.createEntry(list.id(), "Leaver", "", guardians("Parent", "leaver@test.com"), Map.of(), "");
+        assertEquals(1, service.findWaitingPositionByScore(entry));
+
+        var invited = service.inviteEntry(entry.id());
+
+        assertEquals(0, service.findWaitingPositionByScore(invited));
+    }
 }
