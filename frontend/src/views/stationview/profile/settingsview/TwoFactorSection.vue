@@ -24,6 +24,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import WebAuthnSection from './twofactorsection/WebAuthnSection.vue'
 import TrustedDevicesSection from './twofactorsection/TrustedDevicesSection.vue'
+import {apiErrorMessage, apiErrorStatus} from '@/util/apiError'
 
 const {t} = useI18n()
 
@@ -63,8 +64,8 @@ async function startSetup() {
   try {
     setupData.value = await beginTotpSetup()
     setupStep.value = 'qr'
-  } catch (e: any) {
-    error.value = e?.response?.data?.message || t('common.error')
+  } catch (e) {
+    error.value = apiErrorMessage(e) || t('common.error')
   }
 }
 
@@ -86,8 +87,8 @@ async function confirmSetup() {
       requiresPassword() ? confirmPassword.value : undefined,
     )
     setupStep.value = 'backup-display'
-  } catch (e: any) {
-    confirmError.value = e?.response?.status === 401
+  } catch (e) {
+    confirmError.value = apiErrorStatus(e) === 401
       ? t('twoFactor.setup.passwordWrong')
       : t('twoFactor.setup.invalidCode')
   } finally {

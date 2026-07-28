@@ -57,12 +57,12 @@ const {t} = useI18n()
             <TextInput
                 :model-value="item.altText ?? ''"
                 :placeholder="t('stationPages.editor.altText')"
-                @update:model-value="$emit('update-field', 'altText', $event)"
+                @update:model-value="$emit('update-field', 'altText', $event ?? '')"
             />
             <TextInput
                 :model-value="item.subtext ?? ''"
                 :placeholder="t('stationPages.editor.imageDescription')"
-                @update:model-value="$emit('update-field', 'subtext', $event)"
+                @update:model-value="$emit('update-field', 'subtext', $event ?? '')"
             />
         </div>
         <PageFileBrowseButton

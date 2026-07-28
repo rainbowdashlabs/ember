@@ -141,6 +141,7 @@ function navigateToEdit(page: StationPage) {
 function onReorder(fromIndex: number, toIndex: number) {
     const items = [...flatPages.value]
     const [moved] = items.splice(fromIndex, 1)
+    if (!moved) return
     items.splice(toIndex, 0, moved)
     pages.value = items.map((entry, i) => ({...entry.page, sortOrder: i}))
 }

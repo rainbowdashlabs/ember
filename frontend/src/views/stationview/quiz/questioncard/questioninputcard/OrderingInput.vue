@@ -24,7 +24,7 @@ const { t } = useI18n()
 
 const orderedItems = computed<string[]>(() => {
   const items = (props.config.items as string[]) ?? []
-  if (props.orderItems.length === items.length) return props.orderItems.map(i => items[i])
+  if (props.orderItems.length === items.length) return props.orderItems.map(i => items[i] ?? '')
   return items
 })
 

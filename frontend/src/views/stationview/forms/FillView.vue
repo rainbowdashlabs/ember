@@ -57,6 +57,11 @@ const showSingleManagedHint = computed(() => {
   return !canFillForSelf.value && eligibleManagedMembers.value.length === 1
 })
 
+const singleManagedName = computed(() => {
+  const member = eligibleManagedMembers.value[0]
+  return member?.name || member?.email
+})
+
 const fillTargetOptions = computed(() => {
   const options: { id: number | null; label: string }[] = []
   if (canFillForSelf.value) {
@@ -106,6 +111,7 @@ async function loadExistingResponse() {
     response = await forms.getMyResponse(formId.value)
     if (response.response) {
       hasExistingResponse.value = true
+      initAnswerDefaults()
       for (const answer of response.answers) {
         try {
           answers.value[answer.questionId] = JSON.parse(answer.value)
@@ -131,10 +137,11 @@ const { loading, error, reload } = useAsyncLoader(async () => {
   form.value = f
   questions.value = qs
 
+  const firstManaged = eligibleManagedMembers.value[0]
   if (canFillForSelf.value) {
     selectedMemberId.value = null
-  } else if (eligibleManagedMembers.value.length > 0) {
-    selectedMemberId.value = eligibleManagedMembers.value[0].id
+  } else if (firstManaged) {
+    selectedMemberId.value = firstManaged.id
   }
 
   await loadExistingResponse()
@@ -204,7 +211,7 @@ watch(loaded, (isLoaded) => {
 
         <InfoContainer v-if="showSingleManagedHint">
           <p class="text-sm">
-            {{ t('forms.fillForSingleManaged', { name: eligibleManagedMembers[0].name || eligibleManagedMembers[0].email }) }}
+            {{ t('forms.fillForSingleManaged', { name: singleManagedName }) }}
           </p>
         </InfoContainer>
 

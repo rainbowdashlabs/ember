@@ -81,6 +81,10 @@ const tabs = computed(() => [
     { key: 'all', label: t('boards.activityAll') },
 ])
 
+function activityKey(item: ActivityItem): string {
+    return `${item.type}-${item.data.id}`
+}
+
 function laneName(id: number | null): string {
     if (id === null) return '—'
     return props.lanes.find(l => l.id === id)?.name ?? `#${id}`
@@ -105,7 +109,7 @@ function laneName(id: number | null): string {
         </div>
 
         <div v-if="activeTab === 'transitions'" class="space-y-2">
-            <template v-for="item in changesActivity" :key="`${item.type}-${(item.data as any).id}`">
+            <template v-for="item in changesActivity" :key="activityKey(item)">
                 <div v-if="item.type === 'transition'" class="flex items-center gap-2 text-sm text-(--text-muted) flex-wrap">
                     <MemberName :identity="(item.data as BoardTicketTransition).actor" size="sm" />
                     <span>{{ t('boards.movedFrom') }}</span>

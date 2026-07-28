@@ -26,7 +26,7 @@ const mcDisplayItems = computed<{ text: string; correct?: boolean; originalIndex
   const opts = mcOptionsRaw.value
   const order = props.mcDisplayOrder
   if (order && order.length === opts.length) {
-    return order.map(origIdx => ({ ...opts[origIdx], originalIndex: origIdx }))
+    return order.map(origIdx => ({ text: '', ...opts[origIdx], originalIndex: origIdx }))
   }
   return opts.map((opt, i) => ({ ...opt, originalIndex: i }))
 })

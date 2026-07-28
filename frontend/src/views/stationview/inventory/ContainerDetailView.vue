@@ -25,6 +25,7 @@ import AddItemsModal from '@/views/stationview/inventory/containerdetailview/Add
 import Modal from '@/components/feedback/Modal.vue'
 import {inventoryContainers} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {apiErrorMessage} from '@/util/apiError'
 import type {
   ContainerDetail,
   ContainerContents,
@@ -78,8 +79,8 @@ async function load() {
     kinds.value = k
     allContainers.value = all
     await Promise.all([loadContents(), loadHistory()])
-  } catch (e: any) {
-    error.value = e?.response?.data?.message ?? t('inventory.storage.loadError')
+  } catch (e) {
+    error.value = apiErrorMessage(e) ?? t('inventory.storage.loadError')
   } finally {
     loading.value = false
   }
@@ -107,7 +108,7 @@ const {run: confirmDelete} = useAsyncAction(async () => {
   try {
     await inventoryContainers.deleteContainer(detail.value.container.id)
     router.push({name: 'inventory-storage'})
-  } catch (e: any) {
+  } catch (e) {
     error.value = mapContainerError(t, e, 'inventory.storage.errors.deleteFailed')
     showDeleteConfirm.value = false
   }

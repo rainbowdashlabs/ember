@@ -46,13 +46,17 @@ function removeMcOption(idx: number) {
 
 function updateMcOptionText(idx: number, value: string) {
   const opts = [...((config.value.options as { text: string; correct: boolean }[]) || [])]
-  opts[idx] = {...opts[idx], text: value}
+  const option = opts[idx]
+  if (!option) return
+  opts[idx] = {...option, text: value}
   updateConfig({options: opts})
 }
 
 function toggleMcOptionCorrect(idx: number) {
   const opts = [...((config.value.options as { text: string; correct: boolean }[]) || [])]
-  opts[idx] = {...opts[idx], correct: !opts[idx].correct}
+  const option = opts[idx]
+  if (!option) return
+  opts[idx] = {...option, correct: !option.correct}
   updateConfig({options: opts})
 }
 

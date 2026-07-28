@@ -11,10 +11,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import BaseButton from '@/components/button/BaseButton.vue'
 import FolderNode from '../pageeditorview/FolderNode.vue'
 import type {PageFileFolder, PageFileTag} from '@/api/pageManage'
-
-interface FolderTreeNode extends PageFileFolder {
-    children: FolderTreeNode[]
-}
+import type {FolderTreeNode} from './usePageFileFolderTree'
 
 defineProps<{
     folderTree: FolderTreeNode[]

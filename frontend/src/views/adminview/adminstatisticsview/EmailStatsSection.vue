@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
 import VChart from 'vue-echarts'
+import type {EChartsCoreOption} from 'echarts/core'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import StatValue from '@/components/typography/StatValue.vue'
@@ -17,8 +18,8 @@ defineProps<{
   emailFailed: number
   emailByDayCount: number
   emailByStatusCount: number
-  emailByDayOption: object
-  emailStatusOption: object
+  emailByDayOption: EChartsCoreOption
+  emailStatusOption: EChartsCoreOption
 }>()
 
 const {t} = useI18n()

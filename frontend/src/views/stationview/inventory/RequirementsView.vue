@@ -34,7 +34,8 @@ const addInventoryId = ref('')
 const addQuantity = ref(1)
 
 function userTypeName(userType: string): string {
-  return userTypeFriendlyNames[userType] ?? userType
+  const labels: Record<string, string> = userTypeFriendlyNames
+  return labels[userType] ?? userType
 }
 
 function groupName(groupId: number): string {
@@ -130,10 +131,11 @@ async function removeRequirement(req: InventoryRequirement) {
 async function onReorder(group: RequirementGroup, fromIndex: number, toIndex: number) {
   const items = [...group.items]
   const [moved] = items.splice(fromIndex, 1)
+  if (!moved) return
   items.splice(toIndex, 0, moved)
   try {
-    for (let i = 0; i < items.length; i++) {
-      await inventory.updateRequirementPosition(items[i].id, i)
+    for (const [i, item] of items.entries()) {
+      await inventory.updateRequirementPosition(item.id, i)
     }
     requirements.value = await inventory.listAllRequirements()
   } catch {

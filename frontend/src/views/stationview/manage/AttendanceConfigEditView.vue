@@ -79,20 +79,25 @@ function removeGroup(groupId: number) {
   saveGroups()
 }
 
-function moveGroupUp(index: number) {
-  if (index === 0) return
+function swapGroups(index: number, otherIndex: number) {
   const arr = [...templateGroups.value]
-  ;[arr[index - 1], arr[index]] = [arr[index], arr[index - 1]]
+  const current = arr[index]
+  const other = arr[otherIndex]
+  if (!current || !other) return
+  arr[index] = other
+  arr[otherIndex] = current
   templateGroups.value = arr.map((g, i) => ({...g, position: i}))
   saveGroups()
 }
 
+function moveGroupUp(index: number) {
+  if (index === 0) return
+  swapGroups(index - 1, index)
+}
+
 function moveGroupDown(index: number) {
   if (index >= templateGroups.value.length - 1) return
-  const arr = [...templateGroups.value]
-  ;[arr[index], arr[index + 1]] = [arr[index + 1], arr[index]]
-  templateGroups.value = arr.map((g, i) => ({...g, position: i}))
-  saveGroups()
+  swapGroups(index, index + 1)
 }
 
 async function saveGroups() {
@@ -131,6 +136,7 @@ async function reorderFields(fromIndex: number, toIndex: number) {
   if (!templateId.value) return
   const arr = [...fields.value]
   const [moved] = arr.splice(fromIndex, 1)
+  if (!moved) return
   arr.splice(toIndex, 0, moved)
   fields.value = arr.map((f, i) => ({...f, position: i}))
 

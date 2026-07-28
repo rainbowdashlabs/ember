@@ -195,10 +195,11 @@ function removeLane(index: number) {
 
 function moveLane(index: number, dir: -1 | 1) {
     const newIndex = index + dir
-    if (newIndex < 0 || newIndex >= lanes.value.length) return
-    const temp = lanes.value[index]
-    lanes.value[index] = lanes.value[newIndex]
-    lanes.value[newIndex] = temp
+    const current = lanes.value[index]
+    const target = lanes.value[newIndex]
+    if (!current || !target) return
+    lanes.value[index] = target
+    lanes.value[newIndex] = current
 }
 
 function addField() {
@@ -214,10 +215,11 @@ function removeField(index: number) {
 
 function moveField(index: number, dir: -1 | 1) {
     const newIndex = index + dir
-    if (newIndex < 0 || newIndex >= fields.value.length) return
-    const temp = fields.value[index]
-    fields.value[index] = fields.value[newIndex]
-    fields.value[newIndex] = temp
+    const current = fields.value[index]
+    const target = fields.value[newIndex]
+    if (!current || !target) return
+    fields.value[index] = target
+    fields.value[newIndex] = current
 }
 
 const fieldTypeOptions = [

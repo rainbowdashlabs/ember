@@ -29,7 +29,7 @@ const connectRightItems = computed<string[]>(() => {
   const pairs = props.config.pairs as { left: string; right: string }[] | undefined
   const raw = pairs ? pairs.map(p => p.right) : ((props.config.rightItems as string[]) ?? [])
   const order = props.connectRightOrder
-  if (order && order.length === raw.length) return order.map(i => raw[i])
+  if (order && order.length === raw.length) return order.map(i => raw[i] ?? '')
   return raw
 })
 
@@ -51,11 +51,9 @@ function isRightConnected(right: string): boolean {
 }
 
 function connectPair(leftIdx: number, right: string) {
-  if (right in reverseConnectMap.value) {
-    const oldLeftIdx = reverseConnectMap.value[right]
-    if (oldLeftIdx !== leftIdx) {
-      emit('setConnectPair', oldLeftIdx, '')
-    }
+  const oldLeftIdx = reverseConnectMap.value[right]
+  if (oldLeftIdx !== undefined && oldLeftIdx !== leftIdx) {
+    emit('setConnectPair', oldLeftIdx, '')
   }
   emit('setConnectPair', leftIdx, right)
 }
@@ -72,12 +70,14 @@ function onLeftClick(leftIdx: number) {
 function onRightClick(rightIdx: number) {
   if (props.disabled) return
   const right = connectRightItems.value[rightIdx]
+  if (right === undefined) return
   if (selectedLeftIdx.value !== null) {
     connectPair(selectedLeftIdx.value, right)
     selectedLeftIdx.value = null
   } else {
-    if (right in reverseConnectMap.value) {
-      emit('setConnectPair', reverseConnectMap.value[right], '')
+    const connectedLeftIdx = reverseConnectMap.value[right]
+    if (connectedLeftIdx !== undefined) {
+      emit('setConnectPair', connectedLeftIdx, '')
     }
   }
 }
@@ -100,8 +100,9 @@ function onConnectDragOverRight(e: DragEvent, rightIdx: number) {
 
 function onConnectDropRight(e: DragEvent, rightIdx: number) {
   e.preventDefault()
-  if (connectDragFrom.value !== null) {
-    connectPair(connectDragFrom.value, connectRightItems.value[rightIdx])
+  const right = connectRightItems.value[rightIdx]
+  if (connectDragFrom.value !== null && right !== undefined) {
+    connectPair(connectDragFrom.value, right)
   }
   connectDragFrom.value = null
   connectDragOver.value = null

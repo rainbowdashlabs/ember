@@ -18,7 +18,7 @@ import MembersSidebarGroup from '@/views/helpcenterstationview/MembersSidebarGro
 import InventorySidebarGroup from '@/views/helpcenterstationview/InventorySidebarGroup.vue'
 import QuizSidebarGroup from '@/views/helpcenterstationview/QuizSidebarGroup.vue'
 import {useHelpSearch} from '@/composables/useHelpSearch'
-import {usePageHeader} from '@/composables/usePageHeader'
+import {claimPageHeader} from '@/composables/usePageHeader'
 
 const {t, te} = useI18n()
 const route = useRoute()
@@ -53,9 +53,12 @@ const pageTitle = computed(() => {
 
 const pageSubtitle = computed(() => t('helpCenter.title'))
 
-const {title: headerTitle, subtitle: headerSubtitle} = usePageHeader()
-watch(pageTitle, v => { headerTitle.value = v }, {immediate: true})
-watch(pageSubtitle, v => { headerSubtitle.value = v }, {immediate: true})
+const {set: setPageHeader} = claimPageHeader()
+watch(
+    () => [pageTitle.value, pageSubtitle.value] as const,
+    ([titleValue, subtitleValue]) => setPageHeader(titleValue, subtitleValue),
+    {immediate: true},
+)
 </script>
 
 <template>

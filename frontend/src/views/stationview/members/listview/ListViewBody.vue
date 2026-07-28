@@ -9,10 +9,11 @@ import Alert from '@/components/feedback/Alert.vue'
 import LoadedContent from './LoadedContent.vue'
 import ExportModal from './ExportModal.vue'
 import type { ProfileField } from '@/api/profileFields'
-import type { StationMember, MemberGroup, UserTag, PermissionGrant } from '@/api/types'
+import type { StationMember, MemberGroup, UserTag } from '@/api/types'
 import type { ExportFieldOption, ExportFormatName } from '@/composables/useExport'
 import type { SortDirection } from '@/composables/useSortable'
-import type { MemberSortKey } from './useSavedFilters'
+import type { FilterCriteria } from '@/composables/useMemberFilter'
+import type { MemberSortKey, SavedFilterPreset } from './useSavedFilters'
 
 defineProps<{
   loading: boolean
@@ -20,7 +21,7 @@ defineProps<{
   activeTab: string
   filterText: string
   tabs: { key: string; label: string }[]
-  savedFilters: { id: number; name: string }[]
+  savedFilters: SavedFilterPreset[]
   tabOverviewFields: ProfileField[]
   tabNonOverviewFields: ProfileField[]
   exportColumns: ExportFieldOption[]
@@ -40,9 +41,9 @@ defineProps<{
   sortDirection: SortDirection
   columnMultiFilters: Map<'name' | 'groups' | 'tags' | number, Set<string>>
   columnEmptyFilters: Set<'name' | 'groups' | 'tags' | number>
-  memberGroupsMap: Map<number, MemberGroup[]>
-  memberTagsMap: Map<number, UserTag[]>
-  memberRolesMap: Map<number, PermissionGrant[]>
+  memberGroupsMap: Map<number, string[]>
+  memberTagsMap: Map<number, string[]>
+  memberRolesMap: Map<number, string[]>
   memberManagers: Map<number, StationMember[]>
   allMembers: StationMember[]
   overviewFields: ProfileField[]
@@ -55,16 +56,16 @@ defineEmits<{
   (e: 'update:filterText', value: string): void
   (e: 'update:showExportModal', value: boolean): void
   (e: 'clear-filters'): void
-  (e: 'apply-filter', filterId: number): void
+  (e: 'apply-filter', preset: SavedFilterPreset): void
   (e: 'delete-filter', filterId: number): void
   (e: 'save-filter', name: string): void
   (e: 'toggle-column', fieldId: number): void
   (e: 'toggle-export'): void
   (e: 'export-continue'): void
-  (e: 'filter', filter: unknown): void
+  (e: 'filter', filter: FilterCriteria): void
   (e: 'toggle-sort', column: MemberSortKey): void
   (e: 'apply-column-filter', key: 'name' | 'groups' | 'tags' | number, selected: Set<string>, includeEmpty: boolean): void
-  (e: 'toggle-expand', id: number): void
+  (e: 'toggle-expand', member: StationMember): void
   (e: 'navigate-detail', member: StationMember, event: Event): void
   (e: 'navigate-edit', member: StationMember, event: Event): void
   (e: 'resend-setup', member: StationMember, event: Event): void

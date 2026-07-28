@@ -61,6 +61,9 @@ const {
     openFolderEdit,
     saveFolder,
     removeFolder,
+    showDeleteFolder,
+    deleteFolderTarget,
+    confirmRemoveFolder,
 } = usePageFileFolderForm(activeFolder, reloadFolders, load)
 const {
     tagModalOpen,
@@ -71,6 +74,9 @@ const {
     openTagEdit,
     saveTag,
     removeTag,
+    showDeleteTag,
+    deleteTagTarget,
+    confirmRemoveTag,
 } = usePageFileTagForm(activeTagFilter, reloadTags, load)
 const {
     editing,
@@ -171,6 +177,16 @@ onMounted(load)
             v-model="showDeleteFileModal"
             :message="t('stationPages.editor.deleteFilePrompt', {name: deleteFileTarget?.fileName ?? ''})"
             @confirm="confirmDeleteFile"
+        />
+        <ConfirmDeleteModal
+            v-model="showDeleteFolder"
+            :message="t('stationPages.editor.folderDeletePrompt', {name: deleteFolderTarget?.name ?? ''})"
+            @confirm="confirmRemoveFolder"
+        />
+        <ConfirmDeleteModal
+            v-model="showDeleteTag"
+            :message="t('stationPages.editor.tagDeletePrompt', {name: deleteTagTarget?.name ?? ''})"
+            @confirm="confirmRemoveTag"
         />
     </ViewContent>
 </template>

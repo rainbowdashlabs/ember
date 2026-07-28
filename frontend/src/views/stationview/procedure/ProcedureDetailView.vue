@@ -29,6 +29,7 @@ import {StationPermission} from '@/api/types'
 import type {ProcedureDetail, ProcedureItem} from '@/api/procedures'
 import {ProcedureStatus} from '@/api/procedures'
 import {formatDate, formatDateTime} from '@/util/format'
+import {reportCaughtError} from '@/util/devErrorReporter'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -112,7 +113,8 @@ const {loading, error, reload} = useAsyncLoader(async () => {
 async function refreshSilently() {
   try {
     detail.value = await procedures.getProcedure(procedureId.value)
-  } catch {
+  } catch (e) {
+    reportCaughtError(e, 'silent procedure refresh')
   }
 }
 

@@ -29,7 +29,7 @@ const emit = defineEmits<{
     <SelectInput
         :model-value="selectedTemplateId != null ? String(selectedTemplateId) : ''"
         class="w-full"
-        @update:model-value="emit('change', $event || undefined)"
+        @update:model-value="emit('change', $event ? String($event) : undefined)"
     >
       <option value="">{{ t('procedures.noTemplate') }}</option>
       <option v-for="tpl in templates" :key="tpl.id" :value="String(tpl.id)">{{ tpl.name }}</option>

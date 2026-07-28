@@ -190,7 +190,9 @@ function addItem() {
 }
 
 function removeItem(index: number) {
-  const removedTempId = items.value[index].tempId
+  const removed = items.value[index]
+  if (!removed) return
+  const removedTempId = removed.tempId
   items.value = items.value
       .filter((_, i) => i !== index)
       .map(item => ({...item, dependsOn: item.dependsOn.filter(d => d !== removedTempId)}))
@@ -200,7 +202,11 @@ function moveItem(index: number, direction: -1 | 1) {
   const target = index + direction
   if (target < 0 || target >= items.value.length) return
   const arr = [...items.value]
-  ;[arr[index], arr[target]] = [arr[target], arr[index]]
+  const from = arr[index]
+  const to = arr[target]
+  if (!from || !to) return
+  arr[index] = to
+  arr[target] = from
   items.value = arr
 }
 
@@ -257,8 +263,7 @@ async function submitCreate() {
     assigneeIds: selectedAssigneeIds.value,
   })
   const tempToReal = new Map<number, number>()
-  for (let i = 0; i < items.value.length; i++) {
-    const item = items.value[i]
+  for (const [i, item] of items.value.entries()) {
     const createdItem = await procedures.addItem(created.id, {
       title: item.title, description: item.description || undefined,
       isPublic: item.isPublic, userAssigned: item.userAssigned, position: i,
@@ -284,8 +289,7 @@ async function syncItems(pid: number): Promise<Map<number, number>> {
     if (!currentItemIds.has(oldId)) await procedures.deleteItem(pid, oldId)
   }
   const tempToReal = new Map<number, number>()
-  for (let i = 0; i < items.value.length; i++) {
-    const item = items.value[i]
+  for (const [i, item] of items.value.entries()) {
     if (item.id) {
       await procedures.editItem(pid, item.id, {
         title: item.title, description: item.description || undefined,

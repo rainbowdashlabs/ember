@@ -39,13 +39,11 @@ watch(aiBatchModel, v => setItem('ai_model', v))
 async function loadServerSettings() {
   try {
     const settings = await aiApi.getSettings()
-    if (settings.providers.length > 0) {
-      const p = settings.providers[0]
-      if (!aiBatchApiKey.value) {
-        aiBatchProvider.value = p.provider
-        aiBatchModel.value = p.model ?? ''
-        saveOnServer.value = true
-      }
+    const p = settings.providers[0]
+    if (p && !aiBatchApiKey.value) {
+      aiBatchProvider.value = p.provider
+      aiBatchModel.value = p.model ?? ''
+      saveOnServer.value = true
     }
   } catch { void 0 }
 }

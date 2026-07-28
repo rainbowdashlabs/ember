@@ -112,7 +112,7 @@ function resultClass(): string {
       <SelectInput
         :model-value="slotSelections.get(`change-${item.id}`) ?? ''"
         class="flex-1"
-        @update:model-value="(v: string | undefined) => emit('updateSelection', `change-${item.id}`, v ?? '')"
+        @update:model-value="(v: string | number | null | undefined) => emit('updateSelection', `change-${item.id}`, String(v ?? ''))"
       >
         <option value="" disabled>{{ t('inventory.check.change') }}...</option>
         <option v-for="avail in availableItems" :key="avail.id" :value="String(avail.id)">
@@ -134,7 +134,7 @@ function resultClass(): string {
         v-if="req.hasSizes && req.sizes.length > 0"
         :model-value="slotSelections.get(`create-change-${item.id}`) ?? ''"
         class="flex-1"
-        @update:model-value="(v: string | undefined) => emit('updateSelection', `create-change-${item.id}`, v ?? '')"
+        @update:model-value="(v: string | number | null | undefined) => emit('updateSelection', `create-change-${item.id}`, String(v ?? ''))"
       >
         <option value="" disabled>{{ t('inventory.check.selectSize') }}</option>
         <option v-for="size in req.sizes" :key="size.id" :value="String(size.id)">{{ size.label }}</option>

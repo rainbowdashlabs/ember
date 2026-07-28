@@ -72,7 +72,7 @@ function getSizeLabel(sizeId: number | null | undefined): string {
 function getMemberIdentity(memberId: number | null | undefined) {
   if (!memberId || !props.members) return undefined
   const m = props.members.get(memberId)
-  return m?.identity
+  return m?.identity ?? undefined
 }
 
 </script>

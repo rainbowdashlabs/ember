@@ -17,7 +17,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import StorageBackendAuditTable from '@/components/storage/StorageBackendAuditTable.vue'
-import BackendForm from './stationstoragebackendview/BackendForm.vue'
+import StorageBackendForm from '@/components/storage/StorageBackendForm.vue'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -36,6 +36,14 @@ import {
     probeStationBackend,
     probeStationBackendConfig,
 } from '@/api/storageBackend'
+import {
+    newS3,
+    newSftp,
+    newSmb,
+    s3FormFrom,
+    sftpFormFrom,
+    smbFormFrom,
+} from '@/util/storageBackendForm'
 
 const {t} = useI18n()
 const {hasPermission, loaded} = useSession()
@@ -92,45 +100,13 @@ function seedFormFromBackend() {
         selectedType.value = 'LOCAL'
         return
     }
+    selectedType.value = summary.type
     if (summary.type === 'S3') {
-        selectedType.value = 'S3'
-        s3.value = {
-            type: 'S3',
-            endpoint: summary.endpoint,
-            region: summary.region,
-            bucket: summary.bucket,
-            pathStyle: summary.pathStyle,
-            sseAlgorithm: summary.sseAlgorithm ?? '',
-            basePath: summary.basePath,
-            accessKey: '',
-            secretKey: '',
-        }
+        s3.value = s3FormFrom(summary)
     } else if (summary.type === 'SMB') {
-        selectedType.value = 'SMB'
-        smb.value = {
-            type: 'SMB',
-            host: summary.host,
-            port: summary.port,
-            share: summary.share,
-            domain: summary.domain ?? '',
-            basePath: summary.basePath,
-            seal: summary.seal,
-            dfs: summary.dfs,
-            username: '',
-            password: '',
-        }
+        smb.value = smbFormFrom(summary)
     } else if (summary.type === 'SFTP') {
-        selectedType.value = 'SFTP'
-        sftp.value = {
-            type: 'SFTP',
-            host: summary.host,
-            port: summary.port,
-            username: summary.username,
-            knownHostsFingerprint: '',
-            basePath: summary.basePath,
-            password: '',
-            privateKey: '',
-        }
+        sftp.value = sftpFormFrom(summary)
     }
 }
 
@@ -198,47 +174,6 @@ const {running: saving, error: applyError, run: runApply} = useAsyncAction(
     {formatError: (e) => apiErrorTitle(e, t('stationStorageBackend.errors.applyFailed'))},
 )
 
-function newS3(): S3Request {
-    return {
-        type: 'S3',
-        endpoint: '',
-        region: '',
-        bucket: '',
-        pathStyle: false,
-        sseAlgorithm: '',
-        basePath: '',
-        accessKey: '',
-        secretKey: '',
-    }
-}
-
-function newSmb(): SmbRequest {
-    return {
-        type: 'SMB',
-        host: '',
-        port: 445,
-        share: '',
-        domain: '',
-        basePath: '',
-        seal: true,
-        dfs: false,
-        username: '',
-        password: '',
-    }
-}
-
-function newSftp(): SftpRequest {
-    return {
-        type: 'SFTP',
-        host: '',
-        port: 22,
-        username: '',
-        knownHostsFingerprint: '',
-        basePath: '',
-        password: '',
-        privateKey: '',
-    }
-}
 </script>
 
 <template>
@@ -267,14 +202,16 @@ function newSftp(): SftpRequest {
                     </MutedText>
                 </NeutralContainer>
 
-                <BackendForm
+                <StorageBackendForm
                     v-model:selected-type="selectedType"
                     v-model:s3="s3"
                     v-model:smb="smb"
                     v-model:sftp="sftp"
+                    i18n-prefix="stationStorageBackend"
                     :probing="probing"
                     :saving="saving"
-                    :has-override="hasOverride"
+                    show-live-probe
+                    :can-probe-live="hasOverride"
                     :probe-outcome="probeOutcome"
                     @probe-config="probeConfig"
                     @probe-live="probe"

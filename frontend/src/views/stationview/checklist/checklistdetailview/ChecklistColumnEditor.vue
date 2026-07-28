@@ -104,7 +104,7 @@ const {running: deleting, run: applyDelete} = useAsyncAction(async () => {
       </div>
       <div>
         <FieldLabel>{{ t('checklist.columnDescription') }}</FieldLabel>
-        <TextAreaInput v-model="description" :placeholder="t('checklist.columnDescriptionPlaceholder')" rows="2"/>
+        <TextAreaInput v-model="description" :placeholder="t('checklist.columnDescriptionPlaceholder')" :rows="2"/>
       </div>
       <div>
         <FieldLabel>{{ t('checklist.columnPosition') }}</FieldLabel>

@@ -44,7 +44,7 @@ function onSizeInput(index: number, value: string, current: string[]) {
     <FieldLabel>{{ t('inventory.unknownScan.newInventoryType') }}</FieldLabel>
     <SelectInput
         :model-value="type"
-        @update:model-value="(v: string) => type = v as 'INTERNAL' | 'EXTERNAL' | 'MIXED'"
+        @update:model-value="(v: string | number | null | undefined) => type = String(v ?? '') as 'INTERNAL' | 'EXTERNAL' | 'MIXED'"
     >
       <option :value="InventoryTypes.INTERNAL">{{ t('inventory.unknownScan.types.INTERNAL') }}</option>
       <option :value="InventoryTypes.EXTERNAL">{{ t('inventory.unknownScan.types.EXTERNAL') }}</option>
@@ -63,7 +63,7 @@ function onSizeInput(index: number, value: string, current: string[]) {
           :model-value="value"
           :placeholder="t('inventory.unknownScan.newInventorySizePlaceholder')"
           class="flex-1"
-          @update:model-value="(v: string) => onSizeInput(idx, v, sizes)"
+          @update:model-value="(v: string | undefined) => onSizeInput(idx, v ?? '', sizes)"
       />
       <IconButton
           v-if="sizes.length > 1"

@@ -47,7 +47,7 @@ export function useKbBrowse(navigation: ReturnType<typeof useKbNavigation>) {
                 try {
                     const shared = await federation.browseSharedKb()
                     sharedFiles.value = shared.map(s => ({
-                        file: {id: s.remoteId, name: s.title, description: s.description} as any,
+                        file: {id: s.remoteId, name: s.title, description: s.description},
                         stationName: s.stationName,
                         sourceStationId: s.stationId,
                     }))

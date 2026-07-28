@@ -147,13 +147,14 @@ const {
 async function onReorder(fromIndex: number, toIndex: number) {
   const arr = [...currentFields.value]
   const [moved] = arr.splice(fromIndex, 1)
+  if (!moved) return
   arr.splice(toIndex, 0, moved)
   try {
-    for (let i = 0; i < arr.length; i++) {
-      await profileFields.updateField(arr[i].id, {
-        name: arr[i].name ?? '',
-        fieldType: arr[i].fieldType ?? '',
-        config: typeof arr[i].config === 'string' ? (arr[i].config as string) : JSON.stringify(arr[i].config ?? {}),
+    for (const [i, field] of arr.entries()) {
+      await profileFields.updateField(field.id, {
+        name: field.name ?? '',
+        fieldType: field.fieldType ?? '',
+        config: typeof field.config === 'string' ? field.config : JSON.stringify(field.config ?? {}),
         position: i,
       })
     }
@@ -167,8 +168,7 @@ async function applyTemplate(template: FieldTemplate) {
   error.value = ''
   try {
     const startPosition = currentFields.value.length
-    for (let i = 0; i < template.fields.length; i++) {
-      const f = template.fields[i]
+    for (const [i, f] of template.fields.entries()) {
       await profileFields.createField({
         name: f.name,
         fieldType: f.fieldType,

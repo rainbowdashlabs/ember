@@ -103,7 +103,7 @@ import ProseContent from '@/components/display/ProseContent.vue'
       <SubHeader>Code Snippet</SubHeader>
       <p class="text-sm">Inline: <CodeSnippet>npm run build</CodeSnippet></p>
       <CodeSnippet block>const x = 42;
-console.log(x);</CodeSnippet>
+const doubled = x * 2;</CodeSnippet>
     </div>
     <div class="space-y-3">
       <SubHeader>Key Badge</SubHeader>

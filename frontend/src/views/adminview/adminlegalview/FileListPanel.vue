@@ -34,25 +34,35 @@ const renderedPreview = computed(() => {
 })
 
 function toggleEnabled(index: number) {
-  files.value[index] = {...files.value[index], enabled: !files.value[index].enabled}
+  const file = files.value[index]
+  if (!file) return
+  files.value[index] = {...file, enabled: !file.enabled}
+}
+
+function swap(index: number, otherIndex: number) {
+  const arr = [...files.value]
+  const current = arr[index]
+  const other = arr[otherIndex]
+  if (!current || !other) return
+  arr[index] = other
+  arr[otherIndex] = current
+  files.value = arr
 }
 
 function moveUp(index: number) {
   if (index <= 0) return
-  const arr = [...files.value]
-  ;[arr[index - 1], arr[index]] = [arr[index], arr[index - 1]]
-  files.value = arr
+  swap(index, index - 1)
 }
 
 function moveDown(index: number) {
   if (index >= files.value.length - 1) return
-  const arr = [...files.value]
-  ;[arr[index], arr[index + 1]] = [arr[index + 1], arr[index]]
-  files.value = arr
+  swap(index, index + 1)
 }
 
 function updateContent(index: number, value: string) {
-  files.value[index] = {...files.value[index], content: value}
+  const file = files.value[index]
+  if (!file) return
+  files.value[index] = {...file, content: value}
 }
 </script>
 

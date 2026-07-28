@@ -28,8 +28,9 @@ onMounted(async () => {
   if (!loaded.value) {
     await load()
   }
-  if (stationList.value.length === 1) {
-    selectStation(stationList.value[0].stationId)
+  const [onlyStation] = stationList.value
+  if (stationList.value.length === 1 && onlyStation) {
+    selectStation(onlyStation.stationId)
   }
 })
 </script>

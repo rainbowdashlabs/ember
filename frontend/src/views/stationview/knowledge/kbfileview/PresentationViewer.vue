@@ -10,6 +10,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import client from '@/api/client'
+import type {PDFDocumentLoadingTask, PDFDocumentProxy} from 'pdfjs-dist'
 
 const {t} = useI18n()
 const props = defineProps<{
@@ -25,7 +26,8 @@ const loading = ref(true)
 const errorMsg = ref('')
 const controlsVisible = ref(true)
 let hideTimeout: ReturnType<typeof setTimeout> | null = null
-let pdfDoc: any = null
+let pdfDoc: PDFDocumentProxy | null = null
+let loadingTask: PDFDocumentLoadingTask | null = null
 
 function showControls() {
   controlsVisible.value = true
@@ -45,7 +47,8 @@ async function loadPdf() {
     const pdfjsLib = await import('pdfjs-dist')
     pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.mjs', import.meta.url).href
     const res = await client.get<ArrayBuffer>(props.contentUrl, {responseType: 'arraybuffer'})
-    pdfDoc = (await pdfjsLib.getDocument({data: new Uint8Array(res.data)}).promise)
+    loadingTask = pdfjsLib.getDocument({data: new Uint8Array(res.data)})
+    pdfDoc = await loadingTask.promise
     totalPages.value = pdfDoc.numPages
     if (totalPages.value > 0) await renderPage(1)
   } catch (e) {
@@ -72,7 +75,7 @@ async function renderPage(num: number) {
   canvasEl.width = scaledViewport.width
   canvasEl.height = scaledViewport.height
   ctx.clearRect(0, 0, canvasEl.width, canvasEl.height)
-  await page.render({canvasContext: ctx, viewport: scaledViewport}).promise
+  await page.render({canvas: canvasEl, canvasContext: ctx, viewport: scaledViewport}).promise
   currentPage.value = num
 }
 
@@ -97,9 +100,11 @@ function handleClick(e: MouseEvent) {
 function handleMouseMove() { showControls() }
 
 let touchStartX = 0
-function handleTouchStart(e: TouchEvent) { touchStartX = e.touches[0].clientX; showControls() }
+function handleTouchStart(e: TouchEvent) { touchStartX = e.touches[0]?.clientX ?? 0; showControls() }
 function handleTouchEnd(e: TouchEvent) {
-  const dx = e.changedTouches[0].clientX - touchStartX
+  const endX = e.changedTouches[0]?.clientX
+  if (endX === undefined) return
+  const dx = endX - touchStartX
   if (Math.abs(dx) > 50) { dx < 0 ? nextPage() : prevPage() }
 }
 
@@ -110,7 +115,8 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('keydown', handleKeydown)
   if (hideTimeout) clearTimeout(hideTimeout)
-  pdfDoc?.destroy()
+  pdfDoc = null
+  loadingTask?.destroy()
 })
 </script>
 

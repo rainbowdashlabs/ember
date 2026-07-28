@@ -14,6 +14,7 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ReportMetadata from './ReportMetadata.vue'
 import RecentRequestsTable from './RecentRequestsTable.vue'
 import type {ProblemReport} from '@/api/problemReports'
+import type {RequestHistoryEntry} from '@/api/client'
 import {formatDateTime} from '@/util/format'
 
 const props = defineProps<{
@@ -29,7 +30,7 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-const recentRequests = computed(() => {
+const recentRequests = computed<RequestHistoryEntry[]>(() => {
   if (!props.report.recentRequests) return []
   try {
     return JSON.parse(props.report.recentRequests)

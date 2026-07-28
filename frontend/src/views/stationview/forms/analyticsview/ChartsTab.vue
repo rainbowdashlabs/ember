@@ -62,7 +62,7 @@ function buildRankingChart(q: FormQuestionAnalytics) {
   const scores = new Array(options.length).fill(0)
   for (const v of q.values) {
     const parsed = parseValue(v) as { order?: number[] }
-    if (parsed.order) { for (let rank = 0; rank < parsed.order.length; rank++) { scores[parsed.order[rank]] += (parsed.order.length - rank) } }
+    if (parsed.order) { for (const [rank, optionIndex] of parsed.order.entries()) { scores[optionIndex] += (parsed.order.length - rank) } }
   }
   return { tooltip: { trigger: 'axis' }, xAxis: { type: 'category', data: options }, yAxis: { type: 'value' }, series: [{ type: 'bar', data: scores, itemStyle: { color: '#3694FF' } }] }
 }

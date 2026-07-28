@@ -24,5 +24,5 @@ const patch = useConfigPatch(() => props.config, emit)
     <FieldLabel hint class="mb-1">{{ TS('codeLanguage') }}</FieldLabel>
     <TextInput :model-value="(config.language as string) ?? ''" placeholder="java, ts, …" @update:model-value="patch({language: $event})"/>
     <FieldLabel hint class="mb-1">{{ TS('codeContent') }}</FieldLabel>
-    <TextAreaInput :model-value="content" rows="8" @update:model-value="emit('update:content', $event ?? '')"/>
+    <TextAreaInput :model-value="content" :rows="8" @update:model-value="emit('update:content', $event ?? '')"/>
 </template>

@@ -55,7 +55,9 @@ const {running: creating, error: createError, run: createItem} = useAsyncAction(
 )
 
 const claim = useConfirmAction<number>({
-  onConfirm: (itemId) => lostAndFound.claimItem(itemId),
+  onConfirm: async (itemId) => {
+    await lostAndFound.claimItem(itemId)
+  },
   onSuccess: async () => {
     await reload()
     refreshSidebarCounts()

@@ -14,6 +14,7 @@ import DateInput from '@/components/input/datetime/DateInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import PublicConsentCheckbox from '@/components/public/PublicConsentCheckbox.vue'
 import {publicForms} from '@/api'
 import type {PublicForm, PublicFormQuestion} from '@/api/publicForms'
 import {QuestionTypes} from '@/api/forms'
@@ -36,6 +37,11 @@ const submitted = ref(false)
 const error = ref('')
 const form = ref<PublicForm | null>(null)
 const answers = ref<Record<number, Record<string, unknown>>>({})
+const consentAccepted = ref(false)
+const consentVersion = ref('')
+const privacyVersion = ref('')
+const tosVersion = ref('')
+const validationError = ref('')
 
 function initAnswerDefaults(questions: PublicFormQuestion[]) {
   answers.value = {}
@@ -80,7 +86,7 @@ function toggleChoice(q: PublicFormQuestion, optionIndex: number) {
   }
 }
 
-const {running: submitting, error: submitError, run: submit} = useAsyncAction(async () => {
+const {running: submitting, error: submitError, run: runSubmit} = useAsyncAction(async () => {
   if (!form.value || !props.stationUid || !props.formPublicUid) return
   const answerMap: Record<number, Record<string, unknown>> = {}
   for (const q of form.value.questions) {
@@ -88,7 +94,12 @@ const {running: submitting, error: submitError, run: submit} = useAsyncAction(as
     if (value === undefined) continue
     answerMap[q.id] = {type: q.questionType, ...value}
   }
-  await publicForms.submitPublicResponse(props.stationUid, props.formPublicUid, {answers: answerMap})
+  await publicForms.submitPublicResponse(props.stationUid, props.formPublicUid, {
+    answers: answerMap,
+    consentVersion: consentVersion.value,
+    privacyVersion: privacyVersion.value,
+    tosVersion: tosVersion.value,
+  })
   submitted.value = true
 }, {
   formatError: e => {
@@ -98,6 +109,15 @@ const {running: submitting, error: submitError, run: submit} = useAsyncAction(as
     return t('publicForm.submitError')
   },
 })
+
+function submit() {
+  if (!consentAccepted.value) {
+    validationError.value = t('publicConsent.required')
+    return
+  }
+  validationError.value = ''
+  void runSubmit()
+}
 
 onMounted(load)
 watch(() => [props.stationUid, props.formPublicUid], load)
@@ -120,7 +140,9 @@ watch(() => [props.stationUid, props.formPublicUid], load)
                 <MutedText v-if="form.description" tag="p" size="sm">{{ form.description }}</MutedText>
             </div>
 
-            <Alert v-if="error || submitError" variant="error">{{ error || submitError }}</Alert>
+            <Alert v-if="error || submitError || validationError" variant="error">
+                {{ error || submitError || validationError }}
+            </Alert>
 
             <template v-if="!submitted">
                 <div v-for="q in form.questions" :key="q.id" class="space-y-2">
@@ -145,7 +167,7 @@ watch(() => [props.stationUid, props.formPublicUid], load)
                             <template v-if="q.config.dropdown">
                                 <SelectInput
                                     :model-value="String((answers[q.id] as { selected: number[] })?.selected?.[0] ?? '')"
-                                    @update:model-value="(v: string | undefined) => toggleChoice(q, Number(v))">
+                                    @update:model-value="(v: string | number | null | undefined) => toggleChoice(q, Number(v))">
                                     <option value="">--</option>
                                     <option v-for="(opt, oi) in (q.config.options as string[])" :key="oi" :value="oi">
                                         {{ opt }}
@@ -172,6 +194,12 @@ watch(() => [props.stationUid, props.formPublicUid], load)
                         </div>
                     </template>
                 </div>
+
+                <PublicConsentCheckbox
+                    v-model:accepted="consentAccepted"
+                    v-model:consent-version="consentVersion"
+                    v-model:privacy-version="privacyVersion"
+                    v-model:tos-version="tosVersion"/>
 
                 <PrimaryButton :disabled="submitting" @click="submit">
                     {{ submitting ? t('publicForm.submitting') : t('publicForm.submit') }}

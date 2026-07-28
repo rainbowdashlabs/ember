@@ -17,6 +17,7 @@ const {t} = useI18n()
 
 function onReorder(fromIndex: number, toIndex: number) {
   const [moved] = columns.value.splice(fromIndex, 1)
+  if (!moved) return
   columns.value.splice(toIndex, 0, moved)
 }
 

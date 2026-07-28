@@ -95,11 +95,11 @@ function handleCsvUpload(event: Event) {
 }
 
 function parseCsv(text: string) {
-  const lines = text.split('\n').map(l => l.trim()).filter(l => l)
-  if (lines.length < 2) return
-  const separator = lines[0].includes(';') ? ';' : ','
-  csvColumns.value = lines[0].split(separator).map(c => c.trim().replace(/^"|"$/g, ''))
-  csvRows.value = lines.slice(1).map(l => l.split(separator).map(c => c.trim().replace(/^"|"$/g, '')))
+  const [header, ...rows] = text.split('\n').map(l => l.trim()).filter(l => l)
+  if (!header || rows.length === 0) return
+  const separator = header.includes(';') ? ';' : ','
+  csvColumns.value = header.split(separator).map(c => c.trim().replace(/^"|"$/g, ''))
+  csvRows.value = rows.map(l => l.split(separator).map(c => c.trim().replace(/^"|"$/g, '')))
 
   const mapping: Record<string, string> = {}
   const fieldNames = props.fieldDefs.map(f => f.name.toLowerCase())
@@ -110,8 +110,8 @@ function parseCsv(text: string) {
     else if (['endzeit', 'end_time', 'endtime', 'bis', 'ende', 'end'].includes(lower)) mapping[col] = '__endTime__'
     else if (['name', 'terminname', 'event_name', 'titel', 'title', 'bezeichnung'].includes(lower)) mapping[col] = '__name__'
     else {
-      const idx = fieldNames.indexOf(lower)
-      if (idx >= 0) mapping[col] = props.fieldDefs[idx].name
+      const match = props.fieldDefs[fieldNames.indexOf(lower)]
+      if (match) mapping[col] = match.name
     }
   }
   columnMapping.value = mapping
@@ -121,7 +121,7 @@ function parseCsv(text: string) {
   // Auto-detect date format
   const dateColName = Object.entries(mapping).find(([, v]) => v === '__date__')?.[0]
   if (dateColName && csvRows.value.length > 0) {
-    const sample = csvRows.value[0][csvColumns.value.indexOf(dateColName)]?.trim() ?? ''
+    const sample = csvRows.value[0]?.[csvColumns.value.indexOf(dateColName)]?.trim() ?? ''
     if (/^\d{2}\.\d{2}\.\d{4}$/.test(sample)) csvDateFormat.value = 'DD.MM.YYYY'
     else if (/^\d{4}-\d{2}-\d{2}$/.test(sample)) csvDateFormat.value = 'YYYY-MM-DD'
     else if (/^\d{2}\/\d{2}\/\d{4}$/.test(sample)) csvDateFormat.value = 'MM/DD/YYYY'
@@ -243,7 +243,7 @@ function applyCsvToRows() {
           <div v-for="col in csvColumns" :key="col" class="flex items-center gap-3">
             <span class="w-40 text-sm font-medium truncate">{{ col }}</span>
             <SelectInput :model-value="columnMapping[col] ?? ''"
-                         @update:model-value="columnMapping[col] = $event ?? ''" class="flex-1">
+                         @update:model-value="columnMapping[col] = String($event ?? '')" class="flex-1">
               <option value="">{{ t('batchCreate.unmapped') }}</option>
               <option value="__date__">{{ t('batchCreate.date') }}</option>
               <option value="__startTime__">{{ t('batchCreate.startTime') }}</option>

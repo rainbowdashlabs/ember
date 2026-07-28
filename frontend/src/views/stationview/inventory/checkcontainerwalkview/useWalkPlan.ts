@@ -61,7 +61,7 @@ export function useWalkPlan(options: WalkPlanOptions) {
       const node = stack.pop()!
       out.push(node)
       const children = childrenByParent.value.get(node.id) ?? []
-      for (let i = children.length - 1; i >= 0; i--) stack.push(children[i])
+      for (const child of [...children].reverse()) stack.push(child)
     }
     return out.filter(c => (rowsByContainer.value.get(c.id)?.length ?? 0) > 0)
   })

@@ -20,6 +20,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import {type StationUsageResponse, getStationUsage} from '@/api/storageMonitoring'
 import {buildStorageCategoryLabeler, formatBytes} from '@/util/storage'
 import {useConfigPanel} from '@/composables/useConfigPanel'
+import {errorMessage} from '@/util/apiError'
 
 use([CanvasRenderer, BarChart, TitleComponent, TooltipComponent, GridComponent])
 
@@ -32,7 +33,7 @@ const {config: usage, loading, error, reload: loadData} = useConfigPanel<Station
   initial: null,
   fetch: getStationUsage,
   immediate: false,
-  formatError: (e: any) => e?.message || 'Failed to load storage data',
+  formatError: (e) => errorMessage(e) || 'Failed to load storage data',
 })
 
 onMounted(() => {
@@ -56,6 +57,15 @@ function barColor(percent: number) {
 }
 
 const categoryLabel = buildStorageCategoryLabeler(t)
+
+function categoryQuota(category: string): number {
+  return usage.value?.categoryQuotas[category] ?? 0
+}
+
+function quotaPercent(category: string, totalBytes: number): number {
+  const quota = categoryQuota(category)
+  return quota ? totalBytes * 100 / quota : 0
+}
 
 const chartOption = computed(() => {
   if (!usage.value) return {}
@@ -140,11 +150,11 @@ const chartOption = computed(() => {
           <tr v-for="cat in usage.categories" :key="cat.category" class="border-b border-[var(--border)]">
             <td class="p-2 font-medium">{{ categoryLabel(cat.category) }}</td>
             <td class="text-right p-2">{{ formatBytes(cat.totalBytes) }}</td>
-            <td class="text-right p-2">{{ usage.categoryQuotas[cat.category] ? formatBytes(usage.categoryQuotas[cat.category]) : '—' }}</td>
+            <td class="text-right p-2">{{ categoryQuota(cat.category) ? formatBytes(categoryQuota(cat.category)) : '—' }}</td>
             <td class="text-right p-2">{{ cat.fileCount }}</td>
             <td class="p-2">
-              <div v-if="usage.categoryQuotas[cat.category]" class="bg-[var(--bg-muted)] rounded-full h-2 overflow-hidden">
-                <div :class="barColor(cat.totalBytes * 100 / usage.categoryQuotas[cat.category])" :style="{width: Math.min(100, cat.totalBytes * 100 / usage.categoryQuotas[cat.category]) + '%'}" class="h-full rounded-full"/>
+              <div v-if="categoryQuota(cat.category)" class="bg-[var(--bg-muted)] rounded-full h-2 overflow-hidden">
+                <div :class="barColor(quotaPercent(cat.category, cat.totalBytes))" :style="{width: Math.min(100, quotaPercent(cat.category, cat.totalBytes)) + '%'}" class="h-full rounded-full"/>
               </div>
               <span v-else class="text-xs text-[var(--text-muted)]">{{ t('storageMonitoring.trackedOnly') }}</span>
             </td>

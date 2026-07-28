@@ -40,7 +40,7 @@ function isMerged(target: string): boolean {
 }
 
 function isSplit(index: number): boolean {
-  return mappings.value[index].splitChar !== ''
+  return !!mappings.value[index]?.splitChar
 }
 
 function getSplitSiblings(csvColumn: string): number[] {
@@ -68,13 +68,16 @@ function previewTextFor(mapping: ColumnMapping, index: number): string {
 }
 
 function updateMapping(index: number, partial: Partial<ColumnMapping>) {
+  const current = mappings.value[index]
+  if (!current) return
   const updated = [...mappings.value]
-  updated[index] = { ...updated[index], ...partial }
+  updated[index] = { ...current, ...partial }
   mappings.value = updated
 }
 
 function splitColumn(index: number) {
   const m = mappings.value[index]
+  if (!m) return
   const updated = [...mappings.value]
   updated.splice(index, 1,
     { ...m, splitChar: ' ', splitIndex: 0, target: SKIP_TARGET },
@@ -85,25 +88,31 @@ function splitColumn(index: number) {
 
 function unsplitColumn(index: number) {
   const m = mappings.value[index]
+  if (!m) return
   const siblings = getSplitSiblings(m.csvColumn)
+  const first = siblings[0]
+  if (first === undefined) return
   const updated = [...mappings.value]
-  for (let i = siblings.length - 1; i >= 0; i--) {
-    updated.splice(siblings[i], 1)
+  for (const sibling of [...siblings].reverse()) {
+    updated.splice(sibling, 1)
   }
-  updated.splice(siblings[0], 0, createColumnMapping(m.csvColumn, SKIP_TARGET, m.mergeOrder))
+  updated.splice(first, 0, createColumnMapping(m.csvColumn, SKIP_TARGET, m.mergeOrder))
   mappings.value = updated
 }
 
 function addSplitPart(index: number) {
   const m = mappings.value[index]
+  if (!m) return
   const siblings = getSplitSiblings(m.csvColumn)
+  const last = siblings[siblings.length - 1]
+  if (last === undefined) return
   const newPart: ColumnMapping = {
     ...createColumnMapping(m.csvColumn, SKIP_TARGET, m.mergeOrder),
     splitChar: m.splitChar,
     splitIndex: siblings.length,
   }
   const updated = [...mappings.value]
-  updated.splice(siblings[siblings.length - 1] + 1, 0, newPart)
+  updated.splice(last + 1, 0, newPart)
   mappings.value = updated
 }
 
@@ -115,6 +124,7 @@ function updateSplitChar(csvColumn: string, char: string) {
 
 function openValueMapEditor(index: number) {
   const m = mappings.value[index]
+  if (!m) return
   const existing = Object.entries(m.valueMap || {})
   const colIdx = props.headers.indexOf(m.csvColumn)
   editingValueMapEntries.value = existing.length > 0

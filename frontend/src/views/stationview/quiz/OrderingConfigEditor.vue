@@ -42,10 +42,11 @@ function updateOrderingItem(idx: number, value: string) {
 function moveOrderingItem(idx: number, direction: -1 | 1) {
   const items = [...((config.value.items as string[]) || [])]
   const newIdx = idx + direction
-  if (newIdx < 0 || newIdx >= items.length) return
-  const temp = items[idx]
-  items[idx] = items[newIdx]
-  items[newIdx] = temp
+  const current = items[idx]
+  const target = items[newIdx]
+  if (current === undefined || target === undefined) return
+  items[idx] = target
+  items[newIdx] = current
   updateConfig({ items })
 }
 </script>

@@ -20,6 +20,7 @@ import PublicSlugPanel from './federationsettingsview/PublicSlugPanel.vue'
 import {stationManage} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useFlashMessage} from '@/composables/useFlashMessage'
+import {apiErrorMessage} from '@/util/apiError'
 
 const {t} = useI18n()
 const {loaded} = useSession()
@@ -96,8 +97,8 @@ async function save() {
       publicSlug: publicSlug.value || null,
     })
     flashSaved(t('common.saved'))
-  } catch (e: any) {
-    const msg = e?.response?.data?.message
+  } catch (e) {
+    const msg = apiErrorMessage(e)
     if (msg === 'Slug is already in use') {
       error.value = t('stationManage.publicSlug.taken')
     } else {

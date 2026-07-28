@@ -7,11 +7,12 @@
 import PageFilesSidebar from './PageFilesSidebar.vue'
 import ContentArea from './ContentArea.vue'
 import type {PageFile, PageFileFolder, PageFileListing, PageFileTag} from '@/api/pageManage'
+import type {FolderTreeNode} from './usePageFileFolderTree'
 
 const search = defineModel<string>('search', {required: true})
 
 const props = defineProps<{
-  folderTree: Array<PageFileFolder & {children: PageFileFolder[]}>
+  folderTree: FolderTreeNode[]
   tags: PageFileTag[]
   activeFolder: number | null
   activeTagFilter: number | null

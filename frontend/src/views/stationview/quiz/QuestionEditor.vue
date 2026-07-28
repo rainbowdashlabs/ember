@@ -111,9 +111,9 @@ watch(calculatedPoints, (val) => {
   }
 })
 
-function onTypeChange(val: QuizQuestionTypeName | string | undefined) {
+function onTypeChange(val: string | number | null | undefined) {
   if (!val) return
-  questionType.value = val as QuizQuestionTypeName
+  questionType.value = String(val) as QuizQuestionTypeName
 }
 </script>
 

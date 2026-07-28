@@ -24,7 +24,7 @@ const {t} = useI18n()
   <div class="flex flex-wrap items-center gap-2 text-xs">
     <SelectInput :model-value="activeFolder === null ? '' : String(activeFolder)"
                  class="!px-2 !py-1"
-                 @update:model-value="(v: string) => activeFolder = v ? +v : null">
+                 @update:model-value="(v: string | number | null | undefined) => activeFolder = v ? +v : null">
       <option value="">{{ t('stationPages.editor.allFiles') }}</option>
       <option v-for="f in props.folders" :key="f.id" :value="f.id">{{ f.name }}</option>
     </SelectInput>

@@ -10,13 +10,17 @@ import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
+import { useConfirmAction } from '@/composables/useConfirmAction'
 import type { InventoryItem } from '@/api/inventory'
-import type { CheckResult, MemberCheckState, RequiredInventoryItem } from '@/api/inventoryCheck'
+import type { CheckItemResult, CheckResult, MemberCheckState, RequiredInventoryItem } from '@/api/inventoryCheck'
 import { inventoryCheck, procurement } from '@/api'
 import { useConfigPanel } from '@/composables/useConfigPanel'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import type { CheckEntry } from './checkmemberview/RapidCheckMode.vue'
 import CheckMemberBody from './checkmemberview/CheckMemberBody.vue'
+import { apiErrorStatus } from '@/util/apiError'
+import { reportCaughtError } from '@/util/devErrorReporter'
 
 const bodyRef = ref<InstanceType<typeof CheckMemberBody> | null>(null)
 
@@ -29,7 +33,7 @@ const teamOnly = computed(() => route.query.teamOnly === 'true')
 const {config: state, loading, error, reload: loadData} = useConfigPanel<MemberCheckState | null>({
   initial: null,
   fetch: () => inventoryCheck.startCheck(memberId.value),
-  formatError: (e: any) => e?.response?.status === 409 ? t('inventory.check.locked') : t('common.error'),
+  formatError: (e) => apiErrorStatus(e) === 409 ? t('inventory.check.locked') : t('common.error'),
 })
 
 const itemResults = ref<Map<number, CheckResult>>(new Map())
@@ -201,8 +205,12 @@ async function changeItem(currentItemId: number, _inventoryId: number) {
   }
 }
 
-async function unassignItem(itemId: number) {
-  if (!confirm(t('inventory.check.unassignConfirm'))) return
+const unassign = useConfirmAction<number>({
+  onConfirm: itemId => runUnassign(itemId),
+  error,
+})
+
+async function runUnassign(itemId: number) {
   error.value = ''
   try {
     itemResults.value.delete(itemId)
@@ -261,7 +269,8 @@ async function createProcurementForItem(item: InventoryItem) {
       notes: itemNotes.value.get(item.id) || undefined,
     })
     procurementCreated.value = new Set([...procurementCreated.value, item.id])
-  } catch {
+  } catch (e) {
+    reportCaughtError(e, 'procurement creation during member check')
   }
 }
 
@@ -269,7 +278,7 @@ const {running: submitting, run: submit} = useAsyncAction(async () => {
   if (!state.value || !allMarked.value) return
   error.value = ''
   try {
-    const items: import('@/api/types').CheckItemResult[] = state.value.assigned.map(item => ({
+    const items: CheckItemResult[] = state.value.assigned.map(item => ({
       itemId: item.id,
       result: itemResults.value.get(item.id)!,
       note: itemNotes.value.get(item.id) ?? '',
@@ -305,7 +314,8 @@ const {running: submitting, run: submit} = useAsyncAction(async () => {
 async function cancel() {
   try {
     await inventoryCheck.cancelCheck(memberId.value)
-  } catch {
+  } catch (e) {
+    reportCaughtError(e, 'member check cancellation')
   }
   router.push({ name: 'inventory-checks' })
 }
@@ -361,7 +371,7 @@ function itemLabel(item: InventoryItem, req: RequiredInventoryItem): string {
         @rapid-done="checkMode = false"
         @set-result="setResult"
         @set-note="setNote"
-        @unassign="unassignItem"
+        @unassign="unassign.request"
         @create-procurement="createProcurementForItem"
         @change-item="changeItem"
         @create-and-change="createAndChangeItem"
@@ -371,5 +381,10 @@ function itemLabel(item: InventoryItem, req: RequiredInventoryItem): string {
         @update-selection="updateSelection"
       />
     </div>
+    <ConfirmDeleteModal
+      v-model="unassign.show.value"
+      :message="t('inventory.check.unassignConfirm')"
+      @confirm="unassign.confirm"
+    />
   </ViewContent>
 </template>

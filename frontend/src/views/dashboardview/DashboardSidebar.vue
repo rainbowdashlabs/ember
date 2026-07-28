@@ -68,6 +68,7 @@ function close() {
                 @update:open-group="v => emit('update:openGroup', v)"
                 :icon="['fas', 'map-location-dot']"
                 :label="t('sidebar.stationMoved')"
+                prefix="/station/moved"
                 to="/station/moved"
                 name="station-moved"
                 @navigate="close"/>
@@ -77,6 +78,7 @@ function close() {
                 @update:open-group="v => emit('update:openGroup', v)"
                 :icon="['fas', 'trash']"
                 :label="t('pages.station-moved.tabDelete')"
+                prefix="/station/moved/delete"
                 to="/station/moved/delete"
                 name="station-moved-delete"
                 @navigate="close"/>

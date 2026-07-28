@@ -5,7 +5,7 @@
  */
 import {reactive, watch} from 'vue'
 import {events} from '@/api'
-import type {EventFieldEntry, EventTemplateDetail} from '@/api/events'
+import type {EventField, EventFieldEntry, EventTemplateDetail, StationEvent} from '@/api/events'
 import {EventTypes, needsDayOfWeek} from '@/api/events'
 import {createEventFormState} from './eventFormState'
 import {modelBindings} from './modelBindings'
@@ -56,13 +56,7 @@ export function useEventForm() {
     }
   }
 
-  async function loadEvent(id: number) {
-    const [ev, restrictions, fields] = await Promise.all([
-      events.getEvent(id),
-      events.getRestrictions(id),
-      events.getEventFields(id),
-    ])
-
+  function applyEventFields(fields: EventField[]) {
     state.fields = fields.map(f => ({
       name: f.name ?? '',
       fieldType: f.fieldType ?? 'STRING',
@@ -71,7 +65,9 @@ export function useEventForm() {
       overview: f.overview ?? false,
       attendanceFieldId: f.attendanceFieldId ?? null,
     }))
+  }
 
+  function applyEvent(ev: StationEvent) {
     state.name = ev.name ?? ''
     state.description = ev.description ?? ''
     state.eventType = ev.eventType ?? EventTypes.RECURRING
@@ -89,6 +85,17 @@ export function useEventForm() {
     state.hasThreshold = !!ev.thresholdDate
     state.thresholdDate = ev.thresholdDate ? toLocalDateTime(ev.thresholdDate) : ''
     state.registrationCloseDays = ev.registrationCloseDays ?? undefined
+  }
+
+  async function loadEvent(id: number) {
+    const [ev, restrictions, fields] = await Promise.all([
+      events.getEvent(id),
+      events.getRestrictions(id),
+      events.getEventFields(id),
+    ])
+
+    applyEventFields(fields)
+    applyEvent(ev)
 
     state.restriction = {
       userTypes: restrictions.userTypes ?? [],

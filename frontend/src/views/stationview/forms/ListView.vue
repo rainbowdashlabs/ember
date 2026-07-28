@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useConfirmAction } from '@/composables/useConfirmAction'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -39,7 +39,16 @@ const props = defineProps<{
 
 const { t } = useI18n()
 const router = useRouter()
+const route = useRoute()
 const { hasPermission, loaded } = useSession()
+
+/**
+ * Three routes render this view — the general forms list and the page-editor's contact-form and
+ * poll surfaces — so the header title has to follow the route rather than being fixed to the
+ * general one. Each route owns a {@code pages.<route-name>} entry.
+ */
+const pageTitle = computed(() => t(`pages.${String(route.name)}.title`))
+const pageSubtitle = computed(() => t(`pages.${String(route.name)}.subtitle`))
 const canViewResults = computed(() => hasPermission(StationPermission.POLL_VIEW_RESULTS))
 const canCreatePolls = computed(() => hasPermission(StationPermission.POLL_CREATE))
 const showAvailable = computed(() => props.showAvailableSection ?? true)
@@ -137,8 +146,8 @@ watch(loaded, (isLoaded) => {
 
 <template>
   <ViewContent
-      :title="t('pages.forms-list.title')"
-      :subtitle="t('pages.forms-list.subtitle')"
+      :title="pageTitle"
+      :subtitle="pageSubtitle"
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg" />

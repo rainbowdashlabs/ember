@@ -91,7 +91,7 @@ async function save() {
     for (let i = 0; i < columns.value.length; i++) {
       const before = props.entry.columns[i]
       const after = columns.value[i]
-      if (before && before.verified !== after.verified) overrides[after.name] = after.verified
+      if (before && after && before.verified !== after.verified) overrides[after.name] = after.verified
     }
     const updated = await dataTracking.updateDataTrackingTable(props.name, {
       columnVerified: Object.keys(overrides).length > 0 ? overrides : undefined,

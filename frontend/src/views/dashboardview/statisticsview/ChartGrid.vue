@@ -5,14 +5,15 @@
  */
 <script setup lang="ts">
 import VChart from 'vue-echarts'
+import type {EChartsCoreOption} from 'echarts/core'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 
 const props = defineProps<{
-  groupPieOption: object
-  sessionsLineOption: object
-  attendanceBarOption: object
-  inventoryBarOption: object
-  registrationBarOption: object
+  groupPieOption: EChartsCoreOption
+  sessionsLineOption: EChartsCoreOption
+  attendanceBarOption: EChartsCoreOption
+  inventoryBarOption: EChartsCoreOption
+  registrationBarOption: EChartsCoreOption
   showRegistrations: boolean
 }>()
 </script>

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {ref, type Ref} from 'vue'
-import {useI18n} from 'vue-i18n'
+import {useConfirmAction} from '@/composables/useConfirmAction'
 import {
     createPageFolder,
     deletePageFolder,
@@ -15,14 +15,15 @@ import {
 /**
  * Create / rename / delete flow for file folders, including the modal state the folder dialog
  * binds to.
+ *
+ * <p>Deletion is a request-then-confirm pair rather than a single call: `removeFolder` opens the
+ * confirmation and `confirmRemoveFolder` performs it, so the view can render the styled modal.
  */
 export function usePageFileFolderForm(
     activeFolder: Ref<number | null>,
     reloadFolders: () => Promise<void>,
     reload: () => Promise<void>,
 ) {
-    const {t} = useI18n()
-
     const folderModalOpen = ref(false)
     const folderName = ref('')
     const folderParent = ref<number | null>(null)
@@ -54,12 +55,13 @@ export function usePageFileFolderForm(
         await reloadFolders()
     }
 
-    async function removeFolder(f: PageFileFolder) {
-        if (!confirm(t('stationPages.editor.folderDeletePrompt', {name: f.name}))) return
-        await deletePageFolder(f.id)
-        if (activeFolder.value === f.id) activeFolder.value = f.parentId ?? null
-        await reload()
-    }
+    const deleteFolder = useConfirmAction<PageFileFolder>({
+        onConfirm: async f => {
+            await deletePageFolder(f.id)
+            if (activeFolder.value === f.id) activeFolder.value = f.parentId ?? null
+        },
+        onSuccess: () => reload(),
+    })
 
     return {
         folderModalOpen,
@@ -69,6 +71,9 @@ export function usePageFileFolderForm(
         openFolderModal,
         openFolderEdit,
         saveFolder,
-        removeFolder,
+        removeFolder: deleteFolder.request,
+        showDeleteFolder: deleteFolder.show,
+        deleteFolderTarget: deleteFolder.target,
+        confirmRemoveFolder: deleteFolder.confirm,
     }
 }

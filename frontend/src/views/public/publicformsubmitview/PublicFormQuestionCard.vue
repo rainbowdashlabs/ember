@@ -55,15 +55,15 @@ function choiceAnswer(): ChoiceAnswer {
       <template v-if="question.questionType === QuestionTypes.TEXT">
         <TextAreaInput v-if="question.config.longAnswer"
                        :model-value="textValue()"
-                       @update:model-value="(v: string) => emit('update:text', v)"/>
+                       @update:model-value="(v?: string) => emit('update:text', v ?? '')"/>
         <TextInput v-else
                    :model-value="textValue()"
-                   @update:model-value="(v: string) => emit('update:text', v)"/>
+                   @update:model-value="(v?: string) => emit('update:text', v ?? '')"/>
       </template>
 
       <template v-if="question.questionType === QuestionTypes.DATE">
         <DateInput :model-value="dateValue()"
-                   @update:model-value="(v: string) => emit('update:date', v)"/>
+                   @update:model-value="(v?: string) => emit('update:date', v ?? '')"/>
       </template>
 
       <template v-if="question.questionType === QuestionTypes.CHOICE">

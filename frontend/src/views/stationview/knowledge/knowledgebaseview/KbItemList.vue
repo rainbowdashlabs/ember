@@ -41,7 +41,7 @@ const emit = defineEmits<{
     navigateToFavourites: []
 }>()
 
-function fileTypeLabel(file: KbFile): string {
+function fileTypeLabel(file: {fileType?: string}): string {
     switch (file.fileType) {
         case KbFileType.MARKDOWN:
             return 'Markdown'

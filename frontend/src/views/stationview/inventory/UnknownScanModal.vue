@@ -20,6 +20,7 @@ import type {Inventory, InventoryItem, InventorySize} from '@/api/inventory'
 import {InventoryTypes, ItemSource} from '@/api/inventory'
 import type {InventoryFieldDefinition} from '@/api/inventoryFields'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {apiErrorMessage} from '@/util/apiError'
 
 const props = defineProps<{
   scannedCode: string
@@ -81,11 +82,12 @@ async function load() {
   error.value = ''
   try {
     inventories.value = await inventory.listInventories()
-    if (inventories.value.length > 0) {
-      targetInventoryId.value = inventories.value[0].id
+    const first = inventories.value[0]
+    if (first) {
+      targetInventoryId.value = first.id
     }
-  } catch (e: any) {
-    error.value = e?.response?.data?.message ?? t('inventory.unknownScan.errors.loadFailed')
+  } catch (e) {
+    error.value = apiErrorMessage(e) ?? t('inventory.unknownScan.errors.loadFailed')
   } finally {
     loading.value = false
   }
@@ -218,7 +220,7 @@ const {running: submitting, error: submitError, run: runSubmit} = useAsyncAction
     metadata: buildMetadata(),
   })
   emit('created', item)
-}, {formatError: (e: any) => e?.response?.data?.message ?? t('inventory.unknownScan.errors.createFailed')})
+}, {formatError: (e) => apiErrorMessage(e) ?? t('inventory.unknownScan.errors.createFailed')})
 
 async function submit() {
   const validation = validate()

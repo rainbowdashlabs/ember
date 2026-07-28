@@ -50,7 +50,7 @@ const {t} = useI18n()
         <TextInput
             :model-value="props.name"
             :placeholder="t('attendanceConfig.namePlaceholder')"
-            @update:model-value="(v: string) => emit('update:name', v)"
+            @update:model-value="(v: string | undefined) => emit('update:name', v ?? '')"
         />
       </div>
       <SaveButton :disabled="!props.name" :action="props.saveTemplate">

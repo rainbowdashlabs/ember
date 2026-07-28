@@ -54,7 +54,9 @@ function shuffle<T>(array: T[]): T[] {
   const result = [...array]
   for (let i = result.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
-    ;[result[i], result[j]] = [result[j], result[i]]
+    const current = result[i]!
+    result[i] = result[j]!
+    result[j] = current
   }
   return result
 }
@@ -92,6 +94,7 @@ function resetUserInput() {
 function reorderItems(fromIndex: number, toIndex: number) {
   const order = [...userOrderItems.value]
   const [moved] = order.splice(fromIndex, 1)
+  if (moved === undefined) return
   order.splice(toIndex, 0, moved)
   userOrderItems.value = order
 }
@@ -99,10 +102,11 @@ function reorderItems(fromIndex: number, toIndex: number) {
 function moveOrderItem(index: number, direction: -1 | 1) {
   const order = [...userOrderItems.value]
   const newIdx = index + direction
-  if (newIdx < 0 || newIdx >= order.length) return
-  const temp = order[index]
-  order[index] = order[newIdx]
-  order[newIdx] = temp
+  const current = order[index]
+  const target = order[newIdx]
+  if (current === undefined || target === undefined) return
+  order[index] = target
+  order[newIdx] = current
   userOrderItems.value = order
 }
 
@@ -129,10 +133,12 @@ async function startTraining() {
       loading.value = false
       return
     }
-    questions.value = shuffle(allQuestions)
+    const shuffled = shuffle(allQuestions)
+    questions.value = shuffled
     currentIndex.value = 0
     resetUserInput()
-    initQuestionState(questions.value[0])
+    const first = shuffled[0]
+    if (first) initQuestionState(first)
     phase.value = 'training'
   } catch {
     error.value = t('common.error')
@@ -148,7 +154,8 @@ function revealAndNext() {
     if (currentIndex.value < questions.value.length - 1) {
       currentIndex.value++
       resetUserInput()
-      initQuestionState(questions.value[currentIndex.value])
+      const next = questions.value[currentIndex.value]
+      if (next) initQuestionState(next)
     } else {
       phase.value = 'finished'
     }

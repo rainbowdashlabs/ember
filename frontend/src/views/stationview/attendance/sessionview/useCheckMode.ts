@@ -16,8 +16,8 @@ export function useCheckMode(
   const uncheckedEntries = computed(() => entries.value.filter(e => e.status === 'UNCONFIRMED'))
 
   const currentCheckEntry = computed(() => {
-    if (!checkMode.value || checkIndex.value >= uncheckedEntries.value.length) return null
-    return uncheckedEntries.value[checkIndex.value]
+    if (!checkMode.value) return null
+    return uncheckedEntries.value[checkIndex.value] ?? null
   })
 
   function startCheckMode() {

@@ -20,6 +20,7 @@ import {twoFactorAdmin} from '@/api'
 import type {MemberStatus, TwoFactorPolicy} from '@/api/twoFactorAdmin'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
+import {apiErrorMessage} from '@/util/apiError'
 
 const {t} = useI18n()
 const {hasPermission, loaded} = useSession()
@@ -58,8 +59,8 @@ async function load() {
     userTypes.value = t
     policies.value = p
     members.value = m
-  } catch (e: any) {
-    error.value = e?.response?.data?.message || t('common.error')
+  } catch (e) {
+    error.value = apiErrorMessage(e) || t('common.error')
   }
   loading.value = false
 }
@@ -74,8 +75,8 @@ async function togglePolicy(userType: string) {
       await twoFactorAdmin.upsertStationPolicy(userType, true)
     }
     await load()
-  } catch (e: any) {
-    error.value = e?.response?.data?.message || t('common.error')
+  } catch (e) {
+    error.value = apiErrorMessage(e) || t('common.error')
   }
   saving.value = null
 }
@@ -100,8 +101,8 @@ async function confirmReset() {
     await twoFactorAdmin.resetAccount2FAByStationAdmin(resetTarget.value.accountId)
     resetTarget.value = null
     await load()
-  } catch (e: any) {
-    error.value = e?.response?.data?.message || t('common.error')
+  } catch (e) {
+    error.value = apiErrorMessage(e) || t('common.error')
   }
   resetLoading.value = false
 }

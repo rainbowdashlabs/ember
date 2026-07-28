@@ -26,8 +26,16 @@ import {
     probeInstanceBackend,
     probeInstanceBackendConfig,
 } from '@/api/storageBackend'
+import {
+    newS3,
+    newSftp,
+    newSmb,
+    s3FormFrom,
+    sftpFormFrom,
+    smbFormFrom,
+} from '@/util/storageBackendForm'
+import StorageBackendForm from '@/components/storage/StorageBackendForm.vue'
 import BackendSummaryCard from './adminstoragebackendview/BackendSummaryCard.vue'
-import BackendForm from './adminstoragebackendview/BackendForm.vue'
 import BackendApplyConfirmModal from './adminstoragebackendview/BackendApplyConfirmModal.vue'
 
 const {t} = useI18n()
@@ -89,41 +97,11 @@ function seedFormFromBackend() {
     if (summary.type === 'LOCAL') {
         localRoot.value = summary.root || 'data'
     } else if (summary.type === 'S3') {
-        s3.value = {
-            type: 'S3',
-            endpoint: summary.endpoint,
-            region: summary.region,
-            bucket: summary.bucket,
-            pathStyle: summary.pathStyle,
-            sseAlgorithm: summary.sseAlgorithm ?? '',
-            basePath: summary.basePath,
-            accessKey: '',
-            secretKey: '',
-        }
+        s3.value = s3FormFrom(summary)
     } else if (summary.type === 'SMB') {
-        smb.value = {
-            type: 'SMB',
-            host: summary.host,
-            port: summary.port,
-            share: summary.share,
-            domain: '',
-            basePath: summary.basePath,
-            seal: summary.seal,
-            dfs: summary.dfs,
-            username: '',
-            password: '',
-        }
+        smb.value = smbFormFrom(summary)
     } else if (summary.type === 'SFTP') {
-        sftp.value = {
-            type: 'SFTP',
-            host: summary.host,
-            port: summary.port,
-            username: summary.username,
-            knownHostsFingerprint: '',
-            basePath: summary.basePath,
-            password: '',
-            privateKey: '',
-        }
+        sftp.value = sftpFormFrom(summary)
     }
 }
 
@@ -174,47 +152,6 @@ const {running: saving, error: applyError, run: runApply} = useAsyncAction(async
 
 const error = computed(() => loadError.value || applyError.value)
 
-function newS3(): S3Request {
-    return {
-        type: 'S3',
-        endpoint: '',
-        region: '',
-        bucket: '',
-        pathStyle: false,
-        sseAlgorithm: '',
-        basePath: '',
-        accessKey: '',
-        secretKey: '',
-    }
-}
-
-function newSmb(): SmbRequest {
-    return {
-        type: 'SMB',
-        host: '',
-        port: 445,
-        share: '',
-        domain: '',
-        basePath: '',
-        seal: true,
-        dfs: false,
-        username: '',
-        password: '',
-    }
-}
-
-function newSftp(): SftpRequest {
-    return {
-        type: 'SFTP',
-        host: '',
-        port: 22,
-        username: '',
-        knownHostsFingerprint: '',
-        basePath: '',
-        password: '',
-        privateKey: '',
-    }
-}
 </script>
 
 <template>
@@ -245,15 +182,16 @@ function newSftp(): SftpRequest {
                     :probing-live="probingLive"
                     :probe-outcome="probeOutcome"
                     @probe="probeLive"/>
-                <BackendForm
+                <StorageBackendForm
                     v-model:selected-type="selectedType"
                     v-model:local-root="localRoot"
                     v-model:s3="s3"
                     v-model:smb="smb"
                     v-model:sftp="sftp"
-                    :probing-config="probingConfig"
+                    i18n-prefix="adminStorageBackend"
+                    :probing="probingConfig"
                     :saving="saving"
-                    @probe="probeConfig"
+                    @probe-config="probeConfig"
                     @apply="confirmApply = true"/>
             </template>
         </div>

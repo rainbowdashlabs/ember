@@ -97,18 +97,26 @@ async function saveCategory() {
   }
 }
 
+function withSwapped(ids: number[], first: number, second: number): number[] {
+  const a = ids[first]
+  const b = ids[second]
+  if (a === undefined || b === undefined) return ids
+  const next = [...ids]
+  next[first] = b
+  next[second] = a
+  return next
+}
+
 async function moveUp(index: number) {
   if (index <= 0) return
   const ids = categories.value.map(c => c.id)
-  ;[ids[index - 1], ids[index]] = [ids[index], ids[index - 1]]
-  categories.value = await events.reorderCategories(ids)
+  categories.value = await events.reorderCategories(withSwapped(ids, index - 1, index))
 }
 
 async function moveDown(index: number) {
   if (index >= categories.value.length - 1) return
   const ids = categories.value.map(c => c.id)
-  ;[ids[index], ids[index + 1]] = [ids[index + 1], ids[index]]
-  categories.value = await events.reorderCategories(ids)
+  categories.value = await events.reorderCategories(withSwapped(ids, index, index + 1))
 }
 </script>
 

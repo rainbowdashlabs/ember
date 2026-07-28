@@ -185,60 +185,53 @@ interface MultiDayBar {
   startIso: string
 }
 
-function buildMultiDayBars(weekDays: DayCell[]): MultiDayBar[] {
-  if (weekDays.length === 0) return []
-  const weekStart = weekDays[0].iso
-  const weekEnd = weekDays[6].iso
-  const bars: MultiDayBar[] = []
-
-  const pushBar = (ev: StationEvent, startIso: string, endIso: string) => {
-    if (endIso < weekStart || startIso > weekEnd) return
-    const clampStart = startIso < weekStart ? weekStart : startIso
-    const clampEnd = endIso > weekEnd ? weekEnd : endIso
-    const startCol = weekDays.findIndex(c => c.iso === clampStart) + 1
-    const endCol = weekDays.findIndex(c => c.iso === clampEnd) + 1
-    if (startCol < 1 || endCol < 1) return
-    const blocked = weekDays.slice(startCol - 1, endCol).every(c => {
-      return props.eventBreaks.some(
-          b => b.startDate && b.endDate && c.iso >= b.startDate && c.iso <= b.endDate)
-    })
-    if (blocked) return
-    bars.push({
-      event: ev,
-      startCol,
-      endCol,
-      lane: 0,
-      continuesLeft: startIso < weekStart,
-      continuesRight: endIso > weekEnd,
-      startIso,
-    })
+function clampedBar(
+    weekDays: DayCell[],
+    weekStart: string,
+    weekEnd: string,
+    ev: StationEvent,
+    startIso: string,
+    endIso: string,
+): MultiDayBar | null {
+  if (endIso < weekStart || startIso > weekEnd) return null
+  const clampStart = startIso < weekStart ? weekStart : startIso
+  const clampEnd = endIso > weekEnd ? weekEnd : endIso
+  const startCol = weekDays.findIndex(c => c.iso === clampStart) + 1
+  const endCol = weekDays.findIndex(c => c.iso === clampEnd) + 1
+  if (startCol < 1 || endCol < 1) return null
+  const blocked = weekDays.slice(startCol - 1, endCol).every(c => {
+    return props.eventBreaks.some(
+        b => b.startDate && b.endDate && c.iso >= b.startDate && c.iso <= b.endDate)
+  })
+  if (blocked) return null
+  return {
+    event: ev,
+    startCol,
+    endCol,
+    lane: 0,
+    continuesLeft: startIso < weekStart,
+    continuesRight: endIso > weekEnd,
+    startIso,
   }
+}
 
-  for (const ev of props.allEvents) {
-    if (!isRelevant(ev.id) || !matchesFilters(ev)) continue
-    const dur = eventDayDuration(ev)
-    if (dur < 1) continue
-
-    if (ev.eventType === EventTypes.ONE_TIME) {
-      if (!ev.startTime) continue
-      const startIso = new Date(ev.startTime).toISOString().slice(0, 10)
-      pushBar(ev, startIso, addDays(startIso, dur))
-      continue
-    }
-    if (!isRecurringEvent(ev.eventType)) continue
-    const iterFrom = addDays(weekStart, -dur)
-    const iterTo = weekEnd
-    let cursor = new Date(iterFrom + 'T12:00:00')
-    const stop = new Date(iterTo + 'T12:00:00')
-    while (cursor.getTime() <= stop.getTime()) {
-      if (recurringOccurrenceStartsOn(ev, cursor)) {
-        const startIso = isoDate(cursor)
-        pushBar(ev, startIso, addDays(startIso, dur))
-      }
-      cursor = new Date(cursor.getTime() + 24 * 3600 * 1000)
-    }
+function barStartDates(ev: StationEvent, weekStart: string, weekEnd: string, dur: number): string[] {
+  if (ev.eventType === EventTypes.ONE_TIME) {
+    if (!ev.startTime) return []
+    return [new Date(ev.startTime).toISOString().slice(0, 10)]
   }
+  if (!isRecurringEvent(ev.eventType)) return []
+  const starts: string[] = []
+  let cursor = new Date(addDays(weekStart, -dur) + 'T12:00:00')
+  const stop = new Date(weekEnd + 'T12:00:00')
+  while (cursor.getTime() <= stop.getTime()) {
+    if (recurringOccurrenceStartsOn(ev, cursor)) starts.push(isoDate(cursor))
+    cursor = new Date(cursor.getTime() + 24 * 3600 * 1000)
+  }
+  return starts
+}
 
+function assignLanes(bars: MultiDayBar[]) {
   bars.sort((a, b) => a.startCol - b.startCol || a.endCol - b.endCol)
   const laneEnds: number[] = []
   for (const bar of bars) {
@@ -247,6 +240,25 @@ function buildMultiDayBars(weekDays: DayCell[]): MultiDayBar[] {
     laneEnds[lane] = bar.endCol
     bar.lane = lane
   }
+}
+
+function buildMultiDayBars(weekDays: DayCell[]): MultiDayBar[] {
+  const weekStart = weekDays[0]?.iso
+  const weekEnd = weekDays[weekDays.length - 1]?.iso
+  if (!weekStart || !weekEnd) return []
+  const bars: MultiDayBar[] = []
+
+  for (const ev of props.allEvents) {
+    if (!isRelevant(ev.id) || !matchesFilters(ev)) continue
+    const dur = eventDayDuration(ev)
+    if (dur < 1) continue
+    for (const startIso of barStartDates(ev, weekStart, weekEnd, dur)) {
+      const bar = clampedBar(weekDays, weekStart, weekEnd, ev, startIso, addDays(startIso, dur))
+      if (bar) bars.push(bar)
+    }
+  }
+
+  assignLanes(bars)
   return bars
 }
 

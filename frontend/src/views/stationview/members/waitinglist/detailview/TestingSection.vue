@@ -65,7 +65,7 @@ function entryFullName(item: WaitingListEntryWithScore): string {
           <template v-if="item.guardians && item.guardians.length > 0">
             <span class="text-xs font-semibold uppercase text-(--text-muted)">{{ t('waitingList.guardians') }}</span>
             <div v-for="g in item.guardians" :key="g.id" class="text-sm flex flex-col">
-              <span class="font-medium">{{ g.name || '-' }}</span>
+              <span class="font-medium">{{ `${g.firstname} ${g.lastname}`.trim() || '-' }}</span>
               <span class="text-(--text-muted)">{{ g.email }}{{ g.phone ? ` · ${g.phone}` : '' }}</span>
             </div>
           </template>

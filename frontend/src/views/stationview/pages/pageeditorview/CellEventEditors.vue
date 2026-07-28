@@ -79,7 +79,7 @@ async function onFeaturedEventPick(eventUid: string) {
             mode="ALL"
             :station-uid="stationUid"
             @pick="(item: {eventUid: string}) => onFeaturedEventPick(item.eventUid)"
-            @update:model-value="(v: string | null) => patch({eventUid: v})"
+            @update:model-value="(v: string | null | undefined) => patch({eventUid: v ?? null})"
         />
         <FieldLabel hint class="mb-1">{{ TS('eventDescription') }}</FieldLabel>
         <MarkdownFieldInput
@@ -131,7 +131,7 @@ async function onFeaturedEventPick(eventUid: string) {
             mode="PAST"
             :station-uid="stationUid"
             @pick="(item: {eventUid: string}) => patch({eventUid: item.eventUid})"
-            @update:model-value="(v: string | null) => patch({eventUid: v})"
+            @update:model-value="(v: string | null | undefined) => patch({eventUid: v ?? null})"
         />
         <FieldLabel hint class="mb-1">{{ TS('eventDescription') }}</FieldLabel>
         <MarkdownFieldInput

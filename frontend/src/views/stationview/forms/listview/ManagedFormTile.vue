@@ -40,9 +40,17 @@ function toggleMenu() {
   menuOpen.value = !menuOpen.value
 }
 
-function pick(action: 'publish' | 'close' | 'edit' | 'analytics' | 'delete') {
+const menuActions = {
+  publish: () => emit('publish', props.form),
+  close: () => emit('close', props.form),
+  edit: () => emit('edit', props.form),
+  analytics: () => emit('analytics', props.form),
+  delete: () => emit('delete', props.form),
+}
+
+function pick(action: keyof typeof menuActions) {
   menuOpen.value = false
-  emit(action, props.form)
+  menuActions[action]()
 }
 
 function onClickOutside(event: MouseEvent) {

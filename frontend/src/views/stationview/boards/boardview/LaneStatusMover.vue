@@ -18,8 +18,10 @@ const choices = computed(() => {
     const i = currentIndex.value
     if (i < 0) return []
     const out: BoardLane[] = []
-    if (i < props.lanes.length - 1) out.push(props.lanes[i + 1])
-    if (i > 0) out.push(props.lanes[i - 1])
+    const next = props.lanes[i + 1]
+    const previous = i > 0 ? props.lanes[i - 1] : undefined
+    if (next) out.push(next)
+    if (previous) out.push(previous)
     return out
 })
 function isNext(laneId: number): boolean { return props.lanes.findIndex(l => l.id === laneId) > currentIndex.value }

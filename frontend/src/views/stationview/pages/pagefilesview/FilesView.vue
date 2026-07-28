@@ -9,6 +9,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FilesBrowser from './FilesBrowser.vue'
 import PageFilesModals from './PageFilesModals.vue'
 import type {PageFile, PageFileFolder, PageFileListing, PageFileTag} from '@/api/pageManage'
+import type {FolderTreeNode} from './usePageFileFolderTree'
 
 const search = defineModel<string>('search', {required: true})
 const activeFolder = defineModel<number | null>('activeFolder', {required: true})
@@ -28,7 +29,7 @@ const currentPage = defineModel<number>('currentPage', {required: true})
 const pageSize = defineModel<number>('pageSize', {required: true})
 
 const props = defineProps<{
-  folderTree: Array<PageFileFolder & {children: PageFileFolder[]}>
+  folderTree: FolderTreeNode[]
   tags: PageFileTag[]
   loading: boolean
   uploading: boolean

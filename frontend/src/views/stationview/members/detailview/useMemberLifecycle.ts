@@ -32,8 +32,8 @@ export function useMemberLifecycle(
     if (memberInventory.value.length > 0) {
       reasons.push(t('memberDetail.formerBlockInventory', { count: memberInventory.value.length }))
     }
-    const forbidden = [StationUserType.GUARDIAN, StationUserType.MANAGER]
-    if (forbidden.includes(memberUserType.value as any)) {
+    const forbidden: string[] = [StationUserType.GUARDIAN, StationUserType.MANAGER]
+    if (forbidden.includes(memberUserType.value)) {
       reasons.push(t('memberDetail.formerBlockRole'))
     }
     return reasons

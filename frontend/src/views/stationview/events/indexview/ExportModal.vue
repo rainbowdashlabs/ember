@@ -68,22 +68,24 @@ function removeColumn(index: number) {
   selectedColumns.value = selectedColumns.value.filter((_, i) => i !== index)
 }
 
+function swapColumns(first: number, second: number) {
+  const cols = [...selectedColumns.value]
+  const a = cols[first]
+  const b = cols[second]
+  if (a === undefined || b === undefined) return
+  cols[first] = b
+  cols[second] = a
+  selectedColumns.value = cols
+}
+
 function moveColumnUp(index: number) {
   if (index <= 0) return
-  const cols = [...selectedColumns.value]
-  const tmp = cols[index - 1]
-  cols[index - 1] = cols[index]
-  cols[index] = tmp
-  selectedColumns.value = cols
+  swapColumns(index - 1, index)
 }
 
 function moveColumnDown(index: number) {
   if (index >= selectedColumns.value.length - 1) return
-  const cols = [...selectedColumns.value]
-  const tmp = cols[index + 1]
-  cols[index + 1] = cols[index]
-  cols[index] = tmp
-  selectedColumns.value = cols
+  swapColumns(index, index + 1)
 }
 
 function addFieldColumn(name: string) {

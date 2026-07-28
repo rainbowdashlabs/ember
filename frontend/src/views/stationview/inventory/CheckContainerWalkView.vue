@@ -27,6 +27,8 @@ import WalkScanPanel from './checkcontainerwalkview/WalkScanPanel.vue'
 import {useWalkPlan} from './checkcontainerwalkview/useWalkPlan'
 import {countWalkResults, toCheckItems} from './checkcontainerwalkview/walkResults'
 import type {ExpectedRow, ExtraRow} from './checkcontainerwalkview/types'
+import {apiErrorMessage} from '@/util/apiError'
+import {reportCaughtError} from '@/util/devErrorReporter'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -85,8 +87,8 @@ async function load() {
     expectedRows.value = items.map(i => ({item: i, result: 'PENDING', lastCheck: lastByItem.get(i.id)}))
     extraRows.value = []
     walkIdx.value = 0
-  } catch (e: any) {
-    error.value = e?.response?.data?.message ?? t('inventory.checkContainer.loadError')
+  } catch (e) {
+    error.value = apiErrorMessage(e) ?? t('inventory.checkContainer.loadError')
   } finally {
     loading.value = false
   }
@@ -120,7 +122,8 @@ async function handleScan() {
       }
       return
     }
-  } catch {
+  } catch (e) {
+    reportCaughtError(e, 'container walk scan lookup')
   }
   flashScanError(t('inventory.checkContainer.scanNoMatch', {scan: term}), 'error')
 }
@@ -159,7 +162,7 @@ const {running: submitting, error: finishError, run: finishCheck} = useAsyncActi
     deep: deep.value,
     items: toCheckItems(expectedRows.value, extraRows.value),
   })
-}, {formatError: (e: any) => e?.response?.data?.message ?? t('inventory.checkContainer.completeError')})
+}, {formatError: (e) => apiErrorMessage(e) ?? t('inventory.checkContainer.completeError')})
 
 const displayError = computed(() => scanError.value || finishError.value || error.value)
 

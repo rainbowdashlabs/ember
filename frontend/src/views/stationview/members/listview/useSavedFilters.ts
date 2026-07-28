@@ -49,6 +49,7 @@ export function useSavedFilters(tabStates: Ref<Record<string, TabFilterState>>, 
 
   async function saveCurrentFilter(name: string) {
     const state = tabStates.value[activeTab.value]
+    if (!state) return
     const textFilters: Record<string, string> = {}
     const multiFilters: Record<string, string[]> = {}
     for (const [k, v] of state.columnMultiFilters) { multiFilters[String(k)] = [...v] }
@@ -61,8 +62,9 @@ export function useSavedFilters(tabStates: Ref<Record<string, TabFilterState>>, 
   }
 
   function applyFilter(preset: SavedFilterPreset) {
-    activeTab.value = preset.tab
     const state = tabStates.value[preset.tab]
+    if (!state) return
+    activeTab.value = preset.tab
     const multiMap = new Map<FilterKey, Set<string>>()
     for (const [k, v] of Object.entries(preset.multiFilters)) {
       const key: FilterKey = (k === 'name' || k === 'groups' || k === 'tags') ? k : Number(k)
@@ -87,6 +89,7 @@ export function useSavedFilters(tabStates: Ref<Record<string, TabFilterState>>, 
 
   function clearFilters() {
     const state = tabStates.value[activeTab.value]
+    if (!state) return
     state.columnMultiFilters = new Map()
     state.columnEmptyFilters = new Set()
     state.filterText = ''

@@ -6,15 +6,20 @@
 import {computed, type Ref} from 'vue'
 import type {PageFileFolder} from '@/api/pageManage'
 
+/** A folder enriched with its nested child folders, as consumed by the sidebar tree. */
+export interface FolderTreeNode extends PageFileFolder {
+    children: FolderTreeNode[]
+}
+
 /**
  * Derives the navigable shapes of the folder hierarchy: the nested tree for the sidebar, the
  * direct children of the open folder and the breadcrumb trail leading to it.
  */
 export function usePageFileFolderTree(folders: Ref<PageFileFolder[]>, activeFolder: Ref<number | null>) {
     const folderTree = computed(() => {
-        const byId = new Map<number, PageFileFolder & {children: PageFileFolder[]}>()
+        const byId = new Map<number, FolderTreeNode>()
         folders.value.forEach(f => byId.set(f.id, {...f, children: []}))
-        const roots: Array<PageFileFolder & {children: PageFileFolder[]}> = []
+        const roots: FolderTreeNode[] = []
         byId.forEach(node => {
             if (node.parentId != null && byId.has(node.parentId)) byId.get(node.parentId)!.children.push(node)
             else roots.push(node)

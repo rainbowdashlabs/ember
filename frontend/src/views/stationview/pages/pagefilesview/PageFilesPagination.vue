@@ -24,7 +24,7 @@ const {t} = useI18n()
         <div class="flex items-center gap-2">
             <span class="text-(--text-muted)">{{ t('stationPages.editor.perPage') }}</span>
             <SelectInput :model-value="String(pageSize)"
-                         @update:model-value="(v: string) => pageSize = +v">
+                         @update:model-value="(v: string | number | null | undefined) => pageSize = +(v ?? 0)">
                 <option v-for="opt in pageSizeOptions" :key="opt" :value="String(opt)">{{ opt }}</option>
             </SelectInput>
         </div>

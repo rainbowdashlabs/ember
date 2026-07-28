@@ -98,7 +98,7 @@ const grouped = computed((): InventoryGroup[] => {
     for (const [invId, invItems] of extraByInv) {
       groups.push({
         inventoryId: invId,
-        inventoryName: invItems[0].inventoryName,
+        inventoryName: invItems[0]?.inventoryName ?? '',
         requiredQuantity: 0,
         items: invItems,
       })
@@ -155,10 +155,11 @@ async function init() {
       } catch { void 0 }
     }
 
+    const firstManaged = managed.value[0]
     if (showOwnTab.value) {
       selectedMemberId.value = String(currentMemberId.value)
-    } else if (managed.value.length > 0) {
-      selectedMemberId.value = String(managed.value[0].id)
+    } else if (firstManaged) {
+      selectedMemberId.value = String(firstManaged.id)
     } else {
       selectedMemberId.value = String(currentMemberId.value)
     }

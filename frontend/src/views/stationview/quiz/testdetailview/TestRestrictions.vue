@@ -24,14 +24,14 @@ const selectedGroupIds = defineModel<number[]>('selectedGroupIds', { required: t
 const selectedTagIds = defineModel<number[]>('selectedTagIds', { required: true })
 
 const restriction = computed<RestrictionSelection>({
-  get: () => ({
+  get: (): RestrictionSelection => ({
     userTypes: selectedUserTypes.value,
     groupIds: selectedGroupIds.value,
     tagIds: selectedTagIds.value,
     memberIds: [],
     mode: 'AND',
   }),
-  set: (value) => {
+  set: (value: RestrictionSelection) => {
     selectedUserTypes.value = value.userTypes
     selectedGroupIds.value = value.groupIds
     selectedTagIds.value = value.tagIds

@@ -19,10 +19,11 @@ const options = computed(() => (props.config.options as string[]) || [])
 
 function move(fromIdx: number, direction: -1 | 1) {
   const toIdx = fromIdx + direction
-  if (toIdx < 0 || toIdx >= answer.value.order.length) return
-  const temp = answer.value.order[fromIdx]
-  answer.value.order[fromIdx] = answer.value.order[toIdx]
-  answer.value.order[toIdx] = temp
+  const from = answer.value.order[fromIdx]
+  const to = answer.value.order[toIdx]
+  if (from === undefined || to === undefined) return
+  answer.value.order[fromIdx] = to
+  answer.value.order[toIdx] = from
 }
 </script>
 

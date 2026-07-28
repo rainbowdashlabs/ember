@@ -23,6 +23,7 @@ import {useConfigPanel} from '@/composables/useConfigPanel'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import {useBreakpoint} from '@/composables/useBreakpoint'
+import {apiErrorMessage} from '@/util/apiError'
 
 const props = defineProps<{
   inventoryId: number
@@ -34,7 +35,7 @@ const {isMobile} = useBreakpoint()
 const {config: fields, loading, error, reload: load} = useConfigPanel<InventoryFieldDefinition[]>({
   initial: [],
   fetch: () => inventoryFields.listFields(props.inventoryId),
-  formatError: (e: any) => e?.response?.data?.message ?? t('inventory.fields.errors.loadFailed'),
+  formatError: (e) => apiErrorMessage(e) ?? t('inventory.fields.errors.loadFailed'),
 })
 const editing = ref<number | null>(null)
 const draft = ref<DraftField | null>(null)
@@ -98,8 +99,8 @@ const {running: submitting, run: save} = useAsyncAction(async () => {
     }
     await load()
     cancelEdit()
-  } catch (e: any) {
-    error.value = e?.response?.data?.message ?? t('inventory.fields.errors.saveFailed')
+  } catch (e) {
+    error.value = apiErrorMessage(e) ?? t('inventory.fields.errors.saveFailed')
   }
 })
 
@@ -128,14 +129,15 @@ async function persistOrder(ordered: InventoryFieldDefinition[]) {
       }
     }
     await load()
-  } catch (e: any) {
-    error.value = e?.response?.data?.message ?? t('inventory.fields.errors.saveFailed')
+  } catch (e) {
+    error.value = apiErrorMessage(e) ?? t('inventory.fields.errors.saveFailed')
   }
 }
 
 function moveField(fromIndex: number, toIndex: number) {
   const ordered = [...sortedFields.value]
   const [moved] = ordered.splice(fromIndex, 1)
+  if (!moved) return
   ordered.splice(toIndex, 0, moved)
   persistOrder(ordered)
 }

@@ -112,7 +112,7 @@ function describeHistory(entry: ChecklistNoteHistoryEntry): string {
     <Modal v-model="showNote" size="md">
       <div class="space-y-3">
         <div class="font-semibold">{{ t('checklist.noteSave') }}</div>
-        <TextAreaInput v-model="noteDraft" :placeholder="t('checklist.notePlaceholder')" rows="3"/>
+        <TextAreaInput v-model="noteDraft" :placeholder="t('checklist.notePlaceholder')" :rows="3"/>
         <div class="flex justify-end gap-2">
           <SecondaryButton @click="showNote = false">{{ t('checklist.cancel') }}</SecondaryButton>
           <PrimaryButton :disabled="saving" @click="saveNote">{{ t('checklist.noteSave') }}</PrimaryButton>

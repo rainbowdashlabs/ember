@@ -96,7 +96,7 @@ export function buildImportQuestions(headers: string[], rows: string[][], mappin
     function cell(row: string[], column: string): string {
         if (!column) return ''
         const index = headers.indexOf(column)
-        return index >= 0 && index < row.length ? row[index] : ''
+        return index >= 0 ? row[index] ?? '' : ''
     }
 
     return rows.map(row => {

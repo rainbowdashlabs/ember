@@ -27,6 +27,7 @@ export function usePageFileUpload(entries: Ref<PageFileListing[]>, activeFolder:
         async function worker() {
             while (cursor < files.length) {
                 const f = files[cursor++]
+                if (!f) continue
                 try {
                     const stored = await uploadStationPageFile(f)
                     const placed = targetFolder != null

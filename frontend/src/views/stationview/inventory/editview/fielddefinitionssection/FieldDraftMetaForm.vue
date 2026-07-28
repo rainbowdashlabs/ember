@@ -32,8 +32,8 @@ watch(() => props.draft.label, (label, previous) => {
     }
 })
 
-function onTypeChanged(value: string) {
-    emit('type-changed', value as FieldTypeName)
+function onTypeChanged(value: string | number | null | undefined) {
+    emit('type-changed', String(value ?? '') as FieldTypeName)
 }
 </script>
 

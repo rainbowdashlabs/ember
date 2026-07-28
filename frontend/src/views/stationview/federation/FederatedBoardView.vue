@@ -22,6 +22,7 @@ import {priorityIcon, priorityColor} from '@/util/ticketPriority'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {reportCaughtError} from '@/util/devErrorReporter'
 import {
   type FederatedBoardDetail,
   BoardShareMode,
@@ -99,7 +100,7 @@ function ticketsForLane(laneId: number): BoardTicket[] {
 
 function isLastLane(laneId: number): boolean {
   const vl = visibleLanes.value
-  return vl.length > 0 && vl[vl.length - 1].id === laneId
+  return vl[vl.length - 1]?.id === laneId
 }
 
 function shouldHideTicket(ticket: BoardTicket, laneId: number): boolean {
@@ -149,7 +150,8 @@ function onSearchInput() {
     searching.value = true
     try {
       searchResults.value = await fedSearchTickets(partnerUid.value, boardKey.value, searchQuery.value.trim())
-    } catch {
+    } catch (e) {
+      reportCaughtError(e, 'federated ticket search')
     } finally {
       searching.value = false
     }

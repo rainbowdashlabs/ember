@@ -31,8 +31,8 @@ const emit = defineEmits<{
   (e: 'update:commentValue', v: string): void
 }>()
 
-function updateComment(v: string) {
-  emit('update:commentValue', v)
+function updateComment(v: string | undefined) {
+  emit('update:commentValue', v ?? '')
 }
 </script>
 

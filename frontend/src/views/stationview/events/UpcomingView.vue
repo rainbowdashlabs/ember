@@ -79,7 +79,7 @@ const filteredTodayEvents = computed(() => todayEvents.value.filter(ev => matche
 function dayLabel(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00Z')
   const dow = d.getUTCDay() === 0 ? 7 : d.getUTCDay()
-  return dayNames[dow]
+  return dayNames[dow] ?? ''
 }
 
 function multiDayEndDate(event: StationEvent, startDateStr: string): string | null {

@@ -47,7 +47,7 @@ const {t} = useI18n()
       <FieldLabel>{{ t('inventory.unknownScan.targetInventory') }}</FieldLabel>
       <SelectInput
           :model-value="String(targetInventoryId)"
-          @update:model-value="(v: string) => targetInventoryId = v === 'new' ? 'new' : Number(v)"
+          @update:model-value="(v: string | number | null | undefined) => targetInventoryId = v === 'new' ? 'new' : Number(v)"
       >
         <option v-for="inv in sortedInventories" :key="inv.id" :value="inv.id">{{ inv.name }}</option>
         <option value="new">{{ t('inventory.unknownScan.createNewInventory') }}</option>

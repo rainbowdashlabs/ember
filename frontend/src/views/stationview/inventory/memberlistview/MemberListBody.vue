@@ -14,6 +14,7 @@ import type { Inventory, InventoryItem } from '@/api/inventory'
 import type { ProfileField } from '@/api/profileFields'
 import type { MemberGroup, StationMember, UserTag } from '@/api/types'
 import type { ExportFieldOption } from '@/composables/useExport'
+import type { FilterCriteria } from '@/composables/useMemberFilter'
 
 const { t } = useI18n()
 
@@ -42,7 +43,7 @@ const emit = defineEmits<{
   (e: 'update:show-name', value: boolean): void
   (e: 'update:show-internal-id', value: boolean): void
   (e: 'update:show-size', value: boolean): void
-  (e: 'filter', filter: (members: StationMember[]) => StationMember[]): void
+  (e: 'filter', criteria: FilterCriteria): void
   (e: 'toggle-inventory', inventoryId: number): void
   (e: 'toggle-export-field', fieldId: number): void
   (e: 'go-to-member', memberId: number): void

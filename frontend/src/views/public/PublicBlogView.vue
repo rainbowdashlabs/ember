@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref, computed, type ComputedRef} from 'vue'
+import {ref, computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -40,8 +40,8 @@ function navigateToEntry(id: number) {
   router.push({name: 'public-blog-detail', params: {stationUid: stationUid.value, blogId: id}})
 }
 
-function openFeed(url: ComputedRef<string>) {
-  window.open(url.value, '_blank', 'noopener')
+function openFeed(url: string) {
+  window.open(url, '_blank', 'noopener')
 }
 
 function excerpt(html: string, maxLength = 200): string {

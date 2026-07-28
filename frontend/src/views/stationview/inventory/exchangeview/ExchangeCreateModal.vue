@@ -20,6 +20,7 @@ import ExchangeCreateStepMember from './exchangecreatemodal/ExchangeCreateStepMe
 import ExchangeCreateStepItem, { type MemberItemOption } from './exchangecreatemodal/ExchangeCreateStepItem.vue'
 import ExchangeCreateStepSize from './exchangecreatemodal/ExchangeCreateStepSize.vue'
 import ExchangeCreateStepReason from './exchangecreatemodal/ExchangeCreateStepReason.vue'
+import { reportCaughtError } from '@/util/devErrorReporter'
 
 const { t } = useI18n()
 const { canManageInventory, isGuardian, sessionInfo } = useSession()
@@ -107,7 +108,9 @@ async function loadCreateMemberItems() {
     createMemberItems.value = items
       .filter(i => !i.lostAt && !activeExchangeItemIds.has(i.id))
       .map(i => ({ id: i.id, inventoryId: i.inventoryId, name: i.name ?? '', internalId: i.internalId ?? '', sizeId: i.sizeId ?? null, sizeName: i.sizeName ?? null, inventoryName: i.inventoryName }))
-  } catch {}
+  } catch (e) {
+    reportCaughtError(e, 'exchange member item listing')
+  }
   createLoadingItems.value = false
 }
 
@@ -118,7 +121,9 @@ async function onCreateItemSelected() {
   if (!item) return
   try {
     createItemSizes.value = await inventory.listSizes(item.inventoryId)
-  } catch {}
+  } catch (e) {
+    reportCaughtError(e, 'exchange item size listing')
+  }
 }
 
 function createStepNext() {

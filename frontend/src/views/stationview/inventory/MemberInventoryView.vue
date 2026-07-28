@@ -27,6 +27,7 @@ import MemberInventoryHeader from './memberinventoryview/MemberInventoryHeader.v
 import MemberInventoryScanPanel from './memberinventoryview/MemberInventoryScanPanel.vue'
 import MemberInventoryGroups from './memberinventoryview/MemberInventoryGroups.vue'
 import RequestExchangeModal from './memberinventoryview/RequestExchangeModal.vue'
+import {apiErrorMessage} from '@/util/apiError'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -45,9 +46,7 @@ const {message: scanSuccess, flash: flashScanSuccess} = useFlashMessage(2500)
 async function assignToCurrentMember(item: InventoryItem | {id: number; name?: string}) {
   await inventory.assignItem(item.id, {
     memberId: memberId.value,
-    memberName: member.value
-        ? `${member.value.firstName ?? ''} ${member.value.lastName ?? ''}`.trim()
-        : '',
+    memberName: member.value?.name ?? '',
   })
   flashScanSuccess(t('inventory.assign.assigned', {name: item.name ?? ''}))
   items.value = await inventory.memberItems(memberId.value)
@@ -70,7 +69,7 @@ const {running: scanBusy, error: scanAssignError, run: runScanAssign} = useAsync
     return
   }
   await assignToCurrentMember(item)
-}, {formatError: (e: any) => e?.response?.data?.message ?? t('inventory.assign.errors.failed')})
+}, {formatError: (e) => apiErrorMessage(e) ?? t('inventory.assign.errors.failed')})
 
 async function handleScanAssign() {
   const term = scanValue.value.trim()
@@ -84,8 +83,8 @@ async function onUnknownScanCreated(item: InventoryItem) {
   unknownScanCode.value = null
   try {
     await assignToCurrentMember(item)
-  } catch (e: any) {
-    flashScanError(e?.response?.data?.message ?? t('inventory.assign.errors.failed'))
+  } catch (e) {
+    flashScanError(apiErrorMessage(e) ?? t('inventory.assign.errors.failed'))
   }
 }
 
@@ -111,7 +110,7 @@ const grouped = computed((): InventoryGroup[] => {
   for (const [invId, invItems] of byInv) {
     groups.push({
       inventoryId: invId,
-      inventoryName: invItems[0].inventoryName,
+      inventoryName: invItems[0]?.inventoryName ?? '',
       items: invItems,
     })
   }

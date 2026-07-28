@@ -89,8 +89,8 @@ const groupedLinks = computed(() => {
     for (const link of props.links) {
         const linkedId = link.linkedTicketId === props.ticketNumber ? link.ticketId : link.linkedTicketId
         const linkedTicket = props.allTickets.find(t => t.id === linkedId)
-        if (!groups[link.linkType]) groups[link.linkType] = []
-        groups[link.linkType].push({ link, linkedTicket })
+        const group = groups[link.linkType] ?? (groups[link.linkType] = [])
+        group.push({ link, linkedTicket })
     }
     return groups
 })
@@ -169,8 +169,9 @@ async function loadPreview(att: BoardTicketAttachment) {
     } else if (isCsv(att.originalName)) { previewCsv.value = parseCsv(await boards.getAttachmentText(props.boardKey, props.ticketNumber, att.id)) }
 }
 
-function previewPrev() { if (previewIndex.value > 0) { previewIndex.value--; loadPreview(props.attachments[previewIndex.value]) } }
-function previewNext() { if (previewIndex.value < props.attachments.length - 1) { previewIndex.value++; loadPreview(props.attachments[previewIndex.value]) } }
+function previewAt(index: number) { const att = props.attachments[index]; if (att) { previewIndex.value = index; loadPreview(att) } }
+function previewPrev() { if (previewIndex.value > 0) previewAt(previewIndex.value - 1) }
+function previewNext() { if (previewIndex.value < props.attachments.length - 1) previewAt(previewIndex.value + 1) }
 async function downloadCurrent() { const att = props.attachments[previewIndex.value]; if (att) await handleDownload(att) }
 
 function parseCsv(text: string): string[][] {

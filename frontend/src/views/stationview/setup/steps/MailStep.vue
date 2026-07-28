@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {onMounted, ref} from 'vue'
+import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import SetupLayout from '@/views/stationview/setup/SetupLayout.vue'
@@ -37,6 +37,16 @@ const cfg = ref<MailConfigRequest>({
     apiKey: '',
 })
 const loading = ref(true)
+
+const relayUser = computed({
+    get: () => cfg.value.smtpUser ?? '',
+    set: (value: string) => { cfg.value.smtpUser = value },
+})
+
+const relaySecret = computed({
+    get: () => cfg.value.apiKey ?? '',
+    set: (value: string) => { cfg.value.apiKey = value },
+})
 
 const PROVIDERS = ['NONE', 'SMTP', 'RAPIDMAIL', 'TWILIO', 'SWEEGO', 'BREVO']
 
@@ -113,8 +123,8 @@ const {running: saving, error, run: save} = useAsyncAction(async () => {
       </template>
       <template v-else-if="cfg.provider !== 'NONE'">
         <MailProviderCredentialFields
-            v-model:user="cfg.smtpUser"
-            v-model:secret="cfg.apiKey"
+            v-model:user="relayUser"
+            v-model:secret="relaySecret"
             :provider="cfg.provider"
         />
       </template>

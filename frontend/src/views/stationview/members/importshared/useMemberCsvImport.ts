@@ -105,9 +105,9 @@ export function useMemberCsvImport<TResult>(options: MemberCsvImportOptions) {
             if (name.includes(`kontakt ${manager}`) || name.includes(`contact ${manager}`)) return `manager:${manager}:firstName`
             if (name === `email ${manager}`) return `manager:${manager}:email`
         }
-        const phoneMatch = name.match(/(?:telefon|phone).*?(\d)/)
-        if (phoneMatch) {
-            const manager = parseInt(phoneMatch[1])
+        const phoneDigit = name.match(/(?:telefon|phone).*?(\d)/)?.[1]
+        if (phoneDigit) {
+            const manager = parseInt(phoneDigit)
             if (manager >= 1 && manager <= managerCount.value) return `manager:${manager}:phone`
         }
         const field = fields.value.find(candidate => candidate.name?.toLowerCase() === name)

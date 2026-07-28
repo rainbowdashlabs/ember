@@ -17,11 +17,13 @@ import type {PublicStationInfo} from '@/api/discovery'
 import {getPublicStationInfo} from '@/api/discovery'
 import {listPublicPages, type PublicPageSummary} from '@/api/publicPages'
 import {useCanonical} from '~/composables/useCanonical'
+import {usePageHeader} from '@/composables/usePageHeader'
 import {useTheme} from '@/composables/useTheme'
 
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
+const {title: pageTitle, subtitle: pageSubtitle} = usePageHeader()
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -136,6 +138,8 @@ useHead(computed(() => {
       v-else-if="station"
       :station-name="station.name"
       :station-logo-url="logoUrl"
+      :title="pageTitle"
+      :subtitle="pageSubtitle"
   >
     <template #sidebar="{ close }">
       <!-- Landing page (home) first -->

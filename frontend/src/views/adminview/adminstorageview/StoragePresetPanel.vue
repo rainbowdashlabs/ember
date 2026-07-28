@@ -73,7 +73,7 @@ function defaultFields() {
   }
 }
 
-const fieldLabels: Record<string, string> = {
+const fieldLabels: Record<keyof ReturnType<typeof defaultFields>, string> = {
   total: 'storageMonitoring.total',
   kb: 'storageMonitoring.categories.kbFiles',
   board: 'storageMonitoring.categories.boardAttachments',

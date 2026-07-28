@@ -66,7 +66,7 @@ const genUserPrompt = ref('')
         </div>
         <div class="flex-1">
           <FieldLabel hint class="mb-1">{{ t('quiz.questions.category') }}</FieldLabel>
-          <SelectInput :model-value="String(entry.categoryId ?? '')" @update:model-value="(v: string | undefined) => entry.categoryId = v ? Number(v) : null">
+          <SelectInput :model-value="String(entry.categoryId ?? '')" @update:model-value="(v: string | number | null | undefined) => entry.categoryId = v ? Number(v) : null">
             <option value="">{{ t('quiz.questions.noCategory') }}</option>
             <option v-for="cat in props.categories" :key="cat.id" :value="String(cat.id)">{{ cat.name }}</option>
           </SelectInput>

@@ -41,7 +41,8 @@ const membersWithoutRegistration = computed(() =>
     props.eligibleMembers.filter(m => !getRegistration(m.id)))
 
 const selectedId = computed((): number | null => {
-  if (membersWithoutRegistration.value.length === 1) return membersWithoutRegistration.value[0].id
+  const single = membersWithoutRegistration.value.length === 1 ? membersWithoutRegistration.value[0] : undefined
+  if (single) return single.id
   return selectedMemberId.value ? Number(selectedMemberId.value) : null
 })
 

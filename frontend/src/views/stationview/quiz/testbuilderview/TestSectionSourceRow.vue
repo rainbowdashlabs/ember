@@ -25,11 +25,11 @@ defineEmits<{
 
 const { t } = useI18n()
 
-function onCatalogChange(value: string | undefined) {
+function onCatalogChange(value: string | number | null | undefined) {
   catalogId.value = value ? Number(value) : null
 }
 
-function onCategoryChange(value: string | undefined) {
+function onCategoryChange(value: string | number | null | undefined) {
   categoryId.value = value ? Number(value) : null
 }
 

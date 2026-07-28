@@ -36,8 +36,8 @@ function onResetPick(item: AccountSearchResult) {
   resetAccountName.value = `${item.displayName} (${item.email})`
 }
 
-function onResetUidUpdate(uid: string | null) {
-  resetAccountUid.value = uid
+function onResetUidUpdate(uid: string | null | undefined) {
+  resetAccountUid.value = uid ?? null
   if (uid == null) {
     resetAccountId.value = null
     resetAccountName.value = null

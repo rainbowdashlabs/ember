@@ -146,7 +146,7 @@ const {running: uploading, run: uploadBatch} = useAsyncAction(async (picked: Fil
         try {
             const s = await uploadStationPageFile(f)
             stored.push(s)
-            entries.value = [{file: s, inUse: false}, ...entries.value.filter(e => e.file.id !== s.id)]
+            entries.value = [{file: s, inUse: false, tagIds: []}, ...entries.value.filter(e => e.file.id !== s.id)]
         } catch (err) {
             lastErr = err
         }
@@ -155,12 +155,13 @@ const {running: uploading, run: uploadBatch} = useAsyncAction(async (picked: Fil
         const axiosErr = lastErr as AxiosError<{message?: string}>
         uploadError.value = axiosErr.response?.data?.message ?? t('stationPages.editor.uploadFailed')
     }
-    if (stored.length === 0) return
+    const first = stored[0]
+    if (!first) return
     if (props.multiple) {
         emit('pickMany', stored.map(f => ({file: f, url: urlFor(f)})))
         open.value = false
     } else {
-        pick(stored[0])
+        pick(first)
     }
 })
 

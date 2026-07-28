@@ -112,6 +112,7 @@ function moveRow(index: number, direction: number) {
     if (target < 0 || target >= rows.value.length) return
     const items = [...rows.value]
     const [moved] = items.splice(index, 1)
+    if (!moved) return
     items.splice(target, 0, moved)
     rows.value = items
     markDirty()

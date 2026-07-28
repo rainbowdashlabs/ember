@@ -45,7 +45,8 @@ onMounted(async () => {
         ])
         groups.value = sortByPosition(groupsRes)
         allRoles.value = rolesRes
-        if (groups.value.length > 0) await selectGroup(groups.value[0].id)
+        const firstGroup = groups.value[0]
+        if (firstGroup) await selectGroup(firstGroup.id)
     } catch {
         error.value = t('common.error')
     } finally {
@@ -128,9 +129,9 @@ async function moveGroup(id: number, delta: -1 | 1) {
     const idx = groups.value.findIndex((g) => g.id === id)
     if (idx < 0) return
     const swapIdx = idx + delta
-    if (swapIdx < 0 || swapIdx >= groups.value.length) return
     const a = groups.value[idx]
     const b = groups.value[swapIdx]
+    if (!a || !b) return
     const posA = a.position ?? idx
     const posB = b.position ?? swapIdx
     await Promise.all([persistGroup(a, {position: posB}), persistGroup(b, {position: posA})])

@@ -19,6 +19,7 @@ import LocationPicker from '@/components/map/LocationPicker.vue'
 import GeolocateButton from '@/components/map/GeolocateButton.vue'
 import {stationManage} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {apiErrorMessage} from '@/util/apiError'
 
 const emit = defineEmits<{
   (e: 'error', message: string): void
@@ -91,8 +92,8 @@ async function save() {
     latitude.value = saved.latitude ?? null
     longitude.value = saved.longitude ?? null
     emit('success', t('geolocation.saved'))
-  } catch (err: any) {
-    const msg = err?.response?.data?.title || t('common.error')
+  } catch (err) {
+    const msg = apiErrorMessage(err) || t('common.error')
     localError.value = msg
     emit('error', msg)
     throw err

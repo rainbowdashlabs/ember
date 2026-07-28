@@ -28,7 +28,7 @@ import { useConfirmAction } from '@/composables/useConfirmAction'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { procedures } from '@/api'
 import { StationPermission } from '@/api/types'
-import type { Procedure, ProcedureTemplate } from '@/api/procedures'
+import type { Procedure, ProcedureRequest, ProcedureTemplate } from '@/api/procedures'
 import { ProcedureStatus } from '@/api/procedures'
 import { formatDate } from '@/util/format'
 
@@ -105,15 +105,11 @@ async function handleCreate() {
   if (createMode.value === 'manual' && !newName.value.trim()) return
   if (createMode.value === 'template' && newTemplateId.value == null) return
   try {
-    const data: Record<string, unknown> = {}
-    if (createMode.value === 'template') {
-      data.templateId = newTemplateId.value
-    } else {
-      data.name = newName.value.trim()
-      data.description = newDescription.value || undefined
-    }
+    const data: ProcedureRequest = createMode.value === 'template'
+        ? { templateId: newTemplateId.value ?? undefined }
+        : { name: newName.value.trim(), description: newDescription.value || undefined }
     if (newDueAt.value) data.dueAt = newDueAt.value
-    const created = await procedures.createProcedure(data as Parameters<typeof procedures.createProcedure>[0])
+    const created = await procedures.createProcedure(data)
     showCreateModal.value = false
     router.push({ name: 'procedure-detail', params: { id: created.id } })
   } catch {
@@ -205,7 +201,7 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
         <template v-if="createMode === 'template'">
           <FieldLabel class="mb-1">{{ t('procedures.selectTemplate') }}</FieldLabel>
           <div v-if="templates.length === 0" class="text-sm text-[var(--text-muted)]">{{ t('procedures.noTemplates') }}</div>
-          <SelectInput v-else :model-value="newTemplateId != null ? String(newTemplateId) : ''" @update:model-value="(v: string | undefined) => { newTemplateId = v ? Number(v) : null }">
+          <SelectInput v-else :model-value="newTemplateId != null ? String(newTemplateId) : ''" @update:model-value="(v: string | number | null | undefined) => { newTemplateId = v ? Number(v) : null }">
             <option value="">—</option>
             <option v-for="tpl in templates" :key="tpl.id" :value="String(tpl.id)">{{ tpl.name }}</option>
           </SelectInput>

@@ -183,7 +183,7 @@ function setFillGap(gapIndex: number, value: string) {
                 :connect-right-order="connectRightOrder"
                 :direct-image-src="adaptedQuestion.imageUrl"
                 @toggle-mc-option="toggleMcOption"
-                @update:user-tf-answer="(v: boolean) => userTfAnswer = v"
+                @update:user-tf-answer="(v: boolean | null) => userTfAnswer = v"
                 @update:user-answer="(v: string) => userAnswer = v"
                 @reorder-items="reorderItems"
                 @move-order-item="moveOrderItem"

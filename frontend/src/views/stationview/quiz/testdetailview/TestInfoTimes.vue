@@ -26,13 +26,13 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-function onStart(v: string) {
-  editStartAt.value = v
+function onStart(v: string | undefined) {
+  editStartAt.value = v ?? ''
   emit('mark-dirty')
 }
 
-function onEnd(v: string) {
-  editEndAt.value = v
+function onEnd(v: string | undefined) {
+  editEndAt.value = v ?? ''
   emit('mark-dirty')
 }
 </script>

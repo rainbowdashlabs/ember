@@ -78,8 +78,8 @@ async function copyToStation() {
 const renderedHtml = computed(() => markdownData.value?.html ?? '')
 
 const youtubeEmbedUrl = computed(() => {
-    if (!file.value?.youtubeUrl) return null
-    return toYoutubeEmbedUrl(file.value.youtubeUrl)
+    if (!file.value?.youtubeUrl) return ''
+    return toYoutubeEmbedUrl(file.value.youtubeUrl) ?? ''
 })
 
 const contentUrl = computed(() => {

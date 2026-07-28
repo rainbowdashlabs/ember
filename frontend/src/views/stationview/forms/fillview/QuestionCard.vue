@@ -20,7 +20,7 @@ const props = defineProps<{
   question: FormQuestion
 }>()
 
-const answer = defineModel<Record<string, unknown>>({ required: true })
+const answer = defineModel<Record<string, unknown>>({ default: () => ({}) })
 
 function parseConfig(config: Record<string, unknown> | string): Record<string, unknown> {
   if (typeof config === 'object' && config !== null) return config

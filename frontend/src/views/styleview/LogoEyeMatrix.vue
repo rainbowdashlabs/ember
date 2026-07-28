@@ -17,7 +17,11 @@ const emit = defineEmits<{
 
 const eyeDirections = ['Left', 'Mid', 'Right'] as const
 const eyeOpenness = ['Open', 'Half', 'Blink'] as const
-const eyeMatrix: Record<string, Record<string, string>> = {
+
+type EyeDirection = (typeof eyeDirections)[number]
+type EyeOpenness = (typeof eyeOpenness)[number]
+
+const eyeMatrix: Record<EyeDirection, Record<EyeOpenness, string>> = {
   Left:  { Open: 'fire_eyes_left',  Half: 'fire_eyes_left_half',  Blink: 'fire_blink_left' },
   Mid:   { Open: 'fire_eyes_mid',   Half: 'fire_eyes_mid_half',   Blink: 'fire_blink' },
   Right: { Open: 'fire_eyes_right', Half: 'fire_eyes_right_half', Blink: 'fire_blink_right' },

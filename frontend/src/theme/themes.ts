@@ -38,37 +38,43 @@ export interface ThemeDefinition {
     supportedFeels: FeelValue[]
 }
 
-export const THEMES: Record<string, ThemeDefinition> = {
-    ember: {
-        label: 'Ember',
-        colors: {
-            light: {
-                primary: '#fd4f00',
-                primaryAccent: '#C71100',
-                secondary: '#1858c8',
-                secondaryAccent: '#3694FF',
-                info: '#c8ab03',
-                infoAccent: '#af7501',
-                success: '#00C507',
-                error: '#ec2929',
-            },
-            dark: {
-                primary: '#ff7030',
-                primaryAccent: '#e04400',
-                secondary: '#256dd5',
-                secondaryAccent: '#60b4ff',
-                info: '#e0c420',
-                infoAccent: '#c89810',
-                success: '#30e038',
-                error: '#f05050',
-            },
-            bgLight: '#eaeaea',
-            bgLightAccent: '#CFCFCF',
-            bgDark: '#212121',
-            bgDarkAccent: '#191919',
+/** The key of the stock theme every unresolved lookup falls back to. */
+export const DEFAULT_THEME_KEY = 'ember'
+
+/** The stock theme, exported separately so fallback paths have a definitely-present definition. */
+export const DEFAULT_THEME: ThemeDefinition = {
+    label: 'Ember',
+    colors: {
+        light: {
+            primary: '#fd4f00',
+            primaryAccent: '#C71100',
+            secondary: '#1858c8',
+            secondaryAccent: '#3694FF',
+            info: '#c8ab03',
+            infoAccent: '#af7501',
+            success: '#00C507',
+            error: '#ec2929',
         },
-        supportedFeels: [Feel.ROUNDED, Feel.CORNERS],
+        dark: {
+            primary: '#ff7030',
+            primaryAccent: '#e04400',
+            secondary: '#256dd5',
+            secondaryAccent: '#60b4ff',
+            info: '#e0c420',
+            infoAccent: '#c89810',
+            success: '#30e038',
+            error: '#f05050',
+        },
+        bgLight: '#eaeaea',
+        bgLightAccent: '#CFCFCF',
+        bgDark: '#212121',
+        bgDarkAccent: '#191919',
     },
+    supportedFeels: [Feel.ROUNDED, Feel.CORNERS],
+}
+
+export const THEMES: Record<string, ThemeDefinition> = {
+    [DEFAULT_THEME_KEY]: DEFAULT_THEME,
     midnight: {
         label: 'Midnight',
         colors: {

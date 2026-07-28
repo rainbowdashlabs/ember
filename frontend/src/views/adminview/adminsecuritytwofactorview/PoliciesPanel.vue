@@ -15,6 +15,7 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import {twoFactorAdmin} from '@/api'
 import type {TwoFactorPolicy} from '@/api/twoFactorAdmin'
 import {useConfigPanel} from '@/composables/useConfigPanel'
+import {apiErrorMessage} from '@/util/apiError'
 
 const {t} = useI18n()
 const USER_TYPES = ['MEMBER', 'GUARDIAN', 'TEAM', 'MANAGER'] as const
@@ -24,7 +25,7 @@ const saving = ref<string | null>(null)
 const {config: policies, loading, error, runWith} = useConfigPanel<TwoFactorPolicy[]>({
   initial: [],
   fetch: () => twoFactorAdmin.listInstancePolicies(),
-  formatError: (e: any) => e?.response?.data?.message || t('common.error'),
+  formatError: (e) => apiErrorMessage(e) || t('common.error'),
 })
 
 const policyByUserType = computed(() => {

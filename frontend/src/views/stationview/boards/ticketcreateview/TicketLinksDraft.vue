@@ -38,7 +38,7 @@ const emit = defineEmits<{
 const { t } = useI18n()
 
 function linkTypeKey(linkType: string): string {
-    const camel = linkType.charAt(0) + linkType.slice(1).toLowerCase().replace(/_./g, m => m[1].toUpperCase())
+    const camel = linkType.charAt(0) + linkType.slice(1).toLowerCase().replace(/_./g, m => m.slice(1).toUpperCase())
     return 'boards.link' + camel
 }
 

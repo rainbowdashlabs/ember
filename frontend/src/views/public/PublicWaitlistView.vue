@@ -47,8 +47,9 @@ function removeGuardian(index: number) {
 
 const {loading, error: loadError} = useAsyncLoader(async () => {
   lists.value = await waitingList.listPublicWaitlists(stationUid.value)
-  if (lists.value.length === 1) {
-    selectedListId.value = lists.value[0].id
+  const [onlyList] = lists.value
+  if (lists.value.length === 1 && onlyList) {
+    selectedListId.value = onlyList.id
     await loadForm()
   }
 })

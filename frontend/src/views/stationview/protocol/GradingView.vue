@@ -21,6 +21,7 @@ import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { protocol, stationMembers } from '@/api'
 import type { TestProtocolSection, TestProtocolItem } from '@/api/protocol'
 import type { StationMember } from '@/api/types'
+import { reportCaughtError } from '@/util/devErrorReporter'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -113,7 +114,7 @@ function serializeChecks(): Record<number, boolean> {
 
 async function autoSave() {
   try { await protocol.saveChecks(runId.value, memberId.value, serializeChecks()) }
-  catch { }
+  catch (e) { reportCaughtError(e, 'grading autosave') }
 }
 
 const {loading, error, reload: loadData} = useAsyncLoader(async () => {
@@ -176,8 +177,9 @@ function finishGrading() {
 
 function markDoneAndNext() {
   return runSave(async () => {
-    if (!doneSections.value.has(currentSection.value.id)) {
-      doneSections.value = new Set(await protocol.toggleSectionDone(runId.value, memberId.value, currentSection.value.id))
+    const section = currentSection.value
+    if (section && !doneSections.value.has(section.id)) {
+      doneSections.value = new Set(await protocol.toggleSectionDone(runId.value, memberId.value, section.id))
     }
     goNextSection()
   })
@@ -185,8 +187,9 @@ function markDoneAndNext() {
 
 function markDoneAndExit() {
   return runSave(async () => {
-    if (!doneSections.value.has(currentSection.value.id)) {
-      await protocol.toggleSectionDone(runId.value, memberId.value, currentSection.value.id)
+    const section = currentSection.value
+    if (section && !doneSections.value.has(section.id)) {
+      await protocol.toggleSectionDone(runId.value, memberId.value, section.id)
     }
     await protocol.unlockMember(runId.value, memberId.value)
     router.push({ name: 'protocol-run-detail', params: { id: runId.value } })
@@ -202,7 +205,7 @@ function saveAndExit() {
 
 onBeforeUnmount(async () => {
   if (locked.value && storedRunId && storedMemberId) {
-    try { await protocol.unlockMember(storedRunId, storedMemberId) } catch { }
+    try { await protocol.unlockMember(storedRunId, storedMemberId) } catch (e) { reportCaughtError(e, 'grading member unlock') }
   }
 })
 

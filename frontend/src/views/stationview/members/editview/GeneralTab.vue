@@ -131,8 +131,8 @@ const formerBlockReasons = computed(() => {
   if (props.memberInventory.length > 0) {
     reasons.push(t('memberDetail.formerBlockInventory', {count: props.memberInventory.length}))
   }
-  const forbidden = [StationUserType.GUARDIAN, StationUserType.MANAGER]
-  if (forbidden.includes(editUserType.value as any)) {
+  const forbidden: string[] = [StationUserType.GUARDIAN, StationUserType.MANAGER]
+  if (forbidden.includes(editUserType.value)) {
     reasons.push(t('memberDetail.formerBlockRole'))
   }
   return reasons
@@ -154,7 +154,7 @@ const {running: markingFormer, error: formerError, run: confirmMarkFormer} = use
 
     <NeutralContainer class="space-y-3">
       <SubHeader class="text-sm">{{ t('memberEdit.userType') }}</SubHeader>
-      <SelectInput :model-value="editUserType" @update:model-value="v => { if (v) onUserTypeChange(v) }" class="max-w-xs">
+      <SelectInput :model-value="editUserType" @update:model-value="v => { if (v) onUserTypeChange(String(v)) }" class="max-w-xs">
         <option :value="StationUserType.MANAGER">{{ t('memberEdit.userTypeManager') }}</option>
         <option :value="StationUserType.TEAM">{{ t('memberEdit.userTypeTeam') }}</option>
         <option :value="StationUserType.GUARDIAN">{{ t('memberEdit.userTypeGuardian') }}</option>

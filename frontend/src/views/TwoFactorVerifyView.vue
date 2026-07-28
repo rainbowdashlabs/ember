@@ -97,8 +97,9 @@ async function finalizeSession(token: string, expiresAt: string) {
       session.getSessionInfo().catch(() => null),
     ])
     const isAdmin = info?.instanceUserType === 'ADMINISTRATOR'
-    if (stations.length === 1) {
-      setActiveStation(stations[0].stationId)
+    const [onlyStation] = stations
+    if (stations.length === 1 && onlyStation) {
+      setActiveStation(onlyStation.stationId)
       window.location.href = redirect || '/station/requirements'
       return
     }

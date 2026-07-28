@@ -105,7 +105,8 @@ onMounted(async () => {
       const accountsRes = await client.get<{ noStationAccounts: DemoAccount[]; stationGroups: StationGroup[] } | StationGroup[] | DemoAccount[]>('/demo/accounts')
       const payload = accountsRes.data
       if (Array.isArray(payload)) {
-        if (payload.length > 0 && 'accounts' in payload[0]) {
+        const [firstEntry] = payload
+        if (firstEntry && 'accounts' in firstEntry) {
           stationGroups.value = payload as StationGroup[]
         } else {
           stationGroups.value = [{stationId: 'default', stationName: 'Station', accounts: payload as DemoAccount[]}]
@@ -115,8 +116,9 @@ onMounted(async () => {
         stationGroups.value = payload.stationGroups ?? []
         noStationAccounts.value = payload.noStationAccounts ?? []
       }
-      if (stationGroups.value.length > 0) {
-        activeStationTab.value = stationGroups.value[0].stationId
+      const [firstGroup] = stationGroups.value
+      if (firstGroup) {
+        activeStationTab.value = firstGroup.stationId
       }
     }
   } catch {
@@ -131,8 +133,9 @@ async function resolveStationAndRedirect() {
   clearActiveStation()
   const [stations, info] = await Promise.all([session.getStations(), session.getSessionInfo().catch(() => null)])
   const isAdmin = info?.instanceUserType === 'ADMINISTRATOR'
-  if (stations.length === 1) {
-    setActiveStation(stations[0].stationId)
+  const [onlyStation] = stations
+  if (stations.length === 1 && onlyStation) {
+    setActiveStation(onlyStation.stationId)
     await navigateTo(redirectPath || '/station/requirements')
   } else if (stations.length > 1) {
     await navigateTo(redirectPath || '/cross-station')

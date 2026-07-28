@@ -77,17 +77,17 @@ function removeRichRow(idx: number) {
 }
 
 function addGuardian(rowIdx: number) {
-    richRows.value[rowIdx].guardians.push({firstName: '', lastName: '', email: ''})
+    richRows.value[rowIdx]?.guardians.push({firstName: '', lastName: '', email: ''})
 }
 
 function removeGuardian(rowIdx: number, gIdx: number) {
-    richRows.value[rowIdx].guardians.splice(gIdx, 1)
+    richRows.value[rowIdx]?.guardians.splice(gIdx, 1)
 }
 
 const expandedBulk = computed(() => {
     const lines = bulkText.value.split(/[,\n]/).map((s) => s.trim()).filter(Boolean)
     return lines.map((email) => ({
-        firstName: email.split('@')[0],
+        firstName: email.split('@')[0] ?? '',
         lastName: '',
         email,
         userType: bulkUserType.value,
@@ -137,7 +137,7 @@ function save() {
     <div v-if="tab === 'bulk'" class="space-y-3">
       <label class="block text-sm">
         {{ t('setup.steps.invites.bulkEmails') }}
-        <TextAreaInput v-model="bulkText" :placeholder="t('setup.steps.invites.bulkPlaceholder')" rows="4"/>
+        <TextAreaInput v-model="bulkText" :placeholder="t('setup.steps.invites.bulkPlaceholder')" :rows="4"/>
       </label>
       <div class="flex gap-3">
         <label class="block text-sm flex-1">

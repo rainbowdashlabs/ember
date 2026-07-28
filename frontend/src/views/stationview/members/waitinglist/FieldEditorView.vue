@@ -134,11 +134,11 @@ const {
 async function moveField(index: number, direction: -1 | 1) {
   const sorted = sortedFields.value
   const targetIndex = index + direction
-  if (targetIndex < 0 || targetIndex >= sorted.length) return
+  const fieldA = sorted[index]
+  const fieldB = sorted[targetIndex]
+  if (!fieldA || !fieldB) return
   error.value = ''
   try {
-    const fieldA = sorted[index]
-    const fieldB = sorted[targetIndex]
     await Promise.all([
       waitingList.updateField(listId.value, fieldA.id, {
         name: fieldA.name,

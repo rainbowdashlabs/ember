@@ -47,7 +47,7 @@ const {t} = useI18n()
     <FieldLabel>{{ t('inventory.unknownScan.itemSource') }}</FieldLabel>
     <SelectInput
         :model-value="itemSource"
-        @update:model-value="(v: string) => itemSource = v as 'INTERNAL' | 'EXTERNAL'"
+        @update:model-value="(v: string | number | null | undefined) => itemSource = String(v ?? '') as 'INTERNAL' | 'EXTERNAL'"
     >
       <option :value="ItemSource.INTERNAL">{{ t('inventory.unknownScan.sources.INTERNAL') }}</option>
       <option :value="ItemSource.EXTERNAL">{{ t('inventory.unknownScan.sources.EXTERNAL') }}</option>

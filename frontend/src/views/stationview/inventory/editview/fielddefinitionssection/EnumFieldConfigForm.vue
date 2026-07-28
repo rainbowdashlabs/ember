@@ -40,7 +40,7 @@ function addOption() {
         <SubHeader class="mb-2">{{ t('inventory.fields.enum.options') }}</SubHeader>
         <ul class="flex flex-col gap-2">
             <li v-for="(opt, idx) in props.config.options" :key="idx" class="flex items-center gap-2">
-                <TextInput :model-value="opt.label" :placeholder="t('inventory.fields.enum.label')" class="flex-1" @update:model-value="onLabelInput(opt, $event)" />
+                <TextInput :model-value="opt.label" :placeholder="t('inventory.fields.enum.label')" class="flex-1" @update:model-value="onLabelInput(opt, $event ?? '')" />
                 <TextInput v-model="opt.value" :placeholder="t('inventory.fields.enum.value')" class="flex-1" />
                 <IconButton :icon="['fas', 'trash']" :label="t('common.delete')" @click="removeOption(idx)" />
             </li>

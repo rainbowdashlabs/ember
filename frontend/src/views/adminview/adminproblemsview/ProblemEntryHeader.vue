@@ -27,7 +27,7 @@ const levelClass = computed(() => props.entry.level === 'ERROR'
 
 function shortLogger(logger: string): string {
   const parts = logger.split('.')
-  return parts[parts.length - 1]
+  return parts[parts.length - 1] ?? logger
 }
 
 </script>

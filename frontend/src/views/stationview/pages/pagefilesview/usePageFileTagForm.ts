@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {ref, type Ref} from 'vue'
-import {useI18n} from 'vue-i18n'
+import {useConfirmAction} from '@/composables/useConfirmAction'
 import {
     createPageTag,
     deletePageTag,
@@ -14,14 +14,15 @@ import {
 
 /**
  * Create / rename / delete flow for file tags, including the modal state the tag dialog binds to.
+ *
+ * <p>Deletion is a request-then-confirm pair rather than a single call: `removeTag` opens the
+ * confirmation and `confirmRemoveTag` performs it, so the view can render the styled modal.
  */
 export function usePageFileTagForm(
     activeTagFilter: Ref<number | null>,
     reloadTags: () => Promise<void>,
     reload: () => Promise<void>,
 ) {
-    const {t} = useI18n()
-
     const tagModalOpen = ref(false)
     const tagName = ref('')
     const tagColor = ref('#888888')
@@ -49,12 +50,25 @@ export function usePageFileTagForm(
         await reloadTags()
     }
 
-    async function removeTag(tag: PageFileTag) {
-        if (!confirm(t('stationPages.editor.tagDeletePrompt', {name: tag.name}))) return
-        await deletePageTag(tag.id)
-        if (activeTagFilter.value === tag.id) activeTagFilter.value = null
-        await reload()
-    }
+    const deleteTag = useConfirmAction<PageFileTag>({
+        onConfirm: async tag => {
+            await deletePageTag(tag.id)
+            if (activeTagFilter.value === tag.id) activeTagFilter.value = null
+        },
+        onSuccess: () => reload(),
+    })
 
-    return {tagModalOpen, tagName, tagColor, editingTag, openTagModal, openTagEdit, saveTag, removeTag}
+    return {
+        tagModalOpen,
+        tagName,
+        tagColor,
+        editingTag,
+        openTagModal,
+        openTagEdit,
+        saveTag,
+        removeTag: deleteTag.request,
+        showDeleteTag: deleteTag.show,
+        deleteTagTarget: deleteTag.target,
+        confirmRemoveTag: deleteTag.confirm,
+    }
 }

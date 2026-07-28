@@ -26,6 +26,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Modal from '@/components/feedback/Modal.vue'
+import {apiErrorMessage, apiErrorStatus, errorMessage} from '@/util/apiError'
 
 const props = defineProps<{
   factors: FactorInfo[]
@@ -86,15 +87,15 @@ async function confirmEnrollment() {
     )
     showLabelPrompt.value = false
     emit('updated', result.recoveryCodes ?? [])
-  } catch (e: any) {
-    if (e?.message === 'webauthn-cancelled') {
+  } catch (e) {
+    if (errorMessage(e) === 'webauthn-cancelled') {
       error.value = t('twoFactor.webauthn.cancelled')
-    } else if (e?.message === 'webauthn-unsupported') {
+    } else if (errorMessage(e) === 'webauthn-unsupported') {
       error.value = t('twoFactor.webauthn.unsupported')
-    } else if (e?.response?.status === 401) {
+    } else if (apiErrorStatus(e) === 401) {
       error.value = t('twoFactor.setup.passwordWrong')
     } else {
-      error.value = e?.response?.data?.message || t('twoFactor.webauthn.failed')
+      error.value = apiErrorMessage(e) || t('twoFactor.webauthn.failed')
     }
   } finally {
     enrolling.value = false
@@ -105,8 +106,8 @@ async function handleRemove(factor: FactorInfo) {
   try {
     await removeFactor(factor.id)
     emit('updated', [])
-  } catch (e: any) {
-    error.value = e?.response?.data?.message || t('common.error')
+  } catch (e) {
+    error.value = apiErrorMessage(e) || t('common.error')
   }
 }
 
@@ -121,8 +122,8 @@ async function confirmRename() {
     await renameFactor(renameTarget.value.id, renameLabel.value.trim())
     renameTarget.value = null
     emit('updated', [])
-  } catch (e: any) {
-    error.value = e?.response?.data?.message || t('common.error')
+  } catch (e) {
+    error.value = apiErrorMessage(e) || t('common.error')
   }
 }
 </script>

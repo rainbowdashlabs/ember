@@ -18,22 +18,15 @@ import type { ProfileField } from '@/api/profileFields'
 import type { MemberGroup, UserTag } from '@/api/types'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import type { ColumnPickerOption } from '@/components/table/columns'
+import type { SavedFilterPreset } from './useSavedFilters'
 
 const { t } = useI18n()
 const { isMobile } = useBreakpoint()
 
-interface SavedFilter {
-  id?: number
-  name: string
-  tab: string
-  textFilters: Record<string, string>
-  multiFilters: Record<string, string[]>
-}
-
 const filterText = defineModel<string>('filterText', {required: true})
 
 const props = defineProps<{
-  savedFilters: SavedFilter[]
+  savedFilters: SavedFilterPreset[]
   overviewFields: ProfileField[]
   nonOverviewFields: ProfileField[]
   extraColumnIds: Set<number>
@@ -47,7 +40,7 @@ const props = defineProps<{
 
 const sortedColumnFields = computed(() =>
   [...props.overviewFields, ...props.nonOverviewFields].sort((a, b) =>
-    a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
+    (a.name ?? '').localeCompare(b.name ?? '', undefined, { sensitivity: 'base' }),
   ),
 )
 const overviewIds = computed(() => new Set(props.overviewFields.map(f => f.id)))
@@ -57,12 +50,12 @@ function isColumnVisible(fieldId: number): boolean {
     : props.extraColumnIds.has(fieldId)
 }
 const pickerOptions = computed<ColumnPickerOption[]>(() =>
-  sortedColumnFields.value.map(f => ({ key: f.id, label: f.name, visible: isColumnVisible(f.id) })),
+  sortedColumnFields.value.map(f => ({ key: f.id, label: f.name ?? '', visible: isColumnVisible(f.id) })),
 )
 
 const emit = defineEmits<{
   clearFilters: []
-  applyFilter: [preset: SavedFilter]
+  applyFilter: [preset: SavedFilterPreset]
   deleteFilter: [index: number]
   saveFilter: [name: string]
   toggleColumn: [fieldId: number]

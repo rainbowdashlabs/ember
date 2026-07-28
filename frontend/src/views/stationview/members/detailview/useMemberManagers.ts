@@ -65,7 +65,7 @@ export function useMemberManagers(
         const fieldMap = new Map<number, string>()
         for (const v of vals) { fieldMap.set(v.fieldId, v.value ?? '') }
         mgrVals.set(mgr.id, fieldMap)
-        mgrTypes.set(mgr.id, (memberData as any).userType ?? '')
+        mgrTypes.set(mgr.id, memberData.userType ?? '')
       } catch { void 0 }
     }
     managerValues.value = mgrVals

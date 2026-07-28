@@ -54,12 +54,12 @@ export function stepBackendId(stepId: WizardStepId): string | null {
 
 export function nextStep(current: WizardStepId): WizardStepId | null {
     const idx = STEP_ORDER.indexOf(current)
-    if (idx < 0 || idx === STEP_ORDER.length - 1) return null
-    return STEP_ORDER[idx + 1]
+    if (idx < 0) return null
+    return STEP_ORDER[idx + 1] ?? null
 }
 
 export function prevStep(current: WizardStepId): WizardStepId | null {
     const idx = STEP_ORDER.indexOf(current)
     if (idx <= 0) return null
-    return STEP_ORDER[idx - 1]
+    return STEP_ORDER[idx - 1] ?? null
 }

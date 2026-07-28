@@ -66,6 +66,7 @@ function moveAt(i: number, delta: number) {
     const target = i + delta
     if (target < 0 || target >= next.length) return
     const [moved] = next.splice(i, 1)
+    if (!moved) return
     next.splice(target, 0, moved)
     itemsModel.value = next
 }
@@ -99,6 +100,7 @@ function onDrop(target: number) {
     if (dragIndex.value === null || dragIndex.value === target) return
     const next = [...items.value]
     const [moved] = next.splice(dragIndex.value, 1)
+    if (!moved) return
     next.splice(target, 0, moved)
     itemsModel.value = next
     dragIndex.value = null
@@ -133,7 +135,7 @@ function onDrop(target: number) {
 
         <!-- Single-mode: one image preview -->
         <div v-if="!multi && items.length > 0" class="flex items-start gap-2">
-            <img :src="pageImageUrl(stationUid, items[0].imageHash)" alt=""
+            <img :src="pageImageUrl(stationUid, items[0]?.imageHash ?? '')" alt=""
                  class="w-32 h-32 object-cover rounded-theme border border-(--border)"/>
             <div class="flex flex-col gap-1">
                 <PageFileBrowseButton

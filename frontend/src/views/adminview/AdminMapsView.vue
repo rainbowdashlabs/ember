@@ -21,6 +21,7 @@ import {maps} from '@/api'
 import {useMapsConfig} from '@/composables/useMapsConfig'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useFlashMessage} from '@/composables/useFlashMessage'
+import {apiErrorMessage} from '@/util/apiError'
 import type {
   AdminMapsConfig,
   MapsGeocodingConfig,
@@ -73,8 +74,8 @@ async function save() {
     geocoding.value = saved.geocoding
     tileCacheMaxMb.value = saved.tileCacheMaxMb
     await reloadMapsConfig()
-  } catch (err: any) {
-    error.value = err?.response?.data?.title || t('common.error')
+  } catch (err) {
+    error.value = apiErrorMessage(err) || t('common.error')
     throw err
   }
 }

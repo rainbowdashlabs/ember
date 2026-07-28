@@ -23,6 +23,7 @@ import {inventory, inventoryContainers} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import type {InventoryItem, InventorySize} from '@/api/inventory'
 import type {InventoryContainer} from '@/api/inventoryContainers'
+import {apiErrorMessage} from '@/util/apiError'
 
 const props = defineProps<{
   targetContainerId: number
@@ -125,8 +126,8 @@ const {running: submitting, run: submit} = useAsyncAction(async () => {
       added = true
     }
     onClose()
-  } catch (e: any) {
-    error.value = e?.response?.data?.message ?? t('inventory.storage.addItems.addFailed')
+  } catch (e) {
+    error.value = apiErrorMessage(e) ?? t('inventory.storage.addItems.addFailed')
   } finally {
     if (added) emit('added')
   }

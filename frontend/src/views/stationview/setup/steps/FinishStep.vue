@@ -16,7 +16,7 @@ import {useSession} from '@/composables/useSession'
 import {useSetupStatus} from '@/composables/useSetupStatus'
 import {useOnboardingTour} from '@/composables/useOnboardingTour'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {stepRouteName} from '@/views/stationview/setup/steps'
+import {stepRouteName, type WizardStepId} from '@/views/stationview/setup/steps'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -36,13 +36,13 @@ const {running: finishing, run: runFinalize} = useAsyncAction(async () => {
     if (!result.ok) {
         error.value = t('setup.steps.finish.missingHint')
         const first = result.missingSteps[0]
-        const map: Record<string, string> = {
+        const map: Record<string, WizardStepId> = {
             address: 'address',
             modules: 'modules',
             memberTypes: 'member-types',
         }
-        const fallback = map[first] ?? 'welcome'
-        router.replace({name: stepRouteName(fallback as never)})
+        const fallback = (first ? map[first] : undefined) ?? 'welcome'
+        router.replace({name: stepRouteName(fallback)})
         return false
     }
     await loadSession()

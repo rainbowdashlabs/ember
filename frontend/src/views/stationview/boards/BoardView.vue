@@ -63,7 +63,7 @@ const backlogLane = computed(() => board.value?.backlogLaneId ? lanes.value.find
 function ticketsForLane(laneId: number): BoardTicket[] {
     let filtered = tickets.value.filter(t => t.laneId === laneId)
     if (assigneeFilter.value.size > 0) {
-        filtered = filtered.filter(t => t.assignee !== null && assigneeFilter.value.has(t.assignee.memberUid))
+        filtered = filtered.filter(t => !!t.assignee?.memberUid && assigneeFilter.value.has(t.assignee.memberUid))
     }
     if (labelFilter.value.length > 0) {
         const filterIds = new Set(labelFilter.value.map(Number))
@@ -93,7 +93,7 @@ const defaultCreateLaneId = computed(() => {
 
 function isLastLane(laneId: number): boolean {
     const vl = visibleLanes.value
-    return vl.length > 0 && vl[vl.length - 1].id === laneId
+    return vl[vl.length - 1]?.id === laneId
 }
 
 function shouldHideTicket(ticket: BoardTicket, laneId: number): boolean {
@@ -117,7 +117,9 @@ const assignees = computed(() => {
     const uids = new Set(tickets.value.map(t => t.assignee?.memberUid).filter(Boolean) as string[])
     const list = members.value.filter(m => uids.has(m.memberUid))
     const i = list.findIndex(m => m.memberUid === sessionInfo.value?.member?.uid)
-    return i <= 0 ? list : [list[i], ...list.slice(0, i), ...list.slice(i + 1)]
+    if (i <= 0) return list
+    const [self] = list.splice(i, 1)
+    return self ? [self, ...list] : list
 })
 
 function openTicketDetail(ticket: BoardTicket) {

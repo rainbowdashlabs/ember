@@ -44,7 +44,7 @@ const {t} = useI18n()
             <TextInput v-model="folderName" :placeholder="t('stationPages.editor.folderName')"/>
             <SelectInput :model-value="folderParent === null ? '' : String(folderParent)"
                          class="w-full"
-                         @update:model-value="(v: string) => folderParent = v ? +v : null">
+                         @update:model-value="(v: string | number | null | undefined) => folderParent = v ? +v : null">
                 <option value="">{{ t('stationPages.editor.rootFolder') }}</option>
                 <option v-for="f in folders" :key="f.id"
                         :value="f.id" :disabled="editingFolder?.id === f.id">

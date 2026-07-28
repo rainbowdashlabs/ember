@@ -77,7 +77,7 @@ async function loadGroupPermissions(groupIds: Set<number>) {
     const grants = await Promise.all(groups.map(g => memberGroups.getGroupPermissions(g.id)))
     const map = new Map<string, string>()
     groups.forEach((group, i) => {
-      for (const grant of grants[i]) {
+      for (const grant of grants[i] ?? []) {
         if (!map.has(grant.permission)) map.set(grant.permission, t('permissions.grantedByGroup', {name: group.name}))
       }
     })

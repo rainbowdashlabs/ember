@@ -82,10 +82,11 @@ function removeSection(index: number) {
 
 function moveSection(index: number, direction: -1 | 1) {
   const newIndex = index + direction
-  if (newIndex < 0 || newIndex >= sections.value.length) return
-  const temp = sections.value[index]
-  sections.value[index] = sections.value[newIndex]
-  sections.value[newIndex] = temp
+  const current = sections.value[index]
+  const target = sections.value[newIndex]
+  if (!current || !target) return
+  sections.value[index] = target
+  sections.value[newIndex] = current
 }
 
 function addSource(section: SectionDraft) {
@@ -174,48 +175,51 @@ const { loading, error } = useAsyncLoader(async () => {
   }
 })
 
+async function saveTest(): Promise<number> {
+  const testData = {
+    title: title.value,
+    description: description.value,
+    timeLimit: timeLimitEnabled.value && timeLimit.value ? timeLimit.value : null,
+    shuffle: shuffle.value,
+    forced: forced.value,
+    startAt: startAt.value ? new Date(startAt.value).toISOString() : null,
+    endAt: endAt.value ? new Date(endAt.value).toISOString() : null,
+  }
+  const id = testId.value
+  if (id) {
+    await quiz.updateTest(id, testData)
+    return id
+  }
+  const created = await quiz.createTest(testData)
+  return created.id
+}
+
+async function saveSections(id: number) {
+  const sectionPayload = sections.value.map(sec => ({
+    title: sec.title,
+    description: sec.description,
+    sources: sec.sources
+      .filter(src => src.catalogId !== null)
+      .map(src => ({
+        catalogId: src.catalogId!,
+        categoryId: src.categoryId,
+        questionCount: src.questionCount,
+      })),
+  }))
+  await quiz.replaceSections(id, sectionPayload)
+}
+
 async function save() {
   error.value = ''
   try {
-    const testData = {
-      title: title.value,
-      description: description.value,
-      timeLimit: timeLimitEnabled.value && timeLimit.value ? timeLimit.value : null,
-      shuffle: shuffle.value,
-      forced: forced.value,
-      startAt: startAt.value ? new Date(startAt.value).toISOString() : null,
-      endAt: endAt.value ? new Date(endAt.value).toISOString() : null,
-    }
-
-    let id = testId.value
-    if (id) {
-      await quiz.updateTest(id, testData)
-    } else {
-      const created = await quiz.createTest(testData)
-      id = created.id
-    }
-
-    const sectionPayload = sections.value.map(sec => ({
-      title: sec.title,
-      description: sec.description,
-      sources: sec.sources
-        .filter(src => src.catalogId !== null)
-        .map(src => ({
-          catalogId: src.catalogId!,
-          categoryId: src.categoryId,
-          questionCount: src.questionCount,
-        })),
-    }))
-
-    await quiz.replaceSections(id!, sectionPayload)
-
-    await quiz.setRestrictions(id!, {
+    const id = await saveTest()
+    await saveSections(id)
+    await quiz.setRestrictions(id, {
       userTypes: selectedUserTypes.value,
       groupIds: selectedGroupIds.value,
       tagIds: selectedTagIds.value,
     })
-
-    router.push({ name: 'quiz-test-detail', params: { id: id! } })
+    router.push({ name: 'quiz-test-detail', params: { id } })
   } catch (e) {
     error.value = t('common.error')
     throw e

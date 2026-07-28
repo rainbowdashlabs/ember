@@ -94,7 +94,7 @@ function getMemberOptions(field: AttendanceTemplateField): { value: string; labe
                 v-else
                 class="w-full"
                 :model-value="getFieldValue(field.id)"
-                @update:model-value="emit('fieldMemberIds', field.id, $event ? [$event] : [])"
+                @update:model-value="emit('fieldMemberIds', field.id, $event ? [String($event)] : [])"
             >
               <option value="">—</option>
               <option v-for="opt in getMemberOptions(field)" :key="opt.value" :value="opt.value">

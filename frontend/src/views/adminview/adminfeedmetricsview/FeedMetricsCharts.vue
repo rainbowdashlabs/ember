@@ -6,15 +6,16 @@
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
 import VChart from 'vue-echarts'
+import type {EChartsCoreOption} from 'echarts/core'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 
 defineProps<{
   hasData: boolean
-  requestsChartOption: object
-  histogramChartOption: object
-  volumeChartOption: object
+  requestsChartOption: EChartsCoreOption
+  histogramChartOption: EChartsCoreOption
+  volumeChartOption: EChartsCoreOption
 }>()
 
 const {t} = useI18n()

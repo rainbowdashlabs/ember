@@ -43,7 +43,7 @@ const notifyRows: NotifyRow[] = [
 ]
 
 function getToggle(type: string): NotificationToggle {
-  return props.settings.notifications?.[type] ?? {app: true, email: false}
+  return props.settings.notifications?.[type] ?? {app: true, email: false, feed: true}
 }
 </script>
 

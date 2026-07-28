@@ -60,7 +60,7 @@ const importer = useCsvImport<QuizCsvMapping, ImportQuestion[], number>({
   createMapping: createQuizCsvMapping,
   validateMapping: ({ mapping }) => mapping.questionColumn ? null : t('quiz.csv.questionColumnRequired'),
   loadPreview: async ({ headers, rows, mapping }) => buildImportQuestions(headers, rows, mapping),
-  validateCommit: () => questions.value.some(question => question.included) ? null : t('quiz.csv.noQuestionsSelected'),
+  validateCommit: (): string | null => questions.value.some((question: ImportQuestion) => question.included) ? null : t('quiz.csv.noQuestionsSelected'),
   commit: () => importQuestions(),
   formatError: () => t('common.error'),
 })

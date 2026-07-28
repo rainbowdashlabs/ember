@@ -42,7 +42,7 @@ Inline-Code sieht so aus: \`const x = 42\`
 
 \`\`\`
 function hallo() {
-  console.log("Hallo Welt!")
+  return "Hallo Welt!"
 }
 \`\`\`
 

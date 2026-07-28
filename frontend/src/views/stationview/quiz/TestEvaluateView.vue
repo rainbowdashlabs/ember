@@ -174,7 +174,8 @@ const {loading, error, reload} = useAsyncLoader(async () => {
       const correctGaps = new Set<number>()
       for (let i = 0; i < answers_list.length; i++) {
         const given = (gaps[String(i)] ?? '').trim()
-        if (given && given.toLowerCase() === answers_list[i].trim().toLowerCase()) {
+        const expected = answers_list[i]?.trim() ?? ''
+        if (given && given.toLowerCase() === expected.toLowerCase()) {
           correctGaps.add(i)
         }
       }

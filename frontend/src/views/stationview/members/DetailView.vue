@@ -130,7 +130,7 @@ async function loadDetail() {
   fields.value = allFields
   allMembers.value = allMems
   member.value = allMems.find(m => m.id === memberId.value) ?? null
-  memberUserType.value = (memberData as any).userType ?? ''
+  memberUserType.value = memberData.userType ?? ''
   managers.value = mgrs
   memberPermissions.value = perms
   memberGroupList.value = mGroups

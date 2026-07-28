@@ -16,6 +16,7 @@ import AccountSearchPicker from '@/components/input/search/AccountSearchPicker.v
 import {twoFactorAdmin} from '@/api'
 import type {AccountSearchResult, AuditEntry} from '@/api/twoFactorAdmin'
 import {formatDateTime} from '@/util/format'
+import {apiErrorMessage} from '@/util/apiError'
 
 const {t} = useI18n()
 
@@ -45,8 +46,8 @@ async function loadAudit(reset = false) {
     audit.value = audit.value.concat(entries)
     auditHasMore.value = entries.length === auditPageSize
     auditOffset.value += entries.length
-  } catch (e: any) {
-    error.value = e?.response?.data?.message || t('common.error')
+  } catch (e) {
+    error.value = apiErrorMessage(e) || t('common.error')
   }
   auditLoading.value = false
 }
@@ -57,8 +58,8 @@ function onAuditPick(item: AccountSearchResult) {
   loadAudit(true)
 }
 
-function onAuditUidUpdate(uid: string | null) {
-  auditFilterUid.value = uid
+function onAuditUidUpdate(uid: string | null | undefined) {
+  auditFilterUid.value = uid ?? null
   if (uid == null) {
     auditAccountFilter.value = null
     loadAudit(true)

@@ -22,32 +22,40 @@ const includedCount = computed(() => props.questions.filter(question => question
 
 function toggleInclude(index: number) {
   const question = props.questions[index]
+  if (!question) return
   question.included = !question.included
 }
 
 function resplit(index: number) {
   const question = props.questions[index]
+  if (!question) return
   question.splitItems = needsSplit(question.type) ? splitAnswer(question) : []
   question.mcCorrectIndices.clear()
 }
 
 function setSeparator(index: number, value: string) {
-  props.questions[index].answerSeparator = value
+  const question = props.questions[index]
+  if (!question) return
+  question.answerSeparator = value
   resplit(index)
 }
 
 function toggleMcCorrect(index: number, optionIndex: number) {
-  const correct = props.questions[index].mcCorrectIndices
+  const correct = props.questions[index]?.mcCorrectIndices
+  if (!correct) return
   if (correct.has(optionIndex)) correct.delete(optionIndex)
   else correct.add(optionIndex)
 }
 
 function updateSplitItem(index: number, optionIndex: number, value: string) {
-  props.questions[index].splitItems[optionIndex] = value
+  const question = props.questions[index]
+  if (!question) return
+  question.splitItems[optionIndex] = value
 }
 
 function removeSplitItem(index: number, optionIndex: number) {
   const question = props.questions[index]
+  if (!question) return
   question.splitItems.splice(optionIndex, 1)
   const shifted = [...question.mcCorrectIndices]
       .filter(correctIndex => correctIndex !== optionIndex)

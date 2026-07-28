@@ -50,13 +50,14 @@ const eventData = computed(() => detail.value?.event ?? null)
 const publicFields = computed(() => detail.value?.publicFields ?? [])
 
 function getEventDate(): string {
-  if (eventData.value?.startTime) return new Date(eventData.value.startTime as string).toISOString().split('T')[0]
-  return new Date().toISOString().split('T')[0]
+  if (eventData.value?.startTime) return new Date(eventData.value.startTime as string).toISOString().slice(0, 10)
+  return new Date().toISOString().slice(0, 10)
 }
 
 function selectedUidForRegister(): string | null {
   const without = eligibleMembers.value.filter(m => !myRegistrations.value.some(r => r.eventId === eventId.value && r.remoteMemberId === m.uid))
-  if (without.length === 1) return without[0].uid
+  const single = without.length === 1 ? without[0] : undefined
+  if (single) return single.uid
   return selectedMemberUid.value || null
 }
 

@@ -47,6 +47,7 @@ function move(from: number, to: number) {
     if (from === to || from < 0 || to < 0 || from >= uids.value.length || to >= uids.value.length) return
     const next = [...uids.value]
     const [item] = next.splice(from, 1)
+    if (item === undefined) return
     next.splice(to, 0, item)
     modelValue.value = next
 }

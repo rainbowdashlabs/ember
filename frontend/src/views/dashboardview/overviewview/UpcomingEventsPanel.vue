@@ -42,6 +42,11 @@ const feedCtaMessage = computed(() => {
 
 const dayNames = ['', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']
 
+/** Weekday label for an ISO day-of-week (1 = Monday … 7 = Sunday). */
+function dayName(dayOfWeek: number): string {
+  return dayNames[dayOfWeek] ?? ''
+}
+
 interface UpcomingEvent {
   event: StationEvent
   date: string
@@ -67,7 +72,7 @@ const upcomingEvents = computed((): UpcomingEvent[] => {
       if (eventDateStr >= todayStr) {
         const d = new Date(ev.startTime)
         const dow = d.getUTCDay() === 0 ? 7 : d.getUTCDay()
-        upcoming.push({event: ev, date: eventDateStr, dayLabel: dayNames[dow]})
+        upcoming.push({event: ev, date: eventDateStr, dayLabel: dayName(dow)})
       }
     }
   }
@@ -87,15 +92,15 @@ const upcomingEvents = computed((): UpcomingEvent[] => {
       if (!ev.dayOfWeek || ev.dayOfWeek !== dow) continue
 
       if (ev.eventType === EventTypes.RECURRING) {
-        upcoming.push({event: ev, date: dateStr, dayLabel: dayNames[dow]})
+        upcoming.push({event: ev, date: dateStr, dayLabel: dayName(dow)})
       } else if (ev.eventType === EventTypes.MONTHLY_FIRST) {
-        if (dayOfMonth <= 7) upcoming.push({event: ev, date: dateStr, dayLabel: dayNames[dow]})
+        if (dayOfMonth <= 7) upcoming.push({event: ev, date: dateStr, dayLabel: dayName(dow)})
       } else if (ev.eventType === EventTypes.QUARTERLY) {
-        if (dayOfMonth <= 7 && (month % 3 === 0)) upcoming.push({event: ev, date: dateStr, dayLabel: dayNames[dow]})
+        if (dayOfMonth <= 7 && (month % 3 === 0)) upcoming.push({event: ev, date: dateStr, dayLabel: dayName(dow)})
       } else if (ev.eventType === EventTypes.YEARLY && ev.startTime) {
         const refDate = new Date(ev.startTime)
         if (refDate.getUTCMonth() === month && refDate.getUTCDate() === dayOfMonth) {
-          upcoming.push({event: ev, date: dateStr, dayLabel: dayNames[dow]})
+          upcoming.push({event: ev, date: dateStr, dayLabel: dayName(dow)})
         }
       }
     }

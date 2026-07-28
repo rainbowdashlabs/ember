@@ -53,7 +53,7 @@ export function useSessionFields(
   }
 
   async function setFieldMemberIds(fieldId: number, ids: string[]) {
-    const val = ids.length === 0 ? '' : ids.length === 1 ? ids[0] : JSON.stringify(ids)
+    const val = ids.length === 0 ? '' : ids.length === 1 ? ids[0] ?? '' : JSON.stringify(ids)
     setFieldValue(fieldId, val)
     await saveField(fieldId)
 

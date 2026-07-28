@@ -55,6 +55,7 @@ function moveItem(index: number, delta: number) {
     const target = index + delta
     if (target < 0 || target >= next.length) return
     const [moved] = next.splice(index, 1)
+    if (moved === undefined) return
     next.splice(target, 0, moved)
     items.value = next
 }
@@ -86,7 +87,7 @@ const gridClass = computed(() => `grid-cols-1 sm:grid-cols-${props.gridCols}`)
                         v-else-if="f.type === 'textarea'"
                         :model-value="(item[f.key] as string) ?? ''"
                         :placeholder="f.placeholder"
-                        rows="3"
+                        :rows="3"
                         @update:model-value="setField(i, f.key, $event ?? '')"
                     />
                     <MarkdownFieldInput

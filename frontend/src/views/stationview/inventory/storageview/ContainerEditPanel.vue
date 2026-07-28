@@ -60,7 +60,7 @@ const {running: submitting, error: saveError, run: runSave} = useAsyncAction(asy
     description: description.value,
   })
   emit('saved')
-}, {formatError: (e: any) => mapContainerError(t, e, 'inventory.storage.errors.updateFailed')})
+}, {formatError: (e) => mapContainerError(t, e, 'inventory.storage.errors.updateFailed')})
 
 async function save() {
   await runSave()

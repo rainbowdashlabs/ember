@@ -136,7 +136,7 @@ const {loading, error} = useAsyncLoader(async () => {
 
   const gNames = new Map<number, string[]>()
   grps.forEach((g, i) => {
-    for (const m of groupDetails[i]) {
+    for (const m of groupDetails[i] ?? []) {
       if (!gNames.has(m.id)) gNames.set(m.id, [])
       gNames.get(m.id)!.push(g.name ?? '')
     }
@@ -145,7 +145,7 @@ const {loading, error} = useAsyncLoader(async () => {
 
   const tNames = new Map<number, string[]>()
   tgs.forEach((tg, i) => {
-    for (const m of tagDetails[i]) {
+    for (const m of tagDetails[i] ?? []) {
       if (!tNames.has(m.id)) tNames.set(m.id, [])
       tNames.get(m.id)!.push(tg.name)
     }

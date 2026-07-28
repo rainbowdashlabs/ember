@@ -17,7 +17,7 @@ import MemberListStaticList from './MemberListStaticList.vue'
 import {listGroups} from '@/api/memberGroups'
 import {listTags} from '@/api/userTags'
 import {getMemberPickerByUid, type MemberSearchResult} from '@/api/members'
-import {MemberListSortBy, resolveMemberListSource, type MemberListSortByName, type ResolvedMember} from '@/api/pageManage'
+import {MemberListSortBy, resolveMemberListSource, type MemberListSortByName, type MemberListSource, type ResolvedMember} from '@/api/pageManage'
 import type {MemberGroup, UserTag} from '@/api/types'
 import {useConfigPatch} from '@/composables/useConfigPatch'
 
@@ -57,9 +57,10 @@ async function resolveNames(uids: string[]) {
     const results = await Promise.all(missing.map(uid => getMemberPickerByUid(uid).catch(() => null)))
     const nextNames = {...memberNames.value}
     const nextAttempted = {...memberResolveAttempted.value}
-    results.forEach((r, i) => {
-        nextAttempted[missing[i]] = true
-        if (r) nextNames[missing[i]] = r.displayName
+    missing.forEach((uid, i) => {
+        nextAttempted[uid] = true
+        const resolved = results[i]
+        if (resolved) nextNames[uid] = resolved.displayName
     })
     memberNames.value = nextNames
     memberResolveAttempted.value = nextAttempted
@@ -88,12 +89,20 @@ const dynamicResolved = ref<ResolvedMember[]>([])
 const manualUids = computed(() => sourceKind.value === 'manual' ? (source.value.memberUids ?? []) : [])
 const isOrderSort = computed(() => ((cfg.value.sortBy as string | undefined) ?? MemberListSortBy.ORDER) === MemberListSortBy.ORDER)
 
+function toMemberListSource(src: OfficersSource): MemberListSource | null {
+    if (src.kind === 'manual') return {kind: 'manual', memberUids: src.memberUids}
+    if (src.kind === 'group') return {kind: 'group', groupId: src.groupId}
+    if (src.kind === 'tag') return {kind: 'tag', tagId: src.tagId}
+    return null
+}
+
 async function refreshDynamicResolved() {
-    const src = source.value
-    const hasTarget = (src.kind === 'manual' && (src.memberUids?.length ?? 0) > 0)
-        || (src.kind === 'group' && src.groupId)
-        || (src.kind === 'tag' && src.tagId)
-    if (!hasTarget) { dynamicResolved.value = []; return }
+    const src = toMemberListSource(source.value)
+    const hasTarget = src !== null && (
+        (src.kind === 'manual' && (src.memberUids?.length ?? 0) > 0)
+        || (src.kind === 'group' && !!src.groupId)
+        || (src.kind === 'tag' && !!src.tagId))
+    if (!src || !hasTarget) { dynamicResolved.value = []; return }
     try {
         dynamicResolved.value = await resolveMemberListSource(
             src,
@@ -122,6 +131,7 @@ function moveManualMember(from: number, to: number) {
     if (from === to || from < 0 || to < 0 || from >= manualUids.value.length || to >= manualUids.value.length) return
     const next = [...manualUids.value]
     const [item] = next.splice(from, 1)
+    if (item === undefined) return
     next.splice(to, 0, item)
     patch({source: {kind: 'manual', memberUids: next}, memberOrder: next})
 }
@@ -153,14 +163,14 @@ function removeManualMember(uid: string) {
 
     <FieldLabel hint class="mb-1">{{ TS('memberListSource') }}</FieldLabel>
     <SelectInput :model-value="sourceKind" class="w-full"
-        @update:model-value="(v: string) => patch({source: {kind: v}})">
+        @update:model-value="(v: string | number | null | undefined) => patch({source: {kind: String(v ?? '')}})">
         <option v-for="k in (['group','tag','manual'] as const)" :key="k" :value="k">{{ TS('memberListSource' + k.charAt(0).toUpperCase() + k.slice(1)) }}</option>
     </SelectInput>
 
     <template v-if="sourceKind === 'group'">
         <FieldLabel hint class="mb-1">{{ TS('memberListGroupPick') }}</FieldLabel>
         <SelectInput :model-value="String(source.groupId ?? '')" class="w-full"
-            @update:model-value="(v: string) => patch({source: {kind: 'group', groupId: v ? Number(v) : null}})">
+            @update:model-value="(v: string | number | null | undefined) => patch({source: {kind: 'group', groupId: v ? Number(v) : null}})">
             <option value="">{{ TS('memberListGroupPickEmpty') }}</option>
             <option v-for="g in groupsList" :key="g.id" :value="String(g.id)">{{ g.name }}</option>
         </SelectInput>
@@ -169,7 +179,7 @@ function removeManualMember(uid: string) {
     <template v-else-if="sourceKind === 'tag'">
         <FieldLabel hint class="mb-1">{{ TS('memberListTagPick') }}</FieldLabel>
         <SelectInput :model-value="String(source.tagId ?? '')" class="w-full"
-            @update:model-value="(v: string) => patch({source: {kind: 'tag', tagId: v ? Number(v) : null}})">
+            @update:model-value="(v: string | number | null | undefined) => patch({source: {kind: 'tag', tagId: v ? Number(v) : null}})">
             <option value="">{{ TS('memberListTagPickEmpty') }}</option>
             <option v-for="ut in tagsList" :key="ut.id" :value="String(ut.id)">{{ ut.name }}</option>
         </SelectInput>
@@ -214,7 +224,7 @@ function removeManualMember(uid: string) {
 
     <FieldLabel hint class="mb-1">{{ TS('sortBy') }}</FieldLabel>
     <SelectInput :model-value="(cfg.sortBy as string) ?? MemberListSortBy.ORDER" class="w-full"
-        @update:model-value="(v: string | undefined) => patch({sortBy: (v ?? MemberListSortBy.ORDER) as MemberListSortByName})">
+        @update:model-value="(v: string | number | null | undefined) => patch({sortBy: (v == null ? MemberListSortBy.ORDER : String(v)) as MemberListSortByName})">
         <option :value="MemberListSortBy.ORDER">{{ TS('sortByOrder') }}</option>
         <option :value="MemberListSortBy.NAME">{{ TS('sortByName') }}</option>
         <option :value="MemberListSortBy.ROLE">{{ TS('sortByRole') }}</option>

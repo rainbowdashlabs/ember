@@ -7,9 +7,10 @@
 import {useI18n} from 'vue-i18n'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
+import type {RequestHistoryEntry} from '@/api/client'
 
 defineProps<{
-  requests: any[]
+  requests: RequestHistoryEntry[]
 }>()
 
 const {t} = useI18n()
