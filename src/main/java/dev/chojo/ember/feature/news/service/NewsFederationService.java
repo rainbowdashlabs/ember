@@ -276,7 +276,12 @@ public class NewsFederationService {
         var partner = requirePartner(stationId, partnerStationUid);
         if (!partner.isRemote()) {
             var comment = newsService.createComment(
-                    partner.stationId(), newsId, parentId, author.identity(), author.displayName(), content);
+                    owningStationId(partnerStationUid),
+                    newsId,
+                    parentId,
+                    author.identity(),
+                    author.displayName(),
+                    content);
             eventFederationRepository.cacheName(partner.id(), author.memberUid(), author.displayName());
             return toCommentResponse(comment);
         }
@@ -345,7 +350,7 @@ public class NewsFederationService {
         var partner = requirePartner(stationId, partnerStationUid);
         if (!partner.isRemote()) {
             requireOwnComment(commentId, author, "You can only delete your own comments");
-            if (!newsService.deleteComment(partner.stationId(), commentId)) {
+            if (!newsService.deleteComment(owningStationId(partnerStationUid), commentId)) {
                 throw new NotFoundResponse();
             }
             return;
@@ -366,6 +371,21 @@ public class NewsFederationService {
         return partnerRepository
                 .findPartnerByStationAndRemoteUid(stationId, partnerStationUid)
                 .orElseThrow(() -> new NotFoundResponse("Unknown partner"));
+    }
+
+    /**
+     * The station that owns the article, for partners hosted on this instance.
+     *
+     * <p>A partner row belongs to the station that requested the partnership, so its
+     * {@code stationId} is the <em>commenting</em> station, not the one holding the article.
+     * Comment notifications and member lookups have to run against the owner, which is what the
+     * {@code /remote/} handlers do — there the row belongs to the serving station and its
+     * {@code stationId} is already the owner. This keeps the same-instance path consistent with that.
+     */
+    private int owningStationId(UUID partnerStationUid) {
+        return stationRepository
+                .resolveId(partnerStationUid)
+                .orElseThrow(() -> new NotFoundResponse("Unknown partner station"));
     }
 
     private Station localStation(int stationId) {

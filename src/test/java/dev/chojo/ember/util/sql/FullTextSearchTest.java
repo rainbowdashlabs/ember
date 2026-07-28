@@ -82,6 +82,18 @@ class FullTextSearchTest {
         assertEquals("", FullTextSearch.prefixTerms("   "));
     }
 
+    /**
+     * A bare {@code :*} is not valid tsquery syntax and makes {@code to_tsquery} reject the whole
+     * query, so a word that strips to nothing has to be dropped rather than marked.
+     */
+    @Test
+    void prefixTermsDropsWordsThatStripToNothing() {
+        assertEquals("", FullTextSearch.prefixTerms("???"));
+        assertEquals("", FullTextSearch.prefixTerms("-- !! ??"));
+        assertEquals("Notruf:*", FullTextSearch.prefixTerms("!!! Notruf ???"));
+        assertEquals("Erste:* & Hilfe:*", FullTextSearch.prefixTerms("Erste - Hilfe"));
+    }
+
     @Test
     void stripMarkupWrapsExpression() {
         assertEquals(

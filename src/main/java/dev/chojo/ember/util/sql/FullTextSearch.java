@@ -87,13 +87,19 @@ public final class FullTextSearch {
      * a letter, digit or underscore, get {@code :*} appended and are combined with {@code &}.
      * The result is a bind value, never spliced into SQL.
      *
+     * <p>Words are filtered <em>after</em> stripping, not before. A token made entirely of
+     * punctuation strips to nothing, and appending {@code :*} to it would produce a bare
+     * {@code :*} — which is not valid tsquery syntax and makes {@code to_tsquery} reject the whole
+     * query. A query with no usable words yields an empty string.
+     *
      * @param query the raw user query
      * @return the prepared tsquery terms
      */
     public static String prefixTerms(String query) {
         return Arrays.stream(query.trim().split("\\s+"))
-                .filter(word -> !word.isBlank())
-                .map(word -> word.replaceAll("[^\\w\\p{L}]", "") + ":*")
+                .map(word -> word.replaceAll("[^\\w\\p{L}]", ""))
+                .filter(word -> !word.isEmpty())
+                .map(word -> word + ":*")
                 .collect(Collectors.joining(" & "));
     }
 

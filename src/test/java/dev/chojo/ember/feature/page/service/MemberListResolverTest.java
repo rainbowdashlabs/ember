@@ -48,8 +48,8 @@ class MemberListResolverTest extends RepositoryTestBase {
         account2 = accountRepo.create("mlr-2@test.com", "Bob", "Bravo");
         StationMember member1 = stationMemberRepo.create(station.id(), account1.id());
         StationMember member2 = stationMemberRepo.create(station.id(), account2.id());
-        uid1 = stationMemberRepo.resolveUid(member1.id());
-        uid2 = stationMemberRepo.resolveUid(member2.id());
+        uid1 = memberLookupService.resolveUid(member1.id());
+        uid2 = memberLookupService.resolveUid(member2.id());
 
         var group = memberGroupRepo.create(station.id(), "MLR Group");
         memberGroupRepo.addMember(group.id(), member1.id());

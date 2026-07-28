@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.entity.MentionType;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.MemberLookupService;
 import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsComment;
 import dev.chojo.ember.feature.news.entity.NewsViewer;
@@ -54,6 +55,7 @@ public class NewsService {
     private final RestrictionService restrictionService;
     private final DomainEventBus eventBus;
     private final StationMemberRepository stationMemberRepository;
+    private final MemberLookupService memberLookupService;
     private final AccountRepository accountRepository;
 
     @Inject
@@ -62,11 +64,13 @@ public class NewsService {
             RestrictionService restrictionService,
             DomainEventBus eventBus,
             StationMemberRepository stationMemberRepository,
+            MemberLookupService memberLookupService,
             AccountRepository accountRepository) {
         this.newsRepository = newsRepository;
         this.restrictionService = restrictionService;
         this.eventBus = eventBus;
         this.stationMemberRepository = stationMemberRepository;
+        this.memberLookupService = memberLookupService;
         this.accountRepository = accountRepository;
     }
 
@@ -324,13 +328,13 @@ public class NewsService {
             if (parentId != null) {
                 var parentComment = newsRepository.findCommentById(parentId).orElse(null);
                 if (parentComment != null && parentComment.author() != null) {
-                    parentAuthorMemberId = stationMemberRepository
+                    parentAuthorMemberId = memberLookupService
                             .resolveId(stationId, parentComment.author().memberUid())
                             .orElse(null);
                 }
             }
             Integer authorMemberId = author != null
-                    ? stationMemberRepository
+                    ? memberLookupService
                             .resolveId(stationId, author.memberUid())
                             .orElse(null)
                     : null;
@@ -351,7 +355,7 @@ public class NewsService {
                 while (matcher.find()) {
                     try {
                         var memberUid = UUID.fromString(matcher.group(2));
-                        stationMemberRepository.resolveId(stationId, memberUid).ifPresent(mentionedId -> {
+                        memberLookupService.resolveId(stationId, memberUid).ifPresent(mentionedId -> {
                             if (!mentionedId.equals(authorMemberId)) {
                                 eventBus.publish(new MentionedInComment(
                                         stationId,
@@ -466,7 +470,7 @@ public class NewsService {
 
     private String resolveAuthorName(int stationId, MemberIdentity author) {
         if (author == null) return "";
-        return stationMemberRepository
+        return memberLookupService
                 .resolveId(stationId, author.memberUid())
                 .flatMap(memberId -> stationMemberRepository
                         .findById(memberId)

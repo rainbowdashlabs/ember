@@ -112,7 +112,19 @@ public class PageService {
     }
 
     public Optional<StationPage> getPageRendered(int pageId) {
-        return getPage(pageId).map(this::renderMarkdownCells);
+        return getPage(pageId).map(this::renderMarkdownCells).map(this::resolveOgImageHash);
+    }
+
+    /**
+     * Fills in the content hash of the page's social preview image. Page files are served by hash,
+     * so a client holding only {@code ogImageId} cannot build the image URL.
+     */
+    private StationPage resolveOgImageHash(StationPage page) {
+        if (page.ogImageId() == null) return page;
+        return pageRepository
+                .findFile(page.ogImageId())
+                .map(file -> page.withOgImageHash(file.contentHash()))
+                .orElse(page);
     }
 
     public List<StationPage> listPages(int stationId) {
@@ -296,7 +308,8 @@ public class PageService {
                 .flatMap(pageRepository::findById)
                 .filter(StationPage::published)
                 .map(pageRepository::loadFullTree)
-                .map(this::renderMarkdownCells);
+                .map(this::renderMarkdownCells)
+                .map(this::resolveOgImageHash);
     }
 
     public PageFile uploadPageFile(int pageId, String fileName, String mimeType, byte[] data) throws IOException {
