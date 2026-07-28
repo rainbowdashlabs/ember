@@ -50,8 +50,8 @@ const KNOWN_MISSING_HELP = new Set([
 ])
 
 const KNOWN_SHARED_HELP_COMPONENTS = new Set([
-    '@/views/helpcenter/stationview/inventory/CheckMemberHelp',
-    '@/views/helpcenter/stationview/procedure/ProcedureOverviewHelp',
+    '@/views/helpcenter/stationview/inventory/CheckMemberHelp.vue',
+    '@/views/helpcenter/stationview/procedure/ProcedureOverviewHelp.vue',
 ])
 
 // ── Panel definitions ───────────────────────────────────────────────
