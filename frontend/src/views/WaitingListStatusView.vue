@@ -6,7 +6,6 @@
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute } from 'vue-router'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
@@ -18,34 +17,27 @@ import type { WaitingListPublicStatus } from '@/api/waitingList'
 import { waitingList } from '@/api'
 import { useFlashMessage } from '@/composables/useFlashMessage'
 import { useAsyncAction } from '@/composables/useAsyncAction'
+import { useLinkAccessedResource } from '@/composables/useLinkAccessedResource'
 
 const { t } = useI18n()
-const route = useRoute()
 
-const token = ref('')
-const status = ref<WaitingListPublicStatus | null>(null)
-const loading = ref(true)
-const pageError = ref('')
+const {
+  credential: token,
+  data: status,
+  loading,
+  error: pageError,
+  load: loadStatus,
+} = useLinkAccessedResource<WaitingListPublicStatus>(
+    'token',
+    () => t('waitingList.publicStatus.noToken'),
+    () => t('waitingList.publicStatus.invalidToken'),
+    (t) => waitingList.getEntryStatus(t),
+)
+
 const { message: success, flash } = useFlashMessage(5000)
 
 const showRemoveModal = ref(false)
 const removed = ref(false)
-
-async function loadStatus() {
-  token.value = (route.query.token as string) ?? ''
-  if (!token.value) {
-    pageError.value = t('waitingList.publicStatus.noToken')
-    loading.value = false
-    return
-  }
-  try {
-    status.value = await waitingList.getEntryStatus(token.value)
-  } catch {
-    pageError.value = t('waitingList.publicStatus.invalidToken')
-  } finally {
-    loading.value = false
-  }
-}
 
 const { running: confirming, error: confirmError, run: confirmInterest } = useAsyncAction(async () => {
   await waitingList.confirmInterest(token.value)

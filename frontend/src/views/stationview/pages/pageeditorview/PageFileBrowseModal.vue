@@ -14,18 +14,13 @@ import FilterBar from './pagefilebrowsemodal/FilterBar.vue'
 import FilesGrid from './pagefilebrowsemodal/FilesGrid.vue'
 import PageFileEditModal from '@/views/stationview/pages/pagefilesview/PageFileEditModal.vue'
 import {
-    listPageFolders,
-    listPageTags,
-    listStationPageFiles,
     pageImageUrl,
     prunePageFiles,
     updatePageFileMeta,
     uploadStationPageFile,
     type PageFile,
-    type PageFileFolder,
-    type PageFileListing,
-    type PageFileTag,
 } from '@/api/pageManage'
+import {usePageFileLibrary} from '@/views/stationview/pages/pagefilesview/usePageFileLibrary'
 import type {AxiosError} from 'axios'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {formatSize} from '@/util/format'
@@ -44,31 +39,13 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
-const entries = ref<PageFileListing[]>([])
-const folders = ref<PageFileFolder[]>([])
-const tags = ref<PageFileTag[]>([])
-const loading = ref(false)
+const {entries, folders, tags, loading, load} = usePageFileLibrary()
+
 const uploadError = ref<string | null>(null)
 const search = ref('')
 const editing = ref<PageFile | null>(null)
 const activeFolder = ref<number | null>(null)
 const activeTagFilter = ref<number | null>(null)
-
-async function load() {
-    loading.value = true
-    try {
-        const [files, fs, ts] = await Promise.all([listStationPageFiles(), listPageFolders(), listPageTags()])
-        entries.value = files
-        folders.value = fs
-        tags.value = ts
-    } catch {
-        entries.value = []
-        folders.value = []
-        tags.value = []
-    } finally {
-        loading.value = false
-    }
-}
 
 watch(open, v => { if (v) load() })
 
