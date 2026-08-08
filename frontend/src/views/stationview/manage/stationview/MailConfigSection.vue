@@ -24,6 +24,7 @@ import MailProviderCredentialFields from '@/components/mail/MailProviderCredenti
 import {RELAY_PROVIDER_NAMES} from '@/util/mailProviders'
 import {stationManage} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {apiErrorMessage} from '@/util/apiError'
 
 const emit = defineEmits<{
   error: [msg: string]
@@ -112,7 +113,7 @@ async function saveMailConfig() {
     emit('success', t('stationManage.mailSaved'))
   } catch (e) {
     const backendMessage = (e as {response?: {data?: {title?: string; message?: string}}})?.response?.data?.title
-        ?? (e as {response?: {data?: {message?: string}}})?.response?.data?.message
+        ?? apiErrorMessage(e)
     emit('error', backendMessage ? t('stationManage.mailSaveFailed', {error: backendMessage}) : t('common.error'))
     throw e
   }

@@ -14,11 +14,12 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {formatDateTime} from '@/util/format'
+import {apiErrorMessage} from '@/util/apiError'
 
 const {t} = useI18n()
 
 function describeError(e: unknown): string {
-  return (e as {response?: {data?: {message?: string}}})?.response?.data?.message || t('common.error')
+  return apiErrorMessage(e) || t('common.error')
 }
 
 const {config: devices, loading, error, runWith} = useConfigPanel<TrustedDevice[]>({

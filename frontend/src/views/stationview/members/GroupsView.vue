@@ -23,6 +23,7 @@ import GroupDeleteModal from './groupsview/GroupDeleteModal.vue'
 import GroupConvertModal from './groupsview/GroupConvertModal.vue'
 import {useMemberAssignment} from './useMemberAssignment'
 import {memberDisplayName} from './listview/useMemberData'
+import {apiErrorMessage} from '@/util/apiError'
 
 const {t} = useI18n()
 const {canManageMembers, isManager, hasPermission} = useSession()
@@ -164,8 +165,7 @@ async function syncGroupRoles(newIds: Set<number>) {
   try {
     groupRoles.value = await memberGroups.setGroupPermissions(selectedGroup.value.id, {permissionIds: [...newIds]})
   } catch (e: unknown) {
-    const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
-    error.value = msg || t('common.error')
+    error.value = apiErrorMessage(e) || t('common.error')
   }
 }
 

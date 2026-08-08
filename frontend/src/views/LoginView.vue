@@ -24,6 +24,7 @@ import ConsentGate from '@/views/loginview/ConsentGate.vue'
 import LegalModal from '@/views/loginview/LegalModal.vue'
 import LoginForm from '@/views/loginview/LoginForm.vue'
 import DevDemoFooter from '@/views/loginview/DevDemoFooter.vue'
+import {apiErrorMessage} from '@/util/apiError'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -112,8 +113,7 @@ const {running: loggingIn, error: loginError, run: handleLogin} = useAsyncAction
   await resolveStationAndRedirect()
 }, {formatError: (e) => {
   if (e instanceof StorageDeniedError) return t('login.storageDenied')
-  const message = (e as {response?: {data?: {message?: string}}})?.response?.data?.message
-  return message || t('common.error')
+  return apiErrorMessage(e) || t('common.error')
 }})
 
 const {running: demoLoggingIn, error: demoError, run: loginAsDemo} = useAsyncAction(async (account: DemoAccount) => {

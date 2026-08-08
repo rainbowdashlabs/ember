@@ -16,6 +16,7 @@ import PermissionPicker from '@/components/input/PermissionPicker.vue'
 import {StationUserType, type PermissionGrant} from '@/api/types'
 import {stationMembers} from '@/api'
 import {useConfigPanel} from '@/composables/useConfigPanel'
+import {apiErrorMessage} from '@/util/apiError'
 
 const {t} = useI18n()
 
@@ -59,8 +60,7 @@ async function syncPermissions(newIds: Set<number>) {
   try {
     typePermissions.value = await stationMembers.setUserTypePermissions(selectedType.value, [...newIds])
   } catch (e: unknown) {
-    const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
-    error.value = msg || t('common.error')
+    error.value = apiErrorMessage(e) || t('common.error')
   }
 }
 </script>

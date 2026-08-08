@@ -15,6 +15,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {apiErrorMessage} from '@/util/apiError'
 
 const {t, te} = useI18n()
 const route = useRoute()
@@ -30,7 +31,7 @@ const {running: loading, error: submitError, run: runSetPassword} = useAsyncActi
   await auth.setPassword({token, password: newPassword.value})
   await router.push({name: 'login'})
 }, {formatError: (e) => {
-  const raw = (e as {response?: {data?: {message?: string}}})?.response?.data?.message
+  const raw = apiErrorMessage(e)
   return raw ? (te(raw) ? t(raw) : raw) : t('common.error')
 }})
 

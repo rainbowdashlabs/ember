@@ -19,6 +19,7 @@ import {StationUserType, type PermissionGrant} from '@/api/types'
 import {useSetupStatus} from '@/composables/useSetupStatus'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {nextStep, stepRouteName} from '@/views/stationview/setup/steps'
+import {apiErrorMessage} from '@/util/apiError'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -88,8 +89,7 @@ async function onPermissionChange(newIds: Set<number>) {
     try {
         await stationMembers.setUserTypePermissions(userType, [...newIds])
     } catch (e: unknown) {
-        const msg = (e as {response?: {data?: {message?: string}}})?.response?.data?.message
-        error.value = msg || t('common.error')
+        error.value = apiErrorMessage(e) || t('common.error')
     }
 }
 
