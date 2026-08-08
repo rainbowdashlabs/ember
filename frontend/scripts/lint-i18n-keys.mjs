@@ -28,6 +28,13 @@
  *     mappers build the key into a local first. The static part only counts
  *     when it actually prefixes a defined key, so unrelated literals (URLs,
  *     file names) never register.
+ *   - The mirror image of that: a template literal whose *head* is the
+ *     interpolation and whose tail is static (`${props.i18nPrefix}.form.title`)
+ *     is a component parameterised by prefix. The static tails are paired with
+ *     the prefix values callers pass through an `i18n-prefix` prop, and every
+ *     combination that spells a defined key counts as a reference. Only
+ *     combinations that are actually defined register, so a prefix and a tail
+ *     that never meet in the locale rescue nothing.
  *   - tm() resolves a whole message subtree — every leaf below the key it is
  *     given counts as referenced.
  *   - A plain string literal that is character-for-character a defined key
@@ -130,6 +137,8 @@ const T_CALL = /\b(?:\$)?(?:t|te|tc|tm)\s*\(\s*(['"`])([^'"`]+)\1\s*[,)]/g
 const TM_CALL = /\b(?:\$)?tm\s*\(\s*(['"`])([^'"`]+)\1\s*[,)]/g
 const T_CALL_CONCAT_PREFIX = /\b(?:\$)?(?:t|te|tc|tm)\s*\(\s*(['"`])([^'"`]+)\1\s*\+/g
 const TEMPLATE_PREFIX = /`([A-Za-z][\w-]*(?:\.[\w-]*)+)\$\{/g
+const TEMPLATE_SUFFIX = /`\$\{[^`{}]*\}((?:\.[\w-]+)+)`/g
+const PREFIX_PROP = /\bi18n[-_]?prefix\s*=\s*"([A-Za-z][\w-]*(?:\.[\w-]+)*)"/gi
 const KEYPATH_ATTR = /\bkeypath\s*=\s*(['"])([^'"]+)\1/g
 const KEY_LITERAL = /(['"`])([A-Za-z][\w-]*(?:\.[\w-]+)+)\1/g
 
@@ -155,6 +164,9 @@ function prefixesDefinedKey(text) {
 
 const files = [...walk(SRC, '.vue'), ...walk(SRC, '.ts')]
     .filter(f => f !== I18N_FILE && f !== I18N_HELPCENTER_FILE)
+
+const prefixPropValues = new Set()
+const dynamicHeadSuffixes = new Set()
 
 for (const file of files) {
     const text = readFileSync(file, 'utf-8')
@@ -186,12 +198,25 @@ for (const file of files) {
         const prefix = m[1].replace(/\.+$/, '')
         if (prefix.length > 0) usedPrefixes.add(prefix)
     }
+    for (const m of text.matchAll(TEMPLATE_SUFFIX)) {
+        dynamicHeadSuffixes.add(m[1])
+    }
+    for (const m of text.matchAll(PREFIX_PROP)) {
+        prefixPropValues.add(m[1])
+    }
     for (const m of text.matchAll(KEYPATH_ATTR)) {
         const key = m[2]
         if (definedKeys.has(key)) usedExact.add(key)
     }
     for (const m of text.matchAll(KEY_LITERAL)) {
         if (definedKeys.has(m[2])) usedExact.add(m[2])
+    }
+}
+
+for (const prefix of prefixPropValues) {
+    for (const suffix of dynamicHeadSuffixes) {
+        const key = prefix + suffix
+        if (definedKeys.has(key)) usedExact.add(key)
     }
 }
 
