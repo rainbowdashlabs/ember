@@ -6,10 +6,8 @@
 package dev.chojo.ember.feature.board.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.feature.board.entity.Board;
 import dev.chojo.ember.feature.board.entity.BoardShareMode;
-import dev.chojo.ember.feature.board.service.FederatedBoardProxyService.DiscoveredBoard;
-import dev.chojo.ember.feature.board.service.FederatedBoardProxyService.FederatedBoardDetail;
-import dev.chojo.ember.feature.board.service.FederatedBoardProxyService.RemoteDiscoveredBoard;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
@@ -192,4 +190,87 @@ public class FederatedBoardDiscoveryService {
                         b.requiredUserType() != null ? b.requiredUserType() : StationUserType.MEMBER))
                 .toList();
     }
+
+    /**
+     * A board a station can reach through one of its federation partners, as the discovery listing
+     * presents it.
+     */
+    public record DiscoveredBoard(
+            int partnerId,
+            String partnerStationUid,
+            UUID remoteBoardUid,
+            String name,
+            String shortKey,
+            String description,
+            BoardShareMode shareMode,
+            String partnerStationName,
+            StationUserType requiredUserType) {}
+
+    /**
+     * Board representation for remote federation responses where stationId is a UUID string.
+     */
+    public record RemoteBoard(
+            int id,
+            String stationId,
+            String name,
+            String description,
+            String shortKey,
+            int hideDoneAfterDays,
+            int ticketCounter,
+            Integer backlogLaneId,
+            String createdAt) {
+
+        /**
+         * Returns whether the board has a backlog lane.
+         *
+         * @return whether a backlog lane is configured
+         */
+        public boolean hasBacklog() {
+            return backlogLaneId != null;
+        }
+    }
+
+    /**
+     * The board level metadata a station sees for one federated board.
+     */
+    public record FederatedBoardDetail(RemoteBoard board, BoardShareMode shareMode, String stationName) {
+
+        /**
+         * Creates a FederatedBoardDetail from a local Board entity.
+         *
+         * @param board             the local board
+         * @param shareMode         the share mode granted to the partner
+         * @param stationName       the name of the owning station
+         * @param stationRepository the repository used to resolve the station uid
+         * @return the federated board detail
+         */
+        public static FederatedBoardDetail of(
+                Board board, BoardShareMode shareMode, String stationName, StationRepository stationRepository) {
+            var stationUid = stationRepository.resolveUid(board.stationId()).toString();
+            return new FederatedBoardDetail(
+                    new RemoteBoard(
+                            board.id(),
+                            stationUid != null ? stationUid : String.valueOf(board.stationId()),
+                            board.name(),
+                            board.description(),
+                            board.shortKey(),
+                            board.hideDoneAfterDays(),
+                            board.ticketCounter(),
+                            board.backlogLaneId(),
+                            board.createdAt() != null ? board.createdAt().toString() : null),
+                    shareMode,
+                    stationName);
+        }
+    }
+
+    /**
+     * One board as another instance's discovery endpoint reports it.
+     */
+    public record RemoteDiscoveredBoard(
+            String uid,
+            String name,
+            String shortKey,
+            String description,
+            BoardShareMode shareMode,
+            StationUserType requiredUserType) {}
 }

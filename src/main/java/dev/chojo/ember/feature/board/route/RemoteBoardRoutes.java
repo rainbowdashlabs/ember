@@ -11,7 +11,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.board.entity.BoardShareMode;
 import dev.chojo.ember.feature.board.entity.LinkType;
 import dev.chojo.ember.feature.board.service.BoardService;
-import dev.chojo.ember.feature.board.service.FederatedBoardProxyService;
+import dev.chojo.ember.feature.board.service.FederatedBoardDiscoveryService;
 import dev.chojo.ember.feature.board.service.FederatedBoardService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.StationMemberService;
@@ -134,7 +134,7 @@ public class RemoteBoardRoutes implements Routes {
         var mode = federatedBoardService.getShareMode(boardId, partner.id()).orElse(BoardShareMode.READ_ONLY);
         String stationName =
                 stationRepository.findById(board.stationId()).map(Station::name).orElse("");
-        ctx.json(FederatedBoardProxyService.FederatedBoardDetail.of(board, mode, stationName, stationRepository));
+        ctx.json(FederatedBoardDiscoveryService.FederatedBoardDetail.of(board, mode, stationName, stationRepository));
     }
 
     @OpenApi(

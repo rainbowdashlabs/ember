@@ -13,7 +13,6 @@ import dev.chojo.ember.feature.board.entity.BoardTicketAttachment;
 import dev.chojo.ember.feature.board.entity.BoardTicketHistoryAction;
 import dev.chojo.ember.feature.board.entity.BoardTicketLink;
 import dev.chojo.ember.feature.board.entity.LinkType;
-import dev.chojo.ember.feature.board.service.FederatedBoardProxyService.FederatedWatcherData;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import jakarta.inject.Inject;
@@ -529,4 +528,9 @@ public class FederatedTicketDetailProxy {
     record LabelActionBody(UUID remoteMemberId, String displayName) {}
 
     record RemoteMemberBody(UUID remoteMemberId) {}
+
+    /**
+     * The watchers of a federated ticket, split into this station's members and the partner's.
+     */
+    public record FederatedWatcherData(List<Integer> local, List<Object> federated) {}
 }

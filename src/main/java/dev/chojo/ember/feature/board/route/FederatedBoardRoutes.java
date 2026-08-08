@@ -14,7 +14,13 @@ import dev.chojo.ember.feature.board.entity.AccessData;
 import dev.chojo.ember.feature.board.entity.BoardShareMode;
 import dev.chojo.ember.feature.board.entity.LinkType;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
-import dev.chojo.ember.feature.board.service.FederatedBoardProxyService;
+import dev.chojo.ember.feature.board.service.FederatedBoardAccessService;
+import dev.chojo.ember.feature.board.service.FederatedBoardDiscoveryService;
+import dev.chojo.ember.feature.board.service.FederatedBoardLocator;
+import dev.chojo.ember.feature.board.service.FederatedBoardService;
+import dev.chojo.ember.feature.board.service.FederatedBoardStructureProxy;
+import dev.chojo.ember.feature.board.service.FederatedTicketDetailProxy;
+import dev.chojo.ember.feature.board.service.FederatedTicketProxy;
 import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
@@ -49,16 +55,34 @@ import static dev.chojo.ember.api.RouteSupport.pathUuid;
 @Singleton
 public class FederatedBoardRoutes implements Routes {
 
-    private final FederatedBoardProxyService proxyService;
+    private final FederatedBoardService federatedBoardService;
+    private final FederatedBoardAccessService accessService;
+    private final FederatedBoardDiscoveryService discoveryService;
+    private final FederatedBoardStructureProxy structureProxy;
+    private final FederatedTicketProxy ticketProxy;
+    private final FederatedTicketDetailProxy ticketDetailProxy;
+    private final FederatedBoardLocator locator;
     private final FederationRepository federationRepository;
     private final MemberNameResolver memberNameResolver;
 
     @Inject
     public FederatedBoardRoutes(
-            FederatedBoardProxyService proxyService,
+            FederatedBoardService federatedBoardService,
+            FederatedBoardAccessService accessService,
+            FederatedBoardDiscoveryService discoveryService,
+            FederatedBoardStructureProxy structureProxy,
+            FederatedTicketProxy ticketProxy,
+            FederatedTicketDetailProxy ticketDetailProxy,
+            FederatedBoardLocator locator,
             FederationRepository federationRepository,
             MemberNameResolver memberNameResolver) {
-        this.proxyService = proxyService;
+        this.federatedBoardService = federatedBoardService;
+        this.accessService = accessService;
+        this.discoveryService = discoveryService;
+        this.structureProxy = structureProxy;
+        this.ticketProxy = ticketProxy;
+        this.ticketDetailProxy = ticketDetailProxy;
+        this.locator = locator;
         this.federationRepository = federationRepository;
         this.memberNameResolver = memberNameResolver;
     }
@@ -211,9 +235,9 @@ public class FederatedBoardRoutes implements Routes {
      * resolved locally is owned by a remote partner, which enforces access on its own side.
      */
     private void requireView(int partnerId, String boardKey, UserSession session) {
-        var board = proxyService.resolveFederatedBoard(partnerId, boardKey);
+        var board = locator.resolveFederatedBoard(partnerId, boardKey);
         if (board == null) return;
-        if (!proxyService.canView(
+        if (!accessService.canView(
                 partnerId, board.uid(), board.id(), session.member().id())) {
             throw new ForbiddenResponse("No view access to this federated board");
         }
@@ -224,9 +248,9 @@ public class FederatedBoardRoutes implements Routes {
      * be resolved locally is owned by a remote partner, which enforces access on its own side.
      */
     private void requireWrite(int partnerId, String boardKey, UserSession session) {
-        var board = proxyService.resolveFederatedBoard(partnerId, boardKey);
+        var board = locator.resolveFederatedBoard(partnerId, boardKey);
         if (board == null) return;
-        if (!proxyService.canWrite(
+        if (!accessService.canWrite(
                 partnerId, board.uid(), board.id(), session.member().id())) {
             throw new ForbiddenResponse("No write access to this federated board");
         }
@@ -248,7 +272,7 @@ public class FederatedBoardRoutes implements Routes {
             responses = @OpenApiResponse(status = "200"))
     private void federatedLocalDiscoverBoards(Context ctx) {
         var session = UserSession.from(ctx);
-        ctx.json(proxyService.discoverBoards(session.stationId()));
+        ctx.json(discoveryService.discoverBoards(session.stationId()));
     }
 
     @OpenApi(
@@ -259,7 +283,7 @@ public class FederatedBoardRoutes implements Routes {
             responses = @OpenApiResponse(status = "200"))
     private void federatedLocalListBookmarks(Context ctx) {
         var session = UserSession.from(ctx);
-        var bookmarks = proxyService.findBookmarks(session.member().id());
+        var bookmarks = federatedBoardService.findBookmarks(session.member().id());
         var enriched = bookmarks.stream()
                 .map(bm -> {
                     var partner = federationRepository.findPartnerById(bm.partnerId());
@@ -294,7 +318,7 @@ public class FederatedBoardRoutes implements Routes {
                 .findPartnerByStationAndRemoteUid(session.stationId(), partnerUid)
                 .orElseThrow(() -> new NotFoundResponse("Unknown partner"))
                 .id();
-        ctx.json(proxyService.createBookmark(
+        ctx.json(federatedBoardService.createBookmark(
                 session.member().id(),
                 partnerId,
                 req.remoteBoardUid(),
@@ -312,7 +336,7 @@ public class FederatedBoardRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void federatedLocalDeleteBookmark(Context ctx) {
         int bookmarkId = ctx.pathParamAsClass("bookmarkId", Integer.class).get();
-        proxyService.deleteBookmark(bookmarkId);
+        federatedBoardService.deleteBookmark(bookmarkId);
         ctx.status(204);
     }
 
@@ -331,7 +355,7 @@ public class FederatedBoardRoutes implements Routes {
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
-        var result = proxyService.proxyGetBoard(partnerId, boardKey);
+        var result = discoveryService.proxyGetBoard(partnerId, boardKey);
         if (result.stationName() != null) {
             ctx.header(FederationHeaders.HEADER_STATION_NAME, result.stationName());
         }
@@ -353,7 +377,7 @@ public class FederatedBoardRoutes implements Routes {
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
-        ctx.json(proxyService.proxyGetLanes(partnerId, boardKey));
+        ctx.json(structureProxy.proxyGetLanes(partnerId, boardKey));
     }
 
     @OpenApi(
@@ -371,7 +395,7 @@ public class FederatedBoardRoutes implements Routes {
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
-        ctx.json(proxyService.proxyGetLabels(partnerId, boardKey));
+        ctx.json(structureProxy.proxyGetLabels(partnerId, boardKey));
     }
 
     @OpenApi(
@@ -389,7 +413,7 @@ public class FederatedBoardRoutes implements Routes {
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
-        ctx.json(proxyService.proxyGetAllTicketLabels(partnerId, boardKey));
+        ctx.json(structureProxy.proxyGetAllTicketLabels(partnerId, boardKey));
     }
 
     @OpenApi(
@@ -407,7 +431,7 @@ public class FederatedBoardRoutes implements Routes {
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
-        ctx.json(proxyService.proxyGetMembers(partnerId, boardKey));
+        ctx.json(discoveryService.proxyGetMembers(partnerId, boardKey));
     }
 
     @OpenApi(
@@ -425,7 +449,7 @@ public class FederatedBoardRoutes implements Routes {
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
-        ctx.json(proxyService.proxyGetFields(partnerId, boardKey));
+        ctx.json(structureProxy.proxyGetFields(partnerId, boardKey));
     }
 
     @OpenApi(
@@ -443,7 +467,7 @@ public class FederatedBoardRoutes implements Routes {
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
-        ctx.json(proxyService.proxyListTickets(partnerId, boardKey));
+        ctx.json(ticketProxy.proxyListTickets(partnerId, boardKey));
     }
 
     @OpenApi(
@@ -463,7 +487,7 @@ public class FederatedBoardRoutes implements Routes {
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
         String q = ctx.queryParam("q");
-        ctx.json(proxyService.proxySearchTickets(partnerId, boardKey, q));
+        ctx.json(ticketProxy.proxySearchTickets(partnerId, boardKey, q));
     }
 
     @OpenApi(
@@ -483,7 +507,7 @@ public class FederatedBoardRoutes implements Routes {
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
         int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
-        ctx.json(proxyService.proxyGetTicket(partnerId, boardKey, ticketNumber));
+        ctx.json(ticketProxy.proxyGetTicket(partnerId, boardKey, ticketNumber));
     }
 
     @OpenApi(
@@ -503,7 +527,7 @@ public class FederatedBoardRoutes implements Routes {
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
         int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
-        ctx.json(proxyService.proxyGetComments(partnerId, boardKey, ticketNumber).stream()
+        ctx.json(ticketDetailProxy.proxyGetComments(partnerId, boardKey, ticketNumber).stream()
                 .map(comment -> CommentResponseMapper.fromBoard(memberNameResolver, comment))
                 .toList());
     }
@@ -525,7 +549,7 @@ public class FederatedBoardRoutes implements Routes {
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
         int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
-        ctx.json(proxyService.proxyGetChecklist(partnerId, boardKey, ticketNumber));
+        ctx.json(ticketDetailProxy.proxyGetChecklist(partnerId, boardKey, ticketNumber));
     }
 
     @OpenApi(
@@ -545,7 +569,7 @@ public class FederatedBoardRoutes implements Routes {
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
         int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
-        ctx.json(proxyService.proxyGetLinks(partnerId, boardKey, ticketNumber));
+        ctx.json(ticketDetailProxy.proxyGetLinks(partnerId, boardKey, ticketNumber));
     }
 
     @OpenApi(
@@ -565,7 +589,7 @@ public class FederatedBoardRoutes implements Routes {
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
         int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
-        ctx.json(proxyService.proxyGetTicketLabels(partnerId, boardKey, ticketNumber));
+        ctx.json(ticketDetailProxy.proxyGetTicketLabels(partnerId, boardKey, ticketNumber));
     }
 
     @OpenApi(
@@ -585,7 +609,7 @@ public class FederatedBoardRoutes implements Routes {
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
         int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
-        ctx.json(proxyService.proxyGetTransitions(partnerId, boardKey, ticketNumber));
+        ctx.json(ticketProxy.proxyGetTransitions(partnerId, boardKey, ticketNumber));
     }
 
     @OpenApi(
@@ -605,7 +629,7 @@ public class FederatedBoardRoutes implements Routes {
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
         int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
-        ctx.json(proxyService.proxyGetHistory(partnerId, boardKey, ticketNumber));
+        ctx.json(ticketProxy.proxyGetHistory(partnerId, boardKey, ticketNumber));
     }
 
     @OpenApi(
@@ -625,7 +649,7 @@ public class FederatedBoardRoutes implements Routes {
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
         int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
-        ctx.json(proxyService.proxyGetAttachments(partnerId, boardKey, ticketNumber));
+        ctx.json(ticketDetailProxy.proxyGetAttachments(partnerId, boardKey, ticketNumber));
     }
 
     @OpenApi(
@@ -645,7 +669,7 @@ public class FederatedBoardRoutes implements Routes {
         String boardKey = ctx.pathParam("boardKey");
         requireView(partnerId, boardKey, session);
         int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
-        ctx.json(proxyService.proxyGetWatchers(partnerId, boardKey, ticketNumber));
+        ctx.json(ticketDetailProxy.proxyGetWatchers(partnerId, boardKey, ticketNumber));
     }
 
     @OpenApi(
@@ -665,7 +689,7 @@ public class FederatedBoardRoutes implements Routes {
         String boardKey = ctx.pathParam("boardKey");
         requireWrite(partnerId, boardKey, session);
         var req = ctx.bodyAsClass(LocalCreateTicketRequest.class);
-        ctx.json(proxyService.proxyCreateTicket(
+        ctx.json(ticketProxy.proxyCreateTicket(
                 partnerId,
                 boardKey,
                 req.laneId(),
@@ -695,7 +719,7 @@ public class FederatedBoardRoutes implements Routes {
         requireWrite(partnerId, boardKey, session);
         int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
         var req = ctx.bodyAsClass(LocalUpdateTicketRequest.class);
-        ctx.json(proxyService.proxyUpdateTicket(
+        ctx.json(ticketProxy.proxyUpdateTicket(
                 partnerId,
                 boardKey,
                 ticketNumber,
@@ -725,7 +749,7 @@ public class FederatedBoardRoutes implements Routes {
         String boardKey = ctx.pathParam("boardKey");
         requireWrite(partnerId, boardKey, session);
         int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
-        proxyService.proxyDeleteTicket(partnerId, boardKey, ticketNumber);
+        ticketProxy.proxyDeleteTicket(partnerId, boardKey, ticketNumber);
         ctx.status(204);
     }
 
@@ -749,7 +773,7 @@ public class FederatedBoardRoutes implements Routes {
         int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
         var req = ctx.bodyAsClass(LocalMoveTicketRequest.class);
         UUID memberUid = session.member() != null ? session.member().uid() : null;
-        ctx.json(proxyService.proxyMoveTicket(
+        ctx.json(ticketProxy.proxyMoveTicket(
                 partnerId,
                 boardKey,
                 ticketNumber,
@@ -776,7 +800,7 @@ public class FederatedBoardRoutes implements Routes {
         String boardKey = ctx.pathParam("boardKey");
         requireWrite(partnerId, boardKey, session);
         var req = ctx.bodyAsClass(LocalReorderRequest.class);
-        proxyService.proxyReorderTickets(partnerId, boardKey, req.laneId(), req.orderedIds());
+        ticketProxy.proxyReorderTickets(partnerId, boardKey, req.laneId(), req.orderedIds());
         ctx.status(204);
     }
 
@@ -799,7 +823,7 @@ public class FederatedBoardRoutes implements Routes {
         requireWrite(partnerId, boardKey, session);
         int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
         var req = ctx.bodyAsClass(LocalCommentRequest.class);
-        ctx.json(proxyService.proxyAddComment(
+        ctx.json(ticketDetailProxy.proxyAddComment(
                 partnerId,
                 boardKey,
                 ticketNumber,
@@ -828,7 +852,7 @@ public class FederatedBoardRoutes implements Routes {
         requireWrite(partnerId, boardKey, session);
         int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
         var req = ctx.bodyAsClass(LocalChecklistItemRequest.class);
-        ctx.json(proxyService.proxyAddChecklistItem(
+        ctx.json(ticketDetailProxy.proxyAddChecklistItem(
                 partnerId, boardKey, ticketNumber, req.title(), session.member().uid(), resolveDisplayName(session)));
     }
 
@@ -853,7 +877,7 @@ public class FederatedBoardRoutes implements Routes {
         int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
         int itemId = ctx.pathParamAsClass("itemId", Integer.class).get();
         var req = ctx.bodyAsClass(LocalUpdateChecklistItemRequest.class);
-        proxyService.proxyUpdateChecklistItem(
+        ticketDetailProxy.proxyUpdateChecklistItem(
                 partnerId,
                 boardKey,
                 ticketNumber,
@@ -884,7 +908,7 @@ public class FederatedBoardRoutes implements Routes {
         requireWrite(partnerId, boardKey, session);
         int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
         int itemId = ctx.pathParamAsClass("itemId", Integer.class).get();
-        proxyService.proxyDeleteChecklistItem(
+        ticketDetailProxy.proxyDeleteChecklistItem(
                 partnerId, boardKey, ticketNumber, itemId, session.member().uid(), resolveDisplayName(session));
         ctx.status(204);
     }
@@ -908,7 +932,7 @@ public class FederatedBoardRoutes implements Routes {
         requireWrite(partnerId, boardKey, session);
         int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
         int labelId = ctx.pathParamAsClass("labelId", Integer.class).get();
-        ctx.json(proxyService.proxyAddTicketLabel(
+        ctx.json(ticketDetailProxy.proxyAddTicketLabel(
                 partnerId, boardKey, ticketNumber, labelId, session.member().uid(), resolveDisplayName(session)));
     }
 
@@ -931,7 +955,7 @@ public class FederatedBoardRoutes implements Routes {
         requireWrite(partnerId, boardKey, session);
         int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
         int labelId = ctx.pathParamAsClass("labelId", Integer.class).get();
-        proxyService.proxyRemoveTicketLabel(
+        ticketDetailProxy.proxyRemoveTicketLabel(
                 partnerId, boardKey, ticketNumber, labelId, session.member().uid(), resolveDisplayName(session));
         ctx.status(204);
     }
@@ -953,7 +977,7 @@ public class FederatedBoardRoutes implements Routes {
         String boardKey = ctx.pathParam("boardKey");
         requireWrite(partnerId, boardKey, session);
         var req = ctx.bodyAsClass(LocalCreateLabelRequest.class);
-        ctx.json(proxyService.proxyCreateLabel(partnerId, boardKey, req.name(), req.color()));
+        ctx.json(structureProxy.proxyCreateLabel(partnerId, boardKey, req.name(), req.color()));
     }
 
     @OpenApi(
@@ -973,7 +997,7 @@ public class FederatedBoardRoutes implements Routes {
         String boardKey = ctx.pathParam("boardKey");
         requireWrite(partnerId, boardKey, session);
         int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
-        proxyService.proxyWatchTicket(
+        ticketDetailProxy.proxyWatchTicket(
                 partnerId, boardKey, ticketNumber, session.member().uid());
         ctx.status(204);
     }
@@ -995,7 +1019,7 @@ public class FederatedBoardRoutes implements Routes {
         String boardKey = ctx.pathParam("boardKey");
         requireWrite(partnerId, boardKey, session);
         int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
-        proxyService.proxyUnwatchTicket(
+        ticketDetailProxy.proxyUnwatchTicket(
                 partnerId, boardKey, ticketNumber, session.member().uid());
         ctx.status(204);
     }
@@ -1007,7 +1031,7 @@ public class FederatedBoardRoutes implements Routes {
         requireWrite(partnerId, boardKey, session);
         int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
         var req = ctx.bodyAsClass(LocalLinkRequest.class);
-        proxyService.proxyCreateLink(
+        ticketDetailProxy.proxyCreateLink(
                 partnerId,
                 boardKey,
                 ticketNumber,
@@ -1025,7 +1049,7 @@ public class FederatedBoardRoutes implements Routes {
         requireWrite(partnerId, boardKey, session);
         int ticketNumber = ctx.pathParamAsClass("ticketNumber", Integer.class).get();
         int linkedNumber = ctx.pathParamAsClass("linkedNumber", Integer.class).get();
-        proxyService.proxyDeleteLink(
+        ticketDetailProxy.proxyDeleteLink(
                 partnerId,
                 boardKey,
                 ticketNumber,
@@ -1048,10 +1072,10 @@ public class FederatedBoardRoutes implements Routes {
     private void federatedLocalGetOverride(Context ctx) {
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
-        UUID boardUid = proxyService.resolveFederatedBoardUid(partnerId, boardKey);
+        UUID boardUid = locator.resolveFederatedBoardUid(partnerId, boardKey);
         if (boardUid == null) throw new NotFoundResponse("Board not found: " + boardKey);
-        var view = proxyService.getLocalViewOverride(partnerId, boardUid);
-        var edit = proxyService.getLocalEditOverride(partnerId, boardUid);
+        var view = accessService.getLocalViewOverride(partnerId, boardUid);
+        var edit = accessService.getLocalEditOverride(partnerId, boardUid);
         ctx.json(new AccessOverrideResponse(view, edit));
     }
 
@@ -1069,12 +1093,12 @@ public class FederatedBoardRoutes implements Routes {
     private void federatedLocalSetOverride(Context ctx) {
         int partnerId = resolvePartnerId(ctx);
         String boardKey = ctx.pathParam("boardKey");
-        UUID boardUid = proxyService.resolveFederatedBoardUid(partnerId, boardKey);
+        UUID boardUid = locator.resolveFederatedBoardUid(partnerId, boardKey);
         if (boardUid == null) throw new NotFoundResponse("Board not found: " + boardKey);
         var req = ctx.bodyAsClass(LocalOverrideRequest.class);
-        proxyService.setLocalViewOverride(
+        accessService.setLocalViewOverride(
                 partnerId, boardUid, new AccessData(req.viewUserTypes(), req.viewGroupIds(), req.viewTagIds()));
-        proxyService.setLocalEditOverride(
+        accessService.setLocalEditOverride(
                 partnerId, boardUid, new AccessData(req.editUserTypes(), req.editGroupIds(), req.editTagIds()));
         ctx.status(204);
     }

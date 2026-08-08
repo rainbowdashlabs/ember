@@ -9,7 +9,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteBoardRenamedWebhook;
 import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteBoardUnsharedWebhook;
 import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteShareModeChangedWebhook;
-import dev.chojo.ember.feature.board.service.FederatedBoardProxyService;
+import dev.chojo.ember.feature.board.service.FederatedBoardService;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -33,12 +33,12 @@ import org.slf4j.LoggerFactory;
 public class RemoteBoardWebhookRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(RemoteBoardWebhookRoutes.class);
 
-    private final FederatedBoardProxyService proxyService;
+    private final FederatedBoardService federatedBoardService;
     private final RemoteBoardGuards guards;
 
     @Inject
-    public RemoteBoardWebhookRoutes(FederatedBoardProxyService proxyService, RemoteBoardGuards guards) {
-        this.proxyService = proxyService;
+    public RemoteBoardWebhookRoutes(FederatedBoardService federatedBoardService, RemoteBoardGuards guards) {
+        this.federatedBoardService = federatedBoardService;
         this.guards = guards;
     }
 
@@ -112,7 +112,7 @@ public class RemoteBoardWebhookRoutes implements Routes {
     private void onBoardRenamed(Context ctx) {
         var partner = guards.requirePartner(ctx);
         var req = ctx.bodyAsClass(RemoteBoardRenamedWebhook.class);
-        proxyService.onBoardRenamed(partner.id(), req.boardUid(), req.newName(), req.newShortKey());
+        federatedBoardService.updateBookmarkName(partner.id(), req.boardUid(), req.newName(), req.newShortKey());
         ctx.status(204);
     }
 
@@ -126,7 +126,7 @@ public class RemoteBoardWebhookRoutes implements Routes {
     private void onBoardUnshared(Context ctx) {
         var partner = guards.requirePartner(ctx);
         var req = ctx.bodyAsClass(RemoteBoardUnsharedWebhook.class);
-        proxyService.onBoardUnshared(partner.id(), req.boardUid());
+        federatedBoardService.deleteBookmarksByBoard(partner.id(), req.boardUid());
         ctx.status(204);
     }
 
@@ -140,7 +140,7 @@ public class RemoteBoardWebhookRoutes implements Routes {
     private void onShareModeChanged(Context ctx) {
         var partner = guards.requirePartner(ctx);
         var req = ctx.bodyAsClass(RemoteShareModeChangedWebhook.class);
-        proxyService.onShareModeChanged(partner.id(), req.boardUid(), req.shareMode());
+        federatedBoardService.updateBookmarkShareMode(partner.id(), req.boardUid(), req.shareMode());
         ctx.status(204);
     }
 }
