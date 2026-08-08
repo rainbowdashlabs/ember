@@ -31,18 +31,21 @@ import java.util.Map;
 public class BatchEventService {
     private static final Logger log = LoggerFactory.getLogger(BatchEventService.class);
 
-    private final EventService eventService;
+    private final EventCrudService crudService;
+    private final EventRestrictionService restrictionService;
     private final EventFieldService eventFieldService;
     private final EventBreakRepository breakRepository;
     private final DomainEventBus eventBus;
 
     @Inject
     public BatchEventService(
-            EventService eventService,
+            EventCrudService crudService,
+            EventRestrictionService restrictionService,
             EventFieldService eventFieldService,
             EventBreakRepository breakRepository,
             DomainEventBus eventBus) {
-        this.eventService = eventService;
+        this.crudService = crudService;
+        this.restrictionService = restrictionService;
         this.eventFieldService = eventFieldService;
         this.breakRepository = breakRepository;
         this.eventBus = eventBus;
@@ -59,7 +62,7 @@ public class BatchEventService {
 
             // Use createWithoutEvent to suppress per-row EventCreated fan-out — we emit one
             // aggregate EventsBatchCreated below so users get a single notification.
-            var event = eventService.createWithoutEvent(
+            var event = crudService.createWithoutEvent(
                     stationId,
                     eventName,
                     request.description(),
@@ -78,7 +81,7 @@ public class BatchEventService {
                     null);
 
             if (request.restriction() != null) {
-                eventService.setRestrictions(event.id(), request.restriction());
+                restrictionService.setRestrictions(event.id(), request.restriction());
             }
 
             var fieldEntries = fieldDefs.stream()

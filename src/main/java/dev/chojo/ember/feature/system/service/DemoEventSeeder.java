@@ -17,7 +17,7 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventCategoryRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
-import dev.chojo.ember.feature.events.service.EventService;
+import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventTemplateService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import jakarta.inject.Inject;
@@ -43,7 +43,7 @@ public class DemoEventSeeder implements DemoSeeder {
     private final EventRegistrationRepository registrationRepository;
     private final EventFieldRepository eventFieldRepository;
     private final AttendanceRepository attendanceRepository;
-    private final EventService eventService;
+    private final EventCrudService crudService;
     private final EventTemplateService eventTemplateService;
 
     @Inject
@@ -52,13 +52,13 @@ public class DemoEventSeeder implements DemoSeeder {
             EventRegistrationRepository registrationRepository,
             EventFieldRepository eventFieldRepository,
             AttendanceRepository attendanceRepository,
-            EventService eventService,
+            EventCrudService crudService,
             EventTemplateService eventTemplateService) {
         this.categoryRepository = categoryRepository;
         this.registrationRepository = registrationRepository;
         this.eventFieldRepository = eventFieldRepository;
         this.attendanceRepository = attendanceRepository;
-        this.eventService = eventService;
+        this.crudService = crudService;
         this.eventTemplateService = eventTemplateService;
     }
 
@@ -126,7 +126,7 @@ public class DemoEventSeeder implements DemoSeeder {
         Instant satStart = LocalDate.now().atTime(10, 0).toInstant(ZoneOffset.UTC);
         Instant satEnd = LocalDate.now().atTime(13, 0).toInstant(ZoneOffset.UTC);
 
-        var evUebung = eventService.create(
+        var evUebung = crudService.create(
                 stationId,
                 "Übung",
                 "Wöchentliche Übung für alle Gruppen",
@@ -143,7 +143,7 @@ public class DemoEventSeeder implements DemoSeeder {
                 null,
                 null,
                 null);
-        var evGesamt = eventService.create(
+        var evGesamt = crudService.create(
                 stationId,
                 "Gesamtübung",
                 "Gemeinsame Übung aller Gruppen",
@@ -162,7 +162,7 @@ public class DemoEventSeeder implements DemoSeeder {
                 null);
 
         // Monthly: first Saturday = Elternabend
-        eventService.create(
+        crudService.create(
                 stationId,
                 "Elternabend",
                 "Monatliches Treffen mit den Eltern",
@@ -181,7 +181,7 @@ public class DemoEventSeeder implements DemoSeeder {
                 null);
 
         // Quarterly: first Saturday = Dienstbesprechung
-        eventService.create(
+        crudService.create(
                 stationId,
                 "Dienstbesprechung",
                 "Vierteljährliche Besprechung aller Betreuer",
@@ -204,7 +204,7 @@ public class DemoEventSeeder implements DemoSeeder {
                 LocalDate.now().withMonth(9).withDayOfMonth(20).atTime(18, 0).toInstant(ZoneOffset.UTC);
         Instant jhvEnd =
                 LocalDate.now().withMonth(9).withDayOfMonth(20).atTime(21, 0).toInstant(ZoneOffset.UTC);
-        eventService.create(
+        crudService.create(
                 stationId,
                 "Jahreshauptversammlung",
                 "Jährliche Versammlung mit Berichten und Wahlen",
@@ -231,7 +231,7 @@ public class DemoEventSeeder implements DemoSeeder {
                 List.of(
                         new AttendanceRepository.TemplateGroup(groupAnfaengerId, 0),
                         new AttendanceRepository.TemplateGroup(groupFortgeschrittenId, 1)));
-        var theorieabend = eventService.create(
+        var theorieabend = crudService.create(
                 stationId,
                 "Theorieabend",
                 "Theoretische Grundlagen und Fahrzeugkunde",
@@ -262,7 +262,7 @@ public class DemoEventSeeder implements DemoSeeder {
         Instant deadline =
                 LocalDate.now().plusMonths(1).withDayOfMonth(10).atTime(23, 59).toInstant(ZoneOffset.UTC);
 
-        var tagDerOffenenTuer = eventService.create(
+        var tagDerOffenenTuer = crudService.create(
                 stationId,
                 "Tag der offenen Tür",
                 "Öffentlichkeitsarbeit: Vorführungen und Mitmach-Aktionen",
@@ -285,7 +285,7 @@ public class DemoEventSeeder implements DemoSeeder {
         Instant oeffentlichkeitDeadline =
                 LocalDate.now().plusWeeks(2).atTime(23, 59).toInstant(ZoneOffset.UTC);
 
-        var stadtfest = eventService.create(
+        var stadtfest = crudService.create(
                 stationId,
                 "Stadtfest Musterstadt",
                 "Stand der Jugendfeuerwehr beim Stadtfest",
@@ -310,7 +310,7 @@ public class DemoEventSeeder implements DemoSeeder {
         Instant wettbewerbDeadline =
                 LocalDate.now().plusMonths(2).withDayOfMonth(1).atTime(23, 59).toInstant(ZoneOffset.UTC);
 
-        var kreisWettbewerb = eventService.create(
+        var kreisWettbewerb = crudService.create(
                 stationId,
                 "Kreiswettbewerb",
                 "Jährlicher Kreiswettbewerb der Jugendfeuerwehren",
@@ -412,7 +412,7 @@ public class DemoEventSeeder implements DemoSeeder {
             LocalDate eventDate = LocalDate.now().minusWeeks(oeNames.length - e);
             Instant oeStart = eventDate.atTime(10, 0).toInstant(ZoneOffset.UTC);
             Instant oeEnd = eventDate.atTime(16, 0).toInstant(ZoneOffset.UTC);
-            var oeEvent = eventService.create(
+            var oeEvent = crudService.create(
                     stationId,
                     oeNames[e],
                     "Öffentlichkeitsarbeit der Jugendfeuerwehr",
@@ -465,7 +465,7 @@ public class DemoEventSeeder implements DemoSeeder {
         Instant openStart = openDate.atTime(9, 0).toInstant(ZoneOffset.UTC);
         Instant openEnd = openDate.atTime(15, 0).toInstant(ZoneOffset.UTC);
         Instant openDeadline = LocalDate.now().plusDays(3).atTime(23, 59).toInstant(ZoneOffset.UTC);
-        var oeOpen = eventService.create(
+        var oeOpen = crudService.create(
                 stationId,
                 "Blaulichtmeile Bürgerfest",
                 "Öffentlichkeitsarbeit — Anmeldung offen",

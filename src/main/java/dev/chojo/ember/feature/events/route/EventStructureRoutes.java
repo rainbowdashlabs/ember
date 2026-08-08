@@ -18,8 +18,11 @@ import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
+import dev.chojo.ember.feature.events.service.EventBreakService;
+import dev.chojo.ember.feature.events.service.EventCategoryService;
+import dev.chojo.ember.feature.events.service.EventCrudService;
+import dev.chojo.ember.feature.events.service.EventFieldDefaultService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
-import dev.chojo.ember.feature.events.service.EventService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -54,12 +57,23 @@ import static dev.chojo.ember.feature.events.route.EventOwnership.requireOwnedEv
  */
 @Singleton
 public class EventStructureRoutes implements Routes {
-    private final EventService eventService;
+    private final EventCrudService crudService;
+    private final EventCategoryService categoryService;
+    private final EventBreakService breakService;
+    private final EventFieldDefaultService fieldDefaultService;
     private final EventFieldService eventFieldService;
 
     @Inject
-    public EventStructureRoutes(EventService eventService, EventFieldService eventFieldService) {
-        this.eventService = eventService;
+    public EventStructureRoutes(
+            EventCrudService crudService,
+            EventCategoryService categoryService,
+            EventBreakService breakService,
+            EventFieldDefaultService fieldDefaultService,
+            EventFieldService eventFieldService) {
+        this.crudService = crudService;
+        this.categoryService = categoryService;
+        this.breakService = breakService;
+        this.fieldDefaultService = fieldDefaultService;
         this.eventFieldService = eventFieldService;
     }
 
@@ -102,7 +116,7 @@ public class EventStructureRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventCategory[].class)))
     private void listCategories(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        ctx.json(eventService.findCategoriesByStation(session.stationId()));
+        ctx.json(categoryService.findByStation(session.stationId()));
     }
 
     @OpenApi(
@@ -120,7 +134,7 @@ public class EventStructureRoutes implements Routes {
         var req = ctx.bodyAsClass(CategoryRequest.class);
         if (req.name() == null || req.name().isBlank()) throw new BadRequestResponse("name is required");
         ctx.status(HttpStatus.CREATED)
-                .json(eventService.createCategory(session.stationId(), req.name(), req.position(), req.color()));
+                .json(categoryService.create(session.stationId(), req.name(), req.position(), req.color()));
     }
 
     @OpenApi(
@@ -136,9 +150,9 @@ public class EventStructureRoutes implements Routes {
             })
     private void updateCategory(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedOrNotFound(ctx, id, eventService::findCategoryById, EventCategory::stationId);
+        requireOwnedOrNotFound(ctx, id, categoryService::findById, EventCategory::stationId);
         var req = ctx.bodyAsClass(CategoryRequest.class);
-        if (!eventService.updateCategory(
+        if (!categoryService.update(
                 id,
                 req.name(),
                 req.position(),
@@ -164,16 +178,16 @@ public class EventStructureRoutes implements Routes {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(ReorderCategoriesRequest.class);
         for (int id : req.orderedIds()) {
-            requireOwnedOrNotFound(ctx, id, eventService::findCategoryById, EventCategory::stationId);
+            requireOwnedOrNotFound(ctx, id, categoryService::findById, EventCategory::stationId);
         }
-        eventService.reorderCategories(session.stationId(), req.orderedIds());
-        ctx.json(eventService.findCategoriesByStation(session.stationId()));
+        categoryService.reorder(session.stationId(), req.orderedIds());
+        ctx.json(categoryService.findByStation(session.stationId()));
     }
 
     private void deleteCategory(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedOrNotFound(ctx, id, eventService::findCategoryById, EventCategory::stationId);
-        if (eventService.deleteCategory(id)) {
+        requireOwnedOrNotFound(ctx, id, categoryService::findById, EventCategory::stationId);
+        if (categoryService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
             throw new NotFoundResponse();
@@ -188,7 +202,7 @@ public class EventStructureRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventBreak[].class)))
     private void listBreaks(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        ctx.json(eventService.findBreaksByStation(session.stationId()));
+        ctx.json(breakService.findByStation(session.stationId()));
     }
 
     @OpenApi(
@@ -206,7 +220,7 @@ public class EventStructureRoutes implements Routes {
         var req = ctx.bodyAsClass(BreakRequest.class);
         if (req.name() == null || req.name().isBlank()) throw new BadRequestResponse("name is required");
         ctx.status(HttpStatus.CREATED)
-                .json(eventService.createBreak(session.stationId(), req.name(), req.startDate(), req.endDate()));
+                .json(breakService.create(session.stationId(), req.name(), req.startDate(), req.endDate()));
     }
 
     @OpenApi(
@@ -222,9 +236,9 @@ public class EventStructureRoutes implements Routes {
             })
     private void updateBreak(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedOrNotFound(ctx, id, eventService::findBreakById, EventBreak::stationId);
+        requireOwnedOrNotFound(ctx, id, breakService::findById, EventBreak::stationId);
         var req = ctx.bodyAsClass(BreakRequest.class);
-        eventService.updateBreak(id, req.name(), req.startDate(), req.endDate()).ifPresentOrElse(ctx::json, () -> {
+        breakService.update(id, req.name(), req.startDate(), req.endDate()).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
         });
     }
@@ -241,8 +255,8 @@ public class EventStructureRoutes implements Routes {
             })
     private void deleteBreak(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedOrNotFound(ctx, id, eventService::findBreakById, EventBreak::stationId);
-        if (eventService.deleteBreak(id)) {
+        requireOwnedOrNotFound(ctx, id, breakService::findById, EventBreak::stationId);
+        if (breakService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
             throw new NotFoundResponse();
@@ -259,8 +273,8 @@ public class EventStructureRoutes implements Routes {
     private void getFieldDefaults(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        requireOwnedEvent(eventService, id, session);
-        ctx.json(eventService.findFieldDefaults(id));
+        requireOwnedEvent(crudService, id, session);
+        ctx.json(fieldDefaultService.findByEvent(id));
     }
 
     @OpenApi(
@@ -274,13 +288,13 @@ public class EventStructureRoutes implements Routes {
     private void setFieldDefaults(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        requireOwnedEvent(eventService, id, session);
+        requireOwnedEvent(crudService, id, session);
         var req = ctx.bodyAsClass(FieldDefaultEntry[].class);
         var defaults = Arrays.stream(req)
                 .map(e -> new EventFieldDefault(id, e.fieldId(), e.source(), e.value()))
                 .toList();
-        eventService.setFieldDefaults(id, defaults);
-        ctx.json(eventService.findFieldDefaults(id));
+        fieldDefaultService.setForEvent(id, defaults);
+        ctx.json(fieldDefaultService.findByEvent(id));
     }
 
     @OpenApi(
@@ -293,7 +307,7 @@ public class EventStructureRoutes implements Routes {
     private void getFields(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        requireOwnedEvent(eventService, id, session);
+        requireOwnedEvent(crudService, id, session);
         ctx.json(eventFieldService.findByEvent(id));
     }
 
@@ -308,7 +322,7 @@ public class EventStructureRoutes implements Routes {
     private void setFields(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        requireOwnedEvent(eventService, id, session);
+        requireOwnedEvent(crudService, id, session);
         var req = ctx.bodyAsClass(SetEventFieldsRequest.class);
         eventFieldService.replaceFields(
                 id,
@@ -339,14 +353,14 @@ public class EventStructureRoutes implements Routes {
         var session = UserSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
         int fieldId = pathInt(ctx, "fieldId");
-        requireOwnedEvent(eventService, eventId, session);
+        requireOwnedEvent(crudService, eventId, session);
         ctx.json(eventFieldService.toggleSelfRegistration(
                 eventId, fieldId, session.member().id()));
     }
 
     private void getOverviewFields(Context ctx) {
         var session = UserSession.from(ctx);
-        var eventIds = eventService.findByStation(session.stationId()).stream()
+        var eventIds = crudService.findByStation(session.stationId()).stream()
                 .map(StationEvent::id)
                 .toList();
         ctx.json(eventFieldService.findOverviewFieldsByEvents(eventIds));

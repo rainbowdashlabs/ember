@@ -38,8 +38,15 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-class EventServiceTest extends RepositoryTestBase {
-    private static EventService service;
+class EventServicesTest extends RepositoryTestBase {
+    private static EventCrudService crudService;
+    private static EventOccurrenceService occurrenceService;
+    private static EventCategoryService categoryService;
+    private static EventBreakService breakService;
+    private static EventRestrictionService eventRestrictionService;
+    private static EventFieldDefaultService fieldDefaultService;
+    private static EventRegistrationService registrationService;
+    private static EventReminderService reminderService;
     private static Station station;
     private static Account account;
     private static StationMember member;
@@ -48,7 +55,15 @@ class EventServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = newEventService(new DomainEventBus(Set.of()));
+        var services = newEventServices(new DomainEventBus(Set.of()));
+        crudService = services.crud();
+        occurrenceService = services.occurrence();
+        categoryService = services.category();
+        breakService = services.breaks();
+        eventRestrictionService = services.restriction();
+        fieldDefaultService = services.fieldDefault();
+        registrationService = services.registration();
+        reminderService = services.reminder();
         station = stationRepo.create("EventStation");
         account = accountRepo.create("event-svc@test.com", "Event", "Tester");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -63,7 +78,7 @@ class EventServiceTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void createCategory() {
-        var cat = service.createCategory(station.id(), "Training", 0, "#ff6421");
+        var cat = categoryService.create(station.id(), "Training", 0, "#ff6421");
         assertNotNull(cat);
         assertEquals("Training", cat.name());
         assertEquals("#ff6421", cat.color());
@@ -73,7 +88,7 @@ class EventServiceTest extends RepositoryTestBase {
     @Test
     @Order(2)
     void findCategories() {
-        var cats = service.findCategoriesByStation(station.id());
+        var cats = categoryService.findByStation(station.id());
         assertTrue(cats.stream().anyMatch(c -> c.id() == categoryId));
     }
 
@@ -82,7 +97,7 @@ class EventServiceTest extends RepositoryTestBase {
     void createEvent() {
         var start = Instant.now().plus(1, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "Weekly Training",
                 "Regular training session",
@@ -108,14 +123,14 @@ class EventServiceTest extends RepositoryTestBase {
     @Test
     @Order(11)
     void findById() {
-        assertTrue(service.findById(eventId).isPresent());
-        assertTrue(service.findById(999999).isEmpty());
+        assertTrue(crudService.findById(eventId).isPresent());
+        assertTrue(crudService.findById(999999).isEmpty());
     }
 
     @Test
     @Order(12)
     void findByStation() {
-        var events = service.findByStation(station.id());
+        var events = crudService.findByStation(station.id());
         assertTrue(events.stream().anyMatch(e -> e.id() == eventId));
     }
 
@@ -124,7 +139,7 @@ class EventServiceTest extends RepositoryTestBase {
     void updateEvent() {
         var start = Instant.now().plus(2, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        var result = service.update(
+        var result = crudService.update(
                 eventId,
                 "Updated Training",
                 "New desc",
@@ -155,7 +170,7 @@ class EventServiceTest extends RepositoryTestBase {
         // Make event require registration first
         var start = Instant.now().plus(2, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        service.update(
+        crudService.update(
                 eventId,
                 "Updated Training",
                 "Desc",
@@ -174,35 +189,36 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var reg = service.register(eventId, member.id(), LocalDate.now().plusDays(7), false, null);
+        var reg = registrationService.register(
+                eventId, member.id(), LocalDate.now().plusDays(7), false, null);
         assertNotNull(reg);
         assertEquals(member.id(), reg.memberId());
 
-        var regs = service.findAllRegistrations(eventId);
+        var regs = registrationService.findByEvent(eventId);
         assertTrue(regs.stream().anyMatch(r -> r.memberId() == member.id()));
     }
 
     @Test
     @Order(21)
     void myRegistrations() {
-        var mine = service.findRegistrationsByMember(member.id());
+        var mine = registrationService.findByMember(member.id());
         assertFalse(mine.isEmpty());
     }
 
     @Test
     @Order(30)
     void createBreak() {
-        var br = service.createBreak(station.id(), "Summer", LocalDate.of(2020, 7, 1), LocalDate.of(2020, 8, 31));
+        var br = breakService.create(station.id(), "Summer", LocalDate.of(2020, 7, 1), LocalDate.of(2020, 8, 31));
         assertNotNull(br);
-        var breaks = service.findBreaksByStation(station.id());
+        var breaks = breakService.findByStation(station.id());
         assertTrue(breaks.stream().anyMatch(b -> b.id() == br.id()));
     }
 
     @Test
     @Order(31)
     void findBreakById() {
-        var br = service.createBreak(station.id(), "Winter", LocalDate.of(2026, 12, 20), LocalDate.of(2027, 1, 5));
-        var found = service.findBreakById(br.id());
+        var br = breakService.create(station.id(), "Winter", LocalDate.of(2026, 12, 20), LocalDate.of(2027, 1, 5));
+        var found = breakService.findById(br.id());
         assertTrue(found.isPresent());
         assertEquals(br.id(), found.get().id());
         assertEquals("Winter", found.get().name());
@@ -211,8 +227,8 @@ class EventServiceTest extends RepositoryTestBase {
     @Test
     @Order(32)
     void updateBreak() {
-        var br = service.createBreak(station.id(), "Old Break", LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 7));
-        var updated = service.updateBreak(br.id(), "New Break", LocalDate.of(2026, 11, 2), LocalDate.of(2026, 11, 8));
+        var br = breakService.create(station.id(), "Old Break", LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 7));
+        var updated = breakService.update(br.id(), "New Break", LocalDate.of(2026, 11, 2), LocalDate.of(2026, 11, 8));
         assertTrue(updated.isPresent());
         assertEquals("New Break", updated.get().name());
         assertEquals(LocalDate.of(2026, 11, 2), updated.get().startDate());
@@ -221,15 +237,15 @@ class EventServiceTest extends RepositoryTestBase {
     @Test
     @Order(33)
     void deleteBreak() {
-        var br = service.createBreak(station.id(), "Short Break", LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 7));
-        assertTrue(service.deleteBreak(br.id()));
-        assertTrue(service.findBreakById(br.id()).isEmpty());
+        var br = breakService.create(station.id(), "Short Break", LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 7));
+        assertTrue(breakService.delete(br.id()));
+        assertTrue(breakService.findById(br.id()).isEmpty());
     }
 
     @Test
     @Order(34)
     void updateBreakNotFound() {
-        var updated = service.updateBreak(
+        var updated = breakService.update(
                 999999, "X", LocalDate.now(), LocalDate.now().plusDays(1));
         assertTrue(updated.isEmpty());
     }
@@ -237,14 +253,14 @@ class EventServiceTest extends RepositoryTestBase {
     @Test
     @Order(40)
     void deleteEvent() {
-        assertTrue(service.delete(eventId));
-        assertTrue(service.findById(eventId).isEmpty());
+        assertTrue(crudService.delete(eventId));
+        assertTrue(crudService.findById(eventId).isEmpty());
     }
 
     @Test
     @Order(41)
     void deleteEventNotFound() {
-        assertFalse(service.delete(999999));
+        assertFalse(crudService.delete(999999));
     }
 
     // -- Category extras --
@@ -252,7 +268,7 @@ class EventServiceTest extends RepositoryTestBase {
     @Test
     @Order(50)
     void findCategoryById() {
-        var found = service.findCategoryById(categoryId);
+        var found = categoryService.findById(categoryId);
         assertTrue(found.isPresent());
         assertEquals(categoryId, found.get().id());
     }
@@ -260,15 +276,15 @@ class EventServiceTest extends RepositoryTestBase {
     @Test
     @Order(51)
     void findCategoryByIdMissing() {
-        assertTrue(service.findCategoryById(999999).isEmpty());
+        assertTrue(categoryService.findById(999999).isEmpty());
     }
 
     @Test
     @Order(52)
     void updateCategory() {
-        boolean updated = service.updateCategory(categoryId, "Updated Training", 1, null, false, "#73ceff");
+        boolean updated = categoryService.update(categoryId, "Updated Training", 1, null, false, "#73ceff");
         assertTrue(updated);
-        var found = service.findCategoryById(categoryId).orElseThrow();
+        var found = categoryService.findById(categoryId).orElseThrow();
         assertEquals("Updated Training", found.name());
         assertEquals("#73ceff", found.color());
     }
@@ -276,19 +292,19 @@ class EventServiceTest extends RepositoryTestBase {
     @Test
     @Order(53)
     void reorderCategories() {
-        var cat2 = service.createCategory(station.id(), "Category 2", 1, null);
-        service.reorderCategories(station.id(), List.of(cat2.id(), categoryId));
-        assertEquals(0, service.findCategoryById(cat2.id()).orElseThrow().position());
-        assertEquals(1, service.findCategoryById(categoryId).orElseThrow().position());
-        service.deleteCategory(cat2.id());
+        var cat2 = categoryService.create(station.id(), "Category 2", 1, null);
+        categoryService.reorder(station.id(), List.of(cat2.id(), categoryId));
+        assertEquals(0, categoryService.findById(cat2.id()).orElseThrow().position());
+        assertEquals(1, categoryService.findById(categoryId).orElseThrow().position());
+        categoryService.delete(cat2.id());
     }
 
     @Test
     @Order(54)
     void deleteCategory() {
-        var cat = service.createCategory(station.id(), "Temp Cat", 99, null);
-        assertTrue(service.deleteCategory(cat.id()));
-        assertTrue(service.findCategoryById(cat.id()).isEmpty());
+        var cat = categoryService.create(station.id(), "Temp Cat", 99, null);
+        assertTrue(categoryService.delete(cat.id()));
+        assertTrue(categoryService.findById(cat.id()).isEmpty());
     }
 
     // -- Registration extras --
@@ -298,7 +314,7 @@ class EventServiceTest extends RepositoryTestBase {
     void updateRegistrationStatus() {
         var start = Instant.now().plus(10, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "Status Event",
                 "desc",
@@ -316,13 +332,13 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var reg = service.register(event.id(), member.id(), LocalDate.of(2026, 10, 1), false, null);
+        var reg = registrationService.register(event.id(), member.id(), LocalDate.of(2026, 10, 1), false, null);
         assertEquals(RegistrationStatus.PENDING, reg.status());
 
-        boolean updated = service.updateRegistrationStatus(reg.id(), RegistrationStatus.ACCEPTED);
+        boolean updated = registrationService.updateStatus(reg.id(), RegistrationStatus.ACCEPTED);
         assertTrue(updated);
 
-        var found = service.findRegistrationById(reg.id()).orElseThrow();
+        var found = registrationService.findById(reg.id()).orElseThrow();
         assertEquals(RegistrationStatus.ACCEPTED, found.status());
     }
 
@@ -331,7 +347,7 @@ class EventServiceTest extends RepositoryTestBase {
     void withdrawRegistration() {
         var start = Instant.now().plus(11, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "Withdraw Event",
                 "desc",
@@ -349,9 +365,9 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var reg = service.register(event.id(), member.id(), LocalDate.of(2026, 10, 2), false, null);
-        assertTrue(service.withdrawRegistration(reg.id()));
-        assertTrue(service.findRegistrationById(reg.id()).isEmpty());
+        var reg = registrationService.register(event.id(), member.id(), LocalDate.of(2026, 10, 2), false, null);
+        assertTrue(registrationService.withdraw(reg.id()));
+        assertTrue(registrationService.findById(reg.id()).isEmpty());
     }
 
     @Test
@@ -359,7 +375,7 @@ class EventServiceTest extends RepositoryTestBase {
     void declineRegistration() {
         var start = Instant.now().plus(12, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "Decline Event",
                 "desc",
@@ -377,7 +393,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var reg = service.decline(event.id(), member.id(), LocalDate.of(2026, 10, 3), null);
+        var reg = registrationService.decline(event.id(), member.id(), LocalDate.of(2026, 10, 3), null);
         assertNotNull(reg);
         assertEquals(RegistrationStatus.DECLINED, reg.status());
     }
@@ -387,7 +403,7 @@ class EventServiceTest extends RepositoryTestBase {
     void findRegistrationsByDate() {
         var start = Instant.now().plus(13, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "Date Event",
                 "desc",
@@ -406,9 +422,9 @@ class EventServiceTest extends RepositoryTestBase {
                 null);
 
         LocalDate date = LocalDate.of(2026, 11, 1);
-        service.register(event.id(), member.id(), date, false, null);
+        registrationService.register(event.id(), member.id(), date, false, null);
 
-        var regs = service.findRegistrations(event.id(), date);
+        var regs = registrationService.findByEventAndDate(event.id(), date);
         assertFalse(regs.isEmpty());
         assertTrue(regs.stream().anyMatch(r -> r.memberId() == member.id()));
     }
@@ -416,7 +432,7 @@ class EventServiceTest extends RepositoryTestBase {
     @Test
     @Order(64)
     void findPendingRegistrationsByStation() {
-        var pending = service.findPendingRegistrationsByStation(station.id());
+        var pending = registrationService.findPendingByStation(station.id());
         // There should be at least the registrations created in order 20 and 63 that are still PENDING
         assertNotNull(pending);
     }
@@ -424,7 +440,7 @@ class EventServiceTest extends RepositoryTestBase {
     @Test
     @Order(65)
     void findRegistrationCounts() {
-        var counts = service.findRegistrationCounts(station.id());
+        var counts = registrationService.findCountsByStation(station.id());
         assertNotNull(counts);
     }
 
@@ -435,7 +451,7 @@ class EventServiceTest extends RepositoryTestBase {
     void setAndFindRestrictions() {
         var start = Instant.now().plus(20, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "Restricted Event",
                 "desc",
@@ -453,10 +469,10 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        service.setRestrictions(
+        eventRestrictionService.setRestrictions(
                 event.id(),
                 new RestrictionSelection(List.of(StationUserType.MEMBER), List.of(), List.of(), List.of(), null));
-        var restrictions = service.findRestrictions(event.id());
+        var restrictions = eventRestrictionService.findRestrictions(event.id());
         assertNotNull(restrictions);
     }
 
@@ -465,7 +481,7 @@ class EventServiceTest extends RepositoryTestBase {
     void updateRestrictionMode() {
         var start = Instant.now().plus(21, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "Mode Event",
                 "desc",
@@ -484,8 +500,8 @@ class EventServiceTest extends RepositoryTestBase {
                 null);
 
         // Should not throw
-        service.updateRestrictionMode(event.id(), RestrictionMode.OR);
-        service.updateRestrictionMode(event.id(), RestrictionMode.AND);
+        eventRestrictionService.updateRestrictionMode(event.id(), RestrictionMode.OR);
+        eventRestrictionService.updateRestrictionMode(event.id(), RestrictionMode.AND);
     }
 
     @Test
@@ -493,7 +509,7 @@ class EventServiceTest extends RepositoryTestBase {
     void isMemberEligibleNoRestrictions() {
         var start = Instant.now().plus(22, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "Open Event",
                 "desc",
@@ -512,7 +528,8 @@ class EventServiceTest extends RepositoryTestBase {
                 null);
 
         // No restrictions set — member should be eligible
-        assertTrue(service.isMemberEligible(event.id(), member.id(), EnumSet.noneOf(StationPermission.class)));
+        assertTrue(eventRestrictionService.isMemberEligible(
+                event.id(), member.id(), EnumSet.noneOf(StationPermission.class)));
     }
 
     // -- Field defaults --
@@ -522,7 +539,7 @@ class EventServiceTest extends RepositoryTestBase {
     void findFieldDefaultsEmptyWhenNoneSet() {
         var start = Instant.now().plus(30, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "Field Default Event",
                 "desc",
@@ -541,12 +558,12 @@ class EventServiceTest extends RepositoryTestBase {
                 null);
 
         // No defaults set — should be empty
-        var found = service.findFieldDefaults(event.id());
+        var found = fieldDefaultService.findByEvent(event.id());
         assertTrue(found.isEmpty());
 
         // Set empty defaults — should remain empty
-        service.setFieldDefaults(event.id(), List.of());
-        assertTrue(service.findFieldDefaults(event.id()).isEmpty());
+        fieldDefaultService.setForEvent(event.id(), List.of());
+        assertTrue(fieldDefaultService.findByEvent(event.id()).isEmpty());
     }
 
     @Test
@@ -554,7 +571,7 @@ class EventServiceTest extends RepositoryTestBase {
     void resolveFieldDefaultsEmptyWhenNoDefaults() {
         var start = Instant.now().plus(31, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "Resolve Event No Defaults",
                 "Desc",
@@ -573,14 +590,14 @@ class EventServiceTest extends RepositoryTestBase {
                 null);
 
         // No defaults set — resolve returns empty map
-        var resolved = service.resolveFieldDefaults(event.id());
+        var resolved = fieldDefaultService.resolve(event.id());
         assertTrue(resolved.isEmpty());
     }
 
     @Test
     @Order(82)
     void resolveFieldDefaultsForMissingEvent() {
-        var resolved = service.resolveFieldDefaults(999999);
+        var resolved = fieldDefaultService.resolve(999999);
         assertTrue(resolved.isEmpty());
     }
 
@@ -589,7 +606,7 @@ class EventServiceTest extends RepositoryTestBase {
     @Test
     @Order(90)
     void findByStationForMember() {
-        var events = service.findByStationForMember(station.id(), member.id());
+        var events = crudService.findByStationForMember(station.id(), member.id());
         assertNotNull(events);
     }
 
@@ -598,7 +615,7 @@ class EventServiceTest extends RepositoryTestBase {
     void autoAcceptRegistration() {
         var start = Instant.now().plus(40, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "AutoAccept Event",
                 "desc",
@@ -616,7 +633,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var reg = service.register(event.id(), member.id(), LocalDate.of(2027, 1, 1), true, null);
+        var reg = registrationService.register(event.id(), member.id(), LocalDate.of(2027, 1, 1), true, null);
         assertEquals(RegistrationStatus.ACCEPTED, reg.status());
     }
 
@@ -625,7 +642,7 @@ class EventServiceTest extends RepositoryTestBase {
     void findDeclinedMemberIds() {
         var start = Instant.now().plus(41, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "Declined IDs Event",
                 "desc",
@@ -644,15 +661,15 @@ class EventServiceTest extends RepositoryTestBase {
                 null);
 
         LocalDate date = LocalDate.of(2027, 2, 1);
-        service.decline(event.id(), member.id(), date, null);
-        var declined = service.findDeclinedMemberIds(event.id(), date);
+        registrationService.decline(event.id(), member.id(), date, null);
+        var declined = registrationService.findDeclinedMemberIds(event.id(), date);
         assertTrue(declined.contains(member.id()));
     }
 
     @Test
     @Order(93)
     void findRegistrationStats() {
-        var stats = service.findRegistrationStats(0, null, 6);
+        var stats = registrationService.findStatsByEvent(0, null, 6);
         assertNotNull(stats);
     }
 
@@ -663,7 +680,7 @@ class EventServiceTest extends RepositoryTestBase {
     void findFilteredNoFilters() {
         var start = Instant.now().plus(110, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "Filtered Event",
                 "desc",
@@ -681,14 +698,14 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var results = service.findFiltered(station.id(), null, null, null);
+        var results = crudService.findFiltered(station.id(), null, null, null);
         assertTrue(results.stream().anyMatch(e -> e.id() == event.id()));
     }
 
     @Test
     @Order(111)
     void findFilteredByCategory() {
-        var results = service.findFiltered(station.id(), null, categoryId, null);
+        var results = crudService.findFiltered(station.id(), null, categoryId, null);
         assertNotNull(results);
         assertTrue(results.stream().allMatch(e -> e.categoryId() != null && e.categoryId() == categoryId));
     }
@@ -696,14 +713,14 @@ class EventServiceTest extends RepositoryTestBase {
     @Test
     @Order(112)
     void findFilteredByMember() {
-        var results = service.findFiltered(station.id(), member.id(), null, null);
+        var results = crudService.findFiltered(station.id(), member.id(), null, null);
         assertNotNull(results);
     }
 
     @Test
     @Order(113)
     void findFilteredByRequiresRegistration() {
-        var results = service.findFiltered(station.id(), null, null, false);
+        var results = crudService.findFiltered(station.id(), null, null, false);
         assertNotNull(results);
         assertTrue(results.stream().noneMatch(StationEvent::requiresRegistration));
     }
@@ -711,7 +728,7 @@ class EventServiceTest extends RepositoryTestBase {
     @Test
     @Order(114)
     void findFilteredAllParams() {
-        var results = service.findFiltered(station.id(), member.id(), categoryId, false);
+        var results = crudService.findFiltered(station.id(), member.id(), categoryId, false);
         assertNotNull(results);
     }
 
@@ -725,7 +742,7 @@ class EventServiceTest extends RepositoryTestBase {
         var start = futureDate.atStartOfDay(ZoneOffset.UTC).toInstant();
         var end = start.plus(2, ChronoUnit.HOURS);
 
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "Upcoming OneTime",
                 "desc",
@@ -743,7 +760,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 0);
+        var occurrences = occurrenceService.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 0);
         assertTrue(occurrences.stream().anyMatch(o -> o.event().id() == event.id()));
     }
 
@@ -756,7 +773,7 @@ class EventServiceTest extends RepositoryTestBase {
         var end = start.plus(2, ChronoUnit.HOURS);
         int dow = LocalDate.now(ZoneOffset.UTC).getDayOfWeek().getValue();
 
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "Upcoming Recurring",
                 "desc",
@@ -774,23 +791,23 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 0);
+        var occurrences = occurrenceService.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 0);
         assertTrue(occurrences.stream().anyMatch(o -> o.event().id() == event.id()));
     }
 
     @Test
     @Order(122)
     void findUpcomingOccurrencesWithPagination() {
-        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, null, 2, 0);
+        var occurrences = occurrenceService.findUpcomingOccurrences(station.id(), null, null, null, null, 2, 0);
         assertTrue(occurrences.size() <= 2);
     }
 
     @Test
     @Order(123)
     void findUpcomingOccurrencesWithOffset() {
-        var all = service.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 0);
+        var all = occurrenceService.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 0);
         if (all.size() > 1) {
-            var offsetResults = service.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 1);
+            var offsetResults = occurrenceService.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 1);
             assertEquals(all.size() - 1, offsetResults.size());
         }
     }
@@ -798,8 +815,8 @@ class EventServiceTest extends RepositoryTestBase {
     @Test
     @Order(124)
     void findUpcomingOccurrencesWithFilters() {
-        var occurrences =
-                service.findUpcomingOccurrences(station.id(), List.of(member.id()), categoryId, false, null, 100, 0);
+        var occurrences = occurrenceService.findUpcomingOccurrences(
+                station.id(), List.of(member.id()), categoryId, false, null, 100, 0);
         assertNotNull(occurrences);
     }
 
@@ -811,7 +828,7 @@ class EventServiceTest extends RepositoryTestBase {
         var end = start.plus(2, ChronoUnit.HOURS);
         int dow = LocalDate.now(ZoneOffset.UTC).plusDays(1).getDayOfWeek().getValue();
 
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "Monthly First Event",
                 "desc",
@@ -829,7 +846,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 0);
+        var occurrences = occurrenceService.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 0);
         // The event should appear at least once in the next 28 days if there's a matching date
         assertNotNull(occurrences);
     }
@@ -841,7 +858,7 @@ class EventServiceTest extends RepositoryTestBase {
         var end = start.plus(2, ChronoUnit.HOURS);
         int dow = LocalDate.now(ZoneOffset.UTC).plusDays(1).getDayOfWeek().getValue();
 
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "Quarterly Event",
                 "desc",
@@ -859,7 +876,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 0);
+        var occurrences = occurrenceService.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 0);
         assertNotNull(occurrences);
     }
 
@@ -872,7 +889,7 @@ class EventServiceTest extends RepositoryTestBase {
         var end = start.plus(2, ChronoUnit.HOURS);
         int dow = futureDate.getDayOfWeek().getValue();
 
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "Yearly Event",
                 "desc",
@@ -890,7 +907,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 0);
+        var occurrences = occurrenceService.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 0);
         assertNotNull(occurrences);
     }
 
@@ -900,17 +917,17 @@ class EventServiceTest extends RepositoryTestBase {
         // Create a break covering the next 28 days
         var breakStart = LocalDate.now(ZoneOffset.UTC);
         var breakEnd = breakStart.plusDays(28);
-        var brk = service.createBreak(station.id(), "Test Break", breakStart, breakEnd);
+        var brk = breakService.create(station.id(), "Test Break", breakStart, breakEnd);
 
         // Create a new station to avoid interference
         var breakStation = stationRepo.create("BreakStation");
-        var breakBreak = service.createBreak(breakStation.id(), "Full Break", breakStart, breakEnd);
+        var breakBreak = breakService.create(breakStation.id(), "Full Break", breakStart, breakEnd);
 
         var start = Instant.now().plus(1, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
         int dow = LocalDate.now(ZoneOffset.UTC).plusDays(1).getDayOfWeek().getValue();
 
-        service.create(
+        crudService.create(
                 breakStation.id(),
                 "Break Recurring",
                 "desc",
@@ -928,12 +945,12 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var occurrences = service.findUpcomingOccurrences(breakStation.id(), null, null, null, null, 100, 0);
+        var occurrences = occurrenceService.findUpcomingOccurrences(breakStation.id(), null, null, null, null, 100, 0);
         // Recurring events during break should not appear
         assertTrue(occurrences.stream().noneMatch(o -> o.event().name().equals("Break Recurring")));
 
-        service.deleteBreak(brk.id());
-        service.deleteBreak(breakBreak.id());
+        breakService.delete(brk.id());
+        breakService.delete(breakBreak.id());
         stationRepo.delete(breakStation.id());
     }
 
@@ -945,7 +962,7 @@ class EventServiceTest extends RepositoryTestBase {
         var start = pastDate.atStartOfDay(ZoneOffset.UTC).toInstant();
         var end = start.plus(2, ChronoUnit.HOURS);
 
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "Past OneTime",
                 "desc",
@@ -963,7 +980,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var occurrences = service.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 0);
+        var occurrences = occurrenceService.findUpcomingOccurrences(station.id(), null, null, null, null, 100, 0);
         assertTrue(occurrences.stream().noneMatch(o -> o.event().id() == event.id()));
     }
 
@@ -974,7 +991,7 @@ class EventServiceTest extends RepositoryTestBase {
     void withdrawAcceptedRegistration() {
         var start = Instant.now().plus(130, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "Withdraw Accepted Event",
                 "desc",
@@ -993,18 +1010,18 @@ class EventServiceTest extends RepositoryTestBase {
                 null);
 
         // Register and auto-accept
-        var reg = service.register(event.id(), member.id(), LocalDate.of(2027, 5, 1), true, null);
+        var reg = registrationService.register(event.id(), member.id(), LocalDate.of(2027, 5, 1), true, null);
         assertEquals(RegistrationStatus.ACCEPTED, reg.status());
 
         // Withdraw the ACCEPTED registration — should publish event
-        assertTrue(service.withdrawRegistration(reg.id()));
-        assertTrue(service.findRegistrationById(reg.id()).isEmpty());
+        assertTrue(registrationService.withdraw(reg.id()));
+        assertTrue(registrationService.findById(reg.id()).isEmpty());
     }
 
     @Test
     @Order(131)
     void withdrawNonExistentRegistration() {
-        assertFalse(service.withdrawRegistration(999999));
+        assertFalse(registrationService.withdraw(999999));
     }
 
     // -- decline with existing ACCEPTED registration --
@@ -1014,7 +1031,7 @@ class EventServiceTest extends RepositoryTestBase {
     void declineWithExistingAcceptedRegistration() {
         var start = Instant.now().plus(132, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "Decline Accepted Event",
                 "desc",
@@ -1034,10 +1051,10 @@ class EventServiceTest extends RepositoryTestBase {
 
         // Register and auto-accept
         LocalDate date = LocalDate.of(2027, 6, 1);
-        service.register(event.id(), member.id(), date, true, null);
+        registrationService.register(event.id(), member.id(), date, true, null);
 
         // Now decline — should publish event because prior was ACCEPTED
-        var result = service.decline(event.id(), member.id(), date, null);
+        var result = registrationService.decline(event.id(), member.id(), date, null);
         assertNotNull(result);
         assertEquals(RegistrationStatus.DECLINED, result.status());
     }
@@ -1047,7 +1064,7 @@ class EventServiceTest extends RepositoryTestBase {
     void declineWithNoExistingRegistration() {
         var start = Instant.now().plus(133, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "Decline No Prior Event",
                 "desc",
@@ -1066,7 +1083,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null);
 
         // Decline without prior registration
-        var result = service.decline(event.id(), member.id(), LocalDate.of(2027, 7, 1), null);
+        var result = registrationService.decline(event.id(), member.id(), LocalDate.of(2027, 7, 1), null);
         assertNotNull(result);
         assertEquals(RegistrationStatus.DECLINED, result.status());
     }
@@ -1084,7 +1101,7 @@ class EventServiceTest extends RepositoryTestBase {
 
         var start = Instant.now().plus(140, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "Start Time Event",
                 "desc",
@@ -1102,10 +1119,10 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        service.setFieldDefaults(
+        fieldDefaultService.setForEvent(
                 event.id(), List.of(new EventFieldDefault(event.id(), fieldId, "EVENT_START_TIME", null)));
 
-        var resolved = service.resolveFieldDefaults(event.id());
+        var resolved = fieldDefaultService.resolve(event.id());
         assertNotNull(resolved.get(fieldId));
         assertTrue(resolved.get(fieldId).startsWith("\""));
     }
@@ -1121,7 +1138,7 @@ class EventServiceTest extends RepositoryTestBase {
 
         var start = Instant.now().plus(141, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "End Time Event",
                 "desc",
@@ -1139,10 +1156,10 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        service.setFieldDefaults(
+        fieldDefaultService.setForEvent(
                 event.id(), List.of(new EventFieldDefault(event.id(), fieldId, "EVENT_END_TIME", null)));
 
-        var resolved = service.resolveFieldDefaults(event.id());
+        var resolved = fieldDefaultService.resolve(event.id());
         assertNotNull(resolved.get(fieldId));
         assertTrue(resolved.get(fieldId).startsWith("\""));
     }
@@ -1160,7 +1177,7 @@ class EventServiceTest extends RepositoryTestBase {
 
         var start = Instant.now().plus(142, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "StartTime Resolve Event",
                 "desc",
@@ -1178,10 +1195,10 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        service.setFieldDefaults(
+        fieldDefaultService.setForEvent(
                 event.id(), List.of(new EventFieldDefault(event.id(), fieldId, "EVENT_START_TIME", null)));
 
-        var resolved = service.resolveFieldDefaults(event.id());
+        var resolved = fieldDefaultService.resolve(event.id());
         // start time is set, so field should be resolved with quoted timestamp
         assertTrue(resolved.containsKey(fieldId));
         assertTrue(resolved.get(fieldId).startsWith("\""));
@@ -1198,7 +1215,7 @@ class EventServiceTest extends RepositoryTestBase {
 
         var start = Instant.now().plus(143, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "EndTime Resolve Event",
                 "desc",
@@ -1216,10 +1233,10 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        service.setFieldDefaults(
+        fieldDefaultService.setForEvent(
                 event.id(), List.of(new EventFieldDefault(event.id(), fieldId, "EVENT_END_TIME", null)));
 
-        var resolved = service.resolveFieldDefaults(event.id());
+        var resolved = fieldDefaultService.resolve(event.id());
         // end time is set, so field should be resolved with quoted timestamp
         assertTrue(resolved.containsKey(fieldId));
         assertTrue(resolved.get(fieldId).startsWith("\""));
@@ -1230,7 +1247,7 @@ class EventServiceTest extends RepositoryTestBase {
     @Test
     @Order(150)
     void findRegistrationStatsWithCategory() {
-        var stats = service.findRegistrationStats(0, categoryId, 6);
+        var stats = registrationService.findStatsByEvent(0, categoryId, 6);
         assertNotNull(stats);
     }
 
@@ -1241,7 +1258,7 @@ class EventServiceTest extends RepositoryTestBase {
     void registerWithCreatedBy() {
         var start = Instant.now().plus(151, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "CreatedBy Event",
                 "desc",
@@ -1259,7 +1276,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var reg = service.register(event.id(), member.id(), LocalDate.of(2027, 8, 1), false, member.id());
+        var reg = registrationService.register(event.id(), member.id(), LocalDate.of(2027, 8, 1), false, member.id());
         assertNotNull(reg);
         assertEquals(member.id(), reg.createdBy());
     }
@@ -1273,7 +1290,7 @@ class EventServiceTest extends RepositoryTestBase {
         var start = Instant.now();
         var end = start.plus(2, ChronoUnit.HOURS);
 
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "Today Recurring",
                 "desc",
@@ -1291,7 +1308,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var today = service.findTodayEvents(station.id());
+        var today = occurrenceService.findTodayEvents(station.id());
         assertTrue(today.stream().anyMatch(e -> e.id() == event.id()));
     }
 
@@ -1303,7 +1320,7 @@ class EventServiceTest extends RepositoryTestBase {
         var start = tomorrow.atStartOfDay(ZoneOffset.UTC).toInstant();
         var end = start.plus(2, ChronoUnit.HOURS);
 
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "Tomorrow OneTime",
                 "desc",
@@ -1321,7 +1338,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var today = service.findTodayEvents(station.id());
+        var today = occurrenceService.findTodayEvents(station.id());
         // ONE_TIME with start time tomorrow should NOT match today
         assertTrue(today.stream().noneMatch(e -> e.id() == event.id()));
     }
@@ -1335,7 +1352,7 @@ class EventServiceTest extends RepositoryTestBase {
         var start = Instant.now();
         var end = start.plus(2, ChronoUnit.HOURS);
 
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "Other DOW Recurring",
                 "desc",
@@ -1353,7 +1370,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var today = service.findTodayEvents(station.id());
+        var today = occurrenceService.findTodayEvents(station.id());
         // RECURRING with a different dayOfWeek should NOT match today
         assertTrue(today.stream().noneMatch(e -> e.id() == event.id()));
     }
@@ -1366,7 +1383,7 @@ class EventServiceTest extends RepositoryTestBase {
         var start = Instant.now();
         var end = start.plus(2, ChronoUnit.HOURS);
 
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "Monthly First Today",
                 "desc",
@@ -1384,7 +1401,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var todayEvents = service.findTodayEvents(station.id());
+        var todayEvents = occurrenceService.findTodayEvents(station.id());
         // MONTHLY_FIRST only matches if dayOfMonth <= 7
         if (today.getDayOfMonth() <= 7) {
             assertTrue(todayEvents.stream().anyMatch(e -> e.id() == event.id()));
@@ -1401,7 +1418,7 @@ class EventServiceTest extends RepositoryTestBase {
         var start = Instant.now();
         var end = start.plus(2, ChronoUnit.HOURS);
 
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "Quarterly Today",
                 "desc",
@@ -1419,7 +1436,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var todayEvents = service.findTodayEvents(station.id());
+        var todayEvents = occurrenceService.findTodayEvents(station.id());
         boolean shouldMatch = today.getDayOfMonth() <= 7 && (today.getMonthValue() - 1) % 3 == 0;
         if (shouldMatch) {
             assertTrue(todayEvents.stream().anyMatch(e -> e.id() == event.id()));
@@ -1435,7 +1452,7 @@ class EventServiceTest extends RepositoryTestBase {
         var start = today.atStartOfDay(ZoneOffset.UTC).toInstant();
         var end = start.plus(2, ChronoUnit.HOURS);
 
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "Yearly Today",
                 "desc",
@@ -1453,7 +1470,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var todayEvents = service.findTodayEvents(station.id());
+        var todayEvents = occurrenceService.findTodayEvents(station.id());
         // YEARLY needs startTime month and day to match
         assertTrue(todayEvents.stream().anyMatch(e -> e.id() == event.id()));
     }
@@ -1461,7 +1478,7 @@ class EventServiceTest extends RepositoryTestBase {
     @Test
     @Order(94)
     void updateNonExistentEvent() {
-        var result = service.update(
+        var result = crudService.update(
                 99999,
                 "X",
                 "X",
@@ -1485,7 +1502,7 @@ class EventServiceTest extends RepositoryTestBase {
     @Test
     @Order(95)
     void findRestrictionsForMissingEvent() {
-        var restrictions = service.findRestrictions(99999);
+        var restrictions = eventRestrictionService.findRestrictions(99999);
         assertNotNull(restrictions);
     }
 
@@ -1494,7 +1511,7 @@ class EventServiceTest extends RepositoryTestBase {
     void setRestrictionsWithNulls() {
         var start = Instant.now().plus(50, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "Null Restrictions",
                 "desc",
@@ -1513,8 +1530,8 @@ class EventServiceTest extends RepositoryTestBase {
                 null);
 
         // All null lists — should default to empty
-        service.setRestrictions(event.id(), new RestrictionSelection(null, null, null, null, null));
-        var restrictions = service.findRestrictions(event.id());
+        eventRestrictionService.setRestrictions(event.id(), new RestrictionSelection(null, null, null, null, null));
+        var restrictions = eventRestrictionService.findRestrictions(event.id());
         assertNotNull(restrictions);
     }
 
@@ -1522,7 +1539,7 @@ class EventServiceTest extends RepositoryTestBase {
     @Order(97)
     void findTodayEvents() {
         // This relies on the current date, but should at least not throw
-        var today = service.findTodayEvents(station.id());
+        var today = occurrenceService.findTodayEvents(station.id());
         assertNotNull(today);
     }
 
@@ -1542,7 +1559,7 @@ class EventServiceTest extends RepositoryTestBase {
 
         var start = Instant.now().plus(70, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "Value Source Event",
                 "My Desc",
@@ -1561,13 +1578,13 @@ class EventServiceTest extends RepositoryTestBase {
                 null);
 
         // Use separate field IDs — no duplicates
-        service.setFieldDefaults(
+        fieldDefaultService.setForEvent(
                 event.id(),
                 List.of(
                         new EventFieldDefault(event.id(), fieldAId, "VALUE", "\"hardcoded\""),
                         new EventFieldDefault(event.id(), fieldBId, "EVENT_NAME", null)));
 
-        var resolved = service.resolveFieldDefaults(event.id());
+        var resolved = fieldDefaultService.resolve(event.id());
         assertNotNull(resolved);
         assertEquals("\"hardcoded\"", resolved.get(fieldAId));
         assertEquals("Value Source Event", resolved.get(fieldBId));
@@ -1585,7 +1602,7 @@ class EventServiceTest extends RepositoryTestBase {
 
         var start = Instant.now().plus(75, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "Unknown Source Event",
                 "desc",
@@ -1603,10 +1620,10 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        service.setFieldDefaults(
+        fieldDefaultService.setForEvent(
                 event.id(), List.of(new EventFieldDefault(event.id(), attendanceFieldId, "UNKNOWN_SOURCE", null)));
 
-        var resolved = service.resolveFieldDefaults(event.id());
+        var resolved = fieldDefaultService.resolve(event.id());
         // UNKNOWN_SOURCE returns null, so field should NOT be in result
         assertFalse(resolved.containsKey(attendanceFieldId));
     }
@@ -1622,7 +1639,7 @@ class EventServiceTest extends RepositoryTestBase {
 
         var start = Instant.now().plus(72, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "Desc Source Event",
                 "My Description",
@@ -1640,10 +1657,10 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        service.setFieldDefaults(
+        fieldDefaultService.setForEvent(
                 event.id(), List.of(new EventFieldDefault(event.id(), attendanceFieldId, "EVENT_DESCRIPTION", null)));
 
-        var resolved = service.resolveFieldDefaults(event.id());
+        var resolved = fieldDefaultService.resolve(event.id());
         assertNotNull(resolved);
         assertEquals("My Description", resolved.get(attendanceFieldId));
     }
@@ -1651,7 +1668,7 @@ class EventServiceTest extends RepositoryTestBase {
     @Test
     @Order(101)
     void updateRegistrationStatusNotFound() {
-        assertFalse(service.updateRegistrationStatus(999999, RegistrationStatus.ACCEPTED));
+        assertFalse(registrationService.updateStatus(999999, RegistrationStatus.ACCEPTED));
     }
 
     @Test
@@ -1662,7 +1679,7 @@ class EventServiceTest extends RepositoryTestBase {
                 LocalDate.now(ZoneOffset.UTC).atStartOfDay(ZoneOffset.UTC).toInstant();
         var todayEnd = todayStart.plus(2, ChronoUnit.HOURS);
 
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "Today ONE_TIME",
                 "desc",
@@ -1680,7 +1697,7 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var today = service.findTodayEvents(station.id());
+        var today = occurrenceService.findTodayEvents(station.id());
         assertTrue(today.stream().anyMatch(e -> e.id() == event.id()));
     }
 
@@ -1689,7 +1706,7 @@ class EventServiceTest extends RepositoryTestBase {
     @Test
     @Order(200)
     void updateEventNotFound() {
-        var result = service.update(
+        var result = crudService.update(
                 999999,
                 "ghost",
                 "ghost",
@@ -1713,19 +1730,19 @@ class EventServiceTest extends RepositoryTestBase {
     @Test
     @Order(201)
     void updateCategoryNotFound() {
-        assertFalse(service.updateCategory(999999, "ghost", 0, null, false, null));
+        assertFalse(categoryService.update(999999, "ghost", 0, null, false, null));
     }
 
     @Test
     @Order(202)
     void deleteCategoryNotFound() {
-        assertFalse(service.deleteCategory(999999));
+        assertFalse(categoryService.delete(999999));
     }
 
     @Test
     @Order(203)
     void cancelEventNotFound() {
-        assertFalse(service.cancelEvent(station.id(), 999999, "ghost"));
+        assertFalse(crudService.cancelEvent(station.id(), 999999, "ghost"));
     }
 
     @Test
@@ -1733,7 +1750,7 @@ class EventServiceTest extends RepositoryTestBase {
     void cancelEventAlreadyCancelled() {
         var start = Instant.now().plus(30, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "Cancellable",
                 "desc",
@@ -1750,21 +1767,21 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null,
                 null);
-        assertTrue(service.cancelEvent(station.id(), event.id(), "first"));
+        assertTrue(crudService.cancelEvent(station.id(), event.id(), "first"));
         // Second cancel hits the "already cancelled" log.warn branch.
-        assertFalse(service.cancelEvent(station.id(), event.id(), "second"));
+        assertFalse(crudService.cancelEvent(station.id(), event.id(), "second"));
     }
 
     @Test
     @Order(205)
     void deleteBreakNotFound() {
-        assertFalse(service.deleteBreak(999999));
+        assertFalse(breakService.delete(999999));
     }
 
     @Test
     @Order(206)
     void withdrawRegistrationNotFound() {
-        assertFalse(service.withdrawRegistration(999999));
+        assertFalse(registrationService.withdraw(999999));
     }
 
     @Test
@@ -1774,7 +1791,7 @@ class EventServiceTest extends RepositoryTestBase {
         int dow = LocalDate.now(ZoneOffset.UTC).getDayOfWeek().getValue();
         var start = Instant.now().plus(1, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        var unique = service.create(
+        var unique = crudService.create(
                 station.id(),
                 "SearchableUpcoming",
                 "needle",
@@ -1792,13 +1809,13 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var byName = service.findUpcomingOccurrences(station.id(), null, null, null, "searchable", 100, 0);
+        var byName = occurrenceService.findUpcomingOccurrences(station.id(), null, null, null, "searchable", 100, 0);
         assertTrue(byName.stream().anyMatch(o -> o.event().id() == unique.id()));
 
-        var byDesc = service.findUpcomingOccurrences(station.id(), null, null, null, "needle", 100, 0);
+        var byDesc = occurrenceService.findUpcomingOccurrences(station.id(), null, null, null, "needle", 100, 0);
         assertTrue(byDesc.stream().anyMatch(o -> o.event().id() == unique.id()));
 
-        var none = service.findUpcomingOccurrences(station.id(), null, null, null, "no-such-string", 100, 0);
+        var none = occurrenceService.findUpcomingOccurrences(station.id(), null, null, null, "no-such-string", 100, 0);
         assertTrue(none.stream().noneMatch(o -> o.event().id() == unique.id()));
     }
 
@@ -1807,7 +1824,7 @@ class EventServiceTest extends RepositoryTestBase {
     void setAndFindReminderDays() {
         var start = Instant.now().plus(31, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "ReminderTarget",
                 "desc",
@@ -1825,11 +1842,11 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        service.setReminders(event.id(), List.of(7, 3, 1));
-        assertEquals(List.of(1, 3, 7), service.findReminderDays(event.id()));
+        reminderService.setDays(event.id(), List.of(7, 3, 1));
+        assertEquals(List.of(1, 3, 7), reminderService.findDays(event.id()));
 
-        service.setReminders(event.id(), List.of());
-        assertTrue(service.findReminderDays(event.id()).isEmpty());
+        reminderService.setDays(event.id(), List.of());
+        assertTrue(reminderService.findDays(event.id()).isEmpty());
     }
 
     @Test
@@ -1837,7 +1854,7 @@ class EventServiceTest extends RepositoryTestBase {
     void registrationFeedHelpersDelegate() {
         var start = Instant.now().plus(32, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "FeedHelperEvent",
                 "desc",
@@ -1855,13 +1872,13 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
         var eventDate = start.atZone(ZoneOffset.UTC).toLocalDate();
-        service.register(event.id(), member.id(), eventDate, true, null);
+        registrationService.register(event.id(), member.id(), eventDate, true, null);
 
-        var regs = service.findRegistrationsByMembers(List.of(member.id()));
+        var regs = registrationService.findByMembers(List.of(member.id()));
         assertTrue(regs.stream().anyMatch(r -> r.eventId() == event.id()));
 
-        assertNotNull(service.findMaxEventUpdatedAt(station.id()));
-        assertNotNull(service.findMaxRegistrationCreatedAt(List.of(member.id())));
+        assertNotNull(crudService.findMaxEventUpdatedAt(station.id()));
+        assertNotNull(registrationService.findMaxCreatedAt(List.of(member.id())));
     }
 
     @Test
@@ -1869,7 +1886,7 @@ class EventServiceTest extends RepositoryTestBase {
     void publicUidLookupDelegates() {
         var start = Instant.now().plus(33, ChronoUnit.DAYS);
         var end = start.plus(2, ChronoUnit.HOURS);
-        var event = service.create(
+        var event = crudService.create(
                 station.id(),
                 "PublicUidEvent",
                 "desc",
@@ -1887,11 +1904,11 @@ class EventServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var uids = service.findPublicUidsByIds(station.id(), List.of(event.id()));
+        var uids = crudService.findPublicUidsByIds(station.id(), List.of(event.id()));
         var publicUid = uids.get(event.id());
         assertNotNull(publicUid);
 
-        var resolved = service.findByPublicUid(station.id(), publicUid);
+        var resolved = crudService.findByPublicUid(station.id(), publicUid);
         assertTrue(resolved.isPresent());
         assertEquals(event.id(), resolved.get().id());
     }
@@ -1906,13 +1923,13 @@ class EventServiceTest extends RepositoryTestBase {
         markPublic(visible.id(), true);
         markPublic(hidden.id(), false);
 
-        var results = service.searchEventPicker(station.id(), "pickerv", EventRepository.PickerMode.FUTURE, 10);
+        var results = crudService.searchEventPicker(station.id(), "pickerv", EventRepository.PickerMode.FUTURE, 10);
         assertTrue(results.stream().anyMatch(e -> "PickerVisible".equals(e.name())));
 
-        var all = service.searchEventPicker(station.id(), "picker", EventRepository.PickerMode.ALL, 10);
+        var all = crudService.searchEventPicker(station.id(), "picker", EventRepository.PickerMode.ALL, 10);
         assertTrue(all.stream().noneMatch(e -> "PickerHidden".equals(e.name())));
 
-        var past = service.searchEventPicker(station.id(), "pickerv", EventRepository.PickerMode.PAST, 10);
+        var past = crudService.searchEventPicker(station.id(), "pickerv", EventRepository.PickerMode.PAST, 10);
         assertTrue(past.stream().noneMatch(e -> "PickerVisible".equals(e.name())));
     }
 
@@ -1923,18 +1940,18 @@ class EventServiceTest extends RepositoryTestBase {
         var end = start.plus(2, ChronoUnit.HOURS);
         var event = createPickerEvent("UnionEvent", start, end);
 
-        var repeated = service.findFilteredForMembers(station.id(), List.of(member.id(), member.id()), null, null);
+        var repeated = crudService.findFilteredForMembers(station.id(), List.of(member.id(), member.id()), null, null);
         assertEquals(1, repeated.stream().filter(e -> e.id() == event.id()).count());
 
-        var unrestricted = service.findFilteredForMembers(station.id(), null, null, null);
+        var unrestricted = crudService.findFilteredForMembers(station.id(), null, null, null);
         assertTrue(unrestricted.stream().anyMatch(e -> e.id() == event.id()));
 
-        var noMembers = service.findFilteredForMembers(station.id(), List.of(), null, null);
+        var noMembers = crudService.findFilteredForMembers(station.id(), List.of(), null, null);
         assertTrue(noMembers.isEmpty());
     }
 
     private static StationEvent createPickerEvent(String name, Instant start, Instant end) {
-        return service.create(
+        return crudService.create(
                 station.id(),
                 name,
                 "desc",
@@ -1954,8 +1971,8 @@ class EventServiceTest extends RepositoryTestBase {
     }
 
     private static void markPublic(int id, boolean isPublic) {
-        var event = service.findById(id).orElseThrow();
-        service.update(
+        var event = crudService.findById(id).orElseThrow();
+        crudService.update(
                 id,
                 event.name(),
                 event.description(),

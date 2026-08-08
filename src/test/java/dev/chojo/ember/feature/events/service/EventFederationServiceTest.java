@@ -75,7 +75,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
         federationService = new FederationService(federationRepo, stationRepo, new Api());
         httpClient = mock(FederationHttpClient.class);
         var eventBus = new DomainEventBus(Set.of());
-        EventService eventService = newEventService(eventBus);
+        var crudService = newEventServices(eventBus).crud();
         var memberSvc = newStationMemberService(accountRepo, mock(AuthService.class));
         commentService = new CommentService(eventCommentRepo, eventBus, memberSvc, stationRepo);
         service = new EventFederationService(
@@ -84,7 +84,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 httpClient,
                 federationRepo,
                 stationRepo,
-                eventService,
+                crudService,
                 commentService,
                 eventCommentRepo,
                 new MemberNameResolver(

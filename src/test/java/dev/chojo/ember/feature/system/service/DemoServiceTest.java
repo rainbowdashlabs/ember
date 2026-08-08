@@ -126,7 +126,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var federationFanout = new FederationFanout();
         var federationEntityResolver = new FederationEntityResolver(federationRepo, stationRepo, federationHttpClient);
 
-        var eventService = newEventService(noOpBus);
+        var eventServices = newEventServices(noOpBus);
         var newsService = new NewsService(
                 newsRepo, restrictionService, noOpBus, stationMemberRepo, memberLookupService, accountRepo);
         var inventoryService = new InventoryService(inventoryRepo);
@@ -212,7 +212,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 federationHttpClient,
                 federationRepo,
                 stationRepo,
-                eventService,
+                eventServices.crud(),
                 commentService,
                 eventCommentRepo,
                 memberNameResolver,
@@ -266,7 +266,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 eventRegistrationRepo,
                 eventFieldRepo,
                 attendanceRepo,
-                eventService,
+                eventServices.crud(),
                 eventTemplateService);
         var attendanceSeeder = new DemoAttendanceSeeder(attendanceRepo);
         var containerSvc = new InventoryContainerService(containerRepo, containerKindRepo, inventoryRepo);
@@ -301,7 +301,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 kbFederationService,
                 quizService,
                 protocolService,
-                eventService,
+                eventServices.crud(),
+                eventServices.category(),
                 eventFederationService,
                 eventFederationRepo,
                 accountRepo,

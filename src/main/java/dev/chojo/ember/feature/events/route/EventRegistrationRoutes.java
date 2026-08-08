@@ -17,7 +17,9 @@ import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.MemberRegistrationStats;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.events.service.EventService;
+import dev.chojo.ember.feature.events.service.EventCrudService;
+import dev.chojo.ember.feature.events.service.EventRegistrationService;
+import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.StationMemberService;
@@ -54,7 +56,9 @@ import static dev.chojo.ember.feature.events.route.EventOwnership.requireOwnedEv
  */
 @Singleton
 public class EventRegistrationRoutes implements Routes {
-    private final EventService eventService;
+    private final EventCrudService crudService;
+    private final EventRegistrationService registrationService;
+    private final EventRestrictionService restrictionService;
     private final StationMemberService stationMemberService;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
@@ -63,13 +67,17 @@ public class EventRegistrationRoutes implements Routes {
 
     @Inject
     public EventRegistrationRoutes(
-            EventService eventService,
+            EventCrudService crudService,
+            EventRegistrationService registrationService,
+            EventRestrictionService restrictionService,
             StationMemberService stationMemberService,
             StationMemberRepository stationMemberRepository,
             AccountRepository accountRepository,
             AttendanceService attendanceService,
             MemberIdentityFactory memberIdentityFactory) {
-        this.eventService = eventService;
+        this.crudService = crudService;
+        this.registrationService = registrationService;
+        this.restrictionService = restrictionService;
         this.stationMemberService = stationMemberService;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
@@ -182,10 +190,10 @@ public class EventRegistrationRoutes implements Routes {
             return;
         }
         var registrations = new ArrayList<>(
-                eventService.findRegistrationsByMember(session.member().id()));
+                registrationService.findByMember(session.member().id()));
         if (session.hasPermission(StationPermission.MEMBER_GUARDIAN)) {
             for (var managed : stationMemberService.findManaged(session.member().id())) {
-                registrations.addAll(eventService.findRegistrationsByMember(managed.id()));
+                registrations.addAll(registrationService.findByMember(managed.id()));
             }
         }
         ctx.json(registrations.stream().map(this::toRegistrationResponse).toList());
@@ -199,7 +207,7 @@ public class EventRegistrationRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventRegistration[].class)))
     private void listPendingRegistrations(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        var regs = eventService.findPendingRegistrationsByStation(session.stationId());
+        var regs = registrationService.findPendingByStation(session.stationId());
         ctx.json(regs.stream().map(this::toRegistrationResponse).toList());
     }
 
@@ -220,13 +228,13 @@ public class EventRegistrationRoutes implements Routes {
     private void getRegistrationStats(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
-        var event = requireOwnedEvent(eventService, eventId, session);
+        var event = requireOwnedEvent(crudService, eventId, session);
         String catParam = ctx.queryParam("categoryId");
         Integer categoryId = catParam != null ? Integer.parseInt(catParam) : event.categoryId();
         String monthsParam = ctx.queryParam("months");
         int months = monthsParam != null ? Integer.parseInt(monthsParam) : 12;
 
-        var stats = eventService.findRegistrationStats(eventId, categoryId, months);
+        var stats = registrationService.findStatsByEvent(eventId, categoryId, months);
         ctx.json(stats.stream().map(this::toRegistrationStats).toList());
     }
 
@@ -262,11 +270,11 @@ public class EventRegistrationRoutes implements Routes {
     private void listRegistrations(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
-        requireOwnedEvent(eventService, eventId, session);
+        requireOwnedEvent(crudService, eventId, session);
         String dateStr = ctx.queryParam("date");
         var regs = dateStr != null
-                ? eventService.findRegistrations(eventId, LocalDate.parse(dateStr))
-                : eventService.findAllRegistrations(eventId);
+                ? registrationService.findByEventAndDate(eventId, LocalDate.parse(dateStr))
+                : registrationService.findByEvent(eventId);
         ctx.json(regs.stream().map(this::toRegistrationResponse).toList());
     }
 
@@ -286,7 +294,7 @@ public class EventRegistrationRoutes implements Routes {
         int eventId = pathInt(ctx, "eventId");
         var req = ctx.bodyAsClass(RegisterRequest.class);
 
-        var event = requireOwnedEvent(eventService, eventId, session);
+        var event = requireOwnedEvent(crudService, eventId, session);
         LocalDate date = resolveEventDate(req, event);
         if (!event.requiresRegistration()) {
             throw new BadRequestResponse("Event does not require registration");
@@ -300,13 +308,14 @@ public class EventRegistrationRoutes implements Routes {
         boolean isManagerRegistration = req.memberId() != null
                 && req.memberId() != session.member().id()
                 && session.hasPermission(StationPermission.EVENT_MANAGER);
-        if (!isManagerRegistration && !eventService.isMemberEligible(eventId, memberId, session.permissions())) {
+        if (!isManagerRegistration && !restrictionService.isMemberEligible(eventId, memberId, session.permissions())) {
             throw new BadRequestResponse("Member is not eligible for this event");
         }
 
         boolean autoAccept = !event.requiresConfirmation();
         Integer createdBy = memberId != session.member().id() ? session.member().id() : null;
-        ctx.status(HttpStatus.CREATED).json(eventService.register(eventId, memberId, date, autoAccept, createdBy));
+        ctx.status(HttpStatus.CREATED)
+                .json(registrationService.register(eventId, memberId, date, autoAccept, createdBy));
     }
 
     @OpenApi(
@@ -325,13 +334,13 @@ public class EventRegistrationRoutes implements Routes {
         int eventId = pathInt(ctx, "eventId");
         var req = ctx.bodyAsClass(RegisterRequest.class);
 
-        var event = requireOwnedEvent(eventService, eventId, session);
+        var event = requireOwnedEvent(crudService, eventId, session);
         LocalDate date = resolveEventDate(req, event);
 
         int memberId = resolveTargetMemberId(session, req);
 
         Integer createdBy = memberId != session.member().id() ? session.member().id() : null;
-        ctx.status(HttpStatus.CREATED).json(eventService.decline(eventId, memberId, date, createdBy));
+        ctx.status(HttpStatus.CREATED).json(registrationService.decline(eventId, memberId, date, createdBy));
     }
 
     @OpenApi(
@@ -342,7 +351,7 @@ public class EventRegistrationRoutes implements Routes {
             responses = @OpenApiResponse(status = "200"))
     private void listRegistrationCounts(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        ctx.json(eventService.findRegistrationCounts(session.stationId()));
+        ctx.json(registrationService.findCountsByStation(session.stationId()));
     }
 
     @OpenApi(
@@ -362,9 +371,9 @@ public class EventRegistrationRoutes implements Routes {
         if (req.status() != RegistrationStatus.ACCEPTED && req.status() != RegistrationStatus.DENIED) {
             throw new BadRequestResponse("status must be ACCEPTED or DENIED");
         }
-        var registration = eventService.findRegistrationById(id).orElseThrow(NotFoundResponse::new);
-        requireOwnedOrNotFound(ctx, registration.eventId(), eventService::findById, StationEvent::stationId);
-        if (!eventService.updateRegistrationStatus(id, req.status())) {
+        var registration = registrationService.findById(id).orElseThrow(NotFoundResponse::new);
+        requireOwnedOrNotFound(ctx, registration.eventId(), crudService::findById, StationEvent::stationId);
+        if (!registrationService.updateStatus(id, req.status())) {
             throw new NotFoundResponse();
         }
         ctx.json(new MessageResponse("Status updated"));
@@ -383,7 +392,7 @@ public class EventRegistrationRoutes implements Routes {
     private void withdrawRegistration(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var reg = eventService.findRegistrationById(id).orElseThrow(NotFoundResponse::new);
+        var reg = registrationService.findById(id).orElseThrow(NotFoundResponse::new);
 
         int regMemberId = reg.memberId();
         boolean isOwn = session.member() != null && session.member().id() == regMemberId;
@@ -398,7 +407,7 @@ public class EventRegistrationRoutes implements Routes {
             throw new ForbiddenResponse("You cannot withdraw this registration");
         }
 
-        if (!eventService.withdrawRegistration(id)) {
+        if (!registrationService.withdraw(id)) {
             throw new NotFoundResponse();
         }
         ctx.status(HttpStatus.NO_CONTENT);

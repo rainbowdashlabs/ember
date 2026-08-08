@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.events.route;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.events.service.EventService;
+import dev.chojo.ember.feature.events.service.EventCrudService;
 import io.javalin.http.NotFoundResponse;
 
 /**
@@ -23,8 +23,8 @@ final class EventOwnership {
      * the event is absent and when it is owned by another station, so an event id from one
      * station cannot be used to probe or act on another station's event.
      */
-    static StationEvent requireOwnedEvent(EventService eventService, int eventId, UserSession session) {
-        var event = eventService.findById(eventId).orElseThrow(NotFoundResponse::new);
+    static StationEvent requireOwnedEvent(EventCrudService crudService, int eventId, UserSession session) {
+        var event = crudService.findById(eventId).orElseThrow(NotFoundResponse::new);
         RouteSupport.requireSameStation(session, event.stationId());
         return event;
     }

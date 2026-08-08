@@ -45,7 +45,6 @@ import dev.chojo.ember.feature.events.service.EventOccurrenceService;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventReminderService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
-import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.feed.repository.FeedMetricsRepository;
 import dev.chojo.ember.feature.feed.repository.FeedTokenRepository;
@@ -335,13 +334,26 @@ public abstract class RepositoryTestBase {
     }
 
     /**
-     * Builds an {@link EventService} over the split event services, so no test has to repeat the
-     * service list its constructor takes.
+     * The event domain's services, wired against this class's repositories. Tests take the one they
+     * exercise instead of repeating the construction, which differs per service.
      */
-    protected static EventService newEventService(DomainEventBus eventBus) {
+    protected record EventServices(
+            EventCrudService crud,
+            EventOccurrenceService occurrence,
+            EventCategoryService category,
+            EventBreakService breaks,
+            EventRestrictionService restriction,
+            EventFieldDefaultService fieldDefault,
+            EventRegistrationService registration,
+            EventReminderService reminder) {}
+
+    /**
+     * Builds the event domain's services over the shared repositories.
+     */
+    protected static EventServices newEventServices(DomainEventBus eventBus) {
         var crudService = new EventCrudService(eventRepo, eventBus);
         var breakService = new EventBreakService(eventBreakRepo);
-        return new EventService(
+        return new EventServices(
                 crudService,
                 new EventOccurrenceService(crudService, breakService),
                 new EventCategoryService(eventCategoryRepo),

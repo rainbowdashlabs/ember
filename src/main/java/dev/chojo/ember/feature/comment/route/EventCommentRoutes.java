@@ -12,7 +12,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.events.service.EventService;
+import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import io.javalin.http.BadRequestResponse;
@@ -42,18 +42,18 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 @Singleton
 public class EventCommentRoutes implements Routes {
     private final CommentService commentService;
-    private final EventService eventService;
+    private final EventCrudService crudService;
     private final MemberIdentityFactory memberIdentityFactory;
     private final MemberNameResolver memberNameResolver;
 
     @Inject
     public EventCommentRoutes(
             CommentService commentService,
-            EventService eventService,
+            EventCrudService crudService,
             MemberIdentityFactory memberIdentityFactory,
             MemberNameResolver memberNameResolver) {
         this.commentService = commentService;
-        this.eventService = eventService;
+        this.crudService = crudService;
         this.memberIdentityFactory = memberIdentityFactory;
         this.memberNameResolver = memberNameResolver;
     }
@@ -125,8 +125,7 @@ public class EventCommentRoutes implements Routes {
         }
         var author = memberIdentityFactory.local(
                 session.stationId(), session.member().id());
-        String eventName =
-                eventService.findById(eventId).map(StationEvent::name).orElse("");
+        String eventName = crudService.findById(eventId).map(StationEvent::name).orElse("");
         var comment = commentService.create(
                 session.stationId(),
                 eventId,

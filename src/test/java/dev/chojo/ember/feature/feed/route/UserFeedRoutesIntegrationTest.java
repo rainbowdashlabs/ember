@@ -7,7 +7,9 @@ package dev.chojo.ember.feature.feed.route;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
-import dev.chojo.ember.feature.events.service.EventService;
+import dev.chojo.ember.feature.events.service.EventCategoryService;
+import dev.chojo.ember.feature.events.service.EventCrudService;
+import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.feed.FeedRateLimiter;
 import dev.chojo.ember.feature.feed.entity.FeedToken;
 import dev.chojo.ember.feature.feed.render.IcalEventRenderer;
@@ -68,7 +70,9 @@ class UserFeedRoutesIntegrationTest {
     @BeforeEach
     void setup() {
         FeedTokenService tokenService = mock(FeedTokenService.class);
-        EventService eventService = mock(EventService.class);
+        EventCrudService crudService = mock(EventCrudService.class);
+        EventCategoryService categoryService = mock(EventCategoryService.class);
+        EventRegistrationService registrationService = mock(EventRegistrationService.class);
         notificationService = mock(NotificationService.class);
         StationMemberRepository memberRepository = mock(StationMemberRepository.class);
         StationRepository stationRepository = mock(StationRepository.class);
@@ -84,7 +88,9 @@ class UserFeedRoutesIntegrationTest {
 
         routes = new UserFeedRoutes(
                 tokenService,
-                eventService,
+                crudService,
+                categoryService,
+                registrationService,
                 notificationService,
                 memberRepository,
                 stationRepository,

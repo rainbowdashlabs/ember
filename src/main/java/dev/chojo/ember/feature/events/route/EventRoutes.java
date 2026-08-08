@@ -22,8 +22,11 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.entity.UpcomingEventOccurrence;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.events.service.BatchEventService;
+import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventExportService;
-import dev.chojo.ember.feature.events.service.EventService;
+import dev.chojo.ember.feature.events.service.EventOccurrenceService;
+import dev.chojo.ember.feature.events.service.EventReminderService;
+import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
@@ -68,18 +71,27 @@ import static dev.chojo.ember.feature.events.route.EventOwnership.requireOwnedEv
  */
 @Singleton
 public class EventRoutes implements Routes {
-    private final EventService eventService;
+    private final EventCrudService crudService;
+    private final EventOccurrenceService occurrenceService;
+    private final EventRestrictionService restrictionService;
+    private final EventReminderService reminderService;
     private final BatchEventService batchEventService;
     private final StationMemberService stationMemberService;
     private final EventExportService eventExportService;
 
     @Inject
     public EventRoutes(
-            EventService eventService,
+            EventCrudService crudService,
+            EventOccurrenceService occurrenceService,
+            EventRestrictionService restrictionService,
+            EventReminderService reminderService,
             BatchEventService batchEventService,
             StationMemberService stationMemberService,
             EventExportService eventExportService) {
-        this.eventService = eventService;
+        this.crudService = crudService;
+        this.occurrenceService = occurrenceService;
+        this.restrictionService = restrictionService;
+        this.reminderService = reminderService;
         this.batchEventService = batchEventService;
         this.stationMemberService = stationMemberService;
         this.eventExportService = eventExportService;
@@ -131,7 +143,7 @@ public class EventRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var filter = parseCategoryFilter(ctx);
         List<Integer> memberIds = resolveVisibleMemberIds(session);
-        var events = eventService.findFilteredForMembers(
+        var events = crudService.findFilteredForMembers(
                 session.stationId(), memberIds, filter.categoryId(), filter.requiresRegistration());
         ctx.json(events.stream().map(EventSummary::of).toList());
     }
@@ -153,7 +165,7 @@ public class EventRoutes implements Routes {
         var mode = parsePickerMode(ctx.queryParam("mode"));
         int requested = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(10);
         int limit = Math.clamp(requested, 1, 20);
-        ctx.json(eventService.searchEventPicker(session.stationId(), q, mode, limit));
+        ctx.json(crudService.searchEventPicker(session.stationId(), q, mode, limit));
     }
 
     /**
@@ -177,7 +189,7 @@ public class EventRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationEvent[].class)))
     private void listToday(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        ctx.json(eventService.findTodayEvents(session.stationId()).stream()
+        ctx.json(occurrenceService.findTodayEvents(session.stationId()).stream()
                 .map(EventSummary::of)
                 .toList());
     }
@@ -211,7 +223,7 @@ public class EventRoutes implements Routes {
         int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(10);
         int offset = ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0);
         List<Integer> memberIds = resolveVisibleMemberIds(session);
-        ctx.json(eventService.findUpcomingOccurrences(
+        ctx.json(occurrenceService.findUpcomingOccurrences(
                 session.stationId(),
                 memberIds,
                 filter.categoryId(),
@@ -236,7 +248,7 @@ public class EventRoutes implements Routes {
         var req = ctx.bodyAsClass(EventRequest.class);
         validate(req);
         var eventType = req.eventType();
-        var event = eventService.create(
+        var event = crudService.create(
                 session.stationId(),
                 req.name(),
                 req.description(),
@@ -254,9 +266,9 @@ public class EventRoutes implements Routes {
                 req.thresholdDate(),
                 req.registrationCloseDays());
         var restriction = req.restriction() != null ? req.restriction() : RestrictionSelection.empty();
-        eventService.setRestrictions(event.id(), restriction);
+        restrictionService.setRestrictions(event.id(), restriction);
         if (req.restriction() != null) {
-            eventService.updateRestrictionMode(event.id(), restriction.mode());
+            restrictionService.updateRestrictionMode(event.id(), restriction.mode());
         }
 
         ctx.status(HttpStatus.CREATED).json(event);
@@ -275,7 +287,7 @@ public class EventRoutes implements Routes {
     private void get(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        ctx.json(requireOwnedEvent(eventService, id, session));
+        ctx.json(requireOwnedEvent(crudService, id, session));
     }
 
     @OpenApi(
@@ -292,11 +304,11 @@ public class EventRoutes implements Routes {
     private void update(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        requireOwnedEvent(eventService, id, session);
+        requireOwnedEvent(crudService, id, session);
         var req = ctx.bodyAsClass(EventRequest.class);
         validate(req);
         var eventType = req.eventType();
-        eventService
+        crudService
                 .update(
                         id,
                         req.name(),
@@ -319,9 +331,9 @@ public class EventRoutes implements Routes {
                         event -> {
                             var restriction =
                                     req.restriction() != null ? req.restriction() : RestrictionSelection.empty();
-                            eventService.setRestrictions(id, restriction);
+                            restrictionService.setRestrictions(id, restriction);
                             if (req.restriction() != null) {
-                                eventService.updateRestrictionMode(id, restriction.mode());
+                                restrictionService.updateRestrictionMode(id, restriction.mode());
                             }
                             ctx.json(event);
                         },
@@ -343,8 +355,8 @@ public class EventRoutes implements Routes {
     private void delete(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        requireOwnedEvent(eventService, id, session);
-        if (eventService.delete(id)) {
+        requireOwnedEvent(crudService, id, session);
+        if (crudService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
             throw new NotFoundResponse();
@@ -355,7 +367,7 @@ public class EventRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
         var req = ctx.bodyAsClass(CancelEventRequest.class);
-        if (!eventService.cancelEvent(session.stationId(), id, req.reason())) {
+        if (!crudService.cancelEvent(session.stationId(), id, req.reason())) {
             throw new NotFoundResponse();
         }
         ctx.status(HttpStatus.NO_CONTENT);
@@ -407,13 +419,13 @@ public class EventRoutes implements Routes {
             stationMemberService.findManaged(session.member().id()).forEach(m -> memberIds.add(m.id()));
         }
 
-        var allEvents = eventService.findByStation(session.stationId());
+        var allEvents = crudService.findByStation(session.stationId());
         var result = new HashMap<Integer, List<Integer>>();
 
         for (var event : allEvents) {
             var eligible = new ArrayList<Integer>();
             for (int mid : memberIds) {
-                if (eventService.isMemberEligible(event.id(), mid, session.permissions())) {
+                if (restrictionService.isMemberEligible(event.id(), mid, session.permissions())) {
                     eligible.add(mid);
                 }
             }
@@ -434,8 +446,8 @@ public class EventRoutes implements Routes {
     private void getRestrictions(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        requireOwnedEvent(eventService, id, session);
-        var restrictions = eventService.findRestrictions(id);
+        requireOwnedEvent(crudService, id, session);
+        var restrictions = restrictionService.findRestrictions(id);
         ctx.json(new EventRestrictions(
                 restrictions.userTypes(),
                 restrictions.groupIds(),
@@ -455,13 +467,13 @@ public class EventRoutes implements Routes {
     private void setRestrictions(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        requireOwnedEvent(eventService, id, session);
+        requireOwnedEvent(crudService, id, session);
         var req = ctx.bodyAsClass(EventRestrictions.class);
-        eventService.setRestrictions(
+        restrictionService.setRestrictions(
                 id,
                 new RestrictionSelection(req.userTypes(), req.groupIds(), req.tagIds(), req.memberIds(), req.mode()));
         if (req.mode() != null) {
-            eventService.updateRestrictionMode(id, req.mode());
+            restrictionService.updateRestrictionMode(id, req.mode());
         }
         ctx.json(req);
     }
@@ -474,10 +486,10 @@ public class EventRoutes implements Routes {
             responses = @OpenApiResponse(status = "200"))
     private void listAllRestrictions(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        var events = eventService.findByStation(session.stationId());
+        var events = crudService.findByStation(session.stationId());
         var restrictionsMap = new HashMap<Integer, EventRestrictions>();
         for (var event : events) {
-            var restrictions = eventService.findRestrictions(event.id());
+            var restrictions = restrictionService.findRestrictions(event.id());
             if (restrictions.hasRestrictions()) {
                 restrictionsMap.put(
                         event.id(),
@@ -495,17 +507,17 @@ public class EventRoutes implements Routes {
     private void getReminders(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        requireOwnedEvent(eventService, id, session);
-        ctx.json(eventService.findReminderDays(id));
+        requireOwnedEvent(crudService, id, session);
+        ctx.json(reminderService.findDays(id));
     }
 
     private void setReminders(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        requireOwnedEvent(eventService, id, session);
+        requireOwnedEvent(crudService, id, session);
         var req = ctx.bodyAsClass(SetRemindersRequest.class);
-        eventService.setReminders(id, req.daysBefore() != null ? req.daysBefore() : List.of());
-        ctx.json(eventService.findReminderDays(id));
+        reminderService.setDays(id, req.daysBefore() != null ? req.daysBefore() : List.of());
+        ctx.json(reminderService.findDays(id));
     }
 
     private void generateDates(Context ctx) {

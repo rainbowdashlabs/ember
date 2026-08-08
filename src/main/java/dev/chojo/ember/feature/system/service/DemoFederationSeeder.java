@@ -14,8 +14,9 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.events.service.EventCategoryService;
+import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventFederationService;
-import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
@@ -64,7 +65,8 @@ public class DemoFederationSeeder implements DemoSeeder {
     private final KnowledgeBaseFederationService kbFederationService;
     private final QuizService quizService;
     private final TestProtocolService protocolService;
-    private final EventService eventService;
+    private final EventCrudService crudService;
+    private final EventCategoryService categoryService;
     private final EventFederationService eventFederationService;
     private final EventFederationRepository eventFederationRepository;
     private final AccountRepository accountRepository;
@@ -87,7 +89,8 @@ public class DemoFederationSeeder implements DemoSeeder {
             KnowledgeBaseFederationService kbFederationService,
             QuizService quizService,
             TestProtocolService protocolService,
-            EventService eventService,
+            EventCrudService crudService,
+            EventCategoryService categoryService,
             EventFederationService eventFederationService,
             EventFederationRepository eventFederationRepository,
             AccountRepository accountRepository,
@@ -107,7 +110,8 @@ public class DemoFederationSeeder implements DemoSeeder {
         this.kbFederationService = kbFederationService;
         this.quizService = quizService;
         this.protocolService = protocolService;
-        this.eventService = eventService;
+        this.crudService = crudService;
+        this.categoryService = categoryService;
         this.eventFederationService = eventFederationService;
         this.eventFederationRepository = eventFederationRepository;
         this.accountRepository = accountRepository;
@@ -391,13 +395,13 @@ public class DemoFederationSeeder implements DemoSeeder {
         }
 
         // Create a public event on the partner station (visible via federation)
-        var eventCategory = eventService.createCategory(partnerStation.id(), "Gemeinsame Übung", 0, "#3694ff");
+        var eventCategory = categoryService.create(partnerStation.id(), "Gemeinsame Übung", 0, "#3694ff");
         Instant nextSatStart = LocalDate.now()
                 .plusDays(14 - LocalDate.now().getDayOfWeek().getValue() % 7)
                 .atTime(9, 0)
                 .toInstant(ZoneOffset.UTC);
         Instant nextSatEnd = nextSatStart.plusSeconds(4 * 3600);
-        var fedEvent = eventService.create(
+        var fedEvent = crudService.create(
                 partnerStation.id(),
                 "Gemeinsame Großübung",
                 "Übergreifende Übung mit beiden Wehren — Einsatzszenarien Brand und THL",
@@ -535,7 +539,7 @@ public class DemoFederationSeeder implements DemoSeeder {
         log.info("Demo: Shared news with partner and added federated comments");
 
         // -- Event comments (local + federated) --
-        var primaryEvents = eventService.findByStation(primaryStationId);
+        var primaryEvents = crudService.findByStation(primaryStationId);
         primaryEvents.stream()
                 .filter(e -> "Übung".equals(e.name()) && e.eventType() == StationEvent.EventType.RECURRING)
                 .findFirst()

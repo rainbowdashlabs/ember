@@ -54,7 +54,7 @@ public class EventFederationService {
     private final FederationHttpClient httpClient;
     private final FederationRepository partnerRepository;
     private final StationRepository stationRepository;
-    private final EventService eventService;
+    private final EventCrudService crudService;
     private final CommentService commentService;
     private final EventCommentRepository commentRepository;
     private final MemberNameResolver memberNameResolver;
@@ -68,7 +68,7 @@ public class EventFederationService {
             FederationHttpClient httpClient,
             FederationRepository partnerRepository,
             StationRepository stationRepository,
-            EventService eventService,
+            EventCrudService crudService,
             CommentService commentService,
             EventCommentRepository commentRepository,
             MemberNameResolver memberNameResolver,
@@ -79,7 +79,7 @@ public class EventFederationService {
         this.httpClient = httpClient;
         this.partnerRepository = partnerRepository;
         this.stationRepository = stationRepository;
-        this.eventService = eventService;
+        this.crudService = crudService;
         this.commentService = commentService;
         this.commentRepository = commentRepository;
         this.memberNameResolver = memberNameResolver;
@@ -354,7 +354,7 @@ public class EventFederationService {
                     if (!eventIds.contains(eventId)) {
                         throw new BadRequestResponse("Event not shared with this partner");
                     }
-                    return eventService.findById(eventId).map(this::toEventMap).orElseThrow();
+                    return crudService.findById(eventId).map(this::toEventMap).orElseThrow();
                 });
     }
 
@@ -582,7 +582,7 @@ public class EventFederationService {
         var eventIds = findSharedEventIds(partner.id(), partnerStationId);
         var items = new ArrayList<FederatedEventItem>();
         for (int eventId : eventIds) {
-            eventService
+            crudService
                     .findById(eventId)
                     .ifPresent(e -> items.add(new FederatedEventItem(
                             partner.id(),

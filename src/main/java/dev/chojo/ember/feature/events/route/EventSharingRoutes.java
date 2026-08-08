@@ -11,8 +11,8 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventFederationService;
-import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -40,7 +40,7 @@ import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
  */
 @Singleton
 public class EventSharingRoutes implements Routes {
-    private final EventService eventService;
+    private final EventCrudService crudService;
     private final EventFederationService eventFederationService;
     private final FederationRepository federationRepository;
     private final StationRepository stationRepository;
@@ -49,13 +49,13 @@ public class EventSharingRoutes implements Routes {
 
     @Inject
     public EventSharingRoutes(
-            EventService eventService,
+            EventCrudService crudService,
             EventFederationService eventFederationService,
             FederationRepository federationRepository,
             StationRepository stationRepository,
             StationMemberRepository stationMemberRepository,
             MemberIdentityFactory memberIdentityFactory) {
-        this.eventService = eventService;
+        this.crudService = crudService;
         this.eventFederationService = eventFederationService;
         this.federationRepository = federationRepository;
         this.stationRepository = stationRepository;
@@ -81,7 +81,7 @@ public class EventSharingRoutes implements Routes {
 
     private void getFederationShare(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedOrNotFound(ctx, id, eventService::findById, StationEvent::stationId);
+        requireOwnedOrNotFound(ctx, id, crudService::findById, StationEvent::stationId);
         var share = eventFederationService.findShareByEvent(id);
         if (share.isEmpty()) {
             ctx.json(new FederationShareResponse(false, null, null));
@@ -93,7 +93,7 @@ public class EventSharingRoutes implements Routes {
 
     private void setFederationShare(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedOrNotFound(ctx, id, eventService::findById, StationEvent::stationId);
+        requireOwnedOrNotFound(ctx, id, crudService::findById, StationEvent::stationId);
         var req = ctx.bodyAsClass(SetFederationShareRequest.class);
         eventFederationService.setShare(id, req.scope(), req.partnerIds() != null ? req.partnerIds() : List.of());
         ctx.json(new FederationShareResponse(true, req.scope(), null));
@@ -101,14 +101,14 @@ public class EventSharingRoutes implements Routes {
 
     private void removeFederationShare(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedOrNotFound(ctx, id, eventService::findById, StationEvent::stationId);
+        requireOwnedOrNotFound(ctx, id, crudService::findById, StationEvent::stationId);
         eventFederationService.removeShare(id);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
     private void listFederationRegistrations(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedOrNotFound(ctx, id, eventService::findById, StationEvent::stationId);
+        requireOwnedOrNotFound(ctx, id, crudService::findById, StationEvent::stationId);
         String dateParam = ctx.queryParam("date");
         LocalDate date = dateParam != null ? LocalDate.parse(dateParam) : null;
         var registrations = eventFederationService.findRegistrations(id, date);
@@ -153,7 +153,7 @@ public class EventSharingRoutes implements Routes {
         int id = pathInt(ctx, "id");
         var req = ctx.bodyAsClass(EventRegistrationRoutes.StatusUpdateRequest.class);
         var reg = eventFederationService.findRegistrationById(id).orElseThrow(NotFoundResponse::new);
-        requireOwnedOrNotFound(ctx, reg.eventId(), eventService::findById, StationEvent::stationId);
+        requireOwnedOrNotFound(ctx, reg.eventId(), crudService::findById, StationEvent::stationId);
         eventFederationService.updateRegistrationStatus(id, req.status());
         ctx.json(new MessageResponse("Status updated"));
     }

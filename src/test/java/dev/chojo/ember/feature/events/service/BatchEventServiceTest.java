@@ -45,10 +45,11 @@ class BatchEventServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         var domainEventBus = new DomainEventBus(Set.of());
-        EventService eventService = newEventService(domainEventBus);
+        var eventServices = newEventServices(domainEventBus);
         var fieldService = new EventFieldService(
                 eventFieldRepo, stationMemberRepo, memberGroupRepo, new UserTagService(userTagRepo, memberGroupRepo));
-        batchService = new BatchEventService(eventService, fieldService, eventBreakRepo, domainEventBus);
+        batchService = new BatchEventService(
+                eventServices.crud(), eventServices.restriction(), fieldService, eventBreakRepo, domainEventBus);
 
         station = stationRepo.create("BatchEventServiceStation");
     }

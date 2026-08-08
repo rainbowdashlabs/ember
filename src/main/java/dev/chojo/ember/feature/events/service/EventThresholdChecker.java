@@ -25,14 +25,14 @@ public class EventThresholdChecker {
     private static final Logger log = LoggerFactory.getLogger(EventThresholdChecker.class);
 
     private final EventRepository eventRepository;
-    private final EventService eventService;
+    private final EventCrudService crudService;
     private final StationReadOnlyGuard readOnlyGuard;
 
     @Inject
     public EventThresholdChecker(
-            EventRepository eventRepository, EventService eventService, StationReadOnlyGuard readOnlyGuard) {
+            EventRepository eventRepository, EventCrudService crudService, StationReadOnlyGuard readOnlyGuard) {
         this.eventRepository = eventRepository;
-        this.eventService = eventService;
+        this.crudService = crudService;
         this.readOnlyGuard = readOnlyGuard;
         var scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             var t = new Thread(r, "event-threshold-checker");
@@ -48,7 +48,7 @@ public class EventThresholdChecker {
             for (var event : events) {
                 if (!readOnlyGuard.isWritable(event.stationId())) continue;
                 log.info("Auto-cancelling event {} (id={}) — threshold not met", event.name(), event.id());
-                eventService.cancelEvent(
+                crudService.cancelEvent(
                         event.stationId(),
                         event.id(),
                         "Mindestanzahl von " + event.minRegistrations() + " Anmeldungen nicht erreicht");

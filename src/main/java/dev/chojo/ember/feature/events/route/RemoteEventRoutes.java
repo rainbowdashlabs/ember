@@ -10,9 +10,9 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
-import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -38,16 +38,16 @@ import static dev.chojo.ember.api.RouteSupport.pathUuid;
  */
 @Singleton
 public class RemoteEventRoutes implements Routes {
-    private final EventService eventService;
+    private final EventCrudService crudService;
     private final EventFieldService eventFieldService;
     private final EventFederationService eventFederationService;
 
     @Inject
     public RemoteEventRoutes(
-            EventService eventService,
+            EventCrudService crudService,
             EventFieldService eventFieldService,
             EventFederationService eventFederationService) {
-        this.eventService = eventService;
+        this.crudService = crudService;
         this.eventFieldService = eventFieldService;
         this.eventFederationService = eventFederationService;
     }
@@ -72,7 +72,7 @@ public class RemoteEventRoutes implements Routes {
         var partner = requireFederationPartner(ctx);
         var eventIds = eventFederationService.findSharedEventIds(partner.id(), partner.stationId());
         var events = eventIds.stream()
-                .map(id -> eventService.findById(id).orElse(null))
+                .map(id -> crudService.findById(id).orElse(null))
                 .filter(Objects::nonNull)
                 .map(this::toRemoteEvent)
                 .toList();
@@ -83,7 +83,7 @@ public class RemoteEventRoutes implements Routes {
         var partner = requireFederationPartner(ctx);
         int eventId = pathInt(ctx, "id");
         requireSharedEvent(partner, eventId);
-        var event = eventService.findById(eventId).orElseThrow(NotFoundResponse::new);
+        var event = crudService.findById(eventId).orElseThrow(NotFoundResponse::new);
         var fields = eventFieldService.findByEvent(eventId).stream()
                 .filter(EventField::isPublic)
                 .toList();

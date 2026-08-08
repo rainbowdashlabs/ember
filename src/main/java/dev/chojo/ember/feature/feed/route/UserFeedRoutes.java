@@ -14,7 +14,9 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
-import dev.chojo.ember.feature.events.service.EventService;
+import dev.chojo.ember.feature.events.service.EventCategoryService;
+import dev.chojo.ember.feature.events.service.EventCrudService;
+import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.feed.FeedFingerprint;
 import dev.chojo.ember.feature.feed.FeedRateLimiter;
 import dev.chojo.ember.feature.feed.render.IcalEventRenderer;
@@ -84,7 +86,9 @@ public class UserFeedRoutes implements Routes {
     private static final int NOTIFICATION_FEED_CAP = 100;
 
     private final FeedTokenService tokenService;
-    private final EventService eventService;
+    private final EventCrudService crudService;
+    private final EventCategoryService categoryService;
+    private final EventRegistrationService registrationService;
     private final NotificationService notificationService;
     private final StationMemberRepository memberRepository;
     private final StationRepository stationRepository;
@@ -100,7 +104,9 @@ public class UserFeedRoutes implements Routes {
     @Inject
     public UserFeedRoutes(
             FeedTokenService tokenService,
-            EventService eventService,
+            EventCrudService crudService,
+            EventCategoryService categoryService,
+            EventRegistrationService registrationService,
             NotificationService notificationService,
             StationMemberRepository memberRepository,
             StationRepository stationRepository,
@@ -113,7 +119,9 @@ public class UserFeedRoutes implements Routes {
             FeedRateLimiter rateLimiter,
             FeedMetricsService metricsService) {
         this.tokenService = tokenService;
-        this.eventService = eventService;
+        this.crudService = crudService;
+        this.categoryService = categoryService;
+        this.registrationService = registrationService;
         this.notificationService = notificationService;
         this.memberRepository = memberRepository;
         this.stationRepository = stationRepository;
@@ -223,13 +231,13 @@ public class UserFeedRoutes implements Routes {
         var allMemberIds = new ArrayList<Integer>(managedIds.size() + 1);
         allMemberIds.add(member.id());
         allMemberIds.addAll(managedIds);
-        var eventLatest = eventService.findMaxEventUpdatedAt(station.id());
-        var regLatest = eventService.findMaxRegistrationCreatedAt(allMemberIds);
+        var eventLatest = crudService.findMaxEventUpdatedAt(station.id());
+        var regLatest = registrationService.findMaxCreatedAt(allMemberIds);
         var lastModified = eventLatest.isAfter(regLatest) ? eventLatest : regLatest;
         var fp = FeedFingerprint.compute(lastModified, "ics", station.id(), locale, verbose);
         if (FeedFingerprint.handleConditional(ctx, fp)) return 0;
 
-        var categories = eventService.findCategoriesByStation(station.id());
+        var categories = categoryService.findByStation(station.id());
         var categoryMap = new HashMap<Integer, EventCategory>();
         for (var cat : categories) categoryMap.put(cat.id(), cat);
 
@@ -239,7 +247,7 @@ public class UserFeedRoutes implements Routes {
         memberIds.add(member.id());
         for (var m : managedMembers) memberIds.add(m.id());
 
-        var allRegistrations = eventService.findRegistrationsByMembers(memberIds);
+        var allRegistrations = registrationService.findByMembers(memberIds);
         var ownerStatusByEvent = new HashMap<Integer, RegistrationStatus>();
         var ownerRegistered = new HashSet<Integer>();
         var managedByEvent = new HashMap<Integer, List<IcalEventRenderer.ManagedRegistration>>();
@@ -282,7 +290,7 @@ public class UserFeedRoutes implements Routes {
         var icalNow = Instant.now();
         var windowStart = icalNow.minus(ICAL_WINDOW_PAST);
         var windowEnd = icalNow.plus(ICAL_WINDOW_FUTURE);
-        var events = eventService.findByStation(station.id()).stream()
+        var events = crudService.findByStation(station.id()).stream()
                 .filter(e -> e.isRecurring()
                         || (e.startTime() != null
                                 && !e.startTime().isBefore(windowStart)

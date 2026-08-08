@@ -34,7 +34,7 @@ public class RegistrationDeadlineChecker {
     private final EventRepository eventRepository;
     private final EventBreakRepository breakRepository;
     private final EventRegistrationRepository registrationRepository;
-    private final EventService eventService;
+    private final EventRegistrationService registrationService;
     private final DomainEventBus eventBus;
     private final StationReadOnlyGuard readOnlyGuard;
 
@@ -43,13 +43,13 @@ public class RegistrationDeadlineChecker {
             EventRepository eventRepository,
             EventBreakRepository breakRepository,
             EventRegistrationRepository registrationRepository,
-            EventService eventService,
+            EventRegistrationService registrationService,
             DomainEventBus eventBus,
             StationReadOnlyGuard readOnlyGuard) {
         this.eventRepository = eventRepository;
         this.breakRepository = breakRepository;
         this.registrationRepository = registrationRepository;
-        this.eventService = eventService;
+        this.registrationService = registrationService;
         this.eventBus = eventBus;
         this.readOnlyGuard = readOnlyGuard;
 
@@ -103,7 +103,7 @@ public class RegistrationDeadlineChecker {
             if (pending.isEmpty()) continue;
 
             for (EventRegistration reg : pending) {
-                eventService.decline(event.id(), reg.memberId(), nextDate, null);
+                registrationService.decline(event.id(), reg.memberId(), nextDate, null);
             }
             eventBus.publish(
                     new RegistrationDeadlineExpired(event.stationId(), event.id(), event.name(), pending.size()));
