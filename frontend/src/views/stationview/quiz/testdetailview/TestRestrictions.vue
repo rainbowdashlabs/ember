@@ -4,13 +4,12 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import RestrictionsField from '@/components/input/RestrictionsField.vue'
-import type {RestrictionSelection} from '@/components/input/restriction'
+import {toRestrictionSelection} from '@/components/input/restriction'
 import type {MemberGroup, UserTag} from '@/api/types'
 
 defineProps<{
@@ -23,20 +22,7 @@ const selectedUserTypes = defineModel<string[]>('selectedUserTypes', { required:
 const selectedGroupIds = defineModel<number[]>('selectedGroupIds', { required: true })
 const selectedTagIds = defineModel<number[]>('selectedTagIds', { required: true })
 
-const restriction = computed<RestrictionSelection>({
-  get: (): RestrictionSelection => ({
-    userTypes: selectedUserTypes.value,
-    groupIds: selectedGroupIds.value,
-    tagIds: selectedTagIds.value,
-    memberIds: [],
-    mode: 'AND',
-  }),
-  set: (value: RestrictionSelection) => {
-    selectedUserTypes.value = value.userTypes
-    selectedGroupIds.value = value.groupIds
-    selectedTagIds.value = value.tagIds
-  },
-})
+const restriction = toRestrictionSelection(selectedUserTypes, selectedGroupIds, selectedTagIds)
 
 const emit = defineEmits<{
   save: []

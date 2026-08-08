@@ -4,11 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import { computed } from 'vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import RestrictionsField from '@/components/input/RestrictionsField.vue'
-import type { RestrictionSelection } from '@/components/input/restriction'
+import { toRestrictionSelection } from '@/components/input/restriction'
 import type { PermissionGrant, MemberGroup, UserTag } from '@/api/types'
 
 defineProps<{
@@ -23,20 +22,7 @@ const selectedUserTypes = defineModel<string[]>('selectedUserTypes', { required:
 const selectedGroupIds = defineModel<number[]>('selectedGroupIds', { required: true })
 const selectedTagIds = defineModel<number[]>('selectedTagIds', { required: true })
 
-const restriction = computed({
-    get: (): RestrictionSelection => ({
-        userTypes: selectedUserTypes.value,
-        groupIds: selectedGroupIds.value,
-        tagIds: selectedTagIds.value,
-        memberIds: [],
-        mode: 'AND',
-    }),
-    set: (value: RestrictionSelection) => {
-        selectedUserTypes.value = value.userTypes
-        selectedGroupIds.value = value.groupIds
-        selectedTagIds.value = value.tagIds
-    },
-})
+const restriction = toRestrictionSelection(selectedUserTypes, selectedGroupIds, selectedTagIds)
 </script>
 
 <template>
