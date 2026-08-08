@@ -11,7 +11,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import BasicFields from './fieldmodal/BasicFields.vue'
 import EnumOptionsField from './fieldmodal/EnumOptionsField.vue'
 import AgeFields from './fieldmodal/AgeFields.vue'
-import DefaultValueSection from './fieldmodal/DefaultValueSection.vue'
+import FieldDefaultValueSection from '@/components/input/FieldDefaultValueSection.vue'
 import BehaviorToggles from './fieldmodal/BehaviorToggles.vue'
 import PositionField from './fieldmodal/PositionField.vue'
 import ModalActions from './fieldmodal/ModalActions.vue'
@@ -148,12 +148,15 @@ function submit() {
       <EnumOptionsField v-if="fieldType === 'ENUM'" v-model="fieldEnumOptions"/>
       <AgeFields v-if="fieldType === 'AGE'" v-model:source="fieldAgeSource" v-model:mode="fieldAgeMode"
                  :date-fields="dateFields"/>
-      <DefaultValueSection
+      <FieldDefaultValueSection
         v-model:has-default="fieldHasDefault"
         v-model:default-value="fieldDefaultValue"
         v-model:default-bool="fieldDefaultBool"
         v-model:default-today="fieldDefaultToday"
         v-model:default-number="fieldDefaultNumber"
+        :toggle-label="t('membersConfig.fieldDefault')"
+        :placeholder="t('membersConfig.fieldDefaultPlaceholder')"
+        :date-hint="t('membersConfig.fieldDefaultDateHint')"
         :field-type="fieldType"
         :enum-options="fieldEnumOptions"
       />

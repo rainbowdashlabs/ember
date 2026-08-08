@@ -11,7 +11,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import BasicFields from './fieldmodal/BasicFields.vue'
 import GroupSelector from './fieldmodal/GroupSelector.vue'
 import EnumOptionsField from './fieldmodal/EnumOptionsField.vue'
-import DefaultValueSection from './fieldmodal/DefaultValueSection.vue'
+import FieldDefaultValueSection from '@/components/input/FieldDefaultValueSection.vue'
 import BehaviorToggles from './fieldmodal/BehaviorToggles.vue'
 import PositionField from './fieldmodal/PositionField.vue'
 import ModalActions from './fieldmodal/ModalActions.vue'
@@ -44,6 +44,7 @@ const fieldHasDefault = ref(false)
 const fieldDefaultValue = ref('')
 const fieldDefaultBool = ref(false)
 const fieldDefaultToday = ref(false)
+const fieldDefaultNumber = ref(0)
 const fieldPosition = ref(0)
 
 const isEditing = computed(() => props.field !== null)
@@ -57,7 +58,7 @@ function fieldTypeCanAutoAttend(type: string): boolean {
 }
 
 function fieldTypeCanHaveDefault(type: string): boolean {
-  return ['STRING', 'TIME', 'DATE', 'BOOLEAN', 'ENUM'].includes(type)
+  return ['STRING', 'NUMBER', 'TIME', 'DATE', 'BOOLEAN', 'ENUM'].includes(type)
 }
 
 function parseConfig(config?: Record<string, unknown>): Record<string, unknown> {
@@ -81,6 +82,8 @@ function buildConfig(): Record<string, unknown> {
       cfg.defaultValue = fieldDefaultBool.value
     } else if (fieldType.value === 'DATE') {
       cfg.defaultValue = fieldDefaultToday.value ? '__TODAY__' : ''
+    } else if (fieldType.value === 'NUMBER') {
+      cfg.defaultValue = fieldDefaultNumber.value
     } else {
       cfg.defaultValue = fieldDefaultValue.value.trim()
     }
@@ -103,6 +106,8 @@ watch([open, () => props.field], () => {
       fieldDefaultBool.value = cfg.defaultValue === true
     } else if (props.field.fieldType === 'DATE') {
       fieldDefaultToday.value = cfg.defaultValue === '__TODAY__'
+    } else if (props.field.fieldType === 'NUMBER') {
+      fieldDefaultNumber.value = typeof cfg.defaultValue === 'number' ? cfg.defaultValue : 0
     } else {
       fieldDefaultValue.value = typeof cfg.defaultValue === 'string' ? cfg.defaultValue : ''
     }
@@ -118,6 +123,7 @@ watch([open, () => props.field], () => {
     fieldDefaultValue.value = ''
     fieldDefaultBool.value = false
     fieldDefaultToday.value = false
+    fieldDefaultNumber.value = 0
     fieldPosition.value = props.fieldCount
   }
 })
@@ -140,12 +146,17 @@ function handleSave() {
       <GroupSelector v-if="fieldTypeNeedsGroup(fieldType)" v-model="fieldConfigGroupId"
                      :available-groups="availableGroups"/>
       <EnumOptionsField v-if="fieldType === 'ENUM'" v-model="fieldEnumOptions"/>
-      <DefaultValueSection
+      <FieldDefaultValueSection
         v-if="fieldTypeCanHaveDefault(fieldType)"
         v-model:has-default="fieldHasDefault"
         v-model:default-value="fieldDefaultValue"
         v-model:default-bool="fieldDefaultBool"
         v-model:default-today="fieldDefaultToday"
+        v-model:default-number="fieldDefaultNumber"
+        :toggle-label="t('attendanceConfig.fieldHasDefault')"
+        :placeholder="t('attendanceConfig.fieldDefaultValuePlaceholder')"
+        :date-hint="t('attendanceConfig.fieldDefaultDateHint')"
+        :value-hint="t('attendanceConfig.fieldDefaultValueHint')"
         :field-type="fieldType"
         :enum-options="fieldEnumOptions"
       />

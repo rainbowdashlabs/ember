@@ -14,6 +14,7 @@
 - **Custom item fields are easier to set up.** The technical key and the values of selection options are suggested automatically from the entered names, and fields can be reordered by dragging them (on phones, with up and down arrows).
 - **One item edit dialog everywhere.** Editing an inventory item from the edit page now opens the same dialog as the detail page, including custom fields, storage container, and ownership. Custom field values are kept when saving.
 - **Confirmations use the app's own dialog.** Deleting a file tag or folder, unassigning an item during a check, and handing over an item another member still holds all ask in a styled dialog instead of a plain browser prompt.
+- **Number fields in attendance can have a default.** A number field on an attendance session takes a default value like every other field type, entered as a number rather than as text.
 
 ### Security
 
