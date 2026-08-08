@@ -24,7 +24,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Source-level conventions for route classes that bytecode analysis cannot express:
  * station-ownership checks must go through the RouteSupport helpers (so the 403/404
- * policy stays centralized), and UUID path parameters must be read via pathUuid.
+ * policy stays centralized), UUID path parameters must be read via pathUuid, and no
+ * registration may be shadowed by an earlier one — within a class or across the whole
+ * binding order.
  */
 class RouteSourceConventionsTest {
 
@@ -41,6 +43,12 @@ class RouteSourceConventionsTest {
     private static final Pattern REGISTRATION =
             Pattern.compile("routes\\.(get|post|put|patch|delete)\\(\\s*(\\w+)\\s*\\+\\s*\"([^\"]*)\"");
 
+    private static final Pattern ROUTE_BINDING =
+            Pattern.compile("routesBinder\\.addBinding\\(\\)\\.to\\((\\w+)\\.class\\)");
+
+    private static final Path EMBER_MODULE =
+            Path.of("src", "main", "java", "dev", "chojo", "ember", "EmberModule.java");
+
     @Test
     void routesUseOwnershipHelpersInsteadOfInlineStationComparisons() throws IOException {
         assertNoMatches(
@@ -54,32 +62,13 @@ class RouteSourceConventionsTest {
     }
 
     /**
-     * Javalin answers with the first registered handler that matches, and the route multibinder is
-     * consumed in binding order. {@code EventStructureRoutes} registers literal paths such as
-     * {@code /events/categories} that {@code EventRoutes} would otherwise swallow with
-     * {@code /events/{id}}, so its binding has to come first.
-     */
-    @Test
-    void eventStructureRoutesAreBoundBeforeEventRoutes() throws IOException {
-        List<String> lines =
-                Files.readAllLines(Path.of("src", "main", "java", "dev", "chojo", "ember", "EmberModule.java"));
-        int structure = bindingLine(lines, "EventStructureRoutes");
-        int events = bindingLine(lines, "EventRoutes");
-        assertTrue(
-                structure < events,
-                () -> "EventStructureRoutes must be bound before EventRoutes so its literal /events/* paths"
-                        + " are matched before /events/{id}; found lines %d and %d".formatted(structure, events));
-    }
-
-    /**
      * {@code RemoteBoardWebhookRoutes} registers literal paths such as
      * {@code /remote/boards/webhook/mention} that the {@code /remote/boards/{boardKey}/...} routes of
      * the other remote board classes match just as well, so its binding has to come first.
      */
     @Test
     void remoteBoardWebhookRoutesAreBoundBeforeRemoteBoardRoutes() throws IOException {
-        List<String> lines =
-                Files.readAllLines(Path.of("src", "main", "java", "dev", "chojo", "ember", "EmberModule.java"));
+        List<String> lines = Files.readAllLines(EMBER_MODULE);
         int webhooks = bindingLine(lines, "RemoteBoardWebhookRoutes");
         int boards = bindingLine(lines, "RemoteBoardRoutes");
         assertTrue(
@@ -94,11 +83,11 @@ class RouteSourceConventionsTest {
      * after a parameter path that also matches it is dead — the parameter route wins and the literal
      * segment is parsed as the parameter value.
      *
-     * <p>The two tests above pin specific orderings <em>between</em> route classes. This one is the
-     * general rule <em>within</em> a class, which is where the failure actually showed up: splitting
-     * the board routes uncovered {@code checklist/reorder} registered after {@code checklist/{itemId}}
-     * and {@code tickets/reorder} after {@code tickets/{ticketNumber}}. Both were unreachable and
-     * answered 400 on the integer parse, and neither was catchable by a between-class check.
+     * <p>This is the rule <em>within</em> a class, which is where the failure actually showed up:
+     * splitting the board routes uncovered {@code checklist/reorder} registered after
+     * {@code checklist/{itemId}} and {@code tickets/reorder} after {@code tickets/{ticketNumber}}.
+     * Both were unreachable and answered 400 on the integer parse. The test below applies the same
+     * rule <em>across</em> classes.
      */
     @Test
     void noLiteralPathIsShadowedByAnEarlierParameterPath() throws IOException {
@@ -114,6 +103,74 @@ class RouteSourceConventionsTest {
                 () -> "Unreachable route registrations — a literal path is matched by an"
                         + " earlier parameter path in the same class, so the literal never runs:%n%s"
                                 .formatted(String.join(System.lineSeparator(), violations)));
+    }
+
+    /**
+     * The same rule across class boundaries. Every route class shares one prefix — {@code ApiServer}
+     * registers them all under {@code API_PREFIX} — and the multibinder is consumed in binding order,
+     * so the registrations of the whole application form a single ordered list and a literal path in
+     * a later-bound class is just as dead as one later in the same file.
+     *
+     * <p>Before this existed, precedence between classes rested on two hand-written orderings. The
+     * one covering the event routes is now a special case of this rule and has been deleted; the
+     * remaining one guards a collision that does not exist yet, which no consequence-based check can
+     * see.
+     */
+    @Test
+    void noLiteralPathIsShadowedByAnEarlierParameterPathInAnotherClass() throws IOException {
+        List<Registration> registrations = new ArrayList<>();
+        for (String routeClass : boundRouteClasses()) {
+            for (Registration registration : registrationsIn(sourceOf(routeClass))) {
+                registrations.add(registration.inClass(routeClass));
+            }
+        }
+        assertTrue(
+                registrations.size() > 1000,
+                () -> "Expected the registrations of every bound route class, found " + registrations.size());
+        List<String> violations = new ArrayList<>();
+        for (int later = 0; later < registrations.size(); later++) {
+            for (int earlier = 0; earlier < later; earlier++) {
+                Registration first = registrations.get(earlier);
+                Registration second = registrations.get(later);
+                if (first.owner.equals(second.owner) || !first.shadows(second)) continue;
+                violations.add("%s:%d %s %s is unreachable — %s (%s:%d) is bound earlier and matches it first"
+                        .formatted(
+                                second.owner,
+                                second.line,
+                                second.verb,
+                                second.path,
+                                first.path,
+                                first.owner,
+                                first.line));
+            }
+        }
+        assertTrue(
+                violations.isEmpty(),
+                () -> "Unreachable route registrations — a literal path is matched by a parameter path"
+                        + " in an earlier-bound route class, so the literal never runs:%n%s"
+                                .formatted(String.join(System.lineSeparator(), violations)));
+    }
+
+    /**
+     * The route classes in the order {@code EmberModule} binds them, which is the order
+     * {@code ApiServer} registers them in.
+     */
+    private List<String> boundRouteClasses() throws IOException {
+        List<String> classes = new ArrayList<>();
+        for (String line : Files.readAllLines(EMBER_MODULE)) {
+            Matcher binding = ROUTE_BINDING.matcher(line);
+            if (binding.find()) classes.add(binding.group(1));
+        }
+        assertTrue(classes.size() > 100, () -> "Expected the full route binding list, found " + classes.size());
+        return classes;
+    }
+
+    private Path sourceOf(String routeClass) throws IOException {
+        try (Stream<Path> files = Files.walk(MAIN_SOURCES)) {
+            return files.filter(p -> p.getFileName().toString().equals(routeClass + ".java"))
+                    .findFirst()
+                    .orElseThrow(() -> new AssertionError("No source file found for bound route class " + routeClass));
+        }
     }
 
     private List<String> shadowedRegistrations(Path path) throws IOException {
@@ -135,28 +192,47 @@ class RouteSourceConventionsTest {
     /**
      * Reads the registrations of one route class in source order, resolving the local prefix
      * variables that most {@code register} methods build from the {@code prefix} argument.
+     *
+     * <p>Matched against the file as one string rather than line by line: a registration whose
+     * arguments are wrapped onto the next line is the formatter's default once the call grows, and a
+     * line-anchored scan sees none of them. Closing that blind spot took the scan from 750 resolved
+     * registrations to 1,068, and the first thing the extra 318 turned up was a real unreachable
+     * route in the federated board class.
      */
     private List<Registration> registrationsIn(Path path) throws IOException {
-        List<String> lines = Files.readAllLines(path);
+        String source = Files.readString(path);
         Map<String, String> prefixes = new HashMap<>();
         prefixes.put("prefix", "");
         List<Registration> registrations = new ArrayList<>();
-        for (int i = 0; i < lines.size(); i++) {
-            Matcher assignment = PREFIX_ASSIGNMENT.matcher(lines.get(i));
-            if (assignment.find()) {
-                prefixes.put(assignment.group(1), assignment.group(2));
+        Matcher assignments = PREFIX_ASSIGNMENT.matcher(source);
+        Matcher matches = REGISTRATION.matcher(source);
+        int nextAssignment = assignments.find() ? assignments.start() : -1;
+        while (matches.find()) {
+            while (nextAssignment >= 0 && nextAssignment < matches.start()) {
+                prefixes.put(assignments.group(1), assignments.group(2));
+                nextAssignment = assignments.find() ? assignments.start() : -1;
             }
-            Matcher registration = REGISTRATION.matcher(lines.get(i));
-            if (registration.find()) {
-                String base = prefixes.get(registration.group(2));
-                if (base == null) continue;
-                registrations.add(new Registration(registration.group(1), base + registration.group(3), i + 1));
-            }
+            String base = prefixes.get(matches.group(2));
+            if (base == null) continue;
+            registrations.add(
+                    new Registration(matches.group(1), base + matches.group(3), lineAt(source, matches.start())));
         }
         return registrations;
     }
 
-    private record Registration(String verb, String path, int line) {
+    private int lineAt(String source, int offset) {
+        return (int) source.substring(0, offset).chars().filter(c -> c == '\n').count() + 1;
+    }
+
+    private record Registration(String verb, String path, int line, String owner) {
+
+        Registration(String verb, String path, int line) {
+            this(verb, path, line, "");
+        }
+
+        Registration inClass(String routeClass) {
+            return new Registration(verb, path, line, routeClass);
+        }
 
         private List<String> segments() {
             return Arrays.stream(path.split("/")).filter(s -> !s.isEmpty()).toList();

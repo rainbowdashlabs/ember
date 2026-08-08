@@ -22,6 +22,7 @@
 ### Fixes
 
 - **Public blog article links work.** Opening a single article from a station's public blog loads the article instead of failing.
+- **Reordering tickets on a partner's board works.** Dragging a ticket within a lane on a board shared by a federation partner saves the new order.
 - **Creating custom item fields works.** Adding a custom field to an inventory saves correctly for every field type, including selection fields with options.
 - **Custom item field values are kept.** Values entered for an item's custom fields show up again after saving, and editing an item's name, identifier, or size no longer clears them.
 - **Opening a station loads it completely.** Picking a station on the cross-station overview reliably shows that station's profile and menu instead of occasionally returning to the overview or showing an empty page. Links from emails and feeds that point into a specific station open in that station.

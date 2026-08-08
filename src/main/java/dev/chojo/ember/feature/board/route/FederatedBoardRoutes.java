@@ -165,7 +165,7 @@ public class FederatedBoardRoutes implements Routes {
                 this::federatedLocalMoveTicket,
                 StationPermission.BOARD_USE);
         routes.put(
-                fp + "/{partnerUid}/{boardKey}/tickets/reorder",
+                fp + "/{partnerUid}/{boardKey}/tickets/{ticketNumber}/reorder",
                 this::federatedLocalReorderTickets,
                 StationPermission.BOARD_USE);
         routes.post(
@@ -784,16 +784,22 @@ public class FederatedBoardRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/federated/boards/{partnerUid}/{boardKey}/tickets/reorder",
+            path = "/api/v1/federated/boards/{partnerUid}/{boardKey}/tickets/{ticketNumber}/reorder",
             methods = HttpMethod.PUT,
             summary = "Reorder tickets in a lane on a federated board",
             tags = {"Federated Boards"},
             pathParams = {
                 @OpenApiParam(name = "partnerUid", type = String.class, required = true),
-                @OpenApiParam(name = "boardKey", type = String.class, required = true)
+                @OpenApiParam(name = "boardKey", type = String.class, required = true),
+                @OpenApiParam(name = "ticketNumber", type = Integer.class, required = true)
             },
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LocalReorderRequest.class)),
             responses = @OpenApiResponse(status = "204"))
+    /**
+     * Reorders a lane from the ordered ticket ids in the body. {@code ticketNumber} is not read —
+     * it keeps the path in line with the local board route the client already calls, whose reorder
+     * endpoint sits under a ticket for the same reason.
+     */
     private void federatedLocalReorderTickets(Context ctx) {
         var session = UserSession.from(ctx);
         int partnerId = resolvePartnerId(ctx);
