@@ -9,8 +9,9 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import type {ChecklistColumnDraft} from '@/api/checklists'
 
-const columns = defineModel<{label: string; description: string}[]>({required: true})
+const columns = defineModel<ChecklistColumnDraft[]>({required: true})
 
 const {t} = useI18n()
 

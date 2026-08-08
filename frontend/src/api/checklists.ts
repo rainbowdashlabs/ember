@@ -22,6 +22,15 @@ export interface ChecklistColumnDto {
     description: string
 }
 
+/**
+ * A column being defined in the editor, before it has been saved and given an id and a position.
+ * Its order is the order of the list it sits in.
+ */
+export interface ChecklistColumnDraft {
+    label: string
+    description: string
+}
+
 export interface ChecklistEntryDto {
     id: number
     memberId: number

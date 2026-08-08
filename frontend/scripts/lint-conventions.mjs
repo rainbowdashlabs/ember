@@ -34,6 +34,17 @@ const CAT_REPEATED = 'Repeated patterns'
 const CAT_INLINE_FORMAT = 'Inline date formatting'
 const CAT_DEAD_PROP = 'Dead prop'
 
+/**
+ * `toLocaleDateString` and `toLocaleTimeString` are always dates, but `toLocaleString` is also how
+ * a *number* is formatted for the locale — which is not this rule's business.
+ *
+ * The two are told apart by argument count rather than by the option names, because a chart axis
+ * routinely opens the options object at the end of the line and continues on the next one, which
+ * a line-based check cannot read. Number formatting passes a locale and nothing else; date
+ * formatting always passes options after it.
+ */
+const INLINE_DATE_FORMAT = /\.toLocale(Date|Time)String\(|\.toLocaleString\([^)]*,/
+
 const vueFiles = walk(SRC, '.vue')
 
 const SIZE_AWARE_BUTTONS = new Set(vueFiles
@@ -103,7 +114,7 @@ for (const file of vueFiles) {
 
     if (isView) {
         for (let i = 0; i < lines.length; i++) {
-            if (/\.toLocale(Date|Time)?String\(/.test(lines[i])) {
+            if (INLINE_DATE_FORMAT.test(lines[i])) {
                 warn(file, i + 1, `Inline toLocale date formatting — use the helpers in util/format.ts.`, CAT_INLINE_FORMAT)
             }
         }

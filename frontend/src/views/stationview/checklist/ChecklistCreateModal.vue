@@ -11,7 +11,7 @@ import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import {type RestrictionSelection, emptyRestriction} from '@/components/input/restriction'
 import ChecklistFormModal from './checklistmodals/ChecklistFormModal.vue'
 import ChecklistColumnsEditor from './checklistmodals/ChecklistColumnsEditor.vue'
-import type {ChecklistCreateRequest} from '@/api/checklists'
+import type {ChecklistColumnDraft, ChecklistCreateRequest} from '@/api/checklists'
 import type {MemberGroup, StationMember, UserTag} from '@/api/types'
 
 const visible = defineModel<boolean>({required: true})
@@ -31,7 +31,7 @@ const {t} = useI18n()
 
 const name = ref('')
 const description = ref('')
-const columns = ref<{label: string; description: string}[]>([{label: '', description: ''}])
+const columns = ref<ChecklistColumnDraft[]>([{label: '', description: ''}])
 const restriction = ref<RestrictionSelection>(emptyRestriction())
 
 function reset() {
