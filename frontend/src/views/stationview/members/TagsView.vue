@@ -21,6 +21,7 @@ import TagMembersPanel from './tagsview/TagMembersPanel.vue'
 import TagFormModal from './tagsview/TagFormModal.vue'
 import TagDeleteModal from './tagsview/TagDeleteModal.vue'
 import TagConvertModal from './tagsview/TagConvertModal.vue'
+import {useMemberAssignment} from './useMemberAssignment'
 
 const {t} = useI18n()
 const {hasPermission} = useSession()
@@ -83,10 +84,19 @@ const {
   error,
 })
 
-const availableMembers = computed(() => {
-  const memberIds = new Set(tagMembers.value.map(m => m.id))
-  return allMembers.value.filter(m => !memberIds.has(m.id))
-})
+const {
+  availableMembers,
+  addMember: addMemberToTag,
+  removeMember: removeMemberFromTag,
+} = useMemberAssignment(
+    allMembers,
+    tagMembers,
+    async (ids) => {
+      await userTags.setTagMembers(selectedTag.value!.id, ids)
+      return userTags.getTagMembers(selectedTag.value!.id)
+    },
+    error,
+)
 
 async function selectTag(tag: UserTag) {
   selectedTag.value = tag
@@ -136,27 +146,6 @@ const {
   }
 }, {formatError: () => t('common.error')})
 
-async function addMemberToTag(member: StationMember) {
-  if (!selectedTag.value) return
-  const newIds = [...tagMembers.value.map(m => m.id), member.id]
-  try {
-    await userTags.setTagMembers(selectedTag.value.id, newIds)
-    tagMembers.value = await userTags.getTagMembers(selectedTag.value.id)
-  } catch {
-    error.value = t('common.error')
-  }
-}
-
-async function removeMemberFromTag(member: StationMember) {
-  if (!selectedTag.value) return
-  const newIds = tagMembers.value.filter(m => m.id !== member.id).map(m => m.id)
-  try {
-    await userTags.setTagMembers(selectedTag.value.id, newIds)
-    tagMembers.value = await userTags.getTagMembers(selectedTag.value.id)
-  } catch {
-    error.value = t('common.error')
-  }
-}
 
 </script>
 

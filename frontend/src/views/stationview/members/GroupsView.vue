@@ -21,6 +21,8 @@ import GroupDetailPanel from './groupsview/GroupDetailPanel.vue'
 import GroupFormModal from './groupsview/GroupFormModal.vue'
 import GroupDeleteModal from './groupsview/GroupDeleteModal.vue'
 import GroupConvertModal from './groupsview/GroupConvertModal.vue'
+import {useMemberAssignment} from './useMemberAssignment'
+import {memberDisplayName} from './listview/useMemberData'
 
 const {t} = useI18n()
 const {canManageMembers, isManager, hasPermission} = useSession()
@@ -97,17 +99,16 @@ const sortedGroupMembers = computed(() =>
     [...groupMembers.value].sort((a, b) => memberDisplayName(a).localeCompare(memberDisplayName(b)))
 )
 
-const availableMembers = computed(() => {
-  const memberIds = new Set(groupMembers.value.map(m => m.id))
-  return allMembers.value
-      .filter(m => !memberIds.has(m.id))
-      .sort((a, b) => memberDisplayName(a).localeCompare(memberDisplayName(b)))
-})
-
-function memberDisplayName(member: StationMember): string {
-  if (member.name && member.name.trim()) return member.name
-  return member.email ?? `#${member.id}`
-}
+const {
+  availableMembers,
+  addMember: addMemberToGroup,
+  removeMember: removeMemberFromGroup,
+} = useMemberAssignment(
+    allMembers,
+    groupMembers,
+    ids => memberGroups.setGroupMembers(selectedGroup.value!.id, {memberIds: ids}),
+    error,
+)
 
 async function selectGroup(group: MemberGroup) {
   selectedGroup.value = group
@@ -157,26 +158,6 @@ const {running: groupSaving, error: groupSaveError, run: saveGroup} = useAsyncAc
     selectedGroup.value = groups.value.find(g => g.id === selectedGroup.value!.id) ?? null
   }
 }, {formatError: () => t('common.error')})
-
-async function addMemberToGroup(member: StationMember) {
-  if (!selectedGroup.value) return
-  const newIds = [...groupMembers.value.map(m => m.id), member.id]
-  try {
-    groupMembers.value = await memberGroups.setGroupMembers(selectedGroup.value.id, {memberIds: newIds})
-  } catch {
-    error.value = t('common.error')
-  }
-}
-
-async function removeMemberFromGroup(member: StationMember) {
-  if (!selectedGroup.value) return
-  const newIds = groupMembers.value.filter(m => m.id !== member.id).map(m => m.id)
-  try {
-    groupMembers.value = await memberGroups.setGroupMembers(selectedGroup.value.id, {memberIds: newIds})
-  } catch {
-    error.value = t('common.error')
-  }
-}
 
 async function syncGroupRoles(newIds: Set<number>) {
   if (!selectedGroup.value) return
