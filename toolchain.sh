@@ -22,7 +22,8 @@ Frontend
   fe-build              Full verification: all linters, vue-tsc, production build
   fe-typecheck          vue-tsc only (silent on success)
   fe-audit              All linters, non-gating; prints the warning backlog
-  fe-lint <name>        One linter, e.g. `fe-lint style` runs scripts/lint-style.mjs
+  fe-lint <name> [args] One linter, e.g. `fe-lint style` runs scripts/lint-style.mjs. Trailing
+                        arguments reach the script, e.g. `fe-lint component-size --error=30`
   fe-dev                Dev server
 
 Backend
@@ -55,7 +56,8 @@ case "$cmd" in
     fe-audit)      fe; NODE_OPTIONS="$NODE_HEAP" npm run lint:audit ;;
     fe-lint)
         [ $# -ge 1 ] || { echo "fe-lint needs a linter name, e.g. style" >&2; exit 2; }
-        fe; node "scripts/lint-$1.mjs"
+        linter="$1"; shift
+        fe; node "scripts/lint-$linter.mjs" "$@"
         ;;
     fe-dev)        fe; npm run dev ;;
 

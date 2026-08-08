@@ -6,12 +6,17 @@
  *  1. No raw <button> outside src/components/button/
  *  2. No raw <input>/<select>/<textarea> outside src/components/input/
  *  3. No raw <h1>/<h2>/<h3> outside src/components/typography/
- *  4. No more than 6 CSS class arguments per element outside src/components/
- *  5. .vue files in src/views/ must not exceed 500 lines (error)
- *  6. .vue files > 300 lines get a warning
- *  7. Repeated element+class patterns (>5 occurrences)
- *  8. No inline toLocale date/time formatting in src/views/ — use util/format helpers (warning)
- *  9. No size="…" on button components that do not declare a size prop (warning)
+ *  4. .vue files in src/views/ must not exceed 500 lines (error)
+ *  5. .vue files > 300 lines get a warning
+ *  6. Repeated element+class patterns (>5 occurrences)
+ *  7. No inline toLocale date/time formatting in src/views/ — use util/format helpers (warning)
+ *  8. No size="…" on button components that do not declare a size prop (warning)
+ *
+ * A per-element CSS class-count cap used to sit here, warning above 6 classes. It was removed
+ * once its distribution was measured: 180 of 521 findings had exactly 7 classes and only 3 had
+ * 15 or more, so with Tailwind 4 and dark-mode variants it described ordinary markup rather than
+ * a smell. Element bloat is still caught by the block-size and section-density gates in
+ * lint-component-size.mjs, which measure structure instead of class strings.
  *
  * Exit code 1 if any errors are found.
  */
@@ -24,7 +29,6 @@ const reporter = createReporter()
 const {error, warn} = reporter
 
 const CAT_RAW_ELEMENTS = 'Raw element usage'
-const CAT_CSS_CLASSES = 'CSS class count'
 const CAT_FILE_SIZE = 'File size'
 const CAT_REPEATED = 'Repeated patterns'
 const CAT_INLINE_FORMAT = 'Inline date formatting'
@@ -89,30 +93,6 @@ for (const file of vueFiles) {
             const line = templateLines[i]
             if (/<span\b[^>]*\brounded-full\b[^>]*\bpx-/.test(line) || /<span\b[^>]*\bpx-[^>]*\brounded-full\b/.test(line)) {
                 error(file, templateStartLine + i, `<span> with rounded-full + padding — use a Badge component (PrimaryBadge, SuccessBadge, etc.) instead.`, CAT_RAW_ELEMENTS)
-            }
-        }
-    }
-
-    // ── Rule 4: No more than 6 class arguments per element outside components/ ──
-    if (!isInsideComponents(file)) {
-        for (let i = 0; i < templateLines.length; i++) {
-            const line = templateLines[i]
-            const classMatches = line.matchAll(/\bclass="([^"]*)"/g)
-            for (const match of classMatches) {
-                const classes = match[1].trim().split(/\s+/).filter(c => c.length > 0)
-                if (classes.length <= 6) continue
-                // Find the tag name — may be on this line or a preceding line
-                let tagName = 'element'
-                const tagOnLine = line.match(/<(\w[\w-]*)[\s>]/)
-                if (tagOnLine) {
-                    tagName = tagOnLine[1]
-                } else {
-                    for (let j = i - 1; j >= Math.max(0, i - 10); j--) {
-                        const prev = templateLines[j].match(/<(\w[\w-]*)[\s>]/)
-                        if (prev) { tagName = prev[1]; break }
-                    }
-                }
-                warn(file, templateStartLine + i, `<${tagName}> has ${classes.length} CSS classes. Consider extracting to a component.`, CAT_CSS_CLASSES)
             }
         }
     }
