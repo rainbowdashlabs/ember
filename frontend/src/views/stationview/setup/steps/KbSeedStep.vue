@@ -17,7 +17,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import {knowledgeBase} from '@/api'
 import {useSetupStatus} from '@/composables/useSetupStatus'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {nextStep, stepRouteName} from '@/views/stationview/setup/steps'
+import {goToNextStep} from '@/views/stationview/setup/steps'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -42,8 +42,7 @@ const {running: saving, error: saveError, run: runSave} = useAsyncAction(async (
         await knowledgeBase.updateMarkdownContent(createdFileId.value, pageContent.value)
     }
     await reload()
-    const next = nextStep('kb-seed')
-    if (next) router.push({name: stepRouteName(next)})
+    goToNextStep(router, 'kb-seed')
 })
 
 const displayError = computed(() => nameError.value || saveError.value)

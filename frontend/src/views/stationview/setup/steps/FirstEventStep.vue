@@ -9,15 +9,13 @@ import {useRouter} from 'vue-router'
 import SetupLayout from '@/views/stationview/setup/SetupLayout.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import {nextStep, stepRouteName} from '@/views/stationview/setup/steps'
+import {nextStepHref} from '@/views/stationview/setup/steps'
 
 const {t} = useI18n()
 const router = useRouter()
 
 function goCreateEvent() {
-    const next = nextStep('first-event')
-    const returnTo = next ? router.resolve({name: stepRouteName(next)}).href : '/station/setup'
-    router.push({path: '/station/events/new', query: {returnTo}})
+    router.push({path: '/station/events/new', query: {returnTo: nextStepHref(router, 'first-event')}})
 }
 </script>
 
@@ -38,7 +36,7 @@ function goCreateEvent() {
         {{ t('setup.steps.first-event.openEditor') }}
       </PrimaryButton>
       <RouterLink
-          :to="{name: stepRouteName(nextStep('first-event')!)}"
+          :to="nextStepHref(router, 'first-event')"
           class="text-sm text-(--text-muted) underline"
       >
         {{ t('setup.actions.skip') }}

@@ -12,7 +12,7 @@ import LocationSection from '@/views/stationview/manage/stationview/LocationSect
 import Alert from '@/components/feedback/Alert.vue'
 import {useSetupStatus} from '@/composables/useSetupStatus'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {nextStep, stepRouteName} from '@/views/stationview/setup/steps'
+import {goToNextStep} from '@/views/stationview/setup/steps'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -38,8 +38,7 @@ const {running: saving, run: proceed} = useAsyncAction(async () => {
     onError(t('setup.steps.address.incompleteHint'))
     return
   }
-  const next = nextStep('address')
-  if (next) router.push({name: stepRouteName(next)})
+  goToNextStep(router, 'address')
 })
 </script>
 

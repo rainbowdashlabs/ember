@@ -14,7 +14,7 @@ import {stationManage} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useSetupStatus} from '@/composables/useSetupStatus'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {nextStep, stepRouteName} from '@/views/stationview/setup/steps'
+import {goToNextStep} from '@/views/stationview/setup/steps'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -61,8 +61,7 @@ const {running: saving, error, run: save} = useAsyncAction(async () => {
   await stationManage.setDisabledModules([...disabled.value])
   await reloadSession()
   await reload()
-  const next = nextStep('modules')
-  if (next) router.push({name: stepRouteName(next)})
+  goToNextStep(router, 'modules')
 })
 </script>
 

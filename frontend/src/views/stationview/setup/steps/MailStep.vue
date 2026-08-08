@@ -19,7 +19,7 @@ import {stationManage} from '@/api'
 import type {MailConfigRequest} from '@/api/stationManage'
 import {useSetupStatus} from '@/composables/useSetupStatus'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {nextStep, stepRouteName} from '@/views/stationview/setup/steps'
+import {goToNextStep} from '@/views/stationview/setup/steps'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -71,8 +71,7 @@ onMounted(async () => {
 const {running: saving, error, run: save} = useAsyncAction(async () => {
     await stationManage.updateMailConfig(cfg.value)
     await reload()
-    const next = nextStep('mail')
-    if (next) router.push({name: stepRouteName(next)})
+    goToNextStep(router, 'mail')
 })
 </script>
 

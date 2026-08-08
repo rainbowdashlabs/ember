@@ -21,7 +21,7 @@ import type {MemberGroup} from '@/api/types'
 import type {GuardianRequest, InviteEntry} from '@/api/stationMemberInvites'
 import {useSetupStatus} from '@/composables/useSetupStatus'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {nextStep, stepRouteName} from '@/views/stationview/setup/steps'
+import {goToNextStep, nextStepHref} from '@/views/stationview/setup/steps'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -49,9 +49,7 @@ const successCount = ref(0)
 const USER_TYPES = ['MEMBER', 'TEAM', 'MANAGER', 'GUARDIAN']
 
 function openMemberImport() {
-    const next = nextStep('invites')
-    const returnTo = next ? router.resolve({name: stepRouteName(next)}).href : '/station/setup'
-    router.push({path: '/station/members/import', query: {returnTo}})
+    router.push({path: '/station/members/import', query: {returnTo: nextStepHref(router, 'invites')}})
 }
 
 onMounted(async () => {
@@ -100,8 +98,7 @@ const {running: saving, error, run: runSave, clearError} = useAsyncAction(async 
     const result = await stationMemberInvites.createInvites({invites: payload})
     successCount.value = result.provisioned.length
     await reload()
-    const next = nextStep('invites')
-    if (next) router.push({name: stepRouteName(next)})
+    goToNextStep(router, 'invites')
 })
 
 function save() {
@@ -111,8 +108,7 @@ function save() {
         ? expandedBulk.value
         : richRows.value.filter((r) => r.email.trim() !== '')
     if (payload.length === 0) {
-        const next = nextStep('invites')
-        if (next) router.push({name: stepRouteName(next)})
+        goToNextStep(router, 'invites')
         return
     }
     return runSave(payload)

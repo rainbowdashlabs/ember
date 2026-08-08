@@ -19,7 +19,7 @@ import {useTheme} from '@/composables/useTheme'
 import {useSetupStatus} from '@/composables/useSetupStatus'
 import {useAuthImage} from '@/composables/useAuthImage'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {nextStep, stepRouteName} from '@/views/stationview/setup/steps'
+import {goToNextStep} from '@/views/stationview/setup/steps'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -118,8 +118,7 @@ const {running: saving, error: saveError, run: runSave} = useAsyncAction(async (
         customThemeColors: customEnabled.value ? JSON.stringify(customColors.value) : null,
     })
     await reload()
-    const next = nextStep('branding')
-    if (next) router.push({name: stepRouteName(next)})
+    goToNextStep(router, 'branding')
 })
 
 const displayError = computed(() => error.value || saveError.value)

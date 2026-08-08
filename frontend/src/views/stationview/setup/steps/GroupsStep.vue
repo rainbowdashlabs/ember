@@ -18,7 +18,7 @@ import {memberGroups, stationMembers} from '@/api'
 import type {MemberGroup, PermissionGrant} from '@/api/types'
 import {useSetupStatus} from '@/composables/useSetupStatus'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {nextStep, stepRouteName} from '@/views/stationview/setup/steps'
+import {goToNextStep} from '@/views/stationview/setup/steps'
 import {apiErrorMessage} from '@/util/apiError'
 
 const {t} = useI18n()
@@ -149,8 +149,7 @@ async function onPermissionsChange(groupId: number, newIds: Set<number>) {
 
 const {running: saving, run: save} = useAsyncAction(async () => {
     await reload()
-    const next = nextStep('groups')
-    if (next) router.push({name: stepRouteName(next)})
+    goToNextStep(router, 'groups')
 })
 </script>
 
