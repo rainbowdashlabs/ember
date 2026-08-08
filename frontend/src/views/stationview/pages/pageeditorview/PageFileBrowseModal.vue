@@ -12,7 +12,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import SearchToolbar from './pagefilebrowsemodal/SearchToolbar.vue'
 import FilterBar from './pagefilebrowsemodal/FilterBar.vue'
 import FilesGrid from './pagefilebrowsemodal/FilesGrid.vue'
-import EditMetaModal from './pagefilebrowsemodal/EditMetaModal.vue'
+import PageFileEditModal from '@/views/stationview/pages/pagefilesview/PageFileEditModal.vue'
 import {
     listPageFolders,
     listPageTags,
@@ -50,9 +50,7 @@ const tags = ref<PageFileTag[]>([])
 const loading = ref(false)
 const uploadError = ref<string | null>(null)
 const search = ref('')
-const editing = ref<number | null>(null)
-const editAlt = ref('')
-const editDesc = ref('')
+const editing = ref<PageFile | null>(null)
 const activeFolder = ref<number | null>(null)
 const activeTagFilter = ref<number | null>(null)
 
@@ -166,26 +164,14 @@ const {running: uploading, run: uploadBatch} = useAsyncAction(async (picked: Fil
 })
 
 function startEdit(f: PageFile) {
-    editing.value = f.id
-    editAlt.value = f.defaultAltText ?? ''
-    editDesc.value = f.defaultDescription ?? ''
+    editing.value = f
 }
 
-async function saveEdit() {
-    if (editing.value == null) return
-    const id = editing.value
-    try {
-        await updatePageFileMeta(id, editAlt.value || null, editDesc.value || null)
-        entries.value = entries.value.map(e => e.file.id === id
-            ? {...e, file: {...e.file, defaultAltText: editAlt.value, defaultDescription: editDesc.value}}
-            : e)
-    } finally {
-        editing.value = null
-    }
-}
-
-function cancelEdit() {
-    editing.value = null
+async function saveEdit(id: number, altText: string, description: string) {
+    await updatePageFileMeta(id, altText || null, description || null)
+    entries.value = entries.value.map(e => e.file.id === id
+        ? {...e, file: {...e.file, defaultAltText: altText, defaultDescription: description}}
+        : e)
 }
 
 const {running: pruning, run: runPrune} = useAsyncAction(async () => {
@@ -226,12 +212,6 @@ const {running: pruning, run: runPrune} = useAsyncAction(async () => {
                 @edit="startEdit"
             />
         </div>
-        <EditMetaModal
-            v-model:editing="editing"
-            v-model:edit-alt="editAlt"
-            v-model:edit-desc="editDesc"
-            @save="saveEdit"
-            @cancel="cancelEdit"
-        />
+        <PageFileEditModal v-model="editing" @save="saveEdit"/>
     </Modal>
 </template>
