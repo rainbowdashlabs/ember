@@ -74,6 +74,19 @@ const {t} = useI18n()
                  to="/helpcenter/station/events/0" @navigate="close">
       {{ t('sidebar.eventDetail') }}
     </SidebarLink>
+    <SidebarLink :icon="['fas', 'share-nodes']" name="help-federated-event-detail"
+                 to="/helpcenter/station/federation/events/0/1" @navigate="close">
+      {{ t('helpCenter.federatedEventDetail.title') }}
+    </SidebarLink>
+    <SidebarExpandableLink :icon="['fas', 'clone']" name="help-event-templates"
+                           to="/helpcenter/station/events/templates"
+                           prefix="/helpcenter/station/events/templates" @navigate="close">
+      <template #label>{{ t('sidebar.eventTemplates') }}</template>
+      <SidebarLink :icon="['fas', 'pen']" name="help-event-template-edit"
+                   to="/helpcenter/station/events/templates/0" @navigate="close">
+        {{ t('eventTemplates.edit') }}
+      </SidebarLink>
+    </SidebarExpandableLink>
   </SidebarGroup>
 
   <SidebarGroup :icon="['fas', 'square-poll-vertical']" :label="t('sidebar.forms')"
@@ -119,7 +132,19 @@ const {t} = useI18n()
     <SidebarLink :icon="['fas', 'inbox']" name="help-board-backlog" to="/helpcenter/station/boards/BOARD/backlog" @navigate="close">{{ t('helpCenter.backlog.sidebarLabel') }}</SidebarLink>
     <SidebarLink :icon="['fas', 'folder']" name="help-board-archived" to="/helpcenter/station/boards/BOARD/archived" @navigate="close">{{ t('helpCenter.archived.sidebarLabel') }}</SidebarLink>
     <SidebarLink :icon="['fas', 'gear']" name="help-board-settings" to="/helpcenter/station/boards/BOARD/settings" @navigate="close">{{ t('helpCenter.boardSettings.sidebarLabel') }}</SidebarLink>
-    <SidebarLink :icon="['fas', 'arrow-right-arrow-left']" name="help-federated-boards" to="/helpcenter/station/federation/boards" @navigate="close">{{ t('helpCenter.federatedBoards.sidebarLabel') }}</SidebarLink>
+    <SidebarExpandableLink :icon="['fas', 'arrow-right-arrow-left']" name="help-federated-boards"
+                           to="/helpcenter/station/federation/boards"
+                           prefix="/helpcenter/station/federation/boards" @navigate="close">
+      <template #label>{{ t('helpCenter.federatedBoards.sidebarLabel') }}</template>
+      <SidebarLink :icon="['fas', 'table-columns']" name="help-federated-board-view"
+                   to="/helpcenter/station/federation/boards/0/BOARD" @navigate="close">
+        {{ t('helpCenter.federatedBoardView.title') }}
+      </SidebarLink>
+      <SidebarLink :icon="['fas', 'file-lines']" name="help-federated-ticket-detail"
+                   to="/helpcenter/station/federation/boards/0/BOARD/tickets/1" @navigate="close">
+        {{ t('helpCenter.federatedTicketDetail.title') }}
+      </SidebarLink>
+    </SidebarExpandableLink>
   </SidebarGroup>
 
   <SidebarGroup :icon="['fas', 'book-open']" :label="t('sidebar.knowledgeBase')" prefix="/helpcenter/station/knowledge"

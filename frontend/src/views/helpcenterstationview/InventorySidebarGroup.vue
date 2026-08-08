@@ -51,6 +51,10 @@ const {t} = useI18n()
                    to="/helpcenter/station/inventory/edit" @navigate="close">
         {{ t('sidebar.inventoryEdit') }}
       </SidebarLink>
+      <SidebarLink :icon="['fas', 'tag']" name="help-inventory-item-detail"
+                   to="/helpcenter/station/inventory/item/0" @navigate="close">
+        {{ t('helpCenter.itemDetail.title') }}
+      </SidebarLink>
     </SidebarExpandableLink>
     <SidebarLink :icon="['fas', 'clipboard-list']" name="help-inventory-requirements"
                  to="/helpcenter/station/inventory/requirements" @navigate="close">

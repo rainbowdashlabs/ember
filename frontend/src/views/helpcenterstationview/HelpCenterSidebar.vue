@@ -133,6 +133,13 @@ function escapeHtml(text: string): string {
       <SidebarLink :icon="['fas', 'pen']" name="help-news-create" to="/helpcenter/station/news/create" @navigate="close">
         {{ t('sidebar.newsEdit') }}
       </SidebarLink>
+      <SidebarLink :icon="['fas', 'eye']" name="help-news-detail" to="/helpcenter/station/news/0" @navigate="close">
+        {{ t('helpCenter.newsDetail.title') }}
+      </SidebarLink>
+      <SidebarLink :icon="['fas', 'share-nodes']" name="help-federated-news-detail"
+                   to="/helpcenter/station/federation/news/0/1" @navigate="close">
+        {{ t('helpCenter.federatedNewsDetail.title') }}
+      </SidebarLink>
     </SidebarGroup>
 
     <SidebarGroup :icon="['fas', 'user']" :label="t('sidebar.profile')" prefix="/helpcenter/station/profile"

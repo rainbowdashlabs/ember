@@ -20,21 +20,7 @@ const allRoutes = parseRoutes()
 // started reading the real Nuxt pages tree. New routes must NOT be added
 // here — write the help page instead. Remove entries as pages get written.
 
-const KNOWN_MISSING_HELP = new Set([
-    'event-detail-date',
-    'event-templates',
-    'event-template-edit',
-    'federated-board-view',
-    'federated-ticket-detail',
-    'federated-event-detail',
-    'federated-news-detail',
-    'inventory-item-detail',
-    'inventory-my',
-    'news-detail',
-    'news-create',
-    'quiz-catalog-mc-fill',
-    'admin-problem-reports',
-])
+const KNOWN_MISSING_HELP = new Set([])
 
 const KNOWN_SHARED_HELP_COMPONENTS = new Set([
     '@/views/helpcenter/stationview/inventory/CheckMemberHelp.vue',
