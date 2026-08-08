@@ -37,3 +37,24 @@ export function youtubeEmbedUrl(url: string): string | null {
     const id = extractYoutubeId(url)
     return id ? `https://www.youtube-nocookie.com/embed/${id}` : null
 }
+
+/**
+ * Returns the embeddable player URL for a video share link from any provider the editor accepts,
+ * falling back to the URL itself when none matches — a self-hosted player usually already is its
+ * own embed URL, and refusing it outright would be worse than trying.
+ */
+export function videoEmbedUrl(url: string): string {
+    const youtube = youtubeEmbedUrl(url)
+    if (youtube) return youtube
+
+    const vimeo = url.match(/vimeo\.com\/(\d+)/)
+    if (vimeo) return `https://player.vimeo.com/video/${vimeo[1]}`
+
+    const peertube = url.match(/(https?:\/\/[^/]+)\/videos\/watch\/(.+)/)
+    if (peertube) return `${peertube[1]}/videos/embed/${peertube[2]}`
+
+    const dailymotion = url.match(/(?:dailymotion\.com\/video\/|dai\.ly\/)([a-zA-Z0-9]+)/)
+    if (dailymotion) return `https://www.dailymotion.com/embed/video/${dailymotion[1]}`
+
+    return url
+}

@@ -11,7 +11,7 @@ import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
 import DemoAccountGroups from '@/views/loginview/DemoAccountGroups.vue'
-import type {DemoAccount, RoleGroup, StationTab} from '@/views/loginview/demoTypes'
+import type {DemoAccount, RoleGroup, StationTab} from '@/composables/useDemoAccounts'
 
 const props = defineProps<{
   error: string

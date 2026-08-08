@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import type {DemoAccount, RoleGroup} from '@/views/loginview/demoTypes'
+import type {DemoAccount, RoleGroup} from '@/composables/useDemoAccounts'
 
 defineProps<{
   roleGroups: RoleGroup[]

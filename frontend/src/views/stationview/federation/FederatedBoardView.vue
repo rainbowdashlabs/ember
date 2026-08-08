@@ -20,6 +20,7 @@ import {priorityIcon, priorityColor} from '@/util/ticketPriority'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useBoardDragAndDrop} from '@/composables/useBoardDragAndDrop'
 import {reportCaughtError} from '@/util/devErrorReporter'
 import {
   type FederatedBoardDetail,
@@ -191,86 +192,19 @@ function handleCreateTicket() {
   void runCreateTicket()
 }
 
-const dragTicket = ref<BoardTicket | null>(null)
-const dropLaneId = ref<number | null>(null)
-const dropPosition = ref<number | null>(null)
-
-function onTicketDragStart(ticket: BoardTicket, event: DragEvent) {
-  if (isReadOnly.value) return
-  dragTicket.value = ticket
-  if (event.dataTransfer) {
-    event.dataTransfer.effectAllowed = 'move'
-    event.dataTransfer.setData('text/plain', String(ticket.id))
-  }
-}
-
-function onLaneDragOver(laneId: number, event: DragEvent) {
-  if (isReadOnly.value) return
-  event.preventDefault()
-  dropLaneId.value = laneId
-  const container = event.currentTarget as HTMLElement
-  const ticketElements = container.querySelectorAll('[data-ticket-id]')
-  let pos = 0
-  for (const el of ticketElements) {
-    if (dragTicket.value && el.getAttribute('data-ticket-id') === String(dragTicket.value.id)) continue
-    const rect = el.getBoundingClientRect()
-    if (event.clientY > rect.top + rect.height / 2) pos++
-  }
-  dropPosition.value = pos
-}
-
-function onLaneDragLeave(event: DragEvent) {
-  const target = event.currentTarget as HTMLElement
-  if (!target.contains(event.relatedTarget as Node)) {
-    dropLaneId.value = null
-    dropPosition.value = null
-  }
-}
-
-async function onLaneDrop(laneId: number) {
-  if (!dragTicket.value || isReadOnly.value) return
-  const ticket = dragTicket.value
-  const pos = dropPosition.value ?? 0
-  dragTicket.value = null
-  dropLaneId.value = null
-  dropPosition.value = null
-
-  const otherTickets = tickets.value.filter(tt => tt.laneId === laneId && tt.id !== ticket.id).sort((a, b) => a.position - b.position)
-  otherTickets.splice(pos, 0, ticket)
-  const updatedTicket = {
-    ...ticket,
-    laneId,
-    laneEnteredAt: ticket.laneId !== laneId ? new Date().toISOString() : ticket.laneEnteredAt,
-  }
-  tickets.value = tickets.value.filter(tt => tt.id !== ticket.id).map(tt => {
-    const idx = otherTickets.findIndex(ot => ot.id === tt.id)
-    return idx >= 0 ? {...tt, position: idx} : tt
-  })
-  tickets.value.push({...updatedTicket, position: pos})
-
-  if (ticket.laneId === laneId) {
-    try {
-      await fedReorderTickets(partnerUid.value, boardKey.value, ticket.ticketNumber, {
-        laneId,
-        orderedIds: otherTickets.map(tt => tt.id),
-      })
-    } catch {
-      await loadData()
-    }
-  } else {
-    try {
-      await fedMoveTicket(partnerUid.value, boardKey.value, ticket.ticketNumber, {toLaneId: laneId, position: pos})
-    } catch {
-      await loadData()
-    }
-  }
-}
-
-function onDragEnd() {
-  dragTicket.value = null
-  dropLaneId.value = null
-  dropPosition.value = null
-}
+const {
+  dragTicket,
+  dropLaneId,
+  dropPosition,
+  onTicketDragStart,
+  onLaneDragOver,
+  onLaneDragLeave,
+  onLaneDrop,
+  onDragEnd,
+} = useBoardDragAndDrop(tickets, {
+  reorder: (ticketNumber, payload) => fedReorderTickets(partnerUid.value, boardKey.value, ticketNumber, payload),
+  move: (ticketNumber, payload) => fedMoveTicket(partnerUid.value, boardKey.value, ticketNumber, payload),
+}, loadData, () => !isReadOnly.value)
 
 watch([partnerUid, boardKey], loadData)
 </script>

@@ -7,7 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import TabBar from '@/components/navigation/TabBar.vue'
 import DemoAccountGroups from '@/views/loginview/DemoAccountGroups.vue'
-import type {DemoAccount, RoleGroup, StationTab} from '@/views/loginview/demoTypes'
+import type {DemoAccount, RoleGroup, StationTab} from '@/composables/useDemoAccounts'
 
 const props = defineProps<{
   loading: boolean

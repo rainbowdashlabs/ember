@@ -14,7 +14,7 @@ import KanbanLane from './boardview/KanbanLane.vue'
 import BoardHeaderBar from './boardview/BoardHeaderBar.vue'
 import BoardFilterBar from './boardview/BoardFilterBar.vue'
 import BoardCreateTicketModal from './boardview/BoardCreateTicketModal.vue'
-import { useBoardDragAndDrop } from './boardview/useBoardDragAndDrop'
+import { useBoardDragAndDrop } from '@/composables/useBoardDragAndDrop'
 import { boards, stationMembers } from '@/api'
 import type { MemberCompletion } from '@/api/stationMembers'
 import type { Board, BoardLane, BoardTicket, BoardLabel } from '@/api/boards'
@@ -139,7 +139,10 @@ const {
     onLaneDragLeave,
     onLaneDrop,
     onDragEnd,
-} = useBoardDragAndDrop(tickets, boardKey, reload)
+} = useBoardDragAndDrop(tickets, {
+    reorder: (ticketNumber, payload) => boards.reorderTickets(boardKey.value, ticketNumber, payload),
+    move: (ticketNumber, payload) => boards.moveTicket(boardKey.value, ticketNumber, payload),
+}, reload)
 
 watch(boardKey, reload)
 </script>
