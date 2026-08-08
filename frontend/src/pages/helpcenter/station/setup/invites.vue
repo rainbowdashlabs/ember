@@ -4,14 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import OverviewHelp from '~/views/helpcenter/stationview/setup/OverviewHelp.vue'
+import InvitesStepHelp from '~/views/helpcenter/stationview/setup/InvitesStepHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',
-  name: 'help-setup-module-overview',
+  name: 'help-station-setup-invites',
 })
 </script>
 
 <template>
-  <OverviewHelp/>
+  <InvitesStepHelp/>
 </template>

@@ -4,14 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import OverviewHelp from '~/views/helpcenter/stationview/setup/OverviewHelp.vue'
+import MailStepHelp from '~/views/helpcenter/stationview/setup/MailStepHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',
-  name: 'help-setup-module-overview',
+  name: 'help-station-setup-mail',
 })
 </script>
 
 <template>
-  <OverviewHelp/>
+  <MailStepHelp/>
 </template>

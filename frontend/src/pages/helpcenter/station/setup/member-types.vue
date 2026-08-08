@@ -4,14 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import OverviewHelp from '~/views/helpcenter/stationview/setup/OverviewHelp.vue'
+import MemberTypesStepHelp from '~/views/helpcenter/stationview/setup/MemberTypesStepHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',
-  name: 'help-setup-module-overview',
+  name: 'help-station-setup-member-types',
 })
 </script>
 
 <template>
-  <OverviewHelp/>
+  <MemberTypesStepHelp/>
 </template>

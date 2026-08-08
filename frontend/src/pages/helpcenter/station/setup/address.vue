@@ -4,14 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import StepsHelp from '~/views/helpcenter/stationview/setup/StepsHelp.vue'
+import AddressStepHelp from '~/views/helpcenter/stationview/setup/AddressStepHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',
-  name: 'helpcenter-station-setup-steps',
+  name: 'help-station-setup-address',
 })
 </script>
 
 <template>
-  <StepsHelp/>
+  <AddressStepHelp/>
 </template>

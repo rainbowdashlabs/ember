@@ -4,14 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import OverviewHelp from '~/views/helpcenter/stationview/setup/OverviewHelp.vue'
+import WelcomeStepHelp from '~/views/helpcenter/stationview/setup/WelcomeStepHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',
-  name: 'help-setup-module-overview',
+  name: 'help-station-setup-welcome',
 })
 </script>
 
 <template>
-  <OverviewHelp/>
+  <WelcomeStepHelp/>
 </template>

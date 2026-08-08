@@ -15,6 +15,7 @@ import MembersSidebarGroup from '@/views/helpcenterstationview/MembersSidebarGro
 import InventorySidebarGroup from '@/views/helpcenterstationview/InventorySidebarGroup.vue'
 import ModuleSidebarGroups from '@/views/helpcenterstationview/ModuleSidebarGroups.vue'
 import {useHelpSearch} from '@/composables/useHelpSearch'
+import {STEP_ORDER} from '@/views/stationview/setup/steps'
 
 /**
  * The help center's station navigation: a search box that replaces the tree with its results
@@ -101,6 +102,14 @@ function escapeHtml(text: string): string {
       <SidebarLink :icon="['fas', 'arrow-right-arrow-left']" name="help-basics-federation"
                    to="/helpcenter/station/basics/federation" @navigate="close">
         {{ t('helpCenter.basics.sidebarFederation') }}
+      </SidebarLink>
+    </SidebarGroup>
+
+    <SidebarGroup :icon="['fas', 'rocket']" :label="t('setup.headerTitle')" prefix="/helpcenter/station/setup"
+                  to="/helpcenter/station/setup" name="help-setup-module-overview" @navigate="close">
+      <SidebarLink v-for="step in STEP_ORDER" :key="step" :icon="['fas', 'circle-dot']"
+                   :name="`help-station-setup-${step}`" :to="`/helpcenter/station/setup/${step}`" @navigate="close">
+        {{ t(`setup.steps.${step}.label`) }}
       </SidebarLink>
     </SidebarGroup>
 

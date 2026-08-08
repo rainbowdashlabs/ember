@@ -4,14 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import OverviewHelp from '~/views/helpcenter/stationview/setup/OverviewHelp.vue'
+import KbSeedStepHelp from '~/views/helpcenter/stationview/setup/KbSeedStepHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',
-  name: 'help-setup-module-overview',
+  name: 'help-station-setup-kb-seed',
 })
 </script>
 
 <template>
-  <OverviewHelp/>
+  <KbSeedStepHelp/>
 </template>

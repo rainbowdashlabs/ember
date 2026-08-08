@@ -4,14 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import OverviewHelp from '~/views/helpcenter/stationview/setup/OverviewHelp.vue'
+import BrandingStepHelp from '~/views/helpcenter/stationview/setup/BrandingStepHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',
-  name: 'help-setup-module-overview',
+  name: 'help-station-setup-branding',
 })
 </script>
 
 <template>
-  <OverviewHelp/>
+  <BrandingStepHelp/>
 </template>

@@ -6,6 +6,7 @@
 
 - **Sortable and filterable item lists.** The item tables on the inventory detail and edit pages can show custom fields as columns, sort by any column, and filter by specific values — including by source and assignment state (assigned, not assigned, in storage, not in storage). A column picker shows or hides additional columns.
 - **Custom fields when adding items.** The add-item dialog fills in the inventory's custom fields directly, and number fields check their allowed range while typing.
+- **Help articles for the setup assistant.** Every step of the station setup assistant has its own help article, reachable from the help center menu and the search box.
 
 ### Changes
 
