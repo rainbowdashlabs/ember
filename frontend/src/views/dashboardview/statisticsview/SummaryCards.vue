@@ -8,14 +8,7 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import StatValue from '@/components/typography/StatValue.vue'
 
-interface StatsData {
-  memberCount: number
-  groupCounts: Record<string, number>
-  attendanceByMonth: Array<{ month: string; sessions: number; present: number; absent: number; declined: number }>
-  inventoryStatus: Array<{ name: string; total: number; assigned: number; lost: number }>
-  eventRegistrations: Array<{ name: string; accepted: number; pending: number; declined: number }>
-  roleCounts: Record<string, number>
-}
+import type {StatsData} from './statsData'
 
 const props = defineProps<{
   stats: StatsData

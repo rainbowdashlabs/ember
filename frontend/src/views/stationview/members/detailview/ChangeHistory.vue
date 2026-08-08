@@ -4,15 +4,13 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, ref} from 'vue'
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import type {ProfileFieldChange} from '@/api/profileFieldChanges'
-import {profileFieldChanges} from '@/api'
-import {useSidebarCounts} from '@/composables/useSidebarCounts'
-import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useChangeAcknowledgement} from '@/composables/useChangeAcknowledgement'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import HistoryEntry from './changehistory/HistoryEntry.vue'
@@ -29,54 +27,23 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
-const {refresh: refreshSidebarCounts} = useSidebarCounts()
 
-const acknowledgeComment = ref('')
-const showCommentForChangeId = ref<number | null>(null)
+const {
+  acknowledgeComment,
+  showCommentForChangeId,
+  acknowledging,
+  error,
+  isAcknowledgedByMe,
+  unacknowledgedCount: countUnacknowledged,
+  acknowledgeChange,
+  acknowledgeAll,
+  toggleComment,
+} = useChangeAcknowledgement(() => props.currentMemberId, () => emit('reload'))
 
-const {running: acknowledging, error, run: runAcknowledge} = useAsyncAction(
-    async (work: () => Promise<void>) => {
-      await work()
-      refreshSidebarCounts()
-      emit('reload')
-    },
-    {formatError: () => t('common.error')},
-)
-
-const unacknowledgedCount = computed(() => {
-  return props.changes.filter(c =>
-      c.requiresAcknowledgement && !c.acknowledgements.some(a => a.acknowledgedBy === props.currentMemberId)
-  ).length
-})
-
-function isAcknowledgedByMe(change: ProfileFieldChange): boolean {
-  return change.acknowledgements.some(a => a.acknowledgedBy === props.currentMemberId)
-}
-
-function acknowledgeChange(changeId: number) {
-  return runAcknowledge(async () => {
-    const comment = showCommentForChangeId.value === changeId ? acknowledgeComment.value : undefined
-    await profileFieldChanges.acknowledge(changeId, {comment})
-    showCommentForChangeId.value = null
-    acknowledgeComment.value = ''
-  })
-}
+const unacknowledgedCount = computed(() => countUnacknowledged(props.changes))
 
 function acknowledgeAllChanges() {
-  return runAcknowledge(async () => {
-    await profileFieldChanges.acknowledgeAll(props.memberId, {comment: acknowledgeComment.value || undefined})
-    acknowledgeComment.value = ''
-  })
-}
-
-function toggleComment(changeId: number) {
-  if (showCommentForChangeId.value === changeId) {
-    showCommentForChangeId.value = null
-    acknowledgeComment.value = ''
-  } else {
-    showCommentForChangeId.value = changeId
-    acknowledgeComment.value = ''
-  }
+  return acknowledgeAll(props.memberId, true)
 }
 </script>
 

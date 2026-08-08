@@ -16,7 +16,7 @@ import {profileFieldChanges} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
-import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useChangeAcknowledgement} from '@/composables/useChangeAcknowledgement'
 import PendingTabContent from './changesview/PendingTabContent.vue'
 import HistoryTabContent from './changesview/HistoryTabContent.vue'
 import {formatDateTime} from '@/util/format'
@@ -36,8 +36,6 @@ const summaries = ref<MemberChangeSummary[]>([])
 const expandedMemberId = ref<number | null>(null)
 const memberChanges = ref<ProfileFieldChange[]>([])
 const loadingChanges = ref(false)
-const acknowledgeComment = ref('')
-const showCommentForChangeId = ref<number | null>(null)
 
 const historyChanges = ref<ProfileFieldChange[]>([])
 const historyTotal = ref(0)
@@ -69,33 +67,16 @@ async function toggleMember(memberId: number) {
   }
 }
 
-function isAcknowledgedByMe(change: ProfileFieldChange): boolean {
-  return change.acknowledgements.some(a => a.acknowledgedBy === currentMemberId())
-}
-
-const {running: acknowledging, error: acknowledgeError, run: runAcknowledge} = useAsyncAction(
-    async (work: () => Promise<void>) => {
-      error.value = ''
-      await work()
-      await reloadExpanded()
-    },
-    {formatError: () => t('common.error')},
-)
-
-function acknowledgeChange(changeId: number) {
-  return runAcknowledge(async () => {
-    const comment = showCommentForChangeId.value === changeId ? acknowledgeComment.value : undefined
-    await profileFieldChanges.acknowledge(changeId, {comment})
-    showCommentForChangeId.value = null
-    acknowledgeComment.value = ''
-  })
-}
-
-function acknowledgeAllForMember(memberId: number) {
-  return runAcknowledge(async () => {
-    await profileFieldChanges.acknowledgeAll(memberId, {})
-  })
-}
+const {
+  acknowledgeComment,
+  showCommentForChangeId,
+  acknowledging,
+  error: acknowledgeError,
+  isAcknowledgedByMe,
+  acknowledgeChange,
+  acknowledgeAll: acknowledgeAllForMember,
+  toggleComment,
+} = useChangeAcknowledgement(currentMemberId, () => reloadExpanded())
 
 async function reloadExpanded() {
   summaries.value = await profileFieldChanges.getPendingSummary()
@@ -109,16 +90,6 @@ async function reloadExpanded() {
       expandedMemberId.value = null
       memberChanges.value = []
     }
-  }
-}
-
-function toggleComment(changeId: number) {
-  if (showCommentForChangeId.value === changeId) {
-    showCommentForChangeId.value = null
-    acknowledgeComment.value = ''
-  } else {
-    showCommentForChangeId.value = changeId
-    acknowledgeComment.value = ''
   }
 }
 

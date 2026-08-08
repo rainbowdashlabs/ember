@@ -18,6 +18,7 @@ import {useSession} from '@/composables/useSession'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import SummaryCards from '@/views/dashboardview/statisticsview/SummaryCards.vue'
 import ChartGrid from '@/views/dashboardview/statisticsview/ChartGrid.vue'
+import type {StatsData} from '@/views/dashboardview/statisticsview/statsData'
 
 use([CanvasRenderer, BarChart, PieChart, LineChart, TitleComponent, TooltipComponent, LegendComponent, GridComponent])
 
@@ -42,14 +43,6 @@ onUnmounted(() => {
 const textColor = computed(() => isDark.value ? '#e0e0e0' : '#333333')
 const mutedColor = computed(() => isDark.value ? '#9ca3af' : '#666666')
 
-interface StatsData {
-  memberCount: number
-  groupCounts: Record<string, number>
-  attendanceByMonth: Array<{ month: string; sessions: number; present: number; absent: number; declined: number }>
-  inventoryStatus: Array<{ name: string; total: number; assigned: number; lost: number }>
-  eventRegistrations: Array<{ name: string; accepted: number; pending: number; declined: number }>
-  roleCounts: Record<string, number>
-}
 
 const {config: stats, loading, error, reload: loadStats} = useConfigPanel<StatsData | null>({
   initial: null,

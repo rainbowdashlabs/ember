@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onBeforeUnmount, onMounted, ref, watch} from 'vue'
+import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import SidebarLayout from '@/components/layout/SidebarLayout.vue'
@@ -25,7 +25,7 @@ import DashboardSidebar from '@/views/dashboardview/DashboardSidebar.vue'
 import DashboardHeaderActions from '@/views/dashboardview/DashboardHeaderActions.vue'
 import {useSidebarBoards} from '@/views/dashboardview/useSidebarBoards'
 import QuickSearchPalette from '@/components/quicksearch/QuickSearchPalette.vue'
-import {useQuickSearch} from '@/composables/useQuickSearch'
+import {useQuickSearchShortcut} from '@/composables/useQuickSearchShortcut'
 import {useStationTransferStatus} from '@/composables/useStationTransferStatus'
 import {usePageHeader} from '@/composables/usePageHeader'
 
@@ -61,28 +61,11 @@ const isDemo = ref(false)
 const openGroup = ref<string | null>(null)
 const isDesktop = ref(window.matchMedia('(min-width: 1024px)').matches)
 
-const {open: openQuickSearch, close: closeQuickSearch, isOpen: quickSearchOpen} = useQuickSearch()
-
-function onGlobalKeydown(event: KeyboardEvent) {
-  const isCtrlK = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k'
-  if (!isCtrlK) return
-  event.preventDefault()
-  if (quickSearchOpen.value) {
-    closeQuickSearch()
-  } else {
-    openQuickSearch('station')
-  }
-}
+useQuickSearchShortcut('station')
 
 onMounted(() => {
   const mq = window.matchMedia('(min-width: 1024px)')
-  const handler = (e: MediaQueryListEvent) => { isDesktop.value = e.matches }
-  mq.addEventListener('change', handler)
-  window.addEventListener('keydown', onGlobalKeydown)
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener('keydown', onGlobalKeydown)
+  mq.addEventListener('change', (e: MediaQueryListEvent) => { isDesktop.value = e.matches })
 })
 
 const {checkFirstLogin} = useOnboardingTour()
