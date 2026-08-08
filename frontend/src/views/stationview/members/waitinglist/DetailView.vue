@@ -28,6 +28,8 @@ import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useConfirmAction } from '@/composables/useConfirmAction'
 import { useFlashMessage } from '@/composables/useFlashMessage'
+import { useListInvites } from './detailview/useListInvites'
+import { useEntryTransitions } from './detailview/useEntryTransitions'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -50,20 +52,7 @@ const fields = ref<WaitingListField[]>([])
 const groups = ref<MemberGroup[]>([])
 const { message: success, flash } = useFlashMessage(3000)
 
-const showInviteModal = ref(false)
-const inviteMaxUses = ref<number | undefined>(undefined)
-const inviteExpiresAt = ref('')
-
 const showDeleteModal = ref(false)
-
-type TransitionKind = 'invite' | 'testing' | 'join' | 'approve' | 'reject' | 'withdraw'
-
-interface PendingTransition {
-  entry: WaitingListEntryWithScore
-  kind: TransitionKind
-}
-
-const pendingTransition = ref<PendingTransition | null>(null)
 
 const sortedEntries = computed(() =>
   [...entries.value].sort((a, b) => b.score - a.score),
@@ -102,21 +91,21 @@ const sectionActions = computed(() => ({
   onListUpdated: handleListUpdated,
   onError: showErrorMessage,
   onSuccess: showSuccessMessage,
-  onApprove: doApproveEntry,
-  onReject: doRejectEntry,
-  onInvite: doInviteEntry,
-  onMoveToTesting: doMoveToTesting,
-  onMoveToJoined: doMoveToJoined,
-  onWithdraw: doWithdrawEntry,
+  onApprove: transitions.approve,
+  onReject: transitions.reject,
+  onInvite: transitions.invite,
+  onMoveToTesting: transitions.moveToTesting,
+  onMoveToJoined: transitions.moveToJoined,
+  onWithdraw: transitions.withdraw,
   onNavigateToEntry: navigateToEntry,
   onNavigateToMember: navigateToMember,
   onDeleteEntry: requestDeleteEntry,
   onToggleField: toggleFieldVisibility,
   onToggleFieldMenu: () => { showFieldToggle.value = !showFieldToggle.value },
   onAddEntry: navigateToCreateEntry,
-  onCreateInvite: openInviteModal,
-  onDeleteInvite: deleteInvite,
-  onCopyLink: copyInviteLink,
+  onCreateInvite: invite.openModal,
+  onDeleteInvite: invite.remove,
+  onCopyLink: invite.copyLink,
 }))
 
 const {loading, error} = useAsyncLoader(async () => {
@@ -134,6 +123,9 @@ const {loading, error} = useAsyncLoader(async () => {
   groups.value = groupData
 })
 
+const invite = useListInvites(listId, invites, error, flash)
+const transitions = useEntryTransitions(listId, entries, error)
+
 async function toggleFieldVisibility(fieldId: number) {
   if (!list.value) return
   const current = new Set(list.value.visibleFields ?? [])
@@ -146,82 +138,9 @@ async function toggleFieldVisibility(fieldId: number) {
   }
 }
 
-function openInviteModal() {
-  inviteMaxUses.value = undefined
-  inviteExpiresAt.value = ''
-  showInviteModal.value = true
-}
-
-const { running: creatingInvite, error: createInviteError, run: createInvite } = useAsyncAction(async () => {
-  error.value = ''
-  await waitingList.createInvite(listId.value, {
-    maxUses: inviteMaxUses.value || undefined,
-    expiresAt: inviteExpiresAt.value || undefined,
-  })
-  invites.value = await waitingList.listInvites(listId.value)
-  showInviteModal.value = false
-})
-
-async function deleteInvite(inviteId: number) {
-  error.value = ''
-  try {
-    await waitingList.deleteInvite(listId.value, inviteId)
-    invites.value = await waitingList.listInvites(listId.value)
-  } catch {
-    error.value = t('common.error')
-  }
-}
-
-async function copyInviteLink(code: string) {
-  const url = `${window.location.origin}/waiting-list/register?code=${code}`
-  await navigator.clipboard.writeText(url)
-  flash(t('waitingList.linkCopied'))
-}
-
 function navigateToCreateEntry() {
   router.push({ name: 'waiting-list-create-entry', params: { id: listId.value } })
 }
-
-function requestTransition(entryId: number, kind: TransitionKind) {
-  const entry = entries.value.find(e => e.entry.id === entryId)
-  if (!entry) return
-  pendingTransition.value = { entry, kind }
-}
-const doInviteEntry = (id: number) => requestTransition(id, 'invite')
-const doMoveToTesting = (id: number) => requestTransition(id, 'testing')
-const doMoveToJoined = (id: number) => requestTransition(id, 'join')
-const doApproveEntry = (id: number) => requestTransition(id, 'approve')
-const doRejectEntry = (id: number) => requestTransition(id, 'reject')
-const doWithdrawEntry = (id: number) => requestTransition(id, 'withdraw')
-
-const { running: runningTransition, error: transitionError, run: confirmTransition } = useAsyncAction(async () => {
-  if (!pendingTransition.value) return
-  const { entry, kind } = pendingTransition.value
-  const entryId = entry.entry.id
-  error.value = ''
-  if (kind === 'invite') {
-    await waitingList.inviteEntry(listId.value, entryId)
-  } else if (kind === 'testing') {
-    await waitingList.moveToTesting(listId.value, entryId)
-  } else if (kind === 'join') {
-    const result = await waitingList.moveToJoined(listId.value, entryId)
-    refreshSidebarCounts()
-    pendingTransition.value = null
-    if (result.memberId && hasPermission(StationPermission.MEMBER_EDIT)) {
-      router.push({ name: 'members-edit', params: { id: result.memberId } })
-      return
-    }
-  } else if (kind === 'approve') {
-    await waitingList.approveEntry(listId.value, entryId)
-  } else if (kind === 'reject') {
-    await waitingList.rejectEntry(listId.value, entryId)
-  } else if (kind === 'withdraw') {
-    await waitingList.withdrawEntry(listId.value, entryId)
-  }
-  entries.value = await waitingList.listEntries(listId.value)
-  refreshSidebarCounts()
-  pendingTransition.value = null
-})
 
 const {
   show: showDeleteEntryModal,
@@ -260,7 +179,7 @@ const { running: deletingList, error: deleteListError, run: confirmDeleteList } 
 })
 
 const actionError = computed(() =>
-  createInviteError.value || transitionError.value || deleteListError.value,
+  invite.createError.value || transitions.error.value || deleteListError.value,
 )
 
 function handleListUpdated(updated: WaitingList) {
@@ -311,21 +230,21 @@ function showErrorMessage(msg: string) {
       />
 
       <DetailModals
-        v-model:show-invite="showInviteModal"
-        v-model:invite-max-uses="inviteMaxUses"
-        v-model:invite-expires-at="inviteExpiresAt"
-        :creating-invite="creatingInvite"
+        v-model:show-invite="invite.showModal.value"
+        v-model:invite-max-uses="invite.maxUses.value"
+        v-model:invite-expires-at="invite.expiresAt.value"
+        :creating-invite="invite.creating.value"
         v-model:show-delete="showDeleteModal"
         :list-name="list?.name"
         :deleting-list="deletingList"
-        :pending-transition="pendingTransition"
-        :running-transition="runningTransition"
+        :pending-transition="transitions.pending.value"
+        :running-transition="transitions.running.value"
         v-model:show-delete-entry="showDeleteEntryModal"
         :delete-entry-target="deleteEntryTarget"
-        @submit-invite="createInvite"
+        @submit-invite="invite.create"
         @confirm-delete-list="confirmDeleteList"
-        @cancel-transition="pendingTransition = null"
-        @confirm-transition="confirmTransition"
+        @cancel-transition="transitions.pending.value = null"
+        @confirm-transition="transitions.confirm"
         @confirm-delete-entry="confirmDeleteEntry"
       />
     </div>

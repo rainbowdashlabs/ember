@@ -16,7 +16,8 @@ import Alert from '@/components/feedback/Alert.vue'
 import {StationPermission, StationUserType, type StationMember} from '@/api/types'
 import { parseFieldConfig } from '@/api/profileFields'
 import { useMemberData, memberDisplayName, getMemberFirstName, getMemberLastName } from './listview/useMemberData'
-import { useSavedFilters, emptyTabState, type MemberSortKey, type TabFilterState } from './listview/useSavedFilters'
+import { useSavedFilters, type MemberSortKey } from './listview/useSavedFilters'
+import { useMemberListTabs } from './listview/useMemberListTabs'
 import { useExport, type ExportColumn } from '@/composables/useExport'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { byValue, useSortable, type SortDirection } from '@/composables/useSortable'
@@ -38,91 +39,16 @@ const {
   toggleExpand,
 } = useMemberData()
 
-const activeTab = ref('ALL')
-
-const tabStates = ref<Record<string, TabFilterState>>({
-  ALL: emptyTabState(),
-  TRIAL: emptyTabState(),
-  MEMBER: emptyTabState(),
-  GUARDIAN: emptyTabState(),
-  TEAM: emptyTabState(),
-  MANAGER: emptyTabState(),
-})
-
-const currentTabState = computed(() => tabStates.value[activeTab.value] ?? emptyTabState())
-
-/** Mutable state of the active tab. Falls back to a throwaway state for unknown tabs. */
-function activeTabState(): TabFilterState {
-  return tabStates.value[activeTab.value] ?? emptyTabState()
-}
-
-const filterText = computed({
-  get: () => currentTabState.value.filterText,
-  set: (v: string) => { activeTabState().filterText = v },
-})
-const columnMultiFilters = computed(() => currentTabState.value.columnMultiFilters)
-const columnEmptyFilters = computed(() => currentTabState.value.columnEmptyFilters)
-const sortKey = computed<MemberSortKey>({
-  get: () => currentTabState.value.sortKey,
-  set: (v: MemberSortKey) => { activeTabState().sortKey = v },
-})
-const sortDirection = computed<SortDirection>({
-  get: () => currentTabState.value.sortDirection,
-  set: (v: SortDirection) => { activeTabState().sortDirection = v },
-})
-
-const tabs = computed(() => [
-  { key: 'ALL', label: t('membersList.tabAll') },
-  { key: 'TRIAL', label: t('membersList.tabTrial') },
-  { key: 'MEMBER', label: t('membersList.tabMember') },
-  { key: 'GUARDIAN', label: t('membersList.tabMemberManager') },
-  { key: 'TEAM', label: t('membersList.tabTeam') },
-  { key: 'MANAGER', label: t('membersList.tabManager') },
-])
+const {
+  activeTab, tabStates, tabs,
+  filterText, columnMultiFilters, columnEmptyFilters, sortKey, sortDirection,
+  extraColumnIds, hiddenColumnIds,
+  tabScopedFields, tabOverviewFields, tabNonOverviewFields, visibleColumns, toggleColumn,
+  applyColumnFilter,
+} = useMemberListTabs(fields)
 
 const { savedFilters, loadSavedFilters, saveCurrentFilter, applyFilter, deleteFilter, clearFilters } =
   useSavedFilters(tabStates, activeTab)
-
-const extraColumnIds = ref<Set<number>>(new Set())
-const hiddenColumnIds = ref<Set<number>>(new Set())
-
-const tabScopedFields = computed(() => {
-  const scopeForTab: Record<string, string[]> = {
-    ALL: [StationUserType.TRIAL, StationUserType.MEMBER, StationUserType.GUARDIAN, StationUserType.TEAM, StationUserType.MANAGER],
-    [StationUserType.TRIAL]: [StationUserType.TRIAL],
-    [StationUserType.MEMBER]: [StationUserType.MEMBER],
-    [StationUserType.GUARDIAN]: [StationUserType.GUARDIAN],
-    [StationUserType.TEAM]: [StationUserType.TEAM],
-    [StationUserType.MANAGER]: [StationUserType.MANAGER],
-  }
-  const scopes = scopeForTab[activeTab.value] ?? []
-  return fields.value.filter(f => {
-    if (f.scope === 'GROUP') return false
-    return scopes.includes(f.scope ?? StationUserType.MEMBER)
-  })
-})
-
-const tabOverviewFields = computed(() => tabScopedFields.value.filter(f => parseFieldConfig(f.config).overview))
-const tabNonOverviewFields = computed(() => tabScopedFields.value.filter(f => !parseFieldConfig(f.config).overview))
-
-const visibleColumns = computed(() => {
-  const overview = tabOverviewFields.value.filter(f => !hiddenColumnIds.value.has(f.id))
-  const extra = tabNonOverviewFields.value.filter(f => extraColumnIds.value.has(f.id))
-  return [...overview, ...extra]
-})
-
-function toggleColumn(fieldId: number) {
-  const isOverview = tabOverviewFields.value.some(f => f.id === fieldId)
-  if (isOverview) {
-    const next = new Set(hiddenColumnIds.value)
-    if (next.has(fieldId)) next.delete(fieldId); else next.add(fieldId)
-    hiddenColumnIds.value = next
-  } else {
-    const next = new Set(extraColumnIds.value)
-    if (next.has(fieldId)) next.delete(fieldId); else next.add(fieldId)
-    extraColumnIds.value = next
-  }
-}
 
 const {
   onFilter: onMemberFilter,
@@ -177,16 +103,6 @@ const {sorted: sortedMembers, toggle: toggleSort} = useSortable<StationMember, M
       ? byValue(memberDisplayName)
       : byValue(member => getFieldValueAsString(member.id, key)),
 })
-
-function applyColumnFilter(key: 'name' | 'groups' | 'tags' | number, selected: Set<string>, includeEmpty: boolean) {
-  const state = activeTabState()
-  const newMap = new Map(state.columnMultiFilters)
-  if (selected.size > 0) { newMap.set(key, selected) } else { newMap.delete(key) }
-  state.columnMultiFilters = newMap
-  const newEmpty = new Set(state.columnEmptyFilters)
-  if (includeEmpty) { newEmpty.add(key) } else { newEmpty.delete(key) }
-  state.columnEmptyFilters = newEmpty
-}
 
 const exportColumns = computed((): ExportColumn<StationMember>[] => [
   {key: 'firstName', label: t('membersList.export.colFirstName'), value: getMemberFirstName},
