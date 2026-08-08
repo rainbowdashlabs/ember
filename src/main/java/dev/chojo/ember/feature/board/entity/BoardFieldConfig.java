@@ -5,12 +5,10 @@
  */
 package dev.chojo.ember.feature.board.entity;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import dev.chojo.ember.util.Json;
 import org.slf4j.Logger;
-import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.util.List;
 
@@ -19,12 +17,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public sealed interface BoardFieldConfig {
     Logger log = getLogger(BoardFieldConfig.class);
-    ObjectMapper MAPPER = JsonMapper.builder()
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-            .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
-            .changeDefaultVisibility(v -> v.withFieldVisibility(JsonAutoDetect.Visibility.ANY)
-                    .withGetterVisibility(JsonAutoDetect.Visibility.NONE))
-            .build();
+    ObjectMapper MAPPER = Json.CONFIG_MAPPER;
 
     static BoardFieldConfig parse(BoardFieldType fieldType, String json) {
         if (json == null || json.isBlank()) return empty(fieldType);

@@ -5,13 +5,10 @@
  */
 package dev.chojo.ember.feature.waitinglist.entity;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import dev.chojo.ember.util.Json;
 import org.slf4j.Logger;
-import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.SerializationFeature;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.util.List;
 
@@ -27,13 +24,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 public record WaitingListFieldConfig(List<String> options, String placeholder) {
     public static final WaitingListFieldConfig EMPTY = new WaitingListFieldConfig(null, null);
     private static final Logger log = getLogger(WaitingListFieldConfig.class);
-    private static final ObjectMapper MAPPER = JsonMapper.builder()
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-            .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
-            .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
-            .changeDefaultVisibility(v -> v.withFieldVisibility(JsonAutoDetect.Visibility.ANY)
-                    .withGetterVisibility(JsonAutoDetect.Visibility.NONE))
-            .build();
+    private static final ObjectMapper MAPPER = Json.EMPTY_TOLERANT_CONFIG_MAPPER;
 
     public static WaitingListFieldConfig parse(String json) {
         if (json == null || json.isBlank() || "{}".equals(json)) return EMPTY;

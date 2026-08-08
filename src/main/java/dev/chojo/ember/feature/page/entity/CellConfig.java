@@ -5,16 +5,13 @@
  */
 package dev.chojo.ember.feature.page.entity;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import dev.chojo.ember.util.Json;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.SerializationFeature;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.util.List;
 import java.util.Map;
@@ -23,13 +20,7 @@ import java.util.Map;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public sealed interface CellConfig {
     Logger log = LoggerFactory.getLogger(CellConfig.class);
-    ObjectMapper MAPPER = JsonMapper.builder()
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-            .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
-            .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
-            .changeDefaultVisibility(v -> v.withFieldVisibility(JsonAutoDetect.Visibility.ANY)
-                    .withGetterVisibility(JsonAutoDetect.Visibility.NONE))
-            .build();
+    ObjectMapper MAPPER = Json.EMPTY_TOLERANT_CONFIG_MAPPER;
 
     CellConfig EMPTY = new MarkdownConfig();
 

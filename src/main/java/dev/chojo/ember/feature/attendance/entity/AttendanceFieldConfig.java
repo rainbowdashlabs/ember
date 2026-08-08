@@ -5,11 +5,9 @@
  */
 package dev.chojo.ember.feature.attendance.entity;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import dev.chojo.ember.util.Json;
 import org.slf4j.Logger;
-import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -28,12 +26,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 public record AttendanceFieldConfig(
         boolean required, Integer groupId, boolean autoAttend, List<String> options, Object defaultValue) {
     private static final Logger log = getLogger(AttendanceFieldConfig.class);
-    private static final ObjectMapper MAPPER = JsonMapper.builder()
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-            .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
-            .changeDefaultVisibility(v -> v.withFieldVisibility(JsonAutoDetect.Visibility.ANY)
-                    .withGetterVisibility(JsonAutoDetect.Visibility.NONE))
-            .build();
+    private static final ObjectMapper MAPPER = Json.CONFIG_MAPPER;
     private static final AttendanceFieldConfig EMPTY = new AttendanceFieldConfig(false, null, false, null, null);
 
     /**
