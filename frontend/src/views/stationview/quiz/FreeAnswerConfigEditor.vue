@@ -9,53 +9,36 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
-import DecimalInput from '@/components/input/number/DecimalInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldHint from '@/components/typography/FieldHint.vue'
+import PointsPerCorrectField from './PointsPerCorrectField.vue'
+import { useQuestionConfigList } from './useQuestionConfigList'
 
 const { t } = useI18n()
 
 const config = defineModel<Record<string, unknown>>('config', {required: true})
 
+const answers = useQuestionConfigList(config, 'answers')
+
 function updateConfig(patch: Record<string, unknown>) {
   config.value = { ...config.value, ...patch }
-}
-
-function addFreeAnswerItem() {
-  const answers = [...((config.value.answers as string[]) || [])]
-  answers.push('')
-  updateConfig({ answers })
-}
-
-function removeFreeAnswerItem(idx: number) {
-  const answers = [...((config.value.answers as string[]) || [])]
-  answers.splice(idx, 1)
-  updateConfig({ answers })
-}
-
-function updateFreeAnswerItem(idx: number, value: string) {
-  const answers = [...((config.value.answers as string[]) || [])]
-  answers[idx] = value
-  updateConfig({ answers })
 }
 </script>
 
 <template>
-  <div class="flex items-center gap-2">
-    <FieldHint>{{ t('quiz.questions.config.pointsPerCorrect') }}</FieldHint>
-    <DecimalInput :model-value="(config.pointsPerCorrect as number) || 1" step="0.5" class="w-20" @update:model-value="(v: number | undefined) => updateConfig({ pointsPerCorrect: v ?? 1 })"/>
-  </div>
+  <PointsPerCorrectField :model-value="(config.pointsPerCorrect as number) || 1"
+                         @update:model-value="v => updateConfig({ pointsPerCorrect: v })"/>
   <div class="flex items-center gap-2">
     <FieldHint>{{ t('quiz.questions.config.lines') }}</FieldHint>
     <NumberInput :model-value="(config.lines as number)" class="w-20" @update:model-value="(v: number | undefined) => updateConfig({ lines: v ?? 3 })" />
   </div>
   <SubHeader>{{ t('quiz.questions.config.enumerationAnswers') }}</SubHeader>
   <div class="space-y-2">
-    <div v-for="(ans, idx) in (config.answers as string[])" :key="idx" class="flex items-center gap-2">
+    <div v-for="(ans, idx) in answers.items.value" :key="idx" class="flex items-center gap-2">
       <span class="text-xs text-(--text-muted) shrink-0">{{ idx + 1 }}.</span>
-      <TextInput :model-value="ans" class="flex-1" @update:model-value="(v: string | undefined) => updateFreeAnswerItem(idx, v ?? '')" />
-      <DeleteButton @click="removeFreeAnswerItem(idx)" />
+      <TextInput :model-value="ans" class="flex-1" @update:model-value="(v: string | undefined) => answers.update(idx, v ?? '')" />
+      <DeleteButton @click="answers.remove(idx)" />
     </div>
-    <SecondaryButton @click="addFreeAnswerItem"><font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />{{ t('quiz.questions.config.addAnswer') }}</SecondaryButton>
+    <SecondaryButton @click="answers.add"><font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />{{ t('quiz.questions.config.addAnswer') }}</SecondaryButton>
   </div>
 </template>
