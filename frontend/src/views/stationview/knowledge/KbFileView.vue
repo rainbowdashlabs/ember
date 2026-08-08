@@ -25,7 +25,8 @@ import KbEditFileModal from '@/views/stationview/knowledge/knowledgebaseview/KbE
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {knowledgeBase} from '@/api'
-import {KbFileType, type KbFile, type KbTag, type MarkdownHtmlResponse} from '@/api/knowledgeBase'
+import {KbFileType, type KbFile, type MarkdownHtmlResponse} from '@/api/knowledgeBase'
+import {useKbFileMetadata} from '@/views/stationview/knowledge/kbfileview/useKbFileMetadata'
 import {getItem} from '@/api/storage'
 import {downloadAuthed} from '@/util/downloadAuthed'
 import {formatDateTime} from '@/util/format'
@@ -44,11 +45,13 @@ const markdownData = ref<MarkdownHtmlResponse | null>(null)
 const editing = ref(false)
 const editContent = ref('')
 const textContent = ref('')
-const fileTags = ref<KbTag[]>([])
-const allStationTags = ref<KbTag[]>([])
-const relatedFiles = ref<KbFile[]>([])
-const editingDescription = ref(false)
-const editDescriptionValue = ref('')
+const {
+    fileTags, allStationTags, relatedFiles,
+    editingDescription, editDescriptionValue,
+    addTag, removeTag, addRelatedFile, removeRelatedFile,
+    startEditDescription, saveDescription,
+} = useKbFileMetadata(file, lastEditedByName)
+
 const showPresentation = ref(false)
 const showEditMetadataModal = ref(false)
 async function downloadOriginal() {
@@ -139,45 +142,6 @@ async function saveContent() {
         error.value = t('common.error')
         throw e
     }
-}
-async function addTag(name: string) {
-    if (!file.value) return
-    const tagNames = fileTags.value.map(t => t.name)
-    tagNames.push(name)
-    fileTags.value = await knowledgeBase.setFileTags(file.value.id, tagNames)
-    allStationTags.value = await knowledgeBase.listTags()
-}
-async function removeTag(tagName: string) {
-    if (!file.value) return
-    const tagNames = fileTags.value.map(t => t.name).filter(n => n !== tagName)
-    fileTags.value = await knowledgeBase.setFileTags(file.value.id, tagNames)
-}
-function startEditDescription() {
-    editingDescription.value = true
-    editDescriptionValue.value = file.value?.description ?? ''
-}
-
-async function saveDescription() {
-    if (!file.value) return
-    await knowledgeBase.updateFile(file.value.id, {
-        name: file.value.name,
-        description: editDescriptionValue.value,
-    })
-    const reloaded = await knowledgeBase.getFile(file.value.id)
-    file.value = reloaded.file
-    lastEditedByName.value = reloaded.lastEditedByName
-    editingDescription.value = false
-}
-async function addRelatedFile(targetId: number) {
-    if (!file.value) return
-    const ids = [...relatedFiles.value.map(f => f.id), targetId]
-    relatedFiles.value = await knowledgeBase.setRelatedFiles(file.value.id, ids)
-}
-
-async function removeRelatedFile(targetId: number) {
-    if (!file.value) return
-    const ids = relatedFiles.value.map(f => f.id).filter(id => id !== targetId)
-    relatedFiles.value = await knowledgeBase.setRelatedFiles(file.value.id, ids)
 }
 function goBack() {
     if (file.value?.folderId) {

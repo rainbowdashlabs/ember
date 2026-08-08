@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -15,8 +15,8 @@ import { boards } from '@/api'
 import {LinkType, type BoardLane, type BoardTicket, type BoardTicketAttachment, type BoardTicketLink, type BoardWeblink, type LinkTypeName} from '@/api/boards'
 import type { MemberCompletion } from '@/api/stationMembers'
 import { useBoardApi } from '@/composables/useBoardApi'
-import { useAuthImages } from '@/composables/useAuthImage'
-import { downloadAuthed } from '@/util/downloadAuthed'
+import { useAttachmentPreview } from '@/views/stationview/boards/boardview/useAttachmentPreview'
+import { formatSize } from '@/util/format'
 
 const props = defineProps<{
     boardKey: string
@@ -118,78 +118,28 @@ async function handleAddWeblink() {
 async function removeWeblink(id: number) { await boards.deleteWeblink(props.boardKey, props.ticketNumber, id); emit('reload') }
 async function removeAttachment(id: number) { await boards.deleteAttachment(props.boardKey, props.ticketNumber, id); emit('reload') }
 
-const previewOverlayRef = ref<HTMLElement | null>(null)
-const previewUrl = ref<string | null>(null)
-const previewName = ref('')
-const previewCsv = ref<string[][] | null>(null)
-const showPreview = ref(false)
-const previewIndex = ref(0)
-
-function isImage(ct: string) { return ct.startsWith('image/') }
-function isPdf(ct: string) { return ct === 'application/pdf' }
-function isCsv(name: string) { return name.toLowerCase().endsWith('.csv') }
-function canPreview(att: BoardTicketAttachment) { return isImage(att.contentType) || isPdf(att.contentType) || isCsv(att.originalName) }
-function fileIcon(att: BoardTicketAttachment): string[] {
-    if (isImage(att.contentType)) return ['fas', 'image']
-    if (isPdf(att.contentType)) return ['fas', 'file-pdf']
-    if (isCsv(att.originalName)) return ['fas', 'file-lines']
-    if (att.contentType.startsWith('text/')) return ['fas', 'file-lines']
-    return ['fas', 'file']
-}
-
-const {srcFor, load: loadAttachmentBlob} = useAuthImages<number>()
-
-function attachmentUrl(attachmentId: number): string {
-    return `/boards/${props.boardKey}/tickets/${props.ticketNumber}/attachments/${attachmentId}/download`
-}
-
-async function loadThumbnails() {
-    for (const att of props.attachments) {
-        if (isImage(att.contentType) && !srcFor(att.id)) {
-            await loadAttachmentBlob(att.id, attachmentUrl(att.id))
-        }
-    }
-}
-watch(() => props.attachments, loadThumbnails, { immediate: true })
-
-async function openPreview(att: BoardTicketAttachment) {
-    previewIndex.value = props.attachments.findIndex(a => a.id === att.id)
-    await loadPreview(att)
-}
-
-watch(showPreview, (v) => { if (v) nextTick(() => previewOverlayRef.value?.focus()) })
-
-async function loadPreview(att: BoardTicketAttachment) {
-    previewName.value = att.originalName; previewCsv.value = null; previewUrl.value = null
-    showPreview.value = true
-    if (isImage(att.contentType) || isPdf(att.contentType)) {
-        if (!srcFor(att.id)) await loadAttachmentBlob(att.id, attachmentUrl(att.id))
-        previewUrl.value = srcFor(att.id)
-    } else if (isCsv(att.originalName)) { previewCsv.value = parseCsv(await boards.getAttachmentText(props.boardKey, props.ticketNumber, att.id)) }
-}
-
-function previewAt(index: number) { const att = props.attachments[index]; if (att) { previewIndex.value = index; loadPreview(att) } }
-function previewPrev() { if (previewIndex.value > 0) previewAt(previewIndex.value - 1) }
-function previewNext() { if (previewIndex.value < props.attachments.length - 1) previewAt(previewIndex.value + 1) }
-async function downloadCurrent() { const att = props.attachments[previewIndex.value]; if (att) await handleDownload(att) }
-
-function parseCsv(text: string): string[][] {
-    return text.trim().split('\n').map(line => {
-        const cols: string[] = []; let cur = ''; let inQuote = false
-        for (const ch of line) { if (ch === '"') { inQuote = !inQuote } else if (ch === ',' && !inQuote) { cols.push(cur); cur = '' } else if (ch === ';' && !inQuote) { cols.push(cur); cur = '' } else { cur += ch } }
-        cols.push(cur); return cols
-    })
-}
-
-async function handleDownload(att: BoardTicketAttachment) {
-    await downloadAuthed(attachmentUrl(att.id), att.originalName)
-}
-
-function formatFileSize(bytes: number): string {
-    if (bytes < 1024) return bytes + ' B'
-    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB'
-    return (bytes / 1048576).toFixed(1) + ' MB'
-}
+const {
+    srcFor,
+    overlayRef: previewOverlayRef,
+    url: previewUrl,
+    name: previewName,
+    csv: previewCsv,
+    shown: showPreview,
+    index: previewIndex,
+    isImage,
+    isPdf,
+    canPreview,
+    fileIcon,
+    open: openPreview,
+    previous: previewPrev,
+    next: previewNext,
+    download: handleDownload,
+    downloadCurrent,
+} = useAttachmentPreview(
+    computed(() => props.boardKey),
+    computed(() => props.ticketNumber),
+    computed(() => props.attachments),
+)
 
 const hasAnyContent = computed(() => props.links.length > 0 || props.weblinks.length > 0 || props.attachments.length > 0 || showAddLink.value || showAddWeblink.value)
 </script>
@@ -280,7 +230,7 @@ const hasAnyContent = computed(() => props.links.length > 0 || props.weblinks.le
                     </div>
                     <!-- Action bar (bottom) -->
                     <div class="absolute bottom-0 left-0 right-0 bg-black/50 px-1 py-0.5 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span class="text-[0.55rem] text-white/80">{{ formatFileSize(att.sizeBytes) }}</span>
+                        <span class="text-[0.55rem] text-white/80">{{ formatSize(att.sizeBytes) }}</span>
                         <div class="flex gap-1" @click.stop>
                             <IconButton v-if="canPreview(att)" :icon="['fas', 'eye']" label="Preview" class="text-white text-xs" @click="openPreview(att)" />
                             <IconButton :icon="['fas', 'download']" label="Download" class="text-white text-xs" @click="handleDownload(att)" />

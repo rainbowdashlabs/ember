@@ -24,7 +24,8 @@ import TableDetailDrawer from './datatrackingview/TableDetailDrawer.vue'
 import TableListRow from './datatrackingview/TableListRow.vue'
 import SummaryCards from './datatrackingview/SummaryCards.vue'
 import StatusBreakdownGrid from './datatrackingview/StatusBreakdownGrid.vue'
-import DanglingRefAudit, {type DanglingRef} from './datatrackingview/DanglingRefAudit.vue'
+import DanglingRefAudit from './datatrackingview/DanglingRefAudit.vue'
+import {findDanglingMemberRefs} from './datatrackingview/danglingMemberRefs'
 import TableFilterBar from './datatrackingview/TableFilterBar.vue'
 import BatchToolbar from './datatrackingview/BatchToolbar.vue'
 
@@ -82,45 +83,7 @@ function matchesSearch(r: Row, q: string): boolean {
   )
 }
 
-/**
- * Returns every TRACKED gdprExport identity column whose declared column has no FK to
- * the station_member table — these are at-risk data-integrity links because deleting a member
- * won't clean them up via FK CASCADE. The station_member self-PK is filtered out (it IS the
- * member table).
- */
-const danglingMemberRefs = computed<DanglingRef[]>(() => {
-  if (!tracking.value) return []
-  const out: DanglingRef[] = []
-  for (const [name, entry] of Object.entries(tracking.value.tables)) {
-    if (entry.gdprExport?.status !== 'TRACKED') continue
-    for (const ic of entry.gdprExport.identityColumns ?? []) {
-      if (ic.type !== 'MEMBER_ID') continue
-      const colExists = entry.columns.some(c => c.name === ic.column)
-      if (!colExists) {
-        out.push({
-          table: name,
-          column: ic.column,
-          identityType: ic.type,
-          hint: 'column does not exist on the table',
-        })
-        continue
-      }
-      if (name === 'station_member') continue
-      const fks = entry.foreignKeys ?? []
-      const hasMemberFk = fks.some(fk => fk.column === ic.column && fk.refTable === 'station_member')
-      if (!hasMemberFk) {
-        const other = fks.find(fk => fk.column === ic.column)
-        out.push({
-          table: name,
-          column: ic.column,
-          identityType: ic.type,
-          hint: other ? `FK points to ${other.refTable} instead of station_member` : 'no FK at all',
-        })
-      }
-    }
-  }
-  return out.sort((a, b) => a.table.localeCompare(b.table) || a.column.localeCompare(b.column))
-})
+const danglingMemberRefs = computed(() => findDanglingMemberRefs(tracking.value))
 
 const filteredRows = computed<Row[]>(() => {
   const q = search.value.trim().toLowerCase()

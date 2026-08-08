@@ -18,7 +18,8 @@ import ChartsTab from '@/views/stationview/forms/analyticsview/ChartsTab.vue'
 import IndividualResponseTab from '@/views/stationview/forms/analyticsview/IndividualResponseTab.vue'
 import ExportModal from '@/views/stationview/forms/analyticsview/ExportModal.vue'
 import MissingResponsesPanel from '@/views/stationview/forms/analyticsview/MissingResponsesPanel.vue'
-import {FormAnalyticsBase, QuestionTypes, type Form, type FormAnalytics, type FormAnalyticsBaseName, type FormAnswer, type FormResponse} from '@/api/forms'
+import {FormAnalyticsBase, type Form, type FormAnalytics, type FormAnalyticsBaseName, type FormAnswer, type FormResponse} from '@/api/forms'
+import { formatAnswerDisplay } from '@/util/formAnswerDisplay'
 import type { ProfileField } from '@/api/profileFields'
 import { forms, profileFields, stationMembers } from '@/api'
 import { downloadExport, type ExportColumn } from '@/composables/useExport'
@@ -78,46 +79,6 @@ function nextResponse() {
 function getAnswerForQuestion(questionId: number): string {
   const answer = currentAnswers.value.find(a => a.questionId === questionId)
   return answer?.value ?? ''
-}
-
-function parseConfig(config: Record<string, unknown> | string): Record<string, unknown> {
-  if (typeof config === 'object' && config !== null) return config
-  try { return JSON.parse(config || '{}') } catch { return {} }
-}
-
-function parseValue(value: string): Record<string, unknown> {
-  try { return JSON.parse(value || '{}') } catch { return {} }
-}
-
-function formatAnswerDisplay(questionType: string, config: string | Record<string, unknown>, value: string): string {
-  if (!value) return '–'
-  const parsed = parseValue(value)
-  const cfg = parseConfig(config)
-
-  if (questionType === QuestionTypes.TEXT) return (parsed as { text?: string }).text || '–'
-  if (questionType === QuestionTypes.DATE) return (parsed as { date?: string }).date || '–'
-  if (questionType === QuestionTypes.RATING) return String((parsed as { rating?: number }).rating ?? '–')
-  if (questionType === QuestionTypes.CHOICE) {
-    const selected = (parsed as { selected?: number[]; other?: string }).selected ?? []
-    const options = (cfg.options as string[]) || []
-    const labels = selected.map(i => options[i] ?? `#${i}`)
-    const other = (parsed as { other?: string }).other
-    if (other) labels.push(`Sonstige: ${other}`)
-    return labels.join(', ') || '–'
-  }
-  if (questionType === QuestionTypes.RANKING) {
-    const order = (parsed as { order?: number[] }).order ?? []
-    const options = (cfg.options as string[]) || []
-    return order.map((idx, rank) => `${rank + 1}. ${options[idx] ?? ''}`).join(', ')
-  }
-  if (questionType === QuestionTypes.LIKERT) {
-    const ratings = (parsed as { ratings?: Record<string, number> }).ratings ?? {}
-    const statements = (cfg.statements as string[]) || []
-    return Object.entries(ratings)
-        .map(([si, val]) => `${statements[Number(si)] || `Option ${Number(si) + 1}`}: ${val}`)
-        .join(', ')
-  }
-  return value
 }
 
 const showExportModal = ref(false)

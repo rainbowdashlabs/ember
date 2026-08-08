@@ -13,16 +13,13 @@ import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import MemberListHeader from './memberlistview/MemberListHeader.vue'
 import MemberListBody from './memberlistview/MemberListBody.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
-import { inventory, stationMembers, memberGroups, profileFields, userTags } from '@/api'
+import { inventory, stationMembers, memberGroups, userTags } from '@/api'
 import type { Inventory, InventoryItem } from '@/api/inventory'
-import type { ProfileField } from '@/api/profileFields'
 import type { MemberGroup, StationMember, UserTag } from '@/api/types'
 import { useMemberFilter } from '@/composables/useMemberFilter'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
-import { useAsyncAction } from '@/composables/useAsyncAction'
-import { saveBlob } from '@/util/downloadAuthed'
-import client from '@/api/client'
+import { useInventoryMemberExport } from './memberlistview/useInventoryMemberExport'
 import { getItem, setItem } from '@/api/storage'
 
 const { t } = useI18n()
@@ -44,10 +41,6 @@ const showName = ref(getItem('inv-members-show-name') !== 'false')
 const showInternalId = ref(getItem('inv-members-show-internal-id') === 'true')
 const showSize = ref(getItem('inv-members-show-size') !== 'false')
 
-const exportMode = ref(false)
-const selectedForExport = ref<Set<number>>(new Set())
-const selectedExportFields = ref<Set<number>>(new Set())
-const allFields = ref<ProfileField[]>([])
 const filterText = ref('')
 
 const memberItemMap = computed(() => {
@@ -171,39 +164,6 @@ watch(filteredMembers, list => {
   if (changed) selectedForExport.value = next
 })
 
-async function enterExportMode() {
-  exportMode.value = true
-  selectedForExport.value = new Set(filteredMembers.value.map(m => m.id))
-  selectedExportFields.value = new Set()
-  try { allFields.value = await profileFields.listFields() } catch { allFields.value = [] }
-}
-
-function cancelExport() {
-  exportMode.value = false
-  selectedForExport.value = new Set()
-  selectedExportFields.value = new Set()
-}
-
-function toggleExportField(fieldId: number) {
-  const s = new Set(selectedExportFields.value)
-  if (s.has(fieldId)) s.delete(fieldId); else s.add(fieldId)
-  selectedExportFields.value = s
-}
-
-function toggleExportSelection(id: number) {
-  const s = new Set(selectedForExport.value)
-  if (s.has(id)) s.delete(id); else s.add(id)
-  selectedForExport.value = s
-}
-
-function toggleSelectAll() {
-  if (selectedForExport.value.size === filteredMembers.value.length) {
-    selectedForExport.value = new Set()
-  } else {
-    selectedForExport.value = new Set(filteredMembers.value.map(m => m.id))
-  }
-}
-
 function formatItemLabel(item: InventoryItem): string {
   const parts: string[] = []
   if (showName.value && item.name) parts.push(item.name)
@@ -219,40 +179,29 @@ function memberInventoryItems(memberId: number, inventoryId: number): InventoryI
   return memberItemMap.value.get(memberId)?.get(inventoryId) ?? []
 }
 
-function exportCsv() {
-  const selected = filteredMembers.value.filter(m => selectedForExport.value.has(m.id))
-  const headers = [t('membersList.colName')]
-  for (const inv of displayedInventories.value) headers.push(inv.name ?? '')
-
-  const rows: string[][] = []
-  for (const member of selected) {
-    const row = [memberDisplayName(member)]
-    for (const inv of displayedInventories.value) {
-      const items = memberInventoryItems(member.id, inv.id)
-      row.push(items.map(i => {
-        const label = formatItemLabel(i)
-        return i.lostAt ? `${label} (${t('inventoryMembers.lost')})` : label
-      }).join(', '))
-    }
-    rows.push(row)
-  }
-
-  const csv = [headers.join(';'), ...rows.map(r => r.map(c => `"${c.replace(/"/g, '""')}"`).join(';'))].join('\n')
-  saveBlob(new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' }), 'inventory-members.csv')
-  exportMode.value = false
-}
-
-const {running: exporting, error: exportError, run: exportPdf} = useAsyncAction(async () => {
-  const memberIds = [...selectedForExport.value]
-  const inventoryIds = [...visibleInventoryIds.value]
-  const extraFieldIds = [...selectedExportFields.value]
-  const res = await client.post('/inventories/members/export', {
-    memberIds, inventoryIds, extraFieldIds,
-    showName: showName.value, showInternalId: showInternalId.value, showSize: showSize.value,
-  }, { responseType: 'blob' })
-  saveBlob(res.data as Blob, 'inventory-members.pdf')
-  exportMode.value = false
-}, {formatError: () => t('common.error')})
+const {
+  exportMode,
+  selectedMemberIds: selectedForExport,
+  selectedFieldIds: selectedExportFields,
+  allFields,
+  exporting,
+  exportError,
+  enter: enterExportMode,
+  cancel: cancelExport,
+  toggleField: toggleExportField,
+  toggleMember: toggleExportSelection,
+  toggleSelectAll,
+  exportCsv,
+  exportPdf,
+} = useInventoryMemberExport(
+  filteredMembers,
+  displayedInventories,
+  visibleInventoryIds,
+  {showName, showInternalId, showSize},
+  memberDisplayName,
+  memberInventoryItems,
+  formatItemLabel,
+)
 
 function goToMember(memberId: number) {
   router.push({ name: 'inventory-member', params: { memberId } })
