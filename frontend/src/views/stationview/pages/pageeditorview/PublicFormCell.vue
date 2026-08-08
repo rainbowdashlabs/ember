@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {onMounted, ref, watch} from 'vue'
+import {computed, onMounted, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Alert from '@/components/feedback/Alert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -15,10 +15,8 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import PublicConsentCheckbox from '@/components/public/PublicConsentCheckbox.vue'
-import {publicForms} from '@/api'
-import type {PublicForm, PublicFormQuestion} from '@/api/publicForms'
 import {QuestionTypes} from '@/api/forms'
-import {useAsyncAction} from '@/composables/useAsyncAction'
+import {usePublicFormSubmission} from '@/composables/usePublicFormSubmission'
 
 const props = defineProps<{
   stationUid: string | null
@@ -32,92 +30,26 @@ const props = defineProps<{
 
 const {t} = useI18n()
 
-const loading = ref(false)
-const submitted = ref(false)
-const error = ref('')
-const form = ref<PublicForm | null>(null)
-const answers = ref<Record<number, Record<string, unknown>>>({})
-const consentAccepted = ref(false)
-const consentVersion = ref('')
-const privacyVersion = ref('')
-const tosVersion = ref('')
-const validationError = ref('')
-
-function initAnswerDefaults(questions: PublicFormQuestion[]) {
-  answers.value = {}
-  for (const q of questions) {
-    if (q.questionType === QuestionTypes.CHOICE) answers.value[q.id] = {selected: [] as number[], other: ''}
-    else if (q.questionType === QuestionTypes.TEXT) answers.value[q.id] = {text: ''}
-    else if (q.questionType === QuestionTypes.DATE) answers.value[q.id] = {date: ''}
-    else answers.value[q.id] = {}
-  }
-}
-
-async function load() {
-  if (!props.stationUid || !props.formPublicUid) {
-    form.value = null
-    return
-  }
-  loading.value = true
-  error.value = ''
-  submitted.value = false
-  try {
-    const data = await publicForms.getPublicForm(props.stationUid, props.formPublicUid)
-    form.value = data
-    initAnswerDefaults(data.questions)
-  } catch {
-    form.value = null
-    error.value = t('publicForm.notFound')
-  } finally {
-    loading.value = false
-  }
-}
-
-function toggleChoice(q: PublicFormQuestion, optionIndex: number) {
-  const ans = answers.value[q.id] as {selected: number[]; other: string}
-  const multi = !!q.config.multiSelect
-  if (multi) {
-    const idx = ans.selected.indexOf(optionIndex)
-    if (idx >= 0) ans.selected.splice(idx, 1)
-    else ans.selected.push(optionIndex)
-  } else {
-    ans.selected = [optionIndex]
-    ans.other = ''
-  }
-}
-
-const {running: submitting, error: submitError, run: runSubmit} = useAsyncAction(async () => {
-  if (!form.value || !props.stationUid || !props.formPublicUid) return
-  const answerMap: Record<number, Record<string, unknown>> = {}
-  for (const q of form.value.questions) {
-    const value = answers.value[q.id]
-    if (value === undefined) continue
-    answerMap[q.id] = {type: q.questionType, ...value}
-  }
-  await publicForms.submitPublicResponse(props.stationUid, props.formPublicUid, {
-    answers: answerMap,
-    consentVersion: consentVersion.value,
-    privacyVersion: privacyVersion.value,
-    tosVersion: tosVersion.value,
-  })
-  submitted.value = true
-}, {
-  formatError: e => {
-    const status = (e as {response?: {status?: number}}).response?.status
-    if (status === 409) return t('publicForm.alreadyAnswered')
-    if (status === 429) return t('publicForm.rateLimited')
-    return t('publicForm.submitError')
-  },
-})
-
-function submit() {
-  if (!consentAccepted.value) {
-    validationError.value = t('publicConsent.required')
-    return
-  }
-  validationError.value = ''
-  void runSubmit()
-}
+const {
+  form,
+  answers,
+  loading,
+  loadError: error,
+  submitted,
+  validationError,
+  consentAccepted,
+  consentVersion,
+  privacyVersion,
+  tosVersion,
+  submitting,
+  submitError,
+  load,
+  toggleChoice,
+  submit,
+} = usePublicFormSubmission(
+    computed(() => props.stationUid),
+    computed(() => props.formPublicUid),
+)
 
 onMounted(load)
 watch(() => [props.stationUid, props.formPublicUid], load)

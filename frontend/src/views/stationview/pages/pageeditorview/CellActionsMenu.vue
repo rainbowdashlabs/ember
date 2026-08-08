@@ -4,9 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {ref, onBeforeUnmount, computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {useBreakpoint} from '@/composables/useBreakpoint'
+import {useEditorActionsMenu} from './useEditorActionsMenu'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import IconButton from '@/components/button/IconButton.vue'
 
@@ -34,25 +33,8 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
-const {isMobile} = useBreakpoint()
 
-const open = ref(false)
-const rootRef = ref<HTMLElement | null>(null)
-
-const triggerVisibility = computed(() =>
-    isMobile.value ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-within:opacity-100')
-
-function toggle(e: MouseEvent) {
-    e.stopPropagation()
-    open.value = !open.value
-}
-
-function close() { open.value = false }
-
-function onDocClick(e: MouseEvent) {
-    if (!rootRef.value) return
-    if (!rootRef.value.contains(e.target as Node)) close()
-}
+const {open, rootRef, triggerVisibility, toggle, close} = useEditorActionsMenu()
 
 function commitWidth(value: string | number) {
     const v = typeof value === 'number' ? value : Number(value)
@@ -64,11 +46,6 @@ function commitWidth(value: string | number) {
 function doSplit(n: number) {
     emit('split', n)
     close()
-}
-
-if (typeof document !== 'undefined') {
-    document.addEventListener('click', onDocClick)
-    onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
 }
 
 defineExpose({close})
