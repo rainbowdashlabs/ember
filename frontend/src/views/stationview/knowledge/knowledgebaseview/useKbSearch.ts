@@ -3,8 +3,9 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {computed, ref, watch} from 'vue'
+import {computed, watch} from 'vue'
 import {knowledgeBase} from '@/api'
+import {useDebouncedSearch} from '@/composables/useDebouncedSearch'
 import type {SearchResult} from '@/api/knowledgeBase'
 import type {useKbFilters} from './useKbFilters'
 
@@ -16,10 +17,16 @@ import type {useKbFilters} from './useKbFilters'
  * search already received the tag filter, so they stay in the list.
  */
 export function useKbSearch(filters: ReturnType<typeof useKbFilters>) {
-    const searchQuery = ref('')
-    const searchResults = ref<SearchResult[]>([])
-    const searching = ref(false)
-    const isSearching = computed(() => searchQuery.value.trim().length > 0)
+    const {
+        query: searchQuery,
+        results: searchResults,
+        searching,
+        isSearching,
+        onInput: onSearchInput,
+    } = useDebouncedSearch<SearchResult>(query => knowledgeBase.search(query, {
+        tag: filters.filterTag.value || undefined,
+        federated: filters.showFederated.value,
+    }))
 
     const filteredSearchResults = computed(() => {
         let results = searchResults.value
@@ -33,29 +40,6 @@ export function useKbSearch(filters: ReturnType<typeof useKbFilters>) {
         }
         return results
     })
-
-    let searchTimeout: ReturnType<typeof setTimeout> | null = null
-
-    function onSearchInput() {
-        if (searchTimeout) clearTimeout(searchTimeout)
-        if (!searchQuery.value.trim()) {
-            searchResults.value = []
-            return
-        }
-        searchTimeout = setTimeout(async () => {
-            searching.value = true
-            try {
-                searchResults.value = await knowledgeBase.search(searchQuery.value.trim(), {
-                    tag: filters.filterTag.value || undefined,
-                    federated: filters.showFederated.value,
-                })
-            } catch {
-                searchResults.value = []
-            } finally {
-                searching.value = false
-            }
-        }, 300)
-    }
 
     watch([filters.filterTag, searchResults], () => {
         if (!filters.filterTag.value) return

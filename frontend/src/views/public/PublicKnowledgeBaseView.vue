@@ -18,6 +18,7 @@ import KnowledgeBaseBreadcrumbs from './publicknowledgebaseview/KnowledgeBaseBre
 import KnowledgeBaseSearchResults from './publicknowledgebaseview/KnowledgeBaseSearchResults.vue'
 import KnowledgeBaseBrowse from './publicknowledgebaseview/KnowledgeBaseBrowse.vue'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useDebouncedSearch} from '@/composables/useDebouncedSearch'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -36,10 +37,13 @@ const folders = ref<KbFolder[]>([])
 const files = ref<KbFile[]>([])
 const breadcrumbs = ref<KbFolder[]>([])
 
-const searchQuery = ref('')
-const searchResults = ref<PublicSearchResult[]>([])
-const searching = ref(false)
-const isSearching = computed(() => searchQuery.value.trim().length > 0)
+const {
+    query: searchQuery,
+    results: searchResults,
+    searching,
+    isSearching,
+    onInput: onSearchInput,
+} = useDebouncedSearch<PublicSearchResult>(query => publicKb.search(stationUid.value, query))
 
 async function loadStationInfo() {
     try {
@@ -75,26 +79,6 @@ function navigateToFolder(folderId: number | null) {
 
 function navigateToFile(file: KbFile) {
     router.push({name: 'public-kb-file', params: {stationUid: stationUid.value, id: file.id}})
-}
-
-let searchTimeout: ReturnType<typeof setTimeout> | null = null
-
-function onSearchInput() {
-    if (searchTimeout) clearTimeout(searchTimeout)
-    if (!searchQuery.value.trim()) {
-        searchResults.value = []
-        return
-    }
-    searchTimeout = setTimeout(async () => {
-        searching.value = true
-        try {
-            searchResults.value = await publicKb.search(stationUid.value, searchQuery.value.trim())
-        } catch {
-            searchResults.value = []
-        } finally {
-            searching.value = false
-        }
-    }, 300)
 }
 
 useHead(computed(() => {
