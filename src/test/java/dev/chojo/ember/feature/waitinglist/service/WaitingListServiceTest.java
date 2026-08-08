@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import tools.jackson.databind.node.IntNode;
 import tools.jackson.databind.node.StringNode;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -844,5 +845,54 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var invited = service.inviteEntry(entry.id());
 
         assertEquals(0, service.findWaitingPositionByScore(invited));
+    }
+
+    /**
+     * The scheduled confirmation sweep. It reminds entries whose confirmation has gone stale,
+     * warns the ones approaching removal, and withdraws the ones past the grace period — the last
+     * of which takes a place away from an applicant, so it is asserted directly rather than
+     * through the absence of a reminder.
+     */
+    @Test
+    void expiredConfirmationSweepRemindsWarnsAndWithdraws() {
+        var list = service.create(station.id(), "Sweep", "", null, 0, null, null, 5, false);
+
+        var stale = service.createEntry(list.id(), "Stale", "", guardians("P", "stale@test.com"), Map.of(), "");
+        waitingListRepo.updateConfirmedAt(stale.id(), Instant.now().minus(Duration.ofDays(2)));
+
+        var warned = service.createEntry(list.id(), "Warned", "", guardians("P", "warn@test.com"), Map.of(), "");
+        waitingListRepo.updateReminderSentAt(warned.id(), Instant.now().minus(Duration.ofHours(16 * 24 + 12)));
+
+        var abandoned = service.createEntry(list.id(), "Gone", "", guardians("P", "gone@test.com"), Map.of(), "");
+        waitingListRepo.updateReminderSentAt(abandoned.id(), Instant.now().minus(Duration.ofDays(31)));
+
+        service.checkExpiredConfirmations(service.findById(list.id()).orElseThrow());
+
+        assertNotNull(
+                service.findEntryById(stale.id()).orElseThrow().reminderSentAt(),
+                "a stale confirmation should have been reminded and stamped");
+        assertEquals(
+                WaitingListEntryStatus.WITHDRAWN,
+                service.findEntryById(abandoned.id()).orElseThrow().status(),
+                "an entry past the grace period should have been withdrawn");
+        assertEquals(
+                WaitingListEntryStatus.WAITING,
+                service.findEntryById(warned.id()).orElseThrow().status(),
+                "an entry only due a warning must keep its place");
+    }
+
+    /**
+     * The same sweep on a list with nothing due must not touch any entry.
+     */
+    @Test
+    void expiredConfirmationSweepLeavesAFreshListAlone() {
+        var list = service.create(station.id(), "Quiet Sweep", "", null, 180, null, null, 5, false);
+        var entry = service.createEntry(list.id(), "Fresh", "", guardians("P", "fresh@test.com"), Map.of(), "");
+
+        service.checkExpiredConfirmations(service.findById(list.id()).orElseThrow());
+
+        var after = service.findEntryById(entry.id()).orElseThrow();
+        assertEquals(WaitingListEntryStatus.WAITING, after.status());
+        assertNull(after.reminderSentAt());
     }
 }

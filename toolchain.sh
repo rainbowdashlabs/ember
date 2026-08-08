@@ -5,6 +5,12 @@
 # Every command runs from the repository root regardless of the caller's working
 # directory, so callers never need their own `cd`.
 #
+# Every command also runs inside the project's nix environment via `direnv exec`, so the JDK,
+# node and the external binaries the backend shells out to (cwebp, typst, pandoc, libreoffice,
+# qpdf) are the versions shell.nix pins, and the *_BIN variables it exports are set. Without
+# that, a caller whose shell has not entered the directory silently gets whatever is on PATH —
+# which is how WebP variant generation ends up skipped in one run and exercised in the next.
+#
 # Usage: ./toolchain.sh <command> [args...]
 #        ./toolchain.sh help
 
@@ -13,6 +19,16 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FRONTEND="$ROOT/frontend"
 NODE_HEAP="--max-old-space-size=8192"
+
+# Runs a command inside the project's direnv/nix environment, falling back to running it
+# directly when direnv is not installed so the script still works on a plain checkout.
+run() {
+    if [ -f "$ROOT/.envrc" ] && command -v direnv >/dev/null 2>&1; then
+        direnv exec "$ROOT" "$@"
+    else
+        "$@"
+    fi
+}
 
 usage() {
     cat <<'EOF'
@@ -51,36 +67,36 @@ cmd="${1:-help}"
 shift || true
 
 case "$cmd" in
-    fe-build)      fe; NODE_OPTIONS="$NODE_HEAP" npm run build ;;
-    fe-typecheck)  fe; NODE_OPTIONS="$NODE_HEAP" npx nuxi typecheck ;;
-    fe-audit)      fe; NODE_OPTIONS="$NODE_HEAP" npm run lint:audit ;;
+    fe-build)      fe; NODE_OPTIONS="$NODE_HEAP" run npm run build ;;
+    fe-typecheck)  fe; NODE_OPTIONS="$NODE_HEAP" run npx nuxi typecheck ;;
+    fe-audit)      fe; NODE_OPTIONS="$NODE_HEAP" run npm run lint:audit ;;
     fe-lint)
         [ $# -ge 1 ] || { echo "fe-lint needs a linter name, e.g. style" >&2; exit 2; }
         linter="$1"; shift
-        fe; node "scripts/lint-$linter.mjs" "$@"
+        fe; run node "scripts/lint-$linter.mjs" "$@"
         ;;
-    fe-dev)        fe; npm run dev ;;
+    fe-dev)        fe; run npm run dev ;;
 
     be-verify)
         cd "$ROOT"
-        ./gradlew spotlessJavaApply testRepositories testServices testOther testTracking jacocoCoverageCheck "$@"
+        run ./gradlew spotlessJavaApply testRepositories testServices testOther testTracking jacocoCoverageCheck "$@"
         ;;
     be-test)
         cd "$ROOT"
-        ./gradlew testRepositories testServices testOther testTracking "$@"
+        run ./gradlew testRepositories testServices testOther testTracking "$@"
         ;;
     be-test1)
         [ $# -ge 1 ] || { echo "be-test1 needs a test pattern, e.g. '*PageServiceTest*'" >&2; exit 2; }
         pattern="$1"; shift
         suite="${1:-testServices}"; shift || true
         cd "$ROOT"
-        ./gradlew "$suite" --tests "$pattern" "$@"
+        run ./gradlew "$suite" --tests "$pattern" "$@"
         ;;
-    be-compile)    cd "$ROOT"; ./gradlew compileJava compileTestJava "$@" ;;
-    be-spotless)   cd "$ROOT"; ./gradlew spotlessJavaApply "$@" ;;
-    be-coverage)   cd "$ROOT"; ./gradlew jacocoCoverageCheck "$@" ;;
-    be-report)     cd "$ROOT"; ./gradlew jacocoFullReport "$@" ;;
-    be-federation-version) cd "$ROOT"; ./gradlew generateFederationVersion "$@" ;;
+    be-compile)    cd "$ROOT"; run ./gradlew compileJava compileTestJava "$@" ;;
+    be-spotless)   cd "$ROOT"; run ./gradlew spotlessJavaApply "$@" ;;
+    be-coverage)   cd "$ROOT"; run ./gradlew jacocoCoverageCheck "$@" ;;
+    be-report)     cd "$ROOT"; run ./gradlew jacocoFullReport "$@" ;;
+    be-federation-version) cd "$ROOT"; run ./gradlew generateFederationVersion "$@" ;;
 
     verify)
         "$ROOT/toolchain.sh" be-verify

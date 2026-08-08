@@ -329,8 +329,11 @@ tasks {
                     "*.ApiRequestLogger*",
                     "*.DataInitializer",
                     "*.ProblemLogAppender*",
-                    // Demo/seed data generators
-                    "*.Demo*Seeder*",
+                    // Demo/seed data generators. Only the media seeder is exempt: it fetches
+                    // avatars from a third-party API with a hard-wired client and caches them in
+                    // a hard-wired directory, so covering it would mean two production seams for
+                    // demo data. The other 23 seeders are gated like any other service.
+                    "*.DemoMediaSeeder*",
                     "*.DemoService*",
                     // PDF/export services requiring external binaries
                     "*PdfService*",
@@ -343,6 +346,10 @@ tasks {
                     "*.PageFileStorageService*",
                     "*.PdfCompressor*",
                     "*.BoardAttachmentService*",
+                    // Unreachable catch: gzip() wraps a ByteArrayOutputStream, which cannot throw
+                    // the IOException the GZIP streams declare, so 2 of its 19 lines can never be
+                    // executed and it sits at 89.5%. Accepted permanently rather than restructured
+                    // — the catch is required by the checked signature.
                     "*.TextCompressionPolicy*",
                     // Unified storage façade — heavy I/O against the backend layer,
                     // public-surface paths covered by StorageServiceTest
@@ -360,8 +367,11 @@ tasks {
                     // Daemon/scheduler threads
                     "*.RegistrationDeadlineChecker*",
                     "*.DueDateReminderChecker*",
-                    // Import services (complex CSV parsing with many edge cases)
+                    // Complex CSV parsing with many edge cases
                     "*.MemberImportService*",
+                    // Not CSV parsing despite its name: the uncovered part is remote-transfer
+                    // orchestration on background executors against a live source instance over
+                    // HTTP. Needs an integration test, not a unit test.
                     "*.StationImportService*",
                     // Storage monitoring (filesystem walks, scheduled reconciliation, ZIP compression)
                     "*.StorageReconciliationService*",

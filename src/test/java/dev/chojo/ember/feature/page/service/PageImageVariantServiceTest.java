@@ -226,6 +226,37 @@ class PageImageVariantServiceTest {
         assertTrue(variants.readBest(STATION_ID, "deadbeef", 256, "*/*").isEmpty());
     }
 
+    /**
+     * Stations uploaded under the old layout still hold an {@code orig.webp} beside the original.
+     * Written directly rather than through the encoder, because the encoder no longer produces one.
+     */
+    @Test
+    void readBestServesALegacyOrigWebpWhenNoWidthIsRequested() throws IOException {
+        byte[] png = pngBytes(800, 600);
+        String hash = PageFileStorageService.hash(png);
+        storage.store(STATION_ID, hash, png, "image/png");
+        storage.storeVariant(STATION_ID, hash, "orig", "webp", "legacy-webp-bytes".getBytes());
+
+        var result = variants.readBest(STATION_ID, hash, null, "image/webp,*/*;q=0.8");
+
+        assertTrue(result.isPresent());
+        assertEquals("image/webp", result.orElseThrow().contentType());
+        assertArrayEquals("legacy-webp-bytes".getBytes(), result.orElseThrow().data());
+    }
+
+    @Test
+    void readBestIgnoresALegacyOrigWebpWhenTheClientRejectsWebp() throws IOException {
+        byte[] png = pngBytes(800, 600);
+        String hash = PageFileStorageService.hash(png);
+        storage.store(STATION_ID, hash, png, "image/png");
+        storage.storeVariant(STATION_ID, hash, "orig", "webp", "legacy-webp-bytes".getBytes());
+
+        var result = variants.readBest(STATION_ID, hash, null, "image/png");
+
+        assertTrue(result.isPresent());
+        assertEquals("image/png", result.orElseThrow().contentType());
+    }
+
     @Test
     void generatesWebpVariantsForJpegSource() throws IOException {
         Assumptions.assumeTrue(WebpEncoder.isAvailable(), "cwebp not available — skipping JPEG-source check");
