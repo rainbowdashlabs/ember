@@ -11,26 +11,32 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import UpcomingBody from './upcomingview/UpcomingBody.vue'
-import {isRecurringEvent, RegistrationStatus, type EventBreak, type EventCategory, type EventField, type EventRegistrationEntry, type RegistrationCount, type StationEvent, type UpcomingEventOccurrence} from '@/api/events'
-import type {StationMember} from '@/api/types'
-import {events, managedMembers as managedMembersApi} from '@/api'
+import {isRecurringEvent, RegistrationStatus, type StationEvent} from '@/api/events'
 import {useSession} from '@/composables/useSession'
-import {useSidebarCounts} from '@/composables/useSidebarCounts'
-import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useUpcomingEvents} from '@/composables/useUpcomingEvents'
 import {formatTime} from '@/util/format'
 
 const {t} = useI18n()
 const router = useRouter()
 const {sessionInfo, loaded, isGuardian, canManageAttendance, canManageEvents} = useSession()
-const {refresh: refreshSidebarCounts} = useSidebarCounts()
+
+const currentMemberId = computed(() => sessionInfo.value?.member?.id ?? 0)
+
+const upcoming = useUpcomingEvents(currentMemberId, isGuardian)
+const {
+  allEvents, eventBreaks, todayEvents, myRegistrations, eligibleMembers, managedMembers,
+  registrationCounts, overviewFields, categories,
+  selectedCategoryId, searchQuery, showNeedsAction,
+  loadingMore, hasMore, registering, filteredUpcoming, multiDayEndDate,
+  loading, error,
+} = upcoming
 
 const VIEW_MODE_STORAGE_KEY = 'eventsUpcoming.viewMode'
 type ViewMode = 'list' | 'calendar'
 
 function loadInitialViewMode(): ViewMode {
   if (typeof window === 'undefined') return 'list'
-  const stored = window.localStorage.getItem(VIEW_MODE_STORAGE_KEY)
-  return stored === 'calendar' ? 'calendar' : 'list'
+  return window.localStorage.getItem(VIEW_MODE_STORAGE_KEY) === 'calendar' ? 'calendar' : 'list'
 }
 
 const viewMode = ref<ViewMode>(loadInitialViewMode())
@@ -40,30 +46,13 @@ watch(viewMode, (mode) => {
   }
 })
 
-const allEvents = ref<StationEvent[]>([])
-const eventBreaks = ref<EventBreak[]>([])
-
-const todayEvents = ref<StationEvent[]>([])
-const upcomingOccurrences = ref<UpcomingEventOccurrence[]>([])
-
-const myRegistrations = ref<EventRegistrationEntry[]>([])
-const eligibleMembers = ref<Record<number, number[]>>({})
-const managedMembers = ref<StationMember[]>([])
-const registrationCounts = ref<RegistrationCount[]>([])
-const overviewFields = ref<Record<number, EventField[]>>({})
-const categories = ref<EventCategory[]>([])
-const selectedCategoryId = ref('')
-const searchQuery = ref('')
-const showNeedsAction = ref(false)
-const loadingMore = ref(false)
-const hasMore = ref(true)
-const registering = ref<string | null>(null)
-const PAGE_SIZE = 10
 const dayNames = ['', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']
-const currentMemberId = computed(() => sessionInfo.value?.member?.id ?? 0)
-
 const pad2 = (n: number) => String(n).padStart(2, '0')
 
+/**
+ * Today's events are filtered in the browser — unlike the upcoming list, they are a short fixed
+ * set the server already returned in full.
+ */
 function matchesTextSearch(ev: StationEvent): boolean {
   if (!searchQuery.value) return true
   const q = searchQuery.value.toLowerCase()
@@ -79,30 +68,15 @@ function dayLabel(dateStr: string): string {
   return dayNames[dow] ?? ''
 }
 
-function multiDayEndDate(event: StationEvent, startDateStr: string): string | null {
-  if (isRecurringEvent(event.eventType)) return null
-  if (!event.endTime) return null
-  const endStr = new Date(event.endTime).toISOString().slice(0, 10)
-  if (endStr <= startDateStr) return null
-  return endStr
+function formatDeadline(iso: string): string {
+  const d = new Date(iso)
+  return `${pad2(d.getDate())}.${pad2(d.getMonth() + 1)}.${d.getFullYear()} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`
 }
 
-const filteredUpcoming = computed(() => {
-  const seenEventIds = new Set<number>()
-  const deduped: UpcomingEventOccurrence[] = []
-  for (const item of upcomingOccurrences.value) {
-    if (seenEventIds.has(item.event.id)) continue
-    seenEventIds.add(item.event.id)
-    deduped.push(item)
-  }
-  const multiDay: UpcomingEventOccurrence[] = []
-  const singleDay: UpcomingEventOccurrence[] = []
-  for (const item of deduped) {
-    if (multiDayEndDate(item.event, item.date)) multiDay.push(item)
-    else singleDay.push(item)
-  }
-  return [...multiDay, ...singleDay]
-})
+function todayIsoDate(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
+}
 
 function getEligibleMembers(eventId: number): { id: number; name: string }[] {
   const eligible = eligibleMembers.value[eventId]
@@ -111,10 +85,10 @@ function getEligibleMembers(eventId: number): { id: number; name: string }[] {
   for (const id of ids) {
     if (id === currentMemberId.value) {
       result.push({id, name: t('eventsUpcoming.myself')})
-    } else {
-      const m = managedMembers.value.find(mm => mm.id === id)
-      if (m) result.push({id, name: m.name ?? m.email ?? `#${id}`})
+      continue
     }
+    const m = managedMembers.value.find(mm => mm.id === id)
+    if (m) result.push({id, name: m.name ?? m.email ?? `#${id}`})
   }
   return result
 }
@@ -125,17 +99,6 @@ function getRegistrationSummary(eventId: number, date: string) {
   const pending = counts.find(c => c.status === RegistrationStatus.PENDING)?.count ?? 0
   const declined = counts.find(c => c.status === RegistrationStatus.DECLINED)?.count ?? 0
   return {accepted, pending, declined, total: accepted + pending + declined}
-}
-
-
-function formatDeadline(iso: string): string {
-  const d = new Date(iso)
-  return `${pad2(d.getDate())}.${pad2(d.getMonth() + 1)}.${d.getFullYear()} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`
-}
-
-function todayIsoDate(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
 }
 
 /**
@@ -154,105 +117,6 @@ function todayDetailRoute(ev: StationEvent): RouteLocationRaw {
   return eventDetailRoute(ev, todayIsoDate())
 }
 
-function buildUpcomingParams(offset = 0) {
-  const params: { categoryId?: number; requiresRegistration?: boolean; search?: string; limit: number; offset: number } = {
-    limit: PAGE_SIZE, offset
-  }
-  if (selectedCategoryId.value) params.categoryId = Number(selectedCategoryId.value)
-  if (showNeedsAction.value) params.requiresRegistration = true
-  if (searchQuery.value.trim()) params.search = searchQuery.value.trim()
-  return params
-}
-
-const {loading, error, reload} = useAsyncLoader(async () => {
-  const [upcoming, today, regs, elig, counts, ovFields, cats, allEv, brs] = await Promise.all([
-    events.listUpcomingOccurrences(buildUpcomingParams()),
-    events.listTodayEvents(),
-    events.listMyRegistrations(),
-    events.listEligibleMembers(),
-    events.listRegistrationCounts(),
-    events.getOverviewFields(),
-    events.listCategories(),
-    events.listEvents(),
-    events.listBreaks().catch(() => []),
-  ])
-  upcomingOccurrences.value = upcoming
-  hasMore.value = upcoming.length >= PAGE_SIZE
-  todayEvents.value = today
-  myRegistrations.value = regs
-  eligibleMembers.value = elig
-  registrationCounts.value = counts
-  overviewFields.value = ovFields
-  categories.value = cats
-  allEvents.value = allEv
-  eventBreaks.value = brs
-
-  if (isGuardian()) {
-    const managed = await managedMembersApi.listManaged()
-    managedMembers.value = managed.map(m => ({
-      id: m.id,
-      stationId: m.stationId,
-      accountId: m.accountId,
-      name: m.name,
-      email: m.email
-    }))
-  }
-}, {autoLoad: loaded.value})
-
-async function registerForEvent(ev: StationEvent, date: string, memberId: number) {
-  const key = `${ev.id}-${date}-${memberId}`
-  registering.value = key
-  error.value = ''
-  try {
-    await events.registerForEvent(ev.id, {
-      eventDate: date,
-      memberId: memberId !== currentMemberId.value ? memberId : undefined,
-    })
-    await reloadRegistrations()
-    refreshSidebarCounts()
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    registering.value = null
-  }
-}
-
-
-async function reloadRegistrations() {
-  const [regs, counts] = await Promise.all([
-    events.listMyRegistrations(),
-    events.listRegistrationCounts(),
-  ])
-  myRegistrations.value = regs
-  registrationCounts.value = counts
-}
-
-async function withdrawRegistration(regId: number) {
-  error.value = ''
-  try {
-    await events.withdrawRegistration(regId)
-    await reloadRegistrations()
-    refreshSidebarCounts()
-  } catch {
-    error.value = t('common.error')
-  }
-}
-
-async function declineEvent(ev: StationEvent, date: string, memberId: number) {
-  error.value = ''
-  try {
-    await events.declineEvent(ev.id, {
-      eventDate: date,
-      memberId: memberId !== currentMemberId.value ? memberId : undefined,
-    })
-    await reloadRegistrations()
-    refreshSidebarCounts()
-  } catch {
-    error.value = t('common.error')
-  }
-}
-
-
 function openCreateEvent() {
   router.push({name: 'event-new'})
 }
@@ -263,44 +127,9 @@ function goToAttendance(ev: StationEvent) {
   }
 }
 
-async function reloadUpcoming() {
-  if (loading.value) return
-  try {
-    const upcoming = await events.listUpcomingOccurrences(buildUpcomingParams())
-    upcomingOccurrences.value = upcoming
-    hasMore.value = upcoming.length >= PAGE_SIZE
-  } catch {
-    error.value = t('common.error')
-  }
-}
-
-async function loadMore() {
-  loadingMore.value = true
-  try {
-    const more = await events.listUpcomingOccurrences(buildUpcomingParams(upcomingOccurrences.value.length))
-    upcomingOccurrences.value = [...upcomingOccurrences.value, ...more]
-    hasMore.value = more.length >= PAGE_SIZE
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loadingMore.value = false
-  }
-}
-
-watch(selectedCategoryId, () => reloadUpcoming())
-watch(showNeedsAction, () => reloadUpcoming())
-
-let searchDebounce: ReturnType<typeof setTimeout> | null = null
-watch(searchQuery, () => {
-  if (searchDebounce) clearTimeout(searchDebounce)
-  searchDebounce = setTimeout(() => reloadUpcoming(), 250)
-})
-
 watch(loaded, (isLoaded) => {
-  if (isLoaded) {
-    reload()
-  }
-})
+  if (isLoaded) upcoming.reload()
+}, {immediate: true})
 </script>
 
 <template>
@@ -347,10 +176,10 @@ watch(loaded, (isLoaded) => {
           @update:needs-action="showNeedsAction = $event"
           @create="openCreateEvent"
           @attendance="goToAttendance"
-          @register="registerForEvent"
-          @decline="declineEvent"
-          @withdraw="withdrawRegistration"
-          @load-more="loadMore"
+          @register="upcoming.registerForEvent"
+          @decline="upcoming.declineEvent"
+          @withdraw="upcoming.withdrawRegistration"
+          @load-more="upcoming.loadMore"
       />
     </div>
   </ViewContent>

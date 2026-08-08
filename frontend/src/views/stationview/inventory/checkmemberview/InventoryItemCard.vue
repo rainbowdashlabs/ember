@@ -32,7 +32,7 @@ const emit = defineEmits<{
   setNote: [itemId: number, note: string]
   unassign: [itemId: number]
   createProcurement: [item: InventoryItem]
-  changeItem: [currentItemId: number, inventoryId: number]
+  changeItem: [currentItemId: number]
   createAndChange: [currentItemId: number, req: RequiredInventoryItem]
   updateSelection: [key: string, value: string]
 }>()
@@ -122,7 +122,7 @@ function resultClass(): string {
       <PrimaryButton
         class="text-sm"
         :disabled="!slotSelections.get(`change-${item.id}`)"
-        @click="emit('changeItem', item.id, req.inventoryId)"
+        @click="emit('changeItem', item.id)"
       >
         {{ t('inventory.check.change') }}
       </PrimaryButton>

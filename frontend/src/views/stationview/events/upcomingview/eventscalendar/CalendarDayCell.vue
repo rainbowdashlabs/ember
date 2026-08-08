@@ -7,17 +7,10 @@
 import EventChipButton from '@/components/button/EventChipButton.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 import type {StationEvent} from '@/api/events'
-
-interface DayCellData {
-  date: Date
-  iso: string
-  isCurrentMonth: boolean
-  isToday: boolean
-  events: {event: StationEvent; date: string}[]
-}
+import type {DayCell} from '@/composables/useEventCalendarGrid'
 
 const props = defineProps<{
-  cell: DayCellData
+  cell: DayCell
   dayIdx: number
   laneCount: number
   chipStyle: (ev: StationEvent) => {backgroundColor: string; color: string} | undefined

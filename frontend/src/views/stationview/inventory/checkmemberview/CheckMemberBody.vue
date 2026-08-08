@@ -12,7 +12,7 @@ import type { CheckResult, MemberCheckState, RequiredInventoryItem } from '@/api
 import CheckMemberHeader from './CheckMemberHeader.vue'
 import CheckMemberSubmitBar from './CheckMemberSubmitBar.vue'
 import RapidCheckMode from './RapidCheckMode.vue'
-import type { CheckEntry } from './RapidCheckMode.vue'
+import type { CheckEntry } from '@/composables/useMemberCheck'
 import InventorySection from './InventorySection.vue'
 import { formatDateTime } from '@/util/format'
 
@@ -48,7 +48,7 @@ defineEmits<{
   setNote: [itemId: number, note: string]
   unassign: [itemId: number]
   createProcurement: [item: InventoryItem]
-  changeItem: [currentItemId: number, inventoryId: number]
+  changeItem: [currentItemId: number]
   createAndChange: [currentItemId: number, req: RequiredInventoryItem]
   toggleNotInPossession: [inventoryId: number, slotIndex: number]
   assignToSlot: [inventoryId: number, slotIndex: number]
@@ -115,7 +115,7 @@ defineExpose({ getCurrentRapidEntry })
       @set-note="(id, n) => $emit('setNote', id, n)"
       @unassign="(id) => $emit('unassign', id)"
       @create-procurement="(item) => $emit('createProcurement', item)"
-      @change-item="(id, invId) => $emit('changeItem', id, invId)"
+      @change-item="id => $emit('changeItem', id)"
       @create-and-change="(id, r) => $emit('createAndChange', id, r)"
       @toggle-not-in-possession="(invId, slotIdx) => $emit('toggleNotInPossession', invId, slotIdx)"
       @assign-to-slot="(invId, slotIdx) => $emit('assignToSlot', invId, slotIdx)"

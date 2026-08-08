@@ -6,19 +6,10 @@
 <script lang="ts" setup>
 import EventChipButton from '@/components/button/EventChipButton.vue'
 import type {StationEvent} from '@/api/events'
-
-interface MultiDayBarData {
-  event: StationEvent
-  startCol: number
-  endCol: number
-  lane: number
-  continuesLeft: boolean
-  continuesRight: boolean
-  startIso: string
-}
+import type {MultiDayBar} from '@/composables/useEventCalendarGrid'
 
 const props = defineProps<{
-  bar: MultiDayBarData
+  bar: MultiDayBar
   chipStyle: (ev: StationEvent) => {backgroundColor: string; color: string} | undefined
   formatTime: (iso?: string) => string
 }>()

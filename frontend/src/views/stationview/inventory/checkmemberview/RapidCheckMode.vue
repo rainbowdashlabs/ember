@@ -19,10 +19,7 @@ import ScanButton from '@/components/scanner/ScanButton.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import type { InventoryItem } from '@/api/inventory'
 import type { CheckResult, RequiredInventoryItem } from '@/api/inventoryCheck'
-
-export type CheckEntry =
-  | { type: 'item'; item: InventoryItem; req: RequiredInventoryItem }
-  | { type: 'slot'; req: RequiredInventoryItem; slotIndex: number }
+import type { CheckEntry } from '@/composables/useMemberCheck'
 
 const props = defineProps<{
   uncheckedEntries: CheckEntry[]

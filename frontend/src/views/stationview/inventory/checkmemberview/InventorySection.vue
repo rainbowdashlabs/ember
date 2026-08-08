@@ -31,7 +31,7 @@ const emit = defineEmits<{
   setNote: [itemId: number, note: string]
   unassign: [itemId: number]
   createProcurement: [item: InventoryItem]
-  changeItem: [currentItemId: number, inventoryId: number]
+  changeItem: [currentItemId: number]
   createAndChange: [currentItemId: number, req: RequiredInventoryItem]
   toggleNotInPossession: [inventoryId: number, slotIndex: number]
   assignToSlot: [inventoryId: number, slotIndex: number]
@@ -70,7 +70,7 @@ const emit = defineEmits<{
         @set-note="(id, n) => emit('setNote', id, n)"
         @unassign="id => emit('unassign', id)"
         @create-procurement="item => emit('createProcurement', item)"
-        @change-item="(id, inv) => emit('changeItem', id, inv)"
+        @change-item="id => emit('changeItem', id)"
         @create-and-change="(id, r) => emit('createAndChange', id, r)"
         @update-selection="(k, v) => emit('updateSelection', k, v)"
       />
