@@ -63,7 +63,11 @@ const {t} = useI18n()
     <SidebarExpandableLink :icon="['fas', 'clipboard-check']" name="help-inventory-checks"
                            to="/helpcenter/station/inventory/checks" @navigate="close">
       <template #label>{{ t('sidebar.inventoryCheck') }}</template>
-      <SidebarLink :icon="['fas', 'user-check']" name="help-inventory-check-member"
+      <SidebarLink :icon="['fas', 'users']" name="help-inventory-check-member-overview"
+                   to="/helpcenter/station/inventory/checks/member" @navigate="close">
+        {{ t('helpCenter.inventoryChecks.title') }}
+      </SidebarLink>
+      <SidebarLink :icon="['fas', 'user-check']" name="help-inventory-check-member-detail"
                    to="/helpcenter/station/inventory/checks/0" @navigate="close">
         {{ t('sidebar.inventoryCheckMember') }}
       </SidebarLink>

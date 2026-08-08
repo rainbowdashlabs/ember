@@ -101,7 +101,8 @@ const HELP_PAGE_MAP: { route: string; path: string; i18nPrefix: string; section:
     {route: 'help-inventory-manage', path: '/helpcenter/station/inventory/manage', i18nPrefix: 'helpCenter.inventoryManage', section: 'Inventar > Verwalten'},
     {route: 'help-inventory-requirements', path: '/helpcenter/station/inventory/requirements', i18nPrefix: 'helpCenter.inventoryRequirements', section: 'Inventar > Anforderungen'},
     {route: 'help-inventory-checks', path: '/helpcenter/station/inventory/checks', i18nPrefix: 'helpCenter.inventoryChecks', section: 'Inventar > Prüfung'},
-    {route: 'help-inventory-check-member', path: '/helpcenter/station/inventory/checks/member', i18nPrefix: 'helpCenter.inventoryCheckMember', section: 'Inventar > Prüfung > Mitglied'},
+    {route: 'help-inventory-check-member-overview', path: '/helpcenter/station/inventory/checks/member', i18nPrefix: 'helpCenter.inventoryChecks', section: 'Inventar > Prüfung > Mitglieder auswählen'},
+    {route: 'help-inventory-check-member-detail', path: '/helpcenter/station/inventory/checks/0', i18nPrefix: 'helpCenter.inventoryCheckMember', section: 'Inventar > Prüfung > Mitglied'},
     {route: 'help-inventory-check-result', path: '/helpcenter/station/inventory/checks/result', i18nPrefix: 'helpCenter.inventoryCheckResult', section: 'Inventar > Prüfung > Ergebnis'},
     {route: 'help-inventory-procurement', path: '/helpcenter/station/inventory/procurement', i18nPrefix: 'helpCenter.inventoryProcurement', section: 'Inventar > Beschaffung'},
     {route: 'help-inventory-lending', path: '/helpcenter/station/inventory/lending', i18nPrefix: 'helpCenter.inventoryLending', section: 'Inventar > Ausleihe'},
@@ -170,6 +171,13 @@ const HELP_PAGE_MAP: { route: string; path: string; i18nPrefix: string; section:
     {route: 'help-federated-ticket-detail', path: '/helpcenter/station/federation/boards/0/BOARD/tickets/1', i18nPrefix: 'helpCenter.federatedTicketDetail', section: 'Boards > Ticket einer Partnerwache'},
     {route: 'help-federated-event-detail', path: '/helpcenter/station/federation/events/0/1', i18nPrefix: 'helpCenter.federatedEventDetail', section: 'Termine > Termin einer Partnerwache'},
     {route: 'help-federated-news-detail', path: '/helpcenter/station/federation/news/0/1', i18nPrefix: 'helpCenter.federatedNewsDetail', section: 'Neuigkeiten > Beitrag einer Partnerwache'},
+    // Procedures
+    {route: 'help-procedure-module-overview', path: '/helpcenter/station/procedures/overview', i18nPrefix: 'helpCenter.procedureOverview', section: 'Abläufe'},
+    {route: 'help-procedure-list', path: '/helpcenter/station/procedures', i18nPrefix: 'helpCenter.procedureList', section: 'Abläufe > Liste'},
+    {route: 'help-procedure-create', path: '/helpcenter/station/procedures/create', i18nPrefix: 'helpCenter.procedureCreate', section: 'Abläufe > Anlegen'},
+    {route: 'help-procedure-detail', path: '/helpcenter/station/procedures/0', i18nPrefix: 'helpCenter.procedureDetail', section: 'Abläufe > Abarbeiten'},
+    {route: 'help-procedure-template-list', path: '/helpcenter/station/procedures/templates', i18nPrefix: 'helpCenter.procedureTemplates', section: 'Abläufe > Vorlagen'},
+    {route: 'help-procedure-template-edit', path: '/helpcenter/station/procedures/templates/0', i18nPrefix: 'helpCenter.procedureTemplateEdit', section: 'Abläufe > Vorlage bearbeiten'},
     // Knowledge Base
     {route: 'help-knowledge-module-overview', path: '/helpcenter/station/knowledge', i18nPrefix: 'helpCenter.knowledgeModuleOverview', section: 'Wiki'},
     {route: 'help-knowledge-base', path: '/helpcenter/station/knowledge/browse', i18nPrefix: 'helpCenter.kb', section: 'Wiki > Durchsuchen'},

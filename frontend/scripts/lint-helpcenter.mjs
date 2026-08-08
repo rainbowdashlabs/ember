@@ -22,10 +22,7 @@ const allRoutes = parseRoutes()
 
 const KNOWN_MISSING_HELP = new Set([])
 
-const KNOWN_SHARED_HELP_COMPONENTS = new Set([
-    '@/views/helpcenter/stationview/inventory/CheckMemberHelp.vue',
-    '@/views/helpcenter/stationview/procedure/ProcedureOverviewHelp.vue',
-])
+const KNOWN_SHARED_HELP_COMPONENTS = new Set([])
 
 // ── Panel definitions ───────────────────────────────────────────────
 

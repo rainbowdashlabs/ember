@@ -5445,8 +5445,6 @@ export default {
         exportAll: 'Alles als ZIP',
     },
     procedures: {
-        title: 'Abläufe',
-        templates: 'Vorlagen',
         createProcedure: 'Neuer Ablauf',
         name: 'Name',
         description: 'Beschreibung',

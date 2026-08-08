@@ -4,14 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import CheckMemberHelp from '~/views/helpcenter/stationview/inventory/CheckMemberHelp.vue'
+import CheckMemberOverviewHelp from '~/views/helpcenter/stationview/inventory/CheckMemberOverviewHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',
-  name: 'help-inventory-check-member',
+  name: 'help-inventory-check-member-overview',
 })
 </script>
 
 <template>
-  <CheckMemberHelp />
+  <CheckMemberOverviewHelp/>
 </template>

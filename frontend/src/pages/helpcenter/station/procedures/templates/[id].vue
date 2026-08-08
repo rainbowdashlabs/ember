@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ProcedureOverviewHelp from '~/views/helpcenter/stationview/procedure/ProcedureOverviewHelp.vue'
+import ProcedureTemplateEditHelp from '~/views/helpcenter/stationview/procedure/ProcedureTemplateEditHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',
@@ -13,5 +13,5 @@ definePageMeta({
 </script>
 
 <template>
-  <ProcedureOverviewHelp />
+  <ProcedureTemplateEditHelp/>
 </template>

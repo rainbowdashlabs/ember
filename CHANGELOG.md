@@ -7,6 +7,8 @@
 - **Sortable and filterable item lists.** The item tables on the inventory detail and edit pages can show custom fields as columns, sort by any column, and filter by specific values — including by source and assignment state (assigned, not assigned, in storage, not in storage). A column picker shows or hides additional columns.
 - **Custom fields when adding items.** The add-item dialog fills in the inventory's custom fields directly, and number fields check their allowed range while typing.
 - **Help articles for the setup assistant.** Every step of the station setup assistant has its own help article, reachable from the help center menu and the search box.
+- **A help article for every page.** The pages that still had no guide — event templates, a single news article, an inventory item, the answer generator for choice questions, the partner-station views and the reported-problems page — now have one, and every article in the help center is searchable from the menu.
+- **Separate help articles for procedures.** The procedure list, the editor, the detail page and the templates each have their own article instead of sharing one general page.
 
 ### Changes
 

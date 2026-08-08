@@ -13,5 +13,5 @@ definePageMeta({
 </script>
 
 <template>
-  <ProcedureOverviewHelp />
+  <ProcedureOverviewHelp/>
 </template>

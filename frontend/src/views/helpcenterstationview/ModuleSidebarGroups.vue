@@ -121,6 +121,36 @@ const {t} = useI18n()
     </SidebarLink>
   </SidebarGroup>
 
+  <SidebarGroup :icon="['fas', 'list-check']" :label="t('sidebar.procedures')"
+                prefix="/helpcenter/station/procedures"
+                to="/helpcenter/station/procedures/overview" name="help-procedure-module-overview" @navigate="close">
+    <SidebarLink :icon="['fas', 'list-check']" name="help-procedure-list"
+                 to="/helpcenter/station/procedures" @navigate="close">
+      {{ t('helpCenter.procedureList.title') }}
+    </SidebarLink>
+    <SidebarLink :icon="['fas', 'plus']" name="help-procedure-create"
+                 to="/helpcenter/station/procedures/create" @navigate="close">
+      {{ t('procedures.createProcedure') }}
+    </SidebarLink>
+    <SidebarLink :icon="['fas', 'square-check']" name="help-procedure-detail"
+                 to="/helpcenter/station/procedures/0" @navigate="close">
+      {{ t('helpCenter.procedureDetail.title') }}
+    </SidebarLink>
+    <SidebarLink :icon="['fas', 'pen']" name="help-procedure-edit"
+                 to="/helpcenter/station/procedures/0/edit" @navigate="close">
+      {{ t('helpCenter.procedureCreate.title') }}
+    </SidebarLink>
+    <SidebarExpandableLink :icon="['fas', 'clone']" name="help-procedure-template-list"
+                           to="/helpcenter/station/procedures/templates"
+                           prefix="/helpcenter/station/procedures/templates" @navigate="close">
+      <template #label>{{ t('sidebar.procedureTemplates') }}</template>
+      <SidebarLink :icon="['fas', 'pen']" name="help-procedure-template-edit"
+                   to="/helpcenter/station/procedures/templates/0" @navigate="close">
+        {{ t('helpCenter.procedureTemplateEdit.title') }}
+      </SidebarLink>
+    </SidebarExpandableLink>
+  </SidebarGroup>
+
   <QuizSidebarGroup :close="close"/>
 
   <SidebarGroup :icon="['fas', 'table-columns']" :label="t('sidebar.boards')" prefix="/helpcenter/station/boards"
