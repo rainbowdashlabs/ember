@@ -57,6 +57,12 @@ Backend
   be-report             Generate the full JaCoCo report
   be-federation-version Regenerate the federation contract version
 
+Docker
+  docker-frontend       Build the frontend image, as CI's docker job does. Worth running when a
+                        linter learns to read something outside frontend/ — the image copies
+                        only that directory, so the repository root is not there
+  docker-backend        Build the backend image
+
 Combined
   verify                be-verify then fe-build
 EOF
@@ -104,6 +110,9 @@ case "$cmd" in
     be-coverage)   cd "$ROOT"; run ./gradlew jacocoCoverageCheck "$@" ;;
     be-report)     cd "$ROOT"; run ./gradlew jacocoFullReport "$@" ;;
     be-federation-version) cd "$ROOT"; run ./gradlew generateFederationVersion "$@" ;;
+
+    docker-frontend) cd "$ROOT"; run docker build . -f docker/frontend.Dockerfile "$@" ;;
+    docker-backend)  cd "$ROOT"; run docker build . -f docker/backend.Dockerfile "$@" ;;
 
     verify)
         "$ROOT/toolchain.sh" be-verify
