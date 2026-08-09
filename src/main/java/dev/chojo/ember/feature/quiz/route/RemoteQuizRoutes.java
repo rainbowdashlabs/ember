@@ -7,7 +7,9 @@ package dev.chojo.ember.feature.quiz.route;
 
 import dev.chojo.ember.api.FederationSession;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.feature.federation.entity.FederationPartner;
+import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
+import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
+import dev.chojo.ember.feature.federation.contract.FederationSurface;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizCategory;
@@ -32,6 +34,13 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 @Singleton
 public class RemoteQuizRoutes implements Routes {
 
+    public static final FederationEndpoint BROWSE_CATALOGS = FederationEndpoint.getList(
+            FederationSurface.QUIZ_SHARE, "/remote/quiz/catalogs", RemoteCatalogSummary.class);
+    public static final FederationEndpoint GET_CATALOG = FederationEndpoint.get(
+            FederationSurface.QUIZ_SHARE, "/remote/quiz/catalogs/{id}", RemoteCatalogDetail.class);
+
+    public static final List<FederationEndpoint> CONTRACT = List.of(BROWSE_CATALOGS, GET_CATALOG);
+
     private final QuizCatalogService catalogService;
     private final QuizQuestionService questionService;
     private final FederationRepository federationRepository;
@@ -48,12 +57,13 @@ public class RemoteQuizRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/remote/quiz/catalogs", this::browseCatalogs);
-        routes.get(prefix + "/remote/quiz/catalogs/{id}", this::getCatalog);
+        FederationContractBinder.register(
+                routes, prefix, CONTRACT, binder -> binder.handle(BROWSE_CATALOGS, this::browseCatalogs)
+                        .handle(GET_CATALOG, this::getCatalog));
     }
 
     private void browseCatalogs(Context ctx) {
-        var partner = requireFederationPartner(ctx);
+        var partner = FederationSession.requirePartner(ctx);
         var shares = federationRepository.findQuizShares(partner.stationId());
         var result = shares.stream()
                 .filter(s -> s.catalogId() != null)
@@ -69,7 +79,7 @@ public class RemoteQuizRoutes implements Routes {
     }
 
     private void getCatalog(Context ctx) {
-        var partner = requireFederationPartner(ctx);
+        var partner = FederationSession.requirePartner(ctx);
         int catalogId = pathInt(ctx, "id");
         var catalog = catalogService.findCatalog(catalogId).orElseThrow(NotFoundResponse::new);
         if (catalog.stationId() != partner.stationId()) {
@@ -80,16 +90,8 @@ public class RemoteQuizRoutes implements Routes {
         ctx.json(new RemoteCatalogDetail(catalog, categories, questions));
     }
 
-    private FederationPartner requireFederationPartner(Context ctx) {
-        var session = FederationSession.from(ctx);
-        if (session == null) {
-            throw new ForbiddenResponse("Missing or invalid federation signature");
-        }
-        return session.partner();
-    }
+    public record RemoteCatalogSummary(int id, String name, String description, String updatedAt) {}
 
-    private record RemoteCatalogSummary(int id, String name, String description, String updatedAt) {}
-
-    private record RemoteCatalogDetail(
+    public record RemoteCatalogDetail(
             QuizCatalog catalog, List<QuizCategory> categories, List<QuizQuestion> questions) {}
 }

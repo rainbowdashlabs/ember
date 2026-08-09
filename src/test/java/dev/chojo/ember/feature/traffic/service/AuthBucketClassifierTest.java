@@ -77,7 +77,7 @@ class AuthBucketClassifierTest {
                 "pk",
                 "ppk",
                 FederationPartner.FederationStatus.ACTIVE,
-                "1.0",
+                null,
                 Instant.now(),
                 Instant.now(),
                 "https://example",

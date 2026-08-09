@@ -57,7 +57,7 @@ class AvatarAccessServiceTest {
 
     private static FederationPartner partner(FederationPartner.FederationStatus status) {
         return new FederationPartner(
-                1, 1, TARGET_UID, "code", "pub", "partnerPub", status, "1", Instant.now(), Instant.now(), null, "P");
+                1, 1, TARGET_UID, "code", "pub", "partnerPub", status, null, Instant.now(), Instant.now(), null, "P");
     }
 
     @BeforeEach

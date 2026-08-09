@@ -13,6 +13,9 @@ import dev.chojo.ember.feature.board.entity.BoardTicketAttachment;
 import dev.chojo.ember.feature.board.entity.BoardTicketHistoryAction;
 import dev.chojo.ember.feature.board.entity.BoardTicketLink;
 import dev.chojo.ember.feature.board.entity.LinkType;
+import dev.chojo.ember.feature.board.route.RemoteBoardTicketDetailRoutes;
+import dev.chojo.ember.feature.board.route.RemoteBoardTicketLinkRoutes;
+import dev.chojo.ember.feature.board.route.RemoteBoardTicketRoutes;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import jakarta.inject.Inject;
@@ -63,7 +66,8 @@ public class FederatedTicketDetailProxy {
     public List<BoardComment> proxyGetComments(int partnerId, String boardKey, int ticketNumber) {
         var partner = locator.requirePartner(partnerId);
         if (partner.isRemote()) {
-            return gateway.getList(partner, ticketPath(boardKey, ticketNumber) + "/comments", BoardComment.class);
+            return gateway.getList(
+                    partner, RemoteBoardTicketDetailRoutes.GET_COMMENTS.at(boardKey, ticketNumber), BoardComment.class);
         }
         int ticketId = locator.resolveTicketId(partner, boardKey, ticketNumber);
         return ticketService.findComments(ticketId).stream()
@@ -104,7 +108,11 @@ public class FederatedTicketDetailProxy {
             body.put("displayName", displayName != null ? displayName : "");
             body.put("parentId", parentId != null ? parentId : "");
             body.put("content", content != null ? content : "");
-            return gateway.post(partner, ticketPath(boardKey, ticketNumber) + "/comments", body, BoardComment.class);
+            return gateway.post(
+                    partner,
+                    RemoteBoardTicketDetailRoutes.ADD_COMMENT.at(boardKey, ticketNumber),
+                    body,
+                    BoardComment.class);
         }
         int ticketId = locator.resolveTicketId(partner, boardKey, ticketNumber);
         var authorIdentity = new MemberIdentity(partner.partnerStationId(), remoteMemberId);
@@ -125,7 +133,9 @@ public class FederatedTicketDetailProxy {
         var partner = locator.requirePartner(partnerId);
         if (partner.isRemote()) {
             return gateway.getList(
-                    partner, ticketPath(boardKey, ticketNumber) + "/checklist", BoardChecklistItem.class);
+                    partner,
+                    RemoteBoardTicketDetailRoutes.GET_CHECKLIST.at(boardKey, ticketNumber),
+                    BoardChecklistItem.class);
         }
         return ticketService.findChecklistItems(locator.resolveTicketId(partner, boardKey, ticketNumber));
     }
@@ -155,7 +165,10 @@ public class FederatedTicketDetailProxy {
             body.put("title", title);
             putActor(body, remoteMemberUid, displayName);
             return gateway.post(
-                    partner, ticketPath(boardKey, ticketNumber) + "/checklist", body, BoardChecklistItem.class);
+                    partner,
+                    RemoteBoardTicketDetailRoutes.ADD_CHECKLIST_ITEM.at(boardKey, ticketNumber),
+                    body,
+                    BoardChecklistItem.class);
         }
         int ticketId = locator.resolveTicketId(partner, boardKey, ticketNumber);
         locator.cacheNameIfPresent(partnerId, remoteMemberUid, displayName);
@@ -196,7 +209,10 @@ public class FederatedTicketDetailProxy {
             body.put("title", title);
             body.put("checked", checked);
             putActor(body, remoteMemberUid, displayName);
-            gateway.put(partner, ticketPath(boardKey, ticketNumber) + "/checklist/" + itemId, body);
+            gateway.put(
+                    partner,
+                    RemoteBoardTicketDetailRoutes.UPDATE_CHECKLIST_ITEM.at(boardKey, ticketNumber, itemId),
+                    body);
             return;
         }
         int ticketId = locator.resolveTicketId(partner, boardKey, ticketNumber);
@@ -225,7 +241,8 @@ public class FederatedTicketDetailProxy {
                 ticketNumber,
                 remoteMemberUid);
         if (partner.isRemote()) {
-            gateway.delete(partner, ticketPath(boardKey, ticketNumber) + "/checklist/" + itemId);
+            gateway.delete(
+                    partner, RemoteBoardTicketDetailRoutes.DELETE_CHECKLIST_ITEM.at(boardKey, ticketNumber, itemId));
             return;
         }
         int ticketId = locator.resolveTicketId(partner, boardKey, ticketNumber);
@@ -244,7 +261,8 @@ public class FederatedTicketDetailProxy {
     public List<BoardTicketLink> proxyGetLinks(int partnerId, String boardKey, int ticketNumber) {
         var partner = locator.requirePartner(partnerId);
         if (partner.isRemote()) {
-            return gateway.getList(partner, ticketPath(boardKey, ticketNumber) + "/links", BoardTicketLink.class);
+            return gateway.getList(
+                    partner, RemoteBoardTicketLinkRoutes.GET_LINKS.at(boardKey, ticketNumber), BoardTicketLink.class);
         }
         return ticketService.findLinks(locator.resolveTicketId(partner, boardKey, ticketNumber));
     }
@@ -281,7 +299,7 @@ public class FederatedTicketDetailProxy {
             body.put("linkedTicketNumber", linkedTicketNumber);
             body.put("linkType", linkType);
             putActor(body, remoteMemberUid, displayName);
-            gateway.post(partner, ticketPath(boardKey, ticketNumber) + "/links", body);
+            gateway.post(partner, RemoteBoardTicketLinkRoutes.CREATE_LINK.at(boardKey, ticketNumber), body);
             return;
         }
         var link = resolveLinkContext(
@@ -317,7 +335,10 @@ public class FederatedTicketDetailProxy {
         if (partner.isRemote()) {
             var body = new HashMap<String, Object>();
             putActor(body, remoteMemberUid, displayName);
-            gateway.delete(partner, ticketPath(boardKey, ticketNumber) + "/links/" + linkedTicketNumber, body);
+            gateway.delete(
+                    partner,
+                    RemoteBoardTicketLinkRoutes.DELETE_LINK.at(boardKey, ticketNumber, linkedTicketNumber),
+                    body);
             return;
         }
         var link = resolveLinkContext(
@@ -336,7 +357,10 @@ public class FederatedTicketDetailProxy {
     public List<BoardLabel> proxyGetTicketLabels(int partnerId, String boardKey, int ticketNumber) {
         var partner = locator.requirePartner(partnerId);
         if (partner.isRemote()) {
-            return gateway.getList(partner, ticketPath(boardKey, ticketNumber) + "/labels", BoardLabel.class);
+            return gateway.getList(
+                    partner,
+                    RemoteBoardTicketLinkRoutes.GET_TICKET_LABELS.at(boardKey, ticketNumber),
+                    BoardLabel.class);
         }
         return boardService.findLabelsForTicket(locator.resolveTicketId(partner, boardKey, ticketNumber));
     }
@@ -365,7 +389,7 @@ public class FederatedTicketDetailProxy {
         if (partner.isRemote()) {
             return gateway.postList(
                     partner,
-                    ticketPath(boardKey, ticketNumber) + "/labels/" + labelId,
+                    RemoteBoardTicketLinkRoutes.ADD_TICKET_LABEL.at(boardKey, ticketNumber, labelId),
                     new LabelActionBody(remoteMemberId, displayName),
                     BoardLabel.class);
         }
@@ -404,7 +428,7 @@ public class FederatedTicketDetailProxy {
         if (partner.isRemote()) {
             gateway.post(
                     partner,
-                    ticketPath(boardKey, ticketNumber) + "/labels/" + labelId + "/remove",
+                    RemoteBoardTicketLinkRoutes.REMOVE_TICKET_LABEL.at(boardKey, ticketNumber, labelId),
                     new LabelActionBody(remoteMemberId, displayName));
             return;
         }
@@ -431,7 +455,10 @@ public class FederatedTicketDetailProxy {
     public FederatedWatcherData proxyGetWatchers(int partnerId, String boardKey, int ticketNumber) {
         var partner = locator.requirePartner(partnerId);
         if (partner.isRemote()) {
-            return gateway.get(partner, ticketPath(boardKey, ticketNumber) + "/watchers", FederatedWatcherData.class);
+            return gateway.get(
+                    partner,
+                    RemoteBoardTicketDetailRoutes.GET_WATCHERS.at(boardKey, ticketNumber),
+                    FederatedWatcherData.class);
         }
         int ticketId = locator.resolveTicketId(partner, boardKey, ticketNumber);
         return new FederatedWatcherData(ticketService.findWatchers(ticketId), List.of());
@@ -448,7 +475,10 @@ public class FederatedTicketDetailProxy {
     public void proxyWatchTicket(int partnerId, String boardKey, int ticketNumber, UUID remoteMemberId) {
         var partner = locator.requirePartner(partnerId);
         if (partner.isRemote()) {
-            gateway.post(partner, ticketPath(boardKey, ticketNumber) + "/watch", new RemoteMemberBody(remoteMemberId));
+            gateway.post(
+                    partner,
+                    RemoteBoardTicketDetailRoutes.WATCH_TICKET.at(boardKey, ticketNumber),
+                    new RemoteMemberBody(remoteMemberId));
             return;
         }
         int ticketId = locator.resolveTicketId(partner, boardKey, ticketNumber);
@@ -466,7 +496,7 @@ public class FederatedTicketDetailProxy {
     public void proxyUnwatchTicket(int partnerId, String boardKey, int ticketNumber, UUID remoteMemberId) {
         var partner = locator.requirePartner(partnerId);
         if (partner.isRemote()) {
-            gateway.delete(partner, ticketPath(boardKey, ticketNumber) + "/watch");
+            gateway.delete(partner, RemoteBoardTicketDetailRoutes.UNWATCH_TICKET.at(boardKey, ticketNumber));
             return;
         }
         int ticketId = locator.resolveTicketId(partner, boardKey, ticketNumber);
@@ -485,7 +515,9 @@ public class FederatedTicketDetailProxy {
         var partner = locator.requirePartner(partnerId);
         if (partner.isRemote()) {
             return gateway.getList(
-                    partner, ticketPath(boardKey, ticketNumber) + "/attachments", BoardTicketAttachment.class);
+                    partner,
+                    RemoteBoardTicketRoutes.GET_ATTACHMENTS.at(boardKey, ticketNumber),
+                    BoardTicketAttachment.class);
         }
         return ticketService.findAttachments(locator.resolveTicketId(partner, boardKey, ticketNumber));
     }
@@ -517,10 +549,6 @@ public class FederatedTicketDetailProxy {
     private void putActor(HashMap<String, Object> body, UUID remoteMemberUid, String displayName) {
         if (remoteMemberUid != null) body.put("remoteMemberUid", remoteMemberUid.toString());
         if (displayName != null) body.put("displayName", displayName);
-    }
-
-    private static String ticketPath(String boardKey, int ticketNumber) {
-        return "/remote/boards/" + boardKey + "/tickets/" + ticketNumber;
     }
 
     private record LinkContext(int ticketId, int linkedTicketId, MemberIdentity actorIdentity) {}

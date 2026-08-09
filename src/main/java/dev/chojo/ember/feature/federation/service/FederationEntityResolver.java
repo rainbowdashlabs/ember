@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.federation.service;
 
+import dev.chojo.ember.feature.federation.contract.FederationRequest;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationPartner.FederationStatus;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
@@ -81,7 +82,7 @@ public class FederationEntityResolver {
      *
      * @param localStationId    the requesting station ID
      * @param partnerStationUid the partner station UUID
-     * @param remotePath        the remote federation endpoint path
+     * @param remoteRequest     the declared federation endpoint call to read from
      * @param responseType      the expected remote response type
      * @param entityName        the entity name used in the failure message, for example {@code news}
      * @param localFetcher      lookup for partners living on this instance
@@ -91,7 +92,7 @@ public class FederationEntityResolver {
     public <T> T resolve(
             int localStationId,
             UUID partnerStationUid,
-            String remotePath,
+            FederationRequest remoteRequest,
             Class<T> responseType,
             String entityName,
             Function<FederationPartner, T> localFetcher) {
@@ -99,18 +100,18 @@ public class FederationEntityResolver {
                 localStationId,
                 partnerStationUid,
                 localFetcher,
-                partner -> fetchRemote(partner, localStationId, remotePath, responseType, entityName));
+                partner -> fetchRemote(partner, localStationId, remoteRequest, responseType, entityName));
     }
 
     private <T> T fetchRemote(
             FederationPartner partner,
             int localStationId,
-            String remotePath,
+            FederationRequest remoteRequest,
             Class<T> responseType,
             String entityName) {
         var result = httpClient.get(
                 partner.remoteHost(),
-                remotePath,
+                remoteRequest,
                 partner.partnerStationId(),
                 localStationId,
                 privateKey(localStationId),

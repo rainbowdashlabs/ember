@@ -8,8 +8,12 @@ package dev.chojo.ember.feature.federation.route;
 import dev.chojo.ember.api.FederationSession;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.events.service.EventFederationService;
-import dev.chojo.ember.feature.federation.entity.CapabilityType;
-import dev.chojo.ember.feature.federation.entity.FederationPartner;
+import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
+import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
+import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
+import dev.chojo.ember.feature.federation.contract.FederationSurface;
+import dev.chojo.ember.feature.federation.entity.FederationChangeLog;
+import dev.chojo.ember.feature.federation.entity.FederationContract;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.federation.service.FederationSigningService;
@@ -37,6 +41,37 @@ import java.util.UUID;
 public class RemoteFederationRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(RemoteFederationRoutes.class);
 
+    public static final FederationEndpoint HANDSHAKE = FederationEndpoint.post(
+                    FederationSurface.CORE, "/remote/handshake", HandshakeRequest.class, HandshakeResponse.class)
+            .exempt();
+    public static final FederationEndpoint WEBHOOK_REGISTER = FederationEndpoint.post(
+            FederationSurface.CORE,
+            "/remote/webhook/register",
+            WebhookRegisterRequest.class,
+            WebhookRegisterResponse.class);
+    public static final FederationEndpoint MEMBER_NAME_CHANGED = FederationEndpoint.post(
+            FederationSurface.CORE,
+            "/remote/webhook/member-name-changed",
+            MemberNameChangedWebhook.class,
+            StatusResponse.class);
+    public static final FederationEndpoint SYNC_METADATA =
+            FederationEndpoint.getList(FederationSurface.CORE, "/remote/sync/metadata", FederationChangeLog.class);
+    /**
+     * Version-exempt like the handshake and the ping: a station that moves host and rolls
+     * the core contract in the same release must still be able to announce its new address,
+     * or the partner keeps pinging the dead host and the vector can never heal.
+     */
+    public static final FederationEndpoint ANNOUNCE = FederationEndpoint.post(
+                    FederationSurface.CORE, "/remote/announce", AnnounceRequest.class, StatusResponse.class)
+            .exempt();
+
+    public static final FederationEndpoint VERSION_PING = FederationEndpoint.get(
+                    FederationSurface.CORE, "/remote/federation/ping", VersionPingResponse.class)
+            .exempt();
+
+    public static final List<FederationEndpoint> CONTRACT =
+            List.of(HANDSHAKE, WEBHOOK_REGISTER, MEMBER_NAME_CHANGED, SYNC_METADATA, ANNOUNCE, VERSION_PING);
+
     private final FederationService federationService;
     private final FederationSigningService signingService;
     private final FederationRepository repository;
@@ -62,25 +97,12 @@ public class RemoteFederationRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        String base = prefix + "/remote";
-
-        // Handshake (no signature required - uses embedded public key)
-        routes.post(base + "/handshake", this::handshake);
-
-        // Webhook registration (signature required)
-        routes.post(base + "/webhook/register", this::registerWebhook);
-
-        // Webhook receivers (signature required)
-        routes.post(base + "/webhook/member-name-changed", this::onMemberNameChanged);
-
-        // Sync polling (signature required)
-        routes.get(base + "/sync/metadata", this::syncMetadata);
-
-        // Host change announcement (signature required)
-        routes.post(base + "/announce", this::announceHostChange);
-
-        // Version ping (signature required) — returns current version, also updates caller's version via header
-        routes.get(base + "/federation/ping", this::versionPing);
+        FederationContractBinder.register(routes, prefix, CONTRACT, binder -> binder.handle(HANDSHAKE, this::handshake)
+                .handle(WEBHOOK_REGISTER, this::registerWebhook)
+                .handle(MEMBER_NAME_CHANGED, this::onMemberNameChanged)
+                .handle(SYNC_METADATA, this::syncMetadata)
+                .handle(ANNOUNCE, this::announceHostChange)
+                .handle(VERSION_PING, this::versionPing));
     }
 
     // -- Handshake --
@@ -94,7 +116,8 @@ public class RemoteFederationRoutes implements Routes {
         // Verify the incoming signature using the embedded public key
         var remotePublicKey = signingService.decodePublicKey(req.publicKey());
         if (req.signature() != null && !req.signature().isBlank()) {
-            String payload = req.stationId() + ":" + req.federationVersion() + ":" + req.publicKey();
+            String core = req.contract() != null ? req.contract().core() : "";
+            String payload = req.stationId() + ":" + core + ":" + req.publicKey();
             boolean valid = signingService.verifyEnrollmentPayload(payload, req.signature(), remotePublicKey);
             if (!valid) {
                 throw new ForbiddenResponse("Invalid handshake signature");
@@ -103,29 +126,14 @@ public class RemoteFederationRoutes implements Routes {
 
         ctx.json(new HandshakeResponse(
                 0, // Our station ID would come from config; 0 as placeholder for remote
-                FederationService.FEDERATION_VERSION,
-                federationService.getSupportedCapabilities(),
+                FederationContractVersions.current(),
                 "")); // Public key returned on partner creation
-    }
-
-    // -- Signature Verification --
-
-    /**
-     * Returns the verified federation partner from the centrally resolved session.
-     * The signature is verified by {@link dev.chojo.ember.api.AccessManager} before this handler runs.
-     */
-    private FederationPartner requireFederationPartner(Context ctx) {
-        var session = FederationSession.from(ctx);
-        if (session == null) {
-            throw new ForbiddenResponse("Missing or invalid federation signature");
-        }
-        return session.partner();
     }
 
     // -- Webhook Registration --
 
     private void registerWebhook(Context ctx) {
-        var partner = requireFederationPartner(ctx);
+        var partner = FederationSession.requirePartner(ctx);
         readOnlyGuard.requireWritable(partner.stationId());
         var req = ctx.bodyAsClass(WebhookRegisterRequest.class);
         if (req.webhookUrl() == null || req.webhookUrl().isBlank()) {
@@ -142,7 +150,7 @@ public class RemoteFederationRoutes implements Routes {
     // -- Sync Polling --
 
     private void syncMetadata(Context ctx) {
-        var partner = requireFederationPartner(ctx);
+        var partner = FederationSession.requirePartner(ctx);
         readOnlyGuard.requireWritable(partner.stationId());
         String sinceParam = ctx.queryParam("since");
         if (sinceParam == null || sinceParam.isBlank()) {
@@ -170,7 +178,7 @@ public class RemoteFederationRoutes implements Routes {
      * Notifies managers of the host change.
      */
     private void announceHostChange(Context ctx) {
-        var partner = requireFederationPartner(ctx);
+        var partner = FederationSession.requirePartner(ctx);
         readOnlyGuard.requireWritable(partner.stationId());
         var req = ctx.bodyAsClass(AnnounceRequest.class);
         if (req.newHost() == null || req.newHost().isBlank()) {
@@ -190,7 +198,7 @@ public class RemoteFederationRoutes implements Routes {
     }
 
     private void onMemberNameChanged(Context ctx) {
-        var partner = requireFederationPartner(ctx);
+        var partner = FederationSession.requirePartner(ctx);
         readOnlyGuard.requireWritable(partner.stationId());
         var req = ctx.bodyAsClass(MemberNameChangedWebhook.class);
         eventFederationService.invalidateName(partner.id(), req.remoteMemberId());
@@ -200,23 +208,21 @@ public class RemoteFederationRoutes implements Routes {
     // -- Version Ping --
 
     private void versionPing(Context ctx) {
-        requireFederationPartner(ctx);
-        ctx.json(new VersionPingResponse(FederationService.FEDERATION_VERSION));
+        FederationSession.requirePartner(ctx);
+        ctx.json(new VersionPingResponse(FederationContractVersions.current()));
     }
 
     // -- Request/Response Records --
 
-    public record VersionPingResponse(String version) {}
+    public record VersionPingResponse(FederationContract contract) {}
 
     public record MemberNameChangedWebhook(UUID remoteMemberId) {}
 
     public record AnnounceRequest(String newHost) {}
 
-    public record HandshakeRequest(
-            int stationId, String federationVersion, List<String> capabilities, String publicKey, String signature) {}
+    public record HandshakeRequest(int stationId, FederationContract contract, String publicKey, String signature) {}
 
-    public record HandshakeResponse(
-            int stationId, String federationVersion, List<CapabilityType> capabilities, String publicKey) {}
+    public record HandshakeResponse(int stationId, FederationContract contract, String publicKey) {}
 
     public record WebhookRegisterRequest(String webhookUrl) {}
 

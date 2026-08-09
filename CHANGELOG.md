@@ -12,6 +12,7 @@
 
 ### Changes
 
+- **Federation compatibility is checked per feature.** When two connected stations run different versions, only the features whose data exchange actually changed are paused instead of the whole partnership — everything else keeps federating. The partner page shows which features are paused, and they resume automatically once both stations run the same version.
 - **No size placeholder for unsized items.** Item lists and member inventory pages leave the size empty for items without sizes instead of showing a one-size label. Size transitions in exchange and procurement views are unchanged.
 - **Item actions in one menu.** The action buttons on each inventory item row are collected in a single menu with labelled entries.
 - **Custom item fields are easier to set up.** The technical key and the values of selection options are suggested automatically from the entered names, and fields can be reordered by dragging them (on phones, with up and down arrows).

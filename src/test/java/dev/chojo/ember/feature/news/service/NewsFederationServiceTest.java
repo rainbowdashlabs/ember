@@ -11,6 +11,7 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.federation.contract.FederationRequest;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
@@ -43,6 +44,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import static dev.chojo.ember.feature.federation.FederationTestContracts.pathIs;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -234,7 +236,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         service.setShare(news1.id(), ShareScope.ALL_PARTNERS, NewsVisibilityRole.MEMBER, List.of());
 
         // Mock httpClient.getList for the remote partner to return empty
-        when(httpClient.getList(anyString(), anyString(), any(), anyInt(), any(), any()))
+        when(httpClient.getList(anyString(), any(FederationRequest.class), any(), anyInt(), any(), any()))
                 .thenReturn(List.of());
 
         // Browse from stationB's perspective — stationA is a local partner
@@ -251,7 +253,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     void browseFederatedNewsNoShares() {
         service.removeShare(news1.id());
 
-        when(httpClient.getList(anyString(), anyString(), any(), anyInt(), any(), any()))
+        when(httpClient.getList(anyString(), any(FederationRequest.class), any(), anyInt(), any(), any()))
                 .thenReturn(List.of());
 
         var items = service.browseFederatedNews(stationB.id());
@@ -264,7 +266,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         service.setShare(news1.id(), ShareScope.ALL_PARTNERS, NewsVisibilityRole.MEMBER, List.of());
         service.setShare(news2.id(), ShareScope.ALL_PARTNERS, NewsVisibilityRole.TEAM, List.of());
 
-        when(httpClient.getList(anyString(), anyString(), any(), anyInt(), any(), any()))
+        when(httpClient.getList(anyString(), any(FederationRequest.class), any(), anyInt(), any(), any()))
                 .thenReturn(List.of());
 
         var items = service.browseFederatedNews(stationB.id());
@@ -290,7 +292,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
 
         when(httpClient.getList(
                         eq("https://remote-news.example.com"),
-                        eq("/remote/news"),
+                        pathIs("/remote/news"),
                         any(),
                         eq(stationA.id()),
                         any(),
@@ -304,7 +306,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         verify(httpClient)
                 .getList(
                         eq("https://remote-news.example.com"),
-                        eq("/remote/news"),
+                        pathIs("/remote/news"),
                         any(),
                         eq(stationA.id()),
                         any(),
@@ -321,7 +323,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     void browseFederatedNewsHttpReturnsEmpty() {
         when(httpClient.getList(
                         eq("https://remote-news.example.com"),
-                        eq("/remote/news"),
+                        pathIs("/remote/news"),
                         any(),
                         eq(stationA.id()),
                         any(),
@@ -372,7 +374,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
 
         when(httpClient.get(
                         eq("https://remote-news.example.com"),
-                        eq("/remote/news/42"),
+                        pathIs("/remote/news/42"),
                         any(),
                         eq(stationA.id()),
                         any(),
@@ -391,7 +393,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     void getFederatedNewsRemoteReturnsNull() {
         when(httpClient.get(
                         eq("https://remote-news.example.com"),
-                        eq("/remote/news/99"),
+                        pathIs("/remote/news/99"),
                         any(),
                         eq(stationA.id()),
                         any(),
@@ -478,7 +480,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     void browseFederatedNewsChecksPartnerStationName() {
         service.setShare(news1.id(), ShareScope.ALL_PARTNERS, NewsVisibilityRole.MEMBER, List.of());
 
-        when(httpClient.getList(anyString(), anyString(), any(), anyInt(), any(), any()))
+        when(httpClient.getList(anyString(), any(FederationRequest.class), any(), anyInt(), any(), any()))
                 .thenReturn(List.of());
 
         var items = service.browseFederatedNews(stationB.id());
@@ -559,7 +561,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     void listFederatedCommentsRemote() {
         when(httpClient.getList(
                         eq("https://remote-news.example.com"),
-                        eq("/remote/news/77/comments"),
+                        pathIs("/remote/news/77/comments"),
                         any(),
                         eq(stationA.id()),
                         any(),
@@ -576,7 +578,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     void createFederatedCommentRemote() {
         when(httpClient.post(
                         eq("https://remote-news.example.com"),
-                        eq("/remote/news/77/comments"),
+                        pathIs("/remote/news/77/comments"),
                         any(),
                         any(),
                         eq(stationA.id()),
@@ -594,7 +596,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     void createFederatedCommentRemoteFailurePropagates() {
         when(httpClient.post(
                         eq("https://remote-news.example.com"),
-                        eq("/remote/news/78/comments"),
+                        pathIs("/remote/news/78/comments"),
                         any(),
                         any(),
                         eq(stationA.id()),
@@ -613,7 +615,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     void updateFederatedCommentRemote() {
         when(httpClient.put(
                         eq("https://remote-news.example.com"),
-                        eq("/remote/news/comments/55"),
+                        pathIs("/remote/news/comments/55"),
                         any(),
                         any(),
                         eq(stationA.id()),
@@ -630,7 +632,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     void updateFederatedCommentRemoteFailurePropagates() {
         when(httpClient.put(
                         eq("https://remote-news.example.com"),
-                        eq("/remote/news/comments/56"),
+                        pathIs("/remote/news/comments/56"),
                         any(),
                         any(),
                         eq(stationA.id()),
@@ -648,7 +650,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     void deleteFederatedCommentRemote() {
         when(httpClient.delete(
                         eq("https://remote-news.example.com"),
-                        eq("/remote/news/comments/57"),
+                        pathIs("/remote/news/comments/57"),
                         any(),
                         eq(stationA.id()),
                         any()))
@@ -662,7 +664,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     void deleteFederatedCommentRemoteFailurePropagates() {
         when(httpClient.delete(
                         eq("https://remote-news.example.com"),
-                        eq("/remote/news/comments/58"),
+                        pathIs("/remote/news/comments/58"),
                         any(),
                         eq(stationA.id()),
                         any()))

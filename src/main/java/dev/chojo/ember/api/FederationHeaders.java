@@ -15,6 +15,8 @@ public final class FederationHeaders {
 
     public static final String HEADER_STATION_NAME = "X-Federation-Station-Name";
     public static final String HEADER_STATION_ID = "X-Federation-Station-Id";
+    public static final String HEADER_CORE = "X-Federation-Core";
+    public static final String HEADER_SURFACE = "X-Federation-Surface";
 
     private FederationHeaders() {}
 

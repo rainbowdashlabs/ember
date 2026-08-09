@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.ChangeType;
 import dev.chojo.ember.feature.federation.entity.ContentType;
 import dev.chojo.ember.feature.federation.entity.Direction;
+import dev.chojo.ember.feature.federation.entity.FederationContract;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
@@ -27,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -425,10 +427,8 @@ class FederationRepositoryTest extends RepositoryTestBase {
 
     @Test
     @Order(51)
-    void backfillPartnerVersions() {
-        // Partner was created with current version, so backfill should update 0 rows
-        int updated = federationRepo.backfillPartnerVersions("new-version");
-        assertEquals(0, updated);
+    void newPartnerHasNoContractVector() {
+        assertNull(federationRepo.findPartnerById(partnerId).orElseThrow().federationContract());
     }
 
     @Test
@@ -457,10 +457,12 @@ class FederationRepositoryTest extends RepositoryTestBase {
 
     @Test
     @Order(62)
-    void updateFederationVersionAndLastSync() {
-        federationRepo.updateFederationVersion(partnerId, "1.2.3");
+    void updateFederationContractAndLastSync() {
+        var contract = new FederationContract("aaaabbbbccccdddd", Map.of("KB_SHARE", "1111222233334444"));
+        federationRepo.updateFederationContract(partnerId, contract);
         assertEquals(
-                "1.2.3", federationRepo.findPartnerById(partnerId).orElseThrow().federationVersion());
+                contract,
+                federationRepo.findPartnerById(partnerId).orElseThrow().federationContract());
         federationRepo.updateLastSyncAt(partnerId);
     }
 

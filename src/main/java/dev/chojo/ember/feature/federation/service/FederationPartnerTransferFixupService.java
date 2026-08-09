@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.federation.service;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.route.RemoteFederationRoutes;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -143,7 +144,7 @@ public class FederationPartnerTransferFixupService {
             try {
                 boolean ok = federationHttpClient.post(
                         partner.remoteHost(),
-                        "/remote/announce",
+                        RemoteFederationRoutes.ANNOUNCE.at(),
                         payload,
                         partner.partnerStationId(),
                         stationId,

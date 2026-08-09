@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.federation.service;
 
+import dev.chojo.ember.feature.federation.contract.FederationRequest;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
@@ -19,6 +20,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static dev.chojo.ember.feature.federation.FederationTestContracts.pathIs;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -48,7 +50,7 @@ class FederationPartnerTransferFixupServiceTest {
                 null,
                 null,
                 FederationPartner.FederationStatus.ACTIVE,
-                "1",
+                null,
                 Instant.now(),
                 Instant.now(),
                 host,
@@ -64,7 +66,7 @@ class FederationPartnerTransferFixupServiceTest {
                 null,
                 null,
                 FederationPartner.FederationStatus.ACTIVE,
-                "1",
+                null,
                 Instant.now(),
                 Instant.now(),
                 null,
@@ -80,7 +82,7 @@ class FederationPartnerTransferFixupServiceTest {
                 null,
                 null,
                 FederationPartner.FederationStatus.SUSPENDED,
-                "1",
+                null,
                 Instant.now(),
                 Instant.now(),
                 host,
@@ -139,7 +141,8 @@ class FederationPartnerTransferFixupServiceTest {
 
         verify(stations, never()).findById(anyInt());
         verify(repo, never()).findPartners(anyInt());
-        verify(http, never()).post(anyString(), anyString(), any(), any(UUID.class), anyInt(), anyString());
+        verify(http, never())
+                .post(anyString(), any(FederationRequest.class), any(), any(UUID.class), anyInt(), anyString());
     }
 
     @Test
@@ -154,7 +157,8 @@ class FederationPartnerTransferFixupServiceTest {
 
         verify(stations).findById(1);
         verify(repo, never()).findPartners(anyInt());
-        verify(http, never()).post(anyString(), anyString(), any(), any(UUID.class), anyInt(), anyString());
+        verify(http, never())
+                .post(anyString(), any(FederationRequest.class), any(), any(UUID.class), anyInt(), anyString());
     }
 
     @Test
@@ -168,7 +172,8 @@ class FederationPartnerTransferFixupServiceTest {
         svc.announceNewHostToRemotePartners(1, "https://new.example.org");
 
         verify(repo, never()).findPartners(anyInt());
-        verify(http, never()).post(anyString(), anyString(), any(), any(UUID.class), anyInt(), anyString());
+        verify(http, never())
+                .post(anyString(), any(FederationRequest.class), any(), any(UUID.class), anyInt(), anyString());
     }
 
     @Test
@@ -180,7 +185,7 @@ class FederationPartnerTransferFixupServiceTest {
         var remoteA = remote(10, "https://partner-a.example");
         var remoteB = remote(11, "https://partner-b.example");
         when(repo.findPartners(1)).thenReturn(List.of(remoteA, remoteB, local(12), suspended(13, "https://x.example")));
-        when(http.post(anyString(), eq("/remote/announce"), any(), any(UUID.class), eq(1), eq(PRIVATE_KEY)))
+        when(http.post(anyString(), pathIs("/remote/announce"), any(), any(UUID.class), eq(1), eq(PRIVATE_KEY)))
                 .thenReturn(true);
 
         var svc = newService(repo, http, stations);
@@ -189,7 +194,7 @@ class FederationPartnerTransferFixupServiceTest {
         verify(http)
                 .post(
                         eq("https://partner-a.example"),
-                        eq("/remote/announce"),
+                        pathIs("/remote/announce"),
                         any(),
                         eq(remoteA.partnerStationId()),
                         eq(1),
@@ -197,13 +202,13 @@ class FederationPartnerTransferFixupServiceTest {
         verify(http)
                 .post(
                         eq("https://partner-b.example"),
-                        eq("/remote/announce"),
+                        pathIs("/remote/announce"),
                         any(),
                         eq(remoteB.partnerStationId()),
                         eq(1),
                         eq(PRIVATE_KEY));
         verify(http, times(2))
-                .post(anyString(), eq("/remote/announce"), any(), any(UUID.class), eq(1), eq(PRIVATE_KEY));
+                .post(anyString(), pathIs("/remote/announce"), any(), any(UUID.class), eq(1), eq(PRIVATE_KEY));
     }
 
     @Test
@@ -217,7 +222,7 @@ class FederationPartnerTransferFixupServiceTest {
         when(repo.findPartners(1)).thenReturn(List.of(first, second));
         when(http.post(
                         eq("https://partner-a.example"),
-                        eq("/remote/announce"),
+                        pathIs("/remote/announce"),
                         any(),
                         any(UUID.class),
                         anyInt(),
@@ -225,7 +230,7 @@ class FederationPartnerTransferFixupServiceTest {
                 .thenThrow(new RuntimeException("network down"));
         when(http.post(
                         eq("https://partner-b.example"),
-                        eq("/remote/announce"),
+                        pathIs("/remote/announce"),
                         any(),
                         any(UUID.class),
                         anyInt(),
@@ -235,7 +240,8 @@ class FederationPartnerTransferFixupServiceTest {
         var svc = newService(repo, http, stations);
         svc.announceNewHostToRemotePartners(1, "https://new.example.org");
 
-        verify(http, times(2)).post(anyString(), eq("/remote/announce"), any(), any(UUID.class), anyInt(), anyString());
+        verify(http, times(2))
+                .post(anyString(), pathIs("/remote/announce"), any(), any(UUID.class), anyInt(), anyString());
     }
 
     @Test
@@ -246,12 +252,12 @@ class FederationPartnerTransferFixupServiceTest {
         when(stations.findById(1)).thenReturn(Optional.of(station(1, PRIVATE_KEY)));
         var only = remote(10, "https://partner-a.example");
         when(repo.findPartners(1)).thenReturn(List.of(only));
-        when(http.post(anyString(), anyString(), any(), any(UUID.class), anyInt(), anyString()))
+        when(http.post(anyString(), any(FederationRequest.class), any(), any(UUID.class), anyInt(), anyString()))
                 .thenReturn(false);
 
         var svc = newService(repo, http, stations);
         svc.announceNewHostToRemotePartners(1, "https://new.example.org");
 
-        verify(http).post(anyString(), anyString(), any(), any(UUID.class), anyInt(), anyString());
+        verify(http).post(anyString(), any(FederationRequest.class), any(), any(UUID.class), anyInt(), anyString());
     }
 }

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.board.service;
 
+import dev.chojo.ember.feature.federation.contract.FederationRequest;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -35,16 +36,16 @@ public class FederatedBoardRemoteGateway {
      * Fetches a single object from the partner.
      *
      * @param partner the partner to call
-     * @param path    the remote path
+     * @param request    the remote request
      * @param type    the expected response type
      * @param <T>     the response type
      * @return the parsed response
      */
-    public <T> T get(FederationPartner partner, String path, Class<T> type) {
+    public <T> T get(FederationPartner partner, FederationRequest request, Class<T> type) {
         try {
             var result = httpClient.get(
                     partner.remoteHost(),
-                    path,
+                    request,
                     partner.partnerStationId(),
                     partner.stationId(),
                     privateKey(partner),
@@ -62,15 +63,15 @@ public class FederatedBoardRemoteGateway {
      * Fetches a list of objects from the partner.
      *
      * @param partner     the partner to call
-     * @param path        the remote path
+     * @param request        the remote request
      * @param elementType the expected element type
      * @param <T>         the element type
      * @return the parsed elements
      */
-    public <T> List<T> getList(FederationPartner partner, String path, Class<T> elementType) {
+    public <T> List<T> getList(FederationPartner partner, FederationRequest request, Class<T> elementType) {
         return httpClient.getList(
                 partner.remoteHost(),
-                path,
+                request,
                 partner.partnerStationId(),
                 partner.stationId(),
                 privateKey(partner),
@@ -81,17 +82,17 @@ public class FederatedBoardRemoteGateway {
      * Posts a body to the partner and parses the response.
      *
      * @param partner the partner to call
-     * @param path    the remote path
+     * @param request    the remote request
      * @param body    the request body
      * @param type    the expected response type
      * @param <T>     the response type
      * @return the parsed response
      */
-    public <T> T post(FederationPartner partner, String path, Object body, Class<T> type) {
+    public <T> T post(FederationPartner partner, FederationRequest request, Object body, Class<T> type) {
         try {
             var result = httpClient.post(
                     partner.remoteHost(),
-                    path,
+                    request,
                     body,
                     partner.partnerStationId(),
                     partner.stationId(),
@@ -110,16 +111,17 @@ public class FederatedBoardRemoteGateway {
      * Posts a body to the partner and parses a list response.
      *
      * @param partner     the partner to call
-     * @param path        the remote path
+     * @param request        the remote request
      * @param body        the request body
      * @param elementType the expected element type
      * @param <T>         the element type
      * @return the parsed elements
      */
-    public <T> List<T> postList(FederationPartner partner, String path, Object body, Class<T> elementType) {
+    public <T> List<T> postList(
+            FederationPartner partner, FederationRequest request, Object body, Class<T> elementType) {
         return httpClient.postList(
                 partner.remoteHost(),
-                path,
+                request,
                 body,
                 partner.partnerStationId(),
                 partner.stationId(),
@@ -131,29 +133,34 @@ public class FederatedBoardRemoteGateway {
      * Posts a body to the partner without reading a response.
      *
      * @param partner the partner to call
-     * @param path    the remote path
+     * @param request    the remote request
      * @param body    the request body
      */
-    public void post(FederationPartner partner, String path, Object body) {
+    public void post(FederationPartner partner, FederationRequest request, Object body) {
         httpClient.post(
-                partner.remoteHost(), path, body, partner.partnerStationId(), partner.stationId(), privateKey(partner));
+                partner.remoteHost(),
+                request,
+                body,
+                partner.partnerStationId(),
+                partner.stationId(),
+                privateKey(partner));
     }
 
     /**
      * Sends an update to the partner and parses the response.
      *
      * @param partner the partner to call
-     * @param path    the remote path
+     * @param request    the remote request
      * @param body    the request body
      * @param type    the expected response type
      * @param <T>     the response type
      * @return the parsed response
      */
-    public <T> T put(FederationPartner partner, String path, Object body, Class<T> type) {
+    public <T> T put(FederationPartner partner, FederationRequest request, Object body, Class<T> type) {
         try {
             var result = httpClient.put(
                     partner.remoteHost(),
-                    path,
+                    request,
                     body,
                     partner.partnerStationId(),
                     partner.stationId(),
@@ -172,35 +179,45 @@ public class FederatedBoardRemoteGateway {
      * Sends an update to the partner without reading a response.
      *
      * @param partner the partner to call
-     * @param path    the remote path
+     * @param request    the remote request
      * @param body    the request body
      */
-    public void put(FederationPartner partner, String path, Object body) {
+    public void put(FederationPartner partner, FederationRequest request, Object body) {
         httpClient.put(
-                partner.remoteHost(), path, body, partner.partnerStationId(), partner.stationId(), privateKey(partner));
+                partner.remoteHost(),
+                request,
+                body,
+                partner.partnerStationId(),
+                partner.stationId(),
+                privateKey(partner));
     }
 
     /**
      * Deletes a resource on the partner.
      *
      * @param partner the partner to call
-     * @param path    the remote path
+     * @param request    the remote request
      */
-    public void delete(FederationPartner partner, String path) {
+    public void delete(FederationPartner partner, FederationRequest request) {
         httpClient.delete(
-                partner.remoteHost(), path, partner.partnerStationId(), partner.stationId(), privateKey(partner));
+                partner.remoteHost(), request, partner.partnerStationId(), partner.stationId(), privateKey(partner));
     }
 
     /**
      * Deletes a resource on the partner, sending a body along with the request.
      *
      * @param partner the partner to call
-     * @param path    the remote path
+     * @param request    the remote request
      * @param body    the request body
      */
-    public void delete(FederationPartner partner, String path, Object body) {
+    public void delete(FederationPartner partner, FederationRequest request, Object body) {
         httpClient.delete(
-                partner.remoteHost(), path, body, partner.partnerStationId(), partner.stationId(), privateKey(partner));
+                partner.remoteHost(),
+                request,
+                body,
+                partner.partnerStationId(),
+                partner.stationId(),
+                privateKey(partner));
     }
 
     private String privateKey(FederationPartner partner) {

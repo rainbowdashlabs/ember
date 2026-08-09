@@ -9,6 +9,7 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.board.entity.BoardTicket;
+import dev.chojo.ember.feature.board.entity.BoardTicketAttachment;
 import dev.chojo.ember.feature.board.entity.BoardTicketHistoryResponse;
 import dev.chojo.ember.feature.board.entity.BoardTicketTransitionResponse;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
@@ -19,6 +20,9 @@ import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteReorderReques
 import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteUpdateTicketRequest;
 import dev.chojo.ember.feature.board.service.BoardService;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
+import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
+import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
+import dev.chojo.ember.feature.federation.contract.FederationSurface;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import io.javalin.http.Context;
@@ -45,6 +49,52 @@ import java.util.List;
 @Singleton
 public class RemoteBoardTicketRoutes implements Routes {
 
+    private static final String TICKETS = RemoteBoardRoutes.TICKETS_PATH;
+
+    public static final FederationEndpoint LIST_TICKETS =
+            FederationEndpoint.getList(FederationSurface.BOARD_SHARE, TICKETS, TicketSummary.class);
+    public static final FederationEndpoint SEARCH_TICKETS =
+            FederationEndpoint.getList(FederationSurface.BOARD_SHARE, TICKETS + "/search", TicketSummary.class);
+    public static final FederationEndpoint CREATE_TICKET = FederationEndpoint.post(
+            FederationSurface.BOARD_SHARE, TICKETS, RemoteCreateTicketRequest.class, BoardTicket.class);
+    public static final FederationEndpoint REORDER_TICKETS = FederationEndpoint.put(
+            FederationSurface.BOARD_SHARE, TICKETS + "/reorder", RemoteReorderRequest.class, Void.class);
+    public static final FederationEndpoint GET_TICKET =
+            FederationEndpoint.get(FederationSurface.BOARD_SHARE, TICKETS + "/{ticketNumber}", BoardTicket.class);
+    public static final FederationEndpoint UPDATE_TICKET = FederationEndpoint.put(
+            FederationSurface.BOARD_SHARE,
+            TICKETS + "/{ticketNumber}",
+            RemoteUpdateTicketRequest.class,
+            BoardTicket.class);
+    public static final FederationEndpoint DELETE_TICKET = FederationEndpoint.delete(
+            FederationSurface.BOARD_SHARE, TICKETS + "/{ticketNumber}", Void.class, Void.class);
+    public static final FederationEndpoint MOVE_TICKET = FederationEndpoint.put(
+            FederationSurface.BOARD_SHARE,
+            TICKETS + "/{ticketNumber}/move",
+            RemoteMoveTicketRequest.class,
+            BoardTicket.class);
+    public static final FederationEndpoint GET_TRANSITIONS = FederationEndpoint.getList(
+            FederationSurface.BOARD_SHARE,
+            TICKETS + "/{ticketNumber}/transitions",
+            BoardTicketTransitionResponse.class);
+    public static final FederationEndpoint GET_HISTORY = FederationEndpoint.getList(
+            FederationSurface.BOARD_SHARE, TICKETS + "/{ticketNumber}/history", BoardTicketHistoryResponse.class);
+    public static final FederationEndpoint GET_ATTACHMENTS = FederationEndpoint.getList(
+            FederationSurface.BOARD_SHARE, TICKETS + "/{ticketNumber}/attachments", BoardTicketAttachment.class);
+
+    public static final List<FederationEndpoint> CONTRACT = List.of(
+            LIST_TICKETS,
+            SEARCH_TICKETS,
+            CREATE_TICKET,
+            REORDER_TICKETS,
+            GET_TICKET,
+            UPDATE_TICKET,
+            DELETE_TICKET,
+            MOVE_TICKET,
+            GET_TRANSITIONS,
+            GET_HISTORY,
+            GET_ATTACHMENTS);
+
     private final BoardService boardService;
     private final BoardTicketService ticketService;
     private final MemberNameResolver memberNameResolver;
@@ -67,18 +117,18 @@ public class RemoteBoardTicketRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        String rp = prefix + "/remote/boards/{boardKey}/tickets";
-        routes.get(rp, this::listTickets);
-        routes.get(rp + "/search", this::searchTickets);
-        routes.post(rp, this::createTicket);
-        routes.put(rp + "/reorder", this::reorderTickets);
-        routes.get(rp + "/{ticketNumber}", this::getTicket);
-        routes.put(rp + "/{ticketNumber}", this::updateTicket);
-        routes.delete(rp + "/{ticketNumber}", this::deleteTicket);
-        routes.put(rp + "/{ticketNumber}/move", this::moveTicket);
-        routes.get(rp + "/{ticketNumber}/transitions", this::getTransitions);
-        routes.get(rp + "/{ticketNumber}/history", this::getHistory);
-        routes.get(rp + "/{ticketNumber}/attachments", this::getAttachments);
+        FederationContractBinder.register(
+                routes, prefix, CONTRACT, binder -> binder.handle(LIST_TICKETS, this::listTickets)
+                        .handle(SEARCH_TICKETS, this::searchTickets)
+                        .handle(CREATE_TICKET, this::createTicket)
+                        .handle(REORDER_TICKETS, this::reorderTickets)
+                        .handle(GET_TICKET, this::getTicket)
+                        .handle(UPDATE_TICKET, this::updateTicket)
+                        .handle(DELETE_TICKET, this::deleteTicket)
+                        .handle(MOVE_TICKET, this::moveTicket)
+                        .handle(GET_TRANSITIONS, this::getTransitions)
+                        .handle(GET_HISTORY, this::getHistory)
+                        .handle(GET_ATTACHMENTS, this::getAttachments));
     }
 
     private void listTickets(Context ctx) {

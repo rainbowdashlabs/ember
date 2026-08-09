@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.federation.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.ChangeType;
 import dev.chojo.ember.feature.federation.entity.ContentType;
@@ -133,22 +134,34 @@ class FederationServiceTest extends RepositoryTestBase {
     @Order(10)
     void hasCapabilityReturnsTrueWhenEnabled() {
         // Capabilities are initialized with all enabled during acceptInvite
-        assertTrue(service.hasCapability(partnerIdAtoB, CapabilityType.KB_SHARE, Direction.IMPORT));
-        assertTrue(service.hasCapability(partnerIdAtoB, CapabilityType.QUIZ_SHARE, Direction.EXPORT));
+        assertTrue(service.hasCapability(
+                federationRepo.findPartnerById(partnerIdAtoB).orElseThrow(),
+                CapabilityType.KB_SHARE,
+                Direction.IMPORT));
+        assertTrue(service.hasCapability(
+                federationRepo.findPartnerById(partnerIdAtoB).orElseThrow(),
+                CapabilityType.QUIZ_SHARE,
+                Direction.EXPORT));
     }
 
     @Test
     @Order(11)
     void setCapabilityDisables() {
         service.setCapability(partnerIdAtoB, CapabilityType.KB_SHARE, Direction.IMPORT, false);
-        assertFalse(service.hasCapability(partnerIdAtoB, CapabilityType.KB_SHARE, Direction.IMPORT));
+        assertFalse(service.hasCapability(
+                federationRepo.findPartnerById(partnerIdAtoB).orElseThrow(),
+                CapabilityType.KB_SHARE,
+                Direction.IMPORT));
     }
 
     @Test
     @Order(12)
     void setCapabilityReenables() {
         service.setCapability(partnerIdAtoB, CapabilityType.KB_SHARE, Direction.IMPORT, true);
-        assertTrue(service.hasCapability(partnerIdAtoB, CapabilityType.KB_SHARE, Direction.IMPORT));
+        assertTrue(service.hasCapability(
+                federationRepo.findPartnerById(partnerIdAtoB).orElseThrow(),
+                CapabilityType.KB_SHARE,
+                Direction.IMPORT));
     }
 
     @Test
@@ -194,13 +207,12 @@ class FederationServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(41)
-    void supportedCapabilitiesNotEmpty() {
-        var caps = service.getSupportedCapabilities();
-        assertFalse(caps.isEmpty());
-        assertTrue(caps.contains(CapabilityType.KB_SHARE));
-        assertTrue(caps.contains(CapabilityType.QUIZ_SHARE));
-        assertTrue(caps.contains(CapabilityType.PROTOCOL_SHARE));
-        assertTrue(caps.contains(CapabilityType.BOARD_SHARE));
+    void contractCoversAllCapabilities() {
+        var contract = FederationContractVersions.current();
+        assertNotNull(contract.core());
+        for (var capability : CapabilityType.values()) {
+            assertNotNull(contract.featureHash(capability), "Missing surface hash for " + capability);
+        }
     }
 
     // -- Keypair --

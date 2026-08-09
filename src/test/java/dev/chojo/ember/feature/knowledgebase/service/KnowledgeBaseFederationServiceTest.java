@@ -11,6 +11,7 @@ import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.federation.FederationTestContracts;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
@@ -24,6 +25,7 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
+import dev.chojo.ember.feature.knowledgebase.route.RemoteKnowledgeBaseRoutes;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.service.PdfCompressor;
@@ -44,6 +46,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+import static dev.chojo.ember.feature.federation.FederationTestContracts.pathContains;
+import static dev.chojo.ember.feature.federation.FederationTestContracts.pathIs;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -121,6 +125,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         var remotePartner = federationService.acceptInvite(
                 station.id(), stationC.id(), federationService.encodePublicKey(remoteKeyPair), REMOTE_HOST, null);
         federationService.setCapability(remotePartner.id(), CapabilityType.KB_SHARE, Direction.IMPORT, true);
+        FederationTestContracts.storeCurrentContractOnRemotePartners(federationService, federationRepo, station.id());
     }
 
     @AfterAll
@@ -223,13 +228,13 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     void browseSharedKbViaHttp() {
         when(httpClient.getList(
                         eq(REMOTE_HOST),
-                        eq("/remote/kb/browse"),
+                        pathIs("/remote/kb/browse"),
                         any(),
                         eq(station.id()),
                         any(),
-                        eq(KnowledgeBaseFederationService.RemoteKbFile.class)))
-                .thenReturn(List.of(
-                        new KnowledgeBaseFederationService.RemoteKbFile(99, "RemoteFile", "remote desc", "MARKDOWN")));
+                        eq(KnowledgeBaseFederationService.RemoteKbFileSummary.class)))
+                .thenReturn(List.of(new KnowledgeBaseFederationService.RemoteKbFileSummary(
+                        99, "RemoteFile", "remote desc", "MARKDOWN", "now")));
 
         var items = service.browseSharedKb(station.id());
         assertTrue(items.stream().anyMatch(item -> item.file().name().equals("RemoteFile")));
@@ -240,12 +245,13 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     void browseSharedKbViaHttpDefaultsMissingFileType() {
         when(httpClient.getList(
                         eq(REMOTE_HOST),
-                        eq("/remote/kb/browse"),
+                        pathIs("/remote/kb/browse"),
                         any(),
                         eq(station.id()),
                         any(),
-                        eq(KnowledgeBaseFederationService.RemoteKbFile.class)))
-                .thenReturn(List.of(new KnowledgeBaseFederationService.RemoteKbFile(98, "TypeLess", "no type", null)));
+                        eq(KnowledgeBaseFederationService.RemoteKbFileSummary.class)))
+                .thenReturn(List.of(new KnowledgeBaseFederationService.RemoteKbFileSummary(
+                        98, "TypeLess", "no type", null, "now")));
 
         var items = service.browseSharedKb(station.id());
         var item = items.stream()
@@ -260,12 +266,12 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     void searchFederatedKbViaHttp() {
         when(httpClient.getList(
                         eq(REMOTE_HOST),
-                        contains("/remote/kb/search"),
+                        pathContains("/remote/kb/search"),
                         any(),
                         eq(station.id()),
                         any(),
-                        eq(KnowledgeBaseFederationService.RemoteKbSearchResult.class)))
-                .thenReturn(List.of(new KnowledgeBaseFederationService.RemoteKbSearchResult(
+                        eq(KnowledgeBaseFederationService.RemoteKbSearchResultItem.class)))
+                .thenReturn(List.of(new KnowledgeBaseFederationService.RemoteKbSearchResultItem(
                         88, "SearchResult", "found desc", "matched snippet")));
 
         var results = service.searchFederatedKb(station.id(), "test");
@@ -325,7 +331,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 null,
                 false,
                 null);
-        when(httpClient.get(eq(REMOTE_HOST), eq("/remote/kb/files/77"), any(), eq(station.id()), any(), any()))
+        when(httpClient.get(eq(REMOTE_HOST), pathIs("/remote/kb/files/77"), any(), eq(station.id()), any(), any()))
                 .thenReturn(remoteFile);
 
         assertEquals(
@@ -338,12 +344,12 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     void getFederatedKbFileContentRemote() {
         when(httpClient.get(
                         eq(REMOTE_HOST),
-                        eq("/remote/kb/file/55/content"),
+                        pathIs("/remote/kb/files/55/content"),
                         any(),
                         eq(station.id()),
                         any(),
-                        eq(KnowledgeBaseFederationService.RemoteKbContent.class)))
-                .thenReturn(new KnowledgeBaseFederationService.RemoteKbContent(55, "# Remote Content"));
+                        eq(RemoteKnowledgeBaseRoutes.FileContentResponse.class)))
+                .thenReturn(new RemoteKnowledgeBaseRoutes.FileContentResponse(55, "# Remote Content"));
 
         assertEquals("# Remote Content", service.getFederatedKbFileContent(station.id(), stationC.uid(), 55));
     }
@@ -353,11 +359,11 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     void getFederatedKbFileContentRemoteWithoutAnswer() {
         when(httpClient.get(
                         eq(REMOTE_HOST),
-                        eq("/remote/kb/file/56/content"),
+                        pathIs("/remote/kb/files/56/content"),
                         any(),
                         eq(station.id()),
                         any(),
-                        eq(KnowledgeBaseFederationService.RemoteKbContent.class)))
+                        eq(RemoteKnowledgeBaseRoutes.FileContentResponse.class)))
                 .thenReturn(null);
 
         assertEquals("", service.getFederatedKbFileContent(station.id(), stationC.uid(), 56));
@@ -401,12 +407,12 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         var file = createFile(stationC.id(), "RemoteCopySource");
         when(httpClient.get(
                         eq(REMOTE_HOST),
-                        contains("/content"),
+                        pathContains("/content"),
                         any(),
                         eq(station.id()),
                         any(),
-                        eq(KnowledgeBaseFederationService.RemoteKbContent.class)))
-                .thenReturn(new KnowledgeBaseFederationService.RemoteKbContent(file.id(), "# From remote"));
+                        eq(RemoteKnowledgeBaseRoutes.FileContentResponse.class)))
+                .thenReturn(new RemoteKnowledgeBaseRoutes.FileContentResponse(file.id(), "# From remote"));
 
         var copied = service.copyKbFile(file.id(), station.id(), member.id());
         assertEquals("RemoteCopySource", copied.name());
@@ -639,7 +645,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     @Order(90)
     void listFederatedCommentsViaHttp() {
         when(httpClient.getList(
-                        eq(REMOTE_HOST), eq("/remote/kb/files/7/comments"), any(), eq(station.id()), any(), any()))
+                        eq(REMOTE_HOST), pathIs("/remote/kb/files/7/comments"), any(), eq(station.id()), any(), any()))
                 .thenReturn(List.of());
 
         assertTrue(
@@ -654,7 +660,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 new CommentResponse(42, null, 7, null, null, null, "Bob", "Hallo", false, Instant.now(), null, null);
         when(httpClient.post(
                         eq(REMOTE_HOST),
-                        eq("/remote/kb/files/6/comments"),
+                        pathIs("/remote/kb/files/6/comments"),
                         any(),
                         any(),
                         eq(station.id()),
@@ -673,7 +679,8 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         var memberUid = UUID.randomUUID();
         var remoteResponse =
                 new CommentResponse(43, null, 7, null, null, null, "Bob", "Neu", false, Instant.now(), null, null);
-        when(httpClient.put(eq(REMOTE_HOST), eq("/remote/kb/comments/6"), any(), any(), eq(station.id()), any(), any()))
+        when(httpClient.put(
+                        eq(REMOTE_HOST), pathIs("/remote/kb/comments/6"), any(), any(), eq(station.id()), any(), any()))
                 .thenReturn(remoteResponse);
 
         var updated = service.updateFederatedComment(station.id(), stationC.uid(), 6, memberUid, "Neu");
@@ -687,7 +694,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         var memberUid = UUID.randomUUID();
         when(httpClient.post(
                         eq(REMOTE_HOST),
-                        eq("/remote/kb/files/7/comments"),
+                        pathIs("/remote/kb/files/7/comments"),
                         any(),
                         any(),
                         eq(station.id()),
@@ -704,7 +711,8 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     @Order(96)
     void updateFederatedCommentViaHttpFailure() {
         var memberUid = UUID.randomUUID();
-        when(httpClient.put(eq(REMOTE_HOST), eq("/remote/kb/comments/7"), any(), any(), eq(station.id()), any(), any()))
+        when(httpClient.put(
+                        eq(REMOTE_HOST), pathIs("/remote/kb/comments/7"), any(), any(), eq(station.id()), any(), any()))
                 .thenReturn(null);
 
         assertThrows(
@@ -722,7 +730,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         var memberUid = UUID.randomUUID();
         when(httpClient.delete(
                         eq(REMOTE_HOST),
-                        eq("/remote/kb/comments/8"),
+                        pathIs("/remote/kb/comments/8"),
                         argThat(body -> body != null && body.toString().contains(memberUid.toString())),
                         any(),
                         eq(station.id()),
@@ -736,7 +744,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     @Order(94)
     void deleteFederatedCommentViaHttpFailure() {
         var memberUid = UUID.randomUUID();
-        when(httpClient.delete(eq(REMOTE_HOST), eq("/remote/kb/comments/9"), any(), any(), eq(station.id()), any()))
+        when(httpClient.delete(eq(REMOTE_HOST), pathIs("/remote/kb/comments/9"), any(), any(), eq(station.id()), any()))
                 .thenReturn(false);
 
         assertThrows(

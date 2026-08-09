@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.federation.entity.LendingRequest;
 import dev.chojo.ember.feature.federation.entity.LendingRequestItem;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
+import dev.chojo.ember.feature.federation.route.RemoteLendingRoutes;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
@@ -374,7 +375,7 @@ public class LendingService {
         }
         return httpClient.getList(
                 partner.remoteHost(),
-                "/remote/lending/messages/" + requestId,
+                RemoteLendingRoutes.GET_MESSAGES.at(requestId),
                 partner.partnerStationId(),
                 localStationId,
                 station.federationPrivateKey(),

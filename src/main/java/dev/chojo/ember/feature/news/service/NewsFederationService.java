@@ -205,7 +205,7 @@ public class NewsFederationService {
         return entityResolver.resolve(
                 localStationId,
                 partnerStationUid,
-                "/remote/news/" + newsId,
+                RemoteNewsRoutes.GET_NEWS.at(newsId),
                 FederatedNewsData.class,
                 "news",
                 partner -> {
@@ -248,7 +248,7 @@ public class NewsFederationService {
         var station = localStation(stationId);
         return httpClient.getList(
                 partner.remoteHost(),
-                remoteCommentsPath(newsId),
+                RemoteNewsRoutes.LIST_COMMENTS.at(newsId),
                 partner.partnerStationId(),
                 station.id(),
                 station.federationPrivateKey(),
@@ -290,7 +290,7 @@ public class NewsFederationService {
                 author.memberUid(), author.displayName(), parentId, content);
         var result = httpClient.post(
                 partner.remoteHost(),
-                remoteCommentsPath(newsId),
+                RemoteNewsRoutes.CREATE_COMMENT.at(newsId),
                 body,
                 partner.partnerStationId(),
                 station.id(),
@@ -325,7 +325,7 @@ public class NewsFederationService {
         var body = new RemoteNewsRoutes.RemoteNewsCommentUpdateRequest(author.memberUid(), content);
         var result = httpClient.put(
                 partner.remoteHost(),
-                remoteCommentPath(commentId),
+                RemoteNewsRoutes.UPDATE_COMMENT.at(commentId),
                 body,
                 partner.partnerStationId(),
                 station.id(),
@@ -358,7 +358,7 @@ public class NewsFederationService {
         var station = localStation(stationId);
         boolean deleted = httpClient.delete(
                 partner.remoteHost(),
-                remoteCommentPath(commentId),
+                RemoteNewsRoutes.DELETE_COMMENT.at(commentId),
                 partner.partnerStationId(),
                 station.id(),
                 station.federationPrivateKey());
@@ -403,14 +403,6 @@ public class NewsFederationService {
         return CommentResponseMapper.fromNews(memberNameResolver, comment);
     }
 
-    private static String remoteCommentsPath(int newsId) {
-        return "/remote/news/" + newsId + "/comments";
-    }
-
-    private static String remoteCommentPath(int commentId) {
-        return "/remote/news/comments/" + commentId;
-    }
-
     private List<FederatedNewsItem> browseNewsDirect(FederationPartner partner) {
         int partnerStationId = stationRepository
                 .findByUid(partner.partnerStationId())
@@ -434,7 +426,7 @@ public class NewsFederationService {
     private List<FederatedNewsItem> browseNewsViaHttp(Station localStation, FederationPartner partner) {
         var remoteNews = httpClient.getList(
                 partner.remoteHost(),
-                "/remote/news",
+                RemoteNewsRoutes.LIST_NEWS.at(),
                 partner.partnerStationId(),
                 localStation.id(),
                 localStation.federationPrivateKey(),

@@ -11,6 +11,9 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
+import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
+import dev.chojo.ember.feature.federation.contract.FederationSurface;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.news.entity.NewsComment;
@@ -26,6 +29,7 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -38,6 +42,31 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
  */
 @Singleton
 public class RemoteNewsRoutes implements Routes {
+
+    public static final FederationEndpoint LIST_NEWS =
+            FederationEndpoint.getList(FederationSurface.NEWS_SHARE, "/remote/news", RemoteNewsSummary.class);
+    public static final FederationEndpoint GET_NEWS =
+            FederationEndpoint.get(FederationSurface.NEWS_SHARE, "/remote/news/{newsId}", RemoteNewsDetail.class);
+    public static final FederationEndpoint LIST_COMMENTS = FederationEndpoint.getList(
+            FederationSurface.NEWS_SHARE, "/remote/news/{newsId}/comments", CommentResponse.class);
+    public static final FederationEndpoint CREATE_COMMENT = FederationEndpoint.post(
+            FederationSurface.NEWS_SHARE,
+            "/remote/news/{newsId}/comments",
+            RemoteNewsCommentRequest.class,
+            CommentResponse.class);
+    public static final FederationEndpoint UPDATE_COMMENT = FederationEndpoint.put(
+            FederationSurface.NEWS_SHARE,
+            "/remote/news/comments/{commentId}",
+            RemoteNewsCommentUpdateRequest.class,
+            CommentResponse.class);
+    public static final FederationEndpoint DELETE_COMMENT = FederationEndpoint.delete(
+            FederationSurface.NEWS_SHARE,
+            "/remote/news/comments/{commentId}",
+            RemoteNewsCommentDeleteRequest.class,
+            Void.class);
+
+    public static final List<FederationEndpoint> CONTRACT =
+            List.of(LIST_NEWS, GET_NEWS, LIST_COMMENTS, CREATE_COMMENT, UPDATE_COMMENT, DELETE_COMMENT);
 
     private final NewsService newsService;
     private final NewsFederationService newsFederationService;
@@ -58,16 +87,17 @@ public class RemoteNewsRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/remote/news", this::remoteListNews);
-        routes.get(prefix + "/remote/news/{newsId}", this::remoteGetNews);
-        routes.get(prefix + "/remote/news/{newsId}/comments", this::remoteListComments);
-        routes.post(prefix + "/remote/news/{newsId}/comments", this::remoteCreateComment);
-        routes.put(prefix + "/remote/news/comments/{commentId}", this::remoteUpdateComment);
-        routes.delete(prefix + "/remote/news/comments/{commentId}", this::remoteDeleteComment);
+        FederationContractBinder.register(
+                routes, prefix, CONTRACT, binder -> binder.handle(LIST_NEWS, this::remoteListNews)
+                        .handle(GET_NEWS, this::remoteGetNews)
+                        .handle(LIST_COMMENTS, this::remoteListComments)
+                        .handle(CREATE_COMMENT, this::remoteCreateComment)
+                        .handle(UPDATE_COMMENT, this::remoteUpdateComment)
+                        .handle(DELETE_COMMENT, this::remoteDeleteComment));
     }
 
     private void remoteListNews(Context ctx) {
-        var partner = requireFederationPartner(ctx);
+        var partner = FederationSession.requirePartner(ctx);
         var newsIds = newsFederationService.findSharedNewsIds(partner.id(), partner.stationId());
         var newsList = newsIds.stream()
                 .map(id -> newsService.findById(id).orElse(null))
@@ -92,7 +122,7 @@ public class RemoteNewsRoutes implements Routes {
     }
 
     private void remoteGetNews(Context ctx) {
-        var partner = requireFederationPartner(ctx);
+        var partner = FederationSession.requirePartner(ctx);
         int newsId = pathInt(ctx, "newsId");
         requireSharedNews(partner, newsId);
         var news = newsService.findById(newsId).orElseThrow(NotFoundResponse::new);
@@ -112,7 +142,7 @@ public class RemoteNewsRoutes implements Routes {
     }
 
     private void remoteListComments(Context ctx) {
-        var partner = requireFederationPartner(ctx);
+        var partner = FederationSession.requirePartner(ctx);
         int newsId = pathInt(ctx, "newsId");
         requireSharedNews(partner, newsId);
         var comments = newsService.findComments(newsId);
@@ -120,7 +150,7 @@ public class RemoteNewsRoutes implements Routes {
     }
 
     private void remoteCreateComment(Context ctx) {
-        var partner = requireFederationPartner(ctx);
+        var partner = FederationSession.requirePartner(ctx);
         int newsId = pathInt(ctx, "newsId");
         requireSharedNews(partner, newsId);
         var req = ctx.bodyAsClass(RemoteNewsCommentRequest.class);
@@ -135,7 +165,7 @@ public class RemoteNewsRoutes implements Routes {
     }
 
     private void remoteUpdateComment(Context ctx) {
-        var partner = requireFederationPartner(ctx);
+        var partner = FederationSession.requirePartner(ctx);
         int commentId = pathInt(ctx, "commentId");
         var req = ctx.bodyAsClass(RemoteNewsCommentUpdateRequest.class);
         if (req.content() == null || req.content().isBlank()) {
@@ -152,7 +182,7 @@ public class RemoteNewsRoutes implements Routes {
     }
 
     private void remoteDeleteComment(Context ctx) {
-        var partner = requireFederationPartner(ctx);
+        var partner = FederationSession.requirePartner(ctx);
         int commentId = pathInt(ctx, "commentId");
         var req = ctx.bodyAsClass(RemoteNewsCommentDeleteRequest.class);
         var comment = newsService.findCommentById(commentId).orElseThrow(NotFoundResponse::new);
@@ -177,14 +207,6 @@ public class RemoteNewsRoutes implements Routes {
         if (!newsIds.contains(newsId)) {
             throw new NotFoundResponse();
         }
-    }
-
-    private FederationPartner requireFederationPartner(Context ctx) {
-        var session = FederationSession.from(ctx);
-        if (session == null) {
-            throw new ForbiddenResponse("Missing or invalid federation signature");
-        }
-        return session.partner();
     }
 
     private CommentResponse toCommentResponse(NewsComment comment) {

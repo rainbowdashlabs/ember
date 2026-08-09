@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
+import dev.chojo.ember.feature.knowledgebase.route.RemoteKnowledgeBaseRoutes;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -37,8 +38,6 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -160,7 +159,7 @@ public class KnowledgeBaseFederationService {
         return entityResolver.resolve(
                 localStationId,
                 partnerStationUid,
-                "/remote/kb/files/" + fileId,
+                RemoteKnowledgeBaseRoutes.GET_FILE.at(fileId),
                 KbFile.class,
                 "file",
                 partner -> requirePartnerFile(fileId, partner));
@@ -319,7 +318,7 @@ public class KnowledgeBaseFederationService {
         var station = requireStation(stationId);
         return httpClient.getList(
                 partner.remoteHost(),
-                "/remote/kb/files/" + fileId + "/comments",
+                RemoteKnowledgeBaseRoutes.LIST_COMMENTS.at(fileId),
                 partner.partnerStationId(),
                 station.id(),
                 station.federationPrivateKey(),
@@ -347,7 +346,7 @@ public class KnowledgeBaseFederationService {
         var station = requireStation(stationId);
         var result = httpClient.post(
                 partner.remoteHost(),
-                "/remote/kb/files/" + fileId + "/comments",
+                RemoteKnowledgeBaseRoutes.CREATE_COMMENT.at(fileId),
                 new RemoteCommentRequest(memberUid, displayName, parentId, content),
                 partner.partnerStationId(),
                 station.id(),
@@ -371,7 +370,7 @@ public class KnowledgeBaseFederationService {
         var station = requireStation(stationId);
         var result = httpClient.put(
                 partner.remoteHost(),
-                "/remote/kb/comments/" + commentId,
+                RemoteKnowledgeBaseRoutes.UPDATE_COMMENT.at(commentId),
                 new RemoteCommentUpdateRequest(memberUid, content),
                 partner.partnerStationId(),
                 station.id(),
@@ -395,7 +394,7 @@ public class KnowledgeBaseFederationService {
         var station = requireStation(stationId);
         boolean success = httpClient.delete(
                 partner.remoteHost(),
-                "/remote/kb/comments/" + commentId,
+                RemoteKnowledgeBaseRoutes.DELETE_COMMENT.at(commentId),
                 new RemoteCommentDeleteRequest(memberUid),
                 partner.partnerStationId(),
                 station.id(),
@@ -523,37 +522,37 @@ public class KnowledgeBaseFederationService {
                 .toList();
     }
 
-    private List<RemoteKbFile> fetchSharedKbFiles(
+    private List<RemoteKbFileSummary> fetchSharedKbFiles(
             String remoteHost, UUID partnerStationUid, int localStationId, String localPrivateKeyBase64) {
         return httpClient.getList(
                 remoteHost,
-                "/remote/kb/browse",
+                RemoteKnowledgeBaseRoutes.BROWSE_KB.at(),
                 partnerStationUid,
                 localStationId,
                 localPrivateKeyBase64,
-                RemoteKbFile.class);
+                RemoteKbFileSummary.class);
     }
 
-    private List<RemoteKbSearchResult> searchKb(
+    private List<RemoteKbSearchResultItem> searchKb(
             String remoteHost, UUID partnerStationUid, int localStationId, String localPrivateKeyBase64, String query) {
         return httpClient.getList(
                 remoteHost,
-                "/remote/kb/search?q=" + URLEncoder.encode(query, StandardCharsets.UTF_8),
+                RemoteKnowledgeBaseRoutes.SEARCH_KB.at().query("q", query),
                 partnerStationUid,
                 localStationId,
                 localPrivateKeyBase64,
-                RemoteKbSearchResult.class);
+                RemoteKbSearchResultItem.class);
     }
 
     private String fetchKbFileContent(
             String remoteHost, UUID partnerStationUid, int fileId, int localStationId, String localPrivateKeyBase64) {
         var remoteContent = httpClient.get(
                 remoteHost,
-                "/remote/kb/file/" + fileId + "/content",
+                RemoteKnowledgeBaseRoutes.GET_FILE_CONTENT.at(fileId),
                 partnerStationUid,
                 localStationId,
                 localPrivateKeyBase64,
-                RemoteKbContent.class);
+                RemoteKnowledgeBaseRoutes.FileContentResponse.class);
         if (remoteContent == null || remoteContent.content() == null) return "";
         return remoteContent.content();
     }
@@ -561,8 +560,7 @@ public class KnowledgeBaseFederationService {
     private List<FederationPartner> sharedKbPartners(int stationId) {
         return federationService.findPartners(stationId).stream()
                 .filter(partner -> partner.status() == FederationPartner.FederationStatus.ACTIVE)
-                .filter(partner ->
-                        federationService.hasCapability(partner.id(), CapabilityType.KB_SHARE, Direction.IMPORT))
+                .filter(partner -> federationService.hasCapability(partner, CapabilityType.KB_SHARE, Direction.IMPORT))
                 .toList();
     }
 
@@ -653,18 +651,14 @@ public class KnowledgeBaseFederationService {
     /**
      * A shared file as received from a partner instance.
      */
-    public record RemoteKbFile(int id, String name, String description, String fileType) {}
 
     /**
      * A search match as received from a partner instance.
      */
-    public record RemoteKbSearchResult(int id, String name, String description, String snippet) {}
 
     /**
      * File content as received from a partner instance.
      */
-    public record RemoteKbContent(int fileId, String content) {}
-
     private record RemoteCommentRequest(UUID remoteMemberUid, String displayName, Integer parentId, String content) {}
 
     private record RemoteCommentUpdateRequest(UUID remoteMemberUid, String content) {}

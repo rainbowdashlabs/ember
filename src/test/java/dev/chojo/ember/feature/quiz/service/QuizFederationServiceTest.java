@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.quiz.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.feature.federation.FederationTestContracts;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
@@ -25,6 +26,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import java.util.List;
 
+import static dev.chojo.ember.feature.federation.FederationTestContracts.pathIs;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -73,6 +75,7 @@ class QuizFederationServiceTest extends RepositoryTestBase {
                 federationService.encodePublicKey(federationService.generateKeyPair()),
                 "https://remote-quiz.example.com",
                 null);
+        FederationTestContracts.storeCurrentContractOnRemotePartners(federationService, federationRepo, station.id());
     }
 
     @AfterAll
@@ -221,7 +224,7 @@ class QuizFederationServiceTest extends RepositoryTestBase {
     void browseSharedQuizFetchesRemotePartnerCatalogs() {
         when(httpClient.getList(
                         eq("https://remote-quiz.example.com"),
-                        eq("/remote/quiz/catalogs"),
+                        pathIs("/remote/quiz/catalogs"),
                         any(),
                         eq(station.id()),
                         any(),
@@ -246,7 +249,7 @@ class QuizFederationServiceTest extends RepositoryTestBase {
                 new QuizCatalog(88, 0, "RemoteCatalog", "desc", false, false, null, null), List.of(), List.of());
         when(httpClient.get(
                         eq("https://remote-quiz.example.com"),
-                        eq("/remote/quiz/catalogs/88"),
+                        pathIs("/remote/quiz/catalogs/88"),
                         any(),
                         eq(station.id()),
                         any(),
@@ -273,7 +276,7 @@ class QuizFederationServiceTest extends RepositoryTestBase {
     void fetchSharedQuizCatalogsDelegatesToTheHttpClient() {
         when(httpClient.getList(
                         eq("https://elsewhere.example.com"),
-                        eq("/remote/quiz/catalogs"),
+                        pathIs("/remote/quiz/catalogs"),
                         any(),
                         eq(station.id()),
                         any(),

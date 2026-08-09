@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.board.entity.BoardField;
 import dev.chojo.ember.feature.board.entity.BoardLabel;
 import dev.chojo.ember.feature.board.entity.BoardLane;
 import dev.chojo.ember.feature.board.entity.TicketLabelMapping;
+import dev.chojo.ember.feature.board.route.RemoteBoardRoutes;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -47,7 +48,7 @@ public class FederatedBoardStructureProxy {
     public List<BoardLane> proxyGetLanes(int partnerId, String boardKey) {
         var partner = locator.requirePartner(partnerId);
         if (partner.isRemote()) {
-            return gateway.getList(partner, "/remote/boards/" + boardKey + "/lanes", BoardLane.class);
+            return gateway.getList(partner, RemoteBoardRoutes.GET_LANES.at(boardKey), BoardLane.class);
         }
         return boardService.findLanes(locator.resolveBoardId(boardKey, partner));
     }
@@ -62,7 +63,7 @@ public class FederatedBoardStructureProxy {
     public List<BoardLabel> proxyGetLabels(int partnerId, String boardKey) {
         var partner = locator.requirePartner(partnerId);
         if (partner.isRemote()) {
-            return gateway.getList(partner, "/remote/boards/" + boardKey + "/labels", BoardLabel.class);
+            return gateway.getList(partner, RemoteBoardRoutes.GET_LABELS.at(boardKey), BoardLabel.class);
         }
         return boardService.findLabels(locator.resolveBoardId(boardKey, partner));
     }
@@ -77,7 +78,8 @@ public class FederatedBoardStructureProxy {
     public List<TicketLabelMapping> proxyGetAllTicketLabels(int partnerId, String boardKey) {
         var partner = locator.requirePartner(partnerId);
         if (partner.isRemote()) {
-            return gateway.getList(partner, "/remote/boards/" + boardKey + "/ticket-labels", TicketLabelMapping.class);
+            return gateway.getList(
+                    partner, RemoteBoardRoutes.GET_ALL_TICKET_LABELS.at(boardKey), TicketLabelMapping.class);
         }
         return boardService.findAllTicketLabels(locator.resolveBoardId(boardKey, partner));
     }
@@ -92,7 +94,7 @@ public class FederatedBoardStructureProxy {
     public List<BoardField> proxyGetFields(int partnerId, String boardKey) {
         var partner = locator.requirePartner(partnerId);
         if (partner.isRemote()) {
-            return gateway.getList(partner, "/remote/boards/" + boardKey + "/fields", BoardField.class);
+            return gateway.getList(partner, RemoteBoardRoutes.GET_FIELDS.at(boardKey), BoardField.class);
         }
         return boardService.findFields(locator.resolveBoardId(boardKey, partner));
     }
@@ -113,7 +115,7 @@ public class FederatedBoardStructureProxy {
         if (partner.isRemote()) {
             return gateway.post(
                     partner,
-                    "/remote/boards/" + boardKey + "/labels",
+                    RemoteBoardRoutes.GET_LABELS.at(boardKey),
                     new CreateLabelBody(name, effectiveColor),
                     BoardLabel.class);
         }

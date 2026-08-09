@@ -15,7 +15,7 @@ import dev.chojo.ember.feature.discovery.service.DiscoveryPingService;
 import dev.chojo.ember.feature.discovery.service.DiscoverySettingsService;
 import dev.chojo.ember.feature.discovery.service.DiscoverySigningService;
 import dev.chojo.ember.feature.discovery.service.DiscoveryStationProjectionService;
-import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -84,7 +84,7 @@ public class PublicDiscoveryRoutes implements Routes {
                 pingService.selfBaseUrl(),
                 keyService.instanceId(),
                 keyService.publicKeyBase64(),
-                FederationService.FEDERATION_VERSION,
+                FederationContractVersions.current().core(),
                 settingsService.isEnabled());
         ctx.header("Cache-Control", "public, max-age=60");
         ctx.json(response);

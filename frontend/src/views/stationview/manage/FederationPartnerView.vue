@@ -21,12 +21,13 @@ import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import FederationCompatibilityBadge from './federationview/FederationCompatibilityBadge.vue'
 import { federation } from '@/api'
-import type { PartnerResponse, FederationCapability } from '@/api/federation'
+import type { FederationContract, PartnerResponse, FederationCapability } from '@/api/federation'
 import Td from '@/components/table/Td.vue'
 import Th from '@/components/table/Th.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import { resolveFederationVersion } from '@/util/federationVersion'
+import { partnerCompatibility, resolveFederationVersion } from '@/util/federationVersion'
 import { formatDate } from '@/util/format'
 
 const { t } = useI18n()
@@ -37,11 +38,21 @@ const { loaded } = useSession()
 const partnerId = computed(() => Number(route.params.id))
 const partner = ref<PartnerResponse | null>(null)
 const capabilities = ref<FederationCapability[]>([])
+const localContract = ref<FederationContract | null>(null)
 
 const {loading, error, reload: loadData} = useAsyncLoader(async () => {
-  partner.value = await federation.getPartner(partnerId.value)
-  capabilities.value = await federation.getCapabilities(partnerId.value)
+  const [p, caps, info] = await Promise.all([
+    federation.getPartner(partnerId.value),
+    federation.getCapabilities(partnerId.value),
+    federation.getFederationInfo(),
+  ])
+  partner.value = p
+  capabilities.value = caps
+  localContract.value = info.contract
 }, {autoLoad: false})
+
+const compatibility = computed(() =>
+  partner.value ? partnerCompatibility(localContract.value, partner.value.partner) : 'compatible')
 
 interface CapRow {
   label: string
@@ -51,7 +62,11 @@ interface CapRow {
 }
 
 const capRows = computed<CapRow[]>(() => {
-  const types = ['KB_SHARE', 'QUIZ_SHARE', 'PROTOCOL_SHARE', 'EVENT_SHARE', 'BOARD_SHARE', 'NEWS_SHARE', 'INVENTORY_LEND']
+  const curated = ['KB_SHARE', 'QUIZ_SHARE', 'PROTOCOL_SHARE', 'EVENT_SHARE', 'BOARD_SHARE', 'NEWS_SHARE', 'INVENTORY_LEND']
+  const types = [
+    ...curated,
+    ...Object.keys(localContract.value?.features ?? {}).filter(type => !curated.includes(type)),
+  ]
   const labels: Record<string, string> = {
     KB_SHARE: t('federation.cap.kb'),
     QUIZ_SHARE: t('federation.cap.quiz'),
@@ -128,9 +143,15 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
 
     <template v-if="!loading && partner">
       <MutedText tag="p" size="sm">
-        {{ t('federation.version') }}: v{{ resolveFederationVersion(partner.partner.federationVersion) }}
-        &mdash; {{ t('federation.since') }}: {{ formatDate(partner.partner.createdAt) }}
+        <template v-if="partner.partner.federationContract">
+          {{ t('federation.version') }}: v{{ resolveFederationVersion(partner.partner.federationContract.core) }}
+          &mdash;
+        </template>
+        {{ t('federation.since') }}: {{ formatDate(partner.partner.createdAt) }}
       </MutedText>
+
+      <Alert v-if="compatibility === 'incompatible'" variant="error">{{ t('federation.incompatibleHint') }}</Alert>
+      <Alert v-else-if="compatibility === 'unknown'" variant="info">{{ t('federation.versionUnknownHint') }}</Alert>
 
       <NeutralContainer>
         <table class="w-full text-sm">
@@ -143,7 +164,15 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
           </thead>
           <tbody>
             <tr v-for="row in capRows" :key="row.capability" class="border-b border-[var(--border)] last:border-b-0">
-              <Td>{{ row.label }}</Td>
+              <Td>
+                {{ row.label }}
+                <FederationCompatibilityBadge
+                  class="ml-2"
+                  :local="localContract"
+                  :partner="partner.partner"
+                  :capability="row.capability"
+                />
+              </Td>
               <Td align="center">
                 <ToggleInput
                   :model-value="row.importCap?.enabled ?? false"

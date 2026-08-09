@@ -11,10 +11,12 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountSession;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.federation.contract.FederationContractCatalog;
+import dev.chojo.ember.feature.federation.contract.FederationSurface;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.service.FederationContractRefreshService;
 import dev.chojo.ember.feature.federation.service.FederationReplayCache;
-import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.federation.service.FederationSigningService;
 import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -50,6 +52,7 @@ public class AccessManager {
     private final FederationSigningService signingService;
     private final FederationReplayCache replayCache;
     private final StationRepository stationRepository;
+    private final FederationContractRefreshService contractRefreshService;
 
     @Inject
     public AccessManager(
@@ -59,7 +62,8 @@ public class AccessManager {
             FederationRepository federationRepository,
             FederationSigningService signingService,
             FederationReplayCache replayCache,
-            StationRepository stationRepository) {
+            StationRepository stationRepository,
+            FederationContractRefreshService contractRefreshService) {
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberGroupRepository = memberGroupRepository;
@@ -67,6 +71,7 @@ public class AccessManager {
         this.signingService = signingService;
         this.replayCache = replayCache;
         this.stationRepository = stationRepository;
+        this.contractRefreshService = contractRefreshService;
     }
 
     public Optional<AccountSession> resolveSession(String token) {
@@ -265,20 +270,33 @@ public class AccessManager {
             return Optional.empty();
         }
 
-        String remoteVersion = ctx.header("X-Federation-Version");
-        if (remoteVersion != null && !remoteVersion.equals(p.federationVersion())) {
-            federationRepository.updateFederationVersion(p.id(), remoteVersion);
-            if (!remoteVersion.equals(FederationService.FEDERATION_VERSION)) {
-                log.warn(
-                        "Federation partner {} (station {}) is running version {} (we are version {})",
-                        p.id(),
-                        p.partnerStationId(),
-                        remoteVersion,
-                        FederationService.FEDERATION_VERSION);
-            }
+        if (presentsUnknownContract(ctx, p)) {
+            contractRefreshService.refreshAsync(p);
         }
 
         return Optional.of(new FederationSession(p, remoteStationUid));
+    }
+
+    /**
+     * Whether the hashes an incoming request carries disagree with the vector stored for
+     * the partner, meaning the partner has redeployed since the last exchange.
+     * <p>
+     * Both hashes have to be checked: a release that rolls only one feature surface leaves
+     * the core hash equal, so a core-only comparison would never notice and that feature
+     * would stay paused until a restart — while the pause itself stops the outbound calls
+     * whose rejection would otherwise trigger the refresh.
+     */
+    private boolean presentsUnknownContract(Context ctx, FederationPartner partner) {
+        var stored = partner.federationContract();
+        String remoteCore = ctx.header(FederationHeaders.HEADER_CORE);
+        if (remoteCore != null && !remoteCore.equals(partner.coreHash())) return true;
+
+        String remoteSurface = ctx.header(FederationHeaders.HEADER_SURFACE);
+        if (remoteSurface == null || stored == null) return false;
+        return FederationContractCatalog.surfaceOfRequestPath(ctx.method(), ctx.path())
+                .filter(surface -> surface != FederationSurface.CORE)
+                .map(surface -> !remoteSurface.equals(stored.featureHash(surface.capability())))
+                .orElse(false);
     }
 
     private Set<InstancePermission> resolveInstancePermissions(Account account) {

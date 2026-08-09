@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.quiz.entity.CreateQuestionCommand;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizCategory;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
+import dev.chojo.ember.feature.quiz.route.RemoteQuizRoutes;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
@@ -74,7 +75,7 @@ public class QuizFederationService {
     public List<SharedQuizItem> browseSharedQuiz(int stationId) {
         var partners = federationService.findPartners(stationId).stream()
                 .filter(p -> p.status() == FederationPartner.FederationStatus.ACTIVE)
-                .filter(p -> federationService.hasCapability(p.id(), CapabilityType.QUIZ_SHARE, Direction.IMPORT))
+                .filter(p -> federationService.hasCapability(p, CapabilityType.QUIZ_SHARE, Direction.IMPORT))
                 .toList();
         return fanout.fanOut(
                 partners,
@@ -104,7 +105,7 @@ public class QuizFederationService {
         return entityResolver.resolve(
                 localStationId,
                 partnerStationUid,
-                "/remote/quiz/catalogs/" + catalogId,
+                RemoteQuizRoutes.GET_CATALOG.at(catalogId),
                 FederatedCatalogDetail.class,
                 "catalog",
                 partner -> {
@@ -170,7 +171,7 @@ public class QuizFederationService {
             String remoteHost, UUID partnerStationUid, int localStationId, String localPrivateKeyBase64) {
         return federationHttpClient.getList(
                 remoteHost,
-                "/remote/quiz/catalogs",
+                RemoteQuizRoutes.BROWSE_CATALOGS.at(),
                 partnerStationUid,
                 localStationId,
                 localPrivateKeyBase64,

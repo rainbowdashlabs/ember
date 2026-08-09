@@ -9,11 +9,15 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.board.entity.BoardLabel;
 import dev.chojo.ember.feature.board.entity.BoardTicketHistoryAction;
+import dev.chojo.ember.feature.board.entity.BoardTicketLink;
 import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteDeleteLinkRequest;
 import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteLabelActionRequest;
 import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteLinkRequest;
 import dev.chojo.ember.feature.board.service.BoardService;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
+import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
+import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
+import dev.chojo.ember.feature.federation.contract.FederationSurface;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
@@ -25,6 +29,8 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.util.List;
+
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
 /**
@@ -34,6 +40,33 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 @SuppressWarnings("DefaultAnnotationParam")
 @Singleton
 public class RemoteBoardTicketLinkRoutes implements Routes {
+
+    private static final String TICKET = RemoteBoardRoutes.TICKET_PATH;
+
+    public static final FederationEndpoint GET_LINKS =
+            FederationEndpoint.getList(FederationSurface.BOARD_SHARE, TICKET + "/links", BoardTicketLink.class);
+    public static final FederationEndpoint CREATE_LINK = FederationEndpoint.post(
+            FederationSurface.BOARD_SHARE, TICKET + "/links", RemoteBoardRoutes.RemoteLinkRequest.class, Void.class);
+    public static final FederationEndpoint DELETE_LINK = FederationEndpoint.delete(
+            FederationSurface.BOARD_SHARE,
+            TICKET + "/links/{linkedNumber}",
+            RemoteBoardRoutes.RemoteDeleteLinkRequest.class,
+            Void.class);
+    public static final FederationEndpoint GET_TICKET_LABELS =
+            FederationEndpoint.getList(FederationSurface.BOARD_SHARE, TICKET + "/labels", BoardLabel.class);
+    public static final FederationEndpoint ADD_TICKET_LABEL = FederationEndpoint.postList(
+            FederationSurface.BOARD_SHARE,
+            TICKET + "/labels/{labelId}",
+            RemoteBoardRoutes.RemoteLabelActionRequest.class,
+            BoardLabel.class);
+    public static final FederationEndpoint REMOVE_TICKET_LABEL = FederationEndpoint.post(
+            FederationSurface.BOARD_SHARE,
+            TICKET + "/labels/{labelId}/remove",
+            RemoteBoardRoutes.RemoteLabelActionRequest.class,
+            Void.class);
+
+    public static final List<FederationEndpoint> CONTRACT =
+            List.of(GET_LINKS, CREATE_LINK, DELETE_LINK, GET_TICKET_LABELS, ADD_TICKET_LABEL, REMOVE_TICKET_LABEL);
 
     private final BoardService boardService;
     private final BoardTicketService ticketService;
@@ -49,15 +82,12 @@ public class RemoteBoardTicketLinkRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        String rp = prefix + "/remote/boards/{boardKey}/tickets/{ticketNumber}";
-
-        routes.get(rp + "/links", this::getLinks);
-        routes.post(rp + "/links", this::createLink);
-        routes.delete(rp + "/links/{linkedNumber}", this::deleteLink);
-
-        routes.get(rp + "/labels", this::getTicketLabels);
-        routes.post(rp + "/labels/{labelId}", this::addTicketLabel);
-        routes.post(rp + "/labels/{labelId}/remove", this::removeTicketLabel);
+        FederationContractBinder.register(routes, prefix, CONTRACT, binder -> binder.handle(GET_LINKS, this::getLinks)
+                .handle(CREATE_LINK, this::createLink)
+                .handle(DELETE_LINK, this::deleteLink)
+                .handle(GET_TICKET_LABELS, this::getTicketLabels)
+                .handle(ADD_TICKET_LABEL, this::addTicketLabel)
+                .handle(REMOVE_TICKET_LABEL, this::removeTicketLabel));
     }
 
     private void getLinks(Context ctx) {

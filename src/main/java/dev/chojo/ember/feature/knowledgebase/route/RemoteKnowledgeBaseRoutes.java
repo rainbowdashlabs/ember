@@ -7,18 +7,24 @@ package dev.chojo.ember.feature.knowledgebase.route;
 
 import dev.chojo.ember.api.FederationSession;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.feature.federation.entity.FederationPartner;
+import dev.chojo.ember.feature.comment.route.CommentResponse;
+import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
+import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
+import dev.chojo.ember.feature.federation.contract.FederationSurface;
+import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.service.KbCommentService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
+import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService.RemoteKbFileSummary;
+import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService.RemoteKbSearchResultItem;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.util.List;
 import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
@@ -31,6 +37,42 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 @Singleton
 public class RemoteKnowledgeBaseRoutes implements Routes {
 
+    public static final FederationEndpoint BROWSE_KB =
+            FederationEndpoint.getList(FederationSurface.KB_SHARE, "/remote/kb/browse", RemoteKbFileSummary.class);
+    public static final FederationEndpoint SEARCH_KB =
+            FederationEndpoint.getList(FederationSurface.KB_SHARE, "/remote/kb/search", RemoteKbSearchResultItem.class);
+    public static final FederationEndpoint GET_FILE =
+            FederationEndpoint.get(FederationSurface.KB_SHARE, "/remote/kb/files/{id}", KbFile.class);
+    public static final FederationEndpoint GET_FILE_CONTENT = FederationEndpoint.get(
+            FederationSurface.KB_SHARE, "/remote/kb/files/{id}/content", FileContentResponse.class);
+    public static final FederationEndpoint LIST_COMMENTS = FederationEndpoint.getList(
+            FederationSurface.KB_SHARE, "/remote/kb/files/{fileId}/comments", CommentResponse.class);
+    public static final FederationEndpoint CREATE_COMMENT = FederationEndpoint.post(
+            FederationSurface.KB_SHARE,
+            "/remote/kb/files/{fileId}/comments",
+            RemoteKbCommentRequest.class,
+            CommentResponse.class);
+    public static final FederationEndpoint UPDATE_COMMENT = FederationEndpoint.put(
+            FederationSurface.KB_SHARE,
+            "/remote/kb/comments/{commentId}",
+            RemoteKbCommentUpdateRequest.class,
+            CommentResponse.class);
+    public static final FederationEndpoint DELETE_COMMENT = FederationEndpoint.delete(
+            FederationSurface.KB_SHARE,
+            "/remote/kb/comments/{commentId}",
+            RemoteKbCommentDeleteRequest.class,
+            Void.class);
+
+    public static final List<FederationEndpoint> CONTRACT = List.of(
+            BROWSE_KB,
+            SEARCH_KB,
+            GET_FILE,
+            GET_FILE_CONTENT,
+            LIST_COMMENTS,
+            CREATE_COMMENT,
+            UPDATE_COMMENT,
+            DELETE_COMMENT);
+
     private final KbCommentService commentService;
     private final KnowledgeBaseFederationService federationService;
 
@@ -41,18 +83,6 @@ public class RemoteKnowledgeBaseRoutes implements Routes {
         this.federationService = federationService;
     }
 
-    /**
-     * Reads the partner verified from the request signature, answering {@code 403} when the request
-     * carried none.
-     */
-    private static FederationPartner requireFederationPartner(Context ctx) {
-        var session = FederationSession.from(ctx);
-        if (session == null) {
-            throw new ForbiddenResponse("Missing or invalid federation signature");
-        }
-        return session.partner();
-    }
-
     private static String requireContent(String content) {
         if (content == null || content.isBlank()) throw new BadRequestResponse("content is required");
         return content;
@@ -60,43 +90,43 @@ public class RemoteKnowledgeBaseRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/remote/kb/browse", this::browseKb);
-        routes.get(prefix + "/remote/kb/search", this::searchKb);
-        routes.get(prefix + "/remote/kb/files/{id}", this::getFile);
-        routes.get(prefix + "/remote/kb/files/{id}/content", this::getFileContent);
-        routes.get(prefix + "/remote/kb/files/{fileId}/comments", this::listComments);
-        routes.post(prefix + "/remote/kb/files/{fileId}/comments", this::createComment);
-        routes.put(prefix + "/remote/kb/comments/{commentId}", this::updateComment);
-        routes.delete(prefix + "/remote/kb/comments/{commentId}", this::deleteComment);
+        FederationContractBinder.register(routes, prefix, CONTRACT, binder -> binder.handle(BROWSE_KB, this::browseKb)
+                .handle(SEARCH_KB, this::searchKb)
+                .handle(GET_FILE, this::getFile)
+                .handle(GET_FILE_CONTENT, this::getFileContent)
+                .handle(LIST_COMMENTS, this::listComments)
+                .handle(CREATE_COMMENT, this::createComment)
+                .handle(UPDATE_COMMENT, this::updateComment)
+                .handle(DELETE_COMMENT, this::deleteComment));
     }
 
     private void browseKb(Context ctx) {
-        ctx.json(federationService.browseForPartner(requireFederationPartner(ctx)));
+        ctx.json(federationService.browseForPartner(FederationSession.requirePartner(ctx)));
     }
 
     private void searchKb(Context ctx) {
-        var partner = requireFederationPartner(ctx);
+        var partner = FederationSession.requirePartner(ctx);
         ctx.json(federationService.searchForPartner(partner, ctx.queryParam("q")));
     }
 
     private void getFile(Context ctx) {
-        var partner = requireFederationPartner(ctx);
+        var partner = FederationSession.requirePartner(ctx);
         ctx.json(federationService.fileForPartner(partner, pathInt(ctx, "id")));
     }
 
     private void getFileContent(Context ctx) {
-        var partner = requireFederationPartner(ctx);
+        var partner = FederationSession.requirePartner(ctx);
         int fileId = pathInt(ctx, "id");
         ctx.json(new FileContentResponse(fileId, federationService.fileContentForPartner(partner, fileId)));
     }
 
     private void listComments(Context ctx) {
-        requireFederationPartner(ctx);
+        FederationSession.requirePartner(ctx);
         ctx.json(federationService.listComments(pathInt(ctx, "fileId")));
     }
 
     private void createComment(Context ctx) {
-        var partner = requireFederationPartner(ctx);
+        var partner = FederationSession.requirePartner(ctx);
         int fileId = pathInt(ctx, "fileId");
         var req = ctx.bodyAsClass(RemoteKbCommentRequest.class);
         var comment = federationService.createRemoteComment(
@@ -110,7 +140,7 @@ public class RemoteKnowledgeBaseRoutes implements Routes {
     }
 
     private void updateComment(Context ctx) {
-        var partner = requireFederationPartner(ctx);
+        var partner = FederationSession.requirePartner(ctx);
         int commentId = pathInt(ctx, "commentId");
         var req = ctx.bodyAsClass(RemoteKbCommentUpdateRequest.class);
         var updated = federationService.updateRemoteComment(
@@ -119,7 +149,7 @@ public class RemoteKnowledgeBaseRoutes implements Routes {
     }
 
     private void deleteComment(Context ctx) {
-        var partner = requireFederationPartner(ctx);
+        var partner = FederationSession.requirePartner(ctx);
         int commentId = pathInt(ctx, "commentId");
         var req = ctx.bodyAsClass(RemoteKbCommentDeleteRequest.class);
         federationService.requireRemoteCommentAuthor(partner, commentId, req.remoteMemberUid(), "delete");
