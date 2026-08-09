@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import AdminFeedMetricsView from '~/views/adminview/AdminFeedMetricsView'
+import AdminFeedMetricsView from '~/views/adminview/AdminFeedMetricsView.vue'
 
 definePageMeta({
   layout: 'admin',

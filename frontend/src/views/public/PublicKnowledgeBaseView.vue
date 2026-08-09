@@ -4,10 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref, computed, watch, onMounted, inject} from 'vue'
+import {computed, inject, onMounted, ref, watch, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter, useRoute} from 'vue-router'
-import type {Ref} from 'vue'
 import type {PublicStationInfo as StationInfo} from '@/api/discovery'
 import Alert from '@/components/feedback/Alert.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
@@ -19,6 +18,7 @@ import KnowledgeBaseBreadcrumbs from './publicknowledgebaseview/KnowledgeBaseBre
 import KnowledgeBaseSearchResults from './publicknowledgebaseview/KnowledgeBaseSearchResults.vue'
 import KnowledgeBaseBrowse from './publicknowledgebaseview/KnowledgeBaseBrowse.vue'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useDebouncedSearch} from '@/composables/useDebouncedSearch'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -37,10 +37,13 @@ const folders = ref<KbFolder[]>([])
 const files = ref<KbFile[]>([])
 const breadcrumbs = ref<KbFolder[]>([])
 
-const searchQuery = ref('')
-const searchResults = ref<PublicSearchResult[]>([])
-const searching = ref(false)
-const isSearching = computed(() => searchQuery.value.trim().length > 0)
+const {
+    query: searchQuery,
+    results: searchResults,
+    searching,
+    isSearching,
+    onInput: onSearchInput,
+} = useDebouncedSearch<PublicSearchResult>(query => publicKb.search(stationUid.value, query))
 
 async function loadStationInfo() {
     try {
@@ -78,26 +81,6 @@ function navigateToFile(file: KbFile) {
     router.push({name: 'public-kb-file', params: {stationUid: stationUid.value, id: file.id}})
 }
 
-let searchTimeout: ReturnType<typeof setTimeout> | null = null
-
-function onSearchInput() {
-    if (searchTimeout) clearTimeout(searchTimeout)
-    if (!searchQuery.value.trim()) {
-        searchResults.value = []
-        return
-    }
-    searchTimeout = setTimeout(async () => {
-        searching.value = true
-        try {
-            searchResults.value = await publicKb.search(stationUid.value, searchQuery.value.trim())
-        } catch {
-            searchResults.value = []
-        } finally {
-            searching.value = false
-        }
-    }, 300)
-}
-
 useHead(computed(() => {
     if (!stationInfo.value) return {}
     const folderName = currentFolder.value?.name
@@ -117,7 +100,7 @@ useHead(computed(() => {
         script: [
             {
                 type: 'application/ld+json',
-                children: JSON.stringify({
+                innerHTML: JSON.stringify({
                     '@context': 'https://schema.org',
                     '@type': 'BreadcrumbList',
                     itemListElement: breadcrumbs,

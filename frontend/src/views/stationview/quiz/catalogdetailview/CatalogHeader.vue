@@ -17,7 +17,7 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type { QuizCatalogDetail } from '@/api/types'
+import type { QuizCatalogDetail } from '@/api/quiz'
 
 const props = defineProps<{
   catalog: QuizCatalogDetail

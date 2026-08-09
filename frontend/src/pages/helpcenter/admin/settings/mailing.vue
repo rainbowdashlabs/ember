@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import MailingHelp from '~/views/helpcenter/adminview/MailingHelp'
+import MailingHelp from '~/views/helpcenter/adminview/MailingHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter-admin',

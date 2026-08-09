@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.inventory.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -75,13 +76,11 @@ public class ExchangeRoutes implements Routes {
 
     /**
      * Loads an exchange request and asserts it belongs to the caller's station, returning it.
-     * Answers 404 when absent and 403 when owned by another station.
+     * Answers 404 both when absent and when owned by another station.
      */
     private ExchangeRequest requireOwnedExchange(int exchangeId, UserSession session) {
         var exchange = exchangeService.findById(exchangeId).orElseThrow(NotFoundResponse::new);
-        if (exchange.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
+        RouteSupport.requireSameStation(session, exchange.stationId());
         return exchange;
     }
 

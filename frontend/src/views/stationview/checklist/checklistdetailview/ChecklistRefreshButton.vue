@@ -4,11 +4,12 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, ref} from 'vue'
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import {formatDateTime} from '@/util/format'
-import type {ChecklistRefreshResult} from '@/api/types'
+import type {ChecklistRefreshResult} from '@/api/checklists'
 
 const props = defineProps<{
   lastRefreshedAt?: string | null
@@ -16,22 +17,14 @@ const props = defineProps<{
 }>()
 
 const {t} = useI18n()
-const refreshing = ref(false)
+
+const {running: refreshing, run} = useAsyncAction(() => props.onRefresh())
 
 const label = computed(() => {
   if (refreshing.value) return t('common.loading')
   if (!props.lastRefreshedAt) return t('checklist.neverRefreshed')
   return t('checklist.lastRefreshed', {when: formatDateTime(props.lastRefreshedAt)})
 })
-
-async function run() {
-  refreshing.value = true
-  try {
-    await props.onRefresh()
-  } finally {
-    refreshing.value = false
-  }
-}
 </script>
 
 <template>

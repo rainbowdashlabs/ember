@@ -16,7 +16,8 @@ import SingleSelectDropdown from '@/components/input/select/SingleSelectDropdown
 import FieldValueDisplay from '@/components/display/FieldValueDisplay.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type { ProfileField, StationMember } from '@/api/types'
+import type { ProfileField } from '@/api/profileFields'
+import type { StationMember } from '@/api/types'
 import MutedText from '@/components/typography/MutedText.vue'
 
 const { t } = useI18n()
@@ -56,7 +57,6 @@ const showCreateManager = ref(false)
 const newMgrFirstName = ref('')
 const newMgrLastName = ref('')
 const newMgrEmail = ref('')
-const creatingManager = ref(false)
 
 function doLinkManager() {
   if (!selectedManagerId.value) return
@@ -65,15 +65,13 @@ function doLinkManager() {
   selectedManagerId.value = ''
 }
 
-async function doCreateManager() {
+function doCreateManager() {
   if (!newMgrFirstName.value || !newMgrLastName.value || !newMgrEmail.value) return
-  creatingManager.value = true
   emit('createManager', {
     firstName: newMgrFirstName.value,
     lastName: newMgrLastName.value,
     email: newMgrEmail.value,
   })
-  creatingManager.value = false
   showCreateManager.value = false
   newMgrFirstName.value = ''
   newMgrLastName.value = ''
@@ -146,8 +144,8 @@ async function doCreateManager() {
         <TextInput v-model="newMgrLastName" :placeholder="t('memberDetail.lastName')" />
         <TextInput v-model="newMgrEmail" :placeholder="t('memberDetail.email')" />
       </div>
-      <SecondaryButton :icon="['fas', 'plus']" :disabled="!newMgrFirstName || !newMgrLastName || !newMgrEmail || creatingManager" @click="doCreateManager">
-        {{ creatingManager ? t('common.loading') : t('memberDetail.createManagerSubmit') }}
+      <SecondaryButton :icon="['fas', 'plus']" :disabled="!newMgrFirstName || !newMgrLastName || !newMgrEmail" @click="doCreateManager">
+        {{ t('memberDetail.createManagerSubmit') }}
       </SecondaryButton>
     </div>
   </NeutralContainer>

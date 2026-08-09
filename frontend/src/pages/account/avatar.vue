@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import AccountAvatarView from '~/views/accountview/AccountAvatarView'
+import AccountAvatarView from '~/views/accountview/AccountAvatarView.vue'
 
 definePageMeta({
   layout: 'account',

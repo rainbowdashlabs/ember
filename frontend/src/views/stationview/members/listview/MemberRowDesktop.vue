@@ -16,7 +16,8 @@ import Td from '@/components/table/Td.vue'
 import TRow from '@/components/table/TRow.vue'
 import MemberTypeBadge from './MemberTypeBadge.vue'
 import {formatDate} from '@/util/format'
-import type {ProfileField, StationMember} from '@/api/types'
+import type {ProfileField} from '@/api/profileFields'
+import type {StationMember} from '@/api/types'
 
 const {t} = useI18n()
 

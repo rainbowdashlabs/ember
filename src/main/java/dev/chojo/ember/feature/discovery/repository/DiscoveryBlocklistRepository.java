@@ -13,23 +13,23 @@ import java.util.List;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
+import static dev.chojo.ember.util.sql.SqlSupport.exists;
 
 @Singleton
 public class DiscoveryBlocklistRepository {
+    private static final String DISCOVERY_BLOCKLIST_COLUMNS = "value, kind, note, created_at";
 
     public List<DiscoveryBlocklistEntry> findAll() {
-        return query("SELECT * FROM discovery_blocklist ORDER BY created_at DESC;")
+        return query("SELECT %s FROM discovery_blocklist ORDER BY created_at DESC;", DISCOVERY_BLOCKLIST_COLUMNS)
                 .single(call())
                 .map(DiscoveryBlocklistEntry.map())
                 .all();
     }
 
     public boolean contains(BlocklistKind kind, String value) {
-        return query("SELECT 1 FROM discovery_blocklist WHERE kind = :kind AND value = :value;")
-                .single(call().bind("kind", kind.name()).bind("value", value))
-                .map(_ -> true)
-                .first()
-                .orElse(false);
+        return exists(
+                "SELECT 1 FROM discovery_blocklist WHERE kind = :kind AND value = :value;",
+                call().bind("kind", kind.name()).bind("value", value));
     }
 
     public void add(BlocklistKind kind, String value, String note) {

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import KbVersionsView from '~/views/stationview/knowledge/KbVersionsView'
+import KbVersionsView from '~/views/stationview/knowledge/KbVersionsView.vue'
 
 definePageMeta({
   layout: 'station',

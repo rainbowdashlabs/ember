@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import MovedStationDeleteView from '~/views/dashboardview/MovedStationDeleteView'
+import MovedStationDeleteView from '~/views/dashboardview/MovedStationDeleteView.vue'
 
 definePageMeta({
   layout: 'station',

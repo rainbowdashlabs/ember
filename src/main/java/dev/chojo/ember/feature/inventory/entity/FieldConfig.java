@@ -6,6 +6,8 @@
 package dev.chojo.ember.feature.inventory.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.math.BigDecimal;
@@ -15,6 +17,14 @@ import java.util.List;
  * Typed config for an {@link InventoryFieldDefinition}, varying by
  * {@link FieldType}. Serialised as JSONB in {@code inventory_field_definition.config}.
  */
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "kind")
+@JsonSubTypes({
+    @JsonSubTypes.Type(value = FieldConfig.DateConfig.class, name = "DATE"),
+    @JsonSubTypes.Type(value = FieldConfig.EnumConfig.class, name = "ENUM"),
+    @JsonSubTypes.Type(value = FieldConfig.TextConfig.class, name = "TEXT"),
+    @JsonSubTypes.Type(value = FieldConfig.NumberConfig.class, name = "NUMBER"),
+    @JsonSubTypes.Type(value = FieldConfig.BooleanConfig.class, name = "BOOLEAN")
+})
 public sealed interface FieldConfig
         permits FieldConfig.DateConfig,
                 FieldConfig.EnumConfig,
@@ -28,25 +38,38 @@ public sealed interface FieldConfig
     JsonMapper MAPPER = JsonMapper.builder().build();
 
     /**
-     * Parses the {@code config} JSONB for the given field type.
+     * Parses the {@code config} JSONB for the given field type. The payload is
+     * self-describing through its {@code kind} discriminator; the given field type
+     * only cross-checks that the parsed variant belongs to the field.
      *
-     * @param fieldType the field type whose config to parse
+     * @param fieldType the field type the config must belong to
      * @param json      raw JSONB string, may be null or blank for an empty config
      * @return the parsed config; defaults for the type are returned on missing keys
      */
     static FieldConfig parse(FieldType fieldType, String json) {
+        FieldConfig parsed;
         try {
-            String payload = json == null || json.isBlank() ? "{}" : json;
-            return switch (fieldType) {
-                case DATE -> MAPPER.readValue(payload, DateConfig.class);
-                case ENUM -> MAPPER.readValue(payload, EnumConfig.class);
-                case TEXT -> MAPPER.readValue(payload, TextConfig.class);
-                case NUMBER -> MAPPER.readValue(payload, NumberConfig.class);
-                case BOOLEAN -> MAPPER.readValue(payload, BooleanConfig.class);
-            };
+            String payload = json == null || json.isBlank() ? "{\"kind\": \"%s\"}".formatted(fieldType.name()) : json;
+            parsed = MAPPER.readValue(payload, FieldConfig.class);
         } catch (Exception e) {
             throw new IllegalArgumentException("Invalid inventory_field_definition config payload", e);
         }
+        if (parsed.fieldType() != fieldType) {
+            throw new IllegalArgumentException("Field config kind does not match the field type");
+        }
+        return parsed;
+    }
+
+    /**
+     * Serialises a possibly-absent config to the JSONB payload the
+     * {@code inventory_field_definition.config} column expects, falling back to
+     * an empty object for {@code null}.
+     *
+     * @param config the config to serialise, may be null
+     * @return the JSONB payload, never null
+     */
+    static String toJsonOrEmpty(FieldConfig config) {
+        return config == null ? "{}" : config.toJson();
     }
 
     /**

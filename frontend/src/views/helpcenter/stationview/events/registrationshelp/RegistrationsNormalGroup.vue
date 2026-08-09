@@ -9,6 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import RegistrationsFairnessTable from './RegistrationsFairnessTable.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 </script>
@@ -18,12 +19,12 @@ const {t} = useI18n()
     <div class="flex items-center justify-between flex-wrap gap-2">
       <div>
         <span class="font-medium text-primary">Wettkampf Vorbereitung</span>
-        <span class="text-xs text-(--text-muted) ml-2">
+        <MutedText class="ml-2">
           {{ t('eventsRegistrations.deadline') }}: 20.05.2026 18:00
-        </span>
-        <span class="text-xs text-(--text-muted) ml-2">
+        </MutedText>
+        <MutedText class="ml-2">
           ({{ t('eventsRegistrations.limit') }}: 12)
-        </span>
+        </MutedText>
       </div>
       <div class="flex items-center gap-2">
         <InfoBadge>3 {{ t('eventsRegistrations.pending') }}</InfoBadge>

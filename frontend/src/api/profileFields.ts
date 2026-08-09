@@ -4,33 +4,68 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {ProfileField, ProfileFieldRequest, ProfileFieldValue, SetValuesRequest,} from './types'
+import {createCrudResource} from './crud'
+export const FieldTypes = {
+    TEXT: 'TEXT',
+    NUMBER: 'NUMBER',
+    DATE: 'DATE',
+    BOOLEAN: 'BOOLEAN',
+    ENUM: 'ENUM',
+    AGE: 'AGE',
+} as const
+
+export type FieldTypeName = (typeof FieldTypes)[keyof typeof FieldTypes]
+
+export interface ProfileField {
+    id: number
+    stationId: string
+    name?: string
+    fieldType?: string
+    config?: string | Record<string, unknown>
+    position: number
+    scope?: string
+    keepOnArchive?: boolean
+}
+
+export function parseFieldConfig(config: string | Record<string, unknown> | undefined | null): Record<string, unknown> {
+    if (!config) return {}
+    if (typeof config === 'object') return config
+    try { return JSON.parse(config) } catch { return {} }
+}
+
+export interface ProfileFieldRequest {
+    name?: string
+    fieldType?: string
+    config?: string
+    position: number
+    scope?: string
+    keepOnArchive?: boolean
+}
+
+export interface ProfileFieldValue {
+    memberId: number
+    fieldId: number
+    value?: string
+}
+
+export interface ProfileFieldValueEntry {
+    fieldId: number
+    value?: string
+}
+
+export interface SetValuesRequest {
+    values?: ProfileFieldValueEntry[]
+}
 
 // -- Field Definitions --
 
-export async function listFields(): Promise<ProfileField[]> {
-    const res = await client.get<ProfileField[]>('/profile-fields')
-    return res.data
-}
+const fields = createCrudResource<ProfileField, ProfileFieldRequest>('/profile-fields')
 
-export async function getField(id: number): Promise<ProfileField> {
-    const res = await client.get<ProfileField>(`/profile-fields/${id}`)
-    return res.data
-}
-
-export async function createField(data: ProfileFieldRequest): Promise<ProfileField> {
-    const res = await client.post<ProfileField>('/profile-fields', data)
-    return res.data
-}
-
-export async function updateField(id: number, data: ProfileFieldRequest): Promise<ProfileField> {
-    const res = await client.put<ProfileField>(`/profile-fields/${id}`, data)
-    return res.data
-}
-
-export async function deleteField(id: number): Promise<void> {
-    await client.delete(`/profile-fields/${id}`)
-}
+export const listFields = fields.list
+export const getField = fields.get
+export const createField = fields.create
+export const updateField = fields.update
+export const deleteField = fields.remove
 
 export async function getMemberFields(memberId: number): Promise<ProfileField[]> {
     const res = await client.get<ProfileField[]>(`/station-members/${memberId}/fields`)

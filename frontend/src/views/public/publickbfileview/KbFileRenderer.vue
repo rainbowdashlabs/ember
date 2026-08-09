@@ -8,8 +8,7 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import type {KbFile} from '@/api/knowledgeBase'
-import {KbFileType} from '@/api/knowledgeBase'
+import {KbFileType, type KbFile} from '@/api/knowledgeBase'
 
 const props = defineProps<{
   file: KbFile

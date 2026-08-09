@@ -5,15 +5,12 @@
  */
 package dev.chojo.ember.feature.form.entity;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import dev.chojo.ember.util.Json;
 import org.slf4j.Logger;
-import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.SerializationFeature;
-import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ObjectNode;
 
 import java.util.ArrayList;
@@ -38,13 +35,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 })
 public sealed interface FormQuestionConfig {
     Logger log = getLogger(FormQuestionConfig.class);
-    ObjectMapper MAPPER = JsonMapper.builder()
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-            .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
-            .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
-            .changeDefaultVisibility(v -> v.withFieldVisibility(JsonAutoDetect.Visibility.ANY)
-                    .withGetterVisibility(JsonAutoDetect.Visibility.NONE))
-            .build();
+    ObjectMapper MAPPER = Json.EMPTY_TOLERANT_CONFIG_MAPPER;
 
     /**
      * Parses a JSON string into the appropriate config for the given question type. The

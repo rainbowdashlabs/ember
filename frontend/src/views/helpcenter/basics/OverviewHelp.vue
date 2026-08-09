@@ -8,8 +8,8 @@ import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import BulletList from '@/components/typography/BulletList.vue'
+import HelpFeatureItem from '@/components/helpcenter/HelpFeatureItem.vue'
 
 const {t} = useI18n()
 
@@ -45,13 +45,10 @@ const features = [
     <HelpSection :title="t('helpCenter.basics.overview.features')">
       <p>{{ t('helpCenter.basics.overview.featuresText') }}</p>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
-        <NeutralContainer v-for="f in features" :key="f.key" class="flex items-start gap-3 p-3">
-          <font-awesome-icon :icon="f.icon" class="h-4 w-4 text-primary mt-0.5 shrink-0"/>
-          <div>
-            <p class="font-semibold text-sm">{{ t(`helpCenter.basics.overview.feature.${f.key}.title`) }}</p>
-            <p class="text-xs text-(--text-muted)">{{ t(`helpCenter.basics.overview.feature.${f.key}.desc`) }}</p>
-          </div>
-        </NeutralContainer>
+        <HelpFeatureItem
+            v-for="f in features" :key="f.key" :icon="f.icon"
+            :title="t(`helpCenter.basics.overview.feature.${f.key}.title`)"
+            :description="t(`helpCenter.basics.overview.feature.${f.key}.desc`)"/>
       </div>
     </HelpSection>
 

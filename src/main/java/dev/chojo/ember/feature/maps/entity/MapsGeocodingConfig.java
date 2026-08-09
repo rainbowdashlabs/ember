@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.maps.entity;
 
-import tools.jackson.databind.json.JsonMapper;
+import dev.chojo.ember.util.Json;
 
 /**
  * Geocoding configuration persisted as JSON under {@code application_setting.maps_geocoding}.
@@ -16,11 +16,9 @@ public record MapsGeocodingConfig(GeocodingProvider provider, String apiKey, Str
 
     public static final MapsGeocodingConfig DEFAULT = new MapsGeocodingConfig(GeocodingProvider.NONE, "", "");
 
-    private static final JsonMapper MAPPER = JsonMapper.builder().build();
-
     public static MapsGeocodingConfig parse(String json) {
         try {
-            return MAPPER.readValue(json, MapsGeocodingConfig.class);
+            return Json.MAPPER.readValue(json, MapsGeocodingConfig.class);
         } catch (Exception e) {
             throw new RuntimeException("Failed to parse MapsGeocodingConfig", e);
         }
@@ -28,7 +26,7 @@ public record MapsGeocodingConfig(GeocodingProvider provider, String apiKey, Str
 
     public String toJson() {
         try {
-            return MAPPER.writeValueAsString(this);
+            return Json.MAPPER.writeValueAsString(this);
         } catch (Exception e) {
             throw new RuntimeException("Failed to serialize MapsGeocodingConfig", e);
         }

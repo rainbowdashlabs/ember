@@ -9,7 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryContainer from '@/components/container/PrimaryContainer.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import type {Station} from '@/api/types'
+import type {Station} from '@/api/stations'
 
 defineProps<{
   stations: Station[]

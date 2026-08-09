@@ -7,6 +7,7 @@
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -17,8 +18,8 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import ProfileFieldModal from './membersconfig/FieldModal.vue'
 import FieldsPanel from './membersconfig/FieldsPanel.vue'
 import type {FieldTemplate} from './membersconfig/fieldTemplates'
-import type {MemberGroup, ProfileField} from '@/api/types'
-import {parseFieldConfig} from '@/api/types'
+import {parseFieldConfig, type ProfileField} from '@/api/profileFields'
+import type {MemberGroup} from '@/api/types'
 import {memberGroups, profileFields} from '@/api'
 
 const {t} = useI18n()
@@ -53,8 +54,6 @@ const dateFields = computed(() => currentFields.value.filter(f => f.fieldType ==
 
 const showFieldModal = ref(false)
 const editingField = ref<ProfileField | null>(null)
-const showDeleteModal = ref(false)
-const deleteTarget = ref<ProfileField | null>(null)
 
 const {loading, error, reload} = useAsyncLoader(async () => {
   const [fields, groups] = await Promise.all([
@@ -133,33 +132,28 @@ async function toggleKeepOnArchive(field: ProfileField, value: boolean) {
   }
 }
 
-function requestDelete(field: ProfileField) {
-  deleteTarget.value = field
-  showDeleteModal.value = true
-}
-
-async function confirmDelete() {
-  if (!deleteTarget.value) return
-  try {
-    await profileFields.deleteField(deleteTarget.value.id)
-    showDeleteModal.value = false
-    deleteTarget.value = null
-    await reload()
-  } catch {
-    error.value = t('common.error')
-  }
-}
+const {
+  show: showDeleteModal,
+  target: deleteTarget,
+  requestDelete,
+  confirm: confirmDelete,
+} = useConfirmDelete<ProfileField>({
+  onDelete: (field) => profileFields.deleteField(field.id),
+  onSuccess: () => reload(),
+  error,
+})
 
 async function onReorder(fromIndex: number, toIndex: number) {
   const arr = [...currentFields.value]
   const [moved] = arr.splice(fromIndex, 1)
+  if (!moved) return
   arr.splice(toIndex, 0, moved)
   try {
-    for (let i = 0; i < arr.length; i++) {
-      await profileFields.updateField(arr[i].id, {
-        name: arr[i].name ?? '',
-        fieldType: arr[i].fieldType ?? '',
-        config: typeof arr[i].config === 'string' ? (arr[i].config as string) : JSON.stringify(arr[i].config ?? {}),
+    for (const [i, field] of arr.entries()) {
+      await profileFields.updateField(field.id, {
+        name: field.name ?? '',
+        fieldType: field.fieldType ?? '',
+        config: typeof field.config === 'string' ? field.config : JSON.stringify(field.config ?? {}),
         position: i,
       })
     }
@@ -173,8 +167,7 @@ async function applyTemplate(template: FieldTemplate) {
   error.value = ''
   try {
     const startPosition = currentFields.value.length
-    for (let i = 0; i < template.fields.length; i++) {
-      const f = template.fields[i]
+    for (const [i, f] of template.fields.entries()) {
       await profileFields.createField({
         name: f.name,
         fieldType: f.fieldType,

@@ -11,9 +11,10 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import type { WaitingList, WaitingListField } from '@/api/types'
+import type { WaitingList, WaitingListField } from '@/api/waitingList'
 import { waitingList } from '@/api'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useConfirmAction } from '@/composables/useConfirmAction'
 import FieldsList from './fieldeditorview/FieldsList.vue'
 import FieldModal from './fieldeditorview/FieldModal.vue'
@@ -35,7 +36,6 @@ const fieldType = ref('TEXT')
 const fieldRequired = ref(false)
 const fieldPublic = ref(true)
 const fieldEnumOptions = ref('')
-const savingField = ref(false)
 
 const fieldTypes = ['TEXT', 'NUMBER', 'DATE', 'BOOLEAN', 'ENUM'] as const
 
@@ -98,32 +98,25 @@ function buildConfig(): string {
   return JSON.stringify(config)
 }
 
-async function saveField() {
+const { running: savingField, error: saveFieldError, run: saveField } = useAsyncAction(async () => {
   if (!fieldName.value.trim()) return
-  savingField.value = true
   error.value = ''
-  try {
-    const data = {
-      name: fieldName.value.trim(),
-      fieldType: fieldType.value,
-      config: buildConfig(),
-      position: editingField.value?.position ?? fields.value.length,
-      required: fieldRequired.value,
-      isPublic: fieldPublic.value,
-    }
-    if (editingField.value) {
-      await waitingList.updateField(listId.value, editingField.value.id, data)
-    } else {
-      await waitingList.createField(listId.value, data)
-    }
-    fields.value = await waitingList.listFields(listId.value)
-    showFieldModal.value = false
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    savingField.value = false
+  const data = {
+    name: fieldName.value.trim(),
+    fieldType: fieldType.value,
+    config: buildConfig(),
+    position: editingField.value?.position ?? fields.value.length,
+    required: fieldRequired.value,
+    isPublic: fieldPublic.value,
   }
-}
+  if (editingField.value) {
+    await waitingList.updateField(listId.value, editingField.value.id, data)
+  } else {
+    await waitingList.createField(listId.value, data)
+  }
+  fields.value = await waitingList.listFields(listId.value)
+  showFieldModal.value = false
+})
 
 const {
   show: showDeleteModal,
@@ -141,11 +134,11 @@ const {
 async function moveField(index: number, direction: -1 | 1) {
   const sorted = sortedFields.value
   const targetIndex = index + direction
-  if (targetIndex < 0 || targetIndex >= sorted.length) return
+  const fieldA = sorted[index]
+  const fieldB = sorted[targetIndex]
+  if (!fieldA || !fieldB) return
   error.value = ''
   try {
-    const fieldA = sorted[index]
-    const fieldB = sorted[targetIndex]
     await Promise.all([
       waitingList.updateField(listId.value, fieldA.id, {
         name: fieldA.name,
@@ -187,7 +180,7 @@ function goBack() {
       </SecondaryButton>
 
       <Spinner v-if="loading" size="lg" />
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <Alert v-if="error || saveFieldError" variant="error">{{ error || saveFieldError }}</Alert>
 
       <FieldsList
         v-if="!loading && list"

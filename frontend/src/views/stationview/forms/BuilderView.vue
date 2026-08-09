@@ -18,8 +18,8 @@ import FormMetadataEditor from './builderview/FormMetadataEditor.vue'
 import FormRestrictionsEditor from './builderview/FormRestrictionsEditor.vue'
 import { type RestrictionSelection, emptyRestriction } from '@/components/input/restriction'
 import type { QuestionDraft } from './builderview/types'
-import type { FormPurposeName, FormQuestionRequest, QuestionType, MemberGroup, StationMember, UserTag } from '@/api/types'
-import { FormPurpose, QuestionTypes, QUESTION_TYPES_BY_PURPOSE } from '@/api/types'
+import {FormPurpose, QUESTION_TYPES_BY_PURPOSE, QuestionTypes, type FormPurposeName, type FormQuestionRequest, type QuestionType} from '@/api/forms'
+import type { MemberGroup, StationMember, UserTag } from '@/api/types'
 import { forms, memberGroups, userTags, stationMembers } from '@/api'
 
 const { t } = useI18n()
@@ -89,10 +89,11 @@ function removeQuestion(index: number) {
 
 function moveQuestion(index: number, direction: -1 | 1) {
   const newIndex = index + direction
-  if (newIndex < 0 || newIndex >= questions.value.length) return
-  const temp = questions.value[index]
-  questions.value[index] = questions.value[newIndex]
-  questions.value[newIndex] = temp
+  const current = questions.value[index]
+  const target = questions.value[newIndex]
+  if (!current || !target) return
+  questions.value[index] = target
+  questions.value[newIndex] = current
 }
 
 const { loading, error } = useAsyncLoader(async () => {
@@ -146,45 +147,49 @@ const { loading, error } = useAsyncLoader(async () => {
   }))
 })
 
+async function saveForm(): Promise<number> {
+  const formData = {
+    title: title.value,
+    description: description.value,
+    shuffleQuestions: shuffleQuestions.value,
+    allowEdit: allowEdit.value,
+    forced: forced.value,
+    startAt: startAt.value ? new Date(startAt.value).toISOString() : null,
+    endAt: endAt.value ? new Date(endAt.value).toISOString() : null,
+    purpose: purpose.value,
+  }
+  const id = formId.value
+  if (id) {
+    await forms.updateForm(id, formData)
+    return id
+  }
+  const created = await forms.createForm(formData)
+  return created.id
+}
+
+async function saveQuestions(id: number) {
+  const questionRequests: FormQuestionRequest[] = questions.value.map(q => ({
+    questionType: q.questionType,
+    title: q.title,
+    description: q.description,
+    required: q.required,
+    shuffle: q.shuffle,
+    config: {...(q.config as object), questionType: q.questionType},
+  }))
+  await forms.setQuestions(id, questionRequests)
+}
+
 async function save() {
   error.value = ''
   try {
-    let id = formId.value
-    const formData = {
-      title: title.value,
-      description: description.value,
-      shuffleQuestions: shuffleQuestions.value,
-      allowEdit: allowEdit.value,
-      forced: forced.value,
-      startAt: startAt.value ? new Date(startAt.value).toISOString() : null,
-      endAt: endAt.value ? new Date(endAt.value).toISOString() : null,
-      purpose: purpose.value,
-    }
-
-    if (id) {
-      await forms.updateForm(id, formData)
-    } else {
-      const created = await forms.createForm(formData)
-      id = created.id
-    }
-
-    const questionRequests: FormQuestionRequest[] = questions.value.map(q => ({
-      questionType: q.questionType,
-      title: q.title,
-      description: q.description,
-      required: q.required,
-      shuffle: q.shuffle,
-      config: {...(q.config as object), questionType: q.questionType},
-    }))
-    await forms.setQuestions(id!, questionRequests)
-
-    await forms.setRestrictions(id!, {
+    const id = await saveForm()
+    await saveQuestions(id)
+    await forms.setRestrictions(id, {
       userTypes: restriction.value.userTypes,
       groupIds: restriction.value.groupIds,
       tagIds: restriction.value.tagIds,
       memberIds: restriction.value.memberIds,
     })
-
     router.push({ name: returnRouteName.value })
   } catch (e) {
     error.value = t('common.error')

@@ -19,6 +19,7 @@ import type { FederatedNewsDetail } from '@/api/news'
 import { news } from '@/api'
 import { useConfigPanel } from '@/composables/useConfigPanel'
 import { formatDateTime } from '@/util/format'
+import ProseContent from '@/components/display/ProseContent.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -61,7 +62,7 @@ watch(() => [route.params.stationUid, route.params.newsId], () => {
           </p>
         </div>
 
-        <div class="prose prose-sm dark:prose-invert max-w-none" v-html="entry.contentHtml" />
+        <ProseContent v-html="entry.contentHtml"/>
 
         <div class="pt-3 border-t border-bg-light-accent dark:border-bg-dark-accent">
           <NewsCommentSection :news-id="newsId" :station-uid="stationUid" />

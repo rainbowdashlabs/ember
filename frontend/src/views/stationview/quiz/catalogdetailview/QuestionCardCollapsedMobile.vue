@@ -10,7 +10,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
-import type { QuizQuestion } from '@/api/types'
+import type { QuizQuestion } from '@/api/quiz'
 
 defineProps<{
   question: QuizQuestion

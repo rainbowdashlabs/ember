@@ -12,6 +12,8 @@ import dev.chojo.ember.feature.page.entity.PageCell;
 import dev.chojo.ember.feature.page.entity.PageFile;
 import dev.chojo.ember.feature.page.entity.PageRow;
 import dev.chojo.ember.feature.page.entity.StationPage;
+import dev.chojo.ember.util.sql.SqlSupport;
+import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
@@ -26,64 +28,68 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 @Singleton
 public class PageRepository {
 
+    private static final String STATION_PAGE_COLUMNS =
+            "id, public_uid, station_id, parent_id, title, slug, published, sort_order, meta_description, og_image_id, created_by, created_at, updated_at";
+    private static final String PAGE_FILE_COLUMNS =
+            "id, page_id, station_id, content_hash, file_name, mime_type, file_size, uploaded_at, default_alt_text, default_description, folder_id";
+
     // --- Page CRUD ---
 
     public StationPage create(int stationId, String title, String slug, Integer parentId, int createdBy) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT INTO station_page(station_id, title, slug, parent_id, created_by)
                 VALUES(:station_id, :title, :slug, :parent_id, :created_by)
-                RETURNING *;""")
-                .single(call().bind("station_id", stationId)
+                RETURNING %s;""",
+                call().bind("station_id", stationId)
                         .bind("title", title)
                         .bind("slug", slug)
                         .bind("parent_id", parentId)
-                        .bind("created_by", createdBy))
-                .map(StationPage.mapFlat())
-                .first()
-                .orElseThrow();
+                        .bind("created_by", createdBy),
+                StationPage.mapFlat(),
+                STATION_PAGE_COLUMNS);
     }
 
     public Optional<StationPage> findById(int id) {
-        return query("SELECT * FROM station_page WHERE id = :id;")
-                .single(call().bind("id", id))
-                .map(StationPage.mapFlat())
-                .first();
+        return SqlSupport.findById("station_page", STATION_PAGE_COLUMNS, id, StationPage.mapFlat());
     }
 
     public Optional<StationPage> findBySlugAndStation(String slug, int stationId) {
-        return query("SELECT * FROM station_page WHERE slug = :slug AND station_id = :station_id;")
+        return query(
+                        "SELECT %s FROM station_page WHERE slug = :slug AND station_id = :station_id;",
+                        STATION_PAGE_COLUMNS)
                 .single(call().bind("slug", slug).bind("station_id", stationId))
                 .map(StationPage.mapFlat())
                 .first();
     }
 
+    /**
+     * The page with this slug directly under {@code parentId}, or at the root when it is
+     * {@code null}.
+     *
+     * <p>A null parent means "match {@code IS NULL}" here, not "no filter", so the predicate is
+     * chosen rather than left out — {@link WhereBuilder} drops null-valued predicates, which would
+     * make this match a same-slug page at any depth.
+     */
     public Optional<StationPage> findBySlugAndParent(int stationId, String slug, Integer parentId) {
-        if (parentId == null) {
-            return query("""
-                    SELECT *
-                    FROM
-                        station_page
-                    WHERE station_id = :station_id
-                      AND slug = :slug
-                      AND parent_id IS NULL;""")
-                    .single(call().bind("station_id", stationId).bind("slug", slug))
-                    .map(StationPage.mapFlat())
-                    .first();
-        }
+        var where = parentId == null
+                ? WhereBuilder.create().add("AND parent_id IS NULL")
+                : WhereBuilder.create().add("AND parent_id = :parent_id", "parent_id", parentId);
         return query("""
-                SELECT *
-                FROM
-                    station_page
+                SELECT %s
+                FROM station_page
                 WHERE station_id = :station_id
                   AND slug = :slug
-                  AND parent_id = :parent_id;""")
-                .single(call().bind("station_id", stationId).bind("slug", slug).bind("parent_id", parentId))
+                  %s;""", STATION_PAGE_COLUMNS, where.fragment())
+                .single(where.apply(call().bind("station_id", stationId).bind("slug", slug)))
                 .map(StationPage.mapFlat())
                 .first();
     }
 
     public List<StationPage> findByStation(int stationId) {
-        return query("SELECT * FROM station_page WHERE station_id = :station_id ORDER BY sort_order;")
+        return query(
+                        "SELECT %s FROM station_page WHERE station_id = :station_id ORDER BY sort_order;",
+                        STATION_PAGE_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(StationPage.mapFlat())
                 .all();
@@ -91,13 +97,11 @@ public class PageRepository {
 
     public List<StationPage> findPublishedByStation(int stationId) {
         return query("""
-                SELECT
-                    *
-                FROM
-                    station_page
+                SELECT %s
+                FROM station_page
                 WHERE station_id = :station_id
                   AND published
-                ORDER BY sort_order;""")
+                ORDER BY sort_order;""", STATION_PAGE_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(StationPage.mapFlat())
                 .all();
@@ -110,12 +114,7 @@ public class PageRepository {
      * returns the most recently updated pages so the picker has something on first focus.
      */
     public List<PickerPage> searchForPicker(int stationId, String search, int limit) {
-        boolean hasSearch = search != null && !search.isBlank();
-        String predicate = hasSearch ? "AND LOWER(title) LIKE :q" : "";
-        var c = call().bind("station_id", stationId).bind("limit", limit);
-        if (hasSearch) {
-            c = c.bind("q", "%" + search.trim().toLowerCase() + "%");
-        }
+        var where = WhereBuilder.create().like("AND LOWER(title) LIKE :q", "q", search);
         return query("""
                 SELECT public_uid, title, slug, updated_at
                 FROM station_page
@@ -123,8 +122,8 @@ public class PageRepository {
                   AND PUBLISHED
                   %s
                 ORDER BY updated_at DESC
-                LIMIT :limit;""", predicate)
-                .single(c)
+                LIMIT :limit;""", where.fragment())
+                .single(where.apply(call().bind("station_id", stationId).bind("limit", limit)))
                 .map(row -> new PickerPage(
                         row.get("public_uid", StandardValueConverter.UUID_STRING),
                         row.getString("title"),
@@ -166,27 +165,19 @@ public class PageRepository {
     }
 
     public boolean delete(int id) {
-        return query("DELETE FROM station_page WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("station_page", id);
     }
 
     public boolean slugExists(int stationId, String slug, int excludePageId) {
-        return query(
-                        "SELECT 1 FROM station_page WHERE station_id = :station_id AND slug = :slug AND id != :exclude_id;")
-                .single(call().bind("station_id", stationId).bind("slug", slug).bind("exclude_id", excludePageId))
-                .map(_ -> true)
-                .first()
-                .isPresent();
+        return SqlSupport.exists(
+                "SELECT 1 FROM station_page WHERE station_id = :station_id AND slug = :slug AND id != :exclude_id;",
+                call().bind("station_id", stationId).bind("slug", slug).bind("exclude_id", excludePageId));
     }
 
     public int countChildren(int parentId) {
-        return query("SELECT count(*) AS cnt FROM station_page WHERE parent_id = :parent_id;")
-                .single(call().bind("parent_id", parentId))
-                .map(row -> row.getInt("cnt"))
-                .first()
-                .orElse(0);
+        return SqlSupport.count(
+                "SELECT count(*) AS cnt FROM station_page WHERE parent_id = :parent_id;",
+                call().bind("parent_id", parentId));
     }
 
     public int depth(int pageId) {
@@ -234,11 +225,10 @@ public class PageRepository {
     }
 
     public int insertRow(int pageId, int sortOrder) {
-        return query("INSERT INTO page_row(page_id, sort_order) VALUES(:page_id, :sort_order) RETURNING id;")
-                .single(call().bind("page_id", pageId).bind("sort_order", sortOrder))
-                .map(row -> row.getInt("id"))
-                .first()
-                .orElseThrow();
+        return SqlSupport.insertReturning(
+                "INSERT INTO page_row(page_id, sort_order) VALUES(:page_id, :sort_order) RETURNING id;",
+                call().bind("page_id", pageId).bind("sort_order", sortOrder),
+                row -> row.getInt("id"));
     }
 
     public void insertCell(
@@ -272,7 +262,8 @@ public class PageRepository {
 
     public PageFile createFile(
             Integer pageId, int stationId, String contentHash, String fileName, String mimeType, long fileSize) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT
                 INTO
                     page_file(
@@ -280,57 +271,52 @@ public class PageRepository {
                         default_alt_text, default_description, folder_id)
                 VALUES
                     (:page_id, :station_id, :content_hash, :file_name, :mime_type, :file_size, NULL, NULL, NULL)
-                RETURNING *;""")
-                .single(call().bind("page_id", pageId)
+                RETURNING %s;""",
+                call().bind("page_id", pageId)
                         .bind("station_id", stationId)
                         .bind("content_hash", contentHash)
                         .bind("file_name", fileName)
                         .bind("mime_type", mimeType)
-                        .bind("file_size", fileSize))
-                .map(PageFile.map())
-                .first()
-                .orElseThrow();
+                        .bind("file_size", fileSize),
+                PageFile.map(),
+                PAGE_FILE_COLUMNS);
     }
 
     // --- Image operations ---
 
     public Optional<PageFile> findFile(int fileId) {
-        return query("SELECT * FROM page_file WHERE id = :id;")
-                .single(call().bind("id", fileId))
-                .map(PageFile.map())
-                .first();
+        return SqlSupport.findById("page_file", PAGE_FILE_COLUMNS, fileId, PageFile.map());
     }
 
     public Optional<PageFile> findByStationAndHash(int stationId, String contentHash) {
         return query("""
-                SELECT *
+                SELECT %s
                 FROM page_file
                 WHERE station_id = :station_id AND content_hash = :content_hash
-                LIMIT 1;""")
+                LIMIT 1;""", PAGE_FILE_COLUMNS)
                 .single(call().bind("station_id", stationId).bind("content_hash", contentHash))
                 .map(PageFile.map())
                 .first();
     }
 
     public List<PageFile> findFilesByPage(int pageId) {
-        return query("SELECT * FROM page_file WHERE page_id = :page_id;")
+        return query("SELECT %s FROM page_file WHERE page_id = :page_id;", PAGE_FILE_COLUMNS)
                 .single(call().bind("page_id", pageId))
                 .map(PageFile.map())
                 .all();
     }
 
     public List<PageFile> findFilesByStation(int stationId) {
-        return query("SELECT * FROM page_file WHERE station_id = :station_id ORDER BY uploaded_at DESC;")
+        return query(
+                        "SELECT %s FROM page_file WHERE station_id = :station_id ORDER BY uploaded_at DESC;",
+                        PAGE_FILE_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(PageFile.map())
                 .all();
     }
 
     public boolean deleteFile(int fileId) {
-        return query("DELETE FROM page_file WHERE id = :id;")
-                .single(call().bind("id", fileId))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("page_file", fileId);
     }
 
     public boolean updateFileMeta(int fileId, String altText, String description) {

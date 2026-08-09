@@ -14,8 +14,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import CatalogHeader from './catalogdetailview/CatalogHeader.vue'
 import CategorySection from './catalogdetailview/CategorySection.vue'
 import QuestionSection from './catalogdetailview/QuestionSection.vue'
-import CsvImportDialog from './CsvImportDialog.vue'
-import type { QuizCatalogDetail, QuizQuestion } from '@/api/types'
+import type { QuizCatalogDetail, QuizQuestion } from '@/api/quiz'
 import { quiz, federation, storage } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
@@ -42,8 +41,6 @@ const readonly = computed(() => isFederated.value || !canEdit.value)
 
 const catalog = ref<QuizCatalogDetail | null>(null)
 const questions = ref<QuizQuestion[]>([])
-
-const showCsvImport = ref(false)
 
 const catalogHeaderRef = ref<InstanceType<typeof CatalogHeader> | null>(null)
 
@@ -75,11 +72,6 @@ async function copyToStation() {
   } catch {
     error.value = t('common.error')
   }
-}
-
-async function onCsvImported(_count: number) {
-  showCsvImport.value = false
-  await loadData()
 }
 
 function onError(message: string) {
@@ -125,15 +117,6 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
           @error="onError"
         />
       </template>
-
-      <!-- CSV Import Dialog -->
-      <CsvImportDialog
-        v-if="!readonly"
-        v-model:show="showCsvImport"
-        :catalog-id="catalogId"
-        :categories="catalog?.categories ?? []"
-        @imported="onCsvImported"
-      />
     </div>
   </ViewContent>
 </template>

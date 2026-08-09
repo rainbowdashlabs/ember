@@ -13,13 +13,13 @@ import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import { StationPermission } from '@/api/types'
-import type { QuizTestDetail, QuizTestAttempt, QuizCatalog, MemberGroup, UserTag, QuizQuestion, StationMember } from '@/api/types'
-import type { FrozenQuestionDetail } from '@/api/quiz'
+import {StationPermission, type MemberGroup, type StationMember, type UserTag} from '@/api/types'
+import type {FrozenQuestionDetail, QuizCatalog, QuizQuestion, QuizTestAttempt, QuizTestDetail} from '@/api/quiz'
 import { quiz, stationMembers, memberGroups, userTags } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import TestDetailBody from './testdetailview/TestDetailBody.vue'
+import { useConfirmAction } from '@/composables/useConfirmAction'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -56,21 +56,23 @@ const selectedGroupIds = ref<number[]>([])
 const selectedTagIds = ref<number[]>([])
 const restrictionsDirty = ref(false)
 
-const confirmModalOpen = ref(false)
-const confirmModalMessage = ref('')
-const confirmModalAction = ref<(() => Promise<void>) | null>(null)
-
-function showConfirm(message: string, action: () => Promise<void>) {
-  confirmModalMessage.value = message
-  confirmModalAction.value = action
-  confirmModalOpen.value = true
+interface PendingConfirm {
+  message: string
+  action: () => Promise<void>
 }
 
-async function executeConfirm() {
-  confirmModalOpen.value = false
-  if (confirmModalAction.value) {
-    try { await confirmModalAction.value() } catch { void 0 }
-  }
+const confirmAction = useConfirmAction<PendingConfirm>({
+  onConfirm: async (pending) => {
+    try {
+      await pending.action()
+    } catch {
+      return
+    }
+  },
+})
+
+function showConfirm(message: string, action: () => Promise<void>) {
+  confirmAction.request({message, action})
 }
 
 const test = computed(() => detail.value?.test ?? null)
@@ -257,12 +259,12 @@ watch(loaded, (isLoaded) => { if (isLoaded) reload() })
           @pick="pickQuestion" @save-restrictions="saveRestrictions" @grant="grantAccess"
       />
 
-      <Modal v-model="confirmModalOpen">
+      <Modal v-model="confirmAction.show.value">
         <div class="space-y-4">
-          <p class="text-sm">{{ confirmModalMessage }}</p>
+          <p class="text-sm">{{ confirmAction.target.value?.message ?? '' }}</p>
           <div class="flex justify-end gap-3">
-            <SecondaryButton @click="confirmModalOpen = false">{{ t('common.cancel') }}</SecondaryButton>
-            <PrimaryButton @click="executeConfirm">{{ t('common.confirm') }}</PrimaryButton>
+            <SecondaryButton @click="confirmAction.show.value = false">{{ t('common.cancel') }}</SecondaryButton>
+            <PrimaryButton @click="confirmAction.confirm">{{ t('common.confirm') }}</PrimaryButton>
           </div>
         </div>
       </Modal>

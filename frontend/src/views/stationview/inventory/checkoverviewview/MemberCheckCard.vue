@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import type {MemberCheckSummary} from '@/api/types'
+import type {MemberCheckSummary} from '@/api/inventoryCheck'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'

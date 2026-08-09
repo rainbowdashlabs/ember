@@ -41,7 +41,7 @@ class EventCancelledHandlerTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         notificationService = mock(NotificationService.class);
-        handler = new EventCancelledHandler(notificationService, eventRepo);
+        handler = new EventCancelledHandler(notificationService, eventRegistrationRepo);
         station = stationRepo.create("CancelledHandler Station");
         account = accountRepo.create("cancelled-handler@test.com", "Cancel", "Handler");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -66,7 +66,7 @@ class EventCancelledHandlerTest extends RepositoryTestBase {
         eventId = event.id();
 
         // Register the member for this event
-        eventRepo.createRegistration(event.id(), member.id(), LocalDate.now(), RegistrationStatus.ACCEPTED, null);
+        eventRegistrationRepo.create(event.id(), member.id(), LocalDate.now(), RegistrationStatus.ACCEPTED, null);
     }
 
     @AfterAll

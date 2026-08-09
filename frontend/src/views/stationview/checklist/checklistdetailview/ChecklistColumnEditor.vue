@@ -15,8 +15,9 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import {checklists} from '@/api'
-import type {ChecklistColumnDto} from '@/api/types'
+import type {ChecklistColumnDto} from '@/api/checklists'
 
 const props = defineProps<{
   checklistId: number
@@ -34,11 +35,8 @@ const {t} = useI18n()
 const label = ref('')
 const description = ref('')
 const position = ref(0)
-const saving = ref(false)
-const deleting = ref(false)
 const checkedCount = ref(0)
 const showDeleteConfirm = ref(false)
-const error = ref('')
 
 watchEffect(() => {
   if (props.column) {
@@ -52,29 +50,26 @@ watchEffect(() => {
   }
 })
 
-async function save() {
+const {running: saving, error, run: runSave} = useAsyncAction(
+    async () => {
+      const payload = {
+        label: label.value.trim(),
+        description: description.value.trim(),
+        position: position.value,
+      }
+      if (props.column) {
+        await checklists.updateColumn(props.checklistId, props.column.id, payload)
+      } else {
+        await checklists.addColumn(props.checklistId, payload)
+      }
+      emit('changed')
+    },
+    {formatError: () => t('checklist.savingError')},
+)
+
+function save() {
   if (!label.value.trim()) return
-  saving.value = true
-  error.value = ''
-  try {
-    if (props.column) {
-      await checklists.updateColumn(props.checklistId, props.column.id, {
-        label: label.value.trim(),
-        description: description.value.trim(),
-        position: position.value,
-      })
-    } else {
-      await checklists.addColumn(props.checklistId, {
-        label: label.value.trim(),
-        description: description.value.trim(),
-        position: position.value,
-      })
-    }
-    emit('changed')
-  } catch {
-    error.value = t('checklist.savingError')
-  }
-  saving.value = false
+  return runSave()
 }
 
 async function askDelete() {
@@ -90,17 +85,12 @@ async function askDelete() {
   }
 }
 
-async function applyDelete() {
+const {running: deleting, run: applyDelete} = useAsyncAction(async () => {
   if (!props.column) return
-  deleting.value = true
-  try {
-    await checklists.deleteColumn(props.checklistId, props.column.id)
-    showDeleteConfirm.value = false
-    emit('changed')
-  } finally {
-    deleting.value = false
-  }
-}
+  await checklists.deleteColumn(props.checklistId, props.column.id)
+  showDeleteConfirm.value = false
+  emit('changed')
+})
 </script>
 
 <template>
@@ -114,7 +104,7 @@ async function applyDelete() {
       </div>
       <div>
         <FieldLabel>{{ t('checklist.columnDescription') }}</FieldLabel>
-        <TextAreaInput v-model="description" :placeholder="t('checklist.columnDescriptionPlaceholder')" rows="2"/>
+        <TextAreaInput v-model="description" :placeholder="t('checklist.columnDescriptionPlaceholder')" :rows="2"/>
       </div>
       <div>
         <FieldLabel>{{ t('checklist.columnPosition') }}</FieldLabel>

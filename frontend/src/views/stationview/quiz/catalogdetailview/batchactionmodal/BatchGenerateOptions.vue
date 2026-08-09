@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
-import {QuizQuestionTypes} from '@/api/types'
+import {QuizQuestionTypes} from '@/api/quiz'
 
 const {t} = useI18n()
 

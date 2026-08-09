@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {onMounted, ref, watch} from 'vue'
+import {computed, onMounted, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Alert from '@/components/feedback/Alert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -13,9 +13,10 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
-import {publicForms} from '@/api'
-import type {PublicForm, PublicFormQuestion} from '@/api/publicForms'
-import {QuestionTypes} from '@/api/types'
+import MutedText from '@/components/typography/MutedText.vue'
+import PublicConsentCheckbox from '@/components/public/PublicConsentCheckbox.vue'
+import {QuestionTypes} from '@/api/forms'
+import {usePublicFormSubmission} from '@/composables/usePublicFormSubmission'
 
 const props = defineProps<{
   stationUid: string | null
@@ -29,78 +30,26 @@ const props = defineProps<{
 
 const {t} = useI18n()
 
-const loading = ref(false)
-const submitting = ref(false)
-const submitted = ref(false)
-const error = ref('')
-const form = ref<PublicForm | null>(null)
-const answers = ref<Record<number, Record<string, unknown>>>({})
-
-function initAnswerDefaults(questions: PublicFormQuestion[]) {
-  answers.value = {}
-  for (const q of questions) {
-    if (q.questionType === QuestionTypes.CHOICE) answers.value[q.id] = {selected: [] as number[], other: ''}
-    else if (q.questionType === QuestionTypes.TEXT) answers.value[q.id] = {text: ''}
-    else if (q.questionType === QuestionTypes.DATE) answers.value[q.id] = {date: ''}
-    else answers.value[q.id] = {}
-  }
-}
-
-async function load() {
-  if (!props.stationUid || !props.formPublicUid) {
-    form.value = null
-    return
-  }
-  loading.value = true
-  error.value = ''
-  submitted.value = false
-  try {
-    const data = await publicForms.getPublicForm(props.stationUid, props.formPublicUid)
-    form.value = data
-    initAnswerDefaults(data.questions)
-  } catch {
-    form.value = null
-    error.value = t('publicForm.notFound')
-  } finally {
-    loading.value = false
-  }
-}
-
-function toggleChoice(q: PublicFormQuestion, optionIndex: number) {
-  const ans = answers.value[q.id] as {selected: number[]; other: string}
-  const multi = !!q.config.multiSelect
-  if (multi) {
-    const idx = ans.selected.indexOf(optionIndex)
-    if (idx >= 0) ans.selected.splice(idx, 1)
-    else ans.selected.push(optionIndex)
-  } else {
-    ans.selected = [optionIndex]
-    ans.other = ''
-  }
-}
-
-async function submit() {
-  if (!form.value || !props.stationUid || !props.formPublicUid) return
-  submitting.value = true
-  error.value = ''
-  try {
-    const answerMap: Record<number, Record<string, unknown>> = {}
-    for (const q of form.value.questions) {
-      const value = answers.value[q.id]
-      if (value === undefined) continue
-      answerMap[q.id] = {type: q.questionType, ...value}
-    }
-    await publicForms.submitPublicResponse(props.stationUid, props.formPublicUid, {answers: answerMap})
-    submitted.value = true
-  } catch (e: unknown) {
-    const status = (e as {response?: {status?: number}}).response?.status
-    if (status === 409) error.value = t('publicForm.alreadyAnswered')
-    else if (status === 429) error.value = t('publicForm.rateLimited')
-    else error.value = t('publicForm.submitError')
-  } finally {
-    submitting.value = false
-  }
-}
+const {
+  form,
+  answers,
+  loading,
+  loadError: error,
+  submitted,
+  validationError,
+  consentAccepted,
+  consentVersion,
+  privacyVersion,
+  tosVersion,
+  submitting,
+  submitError,
+  load,
+  toggleChoice,
+  submit,
+} = usePublicFormSubmission(
+    computed(() => props.stationUid),
+    computed(() => props.formPublicUid),
+)
 
 onMounted(load)
 watch(() => [props.stationUid, props.formPublicUid], load)
@@ -120,17 +69,19 @@ watch(() => [props.stationUid, props.formPublicUid], load)
             </div>
             <div v-else>
                 <p class="text-lg font-semibold">{{ form.title }}</p>
-                <p v-if="form.description" class="text-sm text-(--text-muted)">{{ form.description }}</p>
+                <MutedText v-if="form.description" tag="p" size="sm">{{ form.description }}</MutedText>
             </div>
 
-            <Alert v-if="error" variant="error">{{ error }}</Alert>
+            <Alert v-if="error || submitError || validationError" variant="error">
+                {{ error || submitError || validationError }}
+            </Alert>
 
             <template v-if="!submitted">
                 <div v-for="q in form.questions" :key="q.id" class="space-y-2">
                     <div>
                         <span class="font-medium text-sm">{{ q.title }}</span>
                         <span v-if="q.required" class="ml-1 text-error">*</span>
-                        <p v-if="q.description" class="mt-0.5 text-xs text-(--text-muted)">{{ q.description }}</p>
+                        <MutedText v-if="q.description" tag="p" class="mt-0.5">{{ q.description }}</MutedText>
                     </div>
 
                     <template v-if="q.questionType === QuestionTypes.TEXT">
@@ -148,7 +99,7 @@ watch(() => [props.stationUid, props.formPublicUid], load)
                             <template v-if="q.config.dropdown">
                                 <SelectInput
                                     :model-value="String((answers[q.id] as { selected: number[] })?.selected?.[0] ?? '')"
-                                    @update:model-value="(v: string | undefined) => toggleChoice(q, Number(v))">
+                                    @update:model-value="(v: string | number | null | undefined) => toggleChoice(q, Number(v))">
                                     <option value="">--</option>
                                     <option v-for="(opt, oi) in (q.config.options as string[])" :key="oi" :value="oi">
                                         {{ opt }}
@@ -175,6 +126,12 @@ watch(() => [props.stationUid, props.formPublicUid], load)
                         </div>
                     </template>
                 </div>
+
+                <PublicConsentCheckbox
+                    v-model:accepted="consentAccepted"
+                    v-model:consent-version="consentVersion"
+                    v-model:privacy-version="privacyVersion"
+                    v-model:tos-version="tosVersion"/>
 
                 <PrimaryButton :disabled="submitting" @click="submit">
                     {{ submitting ? t('publicForm.submitting') : t('publicForm.submit') }}

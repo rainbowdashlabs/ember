@@ -13,27 +13,18 @@ import {auth} from '@/api'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 
 const {t} = useI18n()
 
 const email = ref('')
-const loading = ref(false)
-const error = ref('')
 const success = ref('')
 
-async function handleReset() {
-  loading.value = true
-  error.value = ''
+const {running: loading, error, run: handleReset} = useAsyncAction(async () => {
   success.value = ''
-  try {
-    await auth.forgotPassword({email: email.value})
-    success.value = t('forgotPassword.sent')
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
+  await auth.forgotPassword({email: email.value})
+  success.value = t('forgotPassword.sent')
+})
 </script>
 
 <template>

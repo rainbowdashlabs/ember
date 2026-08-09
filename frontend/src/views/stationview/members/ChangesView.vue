@@ -11,11 +11,12 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
-import type {MemberChangeSummary, ProfileFieldChange} from '@/api/types'
+import type {MemberChangeSummary, ProfileFieldChange} from '@/api/profileFieldChanges'
 import {profileFieldChanges} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useChangeAcknowledgement} from '@/composables/useChangeAcknowledgement'
 import PendingTabContent from './changesview/PendingTabContent.vue'
 import HistoryTabContent from './changesview/HistoryTabContent.vue'
 import {formatDateTime} from '@/util/format'
@@ -35,9 +36,6 @@ const summaries = ref<MemberChangeSummary[]>([])
 const expandedMemberId = ref<number | null>(null)
 const memberChanges = ref<ProfileFieldChange[]>([])
 const loadingChanges = ref(false)
-const acknowledging = ref(false)
-const acknowledgeComment = ref('')
-const showCommentForChangeId = ref<number | null>(null)
 
 const historyChanges = ref<ProfileFieldChange[]>([])
 const historyTotal = ref(0)
@@ -69,38 +67,16 @@ async function toggleMember(memberId: number) {
   }
 }
 
-function isAcknowledgedByMe(change: ProfileFieldChange): boolean {
-  return change.acknowledgements.some(a => a.acknowledgedBy === currentMemberId())
-}
-
-async function acknowledgeChange(changeId: number) {
-  acknowledging.value = true
-  error.value = ''
-  try {
-    const comment = showCommentForChangeId.value === changeId ? acknowledgeComment.value : undefined
-    await profileFieldChanges.acknowledge(changeId, {comment})
-    showCommentForChangeId.value = null
-    acknowledgeComment.value = ''
-    await reloadExpanded()
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    acknowledging.value = false
-  }
-}
-
-async function acknowledgeAllForMember(memberId: number) {
-  acknowledging.value = true
-  error.value = ''
-  try {
-    await profileFieldChanges.acknowledgeAll(memberId, {})
-    await reloadExpanded()
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    acknowledging.value = false
-  }
-}
+const {
+  acknowledgeComment,
+  showCommentForChangeId,
+  acknowledging,
+  error: acknowledgeError,
+  isAcknowledgedByMe,
+  acknowledgeChange,
+  acknowledgeAll: acknowledgeAllForMember,
+  toggleComment,
+} = useChangeAcknowledgement(currentMemberId, () => reloadExpanded())
 
 async function reloadExpanded() {
   summaries.value = await profileFieldChanges.getPendingSummary()
@@ -114,16 +90,6 @@ async function reloadExpanded() {
       expandedMemberId.value = null
       memberChanges.value = []
     }
-  }
-}
-
-function toggleComment(changeId: number) {
-  if (showCommentForChangeId.value === changeId) {
-    showCommentForChangeId.value = null
-    acknowledgeComment.value = ''
-  } else {
-    showCommentForChangeId.value = changeId
-    acknowledgeComment.value = ''
   }
 }
 
@@ -177,7 +143,7 @@ function onTabChange(tab: string) {
     <div class="space-y-6">
       <TabBar :tabs="tabs" :model-value="activeTab" @update:model-value="onTabChange"/>
 
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <Alert v-if="error || acknowledgeError" variant="error">{{ error || acknowledgeError }}</Alert>
 
       <PendingTabContent
           v-if="activeTab === 'pending'"

@@ -42,7 +42,8 @@ const membersWithoutRegistration = computed(() =>
 const selectedMemberUid = ref('')
 
 const selectedUid = computed((): string | null => {
-  if (membersWithoutRegistration.value.length === 1) return membersWithoutRegistration.value[0].uid
+  const single = membersWithoutRegistration.value.length === 1 ? membersWithoutRegistration.value[0] : undefined
+  if (single) return single.uid
   return selectedMemberUid.value || null
 })
 

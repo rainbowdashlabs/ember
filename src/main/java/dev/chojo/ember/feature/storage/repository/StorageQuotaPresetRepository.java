@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.storage.repository;
 
 import dev.chojo.ember.feature.storage.entity.StorageQuotaPreset;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.util.HashMap;
@@ -15,6 +16,8 @@ import java.util.Optional;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
+import static dev.chojo.ember.util.sql.SqlSupport.deleteById;
+import static dev.chojo.ember.util.sql.SqlSupport.insertReturning;
 
 /**
  * Repository for storage quota presets.
@@ -24,37 +27,34 @@ public class StorageQuotaPresetRepository {
     private static final String PRESET_COLUMNS = "id, name, total, kb, board, images, pages, per_file, per_image";
 
     public List<StorageQuotaPreset> findAll() {
-        return query("SELECT %s FROM storage_quota_preset ORDER BY name;".formatted(PRESET_COLUMNS))
+        return query("SELECT %s FROM storage_quota_preset ORDER BY name;", PRESET_COLUMNS)
                 .single(call())
                 .map(StorageQuotaPreset.map())
                 .all();
     }
 
     public Optional<StorageQuotaPreset> findById(int id) {
-        return query("SELECT %s FROM storage_quota_preset WHERE id = :id;".formatted(PRESET_COLUMNS))
-                .single(call().bind("id", id))
-                .map(StorageQuotaPreset.map())
-                .first();
+        return SqlSupport.findById("storage_quota_preset", PRESET_COLUMNS, id, StorageQuotaPreset.map());
     }
 
     public StorageQuotaPreset create(
             String name, long total, long kb, long board, long images, long pages, long perFile, long perImage) {
-        return query("""
+        return insertReturning(
+                """
                 INSERT INTO storage_quota_preset (name, total, kb, board, images, pages, per_file, per_image)
                 VALUES (:name, :total, :kb, :board, :images, :pages, :per_file, :per_image)
                 RETURNING %s;
-                """.formatted(PRESET_COLUMNS))
-                .single(call().bind("name", name)
+                """,
+                call().bind("name", name)
                         .bind("total", total)
                         .bind("kb", kb)
                         .bind("board", board)
                         .bind("images", images)
                         .bind("pages", pages)
                         .bind("per_file", perFile)
-                        .bind("per_image", perImage))
-                .map(StorageQuotaPreset.map())
-                .first()
-                .orElseThrow();
+                        .bind("per_image", perImage),
+                StorageQuotaPreset.map(),
+                PRESET_COLUMNS);
     }
 
     public StorageQuotaPreset update(
@@ -67,14 +67,15 @@ public class StorageQuotaPresetRepository {
             long pages,
             long perFile,
             long perImage) {
-        return query("""
+        return insertReturning(
+                """
                 UPDATE storage_quota_preset
                 SET name = :name, total = :total, kb = :kb, board = :board,
                     images = :images, pages = :pages, per_file = :per_file, per_image = :per_image
                 WHERE id = :id
                 RETURNING %s;
-                """.formatted(PRESET_COLUMNS))
-                .single(call().bind("id", id)
+                """,
+                call().bind("id", id)
                         .bind("name", name)
                         .bind("total", total)
                         .bind("kb", kb)
@@ -82,16 +83,13 @@ public class StorageQuotaPresetRepository {
                         .bind("images", images)
                         .bind("pages", pages)
                         .bind("per_file", perFile)
-                        .bind("per_image", perImage))
-                .map(StorageQuotaPreset.map())
-                .first()
-                .orElseThrow();
+                        .bind("per_image", perImage),
+                StorageQuotaPreset.map(),
+                PRESET_COLUMNS);
     }
 
     public void delete(int id) {
-        query("DELETE FROM storage_quota_preset WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete();
+        deleteById("storage_quota_preset", id);
     }
 
     /**

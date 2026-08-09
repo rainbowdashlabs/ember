@@ -13,8 +13,7 @@ import MemberName from '@/components/avatar/MemberName.vue'
 import ExchangeStatusBadge from './ExchangeStatusBadge.vue'
 import Td from '@/components/table/Td.vue'
 import TRow from '@/components/table/TRow.vue'
-import type { ExchangeRequestEntry } from '@/api/types'
-import { ExchangeStatus } from '@/api/types'
+import {ExchangeStatus, type ExchangeRequestEntry} from '@/api/exchanges'
 import { inventoryTypeBadge, inventoryTypeLabel as toInventoryTypeLabel } from '@/util/inventoryType'
 import { formatDate } from '@/util/format'
 
@@ -47,11 +46,11 @@ function inventoryTypeLabel(type?: string | null): string {
       <CheckboxInput :model-value="selected" @update:model-value="emit('toggle-export')" />
     </td>
     <Td v-if="showMemberColumn">
-      <button
+      <SecondaryButton
         v-if="canManageExchanges"
-        class="text-primary hover:underline cursor-pointer"
+        class="!bg-transparent !p-0 text-primary font-normal hover:underline cursor-pointer"
         @click="router.push({ name: 'inventory-member', params: { memberId: request.memberId } })"
-      ><MemberName :identity="request.memberIdentity ?? null"/></button>
+      ><MemberName :identity="request.memberIdentity ?? null"/></SecondaryButton>
       <MemberName v-else :identity="request.memberIdentity ?? null"/>
     </Td>
     <Td class="font-medium">{{ request.inventoryName }}</Td>

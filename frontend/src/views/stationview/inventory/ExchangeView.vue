@@ -7,27 +7,24 @@
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import EmptyState from '@/components/feedback/EmptyState.vue'
-import ExchangeExportFieldPicker from './exchangeview/ExchangeExportFieldPicker.vue'
+import AsyncSection from '@/components/feedback/AsyncSection.vue'
+import ExportFieldPicker from '@/components/export/ExportFieldPicker.vue'
 import ExchangeToolbar from './exchangeview/ExchangeToolbar.vue'
 import ExchangeListView from './exchangeview/ExchangeListView.vue'
 import ExchangeModals from './exchangeview/ExchangeModals.vue'
-import type {
-  ExchangeRequestEntry,
-  ExchangeStatusName,
-  Inventory,
-  InventoryItem,
-  ProfileField,
-  StationMember,
-} from '@/api/types'
+import {ExchangeStatus, type ExchangeRequestEntry, type ExchangeStatusName} from '@/api/exchanges'
+import {InventoryTypes, type Inventory, type InventoryItem} from '@/api/inventory'
+import type {ProfileField} from '@/api/profileFields'
+import type {StationMember} from '@/api/types'
 import type { ManagedMember } from '@/api/managedMembers'
-import { InventoryTypes, ExchangeStatus } from '@/api/types'
 import { exchanges, inventory, profileFields, stationMembers, managedMembers } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useStations } from '@/composables/useStations'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { useAsyncAction } from '@/composables/useAsyncAction'
+import { useExport } from '@/composables/useExport'
+import { saveBlob } from '@/util/downloadAuthed'
 
 const { t } = useI18n()
 const { canManageExchanges, isGuardian, sessionInfo, loaded } = useSession()
@@ -38,11 +35,18 @@ const inventories = ref<Inventory[]>([])
 const members = ref<StationMember[]>([])
 const managed = ref<ManagedMember[]>([])
 const membersWithItems = ref<Set<number>>(new Set())
-const exportMode = ref(false)
-const selectedForExport = ref<Set<number>>(new Set())
-const selectedExportFields = ref<Set<number>>(new Set())
 const allFields = ref<ProfileField[]>([])
-const exporting = ref(false)
+
+const {
+  exportMode, selectedIds: selectedForExport, selectedColumns: selectedExportFields,
+  selectedRows: selectedRequests, columnOptions: exportFieldOptions,
+  startExport, cancelExport, toggleRow, toggleAllRows, toggleColumn,
+} = useExport({
+  rows: () => requests.value,
+  rowId: r => r.id,
+  columns: () => allFields.value.map(f => ({key: String(f.id), label: f.name ?? ''})),
+  selectAllRows: true,
+})
 
 const showMemberColumn = computed(() => canManageExchanges() || isGuardian())
 const showCreateModal = ref(false)
@@ -142,53 +146,18 @@ function openLog(id: number) {
 }
 
 async function enterExportMode() {
-  exportMode.value = true
-  selectedForExport.value = new Set(requests.value.map(r => r.id))
-  selectedExportFields.value = new Set()
   try { allFields.value = await profileFields.listFields() } catch { allFields.value = [] }
+  startExport()
 }
 
-function cancelExport() {
-  exportMode.value = false
-  selectedForExport.value = new Set()
-  selectedExportFields.value = new Set()
-}
-
-function toggleExportField(fieldId: number) {
-  const s = new Set(selectedExportFields.value)
-  if (s.has(fieldId)) s.delete(fieldId); else s.add(fieldId)
-  selectedExportFields.value = s
-}
-
-function toggleExportSelection(id: number) {
-  const newSet = new Set(selectedForExport.value)
-  if (newSet.has(id)) newSet.delete(id); else newSet.add(id)
-  selectedForExport.value = newSet
-}
-
-function toggleSelectAll() {
-  if (selectedForExport.value.size === requests.value.length) {
-    selectedForExport.value = new Set()
-  } else {
-    selectedForExport.value = new Set(requests.value.map(r => r.id))
-  }
-}
-
-async function exportSelected() {
-  exporting.value = true
-  try {
-    const blob = await exchanges.exportPdf([...selectedForExport.value], [...selectedExportFields.value])
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'exchange-requests.pdf'
-    a.click()
-    URL.revokeObjectURL(url)
-    exportMode.value = false
-    selectedForExport.value = new Set()
-  } catch { error.value = t('common.error') }
-  finally { exporting.value = false }
-}
+const {running: exporting, error: exportError, run: exportSelected} = useAsyncAction(async () => {
+  const blob = await exchanges.exportPdf(
+      selectedRequests.value.map(r => r.id),
+      [...selectedExportFields.value].map(Number),
+  )
+  saveBlob(blob, 'exchange-requests.pdf')
+  cancelExport()
+}, {formatError: () => t('common.error')})
 
 async function onCreated() {
   requests.value = await exchanges.listExchanges()
@@ -216,27 +185,32 @@ watch(loaded, (isLoaded) => {
         @create="showCreateModal = true"
       />
 
-      <Spinner v-if="loading" size="lg" />
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <Alert v-if="error || exportError" variant="error">{{ error || exportError }}</Alert>
 
-      <ExchangeExportFieldPicker
-        v-if="exportMode"
-        :fields="allFields"
-        :selected-field-ids="selectedExportFields"
-        @toggle-field="toggleExportField"
+      <ExportFieldPicker
+        v-if="exportMode && exportFieldOptions.length > 0"
+        boxed
+        layout="inline"
+        :label="t('exchanges.exportFieldsHint')"
+        :options="exportFieldOptions"
+        :selected="selectedExportFields"
+        @toggle="toggleColumn"
       />
 
-      <EmptyState v-if="!loading && requests.length === 0">{{ t('exchanges.empty') }}</EmptyState>
-
-      <ExchangeListView
-        v-if="!loading && requests.length > 0"
-        :requests="requests" :show-member-column="showMemberColumn" :can-manage-exchanges="canManageExchanges()"
-        :export-mode="exportMode" :selected-for-export="selectedForExport" :updating-id="updatingId"
-        :available-items="availableItems" :next-statuses-for="nextStatusesFor"
-        @toggle-select-all="toggleSelectAll" @toggle-export="toggleExportSelection" @open-log="openLog"
-        @start-update="startStatusUpdate" @delete="deleteRequest" @status-done="onStatusUpdated"
-        @status-cancel="updatingId = null" @status-error="(msg) => error = msg"
-      />
+      <AsyncSection
+        :empty="requests.length === 0"
+        :empty-message="t('exchanges.empty')"
+        :loading="loading"
+      >
+        <ExchangeListView
+          :requests="requests" :show-member-column="showMemberColumn" :can-manage-exchanges="canManageExchanges()"
+          :export-mode="exportMode" :selected-for-export="selectedForExport" :updating-id="updatingId"
+          :available-items="availableItems" :next-statuses-for="nextStatusesFor"
+          @toggle-select-all="toggleAllRows" @toggle-export="toggleRow" @open-log="openLog"
+          @start-update="startStatusUpdate" @delete="deleteRequest" @status-done="onStatusUpdated"
+          @status-cancel="updatingId = null" @status-error="(msg) => error = msg"
+        />
+      </AsyncSection>
 
       <ExchangeModals
         v-model:show-create="showCreateModal" v-model:show-log="showLogModal"

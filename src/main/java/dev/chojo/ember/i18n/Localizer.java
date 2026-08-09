@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.i18n;
 
+import dev.chojo.ember.util.Json;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -21,7 +21,6 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class Localizer {
     private static final Logger log = LoggerFactory.getLogger(Localizer.class);
-    private static final JsonMapper MAPPER = JsonMapper.builder().build();
 
     private final Map<String, Map<String, Map<String, String>>> cache = new ConcurrentHashMap<>();
 
@@ -44,7 +43,7 @@ public final class Localizer {
                 return Map.of();
             }
             String json = new String(is.readAllBytes(), StandardCharsets.UTF_8);
-            return MAPPER.readValue(json, Map.class);
+            return Json.MAPPER.readValue(json, Map.class);
         } catch (IOException e) {
             log.error("Failed to load locale file: {}", path, e);
             return Map.of();

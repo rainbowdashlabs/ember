@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import TagsView from '~/views/stationview/members/TagsView'
+import TagsView from '~/views/stationview/members/TagsView.vue'
 
 definePageMeta({
   layout: 'station',

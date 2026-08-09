@@ -6,7 +6,8 @@
 <script setup lang="ts">
 import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import type {Comment, MemberGroup} from '@/api/types'
+import type {Comment} from '@/api/comments'
+import type {MemberGroup} from '@/api/types'
 import type {MemberCompletion} from '@/api/stationMembers'
 import type {SpecialMention} from '@/components/comment/MentionInput.vue'
 import {comments as commentsApi, stationMembers, memberGroups} from '@/api'

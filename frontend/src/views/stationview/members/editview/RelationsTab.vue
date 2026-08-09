@@ -16,10 +16,11 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import InlineDetail from '@/components/typography/InlineDetail.vue'
-import type { StationMember } from '@/api/types'
-import { StationUserType } from '@/api/types'
+import {StationUserType, type StationMember} from '@/api/types'
 import { stationMembers } from '@/api'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { useAsyncAction } from '@/composables/useAsyncAction'
+import { useFlashMessage } from '@/composables/useFlashMessage'
 
 const props = defineProps<{
   memberId: number
@@ -31,8 +32,7 @@ const { t } = useI18n()
 
 const managers = ref<StationMember[]>([])
 const managed = ref<StationMember[]>([])
-const success = ref('')
-const saving = ref(false)
+const { message: success, flash } = useFlashMessage(3000)
 const selectedAddId = ref('')
 
 const isGuardian = computed(() => props.userType === StationUserType.GUARDIAN)
@@ -66,12 +66,19 @@ const {loading, error} = useAsyncLoader(async () => {
   managed.value = mgd
 })
 
-async function addRelation() {
+const { running: saving, error: saveError, run: runSave } = useAsyncAction(
+    async (work: () => Promise<void>) => {
+      error.value = ''
+      await work()
+      flash(t('memberEdit.relations.saved'))
+    },
+    { formatError: () => t('common.error') },
+)
+
+function addRelation() {
   const id = Number(selectedAddId.value)
   if (!id) return
-  saving.value = true
-  error.value = ''
-  try {
+  runSave(async () => {
     if (isGuardian.value) {
       const ids = [...managed.value.map(m => m.id), id]
       managed.value = await stationMembers.setManaged(props.memberId, ids)
@@ -80,19 +87,11 @@ async function addRelation() {
       managers.value = await stationMembers.setManagers(props.memberId, { managerIds: ids })
     }
     selectedAddId.value = ''
-    success.value = t('memberEdit.relations.saved')
-    setTimeout(() => { success.value = '' }, 3000)
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    saving.value = false
-  }
+  })
 }
 
-async function removeRelation(targetId: number) {
-  saving.value = true
-  error.value = ''
-  try {
+function removeRelation(targetId: number) {
+  runSave(async () => {
     if (isGuardian.value) {
       const ids = managed.value.filter(m => m.id !== targetId).map(m => m.id)
       managed.value = await stationMembers.setManaged(props.memberId, ids)
@@ -100,13 +99,7 @@ async function removeRelation(targetId: number) {
       const ids = managers.value.filter(m => m.id !== targetId).map(m => m.id)
       managers.value = await stationMembers.setManagers(props.memberId, { managerIds: ids })
     }
-    success.value = t('memberEdit.relations.saved')
-    setTimeout(() => { success.value = '' }, 3000)
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    saving.value = false
-  }
+  })
 }
 
 </script>
@@ -114,11 +107,10 @@ async function removeRelation(targetId: number) {
 <template>
   <div class="space-y-6">
     <Spinner v-if="loading" size="md" />
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <Alert v-if="error || saveError" variant="error">{{ error || saveError }}</Alert>
     <Alert v-if="success" variant="success">{{ success }}</Alert>
 
     <template v-if="!loading">
-      <!-- Guardians of this member (only for member/trial types) -->
       <NeutralContainer v-if="canHaveGuardian" class="space-y-4">
         <SubHeader>{{ t('memberEdit.relations.guardians') }}</SubHeader>
         <EmptyState v-if="managers.length === 0" compact>{{ t('memberEdit.relations.noGuardians') }}</EmptyState>
@@ -143,7 +135,6 @@ async function removeRelation(targetId: number) {
         </div>
       </NeutralContainer>
 
-      <!-- Members managed by this guardian -->
       <NeutralContainer v-if="isGuardian" class="space-y-4">
         <SubHeader>{{ t('memberEdit.relations.managedMembers') }}</SubHeader>
         <EmptyState v-if="managed.length === 0" compact>{{ t('memberEdit.relations.noManagedMembers') }}</EmptyState>
@@ -168,7 +159,6 @@ async function removeRelation(targetId: number) {
         </div>
       </NeutralContainer>
 
-      <!-- Cross-reference: show the other side too -->
       <NeutralContainer v-if="isGuardian && managers.length > 0" class="space-y-4">
         <SubHeader>{{ t('memberEdit.relations.guardians') }}</SubHeader>
         <div v-for="mgr in managers" :key="mgr.id" class="flex items-center rounded-lg px-4 py-3 bg-bg-light-accent/40 dark:bg-bg-dark-accent/40">

@@ -10,7 +10,7 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import type { WaitingListField } from '@/api/types'
+import type { WaitingListField } from '@/api/waitingList'
 
 const props = defineProps<{
   field: WaitingListField
@@ -27,17 +27,17 @@ const { t } = useI18n()
 
 <template>
   <TextInput v-if="field.fieldType === 'TEXT'" :model-value="value"
-             @update:model-value="emit('update', $event)"/>
+             @update:model-value="emit('update', $event ?? '')"/>
   <NumberInput v-else-if="field.fieldType === 'NUMBER'"
                :model-value="Number(value) || 0"
                @update:model-value="emit('update', String($event))"/>
   <DateInput v-else-if="field.fieldType === 'DATE'" :model-value="value"
-             @update:model-value="emit('update', $event)"/>
+             @update:model-value="emit('update', $event ?? '')"/>
   <ToggleInput v-else-if="field.fieldType === 'BOOLEAN'"
                :model-value="value === 'true'"
                @update:model-value="emit('update', String($event))"/>
   <SelectInput v-else-if="field.fieldType === 'ENUM'" :model-value="value"
-               @update:model-value="emit('update', $event)">
+               @update:model-value="emit('update', String($event ?? ''))">
     <option value="">{{ t('waitingList.selectOption') }}</option>
     <option v-for="opt in (parseConfig(field.config) as {options?: string[]}).options ?? []" :key="opt"
             :value="opt">{{ opt }}

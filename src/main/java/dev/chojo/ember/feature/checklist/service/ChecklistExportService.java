@@ -17,8 +17,6 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -42,7 +40,6 @@ public class ChecklistExportService {
     private static final Logger log = LoggerFactory.getLogger(ChecklistExportService.class);
     private static final DateTimeFormatter CSV_DATE_TIME_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     private static final DateTimeFormatter PDF_DATE_TIME_FMT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
-    private static final ObjectMapper MAPPER = JsonMapper.builder().build();
 
     private final ChecklistService checklistService;
     private final MemberNameResolver memberNameResolver;
@@ -140,8 +137,7 @@ public class ChecklistExportService {
         byte[] pdf = TypstCompiler.compileTemplate(
                 data,
                 locale + "/checklist-export.typ",
-                logo != null ? new TypstCompiler.StationLogo(logo.data(), logo.contentType()) : null,
-                MAPPER);
+                logo != null ? new TypstCompiler.StationLogo(logo.data(), logo.contentType()) : null);
         log.info(
                 "Rendered checklist PDF for {} ({} entries, {} columns)",
                 checklist.id(),

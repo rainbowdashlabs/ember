@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import WelcomeHelp from '~/views/helpcenter/basics/WelcomeHelp'
+import WelcomeHelp from '~/views/helpcenter/basics/WelcomeHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

@@ -5,7 +5,7 @@
  */
 <script setup lang="ts">
 import WaitingSectionMobileCard from './WaitingSectionMobileCard.vue'
-import type { WaitingListEntryWithScore } from '@/api/types'
+import type { WaitingListEntryWithScore } from '@/api/waitingList'
 
 const props = defineProps<{
   entries: WaitingListEntryWithScore[]

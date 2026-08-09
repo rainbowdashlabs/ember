@@ -8,20 +8,23 @@ import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import {inventory, exchanges, stationMembers} from '@/api'
-import type {ExchangeRequestEntry, InventoryItem, InventorySize, StationMember} from '@/api/types'
-import {ExchangeStatus, StationPermission} from '@/api/types'
-import type {MyInventoryItem} from '@/api/inventory'
+import {ExchangeStatus, type ExchangeRequestEntry} from '@/api/exchanges'
+import type {InventoryItem, InventorySize, MyInventoryItem} from '@/api/inventory'
+import {StationPermission, type StationMember} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useFlashMessage} from '@/composables/useFlashMessage'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import UnknownScanModal from '@/views/stationview/inventory/UnknownScanModal.vue'
 import MemberInventoryHeader from './memberinventoryview/MemberInventoryHeader.vue'
 import MemberInventoryScanPanel from './memberinventoryview/MemberInventoryScanPanel.vue'
 import MemberInventoryGroups from './memberinventoryview/MemberInventoryGroups.vue'
 import RequestExchangeModal from './memberinventoryview/RequestExchangeModal.vue'
+import {apiErrorMessage} from '@/util/apiError'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -32,27 +35,15 @@ const canAssign = computed(() =>
     hasPermission(StationPermission.INVENTORY_ASSIGN) || hasPermission(StationPermission.INVENTORY_EDIT))
 
 const scanValue = ref('')
-const scanError = ref('')
-const scanSuccess = ref('')
-const scanBusy = ref(false)
 const unknownScanCode = ref<string | null>(null)
 
-function flashScanError(msg: string) {
-  scanError.value = msg
-  setTimeout(() => (scanError.value = ''), 3500)
-}
-
-function flashScanSuccess(msg: string) {
-  scanSuccess.value = msg
-  setTimeout(() => (scanSuccess.value = ''), 2500)
-}
+const {message: scanError, flash: flashScanError} = useFlashMessage(3500)
+const {message: scanSuccess, flash: flashScanSuccess} = useFlashMessage(2500)
 
 async function assignToCurrentMember(item: InventoryItem | {id: number; name?: string}) {
   await inventory.assignItem(item.id, {
     memberId: memberId.value,
-    memberName: member.value
-        ? `${member.value.firstName ?? ''} ${member.value.lastName ?? ''}`.trim()
-        : '',
+    memberName: member.value?.name ?? '',
   })
   flashScanSuccess(t('inventory.assign.assigned', {name: item.name ?? ''}))
   items.value = await inventory.memberItems(memberId.value)
@@ -64,35 +55,33 @@ async function onCameraScan(value: string) {
   await handleScanAssign()
 }
 
+const {running: scanBusy, error: scanAssignError, run: runScanAssign} = useAsyncAction(async (term: string) => {
+  const item = await inventory.findByInternalId(term)
+  if (!item) {
+    unknownScanCode.value = term
+    return
+  }
+  if (item.assignedTo === memberId.value) {
+    flashScanSuccess(t('inventory.memberInventory.alreadyHere', {name: item.name ?? ''}))
+    return
+  }
+  await assignToCurrentMember(item)
+}, {formatError: (e) => apiErrorMessage(e) ?? t('inventory.assign.errors.failed')})
+
 async function handleScanAssign() {
   const term = scanValue.value.trim()
   if (!term) return
   scanValue.value = ''
-  scanBusy.value = true
-  try {
-    const item = await inventory.findByInternalId(term)
-    if (!item) {
-      unknownScanCode.value = term
-      return
-    }
-    if (item.assignedTo === memberId.value) {
-      flashScanSuccess(t('inventory.memberInventory.alreadyHere', {name: item.name ?? ''}))
-      return
-    }
-    await assignToCurrentMember(item)
-  } catch (e: any) {
-    flashScanError(e?.response?.data?.message ?? t('inventory.assign.errors.failed'))
-  } finally {
-    scanBusy.value = false
-  }
+  await runScanAssign(term)
+  if (scanAssignError.value) flashScanError(scanAssignError.value)
 }
 
 async function onUnknownScanCreated(item: InventoryItem) {
   unknownScanCode.value = null
   try {
     await assignToCurrentMember(item)
-  } catch (e: any) {
-    flashScanError(e?.response?.data?.message ?? t('inventory.assign.errors.failed'))
+  } catch (e) {
+    flashScanError(apiErrorMessage(e) ?? t('inventory.assign.errors.failed'))
   }
 }
 
@@ -118,7 +107,7 @@ const grouped = computed((): InventoryGroup[] => {
   for (const [invId, invItems] of byInv) {
     groups.push({
       inventoryId: invId,
-      inventoryName: invItems[0].inventoryName,
+      inventoryName: invItems[0]?.inventoryName ?? '',
       items: invItems,
     })
   }
@@ -152,7 +141,6 @@ const exchangeItem = ref<MyInventoryItem | null>(null)
 const exchangeNewSizeId = ref<string>('')
 const exchangeReason = ref('')
 const exchangeSizes = ref<InventorySize[]>([])
-const exchangeSaving = ref(false)
 const exchangeSuccess = ref(false)
 
 async function openExchangeModal(item: MyInventoryItem) {
@@ -169,27 +157,20 @@ async function openExchangeModal(item: MyInventoryItem) {
   }
 }
 
-async function submitExchange() {
+const {running: exchangeSaving, error: exchangeError, run: submitExchange} = useAsyncAction(async () => {
   if (!exchangeItem.value || !exchangeReason.value.trim()) return
-  exchangeSaving.value = true
-  try {
-    await exchanges.createExchange({
-      memberId: memberId.value,
-      itemId: exchangeItem.value.id,
-      inventoryId: exchangeItem.value.inventoryId,
-      oldSizeId: exchangeItem.value.sizeId ?? undefined,
-      newSizeId: exchangeNewSizeId.value ? Number(exchangeNewSizeId.value) : undefined,
-      reason: exchangeReason.value.trim(),
-    })
-    exchangeSuccess.value = true
-    showExchangeModal.value = false
-    await loadData()
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    exchangeSaving.value = false
-  }
-}
+  await exchanges.createExchange({
+    memberId: memberId.value,
+    itemId: exchangeItem.value.id,
+    inventoryId: exchangeItem.value.inventoryId,
+    oldSizeId: exchangeItem.value.sizeId ?? undefined,
+    newSizeId: exchangeNewSizeId.value ? Number(exchangeNewSizeId.value) : undefined,
+    reason: exchangeReason.value.trim(),
+  })
+  exchangeSuccess.value = true
+  showExchangeModal.value = false
+  await loadData()
+}, {formatError: () => t('common.error')})
 
 watch(memberId, loadData)
 </script>
@@ -202,27 +183,27 @@ watch(memberId, loadData)
     <div class="space-y-6">
       <MemberInventoryHeader :member="member" @back="goBack" />
 
-      <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <Alert v-if="error || exchangeError" variant="error">{{ error || exchangeError }}</Alert>
 
-      <MemberInventoryScanPanel
-          v-if="canAssign && !loading"
-          v-model:scan-value="scanValue"
-          :scan-busy="scanBusy"
-          :scan-error="scanError"
-          :scan-success="scanSuccess"
-          @submit="handleScanAssign"
-          @decoded="onCameraScan"
-      />
+      <AsyncSection :loading="loading">
+        <MemberInventoryScanPanel
+            v-if="canAssign"
+            v-model:scan-value="scanValue"
+            :scan-busy="scanBusy"
+            :scan-error="scanError"
+            :scan-success="scanSuccess"
+            @submit="handleScanAssign"
+            @decoded="onCameraScan"
+        />
 
-      <MemberInventoryGroups
-          v-if="!loading"
-          :groups="grouped"
-          :items="items"
-          :item-exchange="itemExchange"
-          :show-exchange-button="canManageInventory()"
-          @request-exchange="openExchangeModal"
-      />
+        <MemberInventoryGroups
+            :groups="grouped"
+            :items="items"
+            :item-exchange="itemExchange"
+            :show-exchange-button="canManageInventory()"
+            @request-exchange="openExchangeModal"
+        />
+      </AsyncSection>
 
       <UnknownScanModal
           v-if="unknownScanCode"

@@ -500,12 +500,19 @@ public class BoardTicketService {
         return attachmentService.resolvePath(stationId, att.ticketId(), att.filename());
     }
 
+    /**
+     * The local member IDs watching a ticket. Watchers from other stations are dropped, since they
+     * have no local ID to report.
+     */
     public List<Integer> findWatchers(int ticketId) {
-        return ticketRepository.findWatchers(ticketId);
+        return ticketRepository.findWatcherIdentities(ticketId).stream()
+                .map(stationMemberService::resolveMemberId)
+                .flatMap(Optional::stream)
+                .toList();
     }
 
     public void watchTicket(int ticketId, int memberId) {
-        ticketRepository.addWatcher(ticketId, memberId);
+        addWatcher(ticketId, stationMemberService.resolveIdentity(memberId));
     }
 
     // -- Watchers --
@@ -519,11 +526,11 @@ public class BoardTicketService {
     }
 
     public boolean unwatchTicket(int ticketId, int memberId) {
-        return ticketRepository.removeWatcher(ticketId, memberId);
+        return removeWatcher(ticketId, stationMemberService.resolveIdentity(memberId));
     }
 
     public boolean isWatching(int ticketId, int memberId) {
-        return ticketRepository.isWatching(ticketId, memberId);
+        return ticketRepository.isWatching(ticketId, stationMemberService.resolveIdentity(memberId));
     }
 
     public List<BoardTicketFieldValue> findFieldValues(int ticketId) {
@@ -531,7 +538,7 @@ public class BoardTicketService {
     }
 
     public void setFieldValue(int ticketId, int fieldId, BoardFieldValue value) {
-        ticketRepository.setFieldValue(ticketId, fieldId, value.toJson());
+        ticketRepository.setFieldValue(ticketId, fieldId, value);
     }
 
     // -- Field values --
@@ -569,7 +576,7 @@ public class BoardTicketService {
     }
 
     private void notifyWatchers(int ticketId, int boardId, String changeDescription, Integer actorMemberId) {
-        var watchers = ticketRepository.findWatchers(ticketId);
+        var watchers = findWatchers(ticketId);
         if (watchers.isEmpty()) return;
         var board = boardRepository.findById(boardId).orElse(null);
         var ticket = ticketRepository.findById(ticketId).orElse(null);

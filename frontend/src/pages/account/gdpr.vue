@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import AccountGdprView from '~/views/accountview/AccountGdprView'
+import AccountGdprView from '~/views/accountview/AccountGdprView.vue'
 
 definePageMeta({
   layout: 'account',

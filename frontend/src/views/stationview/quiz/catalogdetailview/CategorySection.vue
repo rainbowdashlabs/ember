@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useConfirmAction } from '@/composables/useConfirmAction'
 import Modal from '@/components/feedback/Modal.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -17,7 +18,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type { QuizCategory } from '@/api/types'
+import type { QuizCategory } from '@/api/quiz'
 import { quiz } from '@/api'
 
 const props = defineProps<{
@@ -30,20 +31,23 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-// Create category
 const showCategoryModal = ref(false)
 const newCategoryName = ref('')
 const newCategoryDescription = ref('')
 
-// Edit category
 const showEditCategoryModal = ref(false)
 const editCategoryId = ref<number | null>(null)
 const editCategoryName = ref('')
 const editCategoryDescription = ref('')
 
-// Delete category
-const showDeleteCategoryModal = ref(false)
-const categoryToDelete = ref<QuizCategory | null>(null)
+const {
+  show: showDeleteCategoryModal,
+  request: confirmDeleteCategory,
+  confirm: deleteCategory,
+} = useConfirmAction<QuizCategory>({
+  onConfirm: category => quiz.deleteCategory(category.id),
+  onSuccess: () => emit('updated'),
+})
 
 function openCategoryModal() {
   newCategoryName.value = ''
@@ -73,18 +77,6 @@ async function updateCategory() {
   emit('updated')
 }
 
-function confirmDeleteCategory(category: QuizCategory) {
-  categoryToDelete.value = category
-  showDeleteCategoryModal.value = true
-}
-
-async function deleteCategory() {
-  if (!categoryToDelete.value) return
-  await quiz.deleteCategory(categoryToDelete.value.id)
-  showDeleteCategoryModal.value = false
-  categoryToDelete.value = null
-  emit('updated')
-}
 </script>
 
 <template>
@@ -110,7 +102,6 @@ async function deleteCategory() {
     </div>
   </div>
 
-  <!-- Category Create Modal -->
   <Modal v-model="showCategoryModal">
     <div class="space-y-4">
       <SubHeader>{{ t('quiz.categories.create') }}</SubHeader>
@@ -123,7 +114,6 @@ async function deleteCategory() {
     </div>
   </Modal>
 
-  <!-- Category Edit Modal -->
   <Modal v-model="showEditCategoryModal">
     <div class="space-y-4">
       <SubHeader>{{ t('quiz.categories.edit') }}</SubHeader>
@@ -136,7 +126,6 @@ async function deleteCategory() {
     </div>
   </Modal>
 
-  <!-- Category Delete Modal -->
   <Modal v-model="showDeleteCategoryModal">
     <div class="space-y-4">
       <SubHeader>{{ t('common.delete') }}</SubHeader>

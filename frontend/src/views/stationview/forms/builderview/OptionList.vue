@@ -35,11 +35,12 @@ function updateItem(index: number, value: string) {
 
 function moveItem(index: number, direction: -1 | 1) {
   const newIdx = index + direction
-  if (newIdx < 0 || newIdx >= items.value.length) return
   const next = [...items.value]
-  const temp = next[index]
-  next[index] = next[newIdx]
-  next[newIdx] = temp
+  const current = next[index]
+  const target = next[newIdx]
+  if (current === undefined || target === undefined) return
+  next[index] = target
+  next[newIdx] = current
   items.value = next
 }
 </script>

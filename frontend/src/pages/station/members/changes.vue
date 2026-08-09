@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ChangesView from '~/views/stationview/members/ChangesView'
+import ChangesView from '~/views/stationview/members/ChangesView.vue'
 
 definePageMeta({
   layout: 'station',

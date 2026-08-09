@@ -13,6 +13,9 @@ import dev.chojo.ember.feature.board.entity.BoardFieldType;
 import dev.chojo.ember.feature.board.entity.BoardLabel;
 import dev.chojo.ember.feature.board.entity.BoardLane;
 import dev.chojo.ember.feature.board.entity.TicketLabelMapping;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
+import dev.chojo.ember.feature.restriction.RestrictionSql;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -24,41 +27,47 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 @Singleton
 public class BoardRepository {
 
+    private static final String BOARD_COLUMNS =
+            "id, uid, station_id, name, description, short_key, hide_done_after_days, ticket_counter, backlog_lane_id, created_at";
+    private static final String LANE_COLUMNS = "id, board_id, name, color, position";
+    private static final String LABEL_COLUMNS = "id, board_id, name, color";
+    private static final String FIELD_COLUMNS = "id, board_id, name, field_type, config, position";
+    private static final String VIEW_ACCESS_TABLE = "board_view_access";
+    private static final String EDIT_ACCESS_TABLE = "board_edit_access";
+    private static final String BOARD_FK = "board_id";
+
     // -- Board CRUD --
 
     public List<Board> findByStation(int stationId) {
-        return query("SELECT * FROM board WHERE station_id = :station_id ORDER BY created_at DESC;")
+        return query("SELECT %s FROM board WHERE station_id = :station_id ORDER BY created_at DESC;", BOARD_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(Board.map())
                 .all();
     }
 
     public Optional<Board> findById(int id) {
-        return query("SELECT * FROM board WHERE id = :id;")
-                .single(call().bind("id", id))
-                .map(Board.map())
-                .first();
+        return SqlSupport.findById("board", BOARD_COLUMNS, id, Board.map());
     }
 
     public Optional<Board> findByShortKey(int stationId, String shortKey) {
-        return query("SELECT * FROM board WHERE station_id = :station_id AND short_key = :short_key;")
+        return query("SELECT %s FROM board WHERE station_id = :station_id AND short_key = :short_key;", BOARD_COLUMNS)
                 .single(call().bind("station_id", stationId).bind("short_key", shortKey))
                 .map(Board.map())
                 .first();
     }
 
     public Board create(int stationId, String name, String description, String shortKey) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT INTO board(station_id, name, description, short_key)
                 VALUES (:station_id, :name, :description, :short_key)
-                RETURNING *;""")
-                .single(call().bind("station_id", stationId)
+                RETURNING %s;""",
+                call().bind("station_id", stationId)
                         .bind("name", name)
                         .bind("description", description)
-                        .bind("short_key", shortKey))
-                .map(Board.map())
-                .first()
-                .orElseThrow();
+                        .bind("short_key", shortKey),
+                Board.map(),
+                BOARD_COLUMNS);
     }
 
     public boolean update(int id, String name, String description, int hideDoneAfterDays) {
@@ -75,18 +84,14 @@ public class BoardRepository {
     }
 
     public boolean delete(int id) {
-        return query("DELETE FROM board WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("board", id);
     }
 
     public int nextTicketNumber(int boardId) {
-        return query("UPDATE board SET ticket_counter = ticket_counter + 1 WHERE id = :id RETURNING ticket_counter;")
-                .single(call().bind("id", boardId))
-                .map(row -> row.getInt("ticket_counter"))
-                .first()
-                .orElseThrow();
+        return SqlSupport.insertReturning(
+                "UPDATE board SET ticket_counter = ticket_counter + 1 WHERE id = :id RETURNING ticket_counter;",
+                call().bind("id", boardId),
+                row -> row.getInt("ticket_counter"));
     }
 
     // -- Backlog --
@@ -113,33 +118,30 @@ public class BoardRepository {
     }
 
     public Optional<BoardLane> findLaneById(int laneId) {
-        return query("SELECT * FROM board_lane WHERE id = :id;")
-                .single(call().bind("id", laneId))
-                .map(BoardLane.map())
-                .first();
+        return SqlSupport.findById("board_lane", LANE_COLUMNS, laneId, BoardLane.map());
     }
 
     // -- Lane CRUD --
 
     public List<BoardLane> findLanes(int boardId) {
-        return query("SELECT * FROM board_lane WHERE board_id = :board_id ORDER BY position;")
+        return query("SELECT %s FROM board_lane WHERE board_id = :board_id ORDER BY position;", LANE_COLUMNS)
                 .single(call().bind("board_id", boardId))
                 .map(BoardLane.map())
                 .all();
     }
 
     public BoardLane createLane(int boardId, String name, String color, int position) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT INTO board_lane(board_id, name, color, position)
                 VALUES (:board_id, :name, :color, :position)
-                RETURNING *;""")
-                .single(call().bind("board_id", boardId)
+                RETURNING %s;""",
+                call().bind("board_id", boardId)
                         .bind("name", name)
                         .bind("color", color)
-                        .bind("position", position))
-                .map(BoardLane.map())
-                .first()
-                .orElseThrow();
+                        .bind("position", position),
+                BoardLane.map(),
+                LANE_COLUMNS);
     }
 
     public boolean updateLane(int id, String name, String color, int position) {
@@ -159,10 +161,7 @@ public class BoardRepository {
     }
 
     public void deleteLane(int id) {
-        query("DELETE FROM board_lane WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        SqlSupport.deleteById("board_lane", id);
     }
 
     public void deleteAllLanes(int boardId) {
@@ -174,19 +173,19 @@ public class BoardRepository {
     // -- Label CRUD --
 
     public List<BoardLabel> findLabels(int boardId) {
-        return query("SELECT * FROM board_label WHERE board_id = :board_id ORDER BY name;")
+        return query("SELECT %s FROM board_label WHERE board_id = :board_id ORDER BY name;", LABEL_COLUMNS)
                 .single(call().bind("board_id", boardId))
                 .map(BoardLabel.map())
                 .all();
     }
 
     public BoardLabel createLabel(int boardId, String name, String color) {
-        return query("""
-                INSERT INTO board_label(board_id, name, color) VALUES (:board_id, :name, :color) RETURNING *;""")
-                .single(call().bind("board_id", boardId).bind("name", name).bind("color", color))
-                .map(BoardLabel.map())
-                .first()
-                .orElseThrow();
+        return SqlSupport.insertReturning(
+                """
+                INSERT INTO board_label(board_id, name, color) VALUES (:board_id, :name, :color) RETURNING %s;""",
+                call().bind("board_id", boardId).bind("name", name).bind("color", color),
+                BoardLabel.map(),
+                LABEL_COLUMNS);
     }
 
     public boolean updateLabel(int id, String name, String color) {
@@ -197,16 +196,13 @@ public class BoardRepository {
     }
 
     public boolean deleteLabel(int id) {
-        return query("DELETE FROM board_label WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("board_label", id);
     }
 
     public List<BoardLabel> findLabelsForTicket(int ticketId) {
         return query("""
-                SELECT l.* FROM board_label l JOIN board_ticket_label tl ON tl.label_id = l.id
-                WHERE tl.ticket_id = :ticket_id ORDER BY l.name;""")
+                SELECT %s FROM board_label l JOIN board_ticket_label tl ON tl.label_id = l.id
+                WHERE tl.ticket_id = :ticket_id ORDER BY l.name;""", SqlSupport.alias("l", LABEL_COLUMNS))
                 .single(call().bind("ticket_id", ticketId))
                 .map(BoardLabel.map())
                 .all();
@@ -239,25 +235,25 @@ public class BoardRepository {
     // -- Field CRUD --
 
     public List<BoardField> findFields(int boardId) {
-        return query("SELECT * FROM board_field WHERE board_id = :board_id ORDER BY position;")
+        return query("SELECT %s FROM board_field WHERE board_id = :board_id ORDER BY position;", FIELD_COLUMNS)
                 .single(call().bind("board_id", boardId))
                 .map(BoardField.map())
                 .all();
     }
 
     public void createField(int boardId, String name, BoardFieldType fieldType, BoardFieldConfig config, int position) {
-        query("""
+        SqlSupport.insertReturning(
+                """
                 INSERT INTO board_field(board_id, name, field_type, config, position)
                 VALUES (:board_id, :name, :field_type, :config::JSONB, :position)
-                RETURNING *;""")
-                .single(call().bind("board_id", boardId)
+                RETURNING %s;""",
+                call().bind("board_id", boardId)
                         .bind("name", name)
                         .bind("field_type", fieldType)
                         .bind("config", config.toJson())
-                        .bind("position", position))
-                .map(BoardField.map())
-                .first()
-                .orElseThrow();
+                        .bind("position", position),
+                BoardField.map(),
+                FIELD_COLUMNS);
     }
 
     public void deleteAllFields(int boardId) {
@@ -270,103 +266,65 @@ public class BoardRepository {
 
     public void setViewAccess(
             int boardId, List<StationUserType> userTypes, List<Integer> groupIds, List<Integer> tagIds) {
-        query("DELETE FROM board_view_access WHERE board_id = :board_id;")
-                .single(call().bind("board_id", boardId))
-                .delete();
-        for (StationUserType userType : userTypes) {
-            query("INSERT INTO board_view_access(board_id, user_type) VALUES (:board_id, :user_type);")
-                    .single(call().bind("board_id", boardId).bind("user_type", userType))
-                    .insert();
-        }
-        for (int groupId : groupIds) {
-            query("INSERT INTO board_view_access(board_id, group_id) VALUES (:board_id, :group_id);")
-                    .single(call().bind("board_id", boardId).bind("group_id", groupId))
-                    .insert();
-        }
-        for (int tagId : tagIds) {
-            query("INSERT INTO board_view_access(board_id, tag_id) VALUES (:board_id, :tag_id);")
-                    .single(call().bind("board_id", boardId).bind("tag_id", tagId))
-                    .insert();
-        }
+        RestrictionSql.replace(VIEW_ACCESS_TABLE, BOARD_FK, boardId, accessSelection(userTypes, groupIds, tagIds));
     }
 
     public void setEditAccess(
             int boardId, List<StationUserType> userTypes, List<Integer> groupIds, List<Integer> tagIds) {
-        query("DELETE FROM board_edit_access WHERE board_id = :board_id;")
-                .single(call().bind("board_id", boardId))
-                .delete();
-        for (StationUserType userType : userTypes) {
-            query("INSERT INTO board_edit_access(board_id, user_type) VALUES (:board_id, :user_type);")
-                    .single(call().bind("board_id", boardId).bind("user_type", userType))
-                    .insert();
-        }
-        for (int groupId : groupIds) {
-            query("INSERT INTO board_edit_access(board_id, group_id) VALUES (:board_id, :group_id);")
-                    .single(call().bind("board_id", boardId).bind("group_id", groupId))
-                    .insert();
-        }
-        for (int tagId : tagIds) {
-            query("INSERT INTO board_edit_access(board_id, tag_id) VALUES (:board_id, :tag_id);")
-                    .single(call().bind("board_id", boardId).bind("tag_id", tagId))
-                    .insert();
-        }
+        RestrictionSql.replace(EDIT_ACCESS_TABLE, BOARD_FK, boardId, accessSelection(userTypes, groupIds, tagIds));
+    }
+
+    /**
+     * Board access tables carry no per-member rows, so the selection never names members.
+     */
+    private static RestrictionSelection accessSelection(
+            List<StationUserType> userTypes, List<Integer> groupIds, List<Integer> tagIds) {
+        return new RestrictionSelection(userTypes, groupIds, tagIds, List.of(), null);
     }
 
     public List<StationUserType> findViewAccessUserTypes(int boardId) {
-        return query("SELECT user_type FROM board_view_access WHERE board_id = :board_id AND user_type IS NOT NULL;")
-                .single(call().bind("board_id", boardId))
-                .map(row -> row.getEnum("user_type", StationUserType.class))
-                .all();
+        return findAccessUserTypes(VIEW_ACCESS_TABLE, boardId);
     }
 
     public List<Integer> findViewAccessGroupIds(int boardId) {
-        return query("SELECT group_id FROM board_view_access WHERE board_id = :board_id AND group_id IS NOT NULL;")
-                .single(call().bind("board_id", boardId))
-                .map(row -> row.getInt("group_id"))
-                .all();
+        return findAccessIds(VIEW_ACCESS_TABLE, "group_id", boardId);
     }
 
     public List<Integer> findViewAccessTagIds(int boardId) {
-        return query("SELECT tag_id FROM board_view_access WHERE board_id = :board_id AND tag_id IS NOT NULL;")
-                .single(call().bind("board_id", boardId))
-                .map(row -> row.getInt("tag_id"))
-                .all();
+        return findAccessIds(VIEW_ACCESS_TABLE, "tag_id", boardId);
     }
 
     public List<StationUserType> findEditAccessUserTypes(int boardId) {
-        return query("SELECT user_type FROM board_edit_access WHERE board_id = :board_id AND user_type IS NOT NULL;")
+        return findAccessUserTypes(EDIT_ACCESS_TABLE, boardId);
+    }
+
+    public List<Integer> findEditAccessGroupIds(int boardId) {
+        return findAccessIds(EDIT_ACCESS_TABLE, "group_id", boardId);
+    }
+
+    public List<Integer> findEditAccessTagIds(int boardId) {
+        return findAccessIds(EDIT_ACCESS_TABLE, "tag_id", boardId);
+    }
+
+    private static List<StationUserType> findAccessUserTypes(String table, int boardId) {
+        return query("SELECT user_type FROM %s WHERE board_id = :board_id AND user_type IS NOT NULL;", table)
                 .single(call().bind("board_id", boardId))
                 .map(row -> row.getEnum("user_type", StationUserType.class))
                 .all();
     }
 
-    public List<Integer> findEditAccessGroupIds(int boardId) {
-        return query("SELECT group_id FROM board_edit_access WHERE board_id = :board_id AND group_id IS NOT NULL;")
+    private static List<Integer> findAccessIds(String table, String column, int boardId) {
+        return query("SELECT %1$s FROM %2$s WHERE board_id = :board_id AND %1$s IS NOT NULL;", column, table)
                 .single(call().bind("board_id", boardId))
-                .map(row -> row.getInt("group_id"))
-                .all();
-    }
-
-    public List<Integer> findEditAccessTagIds(int boardId) {
-        return query("SELECT tag_id FROM board_edit_access WHERE board_id = :board_id AND tag_id IS NOT NULL;")
-                .single(call().bind("board_id", boardId))
-                .map(row -> row.getInt("tag_id"))
+                .map(row -> row.getInt(column))
                 .all();
     }
 
     public boolean hasViewRestrictions(int boardId) {
-        return query("SELECT 1 FROM board_view_access WHERE board_id = :board_id LIMIT 1;")
-                .single(call().bind("board_id", boardId))
-                .map(_ -> true)
-                .first()
-                .isPresent();
+        return RestrictionSql.hasAny(VIEW_ACCESS_TABLE, BOARD_FK, boardId);
     }
 
     public boolean hasEditRestrictions(int boardId) {
-        return query("SELECT 1 FROM board_edit_access WHERE board_id = :board_id LIMIT 1;")
-                .single(call().bind("board_id", boardId))
-                .map(_ -> true)
-                .first()
-                .isPresent();
+        return RestrictionSql.hasAny(EDIT_ACCESS_TABLE, BOARD_FK, boardId);
     }
 }

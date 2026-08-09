@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.storage.backend.sftp;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.chojo.ember.feature.storage.backend.HealthStatus;
 import dev.chojo.ember.feature.storage.backend.MetadataSidecar;
 import dev.chojo.ember.feature.storage.backend.ObjectMetadata;
@@ -13,6 +12,7 @@ import dev.chojo.ember.feature.storage.backend.StorageBackend;
 import dev.chojo.ember.feature.storage.backend.StorageBackendType;
 import dev.chojo.ember.feature.storage.backend.StorageException;
 import dev.chojo.ember.feature.storage.backend.StoredStream;
+import dev.chojo.ember.util.Json;
 import org.apache.sshd.client.SshClient;
 import org.apache.sshd.client.future.ConnectFuture;
 import org.apache.sshd.client.session.ClientSession;
@@ -22,6 +22,7 @@ import org.apache.sshd.sftp.client.SftpClient;
 import org.apache.sshd.sftp.client.SftpClientFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.core.JacksonException;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -59,7 +60,6 @@ public class SftpStorageBackend implements StorageBackend, AutoCloseable {
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(15);
     private static final Duration AUTH_TIMEOUT = Duration.ofSeconds(15);
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
     private final SftpBackendConfig config;
     private final SshClient sshClient;
     private final String basePath;
@@ -321,7 +321,7 @@ public class SftpStorageBackend implements StorageBackend, AutoCloseable {
     }
 
     private void writeMetadataSidecar(SftpClient sftp, String target, ObjectMetadata metadata) throws IOException {
-        byte[] bytes = objectMapper.writeValueAsBytes(MetadataSidecar.from(metadata));
+        byte[] bytes = Json.MAPPER.writeValueAsBytes(MetadataSidecar.from(metadata));
         String meta = target + META_SUFFIX;
         try (OutputStream out = sftp.write(
                 meta,
@@ -334,10 +334,10 @@ public class SftpStorageBackend implements StorageBackend, AutoCloseable {
         String meta = target + META_SUFFIX;
         if (!fileExists(sftp, meta)) return ObjectMetadata.of("application/octet-stream");
         try (InputStream in = sftp.read(meta)) {
-            return objectMapper
+            return Json.MAPPER
                     .readValue(in.readAllBytes(), MetadataSidecar.class)
                     .toObjectMetadata();
-        } catch (IOException e) {
+        } catch (IOException | JacksonException e) {
             log.warn("Failed to read SFTP metadata sidecar {}", meta, e);
             return ObjectMetadata.of("application/octet-stream");
         }

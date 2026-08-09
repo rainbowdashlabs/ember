@@ -29,7 +29,7 @@ import java.util.Random;
 import java.util.UUID;
 
 @Singleton
-public class DemoBoardSeeder {
+public class DemoBoardSeeder implements DemoSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoBoardSeeder.class);
 
     private final BoardRepository boardRepo;
@@ -51,6 +51,36 @@ public class DemoBoardSeeder {
         this.federatedBoardService = federatedBoardService;
         this.federationService = federationService;
         this.memberIdentityFactory = memberIdentityFactory;
+    }
+
+    /**
+     * Runs after the federation band because the shared board is created with the partner station.
+     */
+    @Override
+    public int order() {
+        return FEDERATED_MODULES;
+    }
+
+    @Override
+    public void seed(DemoSeederContext context) {
+        var members = context.members();
+        seed(
+                context.stationId(),
+                context.adminMember(),
+                members.betreuer(),
+                StationUserType.TEAM,
+                StationUserType.MEMBER,
+                new Random(42_004));
+        log.info("Demo: Created board data");
+        seedSharedBoard(
+                context.stationId(),
+                context.federation().partnerStationId(),
+                context.adminMember(),
+                members.betreuer(),
+                StationUserType.TEAM,
+                StationUserType.MEMBER,
+                new Random(42_005));
+        log.info("Demo: Created shared board data");
     }
 
     public void seed(

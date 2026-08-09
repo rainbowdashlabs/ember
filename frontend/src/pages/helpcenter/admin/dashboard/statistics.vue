@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import StatisticsHelp from '~/views/helpcenter/adminview/StatisticsHelp'
+import StatisticsHelp from '~/views/helpcenter/adminview/StatisticsHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter-admin',

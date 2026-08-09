@@ -37,7 +37,7 @@ class GdprDeletionServiceTest extends RepositoryTestBase {
         var backend = new LocalStorageBackend();
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
         var avatars = new AvatarService(new ImageVariantService(storage));
-        service = new GdprDeletionService(accountRepo, stationMemberRepo, avatars);
+        service = new GdprDeletionService(accountRepo, stationMemberRepo, memberLookupService, avatars);
         station = stationRepo.create("GdprStation");
         Account account = accountRepo.create("gdpr-del@test.com", "Delete", "Me");
         accountRepo.createCredential(account.id(), "hash");

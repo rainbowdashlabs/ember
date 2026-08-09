@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import {queryParams} from './crud'
 
 export const StorageBackendType = {
     LOCAL: 'LOCAL',
@@ -225,9 +226,9 @@ export async function applyStationBackend(request: StationApplyRequest): Promise
 }
 
 export async function getStationStorageAudit(before?: string, limit = 50): Promise<AuditEntry[]> {
-    const params: Record<string, string | number> = {limit}
-    if (before) params.before = before
-    const {data} = await client.get<AuditEntry[]>('/station/storage/audit', {params})
+    const {data} = await client.get<AuditEntry[]>('/station/storage/audit', {
+        params: queryParams({limit, before: before || undefined}),
+    })
     return data
 }
 
@@ -259,9 +260,12 @@ export async function getInstanceMigrationStatus(): Promise<InstanceMigrationSta
 export async function getInstanceStorageAudit(
     options: {before?: string; stationUid?: string; limit?: number} = {},
 ): Promise<AuditEntry[]> {
-    const params: Record<string, string | number> = {limit: options.limit ?? 50}
-    if (options.before) params.before = options.before
-    if (options.stationUid) params.stationUid = options.stationUid
-    const {data} = await client.get<AuditEntry[]>('/admin/storage/audit', {params})
+    const {data} = await client.get<AuditEntry[]>('/admin/storage/audit', {
+        params: queryParams({
+            limit: options.limit ?? 50,
+            before: options.before || undefined,
+            stationUid: options.stationUid || undefined,
+        }),
+    })
     return data
 }

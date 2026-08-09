@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import EventNewHelp from '~/views/helpcenter/stationview/events/EventNewHelp'
+import EventNewHelp from '~/views/helpcenter/stationview/events/EventNewHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

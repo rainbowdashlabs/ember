@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ArchivedHelp from '~/views/helpcenter/stationview/boards/ArchivedHelp'
+import ArchivedHelp from '~/views/helpcenter/stationview/boards/ArchivedHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

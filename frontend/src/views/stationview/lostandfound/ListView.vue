@@ -4,19 +4,20 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import EmptyState from '@/components/feedback/EmptyState.vue'
+import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import {lostAndFound} from '@/api'
-import client from '@/api/client'
-import type {LostAndFoundItem} from '@/api/types'
+import type {LostAndFoundItem} from '@/api/lostAndFound'
 import {useSession} from '@/composables/useSession'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useConfirmAction} from '@/composables/useConfirmAction'
+import {useAuthImages} from '@/composables/useAuthImage'
 import {StationPermission} from '@/api/types'
 import LostItemCard from './listview/LostItemCard.vue'
 import LostItemConfirmModal from './listview/LostItemConfirmModal.vue'
@@ -30,109 +31,62 @@ const canManage = () => hasPermission(StationPermission.LOST_AND_FOUND_MANAGE)
 const myMemberId = () => sessionInfo.value?.member?.id
 
 const items = ref<LostAndFoundItem[]>([])
-const imageSrcs = ref<Record<number, string>>({})
+const {srcFor, load: loadImage, revokeAll} = useAuthImages<number>()
 
 const showCreate = ref(false)
-const creating = ref(false)
-
-const showClaimConfirm = ref(false)
-const showProvidedConfirm = ref(false)
-const confirmItemId = ref<number | null>(null)
-const confirming = ref(false)
-
-function revokeImages() {
-  for (const url of Object.values(imageSrcs.value)) {
-    URL.revokeObjectURL(url)
-  }
-  imageSrcs.value = {}
-}
-
-async function loadImageForItem(id: number) {
-  try {
-    const res = await client.get(`/lost-and-found/${id}/image`, {
-      responseType: 'blob',
-      validateStatus: (status) => status === 200 || status === 404,
-    })
-    if (res.status === 200 && res.data) {
-      imageSrcs.value[id] = URL.createObjectURL(res.data)
-    }
-  } catch {
-    return
-  }
-}
 
 const {loading, error, reload} = useAsyncLoader(async () => {
-  revokeImages()
+  revokeAll()
   items.value = await lostAndFound.listItems()
-  await Promise.all(items.value.filter(i => i.hasImage).map(i => loadImageForItem(i.id)))
+  await Promise.all(items.value.filter(i => i.hasImage)
+      .map(i => loadImage(i.id, `/lost-and-found/${i.id}/image`)))
 })
 
-async function createItem(payload: LostItemCreatePayload) {
-  creating.value = true
-  error.value = ''
-  try {
-    const item = await lostAndFound.createItem({description: payload.description, foundAt: payload.foundAt})
-    if (payload.imageFile) {
-      await lostAndFound.uploadImage(item.id, payload.imageFile)
-    }
-    showCreate.value = false
-    await reload()
-  } catch {
-    error.value = t('common.error')
-  }
-  creating.value = false
-}
+const {running: creating, error: createError, run: createItem} = useAsyncAction(
+    async (payload: LostItemCreatePayload) => {
+      const item = await lostAndFound.createItem({description: payload.description, foundAt: payload.foundAt})
+      if (payload.imageFile) {
+        await lostAndFound.uploadImage(item.id, payload.imageFile)
+      }
+      showCreate.value = false
+      await reload()
+    },
+    {formatError: () => t('common.error')},
+)
 
-function askClaim(itemId: number) {
-  confirmItemId.value = itemId
-  showClaimConfirm.value = true
-}
-
-async function confirmClaim() {
-  if (confirmItemId.value == null) return
-  confirming.value = true
-  error.value = ''
-  try {
-    await lostAndFound.claimItem(confirmItemId.value)
-    showClaimConfirm.value = false
+const claim = useConfirmAction<number>({
+  onConfirm: async (itemId) => {
+    await lostAndFound.claimItem(itemId)
+  },
+  onSuccess: async () => {
     await reload()
     refreshSidebarCounts()
-  } catch {
-    error.value = t('common.error')
-  }
-  confirming.value = false
-}
+  },
+  error,
+})
 
-function askProvided(itemId: number) {
-  confirmItemId.value = itemId
-  showProvidedConfirm.value = true
-}
-
-async function confirmProvided() {
-  if (confirmItemId.value == null) return
-  confirming.value = true
-  error.value = ''
-  try {
-    await lostAndFound.markProvided(confirmItemId.value)
-    showProvidedConfirm.value = false
+const provided = useConfirmAction<number>({
+  onConfirm: (itemId) => lostAndFound.markProvided(itemId),
+  onSuccess: async () => {
     await reload()
     refreshSidebarCounts()
-  } catch {
-    error.value = t('common.error')
-  }
-  confirming.value = false
-}
+  },
+  error,
+})
 
-async function handleDelete(itemId: number) {
-  error.value = ''
-  try {
-    await lostAndFound.deleteItem(itemId)
-    await reload()
-  } catch {
-    error.value = t('common.error')
-  }
-}
+const {running: confirming, run: runConfirm} = useAsyncAction(
+    (confirm: () => Promise<void>) => confirm(),
+)
 
+const {error: deleteError, run: handleDelete} = useAsyncAction(
+    async (itemId: number) => {
+      await lostAndFound.deleteItem(itemId)
+      await reload()
+    },
+    {formatError: () => t('common.error')},
+)
+
+const displayError = computed(() => error.value || createError.value || deleteError.value)
 </script>
 
 <template>
@@ -147,25 +101,29 @@ async function handleDelete(itemId: number) {
         </PrimaryButton>
       </div>
 
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
-      <Spinner v-if="loading" size="lg"/>
+      <Alert v-if="displayError" variant="error">{{ displayError }}</Alert>
 
-      <EmptyState v-if="!loading && items.length === 0">{{ t('lostAndFound.empty') }}</EmptyState>
+      <AsyncSection
+          :empty="items.length === 0"
+          :empty-message="t('lostAndFound.empty')"
+          :loading="loading"
+      >
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <LostItemCard v-for="item in items" :key="item.id" :item="item"
+                        :image-src="srcFor(item.id) ?? undefined"
+                        :my-member-id="myMemberId()" :can-manage="canManage()"
+                        @claim="claim.request" @provided="provided.request" @delete="handleDelete"/>
+        </div>
+      </AsyncSection>
 
-      <div v-if="!loading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <LostItemCard v-for="item in items" :key="item.id" :item="item" :image-src="imageSrcs[item.id]"
-                      :my-member-id="myMemberId()" :can-manage="canManage()"
-                      @claim="askClaim" @provided="askProvided" @delete="handleDelete"/>
-      </div>
-
-      <LostItemConfirmModal v-model="showClaimConfirm" :title="t('lostAndFound.claimConfirmTitle')"
+      <LostItemConfirmModal v-model="claim.show.value" :title="t('lostAndFound.claimConfirmTitle')"
                             :message="t('lostAndFound.claimConfirmMessage')" :confirm-label="t('lostAndFound.claim')"
-                            :loading="confirming" @confirm="confirmClaim"/>
+                            :loading="confirming" @confirm="runConfirm(claim.confirm)"/>
 
-      <LostItemConfirmModal v-model="showProvidedConfirm" :title="t('lostAndFound.providedConfirmTitle')"
+      <LostItemConfirmModal v-model="provided.show.value" :title="t('lostAndFound.providedConfirmTitle')"
                             :message="t('lostAndFound.providedConfirmMessage')"
                             :confirm-label="t('lostAndFound.provided')"
-                            :loading="confirming" @confirm="confirmProvided"/>
+                            :loading="confirming" @confirm="runConfirm(provided.confirm)"/>
 
       <LostItemCreateModal v-model="showCreate" :creating="creating" @submit="createItem"/>
     </div>

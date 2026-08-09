@@ -15,6 +15,10 @@ import dev.chojo.ember.feature.checklist.entity.ChecklistEntry;
 import dev.chojo.ember.feature.checklist.entity.ChecklistSummary;
 import dev.chojo.ember.feature.restriction.Restriction;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
+import dev.chojo.ember.feature.restriction.RestrictionSql;
+import dev.chojo.ember.util.sql.SqlSupport;
+import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
@@ -24,6 +28,11 @@ import java.util.Optional;
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
+import static dev.chojo.ember.util.sql.SqlSupport.alias;
+import static dev.chojo.ember.util.sql.SqlSupport.count;
+import static dev.chojo.ember.util.sql.SqlSupport.deleteById;
+import static dev.chojo.ember.util.sql.SqlSupport.insertReturning;
+import static dev.chojo.ember.util.sql.SqlSupport.reorder;
 
 /**
  * Persistence for checklists, their columns, member-filter rows, entries, cells, and note history.
@@ -31,6 +40,16 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  */
 @Singleton
 public class ChecklistRepository {
+    private static final String CHECKLIST_COLUMNS =
+            "id, station_id, name, description, restriction_mode, created_at, created_by, last_refreshed_at";
+    private static final String CHECKLIST_COLUMN_COLUMNS = "id, checklist_id, position, label, description";
+    private static final String CHECKLIST_ENTRY_COLUMNS = "id, checklist_id, member_id, added_at, deleted_at";
+    private static final String CHECKLIST_CELL_COLUMNS =
+            "id, entry_id, column_id, checked, note, updated_at, updated_by";
+    private static final String CHECKLIST_CELL_NOTE_HISTORY_COLUMNS =
+            "id, cell_id, old_note, new_note, changed_by, changed_at";
+    private static final String MEMBER_FILTER_TABLE = "checklist_member_filter";
+    private static final String CHECKLIST_FK = "checklist_id";
 
     public List<ChecklistSummary> findSummariesByStation(int stationId) {
         return query("""
@@ -52,28 +71,25 @@ public class ChecklistRepository {
     }
 
     public Optional<Checklist> findById(int id) {
-        return query("SELECT * FROM checklist WHERE id = :id;")
-                .single(call().bind("id", id))
-                .map(Checklist.map())
-                .first();
+        return SqlSupport.findById("checklist", CHECKLIST_COLUMNS, id, Checklist.map());
     }
 
     public Checklist create(int stationId, String name, String description, RestrictionMode mode, int createdBy) {
-        return query("""
-                        INSERT INTO
-                            checklist(station_id, name, description, restriction_mode, created_by, last_refreshed_at)
-                        VALUES
-                            (:station_id, :name, :description, :mode, :created_by, :refreshed_at)
-                        RETURNING *;""")
-                .single(call().bind("station_id", stationId)
+        return insertReturning(
+                """
+                INSERT INTO
+                    checklist(station_id, name, description, restriction_mode, created_by, last_refreshed_at)
+                VALUES
+                    (:station_id, :name, :description, :mode, :created_by, :refreshed_at)
+                RETURNING %s;""",
+                call().bind("station_id", stationId)
                         .bind("name", name)
                         .bind("description", description != null ? description : "")
                         .bind("mode", mode.name())
                         .bind("created_by", createdBy)
-                        .bind("refreshed_at", Instant.now(), INSTANT_TIMESTAMP))
-                .map(Checklist.map())
-                .first()
-                .orElseThrow();
+                        .bind("refreshed_at", Instant.now(), INSTANT_TIMESTAMP),
+                Checklist.map(),
+                CHECKLIST_COLUMNS);
     }
 
     public void updateMetadata(int id, String name, String description, RestrictionMode mode) {
@@ -97,24 +113,20 @@ public class ChecklistRepository {
     }
 
     public boolean delete(int id) {
-        return query("DELETE FROM checklist WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return deleteById("checklist", id);
     }
 
     public List<ChecklistColumn> findColumns(int checklistId) {
-        return query("SELECT * FROM checklist_column WHERE checklist_id = :checklist_id ORDER BY position, id;")
+        return query(
+                        "SELECT %s FROM checklist_column WHERE checklist_id = :checklist_id ORDER BY position, id;",
+                        CHECKLIST_COLUMN_COLUMNS)
                 .single(call().bind("checklist_id", checklistId))
                 .map(ChecklistColumn.map())
                 .all();
     }
 
     public Optional<ChecklistColumn> findColumn(int columnId) {
-        return query("SELECT * FROM checklist_column WHERE id = :id;")
-                .single(call().bind("id", columnId))
-                .map(ChecklistColumn.map())
-                .first();
+        return SqlSupport.findById("checklist_column", CHECKLIST_COLUMN_COLUMNS, columnId, ChecklistColumn.map());
     }
 
     public int nextColumnPosition(int checklistId) {
@@ -127,19 +139,19 @@ public class ChecklistRepository {
     }
 
     public ChecklistColumn createColumn(int checklistId, int position, String label, String description) {
-        return query("""
-                        INSERT INTO
-                            checklist_column(checklist_id, position, label, description)
-                        VALUES
-                            (:checklist_id, :position, :label, :description)
-                        RETURNING *;""")
-                .single(call().bind("checklist_id", checklistId)
+        return insertReturning(
+                """
+                INSERT INTO
+                    checklist_column(checklist_id, position, label, description)
+                VALUES
+                    (:checklist_id, :position, :label, :description)
+                RETURNING %s;""",
+                call().bind("checklist_id", checklistId)
                         .bind("position", position)
                         .bind("label", label)
-                        .bind("description", description != null ? description : ""))
-                .map(ChecklistColumn.map())
-                .first()
-                .orElseThrow();
+                        .bind("description", description != null ? description : ""),
+                ChecklistColumn.map(),
+                CHECKLIST_COLUMN_COLUMNS);
     }
 
     public void updateColumn(int columnId, String label, String description, int position) {
@@ -158,53 +170,24 @@ public class ChecklistRepository {
 
     /**
      * Rewrites the position of every column that belongs to {@code checklistId} to match
-     * {@code orderedIds}. Runs in two passes to sidestep the {@code UNIQUE(checklist_id, position)}
-     * constraint: pass one moves each involved column into a distinct negative slot, pass two lands
-     * them on their final 0-based positions.
+     * {@code orderedIds}, landing each column on its 0-based index in the list.
      */
     public void reorderColumns(int checklistId, List<Integer> orderedIds) {
-        for (int i = 0; i < orderedIds.size(); i++) {
-            query("""
-                            UPDATE checklist_column
-                               SET position = :position
-                             WHERE id = :id AND checklist_id = :checklist_id;""")
-                    .single(call().bind("id", orderedIds.get(i))
-                            .bind("position", -(i + 1))
-                            .bind("checklist_id", checklistId))
-                    .update();
-        }
-        for (int i = 0; i < orderedIds.size(); i++) {
-            query("""
-                            UPDATE checklist_column
-                               SET position = :position
-                             WHERE id = :id AND checklist_id = :checklist_id;""")
-                    .single(call().bind("id", orderedIds.get(i))
-                            .bind("position", i)
-                            .bind("checklist_id", checklistId))
-                    .update();
-        }
+        reorder("checklist_column", "position", "checklist_id", checklistId, orderedIds);
     }
 
     public int countCheckedCellsInColumn(int columnId) {
-        return query("SELECT count(*) AS cnt FROM checklist_cell WHERE column_id = :col AND checked = TRUE;")
-                .single(call().bind("col", columnId))
-                .map(row -> row.getInt("cnt"))
-                .first()
-                .orElse(0);
+        return count(
+                "SELECT count(*) AS cnt FROM checklist_cell WHERE column_id = :col AND checked = TRUE;",
+                call().bind("col", columnId));
     }
 
     public boolean deleteColumn(int columnId) {
-        return query("DELETE FROM checklist_column WHERE id = :id;")
-                .single(call().bind("id", columnId))
-                .delete()
-                .changed();
+        return deleteById("checklist_column", columnId);
     }
 
     public List<Restriction> findFilterRows(int checklistId) {
-        return query("SELECT * FROM checklist_member_filter WHERE checklist_id = :checklist_id ORDER BY id;")
-                .single(call().bind("checklist_id", checklistId))
-                .map(Restriction.map())
-                .all();
+        return RestrictionSql.findRows(MEMBER_FILTER_TABLE, CHECKLIST_FK, checklistId);
     }
 
     public void replaceFilter(
@@ -213,69 +196,49 @@ public class ChecklistRepository {
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds) {
-        query("DELETE FROM checklist_member_filter WHERE checklist_id = :checklist_id;")
-                .single(call().bind("checklist_id", checklistId))
-                .delete();
-
-        for (StationUserType userType : userTypes) {
-            query("INSERT INTO checklist_member_filter(checklist_id, user_type) VALUES (:checklist_id, :user_type);")
-                    .single(call().bind("checklist_id", checklistId).bind("user_type", userType))
-                    .insert();
-        }
-        for (int groupId : groupIds) {
-            query("INSERT INTO checklist_member_filter(checklist_id, group_id) VALUES (:checklist_id, :group_id);")
-                    .single(call().bind("checklist_id", checklistId).bind("group_id", groupId))
-                    .insert();
-        }
-        for (int tagId : tagIds) {
-            query("INSERT INTO checklist_member_filter(checklist_id, tag_id) VALUES (:checklist_id, :tag_id);")
-                    .single(call().bind("checklist_id", checklistId).bind("tag_id", tagId))
-                    .insert();
-        }
-        for (int memberId : memberIds) {
-            query("INSERT INTO checklist_member_filter(checklist_id, member_id) VALUES (:checklist_id, :member_id);")
-                    .single(call().bind("checklist_id", checklistId).bind("member_id", memberId))
-                    .insert();
-        }
+        RestrictionSql.replace(
+                MEMBER_FILTER_TABLE,
+                CHECKLIST_FK,
+                checklistId,
+                new RestrictionSelection(userTypes, groupIds, tagIds, memberIds, null));
     }
 
     public List<ChecklistEntry> findEntries(int checklistId, boolean includeDeleted) {
-        String predicate = includeDeleted ? "" : "AND deleted_at IS NULL";
+        var where = WhereBuilder.create().addIf(!includeDeleted, "AND deleted_at IS NULL");
         return query("""
-                        SELECT *
+                        SELECT %s
                           FROM checklist_entry
                          WHERE checklist_id = :checklist_id %s
-                         ORDER BY added_at, id;""".formatted(predicate))
-                .single(call().bind("checklist_id", checklistId))
+                         ORDER BY added_at, id;""", CHECKLIST_ENTRY_COLUMNS, where.fragment())
+                .single(where.apply(call().bind("checklist_id", checklistId)))
                 .map(ChecklistEntry.map())
                 .all();
     }
 
     public Optional<ChecklistEntry> findEntry(int entryId) {
-        return query("SELECT * FROM checklist_entry WHERE id = :id;")
-                .single(call().bind("id", entryId))
-                .map(ChecklistEntry.map())
-                .first();
+        return SqlSupport.findById("checklist_entry", CHECKLIST_ENTRY_COLUMNS, entryId, ChecklistEntry.map());
     }
 
     public Optional<ChecklistEntry> findEntryByMember(int checklistId, int memberId) {
-        return query("SELECT * FROM checklist_entry WHERE checklist_id = :checklist_id AND member_id = :member_id;")
+        return query(
+                        "SELECT %s FROM checklist_entry WHERE checklist_id = :checklist_id AND member_id = :member_id;",
+                        CHECKLIST_ENTRY_COLUMNS)
                 .single(call().bind("checklist_id", checklistId).bind("member_id", memberId))
                 .map(ChecklistEntry.map())
                 .first();
     }
 
     public ChecklistEntry createEntry(int checklistId, int memberId) {
-        return query("""
-                        INSERT INTO
-                            checklist_entry(checklist_id, member_id)
-                        VALUES
-                            (:checklist_id, :member_id)
-                        RETURNING *;""")
-                .single(call().bind("checklist_id", checklistId).bind("member_id", memberId))
-                .map(ChecklistEntry.map())
-                .first()
-                .orElseThrow();
+        return insertReturning(
+                """
+                INSERT INTO
+                    checklist_entry(checklist_id, member_id)
+                VALUES
+                    (:checklist_id, :member_id)
+                RETURNING %s;""",
+                call().bind("checklist_id", checklistId).bind("member_id", memberId),
+                ChecklistEntry.map(),
+                CHECKLIST_ENTRY_COLUMNS);
     }
 
     public void softDeleteEntry(int entryId) {
@@ -292,43 +255,45 @@ public class ChecklistRepository {
 
     public List<ChecklistCell> findCellsForChecklist(int checklistId) {
         return query("""
-                        SELECT cc.*
+                        SELECT %s
                           FROM checklist_cell cc
                           JOIN checklist_entry ce ON ce.id = cc.entry_id
-                         WHERE ce.checklist_id = :checklist_id;""")
+                         WHERE ce.checklist_id = :checklist_id;""", alias("cc", CHECKLIST_CELL_COLUMNS))
                 .single(call().bind("checklist_id", checklistId))
                 .map(ChecklistCell.map())
                 .all();
     }
 
     public Optional<ChecklistCell> findCell(int entryId, int columnId) {
-        return query("SELECT * FROM checklist_cell WHERE entry_id = :entry_id AND column_id = :column_id;")
+        return query(
+                        "SELECT %s FROM checklist_cell WHERE entry_id = :entry_id AND column_id = :column_id;",
+                        CHECKLIST_CELL_COLUMNS)
                 .single(call().bind("entry_id", entryId).bind("column_id", columnId))
                 .map(ChecklistCell.map())
                 .first();
     }
 
     public ChecklistCell upsertCell(int entryId, int columnId, boolean checked, String note, int updatedBy) {
-        return query("""
-                        INSERT INTO
-                            checklist_cell(entry_id, column_id, checked, note, updated_at, updated_by)
-                        VALUES
-                            (:entry_id, :column_id, :checked, :note, :ts, :updated_by)
-                        ON CONFLICT (entry_id, column_id) DO UPDATE
-                            SET checked = excluded.checked,
-                                note = excluded.note,
-                                updated_at = excluded.updated_at,
-                                updated_by = excluded.updated_by
-                        RETURNING *;""")
-                .single(call().bind("entry_id", entryId)
+        return insertReturning(
+                """
+                INSERT INTO
+                    checklist_cell(entry_id, column_id, checked, note, updated_at, updated_by)
+                VALUES
+                    (:entry_id, :column_id, :checked, :note, :ts, :updated_by)
+                ON CONFLICT (entry_id, column_id) DO UPDATE
+                    SET checked = excluded.checked,
+                        note = excluded.note,
+                        updated_at = excluded.updated_at,
+                        updated_by = excluded.updated_by
+                RETURNING %s;""",
+                call().bind("entry_id", entryId)
                         .bind("column_id", columnId)
                         .bind("checked", checked)
                         .bind("note", note)
                         .bind("ts", Instant.now(), INSTANT_TIMESTAMP)
-                        .bind("updated_by", updatedBy))
-                .map(ChecklistCell.map())
-                .first()
-                .orElseThrow();
+                        .bind("updated_by", updatedBy),
+                ChecklistCell.map(),
+                CHECKLIST_CELL_COLUMNS);
     }
 
     public int bulkSetChecked(List<Integer> entryIds, int columnId, boolean checked, int updatedBy) {
@@ -370,24 +335,25 @@ public class ChecklistRepository {
     }
 
     public void appendNoteHistory(int cellId, String oldNote, String newNote, int changedBy) {
-        query("""
+        insertReturning(
+                """
                 INSERT INTO
                     checklist_cell_note_history(cell_id, old_note, new_note, changed_by)
                 VALUES
                     (:cell_id, :old_note, :new_note, :changed_by)
-                RETURNING *;""")
-                .single(call().bind("cell_id", cellId)
+                RETURNING %s;""",
+                call().bind("cell_id", cellId)
                         .bind("old_note", oldNote)
                         .bind("new_note", newNote)
-                        .bind("changed_by", changedBy))
-                .map(ChecklistCellNoteHistory.map())
-                .first()
-                .orElseThrow();
+                        .bind("changed_by", changedBy),
+                ChecklistCellNoteHistory.map(),
+                CHECKLIST_CELL_NOTE_HISTORY_COLUMNS);
     }
 
     public List<ChecklistCellNoteHistory> findNoteHistory(int cellId) {
         return query(
-                        "SELECT * FROM checklist_cell_note_history WHERE cell_id = :cell_id ORDER BY changed_at DESC, id DESC;")
+                        "SELECT %s FROM checklist_cell_note_history WHERE cell_id = :cell_id ORDER BY changed_at DESC, id DESC;",
+                        CHECKLIST_CELL_NOTE_HISTORY_COLUMNS)
                 .single(call().bind("cell_id", cellId))
                 .map(ChecklistCellNoteHistory.map())
                 .all();

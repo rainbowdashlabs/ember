@@ -9,6 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import type {InventoryContainerHistory} from '@/api/inventoryContainers'
+import {formatDateTime} from '@/util/format'
 
 const props = defineProps<{
   history: InventoryContainerHistory[]
@@ -35,7 +36,7 @@ function eventIcon(kind: string): string {
               class="w-4 text-(--text-muted)"
           />
           <span class="font-medium">{{ t(`inventory.storage.events.${h.eventKind}`) }}</span>
-          <span class="text-(--text-muted)">{{ new Date(h.eventTs).toLocaleString() }}</span>
+          <span class="text-(--text-muted)">{{ formatDateTime(h.eventTs) }}</span>
         </li>
       </ul>
       <EmptyState v-else :message="t('inventory.storage.historyEmpty')" />

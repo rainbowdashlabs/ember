@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import MembersConfigHelp from '~/views/helpcenter/stationview/manage/MembersConfigHelp'
+import MembersConfigHelp from '~/views/helpcenter/stationview/manage/MembersConfigHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

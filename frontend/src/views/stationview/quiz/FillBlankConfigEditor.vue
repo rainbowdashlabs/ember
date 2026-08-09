@@ -10,81 +10,46 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import DecimalInput from '@/components/input/number/DecimalInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import FieldHint from '@/components/typography/FieldHint.vue'
+import PointsPerCorrectField from './PointsPerCorrectField.vue'
+import { useQuestionConfigList } from './useQuestionConfigList'
 
 const { t } = useI18n()
 
 const config = defineModel<Record<string, unknown>>('config', {required: true})
 
+const answers = useQuestionConfigList(config, 'answers')
+const distractors = useQuestionConfigList(config, 'distractors')
+
 function updateConfig(patch: Record<string, unknown>) {
   config.value = { ...config.value, ...patch }
-}
-
-function addFillBlankAnswer() {
-  const answers = [...((config.value.answers as string[]) || [])]
-  answers.push('')
-  updateConfig({ answers })
-}
-
-function removeFillBlankAnswer(idx: number) {
-  const answers = [...((config.value.answers as string[]) || [])]
-  answers.splice(idx, 1)
-  updateConfig({ answers })
-}
-
-function updateFillBlankAnswer(idx: number, value: string) {
-  const answers = [...((config.value.answers as string[]) || [])]
-  answers[idx] = value
-  updateConfig({ answers })
-}
-
-function addDistractor() {
-  const distractors = [...((config.value.distractors as string[]) || [])]
-  distractors.push('')
-  updateConfig({ distractors })
-}
-
-function removeDistractor(idx: number) {
-  const distractors = [...((config.value.distractors as string[]) || [])]
-  distractors.splice(idx, 1)
-  updateConfig({ distractors })
-}
-
-function updateDistractor(idx: number, value: string) {
-  const distractors = [...((config.value.distractors as string[]) || [])]
-  distractors[idx] = value
-  updateConfig({ distractors })
 }
 </script>
 
 <template>
-  <div class="flex items-center gap-2">
-    <FieldHint>{{ t('quiz.questions.config.pointsPerCorrect') }}</FieldHint>
-    <DecimalInput :model-value="(config.pointsPerCorrect as number) || 1" step="0.5" class="w-20" @update:model-value="(v: number | undefined) => updateConfig({ pointsPerCorrect: v ?? 1 })"/>
-  </div>
+  <PointsPerCorrectField :model-value="(config.pointsPerCorrect as number) || 1"
+                         @update:model-value="v => updateConfig({ pointsPerCorrect: v })"/>
   <SubHeader>{{ t('quiz.questions.config.fillText') }}</SubHeader>
   <TextAreaInput :model-value="(config.text as string)" :placeholder="t('quiz.questions.config.fillTextPlaceholder')" @update:model-value="(v: string | undefined) => updateConfig({ text: v ?? '' })" />
   <SubHeader>{{ t('quiz.questions.config.correctAnswers') }}</SubHeader>
   <p class="text-xs text-(--text-muted)">{{ t('quiz.questions.config.fillAnswersHint') }}</p>
   <div class="space-y-2">
-    <div v-for="(ans, idx) in (config.answers as string[] || [])" :key="'a'+idx" class="flex items-center gap-2">
+    <div v-for="(ans, idx) in answers.items.value" :key="'a'+idx" class="flex items-center gap-2">
       <span class="text-xs text-(--text-muted) shrink-0 w-5 text-right">{{ idx + 1 }}.</span>
-      <TextInput :model-value="ans" class="flex-1" @update:model-value="(v: string | undefined) => updateFillBlankAnswer(idx, v ?? '')" />
-      <DeleteButton @click="removeFillBlankAnswer(idx)" />
+      <TextInput :model-value="ans" class="flex-1" @update:model-value="(v: string | undefined) => answers.update(idx, v ?? '')" />
+      <DeleteButton @click="answers.remove(idx)" />
     </div>
-    <SecondaryButton @click="addFillBlankAnswer"><font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />{{ t('quiz.questions.config.addAnswer') }}</SecondaryButton>
+    <SecondaryButton @click="answers.add"><font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />{{ t('quiz.questions.config.addAnswer') }}</SecondaryButton>
   </div>
   <SubHeader>{{ t('quiz.questions.config.distractors') }}</SubHeader>
   <p class="text-xs text-(--text-muted)">{{ t('quiz.questions.config.distractorsHint') }}</p>
   <div class="space-y-2">
-    <div v-for="(word, idx) in (config.distractors as string[] || [])" :key="'d'+idx" class="flex items-center gap-2">
-      <TextInput :model-value="word" class="flex-1" @update:model-value="(v: string | undefined) => updateDistractor(idx, v ?? '')" />
-      <DeleteButton @click="removeDistractor(idx)" />
+    <div v-for="(word, idx) in distractors.items.value" :key="'d'+idx" class="flex items-center gap-2">
+      <TextInput :model-value="word" class="flex-1" @update:model-value="(v: string | undefined) => distractors.update(idx, v ?? '')" />
+      <DeleteButton @click="distractors.remove(idx)" />
     </div>
-    <SecondaryButton @click="addDistractor"><font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />{{ t('quiz.questions.config.addDistractor') }}</SecondaryButton>
+    <SecondaryButton @click="distractors.add"><font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />{{ t('quiz.questions.config.addDistractor') }}</SecondaryButton>
   </div>
   <FieldLabel inline class="mt-3">
     <ToggleInput :model-value="(config.useDropdown as boolean) ?? false" @update:model-value="(v: boolean) => updateConfig({ useDropdown: v })" />

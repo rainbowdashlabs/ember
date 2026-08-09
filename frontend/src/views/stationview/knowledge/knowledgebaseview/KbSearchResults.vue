@@ -10,8 +10,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type {KbFile} from '@/api/knowledgeBase'
-import type {SearchResult} from '@/api/knowledgeBase'
+import type {KbFile, SearchResult} from '@/api/knowledgeBase'
 import {fileIcon} from '@/util/kbFileIcon'
 
 const {t} = useI18n()

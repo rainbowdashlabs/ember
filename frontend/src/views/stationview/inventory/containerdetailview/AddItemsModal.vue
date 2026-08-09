@@ -20,8 +20,10 @@ import SizeBadge from '@/components/badge/SizeBadge.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import {containerPathFor} from '@/util/containerPath'
 import {inventory, inventoryContainers} from '@/api'
-import type {InventoryItem, InventorySize} from '@/api/types'
+import {useAsyncAction} from '@/composables/useAsyncAction'
+import type {InventoryItem, InventorySize} from '@/api/inventory'
 import type {InventoryContainer} from '@/api/inventoryContainers'
+import {apiErrorMessage} from '@/util/apiError'
 
 const props = defineProps<{
   targetContainerId: number
@@ -37,7 +39,6 @@ const {t} = useI18n()
 
 const open = ref(true)
 const loading = ref(true)
-const submitting = ref(false)
 const error = ref('')
 const search = ref('')
 const onlyUnstored = ref(false)
@@ -114,9 +115,8 @@ function onScan(value: string) {
   selectedIds.value.add(match.id)
 }
 
-async function submit() {
+const {running: submitting, run: submit} = useAsyncAction(async () => {
   if (selectedIds.value.size === 0) return
-  submitting.value = true
   error.value = ''
   let added = false
   try {
@@ -126,13 +126,12 @@ async function submit() {
       added = true
     }
     onClose()
-  } catch (e: any) {
-    error.value = e?.response?.data?.message ?? t('inventory.storage.addItems.addFailed')
+  } catch (e) {
+    error.value = apiErrorMessage(e) ?? t('inventory.storage.addItems.addFailed')
   } finally {
     if (added) emit('added')
-    submitting.value = false
   }
-}
+})
 
 function onClose() {
   open.value = false

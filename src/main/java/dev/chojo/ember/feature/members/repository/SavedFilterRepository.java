@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.members.repository;
 
 import dev.chojo.ember.feature.members.entity.FilterTableType;
 import dev.chojo.ember.feature.members.entity.SavedFilter;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -19,26 +20,29 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  */
 @Singleton
 public class SavedFilterRepository {
+    private static final String SAVED_FILTER_COLUMNS = "id, account_id, table_type, name, filter_data, position";
 
     public List<SavedFilter> findByAccountAndTable(int accountId, FilterTableType tableType) {
-        return query(
-                        "SELECT id, account_id, table_type, name, filter_data, position FROM saved_filter WHERE account_id = :accountId AND table_type = :tableType ORDER BY position;")
+        return query("""
+                        SELECT %s FROM saved_filter WHERE account_id = :accountId AND table_type = :tableType ORDER BY position;""", SAVED_FILTER_COLUMNS)
                 .single(call().bind("accountId", accountId).bind("tableType", tableType))
                 .map(SavedFilter.map())
                 .all();
     }
 
     public SavedFilter create(int accountId, FilterTableType tableType, String name, String filterData, int position) {
-        return query(
-                        "INSERT INTO saved_filter(account_id, table_type, name, filter_data, position) VALUES(:accountId, :tableType, :name, :filterData::JSONB, :position) RETURNING id, account_id, table_type, name, filter_data, position;")
-                .single(call().bind("accountId", accountId)
+        return SqlSupport.insertReturning(
+                """
+                INSERT INTO saved_filter(account_id, table_type, name, filter_data, position)
+                VALUES(:accountId, :tableType, :name, :filterData::JSONB, :position)
+                RETURNING %s;""",
+                call().bind("accountId", accountId)
                         .bind("tableType", tableType)
                         .bind("name", name)
                         .bind("filterData", filterData)
-                        .bind("position", position))
-                .map(SavedFilter.map())
-                .first()
-                .orElseThrow();
+                        .bind("position", position),
+                SavedFilter.map(),
+                SAVED_FILTER_COLUMNS);
     }
 
     public boolean delete(int id, int accountId) {

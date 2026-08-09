@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import RunDetailView from '~/views/stationview/protocol/RunDetailView'
+import RunDetailView from '~/views/stationview/protocol/RunDetailView.vue'
 
 definePageMeta({
   layout: 'station',

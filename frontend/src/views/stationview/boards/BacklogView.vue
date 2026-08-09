@@ -18,6 +18,9 @@ import { boards, stationMembers } from '@/api'
 import type { MemberCompletion } from '@/api/stationMembers'
 import type { Board, BoardTicket } from '@/api/boards'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { formatDate } from '@/util/format'
+import { priorityIcon, priorityColor } from '@/util/ticketPriority'
+import Td from '@/components/table/Td.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -37,8 +40,6 @@ const {loading, error} = useAsyncLoader(async () => {
     }
 })
 
-function priorityIcon(p: string) { return { HIGHEST: ['fas','angles-up'], HIGH: ['fas','angle-up'], MEDIUM: ['fas','equals'], LOW: ['fas','angle-down'], LOWEST: ['fas','angles-down'] }[p] ?? ['fas','minus'] }
-function priorityColor(p: string) { return { HIGHEST: 'text-red-500', HIGH: 'text-orange-500', MEDIUM: 'text-yellow-500', LOW: 'text-blue-400', LOWEST: 'text-gray-400' }[p] ?? 'text-gray-400' }
 </script>
 
 <template>
@@ -70,7 +71,7 @@ function priorityColor(p: string) { return { HIGHEST: 'text-red-500', HIGH: 'tex
                     <tr v-for="ticket in tickets" :key="ticket.id"
                         class="border-b border-(--border) last:border-0 cursor-pointer hover:bg-primary/5"
                         @click="router.push(`/station/boards/${board.shortKey}/tickets/${ticket.ticketNumber}`)">
-                        <td class="py-2 pr-3 font-mono text-(--text-muted) whitespace-nowrap">{{ board.shortKey }}-{{ ticket.ticketNumber }}</td>
+                        <Td dense muted class="font-mono whitespace-nowrap">{{ board.shortKey }}-{{ ticket.ticketNumber }}</Td>
                         <td class="py-2 pr-3">{{ ticket.title }}</td>
                         <td class="py-2 pr-3"><font-awesome-icon :icon="priorityIcon(ticket.priority)" :class="priorityColor(ticket.priority)" class="text-xs" /></td>
                         <td class="py-2 pr-3">
@@ -79,7 +80,7 @@ function priorityColor(p: string) { return { HIGHEST: 'text-red-500', HIGH: 'tex
                                 <span class="text-xs whitespace-nowrap">{{ members.find(m => m.memberUid === ticket.assignee?.memberUid)?.name ?? '' }}</span>
                             </div>
                         </td>
-                        <td class="py-2 text-xs whitespace-nowrap">{{ ticket.dueDate ? new Date(ticket.dueDate).toLocaleDateString('de-DE') : '' }}</td>
+                        <td class="py-2 text-xs whitespace-nowrap">{{ formatDate(ticket.dueDate) }}</td>
                     </tr>
                 </tbody>
             </table>

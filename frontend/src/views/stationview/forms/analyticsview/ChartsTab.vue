@@ -12,8 +12,7 @@ import VChart from 'vue-echarts'
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type { FormQuestionAnalytics } from '@/api/types'
-import { QuestionTypes } from '@/api/types'
+import {QuestionTypes, type FormQuestionAnalytics} from '@/api/forms'
 
 use([CanvasRenderer, BarChart, PieChart, TitleComponent, TooltipComponent, LegendComponent, GridComponent])
 
@@ -62,7 +61,7 @@ function buildRankingChart(q: FormQuestionAnalytics) {
   const scores = new Array(options.length).fill(0)
   for (const v of q.values) {
     const parsed = parseValue(v) as { order?: number[] }
-    if (parsed.order) { for (let rank = 0; rank < parsed.order.length; rank++) { scores[parsed.order[rank]] += (parsed.order.length - rank) } }
+    if (parsed.order) { for (const [rank, optionIndex] of parsed.order.entries()) { scores[optionIndex] += (parsed.order.length - rank) } }
   }
   return { tooltip: { trigger: 'axis' }, xAxis: { type: 'category', data: options }, yAxis: { type: 'value' }, series: [{ type: 'bar', data: scores, itemStyle: { color: '#3694FF' } }] }
 }

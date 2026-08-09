@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import FormPickerInput from '@/components/input/search/FormPickerInput.vue'
-import {FormPurpose} from '@/api/types'
+import {FormPurpose} from '@/api/forms'
 import {useConfigPatch} from '@/composables/useConfigPatch'
 import type {CellEditorEmits, CellEditorProps} from '../cellTypes'
 

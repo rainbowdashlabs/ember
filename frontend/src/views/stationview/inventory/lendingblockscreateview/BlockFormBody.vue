@@ -9,7 +9,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import BlockDateRangeSection from './BlockDateRangeSection.vue'
 import BlockScopeSection from './BlockScopeSection.vue'
-import type {Inventory} from '@/api/types'
+import type {Inventory} from '@/api/inventory'
 import type {BlockEntry} from './types'
 
 defineProps<{

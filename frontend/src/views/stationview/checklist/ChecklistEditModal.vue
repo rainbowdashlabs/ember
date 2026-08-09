@@ -6,17 +6,9 @@
 <script lang="ts" setup>
 import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
-import Modal from '@/components/feedback/Modal.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import EmptyState from '@/components/feedback/EmptyState.vue'
-import DragList from '@/components/input/DragList.vue'
-import IconButton from '@/components/button/IconButton.vue'
-import type {ChecklistColumnDto} from '@/api/types'
+import ChecklistFormModal from './checklistmodals/ChecklistFormModal.vue'
+import ChecklistColumnOrderEditor from './checklistmodals/ChecklistColumnOrderEditor.vue'
+import type {ChecklistColumnDto} from '@/api/checklists'
 
 const visible = defineModel<boolean>({required: true})
 
@@ -45,21 +37,6 @@ watch(visible, (value) => {
   }
 })
 
-function onReorder(fromIndex: number, toIndex: number) {
-  const [moved] = orderedColumns.value.splice(fromIndex, 1)
-  orderedColumns.value.splice(toIndex, 0, moved)
-}
-
-function moveUp(index: number) {
-  if (index <= 0) return
-  onReorder(index, index - 1)
-}
-
-function moveDown(index: number) {
-  if (index >= orderedColumns.value.length - 1) return
-  onReorder(index, index + 1)
-}
-
 function submit() {
   const trimmed = name.value.trim()
   if (!trimmed) return
@@ -72,69 +49,16 @@ function submit() {
 </script>
 
 <template>
-  <Modal v-model="visible" size="md">
-    <div class="space-y-4">
-      <SubHeader>{{ t('checklist.editChecklist') }}</SubHeader>
-
-      <div>
-        <FieldLabel>{{ t('checklist.name') }}</FieldLabel>
-        <TextInput v-model="name" :placeholder="t('checklist.namePlaceholder')"/>
-      </div>
-
-      <div>
-        <FieldLabel>{{ t('checklist.description') }}</FieldLabel>
-        <TextAreaInput
-            v-model="description"
-            :placeholder="t('checklist.descriptionPlaceholder')"
-            rows="3"
-        />
-      </div>
-
-      <div>
-        <FieldLabel>{{ t('checklist.columnOrder') }}</FieldLabel>
-        <p class="text-xs text-(--text-muted) mb-2">{{ t('checklist.columnOrderHint') }}</p>
-        <EmptyState v-if="orderedColumns.length === 0">
-          {{ t('checklist.columnsEmpty') }}
-        </EmptyState>
-        <DragList
-            v-else
-            :items="orderedColumns"
-            :key-fn="(c) => c.id"
-            @reorder="onReorder"
-        >
-          <template #default="{item, index}">
-            <div class="flex items-center gap-2 px-2 py-1.5 border border-bg-light-accent dark:border-bg-dark-accent rounded-theme bg-bg-light dark:bg-bg-dark">
-              <font-awesome-icon :icon="['fas', 'grip-vertical']" class="hidden sm:inline text-(--text-muted) cursor-grab active:cursor-grabbing"/>
-              <span class="text-xs text-(--text-muted) tabular-nums w-6">{{ index + 1 }}.</span>
-              <div class="flex-1 min-w-0">
-                <div class="font-medium truncate">{{ item.label }}</div>
-                <div v-if="item.description" class="text-xs text-(--text-muted) truncate">{{ item.description }}</div>
-              </div>
-              <div class="flex items-center gap-1 shrink-0">
-                <IconButton
-                    :icon="['fas', 'arrow-up']"
-                    :label="t('checklist.moveColumnUp')"
-                    :disabled="index === 0"
-                    @click="moveUp(index)"
-                />
-                <IconButton
-                    :icon="['fas', 'arrow-down']"
-                    :label="t('checklist.moveColumnDown')"
-                    :disabled="index === orderedColumns.length - 1"
-                    @click="moveDown(index)"
-                />
-              </div>
-            </div>
-          </template>
-        </DragList>
-      </div>
-
-      <div class="flex justify-end gap-2 pt-2">
-        <SecondaryButton @click="visible = false">{{ t('checklist.cancel') }}</SecondaryButton>
-        <PrimaryButton :disabled="saving || !name.trim()" @click="submit">
-          {{ t('checklist.save') }}
-        </PrimaryButton>
-      </div>
-    </div>
-  </Modal>
+  <ChecklistFormModal
+      v-model="visible"
+      v-model:name="name"
+      v-model:description="description"
+      :title="t('checklist.editChecklist')"
+      size="md"
+      :description-rows="3"
+      :submit-disabled="saving || !name.trim()"
+      @submit="submit"
+  >
+    <ChecklistColumnOrderEditor v-model="orderedColumns"/>
+  </ChecklistFormModal>
 </template>

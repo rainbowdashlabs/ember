@@ -12,12 +12,13 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import StepDispatcher from './createview/StepDispatcher.vue'
-import type {MemberGroup, ProfileField, StationMember} from '@/api/types'
-import {StationUserType, parseFieldConfig} from '@/api/types'
+import {parseFieldConfig, type ProfileField} from '@/api/profileFields'
+import {StationUserType, type MemberGroup, type StationMember} from '@/api/types'
 import {memberGroups, members, profileFields, stationMembers} from '@/api'
 import {setFieldValue as writeFieldValue} from '@/util/profileFields'
 import {useStations} from '@/composables/useStations'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -42,7 +43,6 @@ const createdManagers = ref<Array<{
   lastName: string;
   email: string
 }>>([])
-const saving = ref(false)
 
 const scopeFields = computed(() => allFields.value.filter(f => f.scope === selectedUserType.value))
 
@@ -125,53 +125,44 @@ async function createNewManager(data: { firstName: string; lastName: string; ema
   }
 }
 
-async function createAccount() {
-  saving.value = true
+const {running: saving, error: createError, run: createAccount, clearError: clearCreateError} = useAsyncAction(async () => {
   error.value = ''
-  try {
-    const inviteEmail = canLogin.value
-        ? email.value
-        : `${firstName.value.toLowerCase()}.${lastName.value.toLowerCase()}@${currentStationId.value}.local`
-    const invited = await members.invite({
-      email: inviteEmail,
-      firstName: firstName.value,
-      lastName: lastName.value,
-    })
+  const inviteEmail = canLogin.value
+      ? email.value
+      : `${firstName.value.toLowerCase()}.${lastName.value.toLowerCase()}@${currentStationId.value}.local`
+  const invited = await members.invite({
+    email: inviteEmail,
+    firstName: firstName.value,
+    lastName: lastName.value,
+  })
 
-    const membersList = await stationMembers.listMembers()
-    const newMember = membersList.find(m => m.accountId === invited.id)
-    if (!newMember) throw new Error('Member not found after invite')
+  const membersList = await stationMembers.listMembers()
+  const newMember = membersList.find(m => m.accountId === invited.id)
+  if (!newMember) throw new Error('Member not found after invite')
 
-    // Apply the user type picked in the first step (default is MEMBER on the backend, so this
-    // is a no-op for MEMBER but required for TRIAL / GUARDIAN / TEAM).
-    if (selectedUserType.value !== StationUserType.MEMBER) {
-      await stationMembers.setUserType(newMember.id, selectedUserType.value)
-    }
-
-    const entries = [...fieldValues.value.entries()]
-        .filter(([_, val]) => val.trim())
-        .map(([fieldId, value]) => ({fieldId, value: JSON.stringify(value)}))
-    if (entries.length > 0) {
-      await profileFields.setValues(newMember.id, {values: entries})
-    }
-
-    for (const groupId of selectedGroupIds.value) {
-      const currentMembers = await memberGroups.getGroupMembers(groupId)
-      const memberIds = [...currentMembers.map(m => m.id), newMember.id]
-      await memberGroups.setGroupMembers(groupId, {memberIds})
-    }
-
-    if (selectedUserType.value === StationUserType.MEMBER && selectedManagerIds.value.size > 0) {
-      await stationMembers.setManagers(newMember.id, {managerIds: [...selectedManagerIds.value]})
-    }
-
-    step.value = 'done'
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    saving.value = false
+  if (selectedUserType.value !== StationUserType.MEMBER) {
+    await stationMembers.setUserType(newMember.id, selectedUserType.value)
   }
-}
+
+  const entries = [...fieldValues.value.entries()]
+      .filter(([_, val]) => val.trim())
+      .map(([fieldId, value]) => ({fieldId, value: JSON.stringify(value)}))
+  if (entries.length > 0) {
+    await profileFields.setValues(newMember.id, {values: entries})
+  }
+
+  for (const groupId of selectedGroupIds.value) {
+    const currentMembers = await memberGroups.getGroupMembers(groupId)
+    const memberIds = [...currentMembers.map(m => m.id), newMember.id]
+    await memberGroups.setGroupMembers(groupId, {memberIds})
+  }
+
+  if (selectedUserType.value === StationUserType.MEMBER && selectedManagerIds.value.size > 0) {
+    await stationMembers.setManagers(newMember.id, {managerIds: [...selectedManagerIds.value]})
+  }
+
+  step.value = 'done'
+}, {formatError: () => t('common.error')})
 
 function startOver() {
   step.value = 'userType'
@@ -185,6 +176,7 @@ function startOver() {
   selectedManagerIds.value = new Set()
   createdManagers.value = []
   error.value = ''
+  clearCreateError()
 }
 
 </script>
@@ -201,7 +193,7 @@ function startOver() {
         </SecondaryButton>
       </div>
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <Alert v-if="error || createError" variant="error">{{ error || createError }}</Alert>
 
       <StepDispatcher
           v-if="!loading"

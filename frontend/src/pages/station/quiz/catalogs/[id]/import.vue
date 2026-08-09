@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import CsvImportView from '~/views/stationview/quiz/CsvImportView'
+import CsvImportView from '~/views/stationview/quiz/CsvImportView.vue'
 
 definePageMeta({
   layout: 'station',

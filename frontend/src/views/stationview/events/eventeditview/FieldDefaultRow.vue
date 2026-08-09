@@ -7,7 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
-import type {AttendanceTemplateField} from '@/api/types'
+import type {AttendanceTemplateField} from '@/api/attendance'
 
 defineProps<{
   field: AttendanceTemplateField
@@ -38,7 +38,7 @@ const EVENT_SOURCES = [
     <div class="grid gap-2 sm:grid-cols-2">
       <SelectInput
           :model-value="current.source"
-          @update:model-value="emit('set-source', $event ?? '')"
+          @update:model-value="emit('set-source', String($event ?? ''))"
       >
         <option value="">{{ t('events.noDefault') }}</option>
         <option value="VALUE">{{ t('events.staticValue') }}</option>

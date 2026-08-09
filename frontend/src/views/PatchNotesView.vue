@@ -14,6 +14,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import { formatDateLong } from '@/util/format'
 
 const { t } = useI18n()
 
@@ -31,12 +32,7 @@ const releases = ref<GithubRelease[]>([])
 const loading = ref(true)
 const error = ref('')
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('de-DE', { year: 'numeric', month: 'long', day: 'numeric' })
-}
-
 function renderMarkdown(body: string): string {
-  // Simple markdown to HTML for release notes
   return body
     .replace(/^### (.+)$/gm, '<h3 class="font-semibold text-base mt-4 mb-1">$1</h3>')
     .replace(/^## (.+)$/gm, '<h2 class="font-semibold text-lg mt-5 mb-2">$1</h2>')
@@ -83,7 +79,7 @@ onMounted(async () => {
         <SectionHeader class="text-lg font-bold">{{ release.name || release.tag_name }}</SectionHeader>
         <PrimaryBadge>{{ release.tag_name }}</PrimaryBadge>
         <SecondaryBadge v-if="release.prerelease">Pre-release</SecondaryBadge>
-        <MutedText class="ml-auto">{{ formatDate(release.published_at) }}</MutedText>
+        <MutedText class="ml-auto">{{ formatDateLong(release.published_at) }}</MutedText>
       </div>
 
       <div v-if="release.body" class="markdown-content text-sm" v-html="renderMarkdown(release.body)" />

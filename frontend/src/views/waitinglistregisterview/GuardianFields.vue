@@ -9,7 +9,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type { GuardianInput } from '@/api/types'
+import type { GuardianInput } from '@/api/waitingList'
 
 const props = defineProps<{ guardians: GuardianInput[] }>()
 const emit = defineEmits<{

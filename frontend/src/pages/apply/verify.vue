@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ApplyVerifyView from '~/views/ApplyVerifyView'
+import ApplyVerifyView from '~/views/ApplyVerifyView.vue'
 
 definePageMeta({
   layout: 'default',

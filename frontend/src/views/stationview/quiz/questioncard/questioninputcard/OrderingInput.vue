@@ -7,6 +7,7 @@
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
+import MutedIcon from '@/components/display/MutedIcon.vue'
 
 const props = defineProps<{
   config: Record<string, unknown>
@@ -23,7 +24,7 @@ const { t } = useI18n()
 
 const orderedItems = computed<string[]>(() => {
   const items = (props.config.items as string[]) ?? []
-  if (props.orderItems.length === items.length) return props.orderItems.map(i => items[i])
+  if (props.orderItems.length === items.length) return props.orderItems.map(i => items[i] ?? '')
   return items
 })
 
@@ -77,7 +78,7 @@ function onDragEnd() {
       @drop="onDrop($event, i)"
       @dragend="onDragEnd"
     >
-      <font-awesome-icon v-if="!disabled" :icon="['fas', 'grip-vertical']" class="text-xs text-(--text-muted) shrink-0" />
+      <MutedIcon v-if="!disabled" :icon="['fas', 'grip-vertical']" size="inline" class="shrink-0"/>
       <span class="text-xs text-(--text-muted) w-5 text-right shrink-0">{{ i + 1 }}.</span>
       <span class="flex-1 text-sm">{{ item }}</span>
       <div v-if="!disabled" class="flex flex-col gap-0.5 shrink-0">

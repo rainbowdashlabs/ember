@@ -8,7 +8,7 @@ import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
-import type { QuizTestDetail } from '@/api/types'
+import type { QuizTestDetail } from '@/api/quiz'
 
 defineProps<{
   sections: QuizTestDetail['sections']

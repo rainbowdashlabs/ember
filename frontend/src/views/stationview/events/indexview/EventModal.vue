@@ -16,9 +16,9 @@ import TemplateSection from './eventmodal/TemplateSection.vue'
 import CategorySelect from './eventmodal/CategorySelect.vue'
 import RegistrationFields from './eventmodal/RegistrationFields.vue'
 import RestrictionsFields from './eventmodal/RestrictionsFields.vue'
-import type { StationEvent, EventCategory, AttendanceTemplate, AttendanceTemplateField, MemberGroup, UserTag } from '@/api/types'
-import { EventTypes } from '@/api/types'
-import type { EventFieldDefault } from '@/api/events'
+import type { AttendanceTemplate, AttendanceTemplateField } from '@/api/attendance'
+import {EventTypes, type EventCategory, type EventFieldDefault, type StationEvent} from '@/api/events'
+import type { MemberGroup, UserTag } from '@/api/types'
 import { type RestrictionSelection, emptyRestriction } from '@/components/input/restriction'
 
 const { t } = useI18n()
@@ -62,7 +62,6 @@ const eventRegistrationDeadline = ref('')
 const eventRequiresConfirmation = ref(false)
 const restriction = ref<RestrictionSelection>(emptyRestriction())
 const fieldDefaults = ref<Map<number, { source: string; value: string }>>(new Map())
-const saving = ref(false)
 
 function toLocalDateTime(iso: string): string {
   const d = new Date(iso)
@@ -151,7 +150,6 @@ function setFieldDefaultValue(fieldId: number, value: string) {
 }
 
 function submit() {
-  saving.value = true
   emit('save', {
     name: eventName.value,
     description: eventDescription.value || null,
@@ -170,7 +168,6 @@ function submit() {
       .filter(([, v]) => v.source)
       .map(([fieldId, v]) => ({ fieldId, source: v.source, value: v.value || undefined })),
   })
-  saving.value = false
 }
 </script>
 
@@ -186,8 +183,8 @@ function submit() {
       <RestrictionsFields v-model="restriction" :groups="groups" :tags="tags"/>
       <div class="flex justify-end gap-3">
         <SecondaryButton @click="modelValue = false">{{ t('common.cancel') }}</SecondaryButton>
-        <PrimaryButton :disabled="saving || !eventName || !eventStartTime || !eventEndTime" @click="submit">
-          {{ saving ? t('common.loading') : t('common.save') }}
+        <PrimaryButton :disabled="!eventName || !eventStartTime || !eventEndTime" @click="submit">
+          {{ t('common.save') }}
         </PrimaryButton>
       </div>
     </div>

@@ -6,7 +6,7 @@
 import {type Ref, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {attendance} from '@/api'
-import type {AttendanceEntry, AttendanceTemplateField} from '@/api/types'
+import type {AttendanceEntry, AttendanceTemplateField} from '@/api/attendance'
 
 export function useSessionFields(
     sessionId: Ref<number>,
@@ -53,7 +53,7 @@ export function useSessionFields(
   }
 
   async function setFieldMemberIds(fieldId: number, ids: string[]) {
-    const val = ids.length === 0 ? '' : ids.length === 1 ? ids[0] : JSON.stringify(ids)
+    const val = ids.length === 0 ? '' : ids.length === 1 ? ids[0] ?? '' : JSON.stringify(ids)
     setFieldValue(fieldId, val)
     await saveField(fieldId)
 

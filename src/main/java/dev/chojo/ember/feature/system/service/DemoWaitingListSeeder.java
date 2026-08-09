@@ -18,6 +18,8 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import tools.jackson.databind.node.StringNode;
 
 import java.time.LocalDate;
@@ -29,7 +31,8 @@ import java.util.UUID;
  * Seeder for demo waiting list data with sample entries and invite codes.
  */
 @Singleton
-public class DemoWaitingListSeeder {
+public class DemoWaitingListSeeder implements DemoSeeder {
+    private static final Logger log = LoggerFactory.getLogger(DemoWaitingListSeeder.class);
     private final WaitingListRepository waitingListRepository;
     private final MemberGroupRepository memberGroupRepository;
     private final StationMemberRepository stationMemberRepository;
@@ -48,6 +51,17 @@ public class DemoWaitingListSeeder {
         this.stationMemberRepository = stationMemberRepository;
         this.attendanceRepository = attendanceRepository;
         this.accountRepository = accountRepository;
+    }
+
+    @Override
+    public int order() {
+        return MODULES;
+    }
+
+    @Override
+    public void seed(DemoSeederContext context) {
+        seedWaitingList(context.stationId(), context.members().groupAnfaenger().id());
+        log.info("Demo: Created Waiting list");
     }
 
     public void seedWaitingList(int stationId, int joinGroupId) {

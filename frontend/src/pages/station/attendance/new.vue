@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import NewView from '~/views/stationview/attendance/NewView'
+import NewView from '~/views/stationview/attendance/NewView.vue'
 
 definePageMeta({
   layout: 'station',

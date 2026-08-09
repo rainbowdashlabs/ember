@@ -5,6 +5,7 @@
  */
 <script setup lang="ts">
 import {nextTick, onBeforeUnmount, onMounted, ref, watch} from 'vue'
+import type {LeafletMouseEvent, Map as LeafletMap, Marker} from 'leaflet'
 import {useI18n} from 'vue-i18n'
 import {useMapsConfig} from '@/composables/useMapsConfig'
 import {loadLeaflet} from '@/util/leaflet'
@@ -37,8 +38,10 @@ const {t} = useI18n()
 const mapEl = ref<HTMLDivElement | null>(null)
 const {load} = useMapsConfig()
 
-let mapInstance: any = null
-let marker: any = null
+type Leaflet = Awaited<ReturnType<typeof loadLeaflet>>
+
+let mapInstance: LeafletMap | null = null
+let marker: Marker | null = null
 
 const latInput = ref<number | null>(props.latitude)
 const lonInput = ref<number | null>(props.longitude)
@@ -85,24 +88,26 @@ async function init() {
     setOrMoveMarker(L, props.latitude, props.longitude, false)
   }
 
-  mapInstance.on('click', (event: any) => {
+  mapInstance.on('click', (event: LeafletMouseEvent) => {
     const {lat, lng} = event.latlng
     setOrMoveMarker(L, lat, lng, true)
   })
 }
 
-function setOrMoveMarker(L: any, lat: number, lng: number, fromMapClick: boolean) {
+function setOrMoveMarker(L: Leaflet, lat: number, lng: number, fromMapClick: boolean) {
   const rounded = {
     lat: Math.round(lat * 1_000_000) / 1_000_000,
     lng: Math.round(lng * 1_000_000) / 1_000_000,
   }
   if (!marker) {
-    marker = L.marker([rounded.lat, rounded.lng], {draggable: true}).addTo(mapInstance)
-    marker.on('dragend', () => {
-      const pos = marker.getLatLng()
+    if (!mapInstance) return
+    const created = L.marker([rounded.lat, rounded.lng], {draggable: true}).addTo(mapInstance)
+    created.on('dragend', () => {
+      const pos = created.getLatLng()
       latInput.value = Math.round(pos.lat * 1_000_000) / 1_000_000
       lonInput.value = Math.round(pos.lng * 1_000_000) / 1_000_000
     })
+    marker = created
   } else {
     marker.setLatLng([rounded.lat, rounded.lng])
   }

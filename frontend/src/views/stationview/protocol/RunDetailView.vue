@@ -25,6 +25,7 @@ import { protocol, stationMembers } from '@/api'
 import type { TestProtocolRun, RunMemberWithProgress } from '@/api/protocol'
 import type { StationMember } from '@/api/types'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import { formatDate } from '@/util/format'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -104,7 +105,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
 
     <template v-if="!loading && run">
       <div class="flex items-center gap-2 mb-4">
-        <p class="text-sm text-[var(--text-muted)]">{{ new Date(run.testDate).toLocaleDateString('de-DE') }}</p>
+        <p class="text-sm text-[var(--text-muted)]">{{ formatDate(run.testDate) }}</p>
         <FieldLabel inline class="cursor-pointer ml-auto text-[var(--text-muted)]">
           <ToggleInput v-model="filterIncomplete" />
           {{ t('protocol.filterIncomplete') }}

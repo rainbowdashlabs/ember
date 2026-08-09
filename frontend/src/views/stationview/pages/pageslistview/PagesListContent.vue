@@ -7,12 +7,10 @@
 import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import Modal from '@/components/feedback/Modal.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import PagesList from './PagesList.vue'
 import CreatePageModal from './CreatePageModal.vue'
 import type {StationPage} from '@/api/pageManage'
@@ -92,14 +90,10 @@ const {t} = useI18n()
         @confirm="emit('confirm-create')"
     />
 
-    <Modal v-model="showDeleteModal">
-      <div class="space-y-4">
-        <p>{{ t('stationPages.deleteConfirm', {title: props.deleteTarget?.title}) }}</p>
-        <div class="flex justify-end gap-3">
-          <SecondaryButton @click="showDeleteModal = false">{{ t('common.cancel') }}</SecondaryButton>
-          <ErrorButton @click="emit('confirm-delete')">{{ t('common.delete') }}</ErrorButton>
-        </div>
-      </div>
-    </Modal>
+    <ConfirmDeleteModal
+        v-model="showDeleteModal"
+        :message="t('stationPages.deleteConfirm', {title: props.deleteTarget?.title})"
+        @confirm="emit('confirm-delete')"
+    />
   </div>
 </template>

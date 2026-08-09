@@ -4,16 +4,15 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref, computed, onMounted, inject} from 'vue'
+import {computed, inject, onMounted, ref, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute} from 'vue-router'
-import type {Ref} from 'vue'
 import type {PublicStationInfo} from '@/api/discovery'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import ViewContent from '@/components/layout/ViewContent.vue'
 import {getPublicPage, publicPageImageUrl} from '@/api/publicPages'
-import {CellContentType} from '@/api/pageManage'
-import type {StationPage} from '@/api/pageManage'
+import {CellContentType, type StationPage} from '@/api/pageManage'
 import PublicPageRow from './publicpageview/PublicPageRow.vue'
 import {useCanonical} from '~/composables/useCanonical'
 
@@ -61,7 +60,7 @@ useHead(computed(() => {
   if (!page.value) return {}
   const p = page.value
   const desc = generateDescription(p)
-  const ogImage = p.ogImageId ? publicPageImageUrl(stationUid.value, p.ogImageId) : undefined
+  const ogImage = p.ogImageHash ? publicPageImageUrl(stationUid.value, p.ogImageHash) : undefined
   return {
     title: p.title,
     meta: [
@@ -85,13 +84,15 @@ useHead(computed(() => {
 <template>
   <Spinner v-if="loading" size="lg" class="mt-16"/>
   <Alert v-else-if="error" variant="error" class="m-4">{{ error }}</Alert>
-  <div v-else-if="page" class="space-y-0 max-w-5xl mx-auto">
-    <PublicPageRow
-        v-for="row in page.rows"
-        :key="row.id"
-        :row="row"
-        :station-uid="stationUid"
-        :page-title="page.title"
-    />
-  </div>
+  <ViewContent v-else-if="page" :title="page.title">
+    <div class="space-y-0 max-w-5xl mx-auto">
+      <PublicPageRow
+          v-for="row in page.rows"
+          :key="row.id"
+          :row="row"
+          :station-uid="stationUid"
+          :page-title="page.title"
+      />
+    </div>
+  </ViewContent>
 </template>

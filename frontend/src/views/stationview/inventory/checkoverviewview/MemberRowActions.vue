@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import type {MemberCheckSummary} from '@/api/types'
+import type {MemberCheckSummary} from '@/api/inventoryCheck'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'

@@ -28,9 +28,10 @@ function openPicker() {
 
 function onFileChange(event: Event) {
   const input = event.target as HTMLInputElement
-  if (input.files && input.files.length > 0) {
-    fileName.value = input.files[0].name
-    emit('select', input.files[0])
+  const [file] = Array.from(input.files ?? [])
+  if (file) {
+    fileName.value = file.name
+    emit('select', file)
   }
 }
 </script>

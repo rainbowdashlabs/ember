@@ -4,17 +4,15 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref, inject} from 'vue'
+import {computed, inject, onMounted, ref, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute} from 'vue-router'
-import type {Ref} from 'vue'
 import type {PublicStationInfo} from '@/api/discovery'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import PublicEventList from '@/components/display/PublicEventList.vue'
-import type {PublicEvent} from '@/api/publicEvents'
-import {getIcalFeedUrl, getIcalSubscribeUrl, listPublicEvents} from '@/api/publicEvents'
+import PublicEventList from './publicstationcalendarview/PublicEventList.vue'
+import {getIcalFeedUrl, getIcalSubscribeUrl, listPublicEvents, type PublicEvent} from '@/api/publicEvents'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -40,7 +38,7 @@ useHead(computed(() => {
     script: [
       {
         type: 'application/ld+json',
-        children: JSON.stringify(oneTimeEvents.slice(0, 20).map(e => ({
+        innerHTML: JSON.stringify(oneTimeEvents.slice(0, 20).map(e => ({
           '@context': 'https://schema.org',
           '@type': 'Event',
           name: e.name,

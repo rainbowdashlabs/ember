@@ -15,17 +15,17 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import NoteEditor from '@/components/comment/NoteEditor.vue'
 import {inventory, inventoryContainers, stationMembers} from '@/api'
-import type {InventoryItem, InventoryItemHistory, InventorySize, StationMember} from '@/api/types'
-import type {ItemLocationResponse} from '@/api/inventoryContainers'
-import {StationPermission} from '@/api/types'
+import type {InventoryItem, InventoryItemHistory, InventorySize} from '@/api/inventory'
+import type {ItemCheckHistoryEntry, ItemLocationResponse} from '@/api/inventoryContainers'
+import {StationPermission, type StationMember} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useFlashMessage} from '@/composables/useFlashMessage'
 import ItemMetadataPanel from './itemdetailview/ItemMetadataPanel.vue'
 import ItemActionsPanel from './itemdetailview/ItemActionsPanel.vue'
 import ItemHistoryPanel from './itemdetailview/ItemHistoryPanel.vue'
 import ItemCheckHistoryPanel from './itemdetailview/ItemCheckHistoryPanel.vue'
 import AssignItemModal from './itemdetailview/AssignItemModal.vue'
-import type {ItemCheckHistoryEntry} from '@/api/inventoryContainers'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -40,7 +40,7 @@ const checkHistory = ref<ItemCheckHistoryEntry[]>([])
 const sizes = ref<InventorySize[]>([])
 const members = ref<StationMember[]>([])
 const location = ref<ItemLocationResponse | null>(null)
-const success = ref('')
+const {message: success, flash} = useFlashMessage(3000)
 
 const isManager = computed(() => hasPermission('INVENTORY_MANAGER') || hasPermission('STATION_ADMINISTRATOR'))
 const canEditItem = computed(() => canEdit.value || isManager.value)
@@ -65,11 +65,6 @@ const {loading, error} = useAsyncLoader(async () => {
   members.value = m
   location.value = loc
 })
-
-function flash(message: string) {
-  success.value = message
-  setTimeout(() => success.value = '', 3000)
-}
 
 function onError() {
   error.value = t('common.error')

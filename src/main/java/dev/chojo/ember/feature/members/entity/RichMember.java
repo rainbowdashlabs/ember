@@ -9,10 +9,9 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.util.Json;
 import org.slf4j.Logger;
 import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -61,7 +60,6 @@ public record RichMember(
         MemberIdentity identity) {
 
     private static final Logger log = getLogger(RichMember.class);
-    private static final ObjectMapper MAPPER = JsonMapper.builder().build();
     private static final TypeReference<List<String>> STRING_LIST = new TypeReference<>() {};
     private static final TypeReference<List<GroupEntry>> GROUP_LIST = new TypeReference<>() {};
     private static final TypeReference<List<TagEntry>> TAG_LIST = new TypeReference<>() {};
@@ -93,7 +91,7 @@ public record RichMember(
     private static <T> T parseJson(String json, TypeReference<T> type, T fallback) {
         if (json == null || json.isBlank()) return fallback;
         try {
-            return MAPPER.readValue(json, type);
+            return Json.MAPPER.readValue(json, type);
         } catch (Exception e) {
             log.warn("Failed to parse JSON column: {}", json, e);
             return fallback;

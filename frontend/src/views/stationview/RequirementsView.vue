@@ -12,8 +12,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import { getRequirements } from '@/api/requirements'
-import type { RequirementsResponse } from '@/api/requirements'
+import {getRequirements, type RequirementsResponse} from '@/api/requirements'
 
 const { t } = useI18n()
 const route = useRoute()

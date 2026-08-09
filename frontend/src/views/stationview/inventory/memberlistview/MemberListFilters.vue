@@ -13,7 +13,8 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import { type RestrictionSelection, emptyRestriction } from '@/components/input/restriction'
 import type { FilterCriteria } from '@/composables/useMemberFilter'
-import type { Inventory, MemberGroup, UserTag } from '@/api/types'
+import type { Inventory } from '@/api/inventory'
+import type { MemberGroup, UserTag } from '@/api/types'
 
 const { t } = useI18n()
 

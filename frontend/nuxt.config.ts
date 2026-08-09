@@ -3,10 +3,6 @@ export default defineNuxtConfig({
 
   srcDir: 'src/',
 
-  site: {
-    url: process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3000',
-  },
-
   runtimeConfig: {
     public: {
       googleSiteVerification: process.env.NUXT_PUBLIC_GOOGLE_SITE_VERIFICATION || '',

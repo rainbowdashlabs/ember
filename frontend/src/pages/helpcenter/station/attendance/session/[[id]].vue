@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import SessionHelp from '~/views/helpcenter/stationview/attendance/SessionHelp'
+import SessionHelp from '~/views/helpcenter/stationview/attendance/SessionHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

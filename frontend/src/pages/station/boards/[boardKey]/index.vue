@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import BoardView from '~/views/stationview/boards/BoardView'
+import BoardView from '~/views/stationview/boards/BoardView.vue'
 
 definePageMeta({
   layout: 'station',

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import AdminTrafficHelp from '~/views/helpcenter/adminview/AdminTrafficHelp'
+import AdminTrafficHelp from '~/views/helpcenter/adminview/AdminTrafficHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter-admin',

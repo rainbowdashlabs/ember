@@ -4,25 +4,15 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
-import HelpSection from '@/components/helpcenter/HelpSection.vue'
-import { useI18n } from 'vue-i18n'
-
-const { t } = useI18n()
+/**
+ * Help article for the member-check overview. The app serves the very same view under
+ * {@code inventory/checks} and {@code inventory/checks/member}, so this renders
+ * {@link CheckOverviewHelp} — a separate component file only so both routes own a help
+ * entry instead of sharing one and tripping the duplicate-component check.
+ */
+import CheckOverviewHelp from './CheckOverviewHelp.vue'
 </script>
 
 <template>
-  <HelpArticle :title="t('helpCenter.inventoryCheckMemberOverviewHelp.title')" :subtitle="t('helpCenter.inventoryCheckMemberOverviewHelp.subtitle')">
-    <HelpSection :title="t('helpCenter.inventoryCheckMemberOverviewHelp.overviewTitle')">
-      <p>
-        {{ t('helpCenter.inventoryCheckMemberOverviewHelp.overviewText') }}
-      </p>
-    </HelpSection>
-
-    <HelpSection :title="t('helpCenter.inventoryCheckMemberOverviewHelp.flowTitle')">
-      <p>
-        {{ t('helpCenter.inventoryCheckMemberOverviewHelp.flowText') }}
-      </p>
-    </HelpSection>
-  </HelpArticle>
+  <CheckOverviewHelp/>
 </template>

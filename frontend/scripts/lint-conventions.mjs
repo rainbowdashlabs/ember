@@ -6,27 +6,51 @@
  *  1. No raw <button> outside src/components/button/
  *  2. No raw <input>/<select>/<textarea> outside src/components/input/
  *  3. No raw <h1>/<h2>/<h3> outside src/components/typography/
- *  4. No more than 6 CSS class arguments per element outside src/components/
- *  5. .vue files in src/views/ must not exceed 500 lines (error)
- *  6. .vue files > 300 lines get a warning
- *  7. Repeated element+class patterns (>5 occurrences)
+ *  4. .vue files in src/views/ must not exceed 500 lines (error)
+ *  5. .vue files > 300 lines get a warning
+ *  6. Repeated element+class patterns (>5 occurrences)
+ *  7. No inline toLocale date/time formatting in src/views/ — use util/format helpers (warning)
+ *  8. No size="…" on button components that do not declare a size prop (warning)
+ *
+ * A per-element CSS class-count cap used to sit here, warning above 6 classes. It was removed
+ * once its distribution was measured: 180 of 521 findings had exactly 7 classes and only 3 had
+ * 15 or more, so with Tailwind 4 and dark-mode variants it described ordinary markup rather than
+ * a smell. Element bloat is still caught by the block-size and section-density gates in
+ * lint-component-size.mjs, which measure structure instead of class strings.
  *
  * Exit code 1 if any errors are found.
  */
 
 import {readFileSync} from 'fs'
-import {relative, sep} from 'path'
+import {basename, relative, sep} from 'path'
 import {SRC, walk, rel, isInsideDir, isInsideComponents, extractTemplate, createReporter} from './lint-utils.mjs'
 
 const reporter = createReporter()
 const {error, warn} = reporter
 
 const CAT_RAW_ELEMENTS = 'Raw element usage'
-const CAT_CSS_CLASSES = 'CSS class count'
 const CAT_FILE_SIZE = 'File size'
 const CAT_REPEATED = 'Repeated patterns'
+const CAT_INLINE_FORMAT = 'Inline date formatting'
+const CAT_DEAD_PROP = 'Dead prop'
+
+/**
+ * `toLocaleDateString` and `toLocaleTimeString` are always dates, but `toLocaleString` is also how
+ * a *number* is formatted for the locale — which is not this rule's business.
+ *
+ * The two are told apart by argument count rather than by the option names, because a chart axis
+ * routinely opens the options object at the end of the line and continues on the next one, which
+ * a line-based check cannot read. Number formatting passes a locale and nothing else; date
+ * formatting always passes options after it.
+ */
+const INLINE_DATE_FORMAT = /\.toLocale(Date|Time)String\(|\.toLocaleString\([^)]*,/
 
 const vueFiles = walk(SRC, '.vue')
+
+const SIZE_AWARE_BUTTONS = new Set(vueFiles
+    .filter(file => isInsideDir(file, 'button'))
+    .filter(file => /defineProps<\{[^}]*\bsize\s*\??:/s.test(readFileSync(file, 'utf-8')))
+    .map(file => basename(file, '.vue')))
 
 for (const file of vueFiles) {
     const content = readFileSync(file, 'utf-8')
@@ -84,33 +108,17 @@ for (const file of vueFiles) {
         }
     }
 
-    // ── Rule 4: No more than 6 class arguments per element outside components/ ──
-    if (!isInsideComponents(file)) {
-        for (let i = 0; i < templateLines.length; i++) {
-            const line = templateLines[i]
-            const classMatches = line.matchAll(/\bclass="([^"]*)"/g)
-            for (const match of classMatches) {
-                const classes = match[1].trim().split(/\s+/).filter(c => c.length > 0)
-                if (classes.length <= 6) continue
-                // Find the tag name — may be on this line or a preceding line
-                let tagName = 'element'
-                const tagOnLine = line.match(/<(\w[\w-]*)[\s>]/)
-                if (tagOnLine) {
-                    tagName = tagOnLine[1]
-                } else {
-                    for (let j = i - 1; j >= Math.max(0, i - 10); j--) {
-                        const prev = templateLines[j].match(/<(\w[\w-]*)[\s>]/)
-                        if (prev) { tagName = prev[1]; break }
-                    }
-                }
-                warn(file, templateStartLine + i, `<${tagName}> has ${classes.length} CSS classes. Consider extracting to a component.`, CAT_CSS_CLASSES)
-            }
-        }
-    }
-
     // ── Rule 5 & 6: File size limits ──
     const isView = relative(SRC, file).startsWith(`views${sep}`)
     const lineCount = lines.length
+
+    if (isView) {
+        for (let i = 0; i < lines.length; i++) {
+            if (INLINE_DATE_FORMAT.test(lines[i])) {
+                warn(file, i + 1, `Inline toLocale date formatting — use the helpers in util/format.ts.`, CAT_INLINE_FORMAT)
+            }
+        }
+    }
 
     if (isView && lineCount > 500) {
         error(file, 0, `View has ${lineCount} lines (max 500). Split into smaller components.`, CAT_FILE_SIZE)
@@ -125,6 +133,19 @@ for (const file of vueFiles) {
         if (/ref<\{[^}]+\}/.test(line) && !line.includes('Record<')) {
             warn(file, i + 1, `Inline object type in ref<> — use a named interface/type instead.`, 'Inline type')
         }
+    }
+}
+
+for (const file of vueFiles) {
+    const content = readFileSync(file, 'utf-8')
+    const template = extractTemplate(content)
+    const templateStartLine = content.substring(0, content.indexOf('<template>')).split('\n').length
+
+    for (const match of template.matchAll(/<(\w*Button)\b[^>]*?>/gs)) {
+        if (SIZE_AWARE_BUTTONS.has(match[1])) continue
+        if (!/(?<![\w.:@-])size="/.test(match[0])) continue
+        const line = templateStartLine + template.substring(0, match.index).split('\n').length - 1
+        warn(file, line, `<${match[1]}> does not declare a size prop — size="…" silently becomes a dead DOM attribute. Use the compact prop.`, CAT_DEAD_PROP)
     }
 }
 

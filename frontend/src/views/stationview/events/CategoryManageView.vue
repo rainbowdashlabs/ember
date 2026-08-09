@@ -20,10 +20,9 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {EventCategory} from '@/api/types'
+import type {EventCategory} from '@/api/events'
 import {events} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
@@ -98,18 +97,26 @@ async function saveCategory() {
   }
 }
 
+function withSwapped(ids: number[], first: number, second: number): number[] {
+  const a = ids[first]
+  const b = ids[second]
+  if (a === undefined || b === undefined) return ids
+  const next = [...ids]
+  next[first] = b
+  next[second] = a
+  return next
+}
+
 async function moveUp(index: number) {
   if (index <= 0) return
   const ids = categories.value.map(c => c.id)
-  ;[ids[index - 1], ids[index]] = [ids[index], ids[index - 1]]
-  categories.value = await events.reorderCategories(ids)
+  categories.value = await events.reorderCategories(withSwapped(ids, index - 1, index))
 }
 
 async function moveDown(index: number) {
   if (index >= categories.value.length - 1) return
   const ids = categories.value.map(c => c.id)
-  ;[ids[index], ids[index + 1]] = [ids[index + 1], ids[index]]
-  categories.value = await events.reorderCategories(ids)
+  categories.value = await events.reorderCategories(withSwapped(ids, index, index + 1))
 }
 </script>
 
@@ -124,41 +131,41 @@ async function moveDown(index: number) {
       </PrimaryButton>
     </div>
 
-    <Spinner v-if="loading"/>
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <AsyncSection
+        :empty="categories.length === 0"
+        :empty-compact="true"
+        :empty-message="t('categoryManage.empty')"
+        :error="error"
+        :loading="loading"
+    >
+      <div class="space-y-2">
+        <NeutralContainer
+            v-for="(cat, index) in categories"
+            :key="cat.id"
+            class="flex items-center justify-between"
+        >
+          <div class="flex items-center gap-2">
+            <span
+                v-if="cat.color"
+                class="inline-block w-4 h-4 rounded border border-(--border) shrink-0"
+                :style="{ backgroundColor: cat.color }"
+                :aria-label="t('categoryManage.color')"
+            />
+            <span class="font-medium">{{ cat.name }}</span>
+            <MutedText v-if="cat.maxShownEvents" tag="span" size="sm" class="ml-2">
+              ({{ t('categoryManage.maxShown', {count: cat.maxShownEvents}) }})
+            </MutedText>
+          </div>
+          <div class="flex items-center gap-1">
+            <IconButton :icon="['fas', 'chevron-up']" :label="t('common.moveUp')" :disabled="index === 0" @click="moveUp(index)"/>
+            <IconButton :icon="['fas', 'chevron-down']" :label="t('common.moveDown')" :disabled="index === categories.length - 1" @click="moveDown(index)"/>
+            <IconButton :icon="['fas', 'pen']" :label="t('common.edit')" @click="openEdit(cat)"/>
+            <DeleteButton :label="t('common.delete')" @click="requestDelete(cat)"/>
+          </div>
+        </NeutralContainer>
+      </div>
+    </AsyncSection>
 
-    <MutedText v-if="!loading && categories.length === 0" tag="div" size="sm" class="py-4">
-      {{ t('categoryManage.empty') }}
-    </MutedText>
-
-    <div v-else class="space-y-2">
-      <NeutralContainer
-          v-for="(cat, index) in categories"
-          :key="cat.id"
-          class="flex items-center justify-between"
-      >
-        <div class="flex items-center gap-2">
-          <span
-              v-if="cat.color"
-              class="inline-block w-4 h-4 rounded border border-(--border) shrink-0"
-              :style="{ backgroundColor: cat.color }"
-              :aria-label="t('categoryManage.color')"
-          />
-          <span class="font-medium">{{ cat.name }}</span>
-          <MutedText v-if="cat.maxShownEvents" tag="span" size="sm" class="ml-2">
-            ({{ t('categoryManage.maxShown', {count: cat.maxShownEvents}) }})
-          </MutedText>
-        </div>
-        <div class="flex items-center gap-1">
-          <IconButton :icon="['fas', 'chevron-up']" :label="t('common.moveUp')" :disabled="index === 0" @click="moveUp(index)"/>
-          <IconButton :icon="['fas', 'chevron-down']" :label="t('common.moveDown')" :disabled="index === categories.length - 1" @click="moveDown(index)"/>
-          <IconButton :icon="['fas', 'pen']" :label="t('common.edit')" @click="openEdit(cat)"/>
-          <DeleteButton :label="t('common.delete')" @click="requestDelete(cat)"/>
-        </div>
-      </NeutralContainer>
-    </div>
-
-    <!-- Edit/Create Modal -->
     <Modal v-model="editOpen">
       <div class="space-y-4">
         <SectionHeader>{{ editId ? t('categoryManage.edit') : t('categoryManage.create') }}</SectionHeader>

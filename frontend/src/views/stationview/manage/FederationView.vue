@@ -17,8 +17,8 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import { useSession } from '@/composables/useSession'
@@ -27,6 +27,8 @@ import { federation } from '@/api'
 import type { PartnerResponse, PairRequest } from '@/api/federation'
 import { resolveFederationVersion } from '@/util/federationVersion'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { useFlashMessage } from '@/composables/useFlashMessage'
+import { formatDate } from '@/util/format'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -36,9 +38,8 @@ const { refresh: refreshSidebarCounts } = useSidebarCounts()
 const partners = ref<PartnerResponse[]>([])
 const pairRequests = ref<PairRequest[]>([])
 const localVersion = ref('')
-const success = ref('')
+const {message: success, flash} = useFlashMessage(3000)
 
-// Invite modal
 const showInviteModal = ref(false)
 const generatedCode = ref('')
 const acceptCode = ref('')
@@ -57,8 +58,7 @@ const {loading, error, reload} = useAsyncLoader(async () => {
 async function handleAcceptRequest(id: number) {
   try {
     await federation.acceptPairRequest(id)
-    success.value = t('federation.connected')
-    setTimeout(() => { success.value = '' }, 3000)
+    flash(t('federation.connected'))
     await reload()
     refreshSidebarCounts()
   } catch { error.value = t('common.error') }
@@ -86,8 +86,7 @@ async function handleAccept() {
     showInviteModal.value = false
     acceptCode.value = ''
     generatedCode.value = ''
-    success.value = result.status === 'ACTIVE' ? t('federation.connected') : t('federation.requestSent')
-    setTimeout(() => { success.value = '' }, 3000)
+    flash(result.status === 'ACTIVE' ? t('federation.connected') : t('federation.requestSent'))
     await reload()
   } catch { error.value = t('federation.invalidCode') }
 }
@@ -106,51 +105,50 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
       </PrimaryButton>
     </div>
 
-    <Spinner v-if="loading" />
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
     <Alert v-if="success" variant="success">{{ success }}</Alert>
 
-    <!-- Pending pair requests -->
-    <div v-if="!loading && pairRequests.length > 0" class="mb-6">
-      <SubHeader class="mb-2">{{ t('federation.pairRequests') }}</SubHeader>
+    <AsyncSection
+      :empty="partners.length === 0 && pairRequests.length === 0"
+      :empty-message="t('federation.noPartners')"
+      :error="error"
+      :loading="loading"
+    >
+      <div v-if="pairRequests.length > 0" class="mb-6">
+        <SubHeader class="mb-2">{{ t('federation.pairRequests') }}</SubHeader>
+        <div class="space-y-2">
+          <NeutralContainer v-for="req in pairRequests" :key="req.id" class="flex items-center gap-2">
+            <div class="flex-1 min-w-0">
+              <div class="font-medium">{{ req.stationName }}</div>
+              <div class="text-xs text-[var(--text-muted)]">{{ formatDate(req.createdAt) }}</div>
+            </div>
+            <SecondaryButton compact @click="handleAcceptRequest(req.id)">
+              <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/> {{ t('federation.acceptRequest') }}
+            </SecondaryButton>
+            <DeleteButton @click="handleDeclineRequest(req.id)"/>
+          </NeutralContainer>
+        </div>
+      </div>
+
       <div class="space-y-2">
-        <NeutralContainer v-for="req in pairRequests" :key="req.id" class="flex items-center gap-2">
+        <NeutralContainer v-for="p in partners" :key="p.partner.id" class="flex items-center gap-2">
           <div class="flex-1 min-w-0">
-            <div class="font-medium">{{ req.stationName }}</div>
-            <div class="text-xs text-[var(--text-muted)]">{{ new Date(req.createdAt).toLocaleDateString('de-DE') }}</div>
+            <div class="font-medium">{{ p.partnerStationName }}</div>
+            <div class="text-xs text-[var(--text-muted)]">v{{ resolveFederationVersion(p.partner.federationVersion) }}</div>
           </div>
-          <SecondaryButton compact @click="handleAcceptRequest(req.id)">
-            <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/> {{ t('federation.acceptRequest') }}
-          </SecondaryButton>
-          <DeleteButton @click="handleDeclineRequest(req.id)"/>
+          <InfoBadge v-if="localVersion && p.partner.federationVersion !== localVersion" :title="t('federation.versionMismatchHint')">
+            <font-awesome-icon :icon="['fas', 'triangle-exclamation']" class="mr-1"/>
+            {{ t('federation.versionMismatch') }}
+          </InfoBadge>
+          <SuccessBadge v-if="p.partner.status === 'ACTIVE'">{{ t('federation.active') }}</SuccessBadge>
+          <ErrorBadge v-else-if="p.partner.status === 'SUSPENDED'">{{ t('federation.suspended') }}</ErrorBadge>
+          <SecondaryBadge v-else>{{ t('federation.pending') }}</SecondaryBadge>
+          <PrimaryButton compact @click="router.push({ name: 'station-federation-partner', params: { id: p.partner.id } })">
+            <font-awesome-icon :icon="['fas', 'sliders']" class="mr-1" /> {{ t('federation.manage') }}
+          </PrimaryButton>
         </NeutralContainer>
       </div>
-    </div>
+    </AsyncSection>
 
-    <div v-if="!loading && partners.length === 0 && pairRequests.length === 0" class="text-center text-[var(--text-muted)] py-8">
-      {{ t('federation.noPartners') }}
-    </div>
-
-    <div class="space-y-2">
-      <NeutralContainer v-for="p in partners" :key="p.partner.id" class="flex items-center gap-2">
-        <div class="flex-1 min-w-0">
-          <div class="font-medium">{{ p.partnerStationName }}</div>
-          <div class="text-xs text-[var(--text-muted)]">v{{ resolveFederationVersion(p.partner.federationVersion) }}</div>
-        </div>
-        <InfoBadge v-if="localVersion && p.partner.federationVersion !== localVersion" :title="t('federation.versionMismatchHint')">
-          <font-awesome-icon :icon="['fas', 'triangle-exclamation']" class="mr-1"/>
-          {{ t('federation.versionMismatch') }}
-        </InfoBadge>
-        <SuccessBadge v-if="p.partner.status === 'ACTIVE'">{{ t('federation.active') }}</SuccessBadge>
-        <ErrorBadge v-else-if="p.partner.status === 'SUSPENDED'">{{ t('federation.suspended') }}</ErrorBadge>
-        <SecondaryBadge v-else>{{ t('federation.pending') }}</SecondaryBadge>
-        <PrimaryButton compact @click="router.push({ name: 'station-federation-partner', params: { id: p.partner.id } })">
-          <font-awesome-icon :icon="['fas', 'sliders']" class="mr-1" /> {{ t('federation.manage') }}
-        </PrimaryButton>
-      </NeutralContainer>
-    </div>
-
-    <!-- Invite / Accept Modal -->
     <Modal v-model="showInviteModal">
       <SubHeader class="mb-3">{{ t('federation.addPartner') }}</SubHeader>
       <div class="space-y-4">

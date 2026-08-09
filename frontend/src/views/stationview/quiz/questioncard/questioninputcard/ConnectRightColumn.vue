@@ -4,6 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import BaseButton from '@/components/button/BaseButton.vue'
+
 defineProps<{
   items: string[]
   disabled: boolean
@@ -21,12 +23,11 @@ const emit = defineEmits<{
 
 <template>
   <div class="flex flex-col gap-2 flex-1">
-    <button
+    <BaseButton
       v-for="(right, rightIdx) in items"
       :key="rightIdx"
-      type="button"
       :data-connect-right="rightIdx"
-      class="px-3 py-2 rounded-lg border-2 text-sm font-medium text-left transition-colors cursor-pointer"
+      class="!py-2 !rounded-lg border-2 text-left cursor-pointer"
       :class="[
         connectDragOver === rightIdx
           ? 'border-primary bg-primary/10'
@@ -42,6 +43,6 @@ const emit = defineEmits<{
       @drop="emit('drop', $event, rightIdx)"
     >
       {{ right }}
-    </button>
+    </BaseButton>
   </div>
 </template>

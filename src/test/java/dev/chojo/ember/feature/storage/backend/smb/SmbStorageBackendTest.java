@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.storage.backend.smb;
 
+import dev.chojo.ember.TestContainers;
 import dev.chojo.ember.feature.storage.backend.ObjectMetadata;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -13,8 +14,6 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
@@ -32,13 +31,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * surface every other backend will be tested against.
  */
 @Tag("storage")
-@Testcontainers
 class SmbStorageBackendTest {
     private static final String SHARE = "tests";
     private static final String USER = "tester";
     private static final String PASSWORD = "testpass";
 
-    @Container
     static final GenericContainer<?> SAMBA = new GenericContainer<>("dperson/samba")
             .withExposedPorts(445)
             .withCommand("-p", "-w", "WORKGROUP", "-u", USER + ";" + PASSWORD, "-s", SHARE + ";/tmp;yes;no;no;" + USER)
@@ -49,6 +46,7 @@ class SmbStorageBackendTest {
 
     @BeforeAll
     static void setup() {
+        TestContainers.startExclusively(SAMBA);
         /* seal */
         /* dfs */
         SmbBackendConfig config = new SmbBackendConfig(

@@ -11,8 +11,12 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
+import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
+import dev.chojo.ember.feature.knowledgebase.service.KbContentService;
 import dev.chojo.ember.feature.knowledgebase.service.KbIconService;
 import dev.chojo.ember.feature.knowledgebase.service.KbImageService;
+import dev.chojo.ember.feature.knowledgebase.service.KbSearchService;
+import dev.chojo.ember.feature.knowledgebase.service.KbTagService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
@@ -48,6 +52,10 @@ public class PublicKnowledgeBaseRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(PublicKnowledgeBaseRoutes.class);
 
     private final KnowledgeBaseService kbService;
+    private final KbContentService contentService;
+    private final KbSearchService searchService;
+    private final KbAccessService accessService;
+    private final KbTagService tagService;
     private final StationService stationService;
     private final StationRepository stationRepository;
     private final KbIconService iconService;
@@ -56,11 +64,19 @@ public class PublicKnowledgeBaseRoutes implements Routes {
     @Inject
     public PublicKnowledgeBaseRoutes(
             KnowledgeBaseService kbService,
+            KbContentService contentService,
+            KbSearchService searchService,
+            KbAccessService accessService,
+            KbTagService tagService,
             StationService stationService,
             StationRepository stationRepository,
             KbIconService iconService,
             KbImageService imageService) {
         this.kbService = kbService;
+        this.contentService = contentService;
+        this.searchService = searchService;
+        this.accessService = accessService;
+        this.tagService = tagService;
         this.stationService = stationService;
         this.stationRepository = stationRepository;
         this.iconService = iconService;
@@ -102,7 +118,7 @@ public class PublicKnowledgeBaseRoutes implements Routes {
     }
 
     private void requirePubliclyVisible(Station station, Integer folderId, Integer fileId) {
-        if (!kbService.isPubliclyVisible(station.publicKbMode(), folderId, fileId)) {
+        if (!accessService.isPubliclyVisible(station.publicKbMode(), folderId, fileId)) {
             throw new NotFoundResponse();
         }
     }
@@ -159,10 +175,10 @@ public class PublicKnowledgeBaseRoutes implements Routes {
         }
 
         var folders = kbService.findFolders(station.id(), folderId).stream()
-                .filter(f -> kbService.isPubliclyVisible(station.publicKbMode(), f.id(), null))
+                .filter(f -> accessService.isPubliclyVisible(station.publicKbMode(), f.id(), null))
                 .toList();
         var files = kbService.findFiles(station.id(), folderId).stream()
-                .filter(f -> kbService.isPubliclyVisible(station.publicKbMode(), null, f.id()))
+                .filter(f -> accessService.isPubliclyVisible(station.publicKbMode(), null, f.id()))
                 .toList();
         KbFolder currentFolder =
                 folderId != null ? kbService.findFolder(folderId).orElse(null) : null;
@@ -206,14 +222,14 @@ public class PublicKnowledgeBaseRoutes implements Routes {
 
         switch (file.fileType()) {
             case MARKDOWN, TEXT -> {
-                var content = kbService.getMarkdownContent(id).orElse("");
+                var content = contentService.getMarkdownContent(id).orElse("");
                 ctx.contentType("text/plain").result(content);
             }
             case YOUTUBE -> ctx.json(new YoutubeContentResponse(file.youtubeUrl() != null ? file.youtubeUrl() : ""));
             case LINK -> ctx.json(new LinkContentResponse(file.linkUrl() != null ? file.linkUrl() : ""));
             case PDF, IMAGE, OTHER -> {
-                var contentType = kbService.getFileContentType(id);
-                var content = kbService.getFileContent(id);
+                var contentType = contentService.getFileContentType(id);
+                var content = contentService.getFileContent(id);
                 if (content.isPresent() && contentType.isPresent()) {
                     ctx.contentType(contentType.get());
                     ctx.header("Cache-Control", "public, max-age=300");
@@ -242,8 +258,8 @@ public class PublicKnowledgeBaseRoutes implements Routes {
         var file = resolvePublicFile(ctx);
         if (file.fileType() != KbFileType.MARKDOWN) throw new BadRequestResponse("Not a markdown file");
 
-        var markdown = kbService.getMarkdownContent(file.id()).orElse("");
-        var html = kbService.renderMarkdown(markdown);
+        var markdown = contentService.getMarkdownContent(file.id()).orElse("");
+        var html = contentService.renderMarkdown(markdown);
         ctx.json(new MarkdownHtmlResponse(html, markdown));
     }
 
@@ -262,9 +278,9 @@ public class PublicKnowledgeBaseRoutes implements Routes {
             ctx.json(List.of());
             return;
         }
-        var results = kbService.searchWithSnippets(station.id(), query);
+        var results = searchService.searchWithSnippets(station.id(), query);
         ctx.json(results.stream()
-                .filter(r -> kbService.isPubliclyVisible(
+                .filter(r -> accessService.isPubliclyVisible(
                         station.publicKbMode(), null, r.file().id()))
                 .map(r -> new SearchResultItem(r.file(), r.snippet()))
                 .toList());
@@ -331,7 +347,7 @@ public class PublicKnowledgeBaseRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = String[].class)))
     private void listTags(Context ctx) {
         var station = resolveStation(ctx);
-        ctx.json(kbService.findTagsByStation(station.id()));
+        ctx.json(tagService.findTagsByStation(station.id()));
     }
 
     public record PublicBrowseResponse(KbFolder currentFolder, List<KbFolder> folders, List<KbFile> files) {}

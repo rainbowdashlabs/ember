@@ -16,7 +16,8 @@ import jakarta.inject.Singleton;
 import java.util.Optional;
 
 /**
- * Destination-side counterpart to {@link TransferBackendDescriptorService}. Takes the
+ * Destination-side counterpart to
+ * {@link dev.chojo.ember.feature.storage.service.TransferBackendDescriptorService}. Takes the
  * sealed-variant descriptor returned by the source's {@code /backend} endpoint and either
  * installs it on the destination's {@code station_storage_config} row (re-encrypting the
  * carried plaintext credentials under the destination's {@link CredentialCipher}) or

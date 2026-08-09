@@ -4,7 +4,29 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {CreateMemberRequest, MemberIdentity, PermissionGrant, SetManagersRequest, StationMember,} from './types'
+import {createCrudResource} from './crud'
+import type {MemberIdentity, PermissionGrant, StationMember} from './types'
+
+export interface CreateMemberRequest {
+    stationId?: number
+    accountId?: number
+}
+
+export interface SetRolesRequest {
+    roleIds?: number[]
+}
+
+export interface SetPermissionsRequest {
+    permissions?: string[]
+}
+
+export interface SetUserTypeRequest {
+    userType?: string
+}
+
+export interface SetManagersRequest {
+    managerIds?: number[]
+}
 
 export async function listAllPermissions(): Promise<PermissionGrant[]> {
     const res = await client.get<PermissionGrant[]>('/permissions')
@@ -59,26 +81,15 @@ export async function resendSetupMail(memberId: number): Promise<void> {
     await client.post(`/station-members/${memberId}/resend-setup-mail`)
 }
 
+const members = createCrudResource<StationMember, CreateMemberRequest>('/station-members')
+
 export async function listMembers(includeFormer = false): Promise<StationMember[]> {
-    const params: Record<string, unknown> = {}
-    if (includeFormer) params.includeFormer = true
-    const res = await client.get<StationMember[]>('/station-members', {params})
-    return res.data
+    return members.list({includeFormer: includeFormer || undefined})
 }
 
-export async function getMember(id: number): Promise<StationMember> {
-    const res = await client.get<StationMember>(`/station-members/${id}`)
-    return res.data
-}
-
-export async function createMember(data: CreateMemberRequest): Promise<StationMember> {
-    const res = await client.post<StationMember>('/station-members', data)
-    return res.data
-}
-
-export async function deleteMember(id: number): Promise<void> {
-    await client.delete(`/station-members/${id}`)
-}
+export const getMember = members.get
+export const createMember = members.create
+export const deleteMember = members.remove
 
 export async function getPermissions(memberId: number): Promise<PermissionGrant[]> {
     const res = await client.get<PermissionGrant[]>(`/station-members/${memberId}/permissions`)

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import PublicStationCalendarView from '~/views/public/PublicStationCalendarView'
+import PublicStationCalendarView from '~/views/public/PublicStationCalendarView.vue'
 
 definePageMeta({
   layout: 'public-station',

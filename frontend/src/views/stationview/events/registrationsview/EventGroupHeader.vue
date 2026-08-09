@@ -9,7 +9,8 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import type {StationEvent} from '@/api/types'
+import MutedText from '@/components/typography/MutedText.vue'
+import type {StationEvent} from '@/api/events'
 
 defineProps<{
   event: StationEvent
@@ -25,12 +26,12 @@ const {t} = useI18n()
   <div class="flex items-center justify-between flex-wrap gap-2">
     <div>
       <span class="font-medium text-primary">{{ event.name }}</span>
-      <span v-if="event.registrationDeadline" class="text-xs text-(--text-muted) ml-2">
+      <MutedText v-if="event.registrationDeadline" class="ml-2">
         {{ t('eventsRegistrations.deadline') }}: {{ formatDeadline(event.registrationDeadline) }}
-      </span>
-      <span v-if="event.registrationLimit" class="text-xs text-(--text-muted) ml-2">
+      </MutedText>
+      <MutedText v-if="event.registrationLimit" class="ml-2">
         ({{ t('eventsRegistrations.limit') }}: {{ event.registrationLimit }})
-      </span>
+      </MutedText>
     </div>
     <div class="flex items-center gap-2 flex-wrap">
       <InfoBadge>

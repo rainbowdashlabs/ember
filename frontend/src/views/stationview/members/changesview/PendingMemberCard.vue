@@ -11,7 +11,7 @@ import SuccessButton from '@/components/button/SuccessButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
-import type {MemberChangeSummary, ProfileFieldChange} from '@/api/types'
+import type {MemberChangeSummary, ProfileFieldChange} from '@/api/profileFieldChanges'
 import PendingChangeRow from './PendingChangeRow.vue'
 
 const {t} = useI18n()

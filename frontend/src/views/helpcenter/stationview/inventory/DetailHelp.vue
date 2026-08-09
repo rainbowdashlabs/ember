@@ -8,11 +8,11 @@ import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Th from '@/components/table/Th.vue'
 import Td from '@/components/table/Td.vue'
-import THead from '@/components/table/THead.vue'
+import DataTable from '@/components/table/DataTable.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import TRow from '@/components/table/TRow.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
@@ -52,27 +52,21 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.inventoryDetail.lostTitle')">
       <p>{{ t('helpCenter.inventoryDetail.lostText') }}</p>
-      <NeutralContainer class="overflow-x-auto">
-        <table class="w-full text-sm">
-          <thead>
-            <THead>
-              <Th>{{ t('inventory.detail.item') }}</Th>
-              <Th>{{ t('inventory.detail.owner') }}</Th>
-              <Th>{{ t('inventory.detail.lostSince') }}</Th>
-            </THead>
-          </thead>
-          <tbody>
-            <TRow>
-              <Td>
-                <div class="font-medium">Helm <SizeBadge>S</SizeBadge></div>
-                <div class="text-xs text-(--text-muted)">INV-0003</div>
-              </Td>
-              <Td>Erika Musterfrau</Td>
-              <Td><ErrorBadge>01.05.2026</ErrorBadge></Td>
-            </TRow>
-          </tbody>
-        </table>
-      </NeutralContainer>
+      <DataTable>
+        <template #head>
+          <Th>{{ t('inventory.detail.item') }}</Th>
+          <Th>{{ t('inventory.detail.owner') }}</Th>
+          <Th>{{ t('inventory.detail.lostSince') }}</Th>
+        </template>
+        <TRow>
+          <Td>
+            <div class="font-medium">Helm <SizeBadge>S</SizeBadge></div>
+            <MutedText tag="div">INV-0003</MutedText>
+          </Td>
+          <Td>Erika Musterfrau</Td>
+          <Td><ErrorBadge>01.05.2026</ErrorBadge></Td>
+        </TRow>
+      </DataTable>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.inventoryDetail.freeTitle')">

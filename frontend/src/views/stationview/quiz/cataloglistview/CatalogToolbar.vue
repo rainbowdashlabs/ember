@@ -57,7 +57,7 @@ const { t } = useI18n()
       v-if="showFederated && partnerStations.length > 0"
       :model-value="filterStationId != null ? String(filterStationId) : ''"
       class="!w-auto !text-xs !py-1"
-      @update:model-value="(v: string | undefined) => filterStationId = v || null"
+      @update:model-value="(v: string | number | null | undefined) => filterStationId = v ? String(v) : null"
     >
       <option value="">{{ t('quiz.catalogs.allStations') }}</option>
       <option v-for="station in partnerStations" :key="station.id" :value="String(station.id)">

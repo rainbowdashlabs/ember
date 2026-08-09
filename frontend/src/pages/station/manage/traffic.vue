@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ManageStationTrafficView from '~/views/stationview/manage/ManageStationTrafficView'
+import ManageStationTrafficView from '~/views/stationview/manage/ManageStationTrafficView.vue'
 
 definePageMeta({
   layout: 'station',

@@ -9,17 +9,17 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.MemberLookupService;
 import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.DataTrackingLoader;
 import dev.chojo.ember.tracking.IdentityType;
 import dev.chojo.ember.tracking.engine.GenericGdprExporter;
+import dev.chojo.ember.util.Json;
 import dev.chojo.ember.util.TypstCompiler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -50,10 +50,10 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 public class GdprExportService {
 
     private static final Logger log = LoggerFactory.getLogger(GdprExportService.class);
-    private static final ObjectMapper MAPPER = JsonMapper.builder().build();
 
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
+    private final MemberLookupService memberLookupService;
     private final KbFileStorageService kbFileStorageService;
     private final GenericGdprExporter engine;
 
@@ -61,9 +61,11 @@ public class GdprExportService {
     public GdprExportService(
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
+            MemberLookupService memberLookupService,
             KbFileStorageService kbFileStorageService) {
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
+        this.memberLookupService = memberLookupService;
         this.kbFileStorageService = kbFileStorageService;
         DataTracking t;
         try {
@@ -122,7 +124,7 @@ public class GdprExportService {
                 var zip = new ZipOutputStream(baos)) {
 
             zip.putNextEntry(new ZipEntry("data.json"));
-            zip.write(MAPPER.writeValueAsBytes(data));
+            zip.write(Json.MAPPER.writeValueAsBytes(data));
             zip.closeEntry();
 
             try {
@@ -175,7 +177,7 @@ public class GdprExportService {
 
         // Tables matching by member UUID — federation-aware columns like news.author_member_uid or
         // board_ticket.creator_member_uid carry the UUID instead of the int id.
-        UUID memberUid = stationMemberRepository.resolveUid(mid);
+        UUID memberUid = memberLookupService.resolveUid(mid);
         data.put(
                 "memberUidTables",
                 memberUid == null ? Map.of() : engine.exportByIdentity(IdentityType.MEMBER_UID, memberUid));
@@ -192,7 +194,7 @@ public class GdprExportService {
     private byte[] generatePdf(Map<String, Object> data, String locale) {
         String lang = locale != null && locale.startsWith("en") ? "en" : "de";
         try {
-            return TypstCompiler.compileTemplate(data, lang + "/gdpr-export", null, MAPPER);
+            return TypstCompiler.compileTemplate(data, lang + "/gdpr-export", null);
         } catch (Exception e) {
             log.warn("Typst PDF generation failed for GDPR export", e);
             return null;

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import PastHelp from '~/views/helpcenter/stationview/attendance/PastHelp'
+import PastHelp from '~/views/helpcenter/stationview/attendance/PastHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

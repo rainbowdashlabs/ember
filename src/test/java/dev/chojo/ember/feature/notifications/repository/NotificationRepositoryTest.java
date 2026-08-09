@@ -59,14 +59,14 @@ class NotificationRepositoryTest extends RepositoryTestBase {
     @Order(2)
     void exists() {
         var data = NotificationData.of(new NotificationParams.NewNews("Test", null, null));
-        assertTrue(notificationRepo.exists(member.id(), NotificationType.NEW_NEWS, data.toJson()));
+        assertTrue(notificationRepo.exists(member.id(), NotificationType.NEW_NEWS, data));
     }
 
     @Test
     @Order(3)
     void existsFalse() {
         var data = NotificationData.of(new NotificationParams.NewNews(null, null, null));
-        assertFalse(notificationRepo.exists(member.id(), NotificationType.NEW_NEWS, data.toJson()));
+        assertFalse(notificationRepo.exists(member.id(), NotificationType.NEW_NEWS, data));
     }
 
     @Test

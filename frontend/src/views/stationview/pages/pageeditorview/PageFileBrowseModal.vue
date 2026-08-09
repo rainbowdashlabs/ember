@@ -12,21 +12,18 @@ import Alert from '@/components/feedback/Alert.vue'
 import SearchToolbar from './pagefilebrowsemodal/SearchToolbar.vue'
 import FilterBar from './pagefilebrowsemodal/FilterBar.vue'
 import FilesGrid from './pagefilebrowsemodal/FilesGrid.vue'
-import EditMetaModal from './pagefilebrowsemodal/EditMetaModal.vue'
+import PageFileEditModal from '@/views/stationview/pages/pagefilesview/PageFileEditModal.vue'
 import {
-    listPageFolders,
-    listPageTags,
-    listStationPageFiles,
     pageImageUrl,
     prunePageFiles,
     updatePageFileMeta,
     uploadStationPageFile,
     type PageFile,
-    type PageFileFolder,
-    type PageFileListing,
-    type PageFileTag,
 } from '@/api/pageManage'
+import {usePageFileLibrary} from '@/views/stationview/pages/pagefilesview/usePageFileLibrary'
 import type {AxiosError} from 'axios'
+import {useAsyncAction} from '@/composables/useAsyncAction'
+import {formatSize} from '@/util/format'
 
 const open = defineModel<boolean>('open', {default: false})
 
@@ -42,35 +39,13 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
-const entries = ref<PageFileListing[]>([])
-const folders = ref<PageFileFolder[]>([])
-const tags = ref<PageFileTag[]>([])
-const loading = ref(false)
-const uploading = ref(false)
+const {entries, folders, tags, loading, load} = usePageFileLibrary()
+
 const uploadError = ref<string | null>(null)
 const search = ref('')
-const editing = ref<number | null>(null)
-const editAlt = ref('')
-const editDesc = ref('')
-const pruning = ref(false)
+const editing = ref<PageFile | null>(null)
 const activeFolder = ref<number | null>(null)
 const activeTagFilter = ref<number | null>(null)
-
-async function load() {
-    loading.value = true
-    try {
-        const [files, fs, ts] = await Promise.all([listStationPageFiles(), listPageFolders(), listPageTags()])
-        entries.value = files
-        folders.value = fs
-        tags.value = ts
-    } catch {
-        entries.value = []
-        folders.value = []
-        tags.value = []
-    } finally {
-        loading.value = false
-    }
-}
 
 watch(open, v => { if (v) load() })
 
@@ -124,12 +99,8 @@ async function onUploadMany(files: File[]) {
     await uploadBatch(files)
 }
 
-async function uploadBatch(picked: File[]) {
-    uploading.value = true
+const {running: uploading, run: uploadBatch} = useAsyncAction(async (picked: File[]) => {
     uploadError.value = null
-    // The native file picker's `accept` attribute is only a hint — the user can still pick "All
-    // files" in the OS dialog. Enforce the expected MIME prefix here so an audio cell never
-    // ends up with a PDF (or worse). Rejected files surface in the error banner.
     let rejected = 0
     const accepted: File[] = []
     for (const f of picked) {
@@ -150,63 +121,40 @@ async function uploadBatch(picked: File[]) {
         try {
             const s = await uploadStationPageFile(f)
             stored.push(s)
-            entries.value = [{file: s, inUse: false}, ...entries.value.filter(e => e.file.id !== s.id)]
+            entries.value = [{file: s, inUse: false, tagIds: []}, ...entries.value.filter(e => e.file.id !== s.id)]
         } catch (err) {
             lastErr = err
         }
     }
-    uploading.value = false
     if (lastErr) {
         const axiosErr = lastErr as AxiosError<{message?: string}>
         uploadError.value = axiosErr.response?.data?.message ?? t('stationPages.editor.uploadFailed')
     }
-    if (stored.length === 0) return
+    const first = stored[0]
+    if (!first) return
     if (props.multiple) {
         emit('pickMany', stored.map(f => ({file: f, url: urlFor(f)})))
         open.value = false
     } else {
-        pick(stored[0])
+        pick(first)
     }
-}
+})
 
 function startEdit(f: PageFile) {
-    editing.value = f.id
-    editAlt.value = f.defaultAltText ?? ''
-    editDesc.value = f.defaultDescription ?? ''
+    editing.value = f
 }
 
-async function saveEdit() {
-    if (editing.value == null) return
-    const id = editing.value
-    try {
-        await updatePageFileMeta(id, editAlt.value || null, editDesc.value || null)
-        entries.value = entries.value.map(e => e.file.id === id
-            ? {...e, file: {...e.file, defaultAltText: editAlt.value, defaultDescription: editDesc.value}}
-            : e)
-    } finally {
-        editing.value = null
-    }
+async function saveEdit(id: number, altText: string, description: string) {
+    await updatePageFileMeta(id, altText || null, description || null)
+    entries.value = entries.value.map(e => e.file.id === id
+        ? {...e, file: {...e.file, defaultAltText: altText, defaultDescription: description}}
+        : e)
 }
 
-function cancelEdit() {
-    editing.value = null
-}
-
-async function runPrune() {
-    pruning.value = true
-    try {
-        await prunePageFiles()
-        await load()
-    } finally {
-        pruning.value = false
-    }
-}
-
-function formatSize(bytes: number): string {
-    if (bytes < 1024) return `${bytes} B`
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-    return `${(bytes / 1024 / 1024).toFixed(1)} MB`
-}
+const {running: pruning, run: runPrune} = useAsyncAction(async () => {
+    await prunePageFiles()
+    await load()
+})
 </script>
 
 <template>
@@ -241,12 +189,6 @@ function formatSize(bytes: number): string {
                 @edit="startEdit"
             />
         </div>
-        <EditMetaModal
-            v-model:editing="editing"
-            v-model:edit-alt="editAlt"
-            v-model:edit-desc="editDesc"
-            @save="saveEdit"
-            @cancel="cancelEdit"
-        />
+        <PageFileEditModal v-model="editing" @save="saveEdit"/>
     </Modal>
 </template>

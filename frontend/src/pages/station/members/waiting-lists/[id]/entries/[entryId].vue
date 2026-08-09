@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import EntryDetailView from '~/views/stationview/members/waitinglist/EntryDetailView'
+import EntryDetailView from '~/views/stationview/members/waitinglist/EntryDetailView.vue'
 
 definePageMeta({
   layout: 'station',

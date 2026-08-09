@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 </script>
@@ -15,7 +16,7 @@ const {t} = useI18n()
   <NeutralContainer class="space-y-3">
     <div>
       <p class="font-medium">Was hat dir zuletzt besonders gut gefallen? <span class="text-error">*</span></p>
-      <p class="text-xs text-(--text-muted) mt-0.5">Schreib es einfach mit deinen eigenen Worten.</p>
+      <MutedText tag="p" class="mt-0.5">Schreib es einfach mit deinen eigenen Worten.</MutedText>
     </div>
     <TextInput model-value="" :placeholder="t('forms.questionTitle')" disabled />
   </NeutralContainer>

@@ -14,17 +14,17 @@ import type {
   AttendanceSessionField,
   AttendanceStatus,
   AttendanceTemplateField,
-  MemberGroup,
-  StationMember,
   TemplateGroupEntry,
-} from '@/api/types'
-import {StationPermission} from '@/api/types'
+} from '@/api/attendance'
+import {StationPermission, type MemberGroup, type StationMember} from '@/api/types'
 import {attendance, memberGroups, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useSessionMeta} from './sessionview/useSessionMeta'
 import {useCheckMode} from './sessionview/useCheckMode'
 import {useSessionFields} from './sessionview/useSessionFields'
 import SessionContent from './sessionview/SessionContent.vue'
+import {saveBlob} from '@/util/downloadAuthed'
+import {reportCaughtError} from '@/util/devErrorReporter'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -94,6 +94,38 @@ function getMemberIdentity(memberId: number) {
   return allMembers.value.find(mm => mm.id === memberId)?.identity ?? null
 }
 
+function referencedGroupIds(fields: AttendanceTemplateField[]): Set<number> {
+  const groupIds = new Set<number>()
+  for (const tg of templateGroups.value) groupIds.add(tg.groupId)
+  for (const field of fields) {
+    const cfg = parseFieldConfig(field.config)
+    if (cfg.groupId) groupIds.add(cfg.groupId)
+  }
+  return groupIds
+}
+
+async function loadGroupMembers(fields: AttendanceTemplateField[]): Promise<Map<number, StationMember[]>> {
+  const byGroup = new Map<number, StationMember[]>()
+  for (const groupId of referencedGroupIds(fields)) {
+    try {
+      byGroup.set(groupId, await memberGroups.getGroupMembers(groupId))
+    } catch (e) {
+      reportCaughtError(e, 'attendance group member listing')
+    }
+  }
+  return byGroup
+}
+
+async function loadTemplateContext(templateId: number) {
+  const [tplFields, tplDetail] = await Promise.all([
+    attendance.listTemplateFields(templateId),
+    attendance.getTemplate(templateId),
+  ])
+  templateFields.value = tplFields
+  templateGroups.value = tplDetail.groups ?? []
+  groupMembers.value = await loadGroupMembers(tplFields)
+}
+
 async function loadData() {
   loading.value = true
   error.value = ''
@@ -110,29 +142,7 @@ async function loadData() {
     groups.value = allGroups
 
     if (session.value) {
-      const [tplFields, tplDetail] = await Promise.all([
-        attendance.listTemplateFields(session.value.templateId),
-        attendance.getTemplate(session.value.templateId),
-      ])
-      templateFields.value = tplFields
-      templateGroups.value = tplDetail.groups ?? []
-
-      const groupIdsToLoad = new Set<number>()
-      for (const tg of templateGroups.value) groupIdsToLoad.add(tg.groupId)
-      for (const field of tplFields) {
-        const cfg = parseFieldConfig(field.config)
-        if (cfg.groupId) groupIdsToLoad.add(cfg.groupId)
-      }
-
-      const gm = new Map<number, StationMember[]>()
-      for (const groupId of groupIdsToLoad) {
-        try {
-          const members = await memberGroups.getGroupMembers(groupId)
-          gm.set(groupId, members)
-        } catch { /* skip */ }
-      }
-      groupMembers.value = gm
-
+      await loadTemplateContext(session.value.templateId)
     }
 
     initFieldValues(sessionFields.value)
@@ -220,13 +230,7 @@ async function syncFromEvent() {
 async function exportPdf() {
   error.value = ''
   try {
-    const blob = await attendance.exportPdf(sessionId.value)
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `attendance-${sessionId.value}.pdf`
-    a.click()
-    URL.revokeObjectURL(url)
+    saveBlob(await attendance.exportPdf(sessionId.value), `attendance-${sessionId.value}.pdf`)
   } catch {
     error.value = t('common.error')
   }

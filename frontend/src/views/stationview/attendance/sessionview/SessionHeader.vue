@@ -10,7 +10,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TimeShortInput from '@/components/input/datetime/TimeShortInput.vue'
-import type {AttendanceSession} from '@/api/types'
+import type {AttendanceSession} from '@/api/attendance'
 import {formatTime} from '@/util/format'
 
 const {t} = useI18n()

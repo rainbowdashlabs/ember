@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import IndexView from '~/views/stationview/profile/IndexView'
+import IndexView from '~/views/stationview/profile/IndexView.vue'
 
 definePageMeta({
   layout: 'station',

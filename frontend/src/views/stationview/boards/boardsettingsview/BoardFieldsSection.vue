@@ -70,7 +70,7 @@ const { t } = useI18n()
                 </div>
                 <div v-if="field.fieldType === 'LANE_ASSIGNEE'" class="pl-6">
                     <FieldLabel class="text-xs mb-1">{{ t('boards.fieldLane') }}</FieldLabel>
-                    <SelectInput :model-value="String(field.config.laneId ?? '')" @update:model-value="(v: any) => field.config = { ...field.config, laneId: v ? Number(v) : null }">
+                    <SelectInput :model-value="String(field.config.laneId ?? '')" @update:model-value="v => field.config = { ...field.config, laneId: v ? Number(v) : null }">
                         <option value="">—</option>
                         <option v-for="lane in lanes" :key="lane.id" :value="String(lane.id)">{{ lane.name }}</option>
                     </SelectInput>

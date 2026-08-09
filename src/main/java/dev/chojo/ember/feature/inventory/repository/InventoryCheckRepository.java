@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.inventory.entity.InventoryCheckItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryCheckLock;
 import dev.chojo.ember.feature.inventory.entity.ItemCheckHistoryEntry;
 import dev.chojo.ember.feature.inventory.entity.ItemLastCheck;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
@@ -31,8 +32,10 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  */
 @Singleton
 public class InventoryCheckRepository {
-
-    // -- Checks --
+    private static final String INVENTORY_CHECK_COLUMNS =
+            "id, station_id, member_id, checked_by, checked_at, scope, container_id, deep";
+    private static final String INVENTORY_CHECK_ITEM_COLUMNS = "id, check_id, item_id, inventory_id, result, note";
+    private static final String INVENTORY_CHECK_LOCK_COLUMNS = "id, station_id, member_id, locked_by, locked_at";
 
     /**
      * Creates a new inventory check record for a member.
@@ -43,16 +46,14 @@ public class InventoryCheckRepository {
      * @return the created check
      */
     public InventoryCheck createCheck(int stationId, int memberId, int checkedBy) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT INTO inventory_check(station_id, member_id, checked_by, scope)
                 VALUES (:station_id, :member_id, :checked_by, 'MEMBER')
-                RETURNING id, station_id, member_id, checked_by, checked_at, scope, container_id, deep;""")
-                .single(call().bind("station_id", stationId)
-                        .bind("member_id", memberId)
-                        .bind("checked_by", checkedBy))
-                .map(InventoryCheck.map())
-                .first()
-                .orElseThrow();
+                RETURNING %s;""",
+                call().bind("station_id", stationId).bind("member_id", memberId).bind("checked_by", checkedBy),
+                InventoryCheck.map(),
+                INVENTORY_CHECK_COLUMNS);
     }
 
     /**
@@ -65,17 +66,17 @@ public class InventoryCheckRepository {
      * @return the created check
      */
     public InventoryCheck createContainerCheck(int stationId, int containerId, int checkedBy, boolean deep) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT INTO inventory_check(station_id, container_id, checked_by, scope, deep)
                 VALUES (:station_id, :container_id, :checked_by, 'CONTAINER', :deep)
-                RETURNING id, station_id, member_id, checked_by, checked_at, scope, container_id, deep;""")
-                .single(call().bind("station_id", stationId)
+                RETURNING %s;""",
+                call().bind("station_id", stationId)
                         .bind("container_id", containerId)
                         .bind("checked_by", checkedBy)
-                        .bind("deep", deep))
-                .map(InventoryCheck.map())
-                .first()
-                .orElseThrow();
+                        .bind("deep", deep),
+                InventoryCheck.map(),
+                INVENTORY_CHECK_COLUMNS);
     }
 
     /**
@@ -83,10 +84,10 @@ public class InventoryCheckRepository {
      */
     public Optional<InventoryCheck> latestCheckForContainer(int containerId) {
         return query("""
-                SELECT id, station_id, member_id, checked_by, checked_at, scope, container_id, deep
+                SELECT %s
                 FROM inventory_check
                 WHERE container_id = :container_id AND scope = 'CONTAINER'
-                ORDER BY checked_at DESC LIMIT 1;""")
+                ORDER BY checked_at DESC LIMIT 1;""", INVENTORY_CHECK_COLUMNS)
                 .single(call().bind("container_id", containerId))
                 .map(InventoryCheck.map())
                 .first();
@@ -99,8 +100,8 @@ public class InventoryCheckRepository {
      * @return the latest check, or empty if no checks exist
      */
     public Optional<InventoryCheck> latestCheckForMember(int memberId) {
-        return query(
-                        "SELECT id, station_id, member_id, checked_by, checked_at, scope, container_id, deep FROM inventory_check WHERE member_id = :member_id ORDER BY checked_at DESC LIMIT 1;")
+        return query("""
+                SELECT %s FROM inventory_check WHERE member_id = :member_id ORDER BY checked_at DESC LIMIT 1;""", INVENTORY_CHECK_COLUMNS)
                 .single(call().bind("member_id", memberId))
                 .map(InventoryCheck.map())
                 .first();
@@ -182,7 +183,6 @@ public class InventoryCheckRepository {
         var check = latestCheckForMember(memberId);
         if (check.isEmpty()) return Optional.empty();
         var items = findCheckItems(check.get().id());
-        // Get checker name
         var names = query("""
                 SELECT a.first_name, a.last_name FROM station_member sm
                     JOIN account a ON a.id = sm.account_id
@@ -193,8 +193,6 @@ public class InventoryCheckRepository {
                 .orElse(new String[] {"", ""});
         return Optional.of(new CheckDetail(check.get(), names[0], names[1], items));
     }
-
-    // -- Check Items --
 
     /**
      * Creates a check item result within an inventory check.
@@ -208,18 +206,18 @@ public class InventoryCheckRepository {
      */
     public InventoryCheckItem createCheckItem(
             int checkId, Integer itemId, Integer inventoryId, CheckResult result, String note) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT INTO inventory_check_item(check_id, item_id, inventory_id, result, note)
                 VALUES (:check_id, :item_id, :inventory_id, :result, :note)
-                RETURNING id, check_id, item_id, inventory_id, result, note;""")
-                .single(call().bind("check_id", checkId)
+                RETURNING %s;""",
+                call().bind("check_id", checkId)
                         .bind("item_id", itemId)
                         .bind("inventory_id", inventoryId)
                         .bind("result", result)
-                        .bind("note", note != null ? note : ""))
-                .map(InventoryCheckItem.map())
-                .first()
-                .orElseThrow();
+                        .bind("note", note != null ? note : ""),
+                InventoryCheckItem.map(),
+                INVENTORY_CHECK_ITEM_COLUMNS);
     }
 
     /**
@@ -306,14 +304,12 @@ public class InventoryCheckRepository {
      * @return list of check items
      */
     public List<InventoryCheckItem> findCheckItems(int checkId) {
-        return query(
-                        "SELECT id, check_id, item_id, inventory_id, result, note FROM inventory_check_item WHERE check_id = :check_id;")
+        return query("""
+                SELECT %s FROM inventory_check_item WHERE check_id = :check_id;""", INVENTORY_CHECK_ITEM_COLUMNS)
                 .single(call().bind("check_id", checkId))
                 .map(InventoryCheckItem.map())
                 .all();
     }
-
-    // -- Locks --
 
     /**
      * Attempts to acquire a lock on a member for an inventory check.
@@ -329,7 +325,7 @@ public class InventoryCheckRepository {
                 INSERT INTO inventory_check_lock(station_id, member_id, locked_by)
                 VALUES (:station_id, :member_id, :locked_by)
                 ON CONFLICT (member_id) DO NOTHING
-                RETURNING id, station_id, member_id, locked_by, locked_at;""")
+                RETURNING %s;""", INVENTORY_CHECK_LOCK_COLUMNS)
                 .single(call().bind("station_id", stationId)
                         .bind("member_id", memberId)
                         .bind("locked_by", lockedBy))
@@ -370,8 +366,8 @@ public class InventoryCheckRepository {
      * @return the lock, or empty if not locked
      */
     public Optional<InventoryCheckLock> findLock(int memberId) {
-        return query(
-                        "SELECT id, station_id, member_id, locked_by, locked_at FROM inventory_check_lock WHERE member_id = :member_id;")
+        return query("""
+                SELECT %s FROM inventory_check_lock WHERE member_id = :member_id;""", INVENTORY_CHECK_LOCK_COLUMNS)
                 .single(call().bind("member_id", memberId))
                 .map(InventoryCheckLock.map())
                 .first();
@@ -387,8 +383,6 @@ public class InventoryCheckRepository {
                 .single(call().bind("minutes", maxMinutes))
                 .delete();
     }
-
-    // -- Navigation --
 
     /**
      * Finds the next unlocked member who was checked least recently (or never).
@@ -424,8 +418,6 @@ public class InventoryCheckRepository {
                 .map(row -> row.getInt("id"))
                 .first();
     }
-
-    // -- Summary record --
 
     /**
      * Summary of a member's inventory check status, including lock information and roles.

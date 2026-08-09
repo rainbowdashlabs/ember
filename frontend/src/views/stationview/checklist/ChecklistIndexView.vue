@@ -12,9 +12,11 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {checklists, memberGroups, stationMembers, userTags} from '@/api'
-import type {ChecklistCreateRequest, ChecklistSummary, MemberGroup, StationMember, UserTag} from '@/api/types'
+import type {ChecklistCreateRequest, ChecklistSummary} from '@/api/checklists'
+import type {MemberGroup, StationMember, UserTag} from '@/api/types'
 import ChecklistTile from './checklistindexview/ChecklistTile.vue'
 import ChecklistCreateModal from './ChecklistCreateModal.vue'
 
@@ -26,7 +28,6 @@ const groups = ref<MemberGroup[]>([])
 const tags = ref<UserTag[]>([])
 const members = ref<StationMember[]>([])
 const showCreate = ref(false)
-const creating = ref(false)
 
 const {loading, error, reload} = useAsyncLoader(async () => {
   const [list, g, ts, m] = await Promise.all([
@@ -41,16 +42,17 @@ const {loading, error, reload} = useAsyncLoader(async () => {
   members.value = m
 })
 
-async function onCreate(payload: ChecklistCreateRequest) {
-  creating.value = true
-  try {
-    const detail = await checklists.createChecklist(payload)
-    showCreate.value = false
-    await router.push({name: 'checklist-detail', params: {id: detail.id}})
-  } catch {
-    error.value = t('checklist.savingError')
-  }
-  creating.value = false
+const {running: creating, error: createError, run: runCreate} = useAsyncAction(
+    async (payload: ChecklistCreateRequest) => {
+      const detail = await checklists.createChecklist(payload)
+      showCreate.value = false
+      await router.push({name: 'checklist-detail', params: {id: detail.id}})
+    },
+    {formatError: () => t('checklist.savingError')},
+)
+
+function onCreate(payload: ChecklistCreateRequest) {
+  return runCreate(payload)
 }
 
 function open(item: ChecklistSummary) {
@@ -70,7 +72,7 @@ function open(item: ChecklistSummary) {
       </PrimaryButton>
     </div>
 
-    <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
+    <Alert v-if="error || createError" variant="error" class="mb-4">{{ error || createError }}</Alert>
 
     <div v-if="loading" class="flex justify-center py-6"><Spinner/></div>
 

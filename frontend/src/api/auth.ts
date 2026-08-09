@@ -5,17 +5,57 @@
  */
 import client, {cancelTokenRefresh, scheduleTokenRefresh} from './client'
 import {isStorageDenied, removeItem, setItem} from './storage'
-import type {
-    EmailRequest,
-    LoginRequest,
-    LoginResponse,
-    MessageResponse,
-    RegisterRequest,
-    RegisterResponse,
-    SessionResponse,
-    SetPasswordRequest,
-    TokenRequest,
-} from './types'
+import type {MessageResponse} from './types'
+
+export interface LoginRequest {
+    email?: string
+    password?: string
+}
+
+export interface LoginResponse {
+    token?: string
+    expiresAt?: string
+    passwordChangeRequired: boolean
+    passwordChangeToken?: string
+    passwordChangeTokenExpiresAt?: string
+    twoFactorRequired: boolean
+    preAuthToken?: string
+    preAuthTokenExpiresAt?: string
+}
+
+export interface RegisterRequest {
+    email?: string
+    firstName?: string
+    lastName?: string
+    password?: string
+    registrationCode?: string
+}
+
+export interface RegisterResponse {
+    id: number
+    email?: string
+    firstName?: string
+    lastName?: string
+    emailVerified: boolean
+}
+
+export interface TokenRequest {
+    token?: string
+}
+
+export interface EmailRequest {
+    email?: string
+}
+
+export interface SetPasswordRequest {
+    token?: string
+    password?: string
+}
+
+export interface SessionResponse {
+    token?: string
+    expiresAt?: string
+}
 
 export class StorageDeniedError extends Error {
     constructor() {

@@ -51,6 +51,10 @@ const {t} = useI18n()
                    to="/helpcenter/station/inventory/edit" @navigate="close">
         {{ t('sidebar.inventoryEdit') }}
       </SidebarLink>
+      <SidebarLink :icon="['fas', 'tag']" name="help-inventory-item-detail"
+                   to="/helpcenter/station/inventory/item/0" @navigate="close">
+        {{ t('helpCenter.itemDetail.title') }}
+      </SidebarLink>
     </SidebarExpandableLink>
     <SidebarLink :icon="['fas', 'clipboard-list']" name="help-inventory-requirements"
                  to="/helpcenter/station/inventory/requirements" @navigate="close">
@@ -59,7 +63,11 @@ const {t} = useI18n()
     <SidebarExpandableLink :icon="['fas', 'clipboard-check']" name="help-inventory-checks"
                            to="/helpcenter/station/inventory/checks" @navigate="close">
       <template #label>{{ t('sidebar.inventoryCheck') }}</template>
-      <SidebarLink :icon="['fas', 'user-check']" name="help-inventory-check-member"
+      <SidebarLink :icon="['fas', 'users']" name="help-inventory-check-member-overview"
+                   to="/helpcenter/station/inventory/checks/member" @navigate="close">
+        {{ t('helpCenter.inventoryChecks.title') }}
+      </SidebarLink>
+      <SidebarLink :icon="['fas', 'user-check']" name="help-inventory-check-member-detail"
                    to="/helpcenter/station/inventory/checks/0" @navigate="close">
         {{ t('sidebar.inventoryCheckMember') }}
       </SidebarLink>

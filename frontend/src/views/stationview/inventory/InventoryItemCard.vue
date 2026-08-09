@@ -10,8 +10,9 @@ import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
-import type { ExchangeRequestEntry } from '@/api/types'
+import type { ExchangeRequestEntry } from '@/api/exchanges'
 import type { MyInventoryItem } from '@/api/inventory'
+import { formatDate } from '@/util/format'
 
 const { t } = useI18n()
 
@@ -43,12 +44,12 @@ const emit = defineEmits<{
       <div>
         <div class="font-medium text-sm">
           {{ props.item.name }}
-          <SizeBadge :lost="!!props.item.lostAt">{{ props.item.sizeName ?? t('common.unisize') }}</SizeBadge>
+          <SizeBadge v-if="props.item.sizeName" :lost="!!props.item.lostAt">{{ props.item.sizeName }}</SizeBadge>
         </div>
         <div v-if="props.showInventoryName" class="text-xs text-(--text-muted)">{{ props.item.inventoryName }}</div>
         <div v-if="props.item.internalId" class="text-xs text-(--text-muted)">{{ props.item.internalId }}</div>
         <ErrorBadge v-if="props.item.lostAt" class="mt-1">
-          {{ t('profile.lostSince') }} {{ new Date(props.item.lostAt).toLocaleDateString('de-DE') }}
+          {{ t('profile.lostSince') }} {{ formatDate(props.item.lostAt) }}
         </ErrorBadge>
         <InfoBadge v-if="props.exchange" class="mt-1">
           {{ t('exchanges.status.' + props.exchange.status) }}

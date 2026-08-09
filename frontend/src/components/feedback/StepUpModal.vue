@@ -16,15 +16,14 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {stepUp, webauthnStepUpBegin, webauthnStepUpFinish} from '@/api/twoFactor'
 import {getWebAuthnCredential, isWebAuthnSupported} from '@/util/webauthn'
-import {useStepUpPrompt} from '@/composables/useStepUp'
+import {useStepUpPrompt} from '@/util/stepUp'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 
 const {t} = useI18n()
 const {current, complete, cancel} = useStepUpPrompt()
 
 const code = ref('')
 const useBackupCode = ref(false)
-const loading = ref(false)
-const error = ref('')
 const webauthnSupported = isWebAuthnSupported()
 
 const open = computed({
@@ -42,49 +41,45 @@ const categoryHint = computed(() => {
   }
 })
 
+const {running: submitting, error: submitError, run: runSubmit, clearError: clearSubmitError} = useAsyncAction(async () => {
+  if (!code.value || !current.value) return
+  const factor: string = useBackupCode.value ? 'BACKUP_CODE' : 'TOTP'
+  await stepUp(factor, code.value)
+  complete()
+}, {formatError: () => t('twoFactor.stepUp.invalidCode')})
+
+const {running: webauthnRunning, error: webauthnError, run: runWebAuthn, clearError: clearWebauthnError} = useAsyncAction(async () => {
+  const begin = await webauthnStepUpBegin()
+  const credentialJson = await getWebAuthnCredential(begin.optionsJson)
+  await webauthnStepUpFinish(begin.challengeToken, credentialJson)
+  complete()
+}, {formatError: (e) => {
+  const message = (e as Error | undefined)?.message
+  if (message === 'webauthn-cancelled') return t('twoFactor.webauthn.cancelled')
+  if (message === 'webauthn-unsupported') return t('twoFactor.webauthn.unsupported')
+  return t('twoFactor.stepUp.invalidCode')
+}})
+
+const loading = computed(() => submitting.value || webauthnRunning.value)
+const error = computed(() => submitError.value || webauthnError.value)
+
 watch(current, (v) => {
   if (v) {
     code.value = ''
     useBackupCode.value = false
-    error.value = ''
-    loading.value = false
+    clearSubmitError()
+    clearWebauthnError()
   }
 })
 
-async function onSubmit() {
-  if (!code.value || !current.value) return
-  loading.value = true
-  error.value = ''
-  try {
-    const factor: string = useBackupCode.value ? 'BACKUP_CODE' : 'TOTP'
-    await stepUp(factor, code.value)
-    complete()
-  } catch {
-    error.value = t('twoFactor.stepUp.invalidCode')
-  } finally {
-    loading.value = false
-  }
+function onSubmit() {
+  clearWebauthnError()
+  void runSubmit()
 }
 
-async function onWebAuthn() {
-  loading.value = true
-  error.value = ''
-  try {
-    const begin = await webauthnStepUpBegin()
-    const credentialJson = await getWebAuthnCredential(begin.optionsJson)
-    await webauthnStepUpFinish(begin.challengeToken, credentialJson)
-    complete()
-  } catch (e: any) {
-    if (e?.message === 'webauthn-cancelled') {
-      error.value = t('twoFactor.webauthn.cancelled')
-    } else if (e?.message === 'webauthn-unsupported') {
-      error.value = t('twoFactor.webauthn.unsupported')
-    } else {
-      error.value = t('twoFactor.stepUp.invalidCode')
-    }
-  } finally {
-    loading.value = false
-  }
+function onWebAuthn() {
+  clearSubmitError()
+  void runWebAuthn()
 }
 
 function onCancel() {

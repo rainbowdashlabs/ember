@@ -50,7 +50,7 @@ const total = computed(() => props.checklist.length)
             </div>
         </template>
         <template v-else>
-            <DragList :items="checklist" :key-fn="(item: any) => item.id" @reorder="(f, t) => emit('reorder', f, t)">
+            <DragList :items="checklist" :key-fn="(item: BoardChecklistItem) => item.id" @reorder="(f, t) => emit('reorder', f, t)">
                 <template #default="{ item }">
                     <div class="flex items-center gap-2 group py-0.5">
                         <font-awesome-icon :icon="['fas', 'grip-vertical']" class="text-[var(--text-muted)] cursor-grab text-xs" />

@@ -5,14 +5,11 @@
  */
 package dev.chojo.ember.feature.events.entity;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.util.Json;
 import org.slf4j.Logger;
-import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.SerializationFeature;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.util.List;
 
@@ -32,13 +29,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 public record EventFieldConfig(
         List<String> options, Integer groupId, StationUserType userType, Integer tagId, boolean selfRegistration) {
     private static final Logger log = getLogger(EventFieldConfig.class);
-    private static final ObjectMapper MAPPER = JsonMapper.builder()
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-            .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
-            .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
-            .changeDefaultVisibility(v -> v.withFieldVisibility(JsonAutoDetect.Visibility.ANY)
-                    .withGetterVisibility(JsonAutoDetect.Visibility.NONE))
-            .build();
+    private static final ObjectMapper MAPPER = Json.EMPTY_TOLERANT_CONFIG_MAPPER;
     private static final EventFieldConfig EMPTY = new EventFieldConfig(null, null, null, null, false);
 
     public static EventFieldConfig empty() {

@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import { useI18n } from 'vue-i18n'
-import NotFoundContent from '@/components/feedback/NotFoundContent.vue'
+import NotFoundContent from './notfoundview/NotFoundContent.vue'
 import LayeredEmberLogo from '@/components/display/LayeredEmberLogo.vue'
 import { emberLogo } from '@/composables/useEmberLogo'
 

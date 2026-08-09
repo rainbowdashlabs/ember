@@ -8,11 +8,11 @@ import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import StatValue from '@/components/typography/StatValue.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import DataTable from '@/components/table/DataTable.vue'
 import Th from '@/components/table/Th.vue'
 import Td from '@/components/table/Td.vue'
-import THead from '@/components/table/THead.vue'
 import TRow from '@/components/table/TRow.vue'
-import type { InventorySize } from '@/api/types'
+import type { InventorySize } from '@/api/inventory'
 
 interface SizeStat {
   size: InventorySize | null
@@ -62,27 +62,21 @@ const { t } = useI18n()
   <!-- Size distribution -->
   <template v-if="props.hasSizes && props.sizeStats.length > 0">
     <SubHeader>{{ t('inventory.detail.bySize') }}</SubHeader>
-    <NeutralContainer class="overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead>
-          <THead>
-            <Th>{{ t('inventory.detail.size') }}</Th>
-            <Th align="center">{{ t('inventory.detail.total') }}</Th>
-            <Th align="center">{{ t('inventory.detail.free') }}</Th>
-            <Th align="center">{{ t('inventory.detail.assigned') }}</Th>
-            <Th align="center">{{ t('inventory.detail.lost') }}</Th>
-          </THead>
-        </thead>
-        <tbody>
-          <TRow v-for="row in props.sizeStats" :key="row.size?.id ?? 'none'">
-            <Td class="font-medium">{{ row.size?.label ?? t('inventory.detail.noSize') }}</Td>
-            <Td align="center">{{ row.total }}</Td>
-            <Td align="center" class="text-success">{{ row.free }}</Td>
-            <Td align="center" class="text-primary">{{ row.assigned }}</Td>
-            <Td align="center" class="text-error">{{ row.lost }}</Td>
-          </TRow>
-        </tbody>
-      </table>
-    </NeutralContainer>
+    <DataTable>
+      <template #head>
+        <Th>{{ t('inventory.detail.size') }}</Th>
+        <Th align="center">{{ t('inventory.detail.total') }}</Th>
+        <Th align="center">{{ t('inventory.detail.free') }}</Th>
+        <Th align="center">{{ t('inventory.detail.assigned') }}</Th>
+        <Th align="center">{{ t('inventory.detail.lost') }}</Th>
+      </template>
+      <TRow v-for="row in props.sizeStats" :key="row.size?.id ?? 'none'">
+        <Td class="font-medium">{{ row.size?.label ?? t('inventory.detail.noSize') }}</Td>
+        <Td align="center">{{ row.total }}</Td>
+        <Td align="center" class="text-success">{{ row.free }}</Td>
+        <Td align="center" class="text-primary">{{ row.assigned }}</Td>
+        <Td align="center" class="text-error">{{ row.lost }}</Td>
+      </TRow>
+    </DataTable>
   </template>
 </template>

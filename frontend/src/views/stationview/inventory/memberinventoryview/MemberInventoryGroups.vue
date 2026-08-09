@@ -9,7 +9,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import InventoryItemCard from '../InventoryItemCard.vue'
-import type {ExchangeRequestEntry} from '@/api/types'
+import type {ExchangeRequestEntry} from '@/api/exchanges'
 import type {MyInventoryItem} from '@/api/inventory'
 
 export interface InventoryGroup {

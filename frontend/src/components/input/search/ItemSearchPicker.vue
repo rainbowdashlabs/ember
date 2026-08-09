@@ -12,7 +12,8 @@ import Alert from '@/components/feedback/Alert.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import {containerPathFor} from '@/util/containerPath'
 import {inventory, inventoryContainers, stationMembers} from '@/api'
-import type {InventoryItem, InventorySize, Inventory, StationMember} from '@/api/types'
+import type {InventoryItem, InventorySize, Inventory} from '@/api/inventory'
+import type {StationMember} from '@/api/types'
 import type {InventoryContainer} from '@/api/inventoryContainers'
 
 const model = defineModel<number | null>()

@@ -7,6 +7,7 @@
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SearchInput from '@/components/input/text/SearchInput.vue'
+import BaseButton from '@/components/button/BaseButton.vue'
 import {usePageClipboard} from '@/composables/usePageClipboard'
 import {CHOOSER_CATEGORIES} from './cellChoosers'
 
@@ -42,27 +43,28 @@ const filteredCategories = computed(() => {
         <p class="text-sm text-(--text-muted) text-center">{{ t('stationPages.editor.emptyCellHint') }}</p>
         <SearchInput v-model="search" :placeholder="t('stationPages.editor.chooserSearch')" class="w-full"/>
         <div class="max-h-96 overflow-y-auto -mx-1 px-1 space-y-3">
-            <button
+            <BaseButton
                 v-if="hasClipboard && clipboardType === 'cell'"
-                class="w-full flex items-center justify-center gap-2 rounded-theme border border-primary/40 hover:border-primary hover:bg-primary/5 transition-colors px-3 py-2 text-primary text-sm"
+                full-width
+                class="gap-2 !px-3 !py-2 !font-normal border border-primary/40 hover:border-primary hover:bg-primary/5 text-primary"
                 @click="emit('paste-here')"
             >
                 <font-awesome-icon :icon="['fas', 'paste']"/>
                 {{ t('stationPages.editor.pasteCell') }}
-            </button>
+            </BaseButton>
             <div v-for="cat in filteredCategories" :key="cat.key" class="space-y-1">
                 <p class="text-[10px] uppercase tracking-wider text-(--text-muted) font-semibold">
                     {{ t(`stationPages.editor.${cat.key}`) }}
                 </p>
                 <div class="grid grid-cols-1 @[10rem]:grid-cols-2 @md:grid-cols-3 @xl:grid-cols-4 gap-2">
-                    <button
+                    <BaseButton
                         v-for="entry in cat.items" :key="entry.type"
-                        class="flex flex-col items-center gap-1 rounded-theme border border-(--border) hover:border-primary hover:bg-primary/5 transition-colors px-3 py-3"
+                        class="flex-col gap-1 !px-3 !py-3 !font-normal border border-(--border) hover:border-primary hover:bg-primary/5"
                         @click="emit('pick', entry.type)"
                     >
                         <font-awesome-icon :icon="['fas', entry.icon]" class="text-lg text-primary"/>
                         <span class="text-xs text-center">{{ t(`stationPages.editor.${entry.key}`) }}</span>
-                    </button>
+                    </BaseButton>
                 </div>
             </div>
         </div>

@@ -11,8 +11,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {BarcodeFormat, ScannerSession} from './useBarcodeScanner'
-import {useBarcodeScanner} from './useBarcodeScanner'
+import {useBarcodeScanner, type BarcodeFormat, type ScannerSession} from './useBarcodeScanner'
 
 const props = withDefaults(defineProps<{
   mode?: 'one-shot' | 'continuous'

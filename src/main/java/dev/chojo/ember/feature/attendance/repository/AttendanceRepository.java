@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceTemplate;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
 import dev.chojo.ember.feature.attendance.entity.SessionSummary;
 import dev.chojo.ember.feature.members.entity.MemberAbsence;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
@@ -32,8 +33,15 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  */
 @Singleton
 public class AttendanceRepository {
-
-    // -- Templates --
+    private static final String ATTENDANCE_TEMPLATE_COLUMNS = "id, station_id, name";
+    private static final String ATTENDANCE_SESSION_COLUMNS =
+            "id, template_id, start_time, end_time, created_at, event_id, title";
+    private static final String ATTENDANCE_ENTRY_COLUMNS =
+            "id, session_id, member_id, status, check_in, check_out, source";
+    private static final String ATTENDANCE_REPORT_PRESET_COLUMNS =
+            "id, station_id, name, role_name, group_id, period, rounding";
+    private static final String MEMBER_ABSENCE_COLUMNS =
+            "id, member_id, absent_from, absent_until, reason, created_at, created_by";
 
     /**
      * Finds an attendance template by its ID.
@@ -42,10 +50,7 @@ public class AttendanceRepository {
      * @return the template if found
      */
     public Optional<AttendanceTemplate> findTemplateById(int id) {
-        return query("SELECT id, station_id, name FROM attendance_template WHERE id = :id;")
-                .single(call().bind("id", id))
-                .map(AttendanceTemplate.map())
-                .first();
+        return SqlSupport.findById("attendance_template", ATTENDANCE_TEMPLATE_COLUMNS, id, AttendanceTemplate.map());
     }
 
     /**
@@ -55,7 +60,8 @@ public class AttendanceRepository {
      * @return list of templates for the station
      */
     public List<AttendanceTemplate> findTemplatesByStation(int stationId) {
-        return query("SELECT id, station_id, name FROM attendance_template WHERE station_id = :station_id;")
+        return query("""
+                SELECT %s FROM attendance_template WHERE station_id = :station_id;""", ATTENDANCE_TEMPLATE_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(AttendanceTemplate.map())
                 .all();
@@ -69,12 +75,13 @@ public class AttendanceRepository {
      * @return the created template
      */
     public AttendanceTemplate createTemplate(int stationId, String name) {
-        return query(
-                        "INSERT INTO attendance_template(station_id, name) VALUES(:station_id, :name) RETURNING id, station_id, name;")
-                .single(call().bind("station_id", stationId).bind("name", name))
-                .map(AttendanceTemplate.map())
-                .first()
-                .orElseThrow();
+        return SqlSupport.insertReturning(
+                """
+                INSERT INTO attendance_template(station_id, name) VALUES(:station_id, :name)
+                RETURNING %s;""",
+                call().bind("station_id", stationId).bind("name", name),
+                AttendanceTemplate.map(),
+                ATTENDANCE_TEMPLATE_COLUMNS);
     }
 
     /**
@@ -98,13 +105,8 @@ public class AttendanceRepository {
      * @return {@code true} if the template was deleted
      */
     public boolean deleteTemplate(int id) {
-        return query("DELETE FROM attendance_template WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("attendance_template", id);
     }
-
-    // -- Template Fields --
 
     /**
      * Finds all fields for a template, ordered by position.
@@ -181,13 +183,8 @@ public class AttendanceRepository {
      * @return {@code true} if the field was deleted
      */
     public boolean deleteTemplateField(int id) {
-        return query("DELETE FROM attendance_template_field WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("attendance_template_field", id);
     }
-
-    // -- Template Groups --
 
     /**
      * Finds all group associations for a template, ordered by position.
@@ -230,14 +227,8 @@ public class AttendanceRepository {
      * @return the session if found
      */
     public Optional<AttendanceSession> findSessionById(int id) {
-        return query(
-                        "SELECT id, template_id, start_time, end_time, created_at, event_id, title FROM attendance_session WHERE id = :id;")
-                .single(call().bind("id", id))
-                .map(AttendanceSession.map())
-                .first();
+        return SqlSupport.findById("attendance_session", ATTENDANCE_SESSION_COLUMNS, id, AttendanceSession.map());
     }
-
-    // -- Sessions --
 
     /**
      * Finds all sessions for a template, ordered by creation date descending.
@@ -247,10 +238,10 @@ public class AttendanceRepository {
      */
     public List<AttendanceSession> findSessionsByTemplate(int templateId) {
         return query("""
-                SELECT id, template_id, start_time, end_time, created_at, event_id, title
+                SELECT %s
                 FROM attendance_session
                 WHERE template_id = :template_id
-                ORDER BY created_at DESC;""")
+                ORDER BY created_at DESC;""", ATTENDANCE_SESSION_COLUMNS)
                 .single(call().bind("template_id", templateId))
                 .map(AttendanceSession.map())
                 .all();
@@ -264,7 +255,7 @@ public class AttendanceRepository {
      */
     public List<SessionSummary> findSessionSummariesByStation(int stationId) {
         return query("""
-                SELECT s.id, s.template_id, s.start_time, s.end_time, s.created_at, s.event_id, s.title,
+                SELECT %s,
                        count(e.id) FILTER (WHERE e.status = 'PRESENT') AS present_count,
                        count(e.id) FILTER (WHERE e.status = 'ABSENT') AS absent_count,
                        count(e.id) FILTER (WHERE e.status = 'DECLINED') AS declined_count,
@@ -274,7 +265,7 @@ public class AttendanceRepository {
                 LEFT JOIN attendance_entry e ON e.session_id = s.id
                 WHERE t.station_id = :station_id
                 GROUP BY s.id
-                ORDER BY s.created_at DESC;""")
+                ORDER BY s.created_at DESC;""", SqlSupport.alias("s", ATTENDANCE_SESSION_COLUMNS))
                 .single(call().bind("station_id", stationId))
                 .map(row -> new SessionSummary(
                         row.getInt("id"),
@@ -298,8 +289,8 @@ public class AttendanceRepository {
      * @return the session if found
      */
     public Optional<AttendanceSession> findSessionByEventId(int eventId) {
-        return query(
-                        "SELECT id, template_id, start_time, end_time, created_at, event_id, title FROM attendance_session WHERE event_id = :event_id ORDER BY created_at DESC LIMIT 1;")
+        return query("""
+                SELECT %s FROM attendance_session WHERE event_id = :event_id ORDER BY created_at DESC LIMIT 1;""", ATTENDANCE_SESSION_COLUMNS)
                 .single(call().bind("event_id", eventId))
                 .map(AttendanceSession.map())
                 .first();
@@ -317,16 +308,18 @@ public class AttendanceRepository {
      */
     public AttendanceSession createSession(
             int templateId, Instant startTime, Instant endTime, Integer eventId, String title) {
-        return query(
-                        "INSERT INTO attendance_session(template_id, start_time, end_time, event_id, title) VALUES(:template_id, :start_time, :end_time, :event_id, :title) RETURNING id, template_id, start_time, end_time, created_at, event_id, title;")
-                .single(call().bind("template_id", templateId)
+        return SqlSupport.insertReturning(
+                """
+                INSERT INTO attendance_session(template_id, start_time, end_time, event_id, title)
+                VALUES(:template_id, :start_time, :end_time, :event_id, :title)
+                RETURNING %s;""",
+                call().bind("template_id", templateId)
                         .bind("start_time", startTime, INSTANT_TIMESTAMP)
                         .bind("end_time", endTime, INSTANT_TIMESTAMP)
                         .bind("event_id", eventId)
-                        .bind("title", title))
-                .map(AttendanceSession.map())
-                .first()
-                .orElseThrow();
+                        .bind("title", title),
+                AttendanceSession.map(),
+                ATTENDANCE_SESSION_COLUMNS);
     }
 
     /**
@@ -356,10 +349,7 @@ public class AttendanceRepository {
      * @return {@code true} if the session was deleted
      */
     public boolean deleteSession(int id) {
-        return query("DELETE FROM attendance_session WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("attendance_session", id);
     }
 
     /**
@@ -397,8 +387,6 @@ public class AttendanceRepository {
                 .insert();
     }
 
-    // -- Session Fields --
-
     /**
      * Deletes a specific field value from a session.
      *
@@ -420,12 +408,12 @@ public class AttendanceRepository {
      */
     public List<AttendanceEntry> findEntries(int sessionId) {
         return query("""
-                SELECT e.id, e.session_id, e.member_id, e.status, e.check_in, e.check_out, e.source
+                SELECT %s
                 FROM attendance_entry e
                 JOIN station_member sm ON sm.id = e.member_id
                 LEFT JOIN account a ON a.id = sm.account_id
                 WHERE e.session_id = :session_id
-                ORDER BY a.full_name;""")
+                ORDER BY a.full_name;""", SqlSupport.alias("e", ATTENDANCE_ENTRY_COLUMNS))
                 .single(call().bind("session_id", sessionId))
                 .map(AttendanceEntry.map())
                 .all();
@@ -440,18 +428,10 @@ public class AttendanceRepository {
      */
     public Optional<AttendanceEntry> findEntry(int sessionId, int memberId) {
         return query("""
-                SELECT
-                    id,
-                    session_id,
-                    member_id,
-                    status,
-                    check_in,
-                    check_out,
-                    source
-                FROM
-                    attendance_entry
+                SELECT %s
+                FROM attendance_entry
                 WHERE session_id = :session_id
-                  AND member_id = :member_id;""")
+                  AND member_id = :member_id;""", ATTENDANCE_ENTRY_COLUMNS)
                 .single(call().bind("session_id", sessionId).bind("member_id", memberId))
                 .map(AttendanceEntry.map())
                 .first();
@@ -464,24 +444,8 @@ public class AttendanceRepository {
      * @return the entry if found
      */
     public Optional<AttendanceEntry> findEntryById(int id) {
-        return query("""
-                SELECT
-                    id,
-                    session_id,
-                    member_id,
-                    status,
-                    check_in,
-                    check_out,
-                    source
-                FROM
-                    attendance_entry
-                WHERE id = :id;""")
-                .single(call().bind("id", id))
-                .map(AttendanceEntry.map())
-                .first();
+        return SqlSupport.findById("attendance_entry", ATTENDANCE_ENTRY_COLUMNS, id, AttendanceEntry.map());
     }
-
-    // -- Entries --
 
     /**
      * Finds all attendance entries for a specific member across all sessions.
@@ -490,8 +454,8 @@ public class AttendanceRepository {
      * @return list of attendance entries
      */
     public List<AttendanceEntry> findEntriesByMember(int memberId) {
-        return query(
-                        "SELECT id, session_id, member_id, status, check_in, check_out, source FROM attendance_entry WHERE member_id = :member_id;")
+        return query("""
+                SELECT %s FROM attendance_entry WHERE member_id = :member_id;""", ATTENDANCE_ENTRY_COLUMNS)
                 .single(call().bind("member_id", memberId))
                 .map(AttendanceEntry.map())
                 .all();
@@ -578,10 +542,7 @@ public class AttendanceRepository {
      * @return {@code true} if the entry was deleted
      */
     public boolean deleteEntry(int id) {
-        return query("DELETE FROM attendance_entry WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("attendance_entry", id);
     }
 
     /**
@@ -594,13 +555,13 @@ public class AttendanceRepository {
      */
     public List<AttendanceSession> findSessionsByStationInRange(int stationId, Instant from, Instant to) {
         return query("""
-                SELECT s.id, s.template_id, s.start_time, s.end_time, s.created_at, s.event_id, s.title
+                SELECT %s
                 FROM attendance_session s
                 JOIN attendance_template t ON t.id = s.template_id
                 WHERE t.station_id = :station_id
                   AND s.start_time >= :from_time
                   AND s.start_time < :to_time
-                ORDER BY s.start_time;""")
+                ORDER BY s.start_time;""", SqlSupport.alias("s", ATTENDANCE_SESSION_COLUMNS))
                 .single(call().bind("station_id", stationId)
                         .bind("from_time", from, INSTANT_TIMESTAMP)
                         .bind("to_time", to, INSTANT_TIMESTAMP))
@@ -610,12 +571,12 @@ public class AttendanceRepository {
 
     public List<AttendanceSession> findRecentSessions(int stationId, int limit) {
         return query("""
-                SELECT s.id, s.template_id, s.start_time, s.end_time, s.created_at, s.event_id, s.title
+                SELECT %s
                 FROM attendance_session s
                 JOIN attendance_template t ON t.id = s.template_id
                 WHERE t.station_id = :station_id
                 ORDER BY s.start_time DESC
-                LIMIT :limit;""")
+                LIMIT :limit;""", SqlSupport.alias("s", ATTENDANCE_SESSION_COLUMNS))
                 .single(call().bind("station_id", stationId).bind("limit", limit))
                 .map(AttendanceSession.map())
                 .all();
@@ -638,8 +599,6 @@ public class AttendanceRepository {
                 .all();
     }
 
-    // -- Export Queries --
-
     /**
      * Finds all member IDs belonging to a specific group.
      *
@@ -661,8 +620,8 @@ public class AttendanceRepository {
      * @return list of report presets
      */
     public List<AttendanceReportPreset> findPresets(int stationId) {
-        return query(
-                        "SELECT id, station_id, name, role_name, group_id, period, rounding FROM attendance_report_preset WHERE station_id = :station_id ORDER BY name;")
+        return query("""
+                SELECT %s FROM attendance_report_preset WHERE station_id = :station_id ORDER BY name;""", ATTENDANCE_REPORT_PRESET_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(AttendanceReportPreset.map())
                 .all();
@@ -681,20 +640,20 @@ public class AttendanceRepository {
      */
     public AttendanceReportPreset createPreset(
             int stationId, String name, StationUserType userType, Integer groupId, String period, String rounding) {
-        return query(
-                        "INSERT INTO attendance_report_preset(station_id, name, role_name, group_id, period, rounding) VALUES(:station_id, :name, :role_name, :group_id, :period, :rounding) RETURNING id, station_id, name, role_name, group_id, period, rounding;")
-                .single(call().bind("station_id", stationId)
+        return SqlSupport.insertReturning(
+                """
+                INSERT INTO attendance_report_preset(station_id, name, role_name, group_id, period, rounding)
+                VALUES(:station_id, :name, :role_name, :group_id, :period, :rounding)
+                RETURNING %s;""",
+                call().bind("station_id", stationId)
                         .bind("name", name)
                         .bind("role_name", userType)
                         .bind("group_id", groupId)
                         .bind("period", period)
-                        .bind("rounding", rounding))
-                .map(AttendanceReportPreset.map())
-                .first()
-                .orElseThrow();
+                        .bind("rounding", rounding),
+                AttendanceReportPreset.map(),
+                ATTENDANCE_REPORT_PRESET_COLUMNS);
     }
-
-    // -- Report Presets --
 
     /**
      * Deletes a report preset by its ID.
@@ -703,10 +662,7 @@ public class AttendanceRepository {
      * @return {@code true} if the preset was deleted
      */
     public boolean deletePreset(int id) {
-        return query("DELETE FROM attendance_report_preset WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("attendance_report_preset", id);
     }
 
     /**
@@ -721,16 +677,18 @@ public class AttendanceRepository {
      */
     public MemberAbsence createAbsence(
             int memberId, LocalDate absentFrom, LocalDate absentUntil, String reason, Integer createdBy) {
-        return query(
-                        "INSERT INTO member_absence(member_id, absent_from, absent_until, reason, created_by) VALUES(:member_id, :absent_from, :absent_until, :reason, :created_by) RETURNING id, member_id, absent_from, absent_until, reason, created_at, created_by;")
-                .single(call().bind("member_id", memberId)
+        return SqlSupport.insertReturning(
+                """
+                INSERT INTO member_absence(member_id, absent_from, absent_until, reason, created_by)
+                VALUES(:member_id, :absent_from, :absent_until, :reason, :created_by)
+                RETURNING %s;""",
+                call().bind("member_id", memberId)
                         .bind("absent_from", absentFrom)
                         .bind("absent_until", absentUntil)
                         .bind("reason", reason)
-                        .bind("created_by", createdBy))
-                .map(MemberAbsence.map())
-                .first()
-                .orElseThrow();
+                        .bind("created_by", createdBy),
+                MemberAbsence.map(),
+                MEMBER_ABSENCE_COLUMNS);
     }
 
     /**
@@ -740,14 +698,8 @@ public class AttendanceRepository {
      * @return the absence if found
      */
     public Optional<MemberAbsence> findAbsenceById(int id) {
-        return query(
-                        "SELECT id, member_id, absent_from, absent_until, reason, created_at, created_by FROM member_absence WHERE id = :id;")
-                .single(call().bind("id", id))
-                .map(MemberAbsence.map())
-                .first();
+        return SqlSupport.findById("member_absence", MEMBER_ABSENCE_COLUMNS, id, MemberAbsence.map());
     }
-
-    // -- Absences --
 
     /**
      * Finds all absences for a member, ordered by end date descending.
@@ -756,8 +708,8 @@ public class AttendanceRepository {
      * @return list of absences
      */
     public List<MemberAbsence> findAbsencesByMember(int memberId) {
-        return query(
-                        "SELECT id, member_id, absent_from, absent_until, reason, created_at, created_by FROM member_absence WHERE member_id = :member_id ORDER BY absent_until DESC;")
+        return query("""
+                SELECT %s FROM member_absence WHERE member_id = :member_id ORDER BY absent_until DESC;""", MEMBER_ABSENCE_COLUMNS)
                 .single(call().bind("member_id", memberId))
                 .map(MemberAbsence.map())
                 .all();
@@ -771,13 +723,13 @@ public class AttendanceRepository {
      */
     public List<MemberAbsence> findActiveAbsencesByStation(int stationId) {
         return query("""
-                SELECT ma.id, ma.member_id, ma.absent_from, ma.absent_until, ma.reason, ma.created_at, ma.created_by
+                SELECT %s
                 FROM member_absence ma
                     JOIN station_member sm ON ma.member_id = sm.id
                 WHERE sm.station_id = :station_id
                   AND ma.absent_from <= current_date
                   AND ma.absent_until >= current_date
-                ORDER BY ma.absent_until;""")
+                ORDER BY ma.absent_until;""", SqlSupport.alias("ma", MEMBER_ABSENCE_COLUMNS))
                 .single(call().bind("station_id", stationId))
                 .map(MemberAbsence.map())
                 .all();
@@ -792,13 +744,13 @@ public class AttendanceRepository {
      */
     public List<MemberAbsence> findAbsencesByStationOnDate(int stationId, LocalDate date) {
         return query("""
-                SELECT ma.id, ma.member_id, ma.absent_from, ma.absent_until, ma.reason, ma.created_at, ma.created_by
+                SELECT %s
                 FROM member_absence ma
                     JOIN station_member sm ON ma.member_id = sm.id
                 WHERE sm.station_id = :station_id
                   AND ma.absent_from <= :date
                   AND ma.absent_until >= :date
-                ORDER BY ma.absent_until;""")
+                ORDER BY ma.absent_until;""", SqlSupport.alias("ma", MEMBER_ABSENCE_COLUMNS))
                 .single(call().bind("station_id", stationId).bind("date", date))
                 .map(MemberAbsence.map())
                 .all();
@@ -811,12 +763,8 @@ public class AttendanceRepository {
      * @return {@code true} if the member is currently absent
      */
     public boolean isAbsent(int memberId) {
-        return query(
-                        "SELECT 1 FROM member_absence WHERE member_id = :member_id AND absent_from <= current_date AND absent_until >= current_date LIMIT 1;")
-                .single(call().bind("member_id", memberId))
-                .map(_ -> true)
-                .first()
-                .isPresent();
+        return SqlSupport.exists("""
+                SELECT 1 FROM member_absence WHERE member_id = :member_id AND absent_from <= current_date AND absent_until >= current_date LIMIT 1;""", call().bind("member_id", memberId));
     }
 
     /**
@@ -826,10 +774,7 @@ public class AttendanceRepository {
      * @return {@code true} if the absence was deleted
      */
     public boolean deleteAbsence(int id) {
-        return query("DELETE FROM member_absence WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("member_absence", id);
     }
 
     /**

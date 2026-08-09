@@ -11,6 +11,7 @@ import FederatedEventTile from '@/views/stationview/events/upcomingview/federate
 import {events} from '@/api'
 import type {FederatedEvent, FederatedRegistration} from '@/api/events'
 import {useSession} from '@/composables/useSession'
+import {reportCaughtError} from '@/util/devErrorReporter'
 
 const {t} = useI18n()
 const {sessionInfo} = useSession()
@@ -34,8 +35,8 @@ const eligibleMembers = computed(() => {
 })
 
 function getEventDate(fed: FederatedEvent): string {
-  if (fed.event.startTime) return new Date(fed.event.startTime).toISOString().split('T')[0]
-  return new Date().toISOString().split('T')[0]
+  if (fed.event.startTime) return new Date(fed.event.startTime).toISOString().slice(0, 10)
+  return new Date().toISOString().slice(0, 10)
 }
 
 async function register(fed: FederatedEvent, memberUid: string) {
@@ -50,7 +51,8 @@ async function register(fed: FederatedEvent, memberUid: string) {
       status: 'PENDING',
       partnerId: fed.partnerId,
     })
-  } catch {
+  } catch (e) {
+    reportCaughtError(e, 'federated event registration')
   }
   registering.value = null
 }
@@ -62,7 +64,8 @@ async function withdraw(fed: FederatedEvent, memberUid: string) {
     await events.withdrawFederatedRegistration(fed.partnerStationUid, fed.event.id, getEventDate(fed), memberUid)
     myRegistrations.value = myRegistrations.value.filter(
         r => !(r.eventId === fed.event.id && r.remoteMemberId === memberUid))
-  } catch {
+  } catch (e) {
+    reportCaughtError(e, 'federated event withdrawal')
   }
   registering.value = null
 }
@@ -75,7 +78,8 @@ onMounted(async () => {
     ])
     federatedEvents.value = fedEvents
     myRegistrations.value = regs
-  } catch {
+  } catch (e) {
+    reportCaughtError(e, 'federated event listing')
   }
 })
 </script>

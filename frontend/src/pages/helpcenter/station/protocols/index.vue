@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ProtocolHelp from '~/views/helpcenter/stationview/protocol/ProtocolHelp'
+import ProtocolHelp from '~/views/helpcenter/stationview/protocol/ProtocolHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

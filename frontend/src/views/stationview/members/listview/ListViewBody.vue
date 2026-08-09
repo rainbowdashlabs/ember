@@ -8,7 +8,12 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import LoadedContent from './LoadedContent.vue'
 import ExportModal from './ExportModal.vue'
-import type { StationMember, ProfileField, MemberGroup, UserTag, PermissionGrant } from '@/api/types'
+import type { ProfileField } from '@/api/profileFields'
+import type { StationMember, MemberGroup, UserTag } from '@/api/types'
+import type { ExportFieldOption, ExportFormatName } from '@/composables/useExport'
+import type { SortDirection } from '@/composables/useSortable'
+import type { FilterCriteria } from '@/composables/useMemberFilter'
+import type { MemberSortKey, SavedFilterPreset } from './useSavedFilters'
 
 defineProps<{
   loading: boolean
@@ -16,10 +21,11 @@ defineProps<{
   activeTab: string
   filterText: string
   tabs: { key: string; label: string }[]
-  savedFilters: { id: number; name: string }[]
+  savedFilters: SavedFilterPreset[]
   tabOverviewFields: ProfileField[]
   tabNonOverviewFields: ProfileField[]
-  tabScopedFields: ProfileField[]
+  exportColumns: ExportFieldOption[]
+  selectedExportColumns: Set<string>
   extraColumnIds: Set<number>
   hiddenColumnIds: Set<number>
   exportMode: boolean
@@ -28,16 +34,16 @@ defineProps<{
   canEdit: boolean
   groups: MemberGroup[]
   tags: UserTag[]
-  filteredMembers: StationMember[]
+  members: StationMember[]
   visibleColumns: ProfileField[]
   expandedId: number | null
-  sortColumn: 'name' | number
-  sortAsc: boolean
+  sortKey: MemberSortKey
+  sortDirection: SortDirection
   columnMultiFilters: Map<'name' | 'groups' | 'tags' | number, Set<string>>
   columnEmptyFilters: Set<'name' | 'groups' | 'tags' | number>
-  memberGroupsMap: Map<number, MemberGroup[]>
-  memberTagsMap: Map<number, UserTag[]>
-  memberRolesMap: Map<number, PermissionGrant[]>
+  memberGroupsMap: Map<number, string[]>
+  memberTagsMap: Map<number, string[]>
+  memberRolesMap: Map<number, string[]>
   memberManagers: Map<number, StationMember[]>
   allMembers: StationMember[]
   overviewFields: ProfileField[]
@@ -50,22 +56,24 @@ defineEmits<{
   (e: 'update:filterText', value: string): void
   (e: 'update:showExportModal', value: boolean): void
   (e: 'clear-filters'): void
-  (e: 'apply-filter', filterId: number): void
+  (e: 'apply-filter', preset: SavedFilterPreset): void
   (e: 'delete-filter', filterId: number): void
   (e: 'save-filter', name: string): void
   (e: 'toggle-column', fieldId: number): void
   (e: 'toggle-export'): void
   (e: 'export-continue'): void
-  (e: 'filter', filter: unknown): void
-  (e: 'toggle-sort', column: 'name' | number): void
+  (e: 'filter', filter: FilterCriteria): void
+  (e: 'toggle-sort', column: MemberSortKey): void
   (e: 'apply-column-filter', key: 'name' | 'groups' | 'tags' | number, selected: Set<string>, includeEmpty: boolean): void
-  (e: 'toggle-expand', id: number): void
+  (e: 'toggle-expand', member: StationMember): void
   (e: 'navigate-detail', member: StationMember, event: Event): void
   (e: 'navigate-edit', member: StationMember, event: Event): void
   (e: 'resend-setup', member: StationMember, event: Event): void
   (e: 'toggle-select', id: number): void
   (e: 'toggle-select-all'): void
-  (e: 'export', config: unknown): void
+  (e: 'toggle-export-column', key: string): void
+  (e: 'select-export-columns', keys: string[]): void
+  (e: 'export', format: ExportFormatName): void
 }>()
 </script>
 
@@ -88,11 +96,11 @@ defineEmits<{
     :can-export="canExport"
     :groups="groups"
     :tags="tags"
-    :filtered-members="filteredMembers"
+    :members="members"
     :visible-columns="visibleColumns"
     :expanded-id="expandedId"
-    :sort-column="sortColumn"
-    :sort-asc="sortAsc"
+    :sort-key="sortKey"
+    :sort-direction="sortDirection"
     :column-multi-filters="columnMultiFilters"
     :column-empty-filters="columnEmptyFilters"
     :member-groups-map="memberGroupsMap"
@@ -126,9 +134,12 @@ defineEmits<{
 
   <ExportModal
     :model-value="showExportModal"
-    :available-fields="tabScopedFields"
+    :columns="exportColumns"
+    :selected-columns="selectedExportColumns"
     :selected-count="selectedIds.size"
     @update:model-value="$emit('update:showExportModal', $event)"
+    @toggle-column="$emit('toggle-export-column', $event)"
+    @select-columns="$emit('select-export-columns', $event)"
     @export="$emit('export', $event)"
   />
 </template>

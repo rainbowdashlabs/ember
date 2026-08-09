@@ -6,13 +6,15 @@
 <script lang="ts" setup>
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
+import MutedIconButton from '@/components/button/MutedIconButton.vue'
+import type {QuickSearchScope} from '@/composables/useQuickSearch'
 
 const props = defineProps<{
-  scope?: string
+  scope?: QuickSearchScope
 }>()
 
 const emit = defineEmits<{
-  open: [scope: string]
+  open: [scope: QuickSearchScope]
 }>()
 
 const {t} = useI18n()
@@ -24,13 +26,10 @@ function onClick() {
 </script>
 
 <template>
-  <button
-      :aria-label="t('quickSearch.openLabel')"
-      :title="t('quickSearch.openLabel')"
-      class="inline-flex items-center justify-center text-(--text-muted) hover:text-(--text)
-             transition-colors cursor-pointer"
+  <MutedIconButton
+      :icon="['fas', 'magnifying-glass']"
+      :label="t('quickSearch.openLabel')"
+      hover="text"
       @click="onClick"
-  >
-    <font-awesome-icon :icon="['fas', 'magnifying-glass']" class="h-4 w-4"/>
-  </button>
+  />
 </template>

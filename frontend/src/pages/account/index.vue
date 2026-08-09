@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import AccountIndexView from '~/views/accountview/AccountIndexView'
+import AccountIndexView from '~/views/accountview/AccountIndexView.vue'
 
 definePageMeta({
   layout: 'account',

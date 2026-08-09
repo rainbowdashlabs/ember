@@ -35,7 +35,7 @@ const {t} = useI18n()
         v-if="showFederated && partnerStations.length > 0"
         :model-value="filterStationId != null ? String(filterStationId) : ''"
         class="!w-auto !text-xs !py-1"
-        @update:model-value="(v: string | undefined) => { filterStationId = v || null; emit('refresh') }"
+        @update:model-value="(v: string | number | null | undefined) => { filterStationId = v ? String(v) : null; emit('refresh') }"
     >
       <option value="">{{ t('kb.allStations') }}</option>
       <option v-for="station in partnerStations" :key="station.id" :value="String(station.id)">

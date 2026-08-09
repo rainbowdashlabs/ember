@@ -23,6 +23,8 @@ import Modal from '@/components/feedback/Modal.vue'
 import MailProviderCredentialFields from '@/components/mail/MailProviderCredentialFields.vue'
 import {RELAY_PROVIDER_NAMES} from '@/util/mailProviders'
 import {stationManage} from '@/api'
+import {useAsyncAction} from '@/composables/useAsyncAction'
+import {apiErrorMessage} from '@/util/apiError'
 
 const emit = defineEmits<{
   error: [msg: string]
@@ -47,7 +49,6 @@ const mailDailyLimit = ref(100)
 const mailMonthlyLimit = ref(2000)
 const mailSentToday = ref(0)
 const mailSentThisMonth = ref(0)
-const mailTesting = ref(false)
 interface MailTestResult {
   success: boolean
   error?: string | null
@@ -55,7 +56,6 @@ interface MailTestResult {
 
 const mailTestResult = ref<MailTestResult | null>(null)
 const showClearModal = ref(false)
-const clearing = ref(false)
 
 async function loadMailConfig() {
   try {
@@ -76,7 +76,9 @@ async function loadMailConfig() {
     mailSentThisMonth.value = config.sentThisMonth
     mailSmtpPassword.value = ''
     mailApiKey.value = ''
-  } catch { /* ignore */ }
+  } catch {
+    return
+  }
 }
 
 async function saveMailConfig() {
@@ -111,62 +113,54 @@ async function saveMailConfig() {
     emit('success', t('stationManage.mailSaved'))
   } catch (e) {
     const backendMessage = (e as {response?: {data?: {title?: string; message?: string}}})?.response?.data?.title
-        ?? (e as {response?: {data?: {message?: string}}})?.response?.data?.message
+        ?? apiErrorMessage(e)
     emit('error', backendMessage ? t('stationManage.mailSaveFailed', {error: backendMessage}) : t('common.error'))
     throw e
   }
 }
 
+const {running: clearing, error: clearError, run: runClearMailConfig} = useAsyncAction(async () => {
+  await stationManage.clearMailConfig()
+  mailProvider.value = 'NONE'
+  mailSmtpHost.value = ''
+  mailSmtpPort.value = 587
+  mailSmtpSsl.value = false
+  mailSmtpUser.value = ''
+  mailSmtpPassword.value = ''
+  mailSenderAddress.value = ''
+  mailSenderName.value = ''
+  mailApiKey.value = ''
+  mailHasApiKey.value = false
+  mailProviderName.value = ''
+  mailProviderUrl.value = ''
+  mailTestResult.value = null
+  showClearModal.value = false
+  emit('success', t('stationManage.mailCleared'))
+})
+
 async function clearMailConfig() {
-  clearing.value = true
-  try {
-    await stationManage.clearMailConfig()
-    mailProvider.value = 'NONE'
-    mailSmtpHost.value = ''
-    mailSmtpPort.value = 587
-    mailSmtpSsl.value = false
-    mailSmtpUser.value = ''
-    mailSmtpPassword.value = ''
-    mailSenderAddress.value = ''
-    mailSenderName.value = ''
-    mailApiKey.value = ''
-    mailHasApiKey.value = false
-    mailProviderName.value = ''
-    mailProviderUrl.value = ''
-    mailTestResult.value = null
-    showClearModal.value = false
-    emit('success', t('stationManage.mailCleared'))
-  } catch {
-    emit('error', t('common.error'))
-  } finally {
-    clearing.value = false
-  }
+  await runClearMailConfig()
+  if (clearError.value) emit('error', clearError.value)
 }
+
+const {running: mailTesting, error: testError, run: runTestMail} = useAsyncAction(async () => {
+  mailTestResult.value = await stationManage.testMailConfig()
+})
 
 async function testMail() {
-  mailTesting.value = true
   mailTestResult.value = null
-  try {
-    mailTestResult.value = await stationManage.testMailConfig()
-  } catch {
-    mailTestResult.value = {success: false, error: t('common.error')}
-  } finally {
-    mailTesting.value = false
-  }
+  await runTestMail()
+  if (testError.value) mailTestResult.value = {success: false, error: testError.value}
 }
 
-const sendingTestMail = ref(false)
+const {running: sendingTestMail, error: sendTestError, run: runSendTestMail} = useAsyncAction(async () => {
+  await stationManage.sendTestMail()
+  emit('success', t('stationManage.mailTestMailSent'))
+})
 
 async function sendTestMail() {
-  sendingTestMail.value = true
-  try {
-    await stationManage.sendTestMail()
-    emit('success', t('stationManage.mailTestMailSent'))
-  } catch {
-    emit('error', t('common.error'))
-  } finally {
-    sendingTestMail.value = false
-  }
+  await runSendTestMail()
+  if (sendTestError.value) emit('error', sendTestError.value)
 }
 
 onMounted(loadMailConfig)

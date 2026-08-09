@@ -8,7 +8,7 @@ import { useI18n } from 'vue-i18n'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type { GuardianInput, WaitingListField } from '@/api/types'
+import type { GuardianInput, WaitingListField } from '@/api/waitingList'
 import BasicFieldsSection from './BasicFieldsSection.vue'
 import GuardiansSection from './GuardiansSection.vue'
 import CustomFieldsSection from './CustomFieldsSection.vue'
@@ -61,7 +61,7 @@ const { t } = useI18n()
 
     <div class="space-y-1">
       <FieldLabel>{{ t('waitingList.notes') }}</FieldLabel>
-      <TextAreaInput :model-value="notes" @update:model-value="emit('update:notes', $event)" :placeholder="t('waitingList.notesPlaceholder')"/>
+      <TextAreaInput :model-value="notes" @update:model-value="emit('update:notes', $event ?? '')" :placeholder="t('waitingList.notesPlaceholder')"/>
     </div>
   </NeutralContainer>
 </template>

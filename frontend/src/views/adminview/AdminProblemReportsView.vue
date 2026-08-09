@@ -9,11 +9,9 @@ import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
-import EmptyState from '@/components/feedback/EmptyState.vue'
+import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import ReportCard from './adminproblemreportsview/ReportCard.vue'
-import type {ProblemReport} from '@/api/problemReports'
-import {listReports, acknowledgeReport, acknowledgeAllReports, deleteReport} from '@/api/problemReports'
+import {acknowledgeAllReports, acknowledgeReport, deleteReport, listReports, type ProblemReport} from '@/api/problemReports'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 
 const {t} = useI18n()
@@ -69,18 +67,21 @@ function toggle(id: number) {
         </div>
       </div>
 
-      <Spinner v-if="loading" size="lg"/>
-      <EmptyState v-if="!loading && reports.length === 0">{{ t('problemReport.empty') }}</EmptyState>
-
-      <ReportCard
-        v-for="r in reports"
-        :key="r.id"
-        :report="r"
-        :expanded="expandedId === r.id"
-        @toggle="toggle"
-        @ack="ack"
-        @remove="remove"
-      />
+      <AsyncSection
+        :empty="reports.length === 0"
+        :empty-message="t('problemReport.empty')"
+        :loading="loading"
+      >
+        <ReportCard
+          v-for="r in reports"
+          :key="r.id"
+          :report="r"
+          :expanded="expandedId === r.id"
+          @toggle="toggle"
+          @ack="ack"
+          @remove="remove"
+        />
+      </AsyncSection>
     </div>
   </ViewContent>
 </template>

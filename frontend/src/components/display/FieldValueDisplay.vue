@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {computed} from 'vue'
-import {FieldTypes} from '@/api/types'
+import {FieldTypes} from '@/api/profileFields'
 
 const props = defineProps<{
   value: unknown

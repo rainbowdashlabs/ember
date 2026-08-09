@@ -14,6 +14,14 @@ import java.util.UUID;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
+/**
+ * A station page and its content tree.
+ *
+ * <p>{@code ogImageHash} is the content hash of the file referenced by {@code ogImageId}. It is not
+ * a column on the page — the row mapper leaves it null and the service fills it in, the same way
+ * {@code rows} is loaded separately. Clients need it because page files are served by hash, not by
+ * id, so an id alone cannot be turned into an image URL.
+ */
 public record StationPage(
         int id,
         UUID publicUid,
@@ -25,6 +33,7 @@ public record StationPage(
         int sortOrder,
         String metaDescription,
         Integer ogImageId,
+        String ogImageHash,
         int createdBy,
         Instant createdAt,
         Instant updatedAt,
@@ -42,6 +51,7 @@ public record StationPage(
                 row.getInt("sort_order"),
                 row.getString("meta_description"),
                 row.getObject("og_image_id") != null ? row.getInt("og_image_id") : null,
+                null,
                 row.getInt("created_by"),
                 row.get("created_at", INSTANT_TIMESTAMP),
                 row.get("updated_at", INSTANT_TIMESTAMP),
@@ -60,6 +70,26 @@ public record StationPage(
                 sortOrder,
                 metaDescription,
                 ogImageId,
+                ogImageHash,
+                createdBy,
+                createdAt,
+                updatedAt,
+                rows);
+    }
+
+    public StationPage withOgImageHash(String ogImageHash) {
+        return new StationPage(
+                id,
+                publicUid,
+                stationId,
+                parentId,
+                title,
+                slug,
+                published,
+                sortOrder,
+                metaDescription,
+                ogImageId,
+                ogImageHash,
                 createdBy,
                 createdAt,
                 updatedAt,

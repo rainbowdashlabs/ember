@@ -5,18 +5,22 @@
  * Two checks live here. Both target views (and exempt src/components/) because
  * the components dir is where the extracted pieces are supposed to land.
  *
- * 1. Block size: any single template block (element + its children) that
- *    spans more than --warn=N lines (default 40) is a hint that the inner
- *    content wants its own component. The check warns at --warn=N and errors
- *    at --error=N (default 80).
+ * Both checks are single-tier: they report an error or they report nothing.
+ * The advisory warning tiers were removed once their distributions were
+ * measured — the 30-line block warning and the 4-child density warning had no
+ * outlier tail, so they flagged ordinary Tailwind markup rather than a smell,
+ * and several hundred findings nobody acted on hid the checks that do bite.
  *
- * 2. Section density: any element on the 2nd or 3rd template level that has
- *    many direct "section" children — plain <div>, semantic HTML containers
- *    (<section>, <article>, <header>, <footer>, <main>, <nav>, <aside>), or
- *    Ember container components (NeutralContainer, PrimaryContainer, …) —
- *    is treated as a stack of distinct sections that each want their own
- *    component. Warns at --div-warn=N (default 4) direct section children,
- *    errors at --div-error=N (default 6).
+ * 1. Block size: any single template block (element + its children) that
+ *    spans --error=N lines or more (default 50) is a block whose inner content
+ *    wants its own component.
+ *
+ * 2. Section density: any element on the 2nd or 3rd template level with
+ *    --div-error=N (default 6) or more direct "section" children — plain
+ *    <div>, semantic HTML containers (<section>, <article>, <header>,
+ *    <footer>, <main>, <nav>, <aside>), or Ember container components
+ *    (NeutralContainer, PrimaryContainer, …) — is a stack of distinct
+ *    sections that each want their own component.
  *
  * What is exempt from the block-size check:
  *   - files inside src/components/ (those are the targets for extraction)
@@ -32,7 +36,7 @@ import {readFileSync} from 'fs'
 import {SRC, walk, extractTemplate, isInsideComponents, createReporter} from './lint-utils.mjs'
 
 const reporter = createReporter()
-const {warn, error} = reporter
+const {error} = reporter
 const CAT_BLOCK = 'Block size'
 const CAT_DIV = 'Section density'
 
@@ -52,9 +56,7 @@ for (const arg of process.argv.slice(2)) {
     if (m) args.set(m[1], m[2])
 }
 
-const BLOCK_WARN = Number(args.get('warn') ?? process.env.LINT_BLOCK_WARN ?? 30)
 const BLOCK_ERROR = Number(args.get('error') ?? process.env.LINT_BLOCK_ERROR ?? 50)
-const DIV_WARN = Number(args.get('div-warn') ?? process.env.LINT_DIV_WARN ?? 4)
 const DIV_ERROR = Number(args.get('div-error') ?? process.env.LINT_DIV_ERROR ?? 6)
 
 const ROOT_WRAPPER_TAGS = new Set([
@@ -85,20 +87,12 @@ function lineOfIndex(template, idx) {
 }
 
 function reportBlock(file, tag, openLine, span) {
-    if (span >= BLOCK_ERROR) {
-        error(file, openLine, `<${tag}> block spans ${span} lines (>= ${BLOCK_ERROR}). Extract to a component.`, CAT_BLOCK)
-    } else if (span >= BLOCK_WARN) {
-        warn(file, openLine, `<${tag}> block spans ${span} lines (>= ${BLOCK_WARN}). Consider extracting to a component.`, CAT_BLOCK)
-    }
+    if (span < BLOCK_ERROR) return
+    error(file, openLine, `<${tag}> block spans ${span} lines (>= ${BLOCK_ERROR}). Extract to a component.`, CAT_BLOCK)
 }
 
 function reportSectionDensity(file, parentTag, openLine, depth, count) {
-    const msg = `<${parentTag}> at level ${depth} has ${count} direct section children (div / NeutralContainer / section / …) — each section likely wants its own component.`
-    if (count >= DIV_ERROR) {
-        error(file, openLine, msg, CAT_DIV)
-    } else if (count >= DIV_WARN) {
-        warn(file, openLine, msg, CAT_DIV)
-    }
+    error(file, openLine, `<${parentTag}> at level ${depth} has ${count} direct section children (div / NeutralContainer / section / …) — each section likely wants its own component.`, CAT_DIV)
 }
 
 const vueFiles = walk(SRC, '.vue').filter(f => !isInsideComponents(f))
@@ -137,7 +131,7 @@ for (const file of vueFiles) {
                 const span = tagLine - opened.line + 1
                 const skipBlock = ROOT_WRAPPER_TAGS.has(opened.tag) || opened.depth <= 2
                 if (!skipBlock) reportBlock(file, opened.tag, opened.line, span)
-                if ((opened.depth === 2 || opened.depth === 3) && opened.sectionChildren >= DIV_WARN) {
+                if ((opened.depth === 2 || opened.depth === 3) && opened.sectionChildren >= DIV_ERROR) {
                     reportSectionDensity(file, opened.tag, opened.line, opened.depth, opened.sectionChildren)
                 }
                 break
@@ -148,8 +142,8 @@ for (const file of vueFiles) {
 
 console.log(
     `\n\x1b[1mTemplate Structure Check\x1b[0m`
-    + ` (block warn >= ${BLOCK_WARN} / error >= ${BLOCK_ERROR},`
-    + ` section-density warn >= ${DIV_WARN} / error >= ${DIV_ERROR})`,
+    + ` (block error >= ${BLOCK_ERROR} lines,`
+    + ` section-density error >= ${DIV_ERROR} children)`,
 )
 reporter.print()
 reporter.exit()

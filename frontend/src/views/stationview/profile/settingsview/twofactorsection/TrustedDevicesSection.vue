@@ -5,21 +5,21 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import {listTrustedDevices, revokeAllTrustedDevices, revokeTrustedDevice} from '@/api/twoFactor'
-import type {TrustedDevice} from '@/api/twoFactor'
+import {listTrustedDevices, revokeAllTrustedDevices, revokeTrustedDevice, type TrustedDevice} from '@/api/twoFactor'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import {useConfigPanel} from '@/composables/useConfigPanel'
+import {formatDateTime} from '@/util/format'
+import {apiErrorMessage} from '@/util/apiError'
 
 const {t} = useI18n()
 
 function describeError(e: unknown): string {
-  return (e as {response?: {data?: {message?: string}}})?.response?.data?.message || t('common.error')
+  return apiErrorMessage(e) || t('common.error')
 }
 
 const {config: devices, loading, error, runWith} = useConfigPanel<TrustedDevice[]>({
@@ -43,9 +43,6 @@ async function handleRevokeAll() {
   })
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString('de-DE')
-}
 </script>
 
 <template>
@@ -57,23 +54,27 @@ function formatDate(iso: string): string {
       </SecondaryButton>
     </div>
     <MutedText tag="p" size="sm">{{ t('twoFactor.trustedDevices.description') }}</MutedText>
-    <Spinner v-if="loading" size="sm"/>
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
-    <MutedText v-if="!loading && devices.length === 0" tag="p" size="sm">
-      {{ t('twoFactor.trustedDevices.empty') }}
-    </MutedText>
-    <ul v-if="!loading && devices.length > 0" class="space-y-2">
-      <li v-for="device in devices" :key="device.id"
-          class="flex items-center justify-between gap-2 rounded border border-(--border) px-3 py-2">
-        <div class="min-w-0">
-          <div class="text-sm font-medium truncate">{{ device.userAgent || t('twoFactor.trustedDevices.unknownDevice') }}</div>
-          <MutedText tag="div" size="sm">
-            {{ t('twoFactor.trustedDevices.lastSeen') }}: {{ formatDate(device.lastSeenAt) }}
-            · {{ t('twoFactor.trustedDevices.expires') }}: {{ formatDate(device.trustedUntil) }}
-          </MutedText>
-        </div>
-        <ErrorButton size="sm" @click="handleRevoke(device)">{{ t('common.remove') }}</ErrorButton>
-      </li>
-    </ul>
+    <AsyncSection
+        :empty="devices.length === 0"
+        :empty-compact="true"
+        :empty-message="t('twoFactor.trustedDevices.empty')"
+        :error="error"
+        :loading="loading"
+        spinner-size="sm"
+    >
+      <ul class="space-y-2">
+        <li v-for="device in devices" :key="device.id"
+            class="flex items-center justify-between gap-2 rounded border border-(--border) px-3 py-2">
+          <div class="min-w-0">
+            <div class="text-sm font-medium truncate">{{ device.userAgent || t('twoFactor.trustedDevices.unknownDevice') }}</div>
+            <MutedText tag="div" size="sm">
+              {{ t('twoFactor.trustedDevices.lastSeen') }}: {{ formatDateTime(device.lastSeenAt) }}
+              · {{ t('twoFactor.trustedDevices.expires') }}: {{ formatDateTime(device.trustedUntil) }}
+            </MutedText>
+          </div>
+          <ErrorButton compact @click="handleRevoke(device)">{{ t('common.remove') }}</ErrorButton>
+        </li>
+      </ul>
+    </AsyncSection>
   </NeutralContainer>
 </template>

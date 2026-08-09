@@ -12,8 +12,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
-import {InventoryTypes} from '@/api/types'
-import type {InventoryDetail, InventoryTypeName} from '@/api/types'
+import {InventoryTypes, type InventoryDetail, type InventoryTypeName} from '@/api/inventory'
 import {inventory} from '@/api'
 
 const {t} = useI18n()

@@ -7,21 +7,17 @@
 import TabBar from '@/components/navigation/TabBar.vue'
 import MemberFilterBar from './FilterBar.vue'
 import MemberTable from './Table.vue'
-import type { StationMember, ProfileField, MemberGroup, UserTag } from '@/api/types'
-
-interface SavedFilter {
-  id?: number
-  name: string
-  tab: string
-  textFilters: Record<string, string>
-  multiFilters: Record<string, string[]>
-}
+import type { ProfileField } from '@/api/profileFields'
+import type { StationMember, MemberGroup, UserTag } from '@/api/types'
+import type { SortDirection } from '@/composables/useSortable'
+import type { FilterCriteria } from '@/composables/useMemberFilter'
+import type { MemberSortKey, SavedFilterPreset } from './useSavedFilters'
 
 defineProps<{
   activeTab: string
   tabs: { key: string; label: string }[]
   filterText: string
-  savedFilters: SavedFilter[]
+  savedFilters: SavedFilterPreset[]
   tabOverviewFields: ProfileField[]
   tabNonOverviewFields: ProfileField[]
   extraColumnIds: Set<number>
@@ -31,15 +27,15 @@ defineProps<{
   canExport: boolean
   groups: MemberGroup[]
   tags: UserTag[]
-  filteredMembers: StationMember[]
+  members: StationMember[]
   visibleColumns: ProfileField[]
   expandedId: number | null
-  sortColumn: 'name' | number
-  sortAsc: boolean
+  sortKey: MemberSortKey
+  sortDirection: SortDirection
   columnMultiFilters: Map<'name' | 'groups' | 'tags' | number, Set<string>>
   columnEmptyFilters: Set<'name' | 'groups' | 'tags' | number>
-  memberGroupsMap: Map<number, MemberGroup[]>
-  memberTagsMap: Map<number, UserTag[]>
+  memberGroupsMap: Map<number, string[]>
+  memberTagsMap: Map<number, string[]>
   memberRolesMap: Map<number, string[]>
   memberManagers: Map<number, StationMember[]>
   allMembers: StationMember[]
@@ -53,16 +49,16 @@ defineEmits<{
   (e: 'update:activeTab', value: string): void
   (e: 'update:filterText', value: string): void
   (e: 'clear-filters'): void
-  (e: 'apply-filter', filter: SavedFilter): void
+  (e: 'apply-filter', filter: SavedFilterPreset): void
   (e: 'delete-filter', id: number): void
   (e: 'save-filter', name: string): void
   (e: 'toggle-column', fieldId: number): void
   (e: 'toggle-export'): void
   (e: 'export-continue'): void
-  (e: 'filter', data: unknown): void
-  (e: 'toggle-sort', column: 'name' | number): void
+  (e: 'filter', data: FilterCriteria): void
+  (e: 'toggle-sort', column: MemberSortKey): void
   (e: 'apply-column-filter', key: 'name' | 'groups' | 'tags' | number, selected: Set<string>, includeEmpty: boolean): void
-  (e: 'toggle-expand', id: number): void
+  (e: 'toggle-expand', member: StationMember): void
   (e: 'navigate-detail', member: StationMember, event: Event): void
   (e: 'navigate-edit', member: StationMember, event: Event): void
   (e: 'resend-setup', member: StationMember, event: Event): void
@@ -103,11 +99,11 @@ defineEmits<{
   />
 
   <MemberTable
-    :members="filteredMembers"
+    :members="members"
     :visible-columns="visibleColumns"
     :expanded-id="expandedId"
-    :sort-column="sortColumn"
-    :sort-asc="sortAsc"
+    :sort-key="sortKey"
+    :sort-direction="sortDirection"
     :column-multi-filters="columnMultiFilters"
     :column-empty-filters="columnEmptyFilters"
     :member-groups-map="memberGroupsMap"

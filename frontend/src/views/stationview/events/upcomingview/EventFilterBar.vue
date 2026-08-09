@@ -9,7 +9,7 @@ import SearchInput from '@/components/input/text/SearchInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type {EventCategory} from '@/api/types'
+import type {EventCategory} from '@/api/events'
 
 defineProps<{
   categories: EventCategory[]

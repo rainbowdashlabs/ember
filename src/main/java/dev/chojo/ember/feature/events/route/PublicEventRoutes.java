@@ -10,11 +10,11 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.service.EventCategoryService;
+import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
-import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
@@ -43,18 +43,24 @@ import java.util.Map;
 import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
+import static dev.chojo.ember.api.RouteSupport.pathUuid;
 
 @SuppressWarnings("DefaultAnnotationParam")
 @Singleton
 public class PublicEventRoutes implements Routes {
-    private final EventService eventService;
+    private final EventCrudService crudService;
+    private final EventCategoryService categoryService;
     private final EventFieldService eventFieldService;
     private final StationRepository stationRepository;
 
     @Inject
     public PublicEventRoutes(
-            EventService eventService, EventFieldService eventFieldService, StationRepository stationRepository) {
-        this.eventService = eventService;
+            EventCrudService crudService,
+            EventCategoryService categoryService,
+            EventFieldService eventFieldService,
+            StationRepository stationRepository) {
+        this.crudService = crudService;
+        this.categoryService = categoryService;
         this.eventFieldService = eventFieldService;
         this.stationRepository = stationRepository;
     }
@@ -69,13 +75,7 @@ public class PublicEventRoutes implements Routes {
     }
 
     private Station resolveStation(Context ctx) {
-        String uidParam = ctx.pathParam("stationUid");
-        UUID uid;
-        try {
-            uid = UUID.fromString(uidParam);
-        } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse("Invalid station ID");
-        }
+        UUID uid = pathUuid(ctx, "stationUid");
         var station = stationRepository.findByUid(uid).orElseThrow(NotFoundResponse::new);
         if (!station.publicCalendarEnabled()) {
             throw new NotFoundResponse();
@@ -85,7 +85,7 @@ public class PublicEventRoutes implements Routes {
 
     private Map<Integer, EventCategory> categoryMap(int stationId) {
         var map = new HashMap<Integer, EventCategory>();
-        for (var cat : eventService.findCategoriesByStation(stationId)) {
+        for (var cat : categoryService.findByStation(stationId)) {
             map.put(cat.id(), cat);
         }
         return map;
@@ -97,7 +97,7 @@ public class PublicEventRoutes implements Routes {
     private PublicEventData loadPublicEvents(Context ctx) {
         var station = resolveStation(ctx);
         var categoryMap = categoryMap(station.id());
-        var publicEvents = eventService.findByStation(station.id()).stream()
+        var publicEvents = crudService.findByStation(station.id()).stream()
                 .filter(e -> isEventPublic(e, categoryMap))
                 .toList();
         return new PublicEventData(station, categoryMap, publicEvents);
@@ -135,7 +135,7 @@ public class PublicEventRoutes implements Routes {
 
         var overviewFields = eventFieldService.findOverviewFieldsByEvents(
                 publicEvents.stream().map(StationEvent::id).toList());
-        var publicUids = eventService.findPublicUidsByIds(
+        var publicUids = crudService.findPublicUidsByIds(
                 data.station().id(), publicEvents.stream().map(StationEvent::id).toList());
 
         ctx.json(publicEvents.stream()
@@ -159,7 +159,7 @@ public class PublicEventRoutes implements Routes {
     private void getPublicEvent(Context ctx) {
         var station = resolveStation(ctx);
         int id = pathInt(ctx, "id");
-        var event = eventService.findById(id).orElseThrow(NotFoundResponse::new);
+        var event = crudService.findById(id).orElseThrow(NotFoundResponse::new);
         if (event.stationId() != station.id()) throw new NotFoundResponse();
 
         var categoryMap = categoryMap(station.id());
@@ -194,7 +194,7 @@ public class PublicEventRoutes implements Routes {
             })
     private void listPublicCategories(Context ctx) {
         var station = resolveStation(ctx);
-        var categories = eventService.findCategoriesByStation(station.id()).stream()
+        var categories = categoryService.findByStation(station.id()).stream()
                 .filter(EventCategory::isPublic)
                 .toList();
         ctx.json(categories);

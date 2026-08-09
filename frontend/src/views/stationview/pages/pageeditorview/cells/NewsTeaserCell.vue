@@ -8,6 +8,7 @@ import {onMounted, ref, watch} from 'vue'
 import {listPublicBlog} from '@/api/news'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
 import type {NewsTeaserConfig} from '@/api/pageManage'
+import {formatDate} from '@/util/format'
 
 const props = defineProps<{
     config: NewsTeaserConfig
@@ -36,7 +37,7 @@ async function resolve() {
                 publishedAt: match.publishedAt ?? null,
             }
         }
-    } catch { /* render falls back to placeholder */ }
+    } catch { void 0 }
 }
 
 /**
@@ -62,7 +63,7 @@ watch(() => [props.stationUid, props.config.newsUid], resolve, {immediate: false
        class="block rounded-theme border border-(--border) hover:border-primary hover:bg-primary/5 transition-colors overflow-hidden">
         <div class="p-3 space-y-1">
             <p class="font-semibold">{{ resolved.title }}</p>
-            <p v-if="resolved.publishedAt" class="text-xs text-(--text-muted)">{{ new Date(resolved.publishedAt).toLocaleDateString('de-DE') }}</p>
+            <p v-if="resolved.publishedAt" class="text-xs text-(--text-muted)">{{ formatDate(resolved.publishedAt) }}</p>
             <p v-if="resolved.summary" class="text-sm text-(--text-muted)">{{ resolved.summary }}</p>
         </div>
     </a>

@@ -32,11 +32,9 @@ public class NewsDeletedHandler implements DomainEventHandler<NewsDeleted> {
     public void handle(NewsDeleted event) {
         notificationService.deleteByTypeContaining(
                 NotificationType.NEW_NEWS,
-                NotificationData.of(new NotificationParams.NewNews(event.title(), null, null))
-                        .toJson());
+                NotificationData.of(new NotificationParams.NewNews(event.title(), null, null)));
         notificationService.deleteByTypeContaining(
                 NotificationType.NEWS_COMMENT,
-                NotificationData.of(new NotificationParams.NewsComment(event.title(), null, null))
-                        .toJson());
+                NotificationData.of(new NotificationParams.NewsComment(event.title(), null, null)));
     }
 }

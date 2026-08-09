@@ -25,12 +25,14 @@ import KbEditFileModal from '@/views/stationview/knowledge/knowledgebaseview/KbE
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {knowledgeBase} from '@/api'
-import type {KbFile, KbTag, MarkdownHtmlResponse} from '@/api/knowledgeBase'
-import {KbFileType} from '@/api/knowledgeBase'
+import {KbFileType, type KbFile, type MarkdownHtmlResponse} from '@/api/knowledgeBase'
+import {useKbFileMetadata} from '@/views/stationview/knowledge/kbfileview/useKbFileMetadata'
 import {getItem} from '@/api/storage'
 import {downloadAuthed} from '@/util/downloadAuthed'
+import {formatDateTime} from '@/util/format'
 import {youtubeEmbedUrl as toYoutubeEmbedUrl} from '@/util/youtube'
 import MutedText from '@/components/typography/MutedText.vue'
+import {useFlashMessage} from '@/composables/useFlashMessage'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -43,11 +45,13 @@ const markdownData = ref<MarkdownHtmlResponse | null>(null)
 const editing = ref(false)
 const editContent = ref('')
 const textContent = ref('')
-const fileTags = ref<KbTag[]>([])
-const allStationTags = ref<KbTag[]>([])
-const relatedFiles = ref<KbFile[]>([])
-const editingDescription = ref(false)
-const editDescriptionValue = ref('')
+const {
+    fileTags, allStationTags, relatedFiles,
+    editingDescription, editDescriptionValue,
+    addTag, removeTag, addRelatedFile, removeRelatedFile,
+    startEditDescription, saveDescription,
+} = useKbFileMetadata(file, lastEditedByName)
+
 const showPresentation = ref(false)
 const showEditMetadataModal = ref(false)
 async function downloadOriginal() {
@@ -76,8 +80,8 @@ async function copyToStation() {
 const renderedHtml = computed(() => markdownData.value?.html ?? '')
 
 const youtubeEmbedUrl = computed(() => {
-    if (!file.value?.youtubeUrl) return null
-    return toYoutubeEmbedUrl(file.value.youtubeUrl)
+    if (!file.value?.youtubeUrl) return ''
+    return toYoutubeEmbedUrl(file.value.youtubeUrl) ?? ''
 })
 
 const contentUrl = computed(() => {
@@ -127,7 +131,6 @@ async function saveContent() {
     if (!file.value) return
     try {
         await knowledgeBase.updateMarkdownContent(file.value.id, editContent.value)
-        // Refresh rendered HTML
         if (file.value.fileType === KbFileType.MARKDOWN) {
             markdownData.value = await knowledgeBase.getMarkdownHtml(file.value.id)
         } else {
@@ -140,45 +143,6 @@ async function saveContent() {
         throw e
     }
 }
-async function addTag(name: string) {
-    if (!file.value) return
-    const tagNames = fileTags.value.map(t => t.name)
-    tagNames.push(name)
-    fileTags.value = await knowledgeBase.setFileTags(file.value.id, tagNames)
-    allStationTags.value = await knowledgeBase.listTags()
-}
-async function removeTag(tagName: string) {
-    if (!file.value) return
-    const tagNames = fileTags.value.map(t => t.name).filter(n => n !== tagName)
-    fileTags.value = await knowledgeBase.setFileTags(file.value.id, tagNames)
-}
-function startEditDescription() {
-    editingDescription.value = true
-    editDescriptionValue.value = file.value?.description ?? ''
-}
-
-async function saveDescription() {
-    if (!file.value) return
-    await knowledgeBase.updateFile(file.value.id, {
-        name: file.value.name,
-        description: editDescriptionValue.value,
-    })
-    const reloaded = await knowledgeBase.getFile(file.value.id)
-    file.value = reloaded.file
-    lastEditedByName.value = reloaded.lastEditedByName
-    editingDescription.value = false
-}
-async function addRelatedFile(targetId: number) {
-    if (!file.value) return
-    const ids = [...relatedFiles.value.map(f => f.id), targetId]
-    relatedFiles.value = await knowledgeBase.setRelatedFiles(file.value.id, ids)
-}
-
-async function removeRelatedFile(targetId: number) {
-    if (!file.value) return
-    const ids = relatedFiles.value.map(f => f.id).filter(id => id !== targetId)
-    relatedFiles.value = await knowledgeBase.setRelatedFiles(file.value.id, ids)
-}
 function goBack() {
     if (file.value?.folderId) {
         router.push({name: 'kb-browse', query: {folderId: file.value.folderId}})
@@ -186,15 +150,13 @@ function goBack() {
         router.push({name: 'kb-browse'})
     }
 }
-const shareCopied = ref(false)
+const {message: shareCopiedMessage, flash: flashShareCopied} = useFlashMessage(2000)
+const shareCopied = computed(() => shareCopiedMessage.value !== '')
 function copyShareLink() {
     if (!file.value) return
     const stationUid = getItem('station_id') ?? ''
     const url = `${window.location.origin}/public/station/${stationUid}/knowledge/file/${file.value.id}`
-    navigator.clipboard.writeText(url).then(() => {
-        shareCopied.value = true
-        setTimeout(() => { shareCopied.value = false }, 2000)
-    })
+    navigator.clipboard.writeText(url).then(() => flashShareCopied(url))
 }
 async function handleReuploadFile(uploadFile: File) {
     if (!file.value) return
@@ -258,7 +220,7 @@ watch(loaded, (isLoaded) => {
 
             <!-- Last edit info -->
             <p v-if="file.updatedAt" class="text-xs text-[var(--text-muted)] mb-3">
-                {{ t('kb.lastEditedAt') }}: {{ new Date(file.updatedAt).toLocaleString('de-DE') }}
+                {{ t('kb.lastEditedAt') }}: {{ formatDateTime(file.updatedAt) }}
                 <span v-if="lastEditedByName"> &mdash; {{ lastEditedByName }}</span>
             </p>
 

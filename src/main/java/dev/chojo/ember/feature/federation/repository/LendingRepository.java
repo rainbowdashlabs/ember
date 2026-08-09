@@ -21,6 +21,10 @@ import java.util.UUID;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
+import static dev.chojo.ember.util.sql.SqlSupport.count;
+import static dev.chojo.ember.util.sql.SqlSupport.deleteById;
+import static dev.chojo.ember.util.sql.SqlSupport.findById;
+import static dev.chojo.ember.util.sql.SqlSupport.insertReturning;
 
 /**
  * Data access for inventory lending requests, messages, and blocks. Peer references on the
@@ -30,41 +34,47 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  */
 @Singleton
 public class LendingRepository {
+    private static final String LENDING_REQUEST_COLUMNS = """
+            id, requesting_station_uid, owning_station_uid, status, requested_date_from, \
+            requested_date_to, created_by, created_at, updated_at""";
+    private static final String LENDING_REQUEST_ITEM_COLUMNS =
+            "id, request_id, inventory_id, item_id, quantity, assigned_item_id";
+    private static final String LENDING_MESSAGE_COLUMNS =
+            "id, request_id, sender_station_uid, sender_member_id, message, is_system, created_at";
+    private static final String INVENTORY_BLOCK_COLUMNS =
+            "id, station_id, inventory_id, item_id, block_from, block_to, reason";
 
     // -- Lending Requests --
 
     public LendingRequest createRequest(
             UUID requestingStationUid, UUID owningStationUid, LocalDate dateFrom, LocalDate dateTo, int createdBy) {
-        return query("""
+        return insertReturning(
+                """
                 INSERT INTO federation_lending_request(requesting_station_uid, owning_station_uid, status, requested_date_from, requested_date_to, created_by)
                 VALUES (:requesting_station_uid::uuid, :owning_station_uid::uuid, :status, :date_from, :date_to, :created_by)
-                RETURNING *;""")
-                .single(call().bind("requesting_station_uid", requestingStationUid, StandardValueConverter.UUID_STRING)
+                RETURNING %s;""",
+                call().bind("requesting_station_uid", requestingStationUid, StandardValueConverter.UUID_STRING)
                         .bind("owning_station_uid", owningStationUid, StandardValueConverter.UUID_STRING)
                         .bind("status", LendingStatus.REQUESTED)
                         .bind("date_from", dateFrom)
                         .bind("date_to", dateTo)
-                        .bind("created_by", createdBy))
-                .map(LendingRequest.map())
-                .first()
-                .orElseThrow();
+                        .bind("created_by", createdBy),
+                LendingRequest.map(),
+                LENDING_REQUEST_COLUMNS);
     }
 
     public Optional<LendingRequest> findRequestById(int id) {
-        return query("SELECT * FROM federation_lending_request WHERE id = :id;")
-                .single(call().bind("id", id))
-                .map(LendingRequest.map())
-                .first();
+        return findById("federation_lending_request", LENDING_REQUEST_COLUMNS, id, LendingRequest.map());
     }
 
     public List<LendingRequest> findRequestsByStation(UUID stationUid) {
         return query("""
-                SELECT *
+                SELECT %s
                 FROM
                     federation_lending_request
                 WHERE requesting_station_uid = :station_uid::uuid
                    OR owning_station_uid = :station_uid::uuid
-                ORDER BY created_at DESC;""")
+                ORDER BY created_at DESC;""", LENDING_REQUEST_COLUMNS)
                 .single(call().bind("station_uid", stationUid, StandardValueConverter.UUID_STRING))
                 .map(LendingRequest.map())
                 .all();
@@ -80,21 +90,23 @@ public class LendingRepository {
     // -- Lending Request Items --
 
     public LendingRequestItem addRequestItem(int requestId, Integer inventoryId, Integer itemId, int quantity) {
-        return query("""
+        return insertReturning(
+                """
                 INSERT INTO federation_lending_request_item(request_id, inventory_id, item_id, quantity)
                 VALUES (:request_id, :inventory_id, :item_id, :quantity)
-                RETURNING *;""")
-                .single(call().bind("request_id", requestId)
+                RETURNING %s;""",
+                call().bind("request_id", requestId)
                         .bind("inventory_id", inventoryId)
                         .bind("item_id", itemId)
-                        .bind("quantity", quantity))
-                .map(LendingRequestItem.map())
-                .first()
-                .orElseThrow();
+                        .bind("quantity", quantity),
+                LendingRequestItem.map(),
+                LENDING_REQUEST_ITEM_COLUMNS);
     }
 
     public List<LendingRequestItem> findItemsByRequest(int requestId) {
-        return query("SELECT * FROM federation_lending_request_item WHERE request_id = :request_id ORDER BY id;")
+        return query(
+                        "SELECT %s FROM federation_lending_request_item WHERE request_id = :request_id ORDER BY id;",
+                        LENDING_REQUEST_ITEM_COLUMNS)
                 .single(call().bind("request_id", requestId))
                 .map(LendingRequestItem.map())
                 .all();
@@ -137,24 +149,26 @@ public class LendingRepository {
 
     public LendingMessage createMessage(
             int requestId, UUID senderStationUid, Integer senderMemberId, String message, boolean isSystem) {
-        return query("""
+        return insertReturning(
+                """
                 INSERT INTO federation_lending_message(request_id, sender_station_uid, sender_member_id, message, is_system)
                 VALUES (:request_id, :sender_station_uid::uuid, :sender_member_id, :message, :is_system)
-                RETURNING *;""")
-                .single(call().bind("request_id", requestId)
+                RETURNING %s;""",
+                call().bind("request_id", requestId)
                         .bind("sender_station_uid", senderStationUid, StandardValueConverter.UUID_STRING)
                         .bind("sender_member_id", senderMemberId)
                         .bind("message", message)
-                        .bind("is_system", isSystem))
-                .map(LendingMessage.map())
-                .first()
-                .orElseThrow();
+                        .bind("is_system", isSystem),
+                LendingMessage.map(),
+                LENDING_MESSAGE_COLUMNS);
     }
 
     // -- Messages --
 
     public List<LendingMessage> findMessagesByRequest(int requestId) {
-        return query("SELECT * FROM federation_lending_message WHERE request_id = :request_id ORDER BY created_at;")
+        return query(
+                        "SELECT %s FROM federation_lending_message WHERE request_id = :request_id ORDER BY created_at;",
+                        LENDING_MESSAGE_COLUMNS)
                 .single(call().bind("request_id", requestId))
                 .map(LendingMessage.map())
                 .all();
@@ -166,12 +180,12 @@ public class LendingRepository {
      */
     public List<LendingMessage> findLocalMessages(int requestId, UUID stationUid) {
         return query("""
-                SELECT *
+                SELECT %s
                 FROM
                     federation_lending_message
                 WHERE request_id = :request_id
                   AND sender_station_uid = :station_uid::uuid
-                ORDER BY created_at;""")
+                ORDER BY created_at;""", LENDING_MESSAGE_COLUMNS)
                 .single(call().bind("request_id", requestId)
                         .bind("station_uid", stationUid, StandardValueConverter.UUID_STRING))
                 .map(LendingMessage.map())
@@ -180,43 +194,42 @@ public class LendingRepository {
 
     public InventoryBlock createBlock(
             int stationId, Integer inventoryId, Integer itemId, LocalDate blockFrom, LocalDate blockTo, String reason) {
-        return query("""
+        return insertReturning(
+                """
                 INSERT INTO federation_inventory_block(station_id, inventory_id, item_id, block_from, block_to, reason)
                 VALUES (:station_id, :inventory_id, :item_id, :block_from, :block_to, :reason)
-                RETURNING *;""")
-                .single(call().bind("station_id", stationId)
+                RETURNING %s;""",
+                call().bind("station_id", stationId)
                         .bind("inventory_id", inventoryId)
                         .bind("item_id", itemId)
                         .bind("block_from", blockFrom)
                         .bind("block_to", blockTo)
-                        .bind("reason", reason))
-                .map(InventoryBlock.map())
-                .first()
-                .orElseThrow();
+                        .bind("reason", reason),
+                InventoryBlock.map(),
+                INVENTORY_BLOCK_COLUMNS);
     }
 
     // -- Inventory Blocks --
 
     public List<InventoryBlock> findBlocksByStation(int stationId) {
-        return query("SELECT * FROM federation_inventory_block WHERE station_id = :station_id ORDER BY block_from;")
+        return query(
+                        "SELECT %s FROM federation_inventory_block WHERE station_id = :station_id ORDER BY block_from;",
+                        INVENTORY_BLOCK_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(InventoryBlock.map())
                 .all();
     }
 
     public boolean deleteBlock(int id) {
-        return query("DELETE FROM federation_inventory_block WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return deleteById("federation_inventory_block", id);
     }
 
     public List<InventoryBlock> findActiveBlocks(int stationId, LocalDate dateFrom, LocalDate dateTo) {
         return query("""
-                SELECT * FROM federation_inventory_block
+                SELECT %s FROM federation_inventory_block
                 WHERE station_id = :station_id
                   AND block_from <= :date_to AND block_to >= :date_from
-                ORDER BY block_from;""")
+                ORDER BY block_from;""", INVENTORY_BLOCK_COLUMNS)
                 .single(call().bind("station_id", stationId)
                         .bind("date_from", dateFrom)
                         .bind("date_to", dateTo))
@@ -227,15 +240,12 @@ public class LendingRepository {
     public boolean isBlocked(int stationId, Integer inventoryId, Integer itemId, LocalDate dateFrom, LocalDate dateTo) {
         var blocks = findActiveBlocks(stationId, dateFrom, dateTo);
         for (var block : blocks) {
-            // Station-wide block (no inventory or item specified)
             if (block.inventoryId() == null && block.itemId() == null) {
                 return true;
             }
-            // Inventory-level block
             if (block.inventoryId() != null && block.inventoryId().equals(inventoryId) && block.itemId() == null) {
                 return true;
             }
-            // Item-level block
             if (block.itemId() != null && block.itemId().equals(itemId)) {
                 return true;
             }
@@ -244,13 +254,9 @@ public class LendingRepository {
     }
 
     public int countActionableRequests(UUID stationUid) {
-        return query("""
+        return count("""
                 SELECT count(*) AS cnt FROM federation_lending_request
-                WHERE owning_station_uid = :station_uid::uuid AND status = 'REQUESTED';""")
-                .single(call().bind("station_uid", stationUid, StandardValueConverter.UUID_STRING))
-                .map(row -> row.getInt("cnt"))
-                .first()
-                .orElse(0);
+                WHERE owning_station_uid = :station_uid::uuid AND status = 'REQUESTED';""", call().bind("station_uid", stationUid, StandardValueConverter.UUID_STRING));
     }
 
     /**

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.storage.backend.s3;
 
+import dev.chojo.ember.TestContainers;
 import dev.chojo.ember.feature.storage.backend.ObjectMetadata;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -13,8 +14,6 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
@@ -39,14 +38,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * exists / listByPrefix / sumSize / metadata round-trip / probe).
  */
 @Tag("storage")
-@Testcontainers
 class S3StorageBackendTest {
     private static final String ACCESS_KEY = "rustfsadmin";
     private static final String SECRET_KEY = "rustfsadmin";
     private static final String BUCKET = "ember-test";
     private static final String REGION = "us-east-1";
 
-    @Container
     static final GenericContainer<?> RUSTFS = new GenericContainer<>("rustfs/rustfs:latest")
             .withExposedPorts(9000)
             .withEnv("RUSTFS_ACCESS_KEY", ACCESS_KEY)
@@ -58,6 +55,7 @@ class S3StorageBackendTest {
 
     @BeforeAll
     static void setup() {
+        TestContainers.startExclusively(RUSTFS);
         String endpoint = "http://" + RUSTFS.getHost() + ":" + RUSTFS.getMappedPort(9000);
         S3BackendConfig config =
                 new S3BackendConfig(endpoint, REGION, BUCKET, ACCESS_KEY, SECRET_KEY, true, Optional.empty(), "");

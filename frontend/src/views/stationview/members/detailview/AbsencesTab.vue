@@ -19,9 +19,11 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import type { MemberAbsence } from '@/api/absences'
-import { listMemberAbsences, createMemberAbsence, deleteMemberAbsence } from '@/api/absences'
+import {createMemberAbsence, deleteMemberAbsence, listMemberAbsences, type MemberAbsence} from '@/api/absences'
 import { useConfigPanel } from '@/composables/useConfigPanel'
+import { useAsyncAction } from '@/composables/useAsyncAction'
+import { useFlashMessage } from '@/composables/useFlashMessage'
+import { formatDate } from '@/util/format'
 
 const props = defineProps<{
   memberId: number
@@ -33,8 +35,7 @@ const { config: absences, loading, error, reload: loadData } = useConfigPanel<Me
   initial: [],
   fetch: () => listMemberAbsences(props.memberId),
 })
-const success = ref('')
-const saving = ref(false)
+const { message: success, flash } = useFlashMessage(3000)
 
 const newFrom = ref('')
 const newUntil = ref('')
@@ -49,28 +50,24 @@ function statusOf(a: MemberAbsence): 'active' | 'upcoming' | 'expired' {
 
 const canSave = computed(() => newFrom.value && newUntil.value)
 
-async function create() {
-  if (!canSave.value) return
-  saving.value = true
+const { running: saving, error: createError, run: runCreate } = useAsyncAction(async () => {
   error.value = ''
-  try {
-    await createMemberAbsence({
-      memberId: props.memberId,
-      absentFrom: newFrom.value,
-      absentUntil: newUntil.value,
-      reason: newReason.value.trim() || undefined,
-    })
-    newFrom.value = ''
-    newUntil.value = ''
-    newReason.value = ''
-    await loadData()
-    success.value = t('memberDetail.absences.saved')
-    setTimeout(() => { success.value = '' }, 3000)
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    saving.value = false
-  }
+  await createMemberAbsence({
+    memberId: props.memberId,
+    absentFrom: newFrom.value,
+    absentUntil: newUntil.value,
+    reason: newReason.value.trim() || undefined,
+  })
+  newFrom.value = ''
+  newUntil.value = ''
+  newReason.value = ''
+  await loadData()
+  flash(t('memberDetail.absences.saved'))
+}, { formatError: () => t('common.error') })
+
+function create() {
+  if (!canSave.value) return
+  runCreate()
 }
 
 async function remove(id: number) {
@@ -82,17 +79,12 @@ async function remove(id: number) {
     error.value = t('common.error')
   }
 }
-
-function formatDate(d: string | undefined): string {
-  if (!d) return '-'
-  return new Date(d).toLocaleDateString()
-}
 </script>
 
 <template>
   <div class="space-y-6">
     <Spinner v-if="loading" size="md" />
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <Alert v-if="error || createError" variant="error">{{ error || createError }}</Alert>
     <Alert v-if="success" variant="success">{{ success }}</Alert>
 
     <template v-if="!loading">
@@ -102,7 +94,7 @@ function formatDate(d: string | undefined): string {
         <div v-for="a in absences" :key="a.id" class="flex items-center justify-between rounded-lg px-4 py-3 bg-bg-light-accent/40 dark:bg-bg-dark-accent/40">
           <div class="space-y-1">
             <div class="flex items-center gap-2">
-              <span class="text-sm font-medium">{{ formatDate(a.absentFrom) }} – {{ formatDate(a.absentUntil) }}</span>
+              <span class="text-sm font-medium">{{ formatDate(a.absentFrom) || '-' }} – {{ formatDate(a.absentUntil) || '-' }}</span>
               <SuccessBadge v-if="statusOf(a) === 'active'">{{ t('memberDetail.absences.active') }}</SuccessBadge>
               <InfoBadge v-else-if="statusOf(a) === 'upcoming'">{{ t('memberDetail.absences.upcoming') }}</InfoBadge>
               <SecondaryBadge v-else>{{ t('memberDetail.absences.expired') }}</SecondaryBadge>

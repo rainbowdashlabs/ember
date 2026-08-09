@@ -11,169 +11,20 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import {useQuickSearch} from '@/composables/useQuickSearch'
-import {useSession} from '@/composables/useSession'
-import {PALETTE_ROUTES, type PaletteRouteEntry} from '@/data/paletteRoutes'
-import {StationModules, StationPermission, type MemberIdentity} from '@/api/types'
-import {listCompletions, type MemberCompletion} from '@/api/stationMembers'
-import {search as searchKb, type SearchResult as KbSearchResult} from '@/api/knowledgeBase'
-import {listUpcomingOccurrences, type UpcomingEventOccurrence} from '@/api/events'
-
-interface PaletteResult {
-    kind: 'page' | 'member' | 'kb' | 'event'
-    label: string
-    sublabel?: string
-    icon: string
-    identity?: MemberIdentity
-    to: { name?: string; path?: string; params?: Record<string, string | number> }
-}
+import {useQuickSearchResults, type PaletteResult} from '@/composables/useQuickSearchResults'
 
 const {t} = useI18n()
 const router = useRouter()
 const {isOpen, scope, close} = useQuickSearch()
-const {hasPermission, isModuleEnabled} = useSession()
 
 const query = ref('')
 const highlightedIndex = ref(0)
 const inputWrapper = ref<HTMLDivElement | null>(null)
 
-const members = ref<MemberCompletion[]>([])
-const kbResults = ref<KbSearchResult[]>([])
-const eventResults = ref<UpcomingEventOccurrence[]>([])
-const dataLoading = ref(false)
-
-let kbDebounce: ReturnType<typeof setTimeout> | null = null
-let eventDebounce: ReturnType<typeof setTimeout> | null = null
-
-function entryAllowed(entry: PaletteRouteEntry): boolean {
-    if (entry.scope !== scope.value) return false
-    if (entry.module && !isModuleEnabled(entry.module)) return false
-    if (entry.permission && !hasPermission(entry.permission)) return false
-    if (entry.anyPermission && !entry.anyPermission.some(p => hasPermission(p))) return false
-    return true
-}
-
-const allowedRoutes = computed(() => PALETTE_ROUTES.filter(entryAllowed))
-
-const pageResults = computed<PaletteResult[]>(() => {
-    const q = query.value.trim().toLowerCase()
-    const items = allowedRoutes.value
-        .map(entry => ({entry, label: t(entry.labelKey)}))
-        .filter(({label}) => q === '' || label.toLowerCase().includes(q))
-        .slice(0, 8)
-    return items.map(({entry, label}) => ({
-        kind: 'page' as const,
-        label,
-        sublabel: entry.to,
-        icon: entry.icon,
-        to: {path: entry.to},
-    }))
-})
-
-const memberResults = computed<PaletteResult[]>(() => {
-    if (scope.value !== 'station') return []
-    const q = query.value.trim().toLowerCase()
-    if (q === '') return []
-    return members.value
-        .filter(m => m.name.toLowerCase().includes(q))
-        .slice(0, 8)
-        .map(m => ({
-            kind: 'member' as const,
-            label: m.name,
-            sublabel: m.displayTag?.name ?? undefined,
-            icon: 'user',
-            identity: {
-                stationUid: m.stationUid,
-                memberUid: m.memberUid,
-                name: m.name,
-                nameColor: m.nameColor ?? null,
-                displayTag: m.displayTag ?? null,
-            },
-            to: {name: 'members-detail', params: {id: m.id}},
-        }))
-})
-
-const kbResultEntries = computed<PaletteResult[]>(() => {
-    if (scope.value !== 'station') return []
-    return kbResults.value.slice(0, 8).map(r => ({
-        kind: 'kb' as const,
-        label: r.file.name,
-        sublabel: r.folderPath || r.snippet,
-        icon: 'book-open',
-        to: {name: 'kb-file', params: {id: r.file.id}},
-    }))
-})
-
-const eventResultEntries = computed<PaletteResult[]>(() => {
-    if (scope.value !== 'station') return []
-    return eventResults.value.slice(0, 8).map(({event, date}) => ({
-        kind: 'event' as const,
-        label: event.name ?? `#${event.id}`,
-        sublabel: date,
-        icon: 'calendar-days',
-        to: {name: 'event-detail', params: {id: event.id}},
-    }))
-})
-
-interface PaletteSection {
-    key: string
-    title: string
-    items: PaletteResult[]
-}
-
-const sections = computed<PaletteSection[]>(() => {
-    const out: PaletteSection[] = []
-    if (pageResults.value.length > 0) out.push({key: 'pages', title: t('quickSearch.sectionPages'), items: pageResults.value})
-    if (memberResults.value.length > 0) out.push({key: 'members', title: t('quickSearch.sectionMembers'), items: memberResults.value})
-    if (eventResultEntries.value.length > 0) out.push({key: 'events', title: t('quickSearch.sectionEvents'), items: eventResultEntries.value})
-    if (kbResultEntries.value.length > 0) out.push({key: 'kb', title: t('quickSearch.sectionKnowledge'), items: kbResultEntries.value})
-    return out
-})
-
-const flatResults = computed<PaletteResult[]>(() => sections.value.flatMap(s => s.items))
+const {dataLoading, sections, flatResults, loadForOpen} = useQuickSearchResults(query, scope)
 
 watch(flatResults, () => {
     highlightedIndex.value = 0
-})
-
-async function loadMembers() {
-    if (scope.value !== 'station') return
-    if (!hasPermission(StationPermission.MEMBER_READ)) return
-    try {
-        members.value = await listCompletions()
-    } catch {
-        members.value = []
-    }
-}
-
-async function runKbSearch(q: string) {
-    if (scope.value !== 'station' || !isModuleEnabled(StationModules.KNOWLEDGE_BASE) || q.length < 2) {
-        kbResults.value = []
-        return
-    }
-    try {
-        kbResults.value = await searchKb(q)
-    } catch {
-        kbResults.value = []
-    }
-}
-
-async function runEventSearch(q: string) {
-    if (scope.value !== 'station' || !isModuleEnabled(StationModules.EVENTS)) {
-        eventResults.value = []
-        return
-    }
-    try {
-        eventResults.value = await listUpcomingOccurrences({search: q || undefined, limit: 8})
-    } catch {
-        eventResults.value = []
-    }
-}
-
-watch(query, (q) => {
-    if (kbDebounce) clearTimeout(kbDebounce)
-    if (eventDebounce) clearTimeout(eventDebounce)
-    kbDebounce = setTimeout(() => runKbSearch(q.trim()), 200)
-    eventDebounce = setTimeout(() => runEventSearch(q.trim()), 200)
 })
 
 watch(isOpen, async (open) => {
@@ -182,12 +33,9 @@ watch(isOpen, async (open) => {
         highlightedIndex.value = 0
         return
     }
-    dataLoading.value = true
-    await Promise.all([loadMembers(), runEventSearch('')])
-    dataLoading.value = false
+    await loadForOpen()
     await nextTick()
-    const input = inputWrapper.value?.querySelector('input')
-    input?.focus()
+    inputWrapper.value?.querySelector('input')?.focus()
 })
 
 function activateResult(result: PaletteResult) {
@@ -197,7 +45,7 @@ function activateResult(result: PaletteResult) {
 
 function indexOfItem(sectionIdx: number, itemIdx: number): number {
     let count = 0
-    for (let i = 0; i < sectionIdx; i++) count += sections.value[i].items.length
+    for (let i = 0; i < sectionIdx; i++) count += sections.value[i]?.items.length ?? 0
     return count + itemIdx
 }
 

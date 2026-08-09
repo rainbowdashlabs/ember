@@ -6,8 +6,8 @@
 import {computed, readonly, ref} from 'vue'
 import {session} from '@/api'
 import client from '@/api/client'
-import {getItem, setItem} from '@/api/storage'
-import type {StationMembership} from '@/api/types'
+import {getItem, removeItem, setItem} from '@/api/storage'
+import type {StationMembership} from '@/api/session'
 
 const stationList = ref<StationMembership[]>([])
 const loaded = ref(false)
@@ -45,6 +45,12 @@ export function useStations() {
         setItem('station_id', stationId)
         currentStationId.value = stationId
         loadActiveLogo()
+    }
+
+    function clearActiveStation() {
+        removeItem('station_id')
+        currentStationId.value = null
+        activeLogoUrl.value = null
     }
 
     async function fetchLogo(stationId: string): Promise<string | null> {
@@ -119,6 +125,7 @@ export function useStations() {
         load,
         clear,
         setActiveStation,
+        clearActiveStation,
         loadActiveLogo,
         getStationLogoUrl,
         hasMultipleStations,

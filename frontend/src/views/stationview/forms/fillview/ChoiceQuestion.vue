@@ -69,7 +69,7 @@ function selectedIcon(selected: boolean): string {
     <template v-if="isDropdown">
       <SelectInput
           :model-value="String(answer.selected?.[0] ?? '')"
-          @update:model-value="(v: string | undefined) => toggle(Number(v))">
+          @update:model-value="(v: string | number | null | undefined) => toggle(Number(v))">
         <option value="">--</option>
         <option v-for="(opt, oi) in options" :key="oi" :value="oi">{{ opt }}</option>
       </SelectInput>

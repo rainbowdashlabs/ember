@@ -34,13 +34,17 @@ function removeConnectPair(idx: number) {
 
 function updateConnectPairLeft(idx: number, value: string) {
   const pairs = [...((config.value.pairs as { left: string; right: string }[]) || [])]
-  pairs[idx] = { ...pairs[idx], left: value }
+  const pair = pairs[idx]
+  if (!pair) return
+  pairs[idx] = { ...pair, left: value }
   updateConfig({ pairs })
 }
 
 function updateConnectPairRight(idx: number, value: string) {
   const pairs = [...((config.value.pairs as { left: string; right: string }[]) || [])]
-  pairs[idx] = { ...pairs[idx], right: value }
+  const pair = pairs[idx]
+  if (!pair) return
+  pairs[idx] = { ...pair, right: value }
   updateConfig({ pairs })
 }
 </script>

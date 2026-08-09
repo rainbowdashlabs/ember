@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import {createCrudResource} from './crud'
 import type {MemberIdentity} from '@/api/types'
 
 export interface MemberAbsence {
@@ -17,40 +18,38 @@ export interface MemberAbsence {
     memberIdentity?: MemberIdentity | null
 }
 
-export async function listMyAbsences(): Promise<MemberAbsence[]> {
-    const res = await client.get<MemberAbsence[]>('/profile/absences')
-    return res.data
-}
-
-export async function createAbsence(data: {
-    absentFrom: string;
-    absentUntil: string;
-    reason?: string;
+interface OwnAbsenceRequest {
+    absentFrom: string
+    absentUntil: string
+    reason?: string
     memberIds?: number[]
-}): Promise<MemberAbsence[]> {
-    const res = await client.post<MemberAbsence[]>('/profile/absences', data)
-    return res.data
 }
 
-export async function deleteAbsence(id: number): Promise<void> {
-    await client.delete(`/profile/absences/${id}`)
+interface MemberAbsenceRequest {
+    memberId: number
+    absentFrom: string
+    absentUntil: string
+    reason?: string
 }
+
+const ownAbsences = createCrudResource<
+    MemberAbsence,
+    OwnAbsenceRequest,
+    OwnAbsenceRequest,
+    MemberAbsence,
+    MemberAbsence[]
+>('/profile/absences')
+
+const memberAbsences = createCrudResource<MemberAbsence, MemberAbsenceRequest>('/attendance/absences')
+
+export const listMyAbsences = ownAbsences.list
+export const createAbsence = ownAbsences.create
+export const deleteAbsence = ownAbsences.remove
+
+export const createMemberAbsence = memberAbsences.create
+export const deleteMemberAbsence = memberAbsences.remove
 
 export async function listMemberAbsences(memberId: number): Promise<MemberAbsence[]> {
     const res = await client.get<MemberAbsence[]>(`/attendance/absences/member/${memberId}`)
     return res.data
-}
-
-export async function createMemberAbsence(data: {
-    memberId: number;
-    absentFrom: string;
-    absentUntil: string;
-    reason?: string;
-}): Promise<MemberAbsence> {
-    const res = await client.post<MemberAbsence>('/attendance/absences', data)
-    return res.data
-}
-
-export async function deleteMemberAbsence(id: number): Promise<void> {
-    await client.delete(`/attendance/absences/${id}`)
 }

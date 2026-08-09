@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.comment.repository;
 import dev.chojo.ember.feature.comment.entity.EntityNote;
 import dev.chojo.ember.feature.comment.entity.NoteEntityType;
 import dev.chojo.ember.feature.comment.entity.NoteVersion;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -22,6 +23,10 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 @Singleton
 public class NoteRepository {
 
+    private static final String NOTE_COLUMNS =
+            "id, entity_type, entity_id, station_id, content, updated_by, updated_at";
+    private static final String VERSION_COLUMNS = "id, note_id, diff_patch, author_id, created_at";
+
     /**
      * Finds a note by entity type and entity ID.
      *
@@ -31,19 +36,11 @@ public class NoteRepository {
      */
     public Optional<EntityNote> findNote(NoteEntityType entityType, int entityId, int stationId) {
         return query("""
-                SELECT
-                    id,
-                    entity_type,
-                    entity_id,
-                    station_id,
-                    content,
-                    updated_by,
-                    updated_at
-                FROM
-                    entity_note
+                SELECT %s
+                FROM entity_note
                 WHERE entity_type = :entity_type
                   AND entity_id = :entity_id
-                  AND station_id = :station_id;""")
+                  AND station_id = :station_id;""", NOTE_COLUMNS)
                 .single(call().bind("entity_type", entityType)
                         .bind("entity_id", entityId)
                         .bind("station_id", stationId))
@@ -63,7 +60,8 @@ public class NoteRepository {
      */
     public EntityNote createOrUpdate(
             NoteEntityType entityType, int entityId, int stationId, String content, int updatedBy) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT
                 INTO
                     entity_note
@@ -75,15 +73,14 @@ public class NoteRepository {
                         content    = :content,
                         updated_by = :updated_by,
                         updated_at = now()
-                RETURNING id, entity_type, entity_id, station_id, content, updated_by, updated_at;""")
-                .single(call().bind("entity_type", entityType)
+                RETURNING %s;""",
+                call().bind("entity_type", entityType)
                         .bind("entity_id", entityId)
                         .bind("station_id", stationId)
                         .bind("content", content)
-                        .bind("updated_by", updatedBy))
-                .map(EntityNote.map())
-                .first()
-                .orElseThrow();
+                        .bind("updated_by", updatedBy),
+                EntityNote.map(),
+                NOTE_COLUMNS);
     }
 
     /**
@@ -94,16 +91,10 @@ public class NoteRepository {
      */
     public List<NoteVersion> findVersions(int noteId) {
         return query("""
-                SELECT
-                    id,
-                    note_id,
-                    diff_patch,
-                    author_id,
-                    created_at
-                FROM
-                    entity_note_version
+                SELECT %s
+                FROM entity_note_version
                 WHERE note_id = :note_id
-                ORDER BY created_at DESC;""")
+                ORDER BY created_at DESC;""", VERSION_COLUMNS)
                 .single(call().bind("note_id", noteId))
                 .map(NoteVersion.map())
                 .all();

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import GroupsHelp from '~/views/helpcenter/stationview/members/GroupsHelp'
+import GroupsHelp from '~/views/helpcenter/stationview/members/GroupsHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

@@ -29,7 +29,7 @@ function isSelected(optionIndex: number): boolean {
   return props.answer?.selected?.includes(optionIndex) ?? false
 }
 
-function onSelectChange(v: string | undefined) {
+function onSelectChange(v: string | number | null | undefined) {
   emit('toggle', Number(v))
 }
 

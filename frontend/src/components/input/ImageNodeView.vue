@@ -7,6 +7,7 @@
 import { computed } from 'vue'
 import { nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
 import AuthImage from '@/components/display/AuthImage.vue'
+import IconButton from '@/components/button/IconButton.vue'
 import { isKbImageSrc } from '@/util/normalizeAuthSrc'
 
 const props = defineProps(nodeViewProps)
@@ -59,14 +60,14 @@ function onWidthChange(e: Event) {
       />
       <span class="text-xs text-[var(--text-muted)]">px</span>
       <div class="w-px h-4 bg-[var(--border)] mx-1.5" />
-      <button
-        type="button"
-        title="Bild entfernen"
-        class="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 transition-colors text-xs cursor-pointer"
+      <IconButton
+        :icon="['fas', 'trash']"
+        label="Bild entfernen"
+        class="hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 cursor-pointer"
         @click="deleteNode"
       >
         <font-awesome-icon :icon="['fas', 'trash']" class="w-3 h-3" />
-      </button>
+      </IconButton>
     </div>
   </NodeViewWrapper>
 </template>

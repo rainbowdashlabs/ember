@@ -10,8 +10,10 @@ import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type {EventCategory} from '@/api/types'
+import type {EventCategory} from '@/api/events'
 import {events} from '@/api'
+import {saveBlob} from '@/util/downloadAuthed'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import TimeRangeSection from './exportmodal/TimeRangeSection.vue'
 import CategoriesSection from './exportmodal/CategoriesSection.vue'
 import ColumnsSection, {type ExportColumn} from './exportmodal/ColumnsSection.vue'
@@ -28,7 +30,6 @@ const emit = defineEmits<{
   error: [message: string]
 }>()
 
-const exporting = ref(false)
 const exportMode = ref('year')
 const exportYear = ref(String(new Date().getFullYear()))
 const exportMonth = ref(String(new Date().getMonth() + 1))
@@ -67,22 +68,24 @@ function removeColumn(index: number) {
   selectedColumns.value = selectedColumns.value.filter((_, i) => i !== index)
 }
 
+function swapColumns(first: number, second: number) {
+  const cols = [...selectedColumns.value]
+  const a = cols[first]
+  const b = cols[second]
+  if (a === undefined || b === undefined) return
+  cols[first] = b
+  cols[second] = a
+  selectedColumns.value = cols
+}
+
 function moveColumnUp(index: number) {
   if (index <= 0) return
-  const cols = [...selectedColumns.value]
-  const tmp = cols[index - 1]
-  cols[index - 1] = cols[index]
-  cols[index] = tmp
-  selectedColumns.value = cols
+  swapColumns(index - 1, index)
 }
 
 function moveColumnDown(index: number) {
   if (index >= selectedColumns.value.length - 1) return
-  const cols = [...selectedColumns.value]
-  const tmp = cols[index + 1]
-  cols[index + 1] = cols[index]
-  cols[index] = tmp
-  selectedColumns.value = cols
+  swapColumns(index, index + 1)
 }
 
 function addFieldColumn(name: string) {
@@ -105,8 +108,7 @@ watch(modelValue, (visible) => {
   }
 })
 
-async function doExport() {
-  exporting.value = true
+const {running: exporting, run: doExport} = useAsyncAction(async () => {
   try {
     const year = parseInt(exportYear.value)
     const month = parseInt(exportMonth.value)
@@ -133,19 +135,12 @@ async function doExport() {
       from,
       to,
     })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'events.pdf'
-    a.click()
-    URL.revokeObjectURL(url)
+    saveBlob(blob, 'events.pdf')
     modelValue.value = false
   } catch {
     emit('error', t('common.error'))
-  } finally {
-    exporting.value = false
   }
-}
+})
 </script>
 
 <template>

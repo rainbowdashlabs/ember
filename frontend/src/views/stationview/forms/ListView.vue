@@ -6,13 +6,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { useConfirmAction } from '@/composables/useConfirmAction'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import { FormStatus, StationPermission } from '@/api/types'
-import type { Form, FormListEntry, FormPurposeName } from '@/api/types'
+import {FormStatus, type Form, type FormListEntry, type FormPurposeName} from '@/api/forms'
+import { StationPermission } from '@/api/types'
 import { forms } from '@/api'
 import { useSession } from '@/composables/useSession'
 import ManagedFormsSection from './listview/ManagedFormsSection.vue'
@@ -37,7 +38,16 @@ const props = defineProps<{
 
 const { t } = useI18n()
 const router = useRouter()
+const route = useRoute()
 const { hasPermission, loaded } = useSession()
+
+/**
+ * Three routes render this view — the general forms list and the page-editor's contact-form and
+ * poll surfaces — so the header title has to follow the route rather than being fixed to the
+ * general one. Each route owns a {@code pages.<route-name>} entry.
+ */
+const pageTitle = computed(() => t(`pages.${String(route.name)}.title`))
+const pageSubtitle = computed(() => t(`pages.${String(route.name)}.subtitle`))
 const canViewResults = computed(() => hasPermission(StationPermission.POLL_VIEW_RESULTS))
 const canCreatePolls = computed(() => hasPermission(StationPermission.POLL_CREATE))
 const showAvailable = computed(() => props.showAvailableSection ?? true)
@@ -45,21 +55,23 @@ const showAvailable = computed(() => props.showAvailableSection ?? true)
 const managedForms = ref<Form[]>([])
 const availableForms = ref<FormListEntry[]>([])
 
-const confirmModalOpen = ref(false)
-const confirmModalMessage = ref('')
-const confirmModalAction = ref<(() => Promise<void>) | null>(null)
-
-function showConfirm(message: string, action: () => Promise<void>) {
-  confirmModalMessage.value = message
-  confirmModalAction.value = action
-  confirmModalOpen.value = true
+interface PendingConfirm {
+  message: string
+  action: () => Promise<void>
 }
 
-async function executeConfirm() {
-  confirmModalOpen.value = false
-  if (confirmModalAction.value) {
-    try { await confirmModalAction.value() } catch { /* ignore */ }
-  }
+const confirmAction = useConfirmAction<PendingConfirm>({
+  onConfirm: async (pending) => {
+    try {
+      await pending.action()
+    } catch {
+      return
+    }
+  },
+})
+
+function showConfirm(message: string, action: () => Promise<void>) {
+  confirmAction.request({message, action})
 }
 
 const { loading, error, reload } = useAsyncLoader(async () => {
@@ -133,8 +145,8 @@ watch(loaded, (isLoaded) => {
 
 <template>
   <ViewContent
-      :title="t('pages.forms-list.title')"
-      :subtitle="t('pages.forms-list.subtitle')"
+      :title="pageTitle"
+      :subtitle="pageSubtitle"
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg" />
@@ -165,9 +177,9 @@ watch(loaded, (isLoaded) => {
       </template>
 
       <ConfirmActionModal
-        v-model="confirmModalOpen"
-        :message="confirmModalMessage"
-        @confirm="executeConfirm"
+        v-model="confirmAction.show.value"
+        :message="confirmAction.target.value?.message ?? ''"
+        @confirm="confirmAction.confirm"
       />
     </div>
   </ViewContent>

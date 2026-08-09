@@ -4,7 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type { PermissionNode } from './types'
+export interface PermissionNode {
+    name: string
+    children: string[]
+}
 
 export async function getPermissionHierarchy(): Promise<PermissionNode[]> {
     const res = await client.get<PermissionNode[]>('/data/permissions')

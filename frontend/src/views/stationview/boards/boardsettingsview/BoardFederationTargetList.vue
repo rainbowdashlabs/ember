@@ -19,6 +19,16 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+
+type SelectValue = string | number | null | undefined
+
+function applyShareMode(target: FederationTarget, value: SelectValue) {
+    target.shareMode = value === 'FULL' ? 'FULL' : 'READ_ONLY'
+}
+
+function applyRequiredRole(target: FederationTarget, value: SelectValue) {
+    target.requiredRole = String(value ?? 'USER')
+}
 </script>
 
 <template>
@@ -27,14 +37,14 @@ const { t } = useI18n()
             <span class="font-medium text-sm min-w-24">{{ partnerName(target.partnerId) }}</span>
             <div class="flex items-center gap-1">
                 <span class="text-xs text-[var(--text-muted)] shrink-0">{{ t('boards.accessMode') }}:</span>
-                <SelectInput :model-value="target.shareMode" @update:model-value="(v: any) => target.shareMode = v">
+                <SelectInput :model-value="target.shareMode" @update:model-value="v => applyShareMode(target, v)">
                     <option value="READ_ONLY">{{ t('boards.shareModeReadOnly') }}</option>
                     <option value="FULL">{{ t('boards.shareModeFull') }}</option>
                 </SelectInput>
             </div>
             <div class="flex items-center gap-1">
                 <span class="text-xs text-[var(--text-muted)] shrink-0">{{ t('boards.minViewRole') }}:</span>
-                <SelectInput :model-value="target.requiredRole" @update:model-value="(v: any) => target.requiredRole = v">
+                <SelectInput :model-value="target.requiredRole" @update:model-value="v => applyRequiredRole(target, v)">
                     <option value="USER">{{ t('boards.requiredRoleUser') }}</option>
                     <option value="TEAM">{{ t('boards.requiredRoleTeam') }}</option>
                     <option value="MANAGER">{{ t('boards.requiredRoleManager') }}</option>

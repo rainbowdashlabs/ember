@@ -9,6 +9,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import type {KbFile} from '@/api/knowledgeBase'
+import {formatDateTime} from '@/util/format'
 
 const props = defineProps<{
   file: KbFile
@@ -35,6 +36,6 @@ const {t} = useI18n()
   </MutedText>
 
   <p v-if="props.file.updatedAt" class="text-xs text-[var(--text-muted)] mb-4">
-    {{ new Date(props.file.updatedAt).toLocaleString('de-DE') }}
+    {{ formatDateTime(props.file.updatedAt) }}
   </p>
 </template>

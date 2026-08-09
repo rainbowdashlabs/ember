@@ -5,7 +5,8 @@
  */
 <script setup lang="ts">
 import NewsListItem from './NewsListItem.vue'
-import type {NewsEntry, MemberIdentity} from '@/api/types'
+import type {NewsEntry} from '@/api/news'
+import type {MemberIdentity} from '@/api/types'
 
 export interface UnifiedNewsItem {
   kind: 'local' | 'federated'

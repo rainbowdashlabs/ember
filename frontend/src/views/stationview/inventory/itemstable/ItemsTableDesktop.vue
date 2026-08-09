@@ -4,12 +4,15 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Th from '@/components/table/Th.vue'
 import THead from '@/components/table/THead.vue'
-import type { InventoryItem, MemberIdentity } from '@/api/types'
+import type { InventoryItem } from '@/api/inventory'
+import type { MemberIdentity } from '@/api/types'
 import type { InventoryItemActionEmits } from '../itemEmits'
+import type { ItemTableApi } from '../itemtable/useItemTable'
+import ItemTableHeadRow from '../itemtable/ItemTableHeadRow.vue'
 import ItemsTableRow from './ItemsTableRow.vue'
 
 const props = defineProps<{
@@ -23,7 +26,18 @@ const props = defineProps<{
   getSizeLabel: (sizeId: number | null | undefined) => string
   getMemberIdentity: (memberId: number | null | undefined) => MemberIdentity | undefined
   formatDate: (iso: string | null | undefined) => string
+  tableApi?: ItemTableApi
 }>()
+
+const showSize = computed(() => props.tableApi ? props.tableApi.isColumnVisible('size') : props.hasSizes)
+const showSource = computed(() => props.tableApi ? props.tableApi.isColumnVisible('source') : props.isMixed)
+const showAssigned = computed(() => props.tableApi ? props.tableApi.isColumnVisible('assigned') : true)
+
+function fieldValues(item: InventoryItem): string[] {
+  const api = props.tableApi
+  if (!api) return []
+  return api.visibleFieldColumns.map(col => api.columnValue(item, col.key))
+}
 
 function locationLabel(containerId: number | null | undefined): string {
   if (!containerId) return ''
@@ -36,10 +50,11 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <NeutralContainer class="overflow-x-auto">
+  <div class="overflow-x-auto">
     <table class="w-full text-sm">
       <thead>
-        <THead>
+        <ItemTableHeadRow v-if="tableApi" :table="tableApi" :show-action-column="showActions || showHistory"/>
+        <THead v-else>
           <Th>{{ t('inventory.edit.colName') }}</Th>
           <Th>{{ t('inventory.edit.colId') }}</Th>
           <Th v-if="hasSizes">{{ t('inventory.edit.colSize') }}</Th>
@@ -50,7 +65,8 @@ const { t } = useI18n()
       </thead>
       <tbody>
         <ItemsTableRow v-for="item in items" :key="item.id"
-                       :item="item" :has-sizes="hasSizes" :is-mixed="isMixed"
+                       :item="item" :has-sizes="showSize" :is-mixed="showSource"
+                       :show-assigned="showAssigned" :field-values="fieldValues(item)"
                        :show-actions="showActions" :show-history="showHistory"
                        :lent-out="lentItemMap?.has(item.id) ?? false"
                        :lent-to-station-name="lentItemMap?.get(item.id) ?? null"
@@ -67,5 +83,5 @@ const { t } = useI18n()
                        @delete="emit('delete', $event)"/>
       </tbody>
     </table>
-  </NeutralContainer>
+  </div>
 </template>

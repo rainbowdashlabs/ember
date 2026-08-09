@@ -9,10 +9,10 @@ import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import type {StationMember, UserTag} from '@/api/types'
+import {StationPermission, type StationMember, type UserTag} from '@/api/types'
 import {stationMembers, userTags} from '@/api'
-import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useConfirmAction} from '@/composables/useConfirmAction'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -21,6 +21,7 @@ import TagMembersPanel from './tagsview/TagMembersPanel.vue'
 import TagFormModal from './tagsview/TagFormModal.vue'
 import TagDeleteModal from './tagsview/TagDeleteModal.vue'
 import TagConvertModal from './tagsview/TagConvertModal.vue'
+import {useMemberAssignment} from './useMemberAssignment'
 
 const {t} = useI18n()
 const {hasPermission} = useSession()
@@ -39,7 +40,6 @@ const tagName = ref('')
 const tagColor = ref('')
 const tagVisible = ref(false)
 const tagPosition = ref(0)
-const tagSaving = ref(false)
 
 const {loading, error} = useAsyncLoader(async () => {
   const [tagList, members] = await Promise.all([
@@ -84,10 +84,19 @@ const {
   error,
 })
 
-const availableMembers = computed(() => {
-  const memberIds = new Set(tagMembers.value.map(m => m.id))
-  return allMembers.value.filter(m => !memberIds.has(m.id))
-})
+const {
+  availableMembers,
+  addMember: addMemberToTag,
+  removeMember: removeMemberFromTag,
+} = useMemberAssignment(
+    allMembers,
+    tagMembers,
+    async (ids) => {
+      await userTags.setTagMembers(selectedTag.value!.id, ids)
+      return userTags.getTagMembers(selectedTag.value!.id)
+    },
+    error,
+)
 
 async function selectTag(tag: UserTag) {
   selectedTag.value = tag
@@ -120,48 +129,23 @@ function openEditTag(tag: UserTag) {
   showTagModal.value = true
 }
 
-async function saveTag() {
-  tagSaving.value = true
-  error.value = ''
-  try {
-    if (editingTag.value) {
-      await userTags.updateTag(editingTag.value.id, {name: tagName.value, color: tagColor.value || null, visible: tagVisible.value, position: tagPosition.value})
-    } else {
-      await userTags.createTag({name: tagName.value, color: tagColor.value || null, visible: tagVisible.value, position: tagPosition.value})
-    }
-    showTagModal.value = false
-    tags.value = await userTags.listTags()
-    if (selectedTag.value && editingTag.value?.id === selectedTag.value.id) {
-      selectedTag.value = tags.value.find(t => t.id === selectedTag.value!.id) ?? null
-    }
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    tagSaving.value = false
+const {
+  running: tagSaving,
+  error: tagSaveError,
+  run: saveTag,
+} = useAsyncAction(async () => {
+  if (editingTag.value) {
+    await userTags.updateTag(editingTag.value.id, {name: tagName.value, color: tagColor.value || null, visible: tagVisible.value, position: tagPosition.value})
+  } else {
+    await userTags.createTag({name: tagName.value, color: tagColor.value || null, visible: tagVisible.value, position: tagPosition.value})
   }
-}
+  showTagModal.value = false
+  tags.value = await userTags.listTags()
+  if (selectedTag.value && editingTag.value?.id === selectedTag.value.id) {
+    selectedTag.value = tags.value.find(t => t.id === selectedTag.value!.id) ?? null
+  }
+}, {formatError: () => t('common.error')})
 
-async function addMemberToTag(member: StationMember) {
-  if (!selectedTag.value) return
-  const newIds = [...tagMembers.value.map(m => m.id), member.id]
-  try {
-    await userTags.setTagMembers(selectedTag.value.id, newIds)
-    tagMembers.value = await userTags.getTagMembers(selectedTag.value.id)
-  } catch {
-    error.value = t('common.error')
-  }
-}
-
-async function removeMemberFromTag(member: StationMember) {
-  if (!selectedTag.value) return
-  const newIds = tagMembers.value.filter(m => m.id !== member.id).map(m => m.id)
-  try {
-    await userTags.setTagMembers(selectedTag.value.id, newIds)
-    tagMembers.value = await userTags.getTagMembers(selectedTag.value.id)
-  } catch {
-    error.value = t('common.error')
-  }
-}
 
 </script>
 
@@ -172,7 +156,7 @@ async function removeMemberFromTag(member: StationMember) {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <Alert v-if="error || tagSaveError" variant="error">{{ error || tagSaveError }}</Alert>
 
       <div v-if="!loading" class="grid gap-6 lg:grid-cols-2">
         <TagListPanel :tags="tags" :selected-tag="selectedTag" :can-convert-to-group="canConvertToGroup"

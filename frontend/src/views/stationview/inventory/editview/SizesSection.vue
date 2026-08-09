@@ -19,7 +19,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
-import type {InventorySize} from '@/api/types'
+import type {InventorySize} from '@/api/inventory'
 import {inventory} from '@/api'
 
 const {t} = useI18n()
@@ -88,13 +88,14 @@ async function deleteSize(size: InventorySize) {
 async function onSizeReorder(fromIndex: number, toIndex: number) {
   const sizes = [...props.sizes]
   const [moved] = sizes.splice(fromIndex, 1)
+  if (!moved) return
   sizes.splice(toIndex, 0, moved)
   try {
-    for (let i = 0; i < sizes.length; i++) {
-      await inventory.updateSize(props.inventoryId, sizes[i].id, {
-        label: sizes[i].label ?? '',
+    for (const [i, size] of sizes.entries()) {
+      await inventory.updateSize(props.inventoryId, size.id, {
+        label: size.label ?? '',
         position: i,
-        note: sizes[i].note,
+        note: size.note,
       })
     }
     emit('updated')

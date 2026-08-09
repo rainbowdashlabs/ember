@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import IcalFeedHelp from '~/views/helpcenter/stationview/profile/IcalFeedHelp'
+import IcalFeedHelp from '~/views/helpcenter/stationview/profile/IcalFeedHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

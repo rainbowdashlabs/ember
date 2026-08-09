@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import type {QuizAttemptDetail, QuizQuestion, QuizTestAnswer} from '@/api/types'
+import type {QuizAttemptDetail, QuizQuestion, QuizTestAnswer} from '@/api/quiz'
 import QuestionEvaluationCard from './QuestionEvaluationCard.vue'
 
 const props = defineProps<{

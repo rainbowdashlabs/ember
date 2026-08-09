@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.procedure.entity.ProcedureItem;
 import dev.chojo.ember.feature.procedure.entity.ProcedureStatus;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplate;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplateItem;
+import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
@@ -19,45 +20,56 @@ import java.util.Optional;
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
+import static dev.chojo.ember.util.sql.SqlSupport.alias;
+import static dev.chojo.ember.util.sql.SqlSupport.count;
+import static dev.chojo.ember.util.sql.SqlSupport.deleteById;
+import static dev.chojo.ember.util.sql.SqlSupport.findById;
+import static dev.chojo.ember.util.sql.SqlSupport.insertReturning;
 
 @Singleton
 public class ProcedureRepository {
+    private static final String PROCEDURE_TEMPLATE_COLUMNS =
+            "id, station_id, name, description, archived, created_by, created_at";
+    private static final String PROCEDURE_TEMPLATE_ITEM_COLUMNS =
+            "id, template_id, title, description, public, user_assigned, position";
+    private static final String PROCEDURE_COLUMNS = """
+            id, station_id, template_id, name, description, public, status, assigned_by, due_at, \
+            created_at, resolved_at""";
+    private static final String PROCEDURE_ITEM_COLUMNS =
+            "id, procedure_id, title, description, note, public, user_assigned, position, checked, checked_at, checked_by";
 
     // ── Templates ──
 
     public List<ProcedureTemplate> findTemplatesByStation(int stationId, boolean includeArchived) {
-        var sql = includeArchived
-                ? "SELECT * FROM procedure_template WHERE station_id = :station_id ORDER BY created_at DESC;"
-                : "SELECT * FROM procedure_template WHERE station_id = :station_id AND archived = FALSE ORDER BY created_at DESC;";
-        return query(sql)
-                .single(call().bind("station_id", stationId))
+        var where = WhereBuilder.create().addIf(!includeArchived, "AND archived = FALSE");
+        return query(
+                        "SELECT %s FROM procedure_template WHERE station_id = :station_id %s ORDER BY created_at DESC;",
+                        PROCEDURE_TEMPLATE_COLUMNS, where.fragment())
+                .single(where.apply(call().bind("station_id", stationId)))
                 .map(ProcedureTemplate.map())
                 .all();
     }
 
     public Optional<ProcedureTemplate> findTemplateById(int id) {
-        return query("SELECT * FROM procedure_template WHERE id = :id;")
-                .single(call().bind("id", id))
-                .map(ProcedureTemplate.map())
-                .first();
+        return findById("procedure_template", PROCEDURE_TEMPLATE_COLUMNS, id, ProcedureTemplate.map());
     }
 
     public ProcedureTemplate createTemplate(int stationId, String name, String description, int createdBy) {
-        return query("""
+        return insertReturning(
+                """
 
                     INSERT
                 INTO
                     procedure_template(station_id, name, description, created_by)
                 VALUES
                     (:station_id, :name, :description, :created_by)
-                RETURNING *;""")
-                .single(call().bind("station_id", stationId)
+                RETURNING %s;""",
+                call().bind("station_id", stationId)
                         .bind("name", name)
                         .bind("description", description)
-                        .bind("created_by", createdBy))
-                .map(ProcedureTemplate.map())
-                .first()
-                .orElseThrow();
+                        .bind("created_by", createdBy),
+                ProcedureTemplate.map(),
+                PROCEDURE_TEMPLATE_COLUMNS);
     }
 
     public boolean updateTemplate(int id, String name, String description) {
@@ -80,11 +92,11 @@ public class ProcedureRepository {
 
     public List<ProcedureTemplateItem> findTemplateItems(int templateId) {
         return query("""
-                SELECT *
+                SELECT %s
                 FROM
                     procedure_template_item
                 WHERE template_id = :template_id
-                ORDER BY position;""")
+                ORDER BY position;""", PROCEDURE_TEMPLATE_ITEM_COLUMNS)
                 .single(call().bind("template_id", templateId))
                 .map(ProcedureTemplateItem.map())
                 .all();
@@ -92,22 +104,22 @@ public class ProcedureRepository {
 
     public ProcedureTemplateItem createTemplateItem(
             int templateId, String title, String description, boolean isPublic, boolean userAssigned, int position) {
-        return query("""
+        return insertReturning(
+                """
                 INSERT
                 INTO
                     procedure_template_item(template_id, title, description, public, user_assigned, position)
                 VALUES
                     (:template_id, :title, :description, :public, :user_assigned, :position)
-                RETURNING *;""")
-                .single(call().bind("template_id", templateId)
+                RETURNING %s;""",
+                call().bind("template_id", templateId)
                         .bind("title", title)
                         .bind("description", description)
                         .bind("public", isPublic)
                         .bind("user_assigned", userAssigned)
-                        .bind("position", position))
-                .map(ProcedureTemplateItem.map())
-                .first()
-                .orElseThrow();
+                        .bind("position", position),
+                ProcedureTemplateItem.map(),
+                PROCEDURE_TEMPLATE_ITEM_COLUMNS);
     }
 
     public boolean updateTemplateItem(
@@ -132,10 +144,7 @@ public class ProcedureRepository {
     }
 
     public boolean deleteTemplateItem(int id) {
-        return query("DELETE FROM procedure_template_item WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return deleteById("procedure_template_item", id);
     }
 
     // ── Template Item Dependencies ──
@@ -181,62 +190,39 @@ public class ProcedureRepository {
     // ── Procedures ──
 
     public List<Procedure> findProceduresByStation(int stationId, ProcedureStatus status) {
-        if (status != null) {
-            return query("""
-                    SELECT * FROM procedure
-                    WHERE station_id = :station_id AND status = :status
-                    ORDER BY created_at DESC;""")
-                    .single(call().bind("station_id", stationId).bind("status", status))
-                    .map(Procedure.map())
-                    .all();
-        }
-        return query("SELECT * FROM procedure WHERE station_id = :station_id ORDER BY created_at DESC;")
-                .single(call().bind("station_id", stationId))
+        var where = WhereBuilder.create().add("AND status = :status", "status", status);
+        return query("""
+                SELECT %s FROM procedure
+                WHERE station_id = :station_id %s
+                ORDER BY created_at DESC;""", PROCEDURE_COLUMNS, where.fragment())
+                .single(where.apply(call().bind("station_id", stationId)))
                 .map(Procedure.map())
                 .all();
     }
 
     public List<Procedure> findProceduresByAssignee(
             int stationId, int memberId, ProcedureStatus status, boolean publicOnly) {
-        var publicFilter = publicOnly ? " AND p.public" : "";
-        if (status != null) {
-            return query("""
-                    SELECT
-                        p.*
-                    FROM
-                        procedure p
-                            JOIN procedure_assignee pa
-                            ON pa.procedure_id = p.id
-                    WHERE p.station_id = :station_id
-                      AND pa.member_id = :member_id
-                      AND p.status = :status %s
-                    ORDER BY p.created_at DESC;""", publicFilter)
-                    .single(call().bind("station_id", stationId)
-                            .bind("member_id", memberId)
-                            .bind("status", status))
-                    .map(Procedure.map())
-                    .all();
-        }
+        var where = WhereBuilder.create()
+                .add("AND p.status = :status", "status", status)
+                .addIf(publicOnly, "AND p.public");
         return query("""
                 SELECT
-                    p.*
+                    %s
                 FROM
                     procedure p
                         JOIN procedure_assignee pa
                         ON pa.procedure_id = p.id
                 WHERE p.station_id = :station_id
-                  AND pa.member_id = :member_id %s
-                ORDER BY p.created_at DESC;""", publicFilter)
-                .single(call().bind("station_id", stationId).bind("member_id", memberId))
+                  AND pa.member_id = :member_id
+                  %s
+                ORDER BY p.created_at DESC;""", alias("p", PROCEDURE_COLUMNS), where.fragment())
+                .single(where.apply(call().bind("station_id", stationId).bind("member_id", memberId)))
                 .map(Procedure.map())
                 .all();
     }
 
     public Optional<Procedure> findProcedureById(int id) {
-        return query("SELECT * FROM procedure WHERE id = :id;")
-                .single(call().bind("id", id))
-                .map(Procedure.map())
-                .first();
+        return findById("procedure", PROCEDURE_COLUMNS, id, Procedure.map());
     }
 
     public Procedure createProcedure(
@@ -247,20 +233,20 @@ public class ProcedureRepository {
             boolean isPublic,
             int assignedBy,
             Instant dueAt) {
-        return query("""
+        return insertReturning(
+                """
                 INSERT INTO procedure(station_id, template_id, name, description, public, assigned_by, due_at)
                 VALUES(:station_id, :template_id, :name, :description, :public, :assigned_by, :due_at)
-                RETURNING *;""")
-                .single(call().bind("station_id", stationId)
+                RETURNING %s;""",
+                call().bind("station_id", stationId)
                         .bind("template_id", templateId)
                         .bind("name", name)
                         .bind("description", description)
                         .bind("public", isPublic)
                         .bind("assigned_by", assignedBy)
-                        .bind("due_at", dueAt, INSTANT_TIMESTAMP))
-                .map(Procedure.map())
-                .first()
-                .orElseThrow();
+                        .bind("due_at", dueAt, INSTANT_TIMESTAMP),
+                Procedure.map(),
+                PROCEDURE_COLUMNS);
     }
 
     public boolean updateProcedure(int id, String name, String description, boolean isPublic, Instant dueAt) {
@@ -299,10 +285,7 @@ public class ProcedureRepository {
     }
 
     public boolean deleteProcedure(int id) {
-        return query("DELETE FROM procedure WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return deleteById("procedure", id);
     }
 
     // ── Assignees ──
@@ -336,37 +319,36 @@ public class ProcedureRepository {
     // ── Procedure Items ──
 
     public List<ProcedureItem> findItems(int procedureId) {
-        return query("SELECT * FROM procedure_item WHERE procedure_id = :procedure_id ORDER BY position;")
+        return query(
+                        "SELECT %s FROM procedure_item WHERE procedure_id = :procedure_id ORDER BY position;",
+                        PROCEDURE_ITEM_COLUMNS)
                 .single(call().bind("procedure_id", procedureId))
                 .map(ProcedureItem.map())
                 .all();
     }
 
     public Optional<ProcedureItem> findItemById(int id) {
-        return query("SELECT * FROM procedure_item WHERE id = :id;")
-                .single(call().bind("id", id))
-                .map(ProcedureItem.map())
-                .first();
+        return findById("procedure_item", PROCEDURE_ITEM_COLUMNS, id, ProcedureItem.map());
     }
 
     public ProcedureItem createItem(
             int procedureId, String title, String description, boolean isPublic, boolean userAssigned, int position) {
-        return query("""
+        return insertReturning(
+                """
                 INSERT
                 INTO
                     procedure_item(procedure_id, title, description, public, user_assigned, position)
                 VALUES
                     (:procedure_id, :title, :description, :public, :user_assigned, :position)
-                RETURNING *;""")
-                .single(call().bind("procedure_id", procedureId)
+                RETURNING %s;""",
+                call().bind("procedure_id", procedureId)
                         .bind("title", title)
                         .bind("description", description)
                         .bind("public", isPublic)
                         .bind("user_assigned", userAssigned)
-                        .bind("position", position))
-                .map(ProcedureItem.map())
-                .first()
-                .orElseThrow();
+                        .bind("position", position),
+                ProcedureItem.map(),
+                PROCEDURE_ITEM_COLUMNS);
     }
 
     public boolean updateItem(
@@ -391,10 +373,7 @@ public class ProcedureRepository {
     }
 
     public boolean deleteItem(int id) {
-        return query("DELETE FROM procedure_item WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return deleteById("procedure_item", id);
     }
 
     public boolean checkItem(int id, int checkedBy) {
@@ -471,28 +450,28 @@ public class ProcedureRepository {
     // ── Snapshot (Template → Procedure) ──
 
     public ProcedureItem snapshotTemplateItem(int procedureId, ProcedureTemplateItem item) {
-        return query("""
+        return insertReturning(
+                """
                 INSERT
                 INTO
                     procedure_item(procedure_id, title, description, public, user_assigned, position)
                 VALUES
                     (:procedure_id, :title, :description, :public, :user_assigned, :position)
-                RETURNING *;""")
-                .single(call().bind("procedure_id", procedureId)
+                RETURNING %s;""",
+                call().bind("procedure_id", procedureId)
                         .bind("title", item.title())
                         .bind("description", item.description())
                         .bind("public", item.isPublic())
                         .bind("user_assigned", item.userAssigned())
-                        .bind("position", item.position()))
-                .map(ProcedureItem.map())
-                .first()
-                .orElseThrow();
+                        .bind("position", item.position()),
+                ProcedureItem.map(),
+                PROCEDURE_ITEM_COLUMNS);
     }
 
     // ── Sidebar Counts ──
 
     public int countOpenByAssigneeWithAvailableItems(int stationId, int memberId) {
-        return query("""
+        return count("""
                 SELECT
                     count(DISTINCT p.id)
                 FROM
@@ -516,18 +495,12 @@ public class ProcedureRepository {
                             ON dep.id = d.depends_on_item_id
                     WHERE d.item_id = pi.id
                       AND NOT dep.checked
-                                 );""")
-                .single(call().bind("station_id", stationId).bind("member_id", memberId))
-                .map(row -> row.getInt("count"))
-                .first()
-                .orElse(0);
+                                 );""", call().bind("station_id", stationId).bind("member_id", memberId));
     }
 
     public int countOpenByStation(int stationId) {
-        return query("SELECT count(*) FROM procedure WHERE station_id = :station_id AND status = 'OPEN';")
-                .single(call().bind("station_id", stationId))
-                .map(row -> row.getInt("count"))
-                .first()
-                .orElse(0);
+        return count(
+                "SELECT count(*) FROM procedure WHERE station_id = :station_id AND status = 'OPEN';",
+                call().bind("station_id", stationId));
     }
 }

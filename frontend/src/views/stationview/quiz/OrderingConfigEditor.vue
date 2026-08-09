@@ -9,62 +9,34 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
-import DecimalInput from '@/components/input/number/DecimalInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import FieldHint from '@/components/typography/FieldHint.vue'
+import PointsPerCorrectField from './PointsPerCorrectField.vue'
+import { useQuestionConfigList } from './useQuestionConfigList'
 
 const { t } = useI18n()
 
 const config = defineModel<Record<string, unknown>>('config', {required: true})
 
+const items = useQuestionConfigList(config, 'items')
+
 function updateConfig(patch: Record<string, unknown>) {
   config.value = { ...config.value, ...patch }
-}
-
-function addOrderingItem() {
-  const items = [...((config.value.items as string[]) || [])]
-  items.push('')
-  updateConfig({ items })
-}
-
-function removeOrderingItem(idx: number) {
-  const items = [...((config.value.items as string[]) || [])]
-  items.splice(idx, 1)
-  updateConfig({ items })
-}
-
-function updateOrderingItem(idx: number, value: string) {
-  const items = [...((config.value.items as string[]) || [])]
-  items[idx] = value
-  updateConfig({ items })
-}
-
-function moveOrderingItem(idx: number, direction: -1 | 1) {
-  const items = [...((config.value.items as string[]) || [])]
-  const newIdx = idx + direction
-  if (newIdx < 0 || newIdx >= items.length) return
-  const temp = items[idx]
-  items[idx] = items[newIdx]
-  items[newIdx] = temp
-  updateConfig({ items })
 }
 </script>
 
 <template>
-  <div class="flex items-center gap-2">
-    <FieldHint>{{ t('quiz.questions.config.pointsPerCorrect') }}</FieldHint>
-    <DecimalInput :model-value="(config.pointsPerCorrect as number) || 1" step="0.5" class="w-20" @update:model-value="(v: number | undefined) => updateConfig({ pointsPerCorrect: v ?? 1 })"/>
-  </div>
+  <PointsPerCorrectField :model-value="(config.pointsPerCorrect as number) || 1"
+                         @update:model-value="v => updateConfig({ pointsPerCorrect: v })"/>
   <SubHeader>{{ t('quiz.questions.config.items') }}</SubHeader>
   <p class="text-xs text-(--text-muted)">{{ t('quiz.questions.config.orderingHint') }}</p>
   <div class="space-y-2">
-    <div v-for="(item, idx) in (config.items as string[])" :key="idx" class="flex items-center gap-2">
+    <div v-for="(item, idx) in items.items.value" :key="idx" class="flex items-center gap-2">
       <span class="text-xs text-(--text-muted) shrink-0 w-5 text-right">{{ idx + 1 }}.</span>
-      <TextInput :model-value="item" class="flex-1" @update:model-value="(v: string | undefined) => updateOrderingItem(idx, v ?? '')" />
-      <MutedIconButton :icon="['fas', 'chevron-up']" label="Up" :disabled="idx === 0" @click="moveOrderingItem(idx, -1)" />
-      <MutedIconButton :icon="['fas', 'chevron-down']" label="Down" :disabled="idx === (config.items as string[]).length - 1" @click="moveOrderingItem(idx, 1)" />
-      <DeleteButton @click="removeOrderingItem(idx)" />
+      <TextInput :model-value="item" class="flex-1" @update:model-value="(v: string | undefined) => items.update(idx, v ?? '')" />
+      <MutedIconButton :icon="['fas', 'chevron-up']" label="Up" :disabled="idx === 0" @click="items.move(idx, -1)" />
+      <MutedIconButton :icon="['fas', 'chevron-down']" label="Down" :disabled="idx === items.items.value.length - 1" @click="items.move(idx, 1)" />
+      <DeleteButton @click="items.remove(idx)" />
     </div>
-    <SecondaryButton @click="addOrderingItem"><font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />{{ t('quiz.questions.config.addItem') }}</SecondaryButton>
+    <SecondaryButton @click="items.add"><font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />{{ t('quiz.questions.config.addItem') }}</SecondaryButton>
   </div>
 </template>

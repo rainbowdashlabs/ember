@@ -9,7 +9,6 @@ import com.anthropic.client.AnthropicClient;
 import com.anthropic.client.okhttp.AnthropicOkHttpClient;
 import com.anthropic.models.messages.ContentBlock;
 import com.anthropic.models.messages.MessageCreateParams;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.genai.Client;
 import com.google.genai.types.Content;
 import com.google.genai.types.GenerateContentConfig;
@@ -21,6 +20,7 @@ import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.entity.StationAiProvider;
 import dev.chojo.ember.feature.quiz.repository.AiProviderRepository;
+import dev.chojo.ember.util.Json;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -37,7 +37,6 @@ import java.util.concurrent.ConcurrentHashMap;
 @Singleton
 public class AiService {
     private static final Logger log = LoggerFactory.getLogger(AiService.class);
-    private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final ConcurrentHashMap<String, String> PROMPT_CACHE = new ConcurrentHashMap<>();
     private static final Path PROMPTS_DIR = Path.of("templates", "ai-prompts");
 
@@ -330,17 +329,17 @@ public class AiService {
             if (end > start) text = text.substring(start, end).trim();
         }
 
-        var array = MAPPER.readTree(text);
+        var array = Json.MAPPER.readTree(text);
         if (!array.isArray()) throw new RuntimeException("AI did not return a JSON array");
 
         var results = new ArrayList<GeneratedQuestion>();
         for (var item : array) {
-            String title = item.has("title") ? item.get("title").asText() : "";
+            String title = item.has("title") ? item.get("title").asString() : "";
             if (title.isBlank()) continue;
             if (!item.has("config")) continue;
 
             var configNode = item.get("config");
-            String configJson = MAPPER.writeValueAsString(configNode);
+            String configJson = Json.MAPPER.writeValueAsString(configNode);
 
             // Validate by mapping to the typed POJO
             if (validateConfig(configJson, quizQuestionType)) {
@@ -356,7 +355,7 @@ public class AiService {
         try {
             return switch (quizQuestionType) {
                 case MULTIPLE_CHOICE -> {
-                    var cfg = MAPPER.readValue(configJson, QuestionConfig.MultipleChoice.class);
+                    var cfg = Json.MAPPER.readValue(configJson, QuestionConfig.MultipleChoice.class);
                     yield cfg.options() != null
                             && cfg.options().size() >= 2
                             && cfg.options().stream().anyMatch(QuestionConfig.MultipleChoice.Option::correct)
@@ -364,22 +363,22 @@ public class AiService {
                                     .allMatch(o -> o.text() != null && !o.text().isBlank());
                 }
                 case TRUE_FALSE -> {
-                    MAPPER.readValue(configJson, QuestionConfig.TrueFalse.class);
+                    Json.MAPPER.readValue(configJson, QuestionConfig.TrueFalse.class);
                     yield true;
                 }
                 case FREE_ANSWER -> {
-                    var cfg = MAPPER.readValue(configJson, QuestionConfig.FreeAnswer.class);
+                    var cfg = Json.MAPPER.readValue(configJson, QuestionConfig.FreeAnswer.class);
                     yield cfg.lines() > 0;
                 }
                 case FILL_IN_THE_BLANK -> {
-                    var cfg = MAPPER.readValue(configJson, QuestionConfig.FillInTheBlank.class);
+                    var cfg = Json.MAPPER.readValue(configJson, QuestionConfig.FillInTheBlank.class);
                     yield cfg.text() != null
                             && !cfg.text().isBlank()
                             && cfg.answers() != null
                             && !cfg.answers().isEmpty();
                 }
                 case CONNECT -> {
-                    var cfg = MAPPER.readValue(configJson, QuestionConfig.Connect.class);
+                    var cfg = Json.MAPPER.readValue(configJson, QuestionConfig.Connect.class);
                     yield cfg.pairs() != null
                             && cfg.pairs().size() >= 2
                             && cfg.pairs().stream()
@@ -389,14 +388,14 @@ public class AiService {
                                             && !p.right().isBlank());
                 }
                 case ORDERING -> {
-                    var cfg = MAPPER.readValue(configJson, QuestionConfig.Ordering.class);
+                    var cfg = Json.MAPPER.readValue(configJson, QuestionConfig.Ordering.class);
                     yield cfg.items() != null
                             && cfg.items().size() >= 2
                             && cfg.items().stream().allMatch(i -> i != null && !i.isBlank());
                 }
                 case IMAGE_TEXT -> true;
                 case ENUMERATION -> {
-                    var cfg = MAPPER.readTree(configJson);
+                    var cfg = Json.MAPPER.readTree(configJson);
                     yield cfg.has("answers")
                             && cfg.get("answers").isArray()
                             && !cfg.get("answers").isEmpty();

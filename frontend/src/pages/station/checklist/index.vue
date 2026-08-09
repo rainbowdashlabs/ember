@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ChecklistIndexView from '~/views/stationview/checklist/ChecklistIndexView'
+import ChecklistIndexView from '~/views/stationview/checklist/ChecklistIndexView.vue'
 
 definePageMeta({
   layout: 'station',

@@ -9,7 +9,8 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import WaitingListStatusBadge from '@/components/badge/WaitingListStatusBadge.vue'
 import WaitingSectionActions from './WaitingSectionActions.vue'
 import WaitingSectionGuardians from './WaitingSectionGuardians.vue'
-import type { WaitingListEntryWithScore } from '@/api/types'
+import type { WaitingListEntryWithScore } from '@/api/waitingList'
+import { formatDate } from '@/util/format'
 
 const props = defineProps<{
   item: WaitingListEntryWithScore
@@ -31,10 +32,6 @@ const { t } = useI18n()
 function entryFullName(item: WaitingListEntryWithScore): string {
   const e = item.entry
   return e.lastname ? `${e.firstname} ${e.lastname}` : e.firstname
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' })
 }
 </script>
 

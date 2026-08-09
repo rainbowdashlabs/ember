@@ -11,7 +11,8 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import TodayEvents from './TodayEvents.vue'
 import EventsByCategory from './EventsByCategory.vue'
 import BreaksList from './BreaksList.vue'
-import type {AttendanceTemplate, EventBreak, EventCategory, EventField, StationEvent} from '@/api/types'
+import type {AttendanceTemplate} from '@/api/attendance'
+import type {EventBreak, EventCategory, EventField, StationEvent} from '@/api/events'
 
 interface CategoryGroup {
   category: EventCategory | null

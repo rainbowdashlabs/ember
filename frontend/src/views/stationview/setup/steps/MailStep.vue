@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {onMounted, ref} from 'vue'
+import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import SetupLayout from '@/views/stationview/setup/SetupLayout.vue'
@@ -18,7 +18,8 @@ import MailProviderCredentialFields from '@/components/mail/MailProviderCredenti
 import {stationManage} from '@/api'
 import type {MailConfigRequest} from '@/api/stationManage'
 import {useSetupStatus} from '@/composables/useSetupStatus'
-import {nextStep, stepRouteName} from '@/views/stationview/setup/steps'
+import {useAsyncAction} from '@/composables/useAsyncAction'
+import {goToNextStep} from '@/views/stationview/setup/steps'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -36,8 +37,16 @@ const cfg = ref<MailConfigRequest>({
     apiKey: '',
 })
 const loading = ref(true)
-const saving = ref(false)
-const error = ref('')
+
+const relayUser = computed({
+    get: () => cfg.value.smtpUser ?? '',
+    set: (value: string) => { cfg.value.smtpUser = value },
+})
+
+const relaySecret = computed({
+    get: () => cfg.value.apiKey ?? '',
+    set: (value: string) => { cfg.value.apiKey = value },
+})
 
 const PROVIDERS = ['NONE', 'SMTP', 'RAPIDMAIL', 'TWILIO', 'SWEEGO', 'BREVO']
 
@@ -59,20 +68,11 @@ onMounted(async () => {
     loading.value = false
 })
 
-async function save() {
-    saving.value = true
-    error.value = ''
-    try {
-        await stationManage.updateMailConfig(cfg.value)
-        await reload()
-        const next = nextStep('mail')
-        if (next) router.push({name: stepRouteName(next)})
-    } catch {
-        error.value = t('common.error')
-    } finally {
-        saving.value = false
-    }
-}
+const {running: saving, error, run: save} = useAsyncAction(async () => {
+    await stationManage.updateMailConfig(cfg.value)
+    await reload()
+    goToNextStep(router, 'mail')
+})
 </script>
 
 <template>
@@ -122,8 +122,8 @@ async function save() {
       </template>
       <template v-else-if="cfg.provider !== 'NONE'">
         <MailProviderCredentialFields
-            v-model:user="cfg.smtpUser"
-            v-model:secret="cfg.apiKey"
+            v-model:user="relayUser"
+            v-model:secret="relaySecret"
             :provider="cfg.provider"
         />
       </template>

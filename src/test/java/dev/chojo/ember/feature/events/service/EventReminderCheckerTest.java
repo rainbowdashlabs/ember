@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
+import dev.chojo.ember.feature.events.repository.EventReminderRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -28,6 +30,8 @@ import static org.mockito.Mockito.*;
 
 class EventReminderCheckerTest {
     private EventRepository eventRepository;
+    private EventReminderRepository reminderRepository;
+    private EventRegistrationRepository registrationRepository;
     private StationMemberRepository stationMemberRepository;
     private NotificationService notificationService;
     private StationReadOnlyGuard readOnlyGuard;
@@ -37,6 +41,8 @@ class EventReminderCheckerTest {
     @BeforeEach
     void setUp() {
         eventRepository = mock(EventRepository.class);
+        reminderRepository = mock(EventReminderRepository.class);
+        registrationRepository = mock(EventRegistrationRepository.class);
         stationMemberRepository = mock(StationMemberRepository.class);
         notificationService = mock(NotificationService.class);
         readOnlyGuard = mock(StationReadOnlyGuard.class);
@@ -140,12 +146,18 @@ class EventReminderCheckerTest {
 
         var event = oneTimeEvent(42, eventStart, false);
         when(eventRepository.findEventsWithReminders()).thenReturn(List.of(event));
-        when(eventRepository.findReminderDays(42)).thenReturn(List.of(3));
-        when(eventRepository.isReminderSent(42, eventDate, 3)).thenReturn(false);
+        when(reminderRepository.findDays(42)).thenReturn(List.of(3));
+        when(reminderRepository.isSent(42, eventDate, 3)).thenReturn(false);
         when(stationMemberRepository.findByStation(STATION_ID)).thenReturn(List.of(member(10), member(11)));
-        when(eventRepository.findDeclinedMemberIds(42, eventDate)).thenReturn(List.of());
+        when(registrationRepository.findDeclinedMemberIds(42, eventDate)).thenReturn(List.of());
 
-        new EventReminderChecker(eventRepository, stationMemberRepository, notificationService, readOnlyGuard);
+        new EventReminderChecker(
+                eventRepository,
+                reminderRepository,
+                registrationRepository,
+                stationMemberRepository,
+                notificationService,
+                readOnlyGuard);
 
         // The check runs after 5 minutes delay via scheduler, so we invoke it indirectly via constructor.
         // Instead, we test the logic by calling the method reflectively.
@@ -160,7 +172,7 @@ class EventReminderCheckerTest {
 
         verify(notificationService)
                 .notifyMembers(eq(List.of(10, 11)), eq(NotificationType.EVENT_REMINDER), any(NotificationData.class));
-        verify(eventRepository).markReminderSent(42, eventDate, 3);
+        verify(reminderRepository).markSent(42, eventDate, 3);
     }
 
     @Test
@@ -171,13 +183,13 @@ class EventReminderCheckerTest {
 
         var event = oneTimeEvent(42, eventStart, false);
         when(eventRepository.findEventsWithReminders()).thenReturn(List.of(event));
-        when(eventRepository.findReminderDays(42)).thenReturn(List.of(1));
-        when(eventRepository.isReminderSent(42, eventDate, 1)).thenReturn(true);
+        when(reminderRepository.findDays(42)).thenReturn(List.of(1));
+        when(reminderRepository.isSent(42, eventDate, 1)).thenReturn(true);
 
         invokeCheck();
 
         verify(notificationService, never()).notifyMembers(anyList(), any(), any());
-        verify(eventRepository, never()).markReminderSent(anyInt(), any(), anyInt());
+        verify(reminderRepository, never()).markSent(anyInt(), any(), anyInt());
     }
 
     @Test
@@ -188,9 +200,9 @@ class EventReminderCheckerTest {
 
         var event = oneTimeEvent(42, eventStart, true);
         when(eventRepository.findEventsWithReminders()).thenReturn(List.of(event));
-        when(eventRepository.findReminderDays(42)).thenReturn(List.of(2));
-        when(eventRepository.isReminderSent(42, eventDate, 2)).thenReturn(false);
-        when(eventRepository.findRegisteredMemberIds(42)).thenReturn(List.of(20, 21));
+        when(reminderRepository.findDays(42)).thenReturn(List.of(2));
+        when(reminderRepository.isSent(42, eventDate, 2)).thenReturn(false);
+        when(registrationRepository.findRegisteredMemberIds(42)).thenReturn(List.of(20, 21));
 
         invokeCheck();
 
@@ -207,14 +219,14 @@ class EventReminderCheckerTest {
 
         var event = oneTimeEvent(42, eventStart, true);
         when(eventRepository.findEventsWithReminders()).thenReturn(List.of(event));
-        when(eventRepository.findReminderDays(42)).thenReturn(List.of(1));
-        when(eventRepository.isReminderSent(42, eventDate, 1)).thenReturn(false);
-        when(eventRepository.findRegisteredMemberIds(42)).thenReturn(List.of());
+        when(reminderRepository.findDays(42)).thenReturn(List.of(1));
+        when(reminderRepository.isSent(42, eventDate, 1)).thenReturn(false);
+        when(registrationRepository.findRegisteredMemberIds(42)).thenReturn(List.of());
 
         invokeCheck();
 
         verify(notificationService, never()).notifyMembers(anyList(), any(), any());
-        verify(eventRepository).markReminderSent(42, eventDate, 1);
+        verify(reminderRepository).markSent(42, eventDate, 1);
     }
 
     @Test
@@ -224,10 +236,10 @@ class EventReminderCheckerTest {
 
         var event = recurringEvent(50, todayDow);
         when(eventRepository.findEventsWithReminders()).thenReturn(List.of(event));
-        when(eventRepository.findReminderDays(50)).thenReturn(List.of(0));
-        when(eventRepository.isReminderSent(50, today, 0)).thenReturn(false);
+        when(reminderRepository.findDays(50)).thenReturn(List.of(0));
+        when(reminderRepository.isSent(50, today, 0)).thenReturn(false);
         when(stationMemberRepository.findByStation(STATION_ID)).thenReturn(List.of(member(10)));
-        when(eventRepository.findDeclinedMemberIds(50, today)).thenReturn(List.of());
+        when(registrationRepository.findDeclinedMemberIds(50, today)).thenReturn(List.of());
 
         invokeCheck();
 
@@ -243,10 +255,10 @@ class EventReminderCheckerTest {
 
         var event = oneTimeEvent(42, eventStart, false);
         when(eventRepository.findEventsWithReminders()).thenReturn(List.of(event));
-        when(eventRepository.findReminderDays(42)).thenReturn(List.of(1));
-        when(eventRepository.isReminderSent(42, eventDate, 1)).thenReturn(false);
+        when(reminderRepository.findDays(42)).thenReturn(List.of(1));
+        when(reminderRepository.isSent(42, eventDate, 1)).thenReturn(false);
         when(stationMemberRepository.findByStation(STATION_ID)).thenReturn(List.of(member(10), member(11)));
-        when(eventRepository.findDeclinedMemberIds(42, eventDate)).thenReturn(List.of(11));
+        when(registrationRepository.findDeclinedMemberIds(42, eventDate)).thenReturn(List.of(11));
 
         invokeCheck();
 
@@ -271,7 +283,7 @@ class EventReminderCheckerTest {
 
         var event = oneTimeEvent(42, eventStart, false);
         when(eventRepository.findEventsWithReminders()).thenReturn(List.of(event));
-        when(eventRepository.findReminderDays(42)).thenReturn(List.of(1));
+        when(reminderRepository.findDays(42)).thenReturn(List.of(1));
 
         invokeCheck();
 
@@ -306,7 +318,7 @@ class EventReminderCheckerTest {
                 false,
                 null);
         when(eventRepository.findEventsWithReminders()).thenReturn(List.of(event));
-        when(eventRepository.findReminderDays(42)).thenReturn(List.of(1));
+        when(reminderRepository.findDays(42)).thenReturn(List.of(1));
 
         invokeCheck();
 
@@ -341,7 +353,7 @@ class EventReminderCheckerTest {
                 false,
                 null);
         when(eventRepository.findEventsWithReminders()).thenReturn(List.of(event));
-        when(eventRepository.findReminderDays(42)).thenReturn(List.of(1));
+        when(reminderRepository.findDays(42)).thenReturn(List.of(1));
 
         invokeCheck();
 
@@ -361,10 +373,10 @@ class EventReminderCheckerTest {
         if (target.equals(today) && today.getDayOfMonth() <= 7) {
             var event = monthlyFirstEvent(60, today.getDayOfWeek().getValue());
             when(eventRepository.findEventsWithReminders()).thenReturn(List.of(event));
-            when(eventRepository.findReminderDays(60)).thenReturn(List.of(0));
-            when(eventRepository.isReminderSent(60, today, 0)).thenReturn(false);
+            when(reminderRepository.findDays(60)).thenReturn(List.of(0));
+            when(reminderRepository.isSent(60, today, 0)).thenReturn(false);
             when(stationMemberRepository.findByStation(STATION_ID)).thenReturn(List.of(member(10)));
-            when(eventRepository.findDeclinedMemberIds(60, today)).thenReturn(List.of());
+            when(registrationRepository.findDeclinedMemberIds(60, today)).thenReturn(List.of());
 
             invokeCheck();
 
@@ -377,8 +389,13 @@ class EventReminderCheckerTest {
         try {
             var ctor = EventReminderChecker.class.getDeclaredConstructors()[0];
             ctor.setAccessible(true);
-            return (EventReminderChecker)
-                    ctor.newInstance(eventRepository, stationMemberRepository, notificationService, readOnlyGuard);
+            return (EventReminderChecker) ctor.newInstance(
+                    eventRepository,
+                    reminderRepository,
+                    registrationRepository,
+                    stationMemberRepository,
+                    notificationService,
+                    readOnlyGuard);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

@@ -10,6 +10,7 @@ import SuccessContainer from '@/components/container/SuccessContainer.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import type {ProcedureItem} from '@/api/procedures'
+import {formatDateTime} from '@/util/format'
 
 const {t} = useI18n()
 
@@ -25,11 +26,6 @@ const emit = defineEmits<{
   toggle: []
   'update-note': [note: string]
 }>()
-
-function formatDateTime(dateStr: string | null | undefined): string {
-  if (!dateStr) return ''
-  return new Date(dateStr).toLocaleString('de-DE')
-}
 
 function onNoteBlur(e: Event) {
   emit('update-note', (e.target as HTMLTextAreaElement).value)

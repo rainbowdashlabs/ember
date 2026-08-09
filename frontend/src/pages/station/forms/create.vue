@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import BuilderView from '~/views/stationview/forms/BuilderView'
+import BuilderView from '~/views/stationview/forms/BuilderView.vue'
 
 definePageMeta({
   layout: 'station',

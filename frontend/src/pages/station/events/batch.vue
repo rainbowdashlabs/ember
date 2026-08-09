@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import BatchCreateView from '~/views/stationview/events/BatchCreateView'
+import BatchCreateView from '~/views/stationview/events/BatchCreateView.vue'
 
 definePageMeta({
   layout: 'station',

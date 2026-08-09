@@ -14,8 +14,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -97,41 +96,40 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
       </SelectionToggleButton>
     </div>
 
-    <Spinner v-if="loading" />
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
-
-    <div v-if="!loading && filteredTemplates.length === 0" class="text-center text-[var(--text-muted)] py-8">
-      {{ t('procedures.emptyTemplates') }}
-    </div>
-
-    <div class="space-y-2">
-      <NeutralContainer
-        v-for="tpl in filteredTemplates"
-        :key="tpl.id"
-        class="flex items-center gap-3 cursor-pointer hover:border-[var(--primary)] transition-colors group"
-        :class="{ 'opacity-60': tpl.archived }"
-        @click="router.push({ name: 'procedure-template-edit', params: { id: tpl.id } })"
-      >
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2">
-            <span class="font-medium">{{ tpl.name }}</span>
-            <InfoBadge v-if="tpl.archived">{{ t('boards.archived') }}</InfoBadge>
+    <AsyncSection
+      :empty="filteredTemplates.length === 0"
+      :empty-message="t('procedures.emptyTemplates')"
+      :error="error"
+      :loading="loading"
+    >
+      <div class="space-y-2">
+        <NeutralContainer
+          v-for="tpl in filteredTemplates"
+          :key="tpl.id"
+          class="flex items-center gap-3 cursor-pointer hover:border-[var(--primary)] transition-colors group"
+          :class="{ 'opacity-60': tpl.archived }"
+          @click="router.push({ name: 'procedure-template-edit', params: { id: tpl.id } })"
+        >
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="font-medium">{{ tpl.name }}</span>
+              <InfoBadge v-if="tpl.archived">{{ t('boards.archived') }}</InfoBadge>
+            </div>
+            <div v-if="tpl.description" class="text-sm text-[var(--text-muted)] truncate">{{ tpl.description }}</div>
           </div>
-          <div v-if="tpl.description" class="text-sm text-[var(--text-muted)] truncate">{{ tpl.description }}</div>
-        </div>
-        <div v-if="canManage" class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <EditButton :label="t('common.edit')" @click.stop="router.push({ name: 'procedure-template-edit', params: { id: tpl.id } })" />
-          <IconButton
-            v-if="!tpl.archived"
-            :icon="['fas', 'box-archive']"
-            :label="t('procedures.archiveTemplate')"
-            @click.stop="requestArchive(tpl)"
-          />
-        </div>
-      </NeutralContainer>
-    </div>
+          <div v-if="canManage" class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <EditButton :label="t('common.edit')" @click.stop="router.push({ name: 'procedure-template-edit', params: { id: tpl.id } })" />
+            <IconButton
+              v-if="!tpl.archived"
+              :icon="['fas', 'box-archive']"
+              :label="t('procedures.archiveTemplate')"
+              @click.stop="requestArchive(tpl)"
+            />
+          </div>
+        </NeutralContainer>
+      </div>
+    </AsyncSection>
 
-    <!-- Create Modal -->
     <Modal v-model="showCreateModal">
       <SubHeader class="mb-3">{{ t('procedures.createTemplate') }}</SubHeader>
       <form @submit.prevent="handleCreate" class="space-y-3">

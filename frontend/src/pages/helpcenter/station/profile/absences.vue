@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import AbsenceHelp from '~/views/helpcenter/stationview/profile/AbsenceHelp'
+import AbsenceHelp from '~/views/helpcenter/stationview/profile/AbsenceHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

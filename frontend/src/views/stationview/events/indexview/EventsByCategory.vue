@@ -16,10 +16,10 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type {AttendanceTemplate, EventCategory, EventField, StationEvent} from '@/api/types'
-import {EventTypes, isRecurringEvent} from '@/api/types'
+import type {AttendanceTemplate} from '@/api/attendance'
+import {EventTypes, isRecurringEvent, type EventCategory, type EventField, type StationEvent} from '@/api/events'
 import MutedIcon from '@/components/display/MutedIcon.vue'
-import EventFieldValue from '@/components/display/EventFieldValue.vue'
+import EventFieldValue from '../eventshared/EventFieldValue.vue'
 import {formatDate, formatTime} from '@/util/format'
 
 const {t} = useI18n()

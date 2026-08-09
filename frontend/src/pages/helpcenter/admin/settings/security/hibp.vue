@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import SecurityHibpHelp from '~/views/helpcenter/adminview/SecurityHibpHelp'
+import SecurityHibpHelp from '~/views/helpcenter/adminview/SecurityHibpHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter-admin',

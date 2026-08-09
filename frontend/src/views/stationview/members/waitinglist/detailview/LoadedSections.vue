@@ -15,8 +15,8 @@ import type {
   WaitingListEntryWithScore,
   WaitingListField,
   WaitingListInvite,
-  MemberGroup,
-} from '@/api/types'
+} from '@/api/waitingList'
+import type {MemberGroup} from '@/api/types'
 
 export interface EntryGroups {
   pending: WaitingListEntryWithScore[]

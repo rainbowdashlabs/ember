@@ -19,6 +19,7 @@ import {useSession} from '@/composables/useSession'
 import {useConfirmAction} from '@/composables/useConfirmAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {knowledgeBase} from '@/api'
+import {formatDateTime} from '@/util/format'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type {KbFile, KbFileVersion} from '@/api/knowledgeBase'
@@ -62,10 +63,6 @@ async function viewVersion(version: KbFileVersion) {
     }
 }
 
-function formatDate(dateStr: string): string {
-    return new Date(dateStr).toLocaleString('de-DE')
-}
-
 watch(loaded, (isLoaded) => {
     if (isLoaded) loadData()
 }, {immediate: true})
@@ -101,7 +98,7 @@ watch(loaded, (isLoaded) => {
                     <div class="flex-1">
                         <span class="font-semibold">{{ t('kb.version') }} {{ version.version }}</span>
                         <span class="text-sm text-[var(--text-muted)] ml-2">
-                            {{ formatDate(version.createdAt) }}
+                            {{ formatDateTime(version.createdAt) }}
                         </span>
                         <span v-if="version.createdByName" class="text-sm text-[var(--text-muted)] ml-2">
                             &mdash; {{ version.createdByName }}

@@ -9,7 +9,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
-import type {InventorySize} from '@/api/types'
+import type {InventorySize} from '@/api/inventory'
 import type {InventoryContainer} from '@/api/inventoryContainers'
 
 defineProps<{

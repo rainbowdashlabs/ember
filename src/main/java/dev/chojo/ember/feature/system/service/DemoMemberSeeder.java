@@ -19,6 +19,8 @@ import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
+import dev.chojo.ember.feature.members.service.MemberLookupService;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -34,30 +36,49 @@ import java.util.Random;
  * manager assignments, and user tags.
  */
 @Singleton
-public class DemoMemberSeeder {
+public class DemoMemberSeeder implements DemoSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoMemberSeeder.class);
 
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
+    private final MemberLookupService memberLookupService;
     private final MemberGroupRepository memberGroupRepository;
     private final ProfileFieldRepository profileFieldRepository;
     private final ProfileFieldChangeRepository profileFieldChangeRepository;
     private final UserTagRepository userTagRepository;
+    private final StationRepository stationRepository;
 
     @Inject
     public DemoMemberSeeder(
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
+            MemberLookupService memberLookupService,
             MemberGroupRepository memberGroupRepository,
             ProfileFieldRepository profileFieldRepository,
             ProfileFieldChangeRepository profileFieldChangeRepository,
-            UserTagRepository userTagRepository) {
+            UserTagRepository userTagRepository,
+            StationRepository stationRepository) {
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
+        this.memberLookupService = memberLookupService;
         this.memberGroupRepository = memberGroupRepository;
         this.profileFieldRepository = profileFieldRepository;
         this.profileFieldChangeRepository = profileFieldChangeRepository;
         this.userTagRepository = userTagRepository;
+        this.stationRepository = stationRepository;
+    }
+
+    @Override
+    public int order() {
+        return MEMBERS;
+    }
+
+    @Override
+    public void seed(DemoSeederContext context) {
+        var members = seed(context.stationId(), context.passwordHash(), new Random(42));
+        context.members(members);
+        context.adminMember(members.head());
+        stationRepository.setOwner(context.stationId(), members.head().id());
     }
 
     public SeedResult seed(int stationId, String passwordHash, Random rng) {
@@ -590,7 +611,7 @@ public class DemoMemberSeeder {
         accountRepository.setUid(account.id(), DemoUids.account(email));
         accountRepository.createCredential(account.id(), hash);
         var member = stationMemberRepository.create(stationId, account.id());
-        stationMemberRepository.setUid(member.id(), DemoUids.member(email, stationId));
+        memberLookupService.setUid(member.id(), DemoUids.member(email, stationId));
         stationMemberRepository.setUserType(member.id(), StationUserType.MEMBER);
         stationMemberRepository.grantPermission(member.id(), loginRoleId);
         stationMemberRepository.grantPermission(member.id(), memberRoleId);
@@ -604,7 +625,7 @@ public class DemoMemberSeeder {
         accountRepository.setUid(account.id(), DemoUids.account(email));
         accountRepository.createCredential(account.id(), hash);
         var member = stationMemberRepository.create(stationId, account.id());
-        stationMemberRepository.setUid(member.id(), DemoUids.member(email, stationId));
+        memberLookupService.setUid(member.id(), DemoUids.member(email, stationId));
         stationMemberRepository.setUserType(member.id(), StationUserType.TEAM);
         stationMemberRepository.grantPermission(member.id(), loginRoleId);
         return member;
@@ -617,7 +638,7 @@ public class DemoMemberSeeder {
         accountRepository.setUid(account.id(), DemoUids.account(email));
         accountRepository.createCredential(account.id(), hash);
         var member = stationMemberRepository.create(stationId, account.id());
-        stationMemberRepository.setUid(member.id(), DemoUids.member(email, stationId));
+        memberLookupService.setUid(member.id(), DemoUids.member(email, stationId));
         stationMemberRepository.setUserType(member.id(), StationUserType.GUARDIAN);
         stationMemberRepository.grantPermission(member.id(), loginRoleId);
         stationMemberRepository.grantPermission(member.id(), guardianRoleId);

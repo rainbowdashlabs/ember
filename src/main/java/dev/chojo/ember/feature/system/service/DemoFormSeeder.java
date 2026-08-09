@@ -13,9 +13,9 @@ import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.repository.FormRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionType;
+import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -30,16 +30,37 @@ import java.util.Random;
  * Seeder for demo form data including surveys, feedback forms, and restricted forms.
  */
 @Singleton
-public class DemoFormSeeder {
+public class DemoFormSeeder implements DemoSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoFormSeeder.class);
 
     private final FormRepository formRepository;
-    private final RestrictionRepository restrictionRepository;
+    private final RestrictionService restrictionService;
 
     @Inject
-    public DemoFormSeeder(FormRepository formRepository, RestrictionRepository restrictionRepository) {
+    public DemoFormSeeder(FormRepository formRepository, RestrictionService restrictionService) {
         this.formRepository = formRepository;
-        this.restrictionRepository = restrictionRepository;
+        this.restrictionService = restrictionService;
+    }
+
+    @Override
+    public int order() {
+        return MODULES;
+    }
+
+    @Override
+    public void seed(DemoSeederContext context) {
+        var members = context.members();
+        seedForms(
+                context.stationId(),
+                context.adminMember(),
+                members.anfaenger(),
+                members.fortgeschritten(),
+                StationUserType.MEMBER,
+                StationUserType.GUARDIAN,
+                members.groupAnfaenger().id(),
+                members.tagWettkampf().id(),
+                new Random(42_003));
+        log.info("Demo: Created forms");
     }
 
     public void seedForms(
@@ -331,9 +352,8 @@ public class DemoFormSeeder {
                         false,
                         FormQuestionConfig.MultiLimitType.NONE,
                         0));
-        restrictionRepository.setRestrictions(
-                RestrictionType.FORM.table(),
-                RestrictionType.FORM.fkColumn(),
+        restrictionService.setRestrictions(
+                RestrictionType.FORM,
                 memberOnly.id(),
                 new RestrictionSelection(List.of(memberUserType), List.of(), List.of(), List.of(), null));
 
@@ -374,9 +394,8 @@ public class DemoFormSeeder {
                         false,
                         FormQuestionConfig.MultiLimitType.NONE,
                         null));
-        restrictionRepository.setRestrictions(
-                RestrictionType.FORM.table(),
-                RestrictionType.FORM.fkColumn(),
+        restrictionService.setRestrictions(
+                RestrictionType.FORM,
                 bothRoles.id(),
                 new RestrictionSelection(
                         List.of(memberUserType, guardianUserType), List.of(), List.of(), List.of(), null));
@@ -418,9 +437,8 @@ public class DemoFormSeeder {
                         true,
                         FormQuestionConfig.MultiLimitType.AT_MOST,
                         2));
-        restrictionRepository.setRestrictions(
-                RestrictionType.FORM.table(),
-                RestrictionType.FORM.fkColumn(),
+        restrictionService.setRestrictions(
+                RestrictionType.FORM,
                 wettkampfForm.id(),
                 new RestrictionSelection(List.of(), List.of(), List.of(wettkampfTagId), List.of(), null));
 
@@ -459,9 +477,8 @@ public class DemoFormSeeder {
                 false,
                 false,
                 new FormQuestionConfig.Text(true));
-        restrictionRepository.setRestrictions(
-                RestrictionType.FORM.table(),
-                RestrictionType.FORM.fkColumn(),
+        restrictionService.setRestrictions(
+                RestrictionType.FORM,
                 anfaengerForm.id(),
                 new RestrictionSelection(List.of(), List.of(anfaengerGroupId), List.of(), List.of(), null));
 

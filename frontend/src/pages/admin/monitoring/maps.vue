@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import AdminMapsView from '~/views/adminview/AdminMapsView'
+import AdminMapsView from '~/views/adminview/AdminMapsView.vue'
 
 definePageMeta({
   layout: 'admin',

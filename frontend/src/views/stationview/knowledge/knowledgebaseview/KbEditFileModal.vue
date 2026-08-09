@@ -4,21 +4,19 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import {knowledgeBase, memberGroups, userTags} from '@/api'
+import {knowledgeBase} from '@/api'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import type {KbFile} from '@/api/knowledgeBase'
-import type {MemberGroup, UserTag} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import KbRestrictionsField from './KbRestrictionsField.vue'
 import KbPublicVisibilityField from './KbPublicVisibilityField.vue'
 import KbTagsEditor from './KbTagsEditor.vue'
-import {type RestrictionSelection, emptyRestriction} from '@/components/input/restriction'
+import {useKbEntryEditor} from './useKbEntryEditor'
 
 const {isKbPublic} = useSession()
 
@@ -34,79 +32,26 @@ const emit = defineEmits<{
     saved: []
 }>()
 
-const editName = ref('')
-const editDescription = ref('')
-const restriction = ref<RestrictionSelection>(emptyRestriction())
-const tags = ref<string[]>([])
-const publicVisibility = ref<string>('default')
-const allGroups = ref<MemberGroup[]>([])
-const allTags = ref<UserTag[]>([])
-const error = ref('')
-
-watch(show, async (visible) => {
-    if (visible && props.file) {
-        editName.value = props.file.name
-        editDescription.value = props.file.description
-        restriction.value = emptyRestriction()
-        tags.value = []
-        publicVisibility.value = 'default'
-        error.value = ''
-
-        try {
-            const [groupList, tagList] = await Promise.all([
-                memberGroups.listGroups(),
-                userTags.listTags(),
-            ])
-            allGroups.value = groupList
-            allTags.value = tagList
-        } catch {
-            error.value = ''
-        }
-
-        try {
-            const [r, fileTags, vis] = await Promise.all([
-                knowledgeBase.getFileRestrictions(props.file.id),
-                knowledgeBase.getFileTags(props.file.id),
-                knowledgeBase.getPublicVisibility('files', props.file.id),
-            ])
-            restriction.value = {
-                userTypes: r.userTypes ?? [],
-                groupIds: r.groupIds,
-                tagIds: r.tagIds,
-                memberIds: [],
-                mode: 'AND',
-            }
-            tags.value = fileTags.map(t => t.name)
-            publicVisibility.value = vis.visible === true ? 'public' : vis.visible === false ? 'hidden' : 'default'
-        } catch {
-            error.value = ''
-        }
-    }
+const {
+    editName,
+    editDescription,
+    restriction,
+    tags,
+    publicVisibility,
+    allGroups,
+    allTags,
+    save,
+} = useKbEntryEditor(show, () => props.file, {
+    visibilityKind: 'files',
+    getRestrictions: knowledgeBase.getFileRestrictions,
+    setRestrictions: knowledgeBase.setFileRestrictions,
+    getTags: knowledgeBase.getFileTags,
+    setTags: knowledgeBase.setFileTags,
+    update: knowledgeBase.updateFile,
 })
 
 async function handleSave() {
-    if (!props.file || !editName.value.trim()) return
-    try {
-        const visValue = publicVisibility.value === 'public' ? true : publicVisibility.value === 'hidden' ? false : null
-        await Promise.all([
-            knowledgeBase.updateFile(props.file.id, {
-                name: editName.value.trim(),
-                description: editDescription.value,
-            }),
-            knowledgeBase.setFileRestrictions(props.file.id, {
-                userTypes: restriction.value.userTypes,
-                groupIds: restriction.value.groupIds,
-                tagIds: restriction.value.tagIds,
-                memberIds: [],
-            }),
-            knowledgeBase.setFileTags(props.file.id, tags.value),
-            knowledgeBase.setPublicVisibility('files', props.file.id, visValue),
-        ])
-        show.value = false
-        emit('saved')
-    } catch {
-        error.value = t('common.error')
-    }
+    if (await save()) emit('saved')
 }
 </script>
 

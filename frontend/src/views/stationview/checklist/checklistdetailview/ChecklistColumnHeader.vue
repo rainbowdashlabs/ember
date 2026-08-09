@@ -11,7 +11,7 @@ import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import type {ChecklistColumnDto} from '@/api/types'
+import type {ChecklistColumnDto} from '@/api/checklists'
 
 const props = defineProps<{
   column: ChecklistColumnDto

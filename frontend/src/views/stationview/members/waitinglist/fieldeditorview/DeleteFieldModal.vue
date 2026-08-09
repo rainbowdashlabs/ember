@@ -9,7 +9,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type { WaitingListField } from '@/api/types'
+import type { WaitingListField } from '@/api/waitingList'
 
 defineProps<{
   modelValue: boolean

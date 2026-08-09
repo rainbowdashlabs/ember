@@ -5,7 +5,7 @@
  */
 <script setup lang="ts">
 import {computed} from 'vue'
-import type {QuizQuestion, QuizTestAnswer} from '@/api/types'
+import type {QuizQuestion, QuizTestAnswer} from '@/api/quiz'
 
 const props = defineProps<{
   question: QuizQuestion

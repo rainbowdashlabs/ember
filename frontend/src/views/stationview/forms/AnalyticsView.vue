@@ -18,10 +18,11 @@ import ChartsTab from '@/views/stationview/forms/analyticsview/ChartsTab.vue'
 import IndividualResponseTab from '@/views/stationview/forms/analyticsview/IndividualResponseTab.vue'
 import ExportModal from '@/views/stationview/forms/analyticsview/ExportModal.vue'
 import MissingResponsesPanel from '@/views/stationview/forms/analyticsview/MissingResponsesPanel.vue'
-import type { Form, FormAnalytics, FormResponse, FormAnswer, ProfileField } from '@/api/types'
-import { QuestionTypes } from '@/api/types'
+import {FormAnalyticsBase, type Form, type FormAnalytics, type FormAnalyticsBaseName, type FormAnswer, type FormResponse} from '@/api/forms'
+import { formatAnswerDisplay } from '@/util/formAnswerDisplay'
+import type { ProfileField } from '@/api/profileFields'
 import { forms, profileFields, stationMembers } from '@/api'
-import { FormAnalyticsBase, type FormAnalyticsBaseName } from '@/api/forms'
+import { downloadExport, type ExportColumn } from '@/composables/useExport'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -80,46 +81,6 @@ function getAnswerForQuestion(questionId: number): string {
   return answer?.value ?? ''
 }
 
-function parseConfig(config: Record<string, unknown> | string): Record<string, unknown> {
-  if (typeof config === 'object' && config !== null) return config
-  try { return JSON.parse(config || '{}') } catch { return {} }
-}
-
-function parseValue(value: string): Record<string, unknown> {
-  try { return JSON.parse(value || '{}') } catch { return {} }
-}
-
-function formatAnswerDisplay(questionType: string, config: string | Record<string, unknown>, value: string): string {
-  if (!value) return '–'
-  const parsed = parseValue(value)
-  const cfg = parseConfig(config)
-
-  if (questionType === QuestionTypes.TEXT) return (parsed as { text?: string }).text || '–'
-  if (questionType === QuestionTypes.DATE) return (parsed as { date?: string }).date || '–'
-  if (questionType === QuestionTypes.RATING) return String((parsed as { rating?: number }).rating ?? '–')
-  if (questionType === QuestionTypes.CHOICE) {
-    const selected = (parsed as { selected?: number[]; other?: string }).selected ?? []
-    const options = (cfg.options as string[]) || []
-    const labels = selected.map(i => options[i] ?? `#${i}`)
-    const other = (parsed as { other?: string }).other
-    if (other) labels.push(`Sonstige: ${other}`)
-    return labels.join(', ') || '–'
-  }
-  if (questionType === QuestionTypes.RANKING) {
-    const order = (parsed as { order?: number[] }).order ?? []
-    const options = (cfg.options as string[]) || []
-    return order.map((idx, rank) => `${rank + 1}. ${options[idx] ?? ''}`).join(', ')
-  }
-  if (questionType === QuestionTypes.LIKERT) {
-    const ratings = (parsed as { ratings?: Record<string, number> }).ratings ?? {}
-    const statements = (cfg.statements as string[]) || []
-    return Object.entries(ratings)
-        .map(([si, val]) => `${statements[Number(si)] || `Option ${Number(si) + 1}`}: ${val}`)
-        .join(', ')
-  }
-  return value
-}
-
 const showExportModal = ref(false)
 const allFields = ref<ProfileField[]>([])
 const exportQuestionIds = ref<Set<number>>(new Set())
@@ -145,84 +106,94 @@ function toggleExportField(id: number) {
   exportFieldIds.value = s
 }
 
-function selectAllQuestions() {
-  if (analytics.value) exportQuestionIds.value = new Set(analytics.value.questions.map(q => q.questionId))
+function selectExportQuestions(ids: number[]) {
+  exportQuestionIds.value = new Set(ids)
 }
-function selectNoQuestions() { exportQuestionIds.value = new Set() }
+
+async function loadMemberFieldValues(): Promise<Map<number, Map<number, string>>> {
+  const values = new Map<number, Map<number, string>>()
+  if (exportFieldIds.value.size === 0) return values
+  for (const resp of responses.value) {
+    const memberId = resp.memberId
+    if (memberId === null || values.has(memberId)) continue
+    try {
+      const vals = await profileFields.getValues(memberId)
+      const memberValues = new Map<number, string>()
+      for (const v of vals) memberValues.set(v.fieldId, v.value ?? '')
+      values.set(memberId, memberValues)
+    } catch {
+      values.set(memberId, new Map())
+    }
+  }
+  return values
+}
+
+async function loadAllAnswers(): Promise<Map<number, FormAnswer[]>> {
+  const answers = new Map<number, FormAnswer[]>()
+  for (const resp of responses.value) {
+    try {
+      const detail = await forms.getResponseDetail(formId.value, resp.id, analyticsBase.value)
+      answers.set(resp.id, detail.answers)
+    } catch {
+      answers.set(resp.id, [])
+    }
+  }
+  return answers
+}
+
+function memberColumn(): ExportColumn<FormResponse> {
+  return {
+    key: 'member',
+    label: t('forms.analytics.exportMember'),
+    value: resp => {
+      const name = resp.memberId === null ? undefined : memberNames.value.get(resp.memberId)
+      return name ?? `#${resp.memberId}`
+    },
+  }
+}
+
+function questionColumns(allResponseAnswers: Awaited<ReturnType<typeof loadAllAnswers>>): ExportColumn<FormResponse>[] {
+  if (!analytics.value) return []
+  return analytics.value.questions
+    .filter(q => exportQuestionIds.value.has(q.questionId))
+    .map(q => ({
+      key: `question:${q.questionId}`,
+      label: q.title,
+      value: (resp: FormResponse) => {
+        const answer = (allResponseAnswers.get(resp.id) ?? []).find(a => a.questionId === q.questionId)
+        return formatAnswerDisplay(q.questionType, q.config, answer?.value ?? '')
+      },
+    }))
+}
+
+function fieldColumns(
+    memberFieldValues: Awaited<ReturnType<typeof loadMemberFieldValues>>): ExportColumn<FormResponse>[] {
+  return allFields.value
+    .filter(f => exportFieldIds.value.has(f.id))
+    .map(f => ({
+      key: `field:${f.id}`,
+      label: f.name ?? '',
+      value: (resp: FormResponse) => {
+        const raw = (resp.memberId === null ? undefined : memberFieldValues.get(resp.memberId)?.get(f.id)) ?? ''
+        try { return String(JSON.parse(raw)) } catch { return raw }
+      },
+    }))
+}
 
 async function performExport() {
   if (!analytics.value) return
   showExportModal.value = false
 
-  const selectedFieldIds = [...exportFieldIds.value]
-  const memberFieldValues = new Map<number, Map<number, string>>()
+  const memberFieldValues = await loadMemberFieldValues()
+  const allResponseAnswers = await loadAllAnswers()
 
-  if (selectedFieldIds.length > 0) {
-    for (const resp of responses.value) {
-      if (!memberFieldValues.has(resp.memberId)) {
-        try {
-          const vals = await profileFields.getValues(resp.memberId)
-          const m = new Map<number, string>()
-          for (const v of vals) m.set(v.fieldId, v.value ?? '')
-          memberFieldValues.set(resp.memberId, m)
-        } catch {
-          memberFieldValues.set(resp.memberId, new Map())
-        }
-      }
-    }
-  }
+  const columns: ExportColumn<FormResponse>[] = [
+    memberColumn(),
+    ...questionColumns(allResponseAnswers),
+    ...fieldColumns(memberFieldValues),
+  ]
 
-  const allResponseAnswers = new Map<number, FormAnswer[]>()
-  for (const resp of responses.value) {
-    try {
-      const detail = await forms.getResponseDetail(formId.value, resp.id, analyticsBase.value)
-      allResponseAnswers.set(resp.id, detail.answers)
-    } catch {
-      allResponseAnswers.set(resp.id, [])
-    }
-  }
-
-  const escapeCsv = (val: string) => {
-    if (val.includes(';') || val.includes('"') || val.includes('\n')) {
-      return `"${val.replace(/"/g, '""')}"`
-    }
-    return val
-  }
-
-  const headerCols: string[] = [t('forms.analytics.exportMember')]
-  const selectedQuestions = analytics.value.questions.filter(q => exportQuestionIds.value.has(q.questionId))
-  for (const q of selectedQuestions) headerCols.push(q.title)
-  const selectedFields = allFields.value.filter(f => exportFieldIds.value.has(f.id))
-  for (const f of selectedFields) headerCols.push(f.name ?? '')
-
-  const rows: string[] = []
-  for (const resp of responses.value) {
-    const cols: string[] = [memberNames.value.get(resp.memberId) ?? `#${resp.memberId}`]
-    const answers = allResponseAnswers.get(resp.id) ?? []
-
-    for (const q of selectedQuestions) {
-      const answer = answers.find(a => a.questionId === q.questionId)
-      cols.push(formatAnswerDisplay(q.questionType, q.config, answer?.value ?? ''))
-    }
-
-    for (const f of selectedFields) {
-      const raw = memberFieldValues.get(resp.memberId)?.get(f.id) ?? ''
-      try { cols.push(JSON.parse(raw)) } catch { cols.push(raw) }
-    }
-
-    rows.push(cols.map(escapeCsv).join(';'))
-  }
-
-  const csv = [headerCols.map(escapeCsv).join(';'), ...rows].join('\n')
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `${form.value?.title ?? 'formular'}-export.csv`
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
+  downloadExport(responses.value, columns, `${form.value?.title ?? 'formular'}-export`)
 }
 
 const { loading, error } = useAsyncLoader(async () => {
@@ -305,8 +276,7 @@ const { loading, error } = useAsyncLoader(async () => {
         :selected-field-ids="exportFieldIds"
         @toggle-question="toggleExportQuestion"
         @toggle-field="toggleExportField"
-        @select-all-questions="selectAllQuestions"
-        @select-no-questions="selectNoQuestions"
+        @select-questions="selectExportQuestions"
         @export="performExport"
       />
     </div>

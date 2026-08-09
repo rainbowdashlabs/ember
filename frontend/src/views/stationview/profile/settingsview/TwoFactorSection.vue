@@ -6,8 +6,7 @@
 <script lang="ts" setup>
 import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import type {TwoFactorStatus, TotpBeginResponse} from '@/api/twoFactor'
-import {getTwoFactorStatus, beginTotpSetup, confirmTotpSetup, removeTotp, regenerateBackupCodes} from '@/api/twoFactor'
+import {beginTotpSetup, confirmTotpSetup, getTwoFactorStatus, regenerateBackupCodes, removeTotp, type TotpBeginResponse, type TwoFactorStatus} from '@/api/twoFactor'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -24,6 +23,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import WebAuthnSection from './twofactorsection/WebAuthnSection.vue'
 import TrustedDevicesSection from './twofactorsection/TrustedDevicesSection.vue'
+import {apiErrorMessage, apiErrorStatus} from '@/util/apiError'
 
 const {t} = useI18n()
 
@@ -63,8 +63,8 @@ async function startSetup() {
   try {
     setupData.value = await beginTotpSetup()
     setupStep.value = 'qr'
-  } catch (e: any) {
-    error.value = e?.response?.data?.message || t('common.error')
+  } catch (e) {
+    error.value = apiErrorMessage(e) || t('common.error')
   }
 }
 
@@ -86,8 +86,8 @@ async function confirmSetup() {
       requiresPassword() ? confirmPassword.value : undefined,
     )
     setupStep.value = 'backup-display'
-  } catch (e: any) {
-    confirmError.value = e?.response?.status === 401
+  } catch (e) {
+    confirmError.value = apiErrorStatus(e) === 401
       ? t('twoFactor.setup.passwordWrong')
       : t('twoFactor.setup.invalidCode')
   } finally {
@@ -192,7 +192,7 @@ async function handleRegenerate() {
               <font-awesome-icon :icon="['fas', 'mobile-screen']" class="text-(--text-muted)"/>
               <span class="font-medium">{{ t('twoFactor.authenticator') }}</span>
             </div>
-            <ErrorButton size="sm" @click="showRemoveModal = true">{{ t('common.remove') }}</ErrorButton>
+            <ErrorButton compact @click="showRemoveModal = true">{{ t('common.remove') }}</ErrorButton>
           </div>
         </NeutralContainer>
         <NeutralContainer v-else class="space-y-3">
@@ -201,7 +201,7 @@ async function handleRegenerate() {
               <font-awesome-icon :icon="['fas', 'mobile-screen']" class="text-(--text-muted)"/>
               <span class="font-medium">{{ t('twoFactor.authenticator') }}</span>
             </div>
-            <PrimaryButton size="sm" @click="startSetup">
+            <PrimaryButton compact @click="startSetup">
               <font-awesome-icon :icon="['fas', 'plus']" class="mr-1"/>
               {{ t('twoFactor.setup.begin') }}
             </PrimaryButton>
@@ -216,7 +216,7 @@ async function handleRegenerate() {
               <span class="font-medium">{{ t('twoFactor.backup.label') }}</span>
               <MutedText tag="span" size="sm" class="ml-2">{{ t('twoFactor.backup.remaining', {count: status.unusedBackupCodes}) }}</MutedText>
             </div>
-            <SecondaryButton size="sm" @click="handleRegenerate">{{ t('twoFactor.backup.regenerate') }}</SecondaryButton>
+            <SecondaryButton compact @click="handleRegenerate">{{ t('twoFactor.backup.regenerate') }}</SecondaryButton>
           </div>
         </NeutralContainer>
 

@@ -8,8 +8,8 @@ import {useI18n} from 'vue-i18n'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import Th from '@/components/table/Th.vue'
 import THead from '@/components/table/THead.vue'
-import HeaderFilterCell from './HeaderFilterCell.vue'
-import type {ProfileField} from '@/api/types'
+import HeaderFilterCell from '@/components/table/HeaderFilterCell.vue'
+import type {ProfileField} from '@/api/profileFields'
 
 const {t} = useI18n()
 

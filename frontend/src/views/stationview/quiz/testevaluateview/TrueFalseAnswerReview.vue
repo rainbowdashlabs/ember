@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import type {QuizQuestion, QuizTestAnswer} from '@/api/types'
+import type {QuizQuestion, QuizTestAnswer} from '@/api/quiz'
 
 const props = defineProps<{
   question: QuizQuestion

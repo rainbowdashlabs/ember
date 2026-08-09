@@ -19,8 +19,8 @@ import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
-import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.service.LendingService;
 import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
@@ -64,7 +64,7 @@ import java.util.UUID;
 @Singleton
 public class NotificationFeedRenderer {
     private final NotificationService notificationService;
-    private final EventService eventService;
+    private final EventCrudService crudService;
     private final EventFieldService eventFieldService;
     private final LostAndFoundService lostAndFoundService;
     private final LendingService lendingService;
@@ -76,7 +76,7 @@ public class NotificationFeedRenderer {
     @Inject
     public NotificationFeedRenderer(
             NotificationService notificationService,
-            EventService eventService,
+            EventCrudService crudService,
             EventFieldService eventFieldService,
             LostAndFoundService lostAndFoundService,
             LendingService lendingService,
@@ -85,7 +85,7 @@ public class NotificationFeedRenderer {
             BoardTicketService boardTicketService,
             ProcedureService procedureService) {
         this.notificationService = notificationService;
-        this.eventService = eventService;
+        this.crudService = crudService;
         this.eventFieldService = eventFieldService;
         this.lostAndFoundService = lostAndFoundService;
         this.lendingService = lendingService;
@@ -644,7 +644,7 @@ public class NotificationFeedRenderer {
         Integer eventId = extractLinkId(notification);
         if (eventId == null) return;
         try {
-            var event = eventService.findById(eventId).orElse(null);
+            var event = crudService.findById(eventId).orElse(null);
             if (event == null) return;
             var start = event.startTime();
             var end = event.endTime();

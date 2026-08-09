@@ -15,7 +15,8 @@ import SetupLayout from '@/views/stationview/setup/SetupLayout.vue'
 import {useSession} from '@/composables/useSession'
 import {useSetupStatus} from '@/composables/useSetupStatus'
 import {useOnboardingTour} from '@/composables/useOnboardingTour'
-import {stepRouteName} from '@/views/stationview/setup/steps'
+import {useAsyncAction} from '@/composables/useAsyncAction'
+import {stepRouteName, type WizardStepId} from '@/views/stationview/setup/steps'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -23,36 +24,34 @@ const {load: loadSession} = useSession()
 const {load, markComplete, completedAt, optionalSteps} = useSetupStatus()
 const {startTour} = useOnboardingTour()
 
-const finishing = ref(false)
 const error = ref('')
 
 onMounted(async () => {
     await load(true)
 })
 
+const {running: finishing, run: runFinalize} = useAsyncAction(async () => {
+    error.value = ''
+    const result = await markComplete()
+    if (!result.ok) {
+        error.value = t('setup.steps.finish.missingHint')
+        const first = result.missingSteps[0]
+        const map: Record<string, WizardStepId> = {
+            address: 'address',
+            modules: 'modules',
+            memberTypes: 'member-types',
+        }
+        const fallback = (first ? map[first] : undefined) ?? 'welcome'
+        router.replace({name: stepRouteName(fallback)})
+        return false
+    }
+    await loadSession()
+    return true
+})
+
 async function finalizeSetup(): Promise<boolean> {
     if (completedAt.value) return true
-    finishing.value = true
-    error.value = ''
-    try {
-        const result = await markComplete()
-        if (!result.ok) {
-            error.value = t('setup.steps.finish.missingHint')
-            const first = result.missingSteps[0]
-            const map: Record<string, string> = {
-                address: 'address',
-                modules: 'modules',
-                memberTypes: 'member-types',
-            }
-            const fallback = map[first] ?? 'welcome'
-            router.replace({name: stepRouteName(fallback as never)})
-            return false
-        }
-        await loadSession()
-        return true
-    } finally {
-        finishing.value = false
-    }
+    return (await runFinalize()) ?? false
 }
 
 async function goDashboard() {

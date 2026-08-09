@@ -10,6 +10,7 @@ import dev.chojo.ember.event.events.BulkMentionedInComment;
 import dev.chojo.ember.feature.comment.entity.MentionType;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
+import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
@@ -18,8 +19,8 @@ import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
-import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.restriction.RestrictionType;
+import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -33,21 +34,24 @@ public class BulkMentionedInCommentHandler implements DomainEventHandler<BulkMen
     private final NotificationService notificationService;
     private final MemberGroupRepository memberGroupRepository;
     private final EventRepository eventRepository;
+    private final EventRegistrationRepository registrationRepository;
     private final StationMemberRepository stationMemberRepository;
-    private final RestrictionRepository restrictionRepository;
+    private final RestrictionService restrictionService;
 
     @Inject
     public BulkMentionedInCommentHandler(
             NotificationService notificationService,
             MemberGroupRepository memberGroupRepository,
             EventRepository eventRepository,
+            EventRegistrationRepository registrationRepository,
             StationMemberRepository stationMemberRepository,
-            RestrictionRepository restrictionRepository) {
+            RestrictionService restrictionService) {
         this.notificationService = notificationService;
         this.memberGroupRepository = memberGroupRepository;
         this.eventRepository = eventRepository;
+        this.registrationRepository = registrationRepository;
         this.stationMemberRepository = stationMemberRepository;
-        this.restrictionRepository = restrictionRepository;
+        this.restrictionService = restrictionService;
     }
 
     @Override
@@ -96,7 +100,7 @@ public class BulkMentionedInCommentHandler implements DomainEventHandler<BulkMen
         var stationEvent = eventRepository.findById(event.mentionTargetId()).orElse(null);
         if (stationEvent == null) return Set.of();
 
-        var allRegs = eventRepository.findAllRegistrations(event.mentionTargetId());
+        var allRegs = registrationRepository.findByEvent(event.mentionTargetId());
         var declinedIds = allRegs.stream()
                 .filter(r -> r.status() == RegistrationStatus.DECLINED)
                 .map(EventRegistration::memberId)
@@ -113,7 +117,7 @@ public class BulkMentionedInCommentHandler implements DomainEventHandler<BulkMen
         }
 
         // No registration required — notify all members who can see the event, minus declined
-        var eligible = restrictionRepository.findMembersPassingRestriction(
+        var eligible = restrictionService.findMembersPassingRestriction(
                 RestrictionType.EVENT, stationEvent.id(), stationEvent.stationId());
         if (eligible.isEmpty()) {
             var ids = stationMemberRepository.findByStation(stationEvent.stationId(), false).stream()
@@ -128,7 +132,7 @@ public class BulkMentionedInCommentHandler implements DomainEventHandler<BulkMen
     }
 
     private Set<Integer> resolveRegistrationsByStatus(int eventId, RegistrationStatus status) {
-        return eventRepository.findAllRegistrations(eventId).stream()
+        return registrationRepository.findByEvent(eventId).stream()
                 .filter(r -> r.status() == status)
                 .map(EventRegistration::memberId)
                 .collect(Collectors.toCollection(HashSet::new));

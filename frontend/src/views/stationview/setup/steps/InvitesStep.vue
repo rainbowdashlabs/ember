@@ -20,7 +20,8 @@ import {memberGroups, stationMemberInvites} from '@/api'
 import type {MemberGroup} from '@/api/types'
 import type {GuardianRequest, InviteEntry} from '@/api/stationMemberInvites'
 import {useSetupStatus} from '@/composables/useSetupStatus'
-import {nextStep, stepRouteName} from '@/views/stationview/setup/steps'
+import {useAsyncAction} from '@/composables/useAsyncAction'
+import {goToNextStep, nextStepHref} from '@/views/stationview/setup/steps'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -43,16 +44,12 @@ interface RichRow {
 
 const richRows = ref<RichRow[]>([])
 const groups = ref<MemberGroup[]>([])
-const saving = ref(false)
-const error = ref('')
 const successCount = ref(0)
 
 const USER_TYPES = ['MEMBER', 'TEAM', 'MANAGER', 'GUARDIAN']
 
 function openMemberImport() {
-    const next = nextStep('invites')
-    const returnTo = next ? router.resolve({name: stepRouteName(next)}).href : '/station/setup'
-    router.push({path: '/station/members/import', query: {returnTo}})
+    router.push({path: '/station/members/import', query: {returnTo: nextStepHref(router, 'invites')}})
 }
 
 onMounted(async () => {
@@ -78,17 +75,17 @@ function removeRichRow(idx: number) {
 }
 
 function addGuardian(rowIdx: number) {
-    richRows.value[rowIdx].guardians.push({firstName: '', lastName: '', email: ''})
+    richRows.value[rowIdx]?.guardians.push({firstName: '', lastName: '', email: ''})
 }
 
 function removeGuardian(rowIdx: number, gIdx: number) {
-    richRows.value[rowIdx].guardians.splice(gIdx, 1)
+    richRows.value[rowIdx]?.guardians.splice(gIdx, 1)
 }
 
 const expandedBulk = computed(() => {
     const lines = bulkText.value.split(/[,\n]/).map((s) => s.trim()).filter(Boolean)
     return lines.map((email) => ({
-        firstName: email.split('@')[0],
+        firstName: email.split('@')[0] ?? '',
         lastName: '',
         email,
         userType: bulkUserType.value,
@@ -97,29 +94,24 @@ const expandedBulk = computed(() => {
     }))
 })
 
-async function save() {
-    error.value = ''
+const {running: saving, error, run: runSave, clearError} = useAsyncAction(async (payload: InviteEntry[]) => {
+    const result = await stationMemberInvites.createInvites({invites: payload})
+    successCount.value = result.provisioned.length
+    await reload()
+    goToNextStep(router, 'invites')
+})
+
+function save() {
+    clearError()
     successCount.value = 0
     const payload: InviteEntry[] = tab.value === 'bulk'
         ? expandedBulk.value
         : richRows.value.filter((r) => r.email.trim() !== '')
     if (payload.length === 0) {
-        const next = nextStep('invites')
-        if (next) router.push({name: stepRouteName(next)})
+        goToNextStep(router, 'invites')
         return
     }
-    saving.value = true
-    try {
-        const result = await stationMemberInvites.createInvites({invites: payload})
-        successCount.value = result.provisioned.length
-        await reload()
-        const next = nextStep('invites')
-        if (next) router.push({name: stepRouteName(next)})
-    } catch {
-        error.value = t('common.error')
-    } finally {
-        saving.value = false
-    }
+    return runSave(payload)
 }
 </script>
 
@@ -141,7 +133,7 @@ async function save() {
     <div v-if="tab === 'bulk'" class="space-y-3">
       <label class="block text-sm">
         {{ t('setup.steps.invites.bulkEmails') }}
-        <TextAreaInput v-model="bulkText" :placeholder="t('setup.steps.invites.bulkPlaceholder')" rows="4"/>
+        <TextAreaInput v-model="bulkText" :placeholder="t('setup.steps.invites.bulkPlaceholder')" :rows="4"/>
       </label>
       <div class="flex gap-3">
         <label class="block text-sm flex-1">

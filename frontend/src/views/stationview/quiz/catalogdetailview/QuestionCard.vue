@@ -8,7 +8,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import QuestionCardCollapsedMobile from './QuestionCardCollapsedMobile.vue'
 import QuestionCardCollapsedDesktop from './QuestionCardCollapsedDesktop.vue'
 import QuestionInlineEditor from './QuestionInlineEditor.vue'
-import type { QuizCategory, QuizQuestion, QuizQuestionTypeName } from '@/api/types'
+import type { QuizCategory, QuizQuestion, QuizQuestionTypeName } from '@/api/quiz'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 
 const editorTitle = defineModel<string>('editorTitle', {required: true})

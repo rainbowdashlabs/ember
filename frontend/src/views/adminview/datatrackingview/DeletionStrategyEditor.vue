@@ -54,8 +54,9 @@ const {t} = useI18n()
         {{ t('adminDataTracking.detail.legalBasis') }}
       </label>
       <TextInput
-          v-model="strategy.legalBasis"
+          :model-value="strategy.legalBasis ?? undefined"
           :placeholder="t('adminDataTracking.detail.legalBasisPlaceholder')"
+          @update:model-value="strategy.legalBasis = $event ?? null"
       />
     </div>
     <div class="flex justify-end">

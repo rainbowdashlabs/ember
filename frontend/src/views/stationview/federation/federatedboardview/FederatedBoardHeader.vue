@@ -12,8 +12,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import FederatedBoardSearchResults from '@/views/stationview/federation/federatedboardview/FederatedBoardSearchResults.vue'
-import type {BoardTicket} from '@/api/boards'
-import type {TicketPriorityName} from '@/api/boards'
+import type {BoardTicket, TicketPriorityName} from '@/api/boards'
 
 defineProps<{
   boardName: string

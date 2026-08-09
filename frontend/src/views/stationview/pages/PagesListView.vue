@@ -21,6 +21,7 @@ import {
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useConfirmDelete} from '@/composables/useConfirmDelete'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -31,16 +32,10 @@ const canManage = computed(() => hasPermission(StationPermission.PAGE_MANAGER))
 
 const pages = ref<StationPage[]>([])
 
-// Create modal
 const showCreateModal = ref(false)
 const newTitle = ref('')
 const newParentId = ref<string>('')
 
-// Delete modal
-const showDeleteModal = ref(false)
-const deleteTarget = ref<StationPage | null>(null)
-
-// Landing page
 const landingPageId = ref<number | null>(null)
 
 interface FlatPageEntry {
@@ -100,22 +95,16 @@ async function confirmCreate() {
     }
 }
 
-function requestDelete(page: StationPage) {
-    deleteTarget.value = page
-    showDeleteModal.value = true
-}
-
-async function confirmDelete() {
-    if (!deleteTarget.value) return
-    try {
-        await deletePage(deleteTarget.value.id)
-        showDeleteModal.value = false
-        deleteTarget.value = null
-        await reload()
-    } catch {
-        error.value = t('common.error')
-    }
-}
+const {
+    show: showDeleteModal,
+    target: deleteTarget,
+    requestDelete,
+    confirm: confirmDelete,
+} = useConfirmDelete<StationPage>({
+    onDelete: p => deletePage(p.id),
+    onSuccess: () => reload(),
+    error,
+})
 
 async function onDuplicate(page: StationPage) {
     try {
@@ -152,8 +141,8 @@ function navigateToEdit(page: StationPage) {
 function onReorder(fromIndex: number, toIndex: number) {
     const items = [...flatPages.value]
     const [moved] = items.splice(fromIndex, 1)
+    if (!moved) return
     items.splice(toIndex, 0, moved)
-    // Update local state (sorting persists via individual saves)
     pages.value = items.map((entry, i) => ({...entry.page, sortOrder: i}))
 }
 

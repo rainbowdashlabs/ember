@@ -11,7 +11,8 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import MultiSelectInput from '@/components/input/select/MultiSelectInput.vue'
 import ProfileFieldInput from '@/components/input/ProfileFieldInput.vue'
-import type {AttendanceTemplateField, StationMember} from '@/api/types'
+import type {AttendanceTemplateField} from '@/api/attendance'
+import type {StationMember} from '@/api/types'
 
 const {t} = useI18n()
 
@@ -93,7 +94,7 @@ function getMemberOptions(field: AttendanceTemplateField): { value: string; labe
                 v-else
                 class="w-full"
                 :model-value="getFieldValue(field.id)"
-                @update:model-value="emit('fieldMemberIds', field.id, $event ? [$event] : [])"
+                @update:model-value="emit('fieldMemberIds', field.id, $event ? [String($event)] : [])"
             >
               <option value="">—</option>
               <option v-for="opt in getMemberOptions(field)" :key="opt.value" :value="opt.value">

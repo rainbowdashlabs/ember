@@ -9,7 +9,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import MarkdownFieldInput from '@/components/input/text/MarkdownFieldInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import FormPickerInput from '@/components/input/search/FormPickerInput.vue'
-import {FormPurpose} from '@/api/types'
+import {FormPurpose} from '@/api/forms'
 import {useConfigPatch} from '@/composables/useConfigPatch'
 import type {CellEditorEmits, CellEditorProps} from '../cellTypes'
 

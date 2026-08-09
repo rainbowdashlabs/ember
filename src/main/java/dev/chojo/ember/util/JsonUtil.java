@@ -7,13 +7,13 @@ package dev.chojo.ember.util;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Shared JSON utilities for parsing and serializing JSON nodes.
+ * Shared JSON utilities for parsing and serializing JSON nodes, backed by the
+ * shared {@link Json#MAPPER}.
  */
 public final class JsonUtil {
-    private static final ObjectMapper MAPPER = JsonMapper.builder().build();
+    private static final ObjectMapper MAPPER = Json.MAPPER;
 
     private JsonUtil() {}
 

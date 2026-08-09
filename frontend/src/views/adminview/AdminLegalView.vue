@@ -13,8 +13,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import TypeTabsBar from './adminlegalview/TypeTabsBar.vue'
 import LocaleTabsBar from './adminlegalview/LocaleTabsBar.vue'
 import FileListPanel from './adminlegalview/FileListPanel.vue'
-import AddLocaleModal from './adminlegalview/AddLocaleModal.vue'
-import AddFileModal from './adminlegalview/AddFileModal.vue'
+import SingleFieldModal from '@/components/feedback/SingleFieldModal.vue'
 import DeleteFileModal from './adminlegalview/DeleteFileModal.vue'
 import {adminSettings} from '@/api'
 import type {LegalFile} from '@/api/adminSettings'
@@ -159,14 +158,20 @@ onMounted(async () => {
         />
       </NeutralContainer>
 
-      <AddLocaleModal
+      <SingleFieldModal
           v-model:show="showAddLocaleModal"
-          v-model:code="newLocaleCode"
+          v-model:value="newLocaleCode"
+          :title="t('adminSettings.legal.addLocaleTitle')"
+          :placeholder="t('adminSettings.legal.localeCodePlaceholder')"
+          :confirm-label="t('adminSettings.legal.addLocale')"
           @confirm="addLocale"
       />
-      <AddFileModal
+      <SingleFieldModal
           v-model:show="showAddFileModal"
-          v-model:name="newFileName"
+          v-model:value="newFileName"
+          :title="t('adminSettings.legal.addFileTitle')"
+          :placeholder="t('adminSettings.legal.fileNamePlaceholder')"
+          :confirm-label="t('adminSettings.legal.addFile')"
           @confirm="addFile"
       />
       <DeleteFileModal

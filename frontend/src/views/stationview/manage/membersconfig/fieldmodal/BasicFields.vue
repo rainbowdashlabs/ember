@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import {FieldTypes} from '@/api/types'
+import {FieldTypes} from '@/api/profileFields'
 
 defineProps<{
   scope: string

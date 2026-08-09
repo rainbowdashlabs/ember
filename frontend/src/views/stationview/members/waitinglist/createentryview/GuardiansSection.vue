@@ -10,7 +10,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type { GuardianInput } from '@/api/types'
+import type { GuardianInput } from '@/api/waitingList'
 
 const props = defineProps<{
   guardians: GuardianInput[]
@@ -24,8 +24,8 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-function updateGuardian(index: number, key: keyof GuardianInput, value: string) {
-  const next = props.guardians.map((g, i) => i === index ? { ...g, [key]: value } : g)
+function updateGuardian(index: number, key: keyof GuardianInput, value: string | undefined) {
+  const next = props.guardians.map((g, i) => i === index ? { ...g, [key]: value ?? '' } : g)
   emit('update:guardians', next)
 }
 </script>

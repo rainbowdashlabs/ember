@@ -10,7 +10,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import BlockEntryTile from './BlockEntryTile.vue'
-import type {Inventory} from '@/api/types'
+import type {Inventory} from '@/api/inventory'
 import type {BlockEntry} from './types'
 
 defineProps<{

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import CreateEntryView from '~/views/stationview/members/waitinglist/CreateEntryView'
+import CreateEntryView from '~/views/stationview/members/waitinglist/CreateEntryView.vue'
 
 definePageMeta({
   layout: 'station',

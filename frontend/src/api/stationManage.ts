@@ -4,7 +4,52 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {MessageResponse, StationManageInfo, UpdateStationNameRequest} from './types'
+import {uploadFile} from './upload'
+import type {MessageResponse} from './types'
+
+export interface StationManageInfo {
+    id: string
+    name?: string
+    timezone?: string
+    locale?: string
+    hasLogo: boolean
+    ownerMemberId?: number | null
+    isOwner: boolean
+    defaultTheme?: string
+    allowUserTheme?: boolean
+    customThemeColors?: string | null
+    defaultFeel?: string
+    allowUserFeel?: boolean
+    publicKbMode?: string
+    discoveryVisibility?: string
+    discoveryDescription?: string | null
+    discoveryShowKb?: boolean
+    publicCalendarEnabled?: boolean
+    publicPagesEnabled?: boolean
+    publicWaitlistEnabled?: boolean
+    publicBlogEnabled?: boolean
+    publicSlug?: string | null
+}
+
+export interface UpdateStationNameRequest {
+    name?: string
+    timezone?: string
+    locale?: string
+    defaultTheme?: string
+    allowUserTheme?: boolean
+    customThemeColors?: string | null
+    defaultFeel?: string
+    allowUserFeel?: boolean
+    publicKbMode?: string
+    discoveryVisibility?: string
+    discoveryDescription?: string | null
+    discoveryShowKb?: boolean
+    publicCalendarEnabled?: boolean
+    publicPagesEnabled?: boolean
+    publicWaitlistEnabled?: boolean
+    publicBlogEnabled?: boolean
+    publicSlug?: string | null
+}
 
 export async function getStationInfo(): Promise<StationManageInfo> {
     const res = await client.get<StationManageInfo>('/station/manage')
@@ -17,12 +62,7 @@ export async function updateStationName(data: UpdateStationNameRequest): Promise
 }
 
 export async function uploadLogo(file: File): Promise<MessageResponse> {
-    const formData = new FormData()
-    formData.append('logo', file)
-    const res = await client.post<MessageResponse>('/station/manage/logo', formData, {
-        headers: {'Content-Type': 'multipart/form-data'},
-    })
-    return res.data
+    return uploadFile<MessageResponse>('/station/manage/logo', {logo: file})
 }
 
 export async function deleteLogo(): Promise<MessageResponse> {

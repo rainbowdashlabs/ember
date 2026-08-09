@@ -8,7 +8,7 @@ import OverviewHelp from '~/views/helpcenter/stationview/setup/OverviewHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',
-  name: 'helpcenter-station-setup-overview',
+  name: 'help-setup-module-overview',
 })
 </script>
 

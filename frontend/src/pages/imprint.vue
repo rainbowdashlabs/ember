@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ImprintView from '~/views/ImprintView'
+import ImprintView from '~/views/ImprintView.vue'
 import {useCanonical} from '~/composables/useCanonical'
 
 definePageMeta({

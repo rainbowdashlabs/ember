@@ -11,7 +11,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import ManagerSection from './ManagerSection.vue'
-import type {ManagerDetail} from '@/api/types'
+import type {ManagerDetail} from '@/api/stations'
 
 defineProps<{
   manager: ManagerDetail | null

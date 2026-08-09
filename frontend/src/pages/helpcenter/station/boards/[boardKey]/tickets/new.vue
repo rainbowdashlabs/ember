@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import TicketCreateHelp from '~/views/helpcenter/stationview/boards/TicketCreateHelp'
+import TicketCreateHelp from '~/views/helpcenter/stationview/boards/TicketCreateHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

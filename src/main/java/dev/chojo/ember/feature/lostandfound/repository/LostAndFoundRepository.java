@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.lostandfound.repository;
 
 import dev.chojo.ember.feature.lostandfound.entity.LostAndFoundItem;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
@@ -16,12 +17,17 @@ import java.util.Optional;
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
+import static dev.chojo.ember.util.sql.SqlSupport.count;
+import static dev.chojo.ember.util.sql.SqlSupport.deleteById;
+import static dev.chojo.ember.util.sql.SqlSupport.insertReturning;
 
 /**
  * Repository for persisting and querying lost and found items in the database.
  */
 @Singleton
 public class LostAndFoundRepository {
+    private static final String LOST_AND_FOUND_ITEM_COLUMNS =
+            "id, station_id, description, found_at, claimed_by, claimed_at, created_by, created_at";
 
     /**
      * Finds all lost and found items for a station, ordered by creation date descending.
@@ -30,7 +36,9 @@ public class LostAndFoundRepository {
      * @return all items including claimed ones
      */
     public List<LostAndFoundItem> findByStation(int stationId) {
-        return query("SELECT * FROM lost_and_found_item WHERE station_id = :station_id ORDER BY created_at DESC;")
+        return query(
+                        "SELECT %s FROM lost_and_found_item WHERE station_id = :station_id ORDER BY created_at DESC;",
+                        LOST_AND_FOUND_ITEM_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(LostAndFoundItem.map())
                 .all();
@@ -45,12 +53,12 @@ public class LostAndFoundRepository {
     public List<LostAndFoundItem> findUnclaimedByStation(int stationId) {
         return query("""
                 SELECT
-                    *
+                    %s
                 FROM
                     lost_and_found_item
                 WHERE station_id = :station_id
                   AND claimed_by IS NULL
-                ORDER BY created_at DESC;""")
+                ORDER BY created_at DESC;""", LOST_AND_FOUND_ITEM_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(LostAndFoundItem.map())
                 .all();
@@ -66,12 +74,12 @@ public class LostAndFoundRepository {
     public List<LostAndFoundItem> findUnclaimedOrClaimedBy(int stationId, int memberId) {
         return query("""
                 SELECT
-                    *
+                    %s
                 FROM
                     lost_and_found_item
                 WHERE station_id = :station_id
                   AND ( claimed_by IS NULL OR claimed_by = :member_id )
-                ORDER BY created_at DESC;""")
+                ORDER BY created_at DESC;""", LOST_AND_FOUND_ITEM_COLUMNS)
                 .single(call().bind("station_id", stationId).bind("member_id", memberId))
                 .map(LostAndFoundItem.map())
                 .all();
@@ -84,10 +92,7 @@ public class LostAndFoundRepository {
      * @return the item, or empty if not found
      */
     public Optional<LostAndFoundItem> findById(int id) {
-        return query("SELECT * FROM lost_and_found_item WHERE id = :id;")
-                .single(call().bind("id", id))
-                .map(LostAndFoundItem.map())
-                .first();
+        return SqlSupport.findById("lost_and_found_item", LOST_AND_FOUND_ITEM_COLUMNS, id, LostAndFoundItem.map());
     }
 
     /**
@@ -100,20 +105,20 @@ public class LostAndFoundRepository {
      * @return the created item
      */
     public LostAndFoundItem create(int stationId, String description, LocalDate foundAt, int createdBy) {
-        return query("""
+        return insertReturning(
+                """
                 INSERT
                 INTO
                     lost_and_found_item(station_id, description, found_at, created_by)
                 VALUES
                     (:station_id, :description, :found_at, :created_by)
-                RETURNING *;""")
-                .single(call().bind("station_id", stationId)
+                RETURNING %s;""",
+                call().bind("station_id", stationId)
                         .bind("description", description)
                         .bind("found_at", foundAt)
-                        .bind("created_by", createdBy))
-                .map(LostAndFoundItem.map())
-                .first()
-                .orElseThrow();
+                        .bind("created_by", createdBy),
+                LostAndFoundItem.map(),
+                LOST_AND_FOUND_ITEM_COLUMNS);
     }
 
     /**
@@ -140,18 +145,12 @@ public class LostAndFoundRepository {
      * @return true if the item was deleted
      */
     public boolean delete(int id) {
-        return query("DELETE FROM lost_and_found_item WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return deleteById("lost_and_found_item", id);
     }
 
     public int countClaimedNotProvided(int stationId) {
-        return query(
-                        "SELECT count(*) AS cnt FROM lost_and_found_item WHERE station_id = :station_id AND claimed_by IS NOT NULL;")
-                .single(call().bind("station_id", stationId))
-                .map(row -> row.getInt("cnt"))
-                .first()
-                .orElse(0);
+        return count(
+                "SELECT count(*) AS cnt FROM lost_and_found_item WHERE station_id = :station_id AND claimed_by IS NOT NULL;",
+                call().bind("station_id", stationId));
     }
 }

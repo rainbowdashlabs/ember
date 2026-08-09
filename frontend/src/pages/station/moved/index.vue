@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import MovedStationInfoView from '~/views/dashboardview/MovedStationInfoView'
+import MovedStationInfoView from '~/views/dashboardview/MovedStationInfoView.vue'
 
 definePageMeta({
   layout: 'station',

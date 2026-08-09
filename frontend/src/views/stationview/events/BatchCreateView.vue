@@ -20,10 +20,11 @@ import EventFormPanel from './eventshared/EventFormPanel.vue'
 import {type RestrictionSelection, emptyRestriction} from '@/components/input/restriction'
 import BatchScheduleStep from './batchcreateview/BatchScheduleStep.vue'
 import BatchEditTable from './batchcreateview/BatchEditTable.vue'
-import type {AttendanceTemplateField, BatchFieldEntry, EventFieldEntry, EventTemplate} from '@/api/types'
-import type {BatchRow} from '@/api/events'
+import type {AttendanceTemplateField} from '@/api/attendance'
+import type {BatchFieldEntry, BatchRow, EventFieldEntry, EventTemplate} from '@/api/events'
 import {attendance, events} from '@/api'
 import {useSession} from '@/composables/useSession'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useEventEditDeps} from '@/composables/useEventEditDeps'
 
@@ -32,7 +33,6 @@ const router = useRouter()
 const {loaded} = useSession()
 
 const step = ref(1)
-const saving = ref(false)
 const success = ref('')
 
 const {categories, templates, groups, tags, reload: reloadDeps} = useEventEditDeps({autoLoad: false})
@@ -96,37 +96,30 @@ function onScheduleDone(newRows: BatchRow[]) {
   step.value = 3
 }
 
-async function createBatch() {
-  saving.value = true
+const {running: saving, error: createError, run: createBatch} = useAsyncAction(async () => {
   error.value = ''
-  try {
-    const inlineFields: BatchFieldEntry[] = fieldDefs.value.filter(f => f.name.trim()).map(f => ({
-      name: f.name,
-      fieldType: f.fieldType,
-      config: f.config ?? undefined,
-      overview: f.overview,
-      attendanceFieldId: f.attendanceFieldId,
-    }))
-    const created = await events.createBatchEvents({
-      name: eventName.value || undefined,
-      description: eventDescription.value || undefined,
-      categoryId: selectedCategoryId.value ? Number(selectedCategoryId.value) : undefined,
-      templateId: selectedTemplateId.value ? Number(selectedTemplateId.value) : undefined,
-      inlineFields,
-      rows: rows.value,
-      requiresRegistration: requiresRegistration.value,
-      requiresConfirmation: requiresConfirmation.value,
-      registrationDeadline: registrationDeadline.value || undefined,
-      restriction: restriction.value,
-    })
-    success.value = t('batchCreate.success', {count: created.length})
-    setTimeout(() => router.push({name: 'events'}), 1500)
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    saving.value = false
-  }
-}
+  const inlineFields: BatchFieldEntry[] = fieldDefs.value.filter(f => f.name.trim()).map(f => ({
+    name: f.name,
+    fieldType: f.fieldType,
+    config: f.config ?? undefined,
+    overview: f.overview,
+    attendanceFieldId: f.attendanceFieldId,
+  }))
+  const created = await events.createBatchEvents({
+    name: eventName.value || undefined,
+    description: eventDescription.value || undefined,
+    categoryId: selectedCategoryId.value ? Number(selectedCategoryId.value) : undefined,
+    templateId: selectedTemplateId.value ? Number(selectedTemplateId.value) : undefined,
+    inlineFields,
+    rows: rows.value,
+    requiresRegistration: requiresRegistration.value,
+    requiresConfirmation: requiresConfirmation.value,
+    registrationDeadline: registrationDeadline.value || undefined,
+    restriction: restriction.value,
+  })
+  success.value = t('batchCreate.success', {count: created.length})
+  setTimeout(() => router.push({name: 'events'}), 1500)
+}, {formatError: () => t('common.error')})
 </script>
 
 <template>
@@ -136,7 +129,7 @@ async function createBatch() {
   >
     <Spinner v-if="loading"/>
     <template v-else>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <Alert v-if="error || createError" variant="error">{{ error || createError }}</Alert>
       <Alert v-if="success" variant="success">{{ success }}</Alert>
 
       <StepProgressBar class="mb-4"

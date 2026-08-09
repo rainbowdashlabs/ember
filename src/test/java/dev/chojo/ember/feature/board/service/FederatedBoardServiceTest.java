@@ -19,7 +19,6 @@ import dev.chojo.ember.feature.board.service.FederatedBoardService.PartnerShareC
 import dev.chojo.ember.feature.federation.service.FederationWebhookService;
 import dev.chojo.ember.feature.federation.service.FederationWebhookService.WebhookEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
@@ -83,7 +82,7 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
                 boardTicketRepo,
                 boardRepo,
                 new DomainEventBus(Set.of()),
-                new StationMemberService(stationMemberRepo, stationRepo, null, null),
+                newStationMemberService(null, null),
                 memberIdentityFactory,
                 memberNameResolver,
                 attachmentSvc);

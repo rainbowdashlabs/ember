@@ -26,8 +26,9 @@ import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {procedures} from '@/api'
 import {StationPermission} from '@/api/types'
-import type {ProcedureDetail, ProcedureItem} from '@/api/procedures'
-import {ProcedureStatus} from '@/api/procedures'
+import {ProcedureStatus, type ProcedureDetail, type ProcedureItem} from '@/api/procedures'
+import {formatDate, formatDateTime} from '@/util/format'
+import {reportCaughtError} from '@/util/devErrorReporter'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -111,7 +112,8 @@ const {loading, error, reload} = useAsyncLoader(async () => {
 async function refreshSilently() {
   try {
     detail.value = await procedures.getProcedure(procedureId.value)
-  } catch {
+  } catch (e) {
+    reportCaughtError(e, 'silent procedure refresh')
   }
 }
 
@@ -161,16 +163,6 @@ async function handleResolve() {
   } catch {
     error.value = t('common.error')
   }
-}
-
-function formatDate(dateStr: string | null | undefined): string {
-  if (!dateStr) return ''
-  return new Date(dateStr).toLocaleDateString('de-DE')
-}
-
-function formatDateTime(dateStr: string | null | undefined): string {
-  if (!dateStr) return ''
-  return new Date(dateStr).toLocaleString('de-DE')
 }
 
 watch(loaded, (v) => {

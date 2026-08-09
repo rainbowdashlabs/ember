@@ -32,7 +32,6 @@ public class CommentDeletedHandler implements DomainEventHandler<CommentDeleted>
     public void handle(CommentDeleted event) {
         notificationService.deleteByTypeContaining(
                 NotificationType.NEWS_COMMENT,
-                NotificationData.of(new NotificationParams.NewsComment(null, null, event.preview()))
-                        .toJson());
+                NotificationData.of(new NotificationParams.NewsComment(null, null, event.preview())));
     }
 }

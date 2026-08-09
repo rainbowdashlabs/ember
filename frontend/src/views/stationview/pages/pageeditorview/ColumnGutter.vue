@@ -4,10 +4,11 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {onBeforeUnmount, ref} from 'vue'
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
 import EditorFloatButton from './EditorFloatButton.vue'
+import {useColumnResize} from './useColumnResize'
 
 const props = withDefaults(defineProps<{
     leftPercent: number
@@ -24,40 +25,12 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
-const dragging = ref(false)
-let startX = 0
-let containerWidth = 0
 
-function onResizeStart(event: MouseEvent) {
-    event.preventDefault()
-    dragging.value = true
-    startX = event.clientX
-    const container = (event.currentTarget as HTMLElement).closest('.editor-row-cells')
-    containerWidth = container?.getBoundingClientRect().width ?? 1
-    document.body.style.cursor = 'col-resize'
-    document.body.style.userSelect = 'none'
-    document.addEventListener('mousemove', onResizeMove)
-    document.addEventListener('mouseup', onResizeEnd)
-}
-
-function onResizeMove(event: MouseEvent) {
-    if (!dragging.value) return
-    const deltaX = event.clientX - startX
-    const deltaPercent = (deltaX / containerWidth) * 100
-    if (props.leftPercent + deltaPercent < 10 || props.rightPercent - deltaPercent < 10) return
-    startX = event.clientX
-    emit('resize', deltaPercent)
-}
-
-function onResizeEnd() {
-    dragging.value = false
-    document.body.style.cursor = ''
-    document.body.style.userSelect = ''
-    document.removeEventListener('mousemove', onResizeMove)
-    document.removeEventListener('mouseup', onResizeEnd)
-}
-
-onBeforeUnmount(onResizeEnd)
+const {dragging, onMouseDown: onResizeStart} = useColumnResize(
+    computed(() => props.leftPercent),
+    computed(() => props.rightPercent),
+    delta => emit('resize', delta),
+)
 </script>
 
 <template>

@@ -4,14 +4,15 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import {FieldType} from '@/api/inventoryFields'
-import type {FieldTypeName} from '@/api/inventoryFields'
+import {FieldType, type FieldTypeName} from '@/api/inventoryFields'
 import type {DraftField} from './types'
+import {harmonizeKey} from './harmonize'
 
 const props = defineProps<{
     draft: DraftField
@@ -23,8 +24,15 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-function onTypeChanged(value: string) {
-    emit('type-changed', value as FieldTypeName)
+watch(() => props.draft.label, (label, previous) => {
+    if (props.draft.id) return
+    if (props.draft.key === '' || props.draft.key === harmonizeKey(previous ?? '')) {
+        props.draft.key = harmonizeKey(label)
+    }
+})
+
+function onTypeChanged(value: string | number | null | undefined) {
+    emit('type-changed', String(value ?? '') as FieldTypeName)
 }
 </script>
 

@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {readonly, ref} from 'vue'
+import {reportCaughtError} from '@/util/devErrorReporter'
 
 export type BarcodeFormat =
     | 'qr_code'
@@ -71,7 +72,7 @@ async function probeTier(formats: BarcodeFormat[]): Promise<ScannerTier> {
             }
         } catch { /* fall through */ }
     }
-    if (typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
+    if (typeof navigator !== 'undefined' && typeof navigator.mediaDevices?.getUserMedia === 'function') {
         tierCache.value = 'zxing'
         return 'zxing'
     }
@@ -97,11 +98,71 @@ export interface ScannerSession {
     stop(): void
 }
 
+/** Camera stream plus decoder loop of one running scan, and the handles needed to tear both down. */
+interface ScanState {
+    stream: MediaStream
+    options: StartScanOptions
+    stopped: boolean
+    zxingControls: ZxingControls | null
+    nativeTimer: ReturnType<typeof setInterval> | null
+    /** Frame decode failures are routine, so only the first one of a scan is reported. */
+    decodeFailureReported: boolean
+}
+
+function stopScan(state: ScanState) {
+    if (state.stopped) return
+    state.stopped = true
+    if (state.nativeTimer !== null) {
+        clearInterval(state.nativeTimer)
+        state.nativeTimer = null
+    }
+    if (state.zxingControls) {
+        try {
+            state.zxingControls.stop()
+        } catch (e) {
+            reportCaughtError(e, 'zxing decoder shutdown')
+        }
+        state.zxingControls = null
+    }
+    state.stream.getTracks().forEach(t => t.stop())
+    state.options.videoEl.srcObject = null
+    try {
+        state.options.videoEl.load()
+    } catch (e) {
+        reportCaughtError(e, 'scanner video reset')
+    }
+}
+
+function runNativeDecoder(state: ScanState, formats: BarcodeFormat[], emit: (raw: string) => void) {
+    const ctor = (globalThis as { BarcodeDetector?: BarcodeDetectorCtor }).BarcodeDetector!
+    const detector = new ctor({formats})
+    state.nativeTimer = setInterval(async () => {
+        if (state.stopped) return
+        try {
+            const results = await detector.detect(state.options.videoEl)
+            const first = results[0]
+            if (first && !state.stopped) emit(first.rawValue)
+        } catch (e) {
+            if (!state.decodeFailureReported) {
+                state.decodeFailureReported = true
+                reportCaughtError(e, 'barcode frame decode')
+            }
+        }
+    }, 200)
+}
+
+async function runZxingDecoder(state: ScanState, emit: (raw: string) => void) {
+    const zxingReader = await loadZxingReader()
+    state.zxingControls = await zxingReader.decodeFromVideoElement(state.options.videoEl, (result) => {
+        if (state.stopped || !result) return
+        emit(result.getText())
+    })
+}
+
 export interface StartScanOptions {
     videoEl: HTMLVideoElement
     formats?: BarcodeFormat[]
     onDecode: (value: string) => void
-    onError?: (error: Error) => void
 }
 
 /**
@@ -119,9 +180,7 @@ export function useBarcodeScanner() {
         const tier = await probeTier(formats)
         if (tier === 'unsupported') {
             const insecure = typeof window !== 'undefined' && window.isSecureContext === false
-            const err = new Error(insecure ? 'barcode-scanner-insecure-context' : 'barcode-scanner-unsupported')
-            options.onError?.(err)
-            throw err
+            throw new Error(insecure ? 'barcode-scanner-insecure-context' : 'barcode-scanner-unsupported')
         }
 
         const stream = await openCameraStream(options)
@@ -149,14 +208,13 @@ export function useBarcodeScanner() {
                     height: {ideal: 1080},
                 },
             })
-            await enableContinuousFocus(stream)
+            enableContinuousFocus(stream).catch(() => undefined)
             return stream
         } catch (e) {
             const err = e as Error
             if (err.name === 'NotFoundError' || err.name === 'OverconstrainedError') {
                 markNoCamera()
             }
-            options.onError?.(err)
             throw err
         }
     }
@@ -183,7 +241,6 @@ export function useBarcodeScanner() {
             await options.videoEl.play()
         } catch (e) {
             stream.getTracks().forEach(t => t.stop())
-            options.onError?.(e as Error)
             throw e
         }
         await waitForFreshFrame(options.videoEl)
@@ -218,49 +275,19 @@ export function useBarcodeScanner() {
     }
 
     function makeSession(stream: MediaStream, options: StartScanOptions) {
-        let stopped = false
-        let zxingControls: ZxingControls | null = null
-        let nativeTimer: ReturnType<typeof setInterval> | null = null
-
-        function stop() {
-            if (stopped) return
-            stopped = true
-            if (nativeTimer !== null) {
-                clearInterval(nativeTimer)
-                nativeTimer = null
-            }
-            if (zxingControls) {
-                try { zxingControls.stop() } catch { /* ignore */ }
-                zxingControls = null
-            }
-            stream.getTracks().forEach(t => t.stop())
-            options.videoEl.srcObject = null
-            try { options.videoEl.load() } catch { /* ignore */ }
+        const state: ScanState = {
+            stream,
+            options,
+            stopped: false,
+            zxingControls: null,
+            nativeTimer: null,
+            decodeFailureReported: false,
         }
-
-        function runNative(formats: BarcodeFormat[], emit: (raw: string) => void) {
-            const ctor = (globalThis as { BarcodeDetector?: BarcodeDetectorCtor }).BarcodeDetector!
-            const detector = new ctor({formats})
-            nativeTimer = setInterval(async () => {
-                if (stopped) return
-                try {
-                    const results = await detector.detect(options.videoEl)
-                    if (results.length > 0 && !stopped) emit(results[0].rawValue)
-                } catch {
-                    /* transient frame failures are normal */
-                }
-            }, 200)
+        return {
+            stop: () => stopScan(state),
+            runNative: (formats: BarcodeFormat[], emit: (raw: string) => void) => runNativeDecoder(state, formats, emit),
+            runZxing: (emit: (raw: string) => void) => runZxingDecoder(state, emit),
         }
-
-        async function runZxing(emit: (raw: string) => void) {
-            const zxingReader = await loadZxingReader()
-            zxingControls = await zxingReader.decodeFromVideoElement(options.videoEl, (result) => {
-                if (stopped || !result) return
-                emit(result.getText())
-            })
-        }
-
-        return {stop, runNative, runZxing}
     }
 
     return {

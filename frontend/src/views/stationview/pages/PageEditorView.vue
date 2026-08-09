@@ -28,15 +28,14 @@ import {
     type SaveCellRequest,
 } from '@/api/pageManage'
 import {useSession} from '@/composables/useSession'
-import {useToast} from '@/composables/useToast'
 import {usePageClipboard} from '@/composables/usePageClipboard'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {showToast} from '@/util/toast'
 
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
 const {sessionInfo} = useSession()
-const {show: showToast} = useToast()
 const {pasteRow, hasClipboard, clipboardType} = usePageClipboard()
 
 const page = ref<StationPage | null>(null)
@@ -113,6 +112,7 @@ function moveRow(index: number, direction: number) {
     if (target < 0 || target >= rows.value.length) return
     const items = [...rows.value]
     const [moved] = items.splice(index, 1)
+    if (!moved) return
     items.splice(target, 0, moved)
     rows.value = items
     markDirty()

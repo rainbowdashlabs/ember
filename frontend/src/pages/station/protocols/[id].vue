@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ProtocolDetailView from '~/views/stationview/protocol/ProtocolDetailView'
+import ProtocolDetailView from '~/views/stationview/protocol/ProtocolDetailView.vue'
 
 definePageMeta({
   layout: 'station',

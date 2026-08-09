@@ -4,8 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onBeforeUnmount, onMounted, ref, watch} from 'vue'
-import {ImageFit, pageImageSrcset, type ImageConfig} from '@/api/pageManage'
+import {computed, onBeforeUnmount, onMounted, ref, watch, type CSSProperties} from 'vue'
+import {ImageFit, pageImageSrcset, type ImageConfig, type ImageFitName} from '@/api/pageManage'
+
+const OBJECT_FIT_BY_IMAGE_FIT: Record<ImageFitName, CSSProperties['objectFit']> = {
+    COVER: 'cover',
+    CONTAIN: 'contain',
+    FILL: 'fill',
+}
 
 const props = defineProps<{
     src: string
@@ -148,7 +154,7 @@ const responsiveSizes = computed(() => {
 })
 
 /** Image style: uniform scale + translate when cropped, object-fit otherwise. */
-const imageStyle = computed(() => {
+const imageStyle = computed<CSSProperties>(() => {
     const {T, R, B, L} = cropPercents.value
     if (hasCrop.value) {
         const scale = 100 / Math.max(1, 100 - L - R)
@@ -163,7 +169,7 @@ const imageStyle = computed(() => {
         display: 'block',
         width: '100%',
         height: '100%',
-        objectFit: (cfg.value.imageFit ?? ImageFit.CONTAIN).toLowerCase(),
+        objectFit: OBJECT_FIT_BY_IMAGE_FIT[cfg.value.imageFit ?? ImageFit.CONTAIN],
     }
 })
 </script>

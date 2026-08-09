@@ -15,7 +15,8 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Th from '@/components/table/Th.vue'
 import Td from '@/components/table/Td.vue'
-import THead from '@/components/table/THead.vue'
+import DataTable from '@/components/table/DataTable.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import TRow from '@/components/table/TRow.vue'
 
 const {t} = useI18n()
@@ -62,38 +63,32 @@ const {t} = useI18n()
         </PrimaryButton>
       </div>
 
-      <NeutralContainer class="overflow-x-auto">
-        <table class="w-full text-sm">
-          <thead>
-            <THead>
-              <Th>{{ t('membersList.colName') }}</Th>
-              <Th>Helme</Th>
-              <Th>Jacken</Th>
-              <Th>Stiefel</Th>
-            </THead>
-          </thead>
-          <tbody>
-            <TRow class="hover:bg-(--bg-accent)/30 cursor-pointer">
-              <Td class="font-medium text-primary">Max Mustermann</Td>
-              <Td><span class="text-xs">Helm [M]</span></Td>
-              <Td><span class="text-xs">Jacke [L]</span></Td>
-              <Td><span class="text-xs">Stiefel [42]</span></Td>
-            </TRow>
-            <TRow class="hover:bg-(--bg-accent)/30 cursor-pointer">
-              <Td class="font-medium text-primary">Erika Musterfrau</Td>
-              <Td><span class="text-xs text-error">Helm [S] ({{ t('inventoryMembers.lost') }})</span></Td>
-              <Td><span class="text-xs">Jacke [M]</span></Td>
-              <Td><span class="text-(--text-muted)">&mdash;</span></Td>
-            </TRow>
-            <TRow class="hover:bg-(--bg-accent)/30 cursor-pointer">
-              <Td class="font-medium text-primary">Jan Schmidt</Td>
-              <Td><span class="text-xs">Helm [L]</span></Td>
-              <Td><span class="text-(--text-muted)">&mdash;</span></Td>
-              <Td><span class="text-xs">Stiefel [44]</span></Td>
-            </TRow>
-          </tbody>
-        </table>
-      </NeutralContainer>
+      <DataTable>
+        <template #head>
+          <Th>{{ t('membersList.colName') }}</Th>
+          <Th>Helme</Th>
+          <Th>Jacken</Th>
+          <Th>Stiefel</Th>
+        </template>
+        <TRow class="hover:bg-(--bg-accent)/30 cursor-pointer">
+          <Td class="font-medium text-primary">Max Mustermann</Td>
+          <Td><span class="text-xs">Helm [M]</span></Td>
+          <Td><span class="text-xs">Jacke [L]</span></Td>
+          <Td><span class="text-xs">Stiefel [42]</span></Td>
+        </TRow>
+        <TRow class="hover:bg-(--bg-accent)/30 cursor-pointer">
+          <Td class="font-medium text-primary">Erika Musterfrau</Td>
+          <Td><span class="text-xs text-error">Helm [S] ({{ t('inventoryMembers.lost') }})</span></Td>
+          <Td><span class="text-xs">Jacke [M]</span></Td>
+          <Td><MutedText size="base">&mdash;</MutedText></Td>
+        </TRow>
+        <TRow class="hover:bg-(--bg-accent)/30 cursor-pointer">
+          <Td class="font-medium text-primary">Jan Schmidt</Td>
+          <Td><span class="text-xs">Helm [L]</span></Td>
+          <Td><MutedText size="base">&mdash;</MutedText></Td>
+          <Td><span class="text-xs">Stiefel [44]</span></Td>
+        </TRow>
+      </DataTable>
 
       <p class="text-xs text-(--text-muted)">3 {{ t('inventoryMembers.memberCount') }}</p>
     </div>

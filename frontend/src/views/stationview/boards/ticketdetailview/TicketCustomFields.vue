@@ -38,12 +38,12 @@ const { t } = useI18n()
             <TextInput v-if="field.fieldType === 'STRING'" :model-value="(fieldValues[field.id] as string) ?? ''" @blur="(e: Event) => emit('save', field.id, 'STRING', (e.target as HTMLInputElement).value || null)" />
             <NumberInput v-else-if="field.fieldType === 'NUMBER'" :model-value="(fieldValues[field.id] as number) ?? 0" @blur="(e: Event) => emit('save', field.id, 'NUMBER', Number((e.target as HTMLInputElement).value) || null)" />
             <CheckboxInput v-else-if="field.fieldType === 'BOOLEAN'" :model-value="!!fieldValues[field.id]" @update:model-value="(v: boolean) => emit('save', field.id, 'BOOLEAN', v)" />
-            <SelectInput v-else-if="field.fieldType === 'ENUM'" class="w-full" :model-value="(fieldValues[field.id] as string) ?? ''" @update:model-value="(v: any) => emit('save', field.id, 'ENUM', v || null)">
+            <SelectInput v-else-if="field.fieldType === 'ENUM'" class="w-full" :model-value="(fieldValues[field.id] as string) ?? ''" @update:model-value="v => emit('save', field.id, 'ENUM', v || null)">
                 <option value="">—</option>
                 <option v-for="opt in (field.config?.options ?? [])" :key="opt" :value="opt">{{ opt }}</option>
             </SelectInput>
             <DateInput v-else-if="field.fieldType === 'DATE'" :model-value="(fieldValues[field.id] as string) ?? ''" @change="(e: Event) => emit('save', field.id, 'DATE', (e.target as HTMLInputElement).value || null)" />
-            <MemberSelectInput v-else-if="field.fieldType === 'LANE_ASSIGNEE'" :model-value="String(fieldValues[field.id] ?? '')" :members="members" :placeholder="t('boards.unassigned')" @change="emit('save', field.id, 'LANE_ASSIGNEE', Number(fieldValues[field.id]) || null)" @update:model-value="(v: any) => { fieldValues[field.id] = v ? Number(v) : null; emit('save', field.id, 'LANE_ASSIGNEE', v ? Number(v) : null) }" />
+            <MemberSelectInput v-else-if="field.fieldType === 'LANE_ASSIGNEE'" :model-value="String(fieldValues[field.id] ?? '')" :members="members" :placeholder="t('boards.unassigned')" @change="emit('save', field.id, 'LANE_ASSIGNEE', Number(fieldValues[field.id]) || null)" @update:model-value="v => { fieldValues[field.id] = v ? Number(v) : null; emit('save', field.id, 'LANE_ASSIGNEE', v ? Number(v) : null) }" />
         </template>
         <div v-else class="text-sm px-2 py-1">{{ fieldValues[field.id] ?? '—' }}</div>
     </div>

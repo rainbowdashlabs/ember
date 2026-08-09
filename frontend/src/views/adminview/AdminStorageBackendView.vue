@@ -11,6 +11,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import {useSession} from '@/composables/useSession'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import {
     type InstanceBackendRequest,
     type InstanceBackendSummary,
@@ -25,8 +26,16 @@ import {
     probeInstanceBackend,
     probeInstanceBackendConfig,
 } from '@/api/storageBackend'
+import {
+    newS3,
+    newSftp,
+    newSmb,
+    s3FormFrom,
+    sftpFormFrom,
+    smbFormFrom,
+} from '@/util/storageBackendForm'
+import StorageBackendForm from '@/components/storage/StorageBackendForm.vue'
 import BackendSummaryCard from './adminstoragebackendview/BackendSummaryCard.vue'
-import BackendForm from './adminstoragebackendview/BackendForm.vue'
 import BackendApplyConfirmModal from './adminstoragebackendview/BackendApplyConfirmModal.vue'
 
 const {t} = useI18n()
@@ -40,7 +49,7 @@ watch(loaded, (isLoaded) => {
 }, {immediate: true})
 
 const loading = ref(true)
-const error = ref('')
+const loadError = ref('')
 const success = ref('')
 const backend = ref<InstanceBackendSummary | null>(null)
 const probeOutcome = ref<ProbeResult | null>(null)
@@ -53,9 +62,6 @@ const smb = ref<SmbRequest>(newSmb())
 const sftp = ref<SftpRequest>(newSftp())
 
 const keepSource = ref(false)
-const probingLive = ref(false)
-const probingConfig = ref(false)
-const saving = ref(false)
 const confirmApply = ref(false)
 
 const summaryLabel = computed(() => {
@@ -65,15 +71,20 @@ const summaryLabel = computed(() => {
 
 onMounted(loadAll)
 
+function backendError(e: unknown, fallback: string): string {
+    const err = e as {response?: {data?: {title?: string}}; message?: string}
+    return err?.response?.data?.title ?? err?.message ?? fallback
+}
+
 async function loadAll() {
     loading.value = true
-    error.value = ''
+    loadError.value = ''
     try {
         backend.value = await getInstanceBackend()
         migrationStatus.value = await getInstanceMigrationStatus()
         seedFormFromBackend()
-    } catch (e: any) {
-        error.value = e?.response?.data?.title ?? e?.message ?? t('adminStorageBackend.errors.loadFailed')
+    } catch (e) {
+        loadError.value = backendError(e, t('adminStorageBackend.errors.loadFailed'))
     } finally {
         loading.value = false
     }
@@ -86,41 +97,11 @@ function seedFormFromBackend() {
     if (summary.type === 'LOCAL') {
         localRoot.value = summary.root || 'data'
     } else if (summary.type === 'S3') {
-        s3.value = {
-            type: 'S3',
-            endpoint: summary.endpoint,
-            region: summary.region,
-            bucket: summary.bucket,
-            pathStyle: summary.pathStyle,
-            sseAlgorithm: summary.sseAlgorithm ?? '',
-            basePath: summary.basePath,
-            accessKey: '',
-            secretKey: '',
-        }
+        s3.value = s3FormFrom(summary)
     } else if (summary.type === 'SMB') {
-        smb.value = {
-            type: 'SMB',
-            host: summary.host,
-            port: summary.port,
-            share: summary.share,
-            domain: '',
-            basePath: summary.basePath,
-            seal: summary.seal,
-            dfs: summary.dfs,
-            username: '',
-            password: '',
-        }
+        smb.value = smbFormFrom(summary)
     } else if (summary.type === 'SFTP') {
-        sftp.value = {
-            type: 'SFTP',
-            host: summary.host,
-            port: summary.port,
-            username: summary.username,
-            knownHostsFingerprint: '',
-            basePath: summary.basePath,
-            password: '',
-            privateKey: '',
-        }
+        sftp.value = sftpFormFrom(summary)
     }
 }
 
@@ -131,99 +112,46 @@ function currentRequest(): InstanceBackendRequest {
     return sftp.value
 }
 
-async function probeLive() {
-    probingLive.value = true
+function failedProbe(e: unknown): ProbeResult {
+    return {
+        healthy: false,
+        error: backendError(e, t('adminStorageBackend.errors.probeFailed')),
+        checkedAt: new Date().toISOString(),
+    }
+}
+
+const {running: probingLive, run: probeLive} = useAsyncAction(async () => {
     probeOutcome.value = null
     try {
         probeOutcome.value = await probeInstanceBackend()
-    } catch (e: any) {
-        probeOutcome.value = {
-            healthy: false,
-            error: e?.response?.data?.title ?? e?.message ?? t('adminStorageBackend.errors.probeFailed'),
-            checkedAt: new Date().toISOString(),
-        }
-    } finally {
-        probingLive.value = false
+    } catch (e) {
+        probeOutcome.value = failedProbe(e)
     }
-}
+})
 
-async function probeConfig() {
-    probingConfig.value = true
+const {running: probingConfig, run: probeConfig} = useAsyncAction(async () => {
     probeOutcome.value = null
     try {
         probeOutcome.value = await probeInstanceBackendConfig(currentRequest())
-    } catch (e: any) {
-        probeOutcome.value = {
-            healthy: false,
-            error: e?.response?.data?.title ?? e?.message ?? t('adminStorageBackend.errors.probeFailed'),
-            checkedAt: new Date().toISOString(),
-        }
-    } finally {
-        probingConfig.value = false
+    } catch (e) {
+        probeOutcome.value = failedProbe(e)
     }
-}
+})
 
-async function runApply() {
+const {running: saving, error: applyError, run: runApply} = useAsyncAction(async () => {
     confirmApply.value = false
-    saving.value = true
-    error.value = ''
     success.value = ''
-    try {
-        const result = await applyInstanceBackend({target: currentRequest(), keepSource: keepSource.value})
-        success.value = t('adminStorageBackend.feedback.applied', {
-            copied: result.copied,
-            skipped: result.skipped,
-            deleted: result.deleted,
-        })
-        await loadAll()
-    } catch (e: any) {
-        error.value = e?.response?.data?.title ?? e?.message ?? t('adminStorageBackend.errors.applyFailed')
-    } finally {
-        saving.value = false
-    }
-}
+    const result = await applyInstanceBackend({target: currentRequest(), keepSource: keepSource.value})
+    success.value = t('adminStorageBackend.feedback.applied', {
+        copied: result.copied,
+        skipped: result.skipped,
+        deleted: result.deleted,
+    })
+    await loadAll()
+}, {formatError: (e) => backendError(e, t('adminStorageBackend.errors.applyFailed'))})
 
-function newS3(): S3Request {
-    return {
-        type: 'S3',
-        endpoint: '',
-        region: '',
-        bucket: '',
-        pathStyle: false,
-        sseAlgorithm: '',
-        basePath: '',
-        accessKey: '',
-        secretKey: '',
-    }
-}
+const error = computed(() => loadError.value || applyError.value)
 
-function newSmb(): SmbRequest {
-    return {
-        type: 'SMB',
-        host: '',
-        port: 445,
-        share: '',
-        domain: '',
-        basePath: '',
-        seal: true,
-        dfs: false,
-        username: '',
-        password: '',
-    }
-}
-
-function newSftp(): SftpRequest {
-    return {
-        type: 'SFTP',
-        host: '',
-        port: 22,
-        username: '',
-        knownHostsFingerprint: '',
-        basePath: '',
-        password: '',
-        privateKey: '',
-    }
-}
 </script>
 
 <template>
@@ -254,15 +182,16 @@ function newSftp(): SftpRequest {
                     :probing-live="probingLive"
                     :probe-outcome="probeOutcome"
                     @probe="probeLive"/>
-                <BackendForm
+                <StorageBackendForm
                     v-model:selected-type="selectedType"
                     v-model:local-root="localRoot"
                     v-model:s3="s3"
                     v-model:smb="smb"
                     v-model:sftp="sftp"
-                    :probing-config="probingConfig"
+                    i18n-prefix="adminStorageBackend"
+                    :probing="probingConfig"
                     :saving="saving"
-                    @probe="probeConfig"
+                    @probe-config="probeConfig"
                     @apply="confirmApply = true"/>
             </template>
         </div>

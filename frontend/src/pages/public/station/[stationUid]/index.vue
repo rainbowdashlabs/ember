@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import PublicStationIndexRedirect from '~/views/public/PublicStationIndexRedirect'
+import PublicStationIndexRedirect from '~/views/public/PublicStationIndexRedirect.vue'
 
 definePageMeta({
   layout: 'public-station',

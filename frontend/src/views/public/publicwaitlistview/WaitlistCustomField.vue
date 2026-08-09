@@ -11,7 +11,7 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import type {WaitingListField} from '@/api/types'
+import type {WaitingListField} from '@/api/waitingList'
 
 const props = defineProps<{
   field: WaitingListField
@@ -38,11 +38,11 @@ const enumOptions = computed<string[]>(() => {
 <template>
   <div class="space-y-1">
     <FormLabel>{{ field.name }}{{ field.required ? ' *' : '' }}</FormLabel>
-    <TextInput v-if="field.fieldType === 'TEXT'" :model-value="value" @update:model-value="emit('update', $event)"/>
+    <TextInput v-if="field.fieldType === 'TEXT'" :model-value="value" @update:model-value="emit('update', $event ?? '')"/>
     <NumberInput v-else-if="field.fieldType === 'NUMBER'" :model-value="Number(value) || 0" @update:model-value="emit('update', String($event))"/>
-    <DateInput v-else-if="field.fieldType === 'DATE'" :model-value="value" @update:model-value="emit('update', $event)"/>
+    <DateInput v-else-if="field.fieldType === 'DATE'" :model-value="value" @update:model-value="emit('update', $event ?? '')"/>
     <ToggleInput v-else-if="field.fieldType === 'BOOLEAN'" :model-value="value === 'true'" @update:model-value="emit('update', String($event))"/>
-    <SelectInput v-else-if="field.fieldType === 'ENUM'" :model-value="value" @update:model-value="emit('update', $event)">
+    <SelectInput v-else-if="field.fieldType === 'ENUM'" :model-value="value" @update:model-value="emit('update', String($event ?? ''))">
       <option value="">{{ t('waitingList.selectOption') }}</option>
       <option v-for="opt in enumOptions" :key="opt" :value="opt">{{ opt }}</option>
     </SelectInput>

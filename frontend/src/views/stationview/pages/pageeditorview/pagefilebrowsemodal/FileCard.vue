@@ -6,6 +6,7 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
+import BaseButton from '@/components/button/BaseButton.vue'
 import type {PageFile, PageFileListing} from '@/api/pageManage'
 
 const props = defineProps<{
@@ -28,9 +29,8 @@ const {t} = useI18n()
       class="group relative flex flex-col rounded-theme border overflow-hidden text-left"
       :class="props.entry.inUse ? 'border-(--border)' : 'border-error/50 bg-error/5'"
   >
-    <button
-        type="button"
-        class="flex-1 text-left hover:bg-primary/5 transition-colors"
+    <BaseButton
+        class="flex-1 flex-col !items-stretch !p-0 !rounded-none !font-normal text-left hover:bg-primary/5"
         @click="emit('pick', props.entry.file)"
     >
       <div class="aspect-square w-full bg-(--bg-accent) flex items-center justify-center overflow-hidden">
@@ -50,7 +50,7 @@ const {t} = useI18n()
           {{ props.entry.file.defaultAltText }}
         </p>
       </div>
-    </button>
+    </BaseButton>
     <div class="absolute top-1 right-1 flex items-center gap-1">
       <span v-if="!props.entry.inUse"
             class="text-[10px] uppercase tracking-wider bg-error text-white rounded px-1.5 py-0.5">

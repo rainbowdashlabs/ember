@@ -10,7 +10,8 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
-import type { QuizQuestion } from '@/api/types'
+import MutedText from '@/components/typography/MutedText.vue'
+import type { QuizQuestion } from '@/api/quiz'
 
 defineProps<{
   question: QuizQuestion
@@ -36,10 +37,10 @@ const { t } = useI18n()
       <div class="flex items-center gap-1.5 flex-wrap">
         <InfoBadge>{{ t(`quiz.questionTypes.${question.quizQuestionType}`) }}</InfoBadge>
         <SecondaryBadge>{{ categoryName }}</SecondaryBadge>
-        <span class="text-xs text-(--text-muted)">{{ question.points }} {{ t('quiz.questions.points') }}</span>
+        <MutedText>{{ question.points }} {{ t('quiz.questions.points') }}</MutedText>
       </div>
       <span class="font-medium">{{ question.title }}</span>
-      <p v-if="question.description" class="text-xs text-(--text-muted) truncate">{{ question.description }}</p>
+      <MutedText v-if="question.description" tag="p" class="truncate">{{ question.description }}</MutedText>
     </div>
     <div class="flex items-center gap-2 shrink-0" @click.stop>
       <MutedIconButton :icon="['fas', 'pen']" :label="t('common.edit')" @click="emit('edit')" />

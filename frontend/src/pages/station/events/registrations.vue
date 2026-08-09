@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import RegistrationsView from '~/views/stationview/events/RegistrationsView'
+import RegistrationsView from '~/views/stationview/events/RegistrationsView.vue'
 
 definePageMeta({
   layout: 'station',

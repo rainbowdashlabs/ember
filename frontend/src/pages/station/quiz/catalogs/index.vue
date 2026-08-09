@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import CatalogListView from '~/views/stationview/quiz/CatalogListView'
+import CatalogListView from '~/views/stationview/quiz/CatalogListView.vue'
 
 definePageMeta({
   layout: 'station',

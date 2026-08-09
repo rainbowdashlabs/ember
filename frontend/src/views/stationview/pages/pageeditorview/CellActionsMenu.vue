@@ -4,10 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {ref, onBeforeUnmount, computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {useBreakpoint} from '@/composables/useBreakpoint'
+import {useEditorActionsMenu} from './useEditorActionsMenu'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
+import IconButton from '@/components/button/IconButton.vue'
 
 /** Cell width as percent. Editable from inside the menu. */
 const widthPercent = defineModel<number | null>('widthPercent')
@@ -33,25 +33,8 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
-const {isMobile} = useBreakpoint()
 
-const open = ref(false)
-const rootRef = ref<HTMLElement | null>(null)
-
-const triggerVisibility = computed(() =>
-    isMobile.value ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-within:opacity-100')
-
-function toggle(e: MouseEvent) {
-    e.stopPropagation()
-    open.value = !open.value
-}
-
-function close() { open.value = false }
-
-function onDocClick(e: MouseEvent) {
-    if (!rootRef.value) return
-    if (!rootRef.value.contains(e.target as Node)) close()
-}
+const {open, rootRef, triggerVisibility, toggle, close} = useEditorActionsMenu()
 
 function commitWidth(value: string | number) {
     const v = typeof value === 'number' ? value : Number(value)
@@ -65,25 +48,18 @@ function doSplit(n: number) {
     close()
 }
 
-if (typeof document !== 'undefined') {
-    document.addEventListener('click', onDocClick)
-    onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
-}
-
 defineExpose({close})
 </script>
 
 <template>
     <div ref="rootRef" class="absolute top-1 right-1 z-10">
-        <button
-            type="button"
-            class="w-7 h-7 rounded-theme bg-(--bg)/80 backdrop-blur-sm border border-(--border) text-(--text-muted) hover:text-(--text) hover:border-primary flex items-center justify-center shadow-sm transition-all"
+        <IconButton
+            :icon="['fas', 'ellipsis']"
+            :label="t('stationPages.editor.cellMenu')"
+            class="w-7 h-7 !p-0 bg-(--bg)/80 backdrop-blur-sm border border-(--border) text-(--text-muted) hover:text-(--text) hover:border-primary shadow-sm"
             :class="triggerVisibility"
-            :title="t('stationPages.editor.cellMenu')"
             @click="toggle"
-        >
-            <font-awesome-icon :icon="['fas', 'ellipsis']"/>
-        </button>
+        />
         <div
             v-if="open"
             class="absolute top-full right-0 mt-1 min-w-44 rounded-theme border border-(--border) bg-(--bg) shadow-lg py-1"

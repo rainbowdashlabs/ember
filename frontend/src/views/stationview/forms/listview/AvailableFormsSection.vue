@@ -8,7 +8,7 @@ import { useI18n } from 'vue-i18n'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import AvailableFormRow from './AvailableFormRow.vue'
-import type { FormListEntry } from '@/api/types'
+import type { FormListEntry } from '@/api/forms'
 
 defineProps<{
   forms: FormListEntry[]

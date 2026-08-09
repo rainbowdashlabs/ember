@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ContainerDetailView from '~/views/stationview/inventory/ContainerDetailView'
+import ContainerDetailView from '~/views/stationview/inventory/ContainerDetailView.vue'
 
 definePageMeta({
   layout: 'station',

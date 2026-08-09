@@ -12,12 +12,12 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import type {DiscoveryPeer} from '@/api/discovery'
+import {formatDateTime} from '@/util/format'
 
 defineProps<{
   peer: DiscoveryPeer
   sourceLabel: string
   inFlight: boolean
-  formatTimestamp: (ts: string | null) => string
 }>()
 
 const emit = defineEmits<{
@@ -51,7 +51,7 @@ const {t} = useI18n()
       </div>
     </div>
     <p class="text-xs text-(--text-muted)">
-      {{ t('adminDiscovery.peerTable.lastSeen') }}: {{ formatTimestamp(peer.lastSeenAt) }}
+      {{ t('adminDiscovery.peerTable.lastSeen') }}: {{ formatDateTime(peer.lastSeenAt) || '-' }}
     </p>
     <div class="flex flex-wrap gap-1">
       <IconButton :icon="['fas', 'arrow-up']" :label="t('adminDiscovery.upvote')" :disabled="inFlight" @click="emit('upvote')"/>

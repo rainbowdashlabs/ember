@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import MailVendorHelp from '~/views/helpcenter/stationview/manage/MailVendorHelp'
+import MailVendorHelp from '~/views/helpcenter/stationview/manage/MailVendorHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

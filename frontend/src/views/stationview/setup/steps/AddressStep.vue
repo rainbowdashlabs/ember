@@ -11,7 +11,8 @@ import SetupLayout from '@/views/stationview/setup/SetupLayout.vue'
 import LocationSection from '@/views/stationview/manage/stationview/LocationSection.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {useSetupStatus} from '@/composables/useSetupStatus'
-import {nextStep, stepRouteName} from '@/views/stationview/setup/steps'
+import {useAsyncAction} from '@/composables/useAsyncAction'
+import {goToNextStep} from '@/views/stationview/setup/steps'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -19,7 +20,6 @@ const {reload, requiredSteps} = useSetupStatus()
 
 const message = ref('')
 const messageVariant = ref<'success' | 'error'>('success')
-const saving = ref(false)
 
 function onSuccess(text: string) {
   message.value = text
@@ -31,21 +31,15 @@ function onError(text: string) {
   messageVariant.value = 'error'
 }
 
-async function proceed() {
-  saving.value = true
-  try {
-    await reload()
-    const addressStep = requiredSteps.value.find((s) => s.id === 'address')
-    if (!addressStep?.complete) {
-      onError(t('setup.steps.address.incompleteHint'))
-      return
-    }
-    const next = nextStep('address')
-    if (next) router.push({name: stepRouteName(next)})
-  } finally {
-    saving.value = false
+const {running: saving, run: proceed} = useAsyncAction(async () => {
+  await reload()
+  const addressStep = requiredSteps.value.find((s) => s.id === 'address')
+  if (!addressStep?.complete) {
+    onError(t('setup.steps.address.incompleteHint'))
+    return
   }
-}
+  goToNextStep(router, 'address')
+})
 </script>
 
 <template>

@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import { createCrudResource } from './crud'
 import { downloadAuthed } from '@/util/downloadAuthed'
 
 export interface TestProtocol {
@@ -95,30 +96,42 @@ export interface ProtocolListResponse {
     shared: SharedProtocolEntry[]
 }
 
+interface ProtocolRequest {
+    name: string
+    description?: string
+    passThreshold?: number | null
+}
+
+interface RunUpdateRequest {
+    name: string
+    testDate?: string
+}
+
+const protocols = createCrudResource<
+    TestProtocol,
+    ProtocolRequest,
+    ProtocolRequest,
+    ProtocolDetailResponse,
+    TestProtocol
+>('/protocols')
+
+const runs = createCrudResource<
+    TestProtocolRun,
+    TestProtocolRun,
+    RunUpdateRequest,
+    RunDetailResponse
+>('/protocols/runs')
+
 // -- Protocols --
+
+export const getProtocol = protocols.get
+export const createProtocol = protocols.create
+export const updateProtocol = protocols.update
+export const deleteProtocol = protocols.remove
 
 export async function listProtocols(): Promise<ProtocolListResponse> {
     const res = await client.get<ProtocolListResponse>('/protocols')
     return res.data
-}
-
-export async function getProtocol(id: number): Promise<ProtocolDetailResponse> {
-    const res = await client.get<ProtocolDetailResponse>(`/protocols/${id}`)
-    return res.data
-}
-
-export async function createProtocol(data: { name: string; description?: string; passThreshold?: number | null }): Promise<TestProtocol> {
-    const res = await client.post<TestProtocol>('/protocols', data)
-    return res.data
-}
-
-export async function updateProtocol(id: number, data: { name: string; description?: string; passThreshold?: number | null }): Promise<TestProtocol> {
-    const res = await client.put<TestProtocol>(`/protocols/${id}`, data)
-    return res.data
-}
-
-export async function deleteProtocol(id: number): Promise<void> {
-    await client.delete(`/protocols/${id}`)
 }
 
 // -- Sections --
@@ -153,33 +166,19 @@ export async function deleteItem(id: number): Promise<void> {
 
 // -- Runs --
 
-export async function listRuns(): Promise<TestProtocolRun[]> {
-    const res = await client.get<TestProtocolRun[]>('/protocols/runs')
-    return res.data
-}
+export const listRuns = runs.list
+export const getRun = runs.get
+export const updateRun = runs.update
+export const deleteRun = runs.remove
 
 export async function createRun(protocolId: number, data: { name: string; testDate?: string; memberIds?: number[]; userTypes?: string[]; groupIds?: number[]; tagIds?: number[] }): Promise<TestProtocolRun> {
     const res = await client.post<TestProtocolRun>(`/protocols/${protocolId}/runs`, data)
     return res.data
 }
 
-export async function getRun(id: number): Promise<RunDetailResponse> {
-    const res = await client.get<RunDetailResponse>(`/protocols/runs/${id}`)
-    return res.data
-}
-
-export async function updateRun(id: number, data: { name: string; testDate?: string }): Promise<TestProtocolRun> {
-    const res = await client.put<TestProtocolRun>(`/protocols/runs/${id}`, data)
-    return res.data
-}
-
 export async function closeRun(id: number): Promise<TestProtocolRun> {
     const res = await client.post<TestProtocolRun>(`/protocols/runs/${id}/close`)
     return res.data
-}
-
-export async function deleteRun(id: number): Promise<void> {
-    await client.delete(`/protocols/runs/${id}`)
 }
 
 // -- Grading --

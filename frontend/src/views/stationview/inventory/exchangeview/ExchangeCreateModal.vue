@@ -8,20 +8,18 @@ import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type {
-  ExchangeRequestEntry,
-  InventorySize,
-  CreateExchangeRequest,
-  StationMember,
-} from '@/api/types'
+import {ExchangeStatus, type CreateExchangeRequest, type ExchangeRequestEntry} from '@/api/exchanges'
+import type {InventorySize} from '@/api/inventory'
+import type {StationMember} from '@/api/types'
 import type { ManagedMember } from '@/api/managedMembers'
-import { ExchangeStatus } from '@/api/types'
 import { exchanges, inventory, managedMembers } from '@/api'
 import { useSession } from '@/composables/useSession'
+import { useAsyncAction } from '@/composables/useAsyncAction'
 import ExchangeCreateStepMember from './exchangecreatemodal/ExchangeCreateStepMember.vue'
 import ExchangeCreateStepItem, { type MemberItemOption } from './exchangecreatemodal/ExchangeCreateStepItem.vue'
 import ExchangeCreateStepSize from './exchangecreatemodal/ExchangeCreateStepSize.vue'
 import ExchangeCreateStepReason from './exchangecreatemodal/ExchangeCreateStepReason.vue'
+import { reportCaughtError } from '@/util/devErrorReporter'
 
 const { t } = useI18n()
 const { canManageInventory, isGuardian, sessionInfo } = useSession()
@@ -46,7 +44,6 @@ const createMemberId = ref<string>('')
 const createItemId = ref<string>('')
 const createNewSizeId = ref<string>('')
 const createReason = ref('')
-const createSaving = ref(false)
 
 const createMemberItems = ref<MemberItemOption[]>([])
 const createItemSizes = ref<InventorySize[]>([])
@@ -110,7 +107,9 @@ async function loadCreateMemberItems() {
     createMemberItems.value = items
       .filter(i => !i.lostAt && !activeExchangeItemIds.has(i.id))
       .map(i => ({ id: i.id, inventoryId: i.inventoryId, name: i.name ?? '', internalId: i.internalId ?? '', sizeId: i.sizeId ?? null, sizeName: i.sizeName ?? null, inventoryName: i.inventoryName }))
-  } catch { /* ignore */ }
+  } catch (e) {
+    reportCaughtError(e, 'exchange member item listing')
+  }
   createLoadingItems.value = false
 }
 
@@ -121,7 +120,9 @@ async function onCreateItemSelected() {
   if (!item) return
   try {
     createItemSizes.value = await inventory.listSizes(item.inventoryId)
-  } catch { /* ignore */ }
+  } catch (e) {
+    reportCaughtError(e, 'exchange item size listing')
+  }
 }
 
 function createStepNext() {
@@ -147,26 +148,25 @@ function createStepBack() {
   }
 }
 
-async function submitCreate() {
-  createSaving.value = true
-  try {
-    const item = selectedCreateItem.value
-    const data: CreateExchangeRequest = {
-      memberId: Number(createMemberId.value) || undefined,
-      inventoryId: item?.inventoryId ?? 0,
-      itemId: item?.id ?? undefined,
-      oldSizeId: item?.sizeId ?? undefined,
-      newSizeId: createNewSizeId.value ? Number(createNewSizeId.value) : undefined,
-      reason: createReason.value,
-    }
-    await exchanges.createExchange(data)
-    model.value = false
-    emit('created')
-  } catch {
-    emit('error', t('common.error'))
-  } finally {
-    createSaving.value = false
+const {running: createSaving, run: runCreate} = useAsyncAction(async () => {
+  const item = selectedCreateItem.value
+  const data: CreateExchangeRequest = {
+    memberId: Number(createMemberId.value) || undefined,
+    inventoryId: item?.inventoryId ?? 0,
+    itemId: item?.id ?? undefined,
+    oldSizeId: item?.sizeId ?? undefined,
+    newSizeId: createNewSizeId.value ? Number(createNewSizeId.value) : undefined,
+    reason: createReason.value,
   }
+  await exchanges.createExchange(data)
+  model.value = false
+  emit('created')
+  return true
+})
+
+async function submitCreate() {
+  const ok = await runCreate()
+  if (!ok) emit('error', t('common.error'))
 }
 </script>
 

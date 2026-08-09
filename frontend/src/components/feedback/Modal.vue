@@ -5,6 +5,10 @@
  */
 <script lang="ts" setup>
 import {computed} from 'vue'
+import {useI18n} from 'vue-i18n'
+import IconButton from '@/components/button/IconButton.vue'
+
+const {t} = useI18n()
 
 const model = defineModel<boolean>({default: false})
 
@@ -48,12 +52,14 @@ const sizeClass = computed(() => {
               sizeClass,
               props.mobileFull ? 'max-sm:h-full max-sm:mx-0 max-sm:rounded-none max-sm:border-0 max-sm:overflow-y-auto max-sm:flex max-sm:flex-col' : '',
             ]">
-          <button
-              class="absolute top-3 right-3 p-1 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+          <IconButton
+              :icon="['fas', 'xmark']"
+              :label="t('common.close')"
+              class="absolute top-3 right-3 text-[var(--text-muted)] hover:text-[var(--text)]"
               @click="model = false"
           >
             <font-awesome-icon :icon="['fas', 'xmark']" class="h-5 w-5"/>
-          </button>
+          </IconButton>
           <slot/>
         </div>
       </div>

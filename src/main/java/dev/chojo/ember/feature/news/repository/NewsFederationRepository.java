@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.news.repository;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.news.entity.NewsFederationShare;
 import dev.chojo.ember.feature.news.entity.NewsVisibilityRole;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -22,7 +23,7 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 @Singleton
 public class NewsFederationRepository {
 
-    // -- Share management --
+    private static final String SHARE_COLUMNS = "id, news_id, scope, visibility_role";
 
     /**
      * Finds the federation share configuration for a news article.
@@ -31,7 +32,7 @@ public class NewsFederationRepository {
      * @return the share, if configured
      */
     public Optional<NewsFederationShare> findShareByNews(int newsId) {
-        return query("SELECT id, news_id, scope, visibility_role FROM news_federation_share WHERE news_id = :news_id;")
+        return query("SELECT %s FROM news_federation_share WHERE news_id = :news_id;", SHARE_COLUMNS)
                 .single(call().bind("news_id", newsId))
                 .map(NewsFederationShare.map())
                 .first();
@@ -46,15 +47,15 @@ public class NewsFederationRepository {
      * @return the created or updated share
      */
     public NewsFederationShare setShare(int newsId, ShareScope scope, NewsVisibilityRole visibilityRole) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT INTO news_federation_share(news_id, scope, visibility_role)
                 VALUES (:news_id, :scope, :visibility_role)
                 ON CONFLICT (news_id) DO UPDATE SET scope = :scope, visibility_role = :visibility_role
-                RETURNING id, news_id, scope, visibility_role;""")
-                .single(call().bind("news_id", newsId).bind("scope", scope).bind("visibility_role", visibilityRole))
-                .map(NewsFederationShare.map())
-                .first()
-                .orElseThrow();
+                RETURNING %s;""",
+                call().bind("news_id", newsId).bind("scope", scope).bind("visibility_role", visibilityRole),
+                NewsFederationShare.map(),
+                SHARE_COLUMNS);
     }
 
     /**
@@ -97,8 +98,6 @@ public class NewsFederationRepository {
                 .single(call().bind("news_id", newsId))
                 .delete();
     }
-
-    // -- Finding shared news for a partner --
 
     /**
      * Finds news IDs shared with a partner for a given station.

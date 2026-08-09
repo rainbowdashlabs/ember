@@ -6,9 +6,8 @@
 package dev.chojo.ember.feature.quiz.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import dev.chojo.ember.util.Json;
 import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Instant;
 
@@ -28,8 +27,6 @@ public record QuizQuestion(
         int position,
         Instant createdAt,
         Instant updatedAt) {
-
-    private static final ObjectMapper MAPPER = JsonMapper.builder().build();
 
     public static RowMapping<QuizQuestion> map() {
         return row -> {
@@ -58,9 +55,9 @@ public record QuizQuestion(
      */
     public JsonNode configNode() {
         try {
-            return MAPPER.valueToTree(config);
+            return Json.MAPPER.valueToTree(config);
         } catch (Exception e) {
-            return MAPPER.createObjectNode();
+            return Json.MAPPER.createObjectNode();
         }
     }
 }

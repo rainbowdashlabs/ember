@@ -14,11 +14,12 @@ import ThemePanel from '@/views/adminview/adminsettingsview/ThemePanel.vue'
 import {adminSettings} from '@/api'
 import {useTheme} from '@/composables/useTheme'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useFlashMessage} from '@/composables/useFlashMessage'
 
 const {t} = useI18n()
 const themeCtrl = useTheme()
 
-const success = ref('')
+const {message: success, flash} = useFlashMessage(3000)
 const registrationEnabled = ref(true)
 const forcePrideFlag = ref(false)
 const instanceDefaultTheme = ref('ember')
@@ -46,11 +47,10 @@ function buildSettings() {
 
 async function toggleRegistration(value: boolean) {
   error.value = ''
-  success.value = ''
   try {
     const result = await adminSettings.updateSettings({...buildSettings(), stationRegistrationEnabled: value})
     registrationEnabled.value = result.stationRegistrationEnabled
-    showSuccess()
+    flash(t('adminSettings.saved'))
   } catch {
     error.value = t('common.error')
     registrationEnabled.value = !value
@@ -74,12 +74,6 @@ async function saveInstanceTheme() {
   }
 }
 
-function showSuccess() {
-  success.value = t('adminSettings.saved')
-  setTimeout(() => {
-    success.value = ''
-  }, 3000)
-}
 </script>
 
 <template>

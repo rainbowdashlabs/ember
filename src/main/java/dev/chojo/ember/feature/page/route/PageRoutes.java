@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.page.entity.CellConfig;
 import dev.chojo.ember.feature.page.entity.CellContentType;
+import dev.chojo.ember.feature.page.entity.PageFile;
 import dev.chojo.ember.feature.page.entity.StationPage;
 import dev.chojo.ember.feature.page.service.MemberListResolver;
 import dev.chojo.ember.feature.page.service.PageService;
@@ -35,6 +36,9 @@ import tools.jackson.databind.JsonNode;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+
+import static dev.chojo.ember.api.RouteSupport.pathInt;
+import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 
 @Singleton
 public class PageRoutes implements Routes {
@@ -68,12 +72,8 @@ public class PageRoutes implements Routes {
      * when the page is absent or owned by another station, so a page id from one station cannot
      * be read, edited, published, duplicated, or deleted by another station.
      */
-    private StationPage requireOwnedPage(int pageId, UserSession session) {
-        var page = pageService.getPage(pageId).orElseThrow(NotFoundResponse::new);
-        if (page.stationId() != session.stationId()) {
-            throw new NotFoundResponse();
-        }
-        return page;
+    private StationPage requireOwnedPage(Context ctx, int pageId) {
+        return requireOwnedOrNotFound(ctx, pageId, pageService::getPage, StationPage::stationId);
     }
 
     @Override
@@ -157,10 +157,8 @@ public class PageRoutes implements Routes {
      * INTERNAL form data through the {@code /pages/forms/…} surface.
      */
     private Form resolvePagePublicForm(Context ctx, FormPurpose expected) {
-        var session = UserSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        var form = formService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (form.stationId() != session.stationId()) throw new NotFoundResponse();
+        int id = pathInt(ctx, "id");
+        var form = requireOwnedOrNotFound(ctx, id, formService::findById, Form::stationId);
         if (form.purpose() != expected) throw new NotFoundResponse();
         return form;
     }
@@ -264,15 +262,13 @@ public class PageRoutes implements Routes {
     }
 
     private void get(Context ctx) {
-        var session = UserSession.from(ctx);
         int pid = ctx.pathParamAsClass("pid", Integer.class).get();
-        ctx.json(requireOwnedPage(pid, session));
+        ctx.json(requireOwnedPage(ctx, pid));
     }
 
     private void save(Context ctx) {
-        var session = UserSession.from(ctx);
         int pid = ctx.pathParamAsClass("pid", Integer.class).get();
-        requireOwnedPage(pid, session);
+        requireOwnedPage(ctx, pid);
         var request = ctx.bodyAsClass(SavePageRequest.class);
         if (request.title() == null || request.title().isBlank()) {
             throw new BadRequestResponse("title is required");
@@ -318,7 +314,7 @@ public class PageRoutes implements Routes {
     private void duplicate(Context ctx) {
         var session = UserSession.from(ctx);
         int pid = ctx.pathParamAsClass("pid", Integer.class).get();
-        requireOwnedPage(pid, session);
+        requireOwnedPage(ctx, pid);
         try {
             var copy = pageService.duplicatePage(pid, session.member().id());
             ctx.status(HttpStatus.CREATED).json(copy);
@@ -328,9 +324,8 @@ public class PageRoutes implements Routes {
     }
 
     private void delete(Context ctx) {
-        var session = UserSession.from(ctx);
         int pid = ctx.pathParamAsClass("pid", Integer.class).get();
-        requireOwnedPage(pid, session);
+        requireOwnedPage(ctx, pid);
         if (!pageService.deletePage(pid)) {
             throw new NotFoundResponse();
         }
@@ -338,9 +333,8 @@ public class PageRoutes implements Routes {
     }
 
     private void togglePublish(Context ctx) {
-        var session = UserSession.from(ctx);
         int pid = ctx.pathParamAsClass("pid", Integer.class).get();
-        requireOwnedPage(pid, session);
+        requireOwnedPage(ctx, pid);
         var request = ctx.bodyAsClass(PublishRequest.class);
         if (!pageService.setPublished(pid, request.published())) {
             throw new NotFoundResponse();
@@ -360,9 +354,8 @@ public class PageRoutes implements Routes {
     }
 
     private void uploadPageFile(Context ctx) {
-        var session = UserSession.from(ctx);
         int pid = ctx.pathParamAsClass("pid", Integer.class).get();
-        requireOwnedPage(pid, session);
+        requireOwnedPage(ctx, pid);
         var file = ctx.uploadedFile("file");
         if (file == null) throw new BadRequestResponse("file is required");
         if (file.size() > apiConfig.maxUploadSizeBytes()) throw new BadRequestResponse("File too large");
@@ -380,12 +373,8 @@ public class PageRoutes implements Routes {
     }
 
     private void deleteFile(Context ctx) {
-        var session = UserSession.from(ctx);
-        int fileId = ctx.pathParamAsClass("fileId", Integer.class).get();
-        var pageFile = pageService.findFile(fileId).orElseThrow(NotFoundResponse::new);
-        if (pageFile.stationId() != session.stationId()) {
-            throw new NotFoundResponse();
-        }
+        int fileId = pathInt(ctx, "fileId");
+        requireOwnedOrNotFound(ctx, fileId, pageService::findFile, PageFile::stationId);
         if (!pageService.deleteFile(fileId)) {
             throw new NotFoundResponse();
         }

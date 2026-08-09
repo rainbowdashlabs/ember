@@ -8,7 +8,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import TestInfoStats from './TestInfoStats.vue'
 import TestInfoTimes from './TestInfoTimes.vue'
-import type { QuizTestDetail } from '@/api/types'
+import type { QuizTestDetail } from '@/api/quiz'
 
 const editStartAt = defineModel<string>('editStartAt', {required: true})
 const editEndAt = defineModel<string>('editEndAt', {required: true})

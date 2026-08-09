@@ -15,10 +15,11 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import PermissionPicker from '@/components/input/PermissionPicker.vue'
 import {stationMembers} from '@/api'
-import type {PermissionGrant} from '@/api/types'
-import {StationUserType} from '@/api/types'
+import {StationUserType, type PermissionGrant} from '@/api/types'
 import {useSetupStatus} from '@/composables/useSetupStatus'
-import {nextStep, stepRouteName} from '@/views/stationview/setup/steps'
+import {useAsyncAction} from '@/composables/useAsyncAction'
+import {goToNextStep} from '@/views/stationview/setup/steps'
+import {apiErrorMessage} from '@/util/apiError'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -49,7 +50,6 @@ const allRoles = ref<PermissionGrant[]>([])
 const permissionCache = reactive<Record<string, Set<number>>>({})
 const selectedType = ref<string>(StationUserType.MEMBER)
 const loading = ref(true)
-const saving = ref(false)
 const error = ref('')
 
 const selectedIds = computed<Set<number>>({
@@ -89,21 +89,14 @@ async function onPermissionChange(newIds: Set<number>) {
     try {
         await stationMembers.setUserTypePermissions(userType, [...newIds])
     } catch (e: unknown) {
-        const msg = (e as {response?: {data?: {message?: string}}})?.response?.data?.message
-        error.value = msg || t('common.error')
+        error.value = apiErrorMessage(e) || t('common.error')
     }
 }
 
-async function proceed() {
-    saving.value = true
-    try {
-        await reload()
-        const next = nextStep('member-types')
-        if (next) router.push({name: stepRouteName(next)})
-    } finally {
-        saving.value = false
-    }
-}
+const {running: saving, run: proceed} = useAsyncAction(async () => {
+    await reload()
+    goToNextStep(router, 'member-types')
+})
 </script>
 
 <template>

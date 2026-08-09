@@ -14,10 +14,11 @@ import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import BatchActionFields from '@/views/stationview/quiz/catalogdetailview/batchactionmodal/BatchActionFields.vue'
 import BatchGenerateOptions from '@/views/stationview/quiz/catalogdetailview/batchactionmodal/BatchGenerateOptions.vue'
-import type {QuizCategory, QuizQuestion} from '@/api/types'
-import {QuizQuestionTypes} from '@/api/types'
+import {QuizQuestionTypes, type QuizCategory, type QuizQuestion} from '@/api/quiz'
 import {quiz, ai} from '@/api'
-import {getItem} from '@/api/storage'
+import {useAsyncAction} from '@/composables/useAsyncAction'
+import {type AiCredentials, readAiCredentials} from '@/util/aiCredentials'
+import {reportCaughtError} from '@/util/devErrorReporter'
 
 const {t} = useI18n()
 
@@ -35,7 +36,6 @@ const emit = defineEmits<{
   error: [message: string]
 }>()
 
-const processing = ref(false)
 const progress = ref('')
 
 const batchAutoPoints = ref(true)
@@ -56,110 +56,120 @@ function parseConfig(q: QuizQuestion): Record<string, unknown> {
   return { ...(q.config ?? {}) }
 }
 
-async function execute() {
-  processing.value = true
-  progress.value = ''
-  try {
-    const targets = props.questions
-    let done = 0
+const {running: processing, run: runExecute} = useAsyncAction(async () => {
+  const targets = props.questions
+  let done = 0
 
-    if (props.action === 'autoPoints') {
-      for (const q of targets) {
-        done++; progress.value = `${done}/${targets.length}`
-        await quiz.updateQuestion(q.id, {
-          title: q.title, description: q.description, categoryId: q.categoryId,
-          quizQuestionType: q.quizQuestionType, points: q.points,
-          autoPoints: batchAutoPoints.value, config: parseConfig(q),
-        })
-      }
-    } else if (props.action === 'setPoints') {
-      for (const q of targets) {
-        done++; progress.value = `${done}/${targets.length}`
-        await quiz.updateQuestion(q.id, {
-          title: q.title, description: q.description, categoryId: q.categoryId,
-          quizQuestionType: q.quizQuestionType, points: batchPoints.value,
-          autoPoints: false, config: parseConfig(q),
-        })
-      }
-    } else if (props.action === 'pointsPerCorrect') {
-      for (const q of targets) {
-        if (q.quizQuestionType !== QuizQuestionTypes.MULTIPLE_CHOICE) continue
-        done++; progress.value = `${done}/${targets.length}`
-        const config = parseConfig(q)
-        config.pointsPerCorrect = batchPointsPerCorrect.value
-        const correctCount = ((config.options as {correct: boolean}[]) || []).filter(o => o.correct).length
-        await quiz.updateQuestion(q.id, {
-          title: q.title, description: q.description, categoryId: q.categoryId,
-          quizQuestionType: q.quizQuestionType, points: correctCount * batchPointsPerCorrect.value,
-          autoPoints: true, config,
-        })
-      }
-    } else if (props.action === 'setCategory') {
-      const catId = batchCategoryId.value ? Number(batchCategoryId.value) : null
-      for (const q of targets) {
-        done++; progress.value = `${done}/${targets.length}`
-        await quiz.updateQuestion(q.id, {
-          title: q.title, description: q.description, categoryId: catId,
-          quizQuestionType: q.quizQuestionType, points: q.points,
-          autoPoints: q.autoPoints, config: parseConfig(q),
-        })
-      }
-    } else if (props.action === 'generate') {
-      await batchGenerate(targets)
+  if (props.action === 'autoPoints') {
+    for (const q of targets) {
+      done++; progress.value = `${done}/${targets.length}`
+      await quiz.updateQuestion(q.id, {
+        title: q.title, description: q.description, categoryId: q.categoryId,
+        quizQuestionType: q.quizQuestionType, points: q.points,
+        autoPoints: batchAutoPoints.value, config: parseConfig(q),
+      })
     }
+  } else if (props.action === 'setPoints') {
+    for (const q of targets) {
+      done++; progress.value = `${done}/${targets.length}`
+      await quiz.updateQuestion(q.id, {
+        title: q.title, description: q.description, categoryId: q.categoryId,
+        quizQuestionType: q.quizQuestionType, points: batchPoints.value,
+        autoPoints: false, config: parseConfig(q),
+      })
+    }
+  } else if (props.action === 'pointsPerCorrect') {
+    for (const q of targets) {
+      if (q.quizQuestionType !== QuizQuestionTypes.MULTIPLE_CHOICE) continue
+      done++; progress.value = `${done}/${targets.length}`
+      const config = parseConfig(q)
+      config.pointsPerCorrect = batchPointsPerCorrect.value
+      const correctCount = ((config.options as {correct: boolean}[]) || []).filter(o => o.correct).length
+      await quiz.updateQuestion(q.id, {
+        title: q.title, description: q.description, categoryId: q.categoryId,
+        quizQuestionType: q.quizQuestionType, points: correctCount * batchPointsPerCorrect.value,
+        autoPoints: true, config,
+      })
+    }
+  } else if (props.action === 'setCategory') {
+    const catId = batchCategoryId.value ? Number(batchCategoryId.value) : null
+    for (const q of targets) {
+      done++; progress.value = `${done}/${targets.length}`
+      await quiz.updateQuestion(q.id, {
+        title: q.title, description: q.description, categoryId: catId,
+        quizQuestionType: q.quizQuestionType, points: q.points,
+        autoPoints: q.autoPoints, config: parseConfig(q),
+      })
+    }
+  } else if (props.action === 'generate') {
+    await batchGenerate(targets)
+  }
 
-    emit('done')
-    show.value = false
-  } catch {
-    emit('error', t('common.error'))
-  } finally {
-    processing.value = false
-    progress.value = ''
+  emit('done')
+  show.value = false
+  return true
+})
+
+async function execute() {
+  if (processing.value) return
+  const ok = await runExecute()
+  progress.value = ''
+  if (!ok) emit('error', t('common.error'))
+}
+
+function generationPrompt(type: string): string | null {
+  if (type === QuizQuestionTypes.MULTIPLE_CHOICE) {
+    return `Generate a multiple choice question with exactly ${batchAiMcCorrect.value} correct and ${batchAiMcWrong.value} wrong answers.`
+  }
+  if (type === QuizQuestionTypes.CONNECT) {
+    return `Generate a connect/matching question with exactly ${batchAiConnectPairs.value} pairs.`
+  }
+  if (type === QuizQuestionTypes.ORDERING) {
+    return `Generate an ordering question with ${batchAiOrderMin.value}-${batchAiOrderMax.value} items.`
+  }
+  if (type === QuizQuestionTypes.FILL_IN_THE_BLANK) {
+    return `Generate a fill-in-the-blank question with ${batchAiFillGaps.value} gaps in ${batchAiFillSentences.value} sentences.`
+  }
+  return null
+}
+
+async function regenerateQuestion(q: QuizQuestion, prompt: string, credentials: AiCredentials) {
+  const type = q.quizQuestionType
+  const jobId = await ai.startGenerateQuestions({
+    provider: credentials.provider,
+    apiKey: credentials.apiKey,
+    model: credentials.model || null,
+    userPrompt: prompt, catalogId: props.catalogId,
+    entries: [{questionType: type, count: 1, categoryId: q.categoryId}],
+  })
+  while (true) {
+    await new Promise(r => setTimeout(r, 1500))
+    const poll = await ai.pollGenerateQuestions(jobId)
+    const gen = poll.questions[0]
+    if (gen) {
+      await quiz.updateQuestion(q.id, {
+        title: gen.title, description: q.description, categoryId: q.categoryId,
+        quizQuestionType: type, points: q.points, autoPoints: q.autoPoints,
+        config: gen.config,
+      })
+    }
+    if (poll.done) break
   }
 }
 
 async function batchGenerate(targets: QuizQuestion[]) {
-  const provider = getItem('ai_provider') || 'openai'
-  const apiKey = getItem('ai_api_key') || ''
-  const model = getItem('ai_model') || ''
-  if (!apiKey) { emit('error', t('quiz.ai.noKeyConfigured')); return }
+  const credentials = readAiCredentials()
+  if (!credentials.apiKey) { emit('error', t('quiz.ai.noKeyConfigured')); return }
 
   let done = 0
   for (const q of targets) {
     done++; progress.value = `${done}/${targets.length}`
-    const type = q.quizQuestionType
-    let prompt = ''
-    if (type === QuizQuestionTypes.MULTIPLE_CHOICE) {
-      prompt = `Generate a multiple choice question with exactly ${batchAiMcCorrect.value} correct and ${batchAiMcWrong.value} wrong answers.`
-    } else if (type === QuizQuestionTypes.CONNECT) {
-      prompt = `Generate a connect/matching question with exactly ${batchAiConnectPairs.value} pairs.`
-    } else if (type === QuizQuestionTypes.ORDERING) {
-      prompt = `Generate an ordering question with ${batchAiOrderMin.value}-${batchAiOrderMax.value} items.`
-    } else if (type === QuizQuestionTypes.FILL_IN_THE_BLANK) {
-      prompt = `Generate a fill-in-the-blank question with ${batchAiFillGaps.value} gaps in ${batchAiFillSentences.value} sentences.`
-    } else { continue }
-
+    const prompt = generationPrompt(q.quizQuestionType)
+    if (!prompt) continue
     try {
-      const jobId = await ai.startGenerateQuestions({
-        provider, apiKey, model: model || null,
-        userPrompt: prompt, catalogId: props.catalogId,
-        entries: [{questionType: type, count: 1, categoryId: q.categoryId}],
-      })
-      while (true) {
-        await new Promise(r => setTimeout(r, 1500))
-        const poll = await ai.pollGenerateQuestions(jobId)
-        if (poll.questions.length > 0) {
-          const gen = poll.questions[0]
-          await quiz.updateQuestion(q.id, {
-            title: gen.title, description: q.description, categoryId: q.categoryId,
-            quizQuestionType: type, points: q.points, autoPoints: q.autoPoints,
-            config: gen.config,
-          })
-        }
-        if (poll.done) break
-      }
-    } catch {
-      continue
+      await regenerateQuestion(q, prompt, credentials)
+    } catch (e) {
+      reportCaughtError(e, 'batch question generation')
     }
   }
 }

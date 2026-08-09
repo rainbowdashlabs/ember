@@ -58,7 +58,7 @@ onMounted(resolve)
 watch(() => [props.stationUid, model.value], resolve)
 
 const idModel = computed<string | null>({
-    get: () => model.value,
+    get: () => model.value ?? null,
     set: v => { model.value = v },
 })
 </script>

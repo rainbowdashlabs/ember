@@ -8,6 +8,7 @@ import { ref } from 'vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import MutedIconButton from '@/components/button/MutedIconButton.vue'
 
 defineProps<{
   position: { top: number; left: number }
@@ -43,9 +44,7 @@ function onInput() {
         <font-awesome-icon :icon="['fas', 'play']" class="text-[var(--primary)] w-3.5 h-3.5" />
         <span class="text-sm font-medium">Video einbetten</span>
       </div>
-      <button type="button" class="text-[var(--text-muted)] hover:text-[var(--text)] cursor-pointer" @click="$emit('cancel')">
-        <font-awesome-icon :icon="['fas', 'xmark']" class="w-3.5 h-3.5" />
-      </button>
+      <MutedIconButton :icon="['fas', 'xmark']" label="Schließen" hover="text" @click="$emit('cancel')"/>
     </div>
 
     <div>

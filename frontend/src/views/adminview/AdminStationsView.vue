@@ -4,24 +4,25 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import type {Station} from '@/api/types'
+import type {Station} from '@/api/stations'
 import {stations, transfer} from '@/api'
 import StationsGrid from './adminstationsview/StationsGrid.vue'
 import StationImportModal from './adminstationsview/StationImportModal.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import {useConfigPanel} from '@/composables/useConfigPanel'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 
 const {t} = useI18n()
 const router = useRouter()
 
-const {config: stationList, loading, error, reload: loadStations} = useConfigPanel<Station[]>({
+const {config: stationList, loading, error: panelError, reload: loadStations} = useConfigPanel<Station[]>({
   initial: [],
   fetch: () => stations.listStations(),
 })
@@ -34,7 +35,7 @@ const {
 } = useConfirmDelete<Station>({
   onDelete: s => stations.deleteStation(s.id.toString()),
   onSuccess: () => loadStations(),
-  error,
+  error: panelError,
 })
 
 function navigateToCreate() {
@@ -46,23 +47,16 @@ function navigateToEdit(id: string) {
 }
 
 const importToken = ref('')
-const importing = ref(false)
 const showImportModal = ref(false)
 
-async function handleStartImport() {
+const {running: importing, error: importError, run: handleStartImport} = useAsyncAction(async () => {
   if (!importToken.value) return
-  importing.value = true
-  error.value = ''
-  try {
-    const result = await transfer.startImport(importToken.value)
-    showImportModal.value = false
-    router.push({name: 'admin-station-import', params: {stationUid: result.stationId}})
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    importing.value = false
-  }
-}
+  const result = await transfer.startImport(importToken.value)
+  showImportModal.value = false
+  router.push({name: 'admin-station-import', params: {stationUid: result.stationId}})
+})
+
+const error = computed(() => panelError.value || importError.value)
 
 </script>
 

@@ -14,6 +14,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const { t } = useI18n()
 </script>
@@ -94,7 +95,7 @@ const { t } = useI18n()
           <div class="flex items-center justify-between text-sm">
             <div>
               <span class="font-medium">{{ q.title }}</span>
-              <span class="text-xs text-(--text-muted) ml-2">{{ q.type }}</span>
+              <MutedText class="ml-2">{{ q.type }}</MutedText>
             </div>
           </div>
         </NeutralContainer>

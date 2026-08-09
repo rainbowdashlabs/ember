@@ -3,29 +3,42 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import client from './client'
-import type {Station, StationDetail, StationRequest} from './types'
-
-export async function listStations(): Promise<Station[]> {
-    const res = await client.get<Station[]>('/stations')
-    return res.data
+import {createCrudResource} from './crud'
+export interface Station {
+    id: number
+    name?: string
 }
 
-export async function getStation(id: string): Promise<StationDetail> {
-    const res = await client.get<StationDetail>(`/stations/${id}`)
-    return res.data
+export interface StationRequest {
+    name?: string
+    managerEmail?: string
 }
 
-export async function createStation(data: StationRequest): Promise<StationDetail> {
-    const res = await client.post<StationDetail>('/stations', data)
-    return res.data
+export interface StationDetail {
+    id: number
+    name?: string
+    manager?: ManagerDetail | null
 }
 
-export async function updateStation(id: string, data: StationRequest): Promise<StationDetail> {
-    const res = await client.put<StationDetail>(`/stations/${id}`, data)
-    return res.data
+export interface ManagerDetail {
+    email?: string
+    firstName?: string
+    lastName?: string
+    accountReady: boolean
 }
 
-export async function deleteStation(id: string): Promise<void> {
-    await client.delete(`/stations/${id}`)
-}
+const stations = createCrudResource<
+    Station,
+    StationRequest,
+    StationRequest,
+    StationDetail,
+    StationDetail,
+    StationDetail,
+    string
+>('/stations')
+
+export const listStations = stations.list
+export const getStation = stations.get
+export const createStation = stations.create
+export const updateStation = stations.update
+export const deleteStation = stations.remove

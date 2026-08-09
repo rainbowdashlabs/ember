@@ -8,7 +8,7 @@ import { useI18n } from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import type { QuizCatalog, QuizCategory } from '@/api/types'
+import type { QuizCatalog, QuizCategory } from '@/api/quiz'
 
 const catalogId = defineModel<number | null>('catalogId', {required: true})
 const categoryId = defineModel<number | null>('categoryId', {required: true})
@@ -25,11 +25,11 @@ defineEmits<{
 
 const { t } = useI18n()
 
-function onCatalogChange(value: string | undefined) {
+function onCatalogChange(value: string | number | null | undefined) {
   catalogId.value = value ? Number(value) : null
 }
 
-function onCategoryChange(value: string | undefined) {
+function onCategoryChange(value: string | number | null | undefined) {
   categoryId.value = value ? Number(value) : null
 }
 

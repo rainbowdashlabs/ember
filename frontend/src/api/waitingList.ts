@@ -4,63 +4,214 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {
-    GuardianInput,
-    PublicWaitlistFormResponse,
-    PublicWaitlistSummary,
-    WaitingList,
-    WaitingListEntry,
-    WaitingListEntryWithScore,
-    WaitingListField,
-    WaitingListInvite,
-    WaitingListInviteInfo,
-    WaitingListPublicStatus,
+import {createCrudResource, createScopedCrudResource} from './crud'
+export const WaitingListEntryStatus = {
+    PENDING: 'PENDING',
+    WAITING: 'WAITING',
+    INVITED: 'INVITED',
+    TESTING: 'TESTING',
+    WITHDRAWN: 'WITHDRAWN',
+    JOINED: 'JOINED',
+} as const
+
+export type WaitingListEntryStatusName = (typeof WaitingListEntryStatus)[keyof typeof WaitingListEntryStatus]
+
+export const WaitingListFieldTypes = {
+    TEXT: 'TEXT',
+    NUMBER: 'NUMBER',
+    DATE: 'DATE',
+    BOOLEAN: 'BOOLEAN',
+    ENUM: 'ENUM',
+} as const
+
+export type WaitingListFieldTypeName = (typeof WaitingListFieldTypes)[keyof typeof WaitingListFieldTypes]
+
+export interface WaitingList {
+    id: number
+    stationId: string
+    name: string
+    description: string
+    scoringFormula?: string | null
+    confirmIntervalDays: number
+    createdAt: string
+    visibleFields: number[]
+    testingGroupId?: number | null
+    joinGroupId?: number | null
+    attendanceThreshold: number
+    isPublic: boolean
+}
+
+export interface WaitingListField {
+    id: number
+    listId: number
+    name: string
+    fieldType: WaitingListFieldTypeName
+    config: string
+    position: number
+    required: boolean
+    isPublic: boolean
+}
+
+export interface WaitingListInvite {
+    id: number
+    listId: number
+    code: string
+    maxUses: number
+    uses: number
+    expiresAt?: string | null
+    createdAt: string
+}
+
+export interface WaitingListEntry {
+    id: number
+    listId: number
+    firstname: string
+    lastname: string
+    parentName: string
+    email: string
+    accessToken: string
+    status: WaitingListEntryStatusName
+    confirmedAt: string
+    reminderSentAt?: string | null
+    createdAt: string
+    notes: string
+    memberId?: number | null
+    invitedAt?: string | null
+    testingAt?: string | null
+    joinedAt?: string | null
+    withdrawnAt?: string | null
+    attendanceCount: number
+}
+
+export interface WaitingListEntryValue {
+    entryId: number
+    fieldId: number
+    value: unknown
+}
+
+export interface WaitingListEntryGuardian {
+    id: number
+    entryId: number
+    firstname: string
+    lastname: string
+    email: string
+    phone: string
+    position: number
+}
+
+export interface WaitingListEntryWithScore {
+    entry: WaitingListEntry
+    values: WaitingListEntryValue[]
+    score: number
+    guardians: WaitingListEntryGuardian[]
+}
+
+export interface WaitingListWithCount {
+    list: WaitingList
+    entryCount: number
+}
+
+export interface WaitingListPublicStatus {
+    firstname: string
+    lastname: string
+    parentName: string
+    email: string
+    status: string
+    confirmedAt: string
+    createdAt: string
+    confirmIntervalDays: number
+    position: number
+    listName: string
+    fields: WaitingListField[]
+    values: WaitingListEntryValue[]
+    guardians: WaitingListEntryGuardian[]
+}
+
+export interface WaitingListInviteInfo {
+    listName: string
+    listDescription: string
+    fields: WaitingListField[]
+}
+
+export interface GuardianInput {
+    firstname: string
+    lastname: string
+    email: string
+    phone: string
+}
+
+export interface PublicWaitlistSummary {
+    id: number
+    name: string
+    description: string
+}
+
+export interface PublicWaitlistFormResponse {
+    listName: string
+    listDescription: string
+    fields: WaitingListField[]
+}
+
+interface WaitingListRequest {
+    name: string
+    description?: string
+    scoringFormula?: string | null
+    confirmIntervalDays?: number
+    testingGroupId?: number | null
+    joinGroupId?: number | null
+    attendanceThreshold?: number
+    isPublic?: boolean
+}
+
+interface FieldRequest {
+    name: string
+    fieldType: string
+    config?: string
+    position: number
+    required: boolean
+    isPublic?: boolean
+}
+
+interface EntryRequest {
+    firstname: string
+    lastname?: string
+    guardians?: GuardianInput[]
+    values?: Record<number, unknown>
+    notes?: string
+}
+
+const lists = createCrudResource<
     WaitingListWithCount,
-} from './types'
+    WaitingListRequest,
+    WaitingListRequest,
+    WaitingList,
+    WaitingList
+>('/waiting-lists')
+
+const fields = createScopedCrudResource<
+    WaitingListField,
+    FieldRequest
+>((listId: number) => `/waiting-lists/${listId}/fields`)
+
+const invites = createScopedCrudResource<
+    WaitingListInvite
+>((listId: number) => `/waiting-lists/${listId}/invites`)
+
+const entries = createScopedCrudResource<
+    WaitingListEntryWithScore,
+    EntryRequest,
+    EntryRequest,
+    WaitingListEntryWithScore,
+    WaitingListEntry
+>((listId: number) => `/waiting-lists/${listId}/entries`)
 
 // --- Management ---
 
-export async function listAll(): Promise<WaitingListWithCount[]> {
-    const res = await client.get<WaitingListWithCount[]>('/waiting-lists')
-    return res.data
-}
-
-export async function create(data: {
-    name: string
-    description?: string
-    scoringFormula?: string | null
-    confirmIntervalDays?: number
-    testingGroupId?: number | null
-    joinGroupId?: number | null
-    attendanceThreshold?: number
-    isPublic?: boolean
-}): Promise<WaitingList> {
-    const res = await client.post<WaitingList>('/waiting-lists', data)
-    return res.data
-}
-
-export async function getById(id: number): Promise<WaitingList> {
-    const res = await client.get<WaitingList>(`/waiting-lists/${id}`)
-    return res.data
-}
-
-export async function update(id: number, data: {
-    name: string
-    description?: string
-    scoringFormula?: string | null
-    confirmIntervalDays?: number
-    testingGroupId?: number | null
-    joinGroupId?: number | null
-    attendanceThreshold?: number
-    isPublic?: boolean
-}): Promise<WaitingList> {
-    const res = await client.put<WaitingList>(`/waiting-lists/${id}`, data)
-    return res.data
-}
-
-export async function deleteList(id: number): Promise<void> {
-    await client.delete(`/waiting-lists/${id}`)
-}
+export const listAll = lists.list
+export const create = lists.create
+export const getById = lists.get
+export const update = lists.update
+export const deleteList = lists.remove
 
 export async function updateVisibleFields(id: number, fieldIds: number[]): Promise<WaitingList> {
     const res = await client.put<WaitingList>(`/waiting-lists/${id}/visible-fields`, { fieldIds })
@@ -69,65 +220,31 @@ export async function updateVisibleFields(id: number, fieldIds: number[]): Promi
 
 // Fields
 
-export async function listFields(listId: number): Promise<WaitingListField[]> {
-    const res = await client.get<WaitingListField[]>(`/waiting-lists/${listId}/fields`)
-    return res.data
-}
-
-export async function createField(listId: number, data: { name: string; fieldType: string; config?: string; position: number; required: boolean; isPublic?: boolean }): Promise<WaitingListField> {
-    const res = await client.post<WaitingListField>(`/waiting-lists/${listId}/fields`, data)
-    return res.data
-}
-
-export async function updateField(listId: number, fieldId: number, data: { name: string; fieldType: string; config?: string; position: number; required: boolean; isPublic?: boolean }): Promise<WaitingListField> {
-    const res = await client.put<WaitingListField>(`/waiting-lists/${listId}/fields/${fieldId}`, data)
-    return res.data
-}
-
-export async function deleteField(listId: number, fieldId: number): Promise<void> {
-    await client.delete(`/waiting-lists/${listId}/fields/${fieldId}`)
-}
+export const listFields = fields.list
+export const createField = fields.create
+export const updateField = fields.update
+export const deleteField = fields.remove
 
 // Invites
 
-export async function listInvites(listId: number): Promise<WaitingListInvite[]> {
-    const res = await client.get<WaitingListInvite[]>(`/waiting-lists/${listId}/invites`)
-    return res.data
-}
+export const listInvites = invites.list
+export const deleteInvite = invites.remove
 
 export async function createInvite(listId: number, data?: { maxUses?: number; expiresAt?: string | null }): Promise<WaitingListInvite> {
     const res = await client.post<WaitingListInvite>(`/waiting-lists/${listId}/invites`, data ?? {})
     return res.data
 }
 
-export async function deleteInvite(listId: number, inviteId: number): Promise<void> {
-    await client.delete(`/waiting-lists/${listId}/invites/${inviteId}`)
-}
-
 // Entries
 
-export async function listEntries(listId: number): Promise<WaitingListEntryWithScore[]> {
-    const res = await client.get<WaitingListEntryWithScore[]>(`/waiting-lists/${listId}/entries`)
-    return res.data
-}
-
-export async function createEntry(listId: number, data: { firstname: string; lastname?: string; guardians?: GuardianInput[]; values?: Record<number, unknown>; notes?: string }): Promise<WaitingListEntry> {
-    const res = await client.post<WaitingListEntry>(`/waiting-lists/${listId}/entries`, data)
-    return res.data
-}
-
-export async function updateEntry(listId: number, entryId: number, data: { firstname: string; lastname?: string; guardians?: GuardianInput[]; values?: Record<number, unknown>; notes?: string }): Promise<WaitingListEntry> {
-    const res = await client.put<WaitingListEntry>(`/waiting-lists/${listId}/entries/${entryId}`, data)
-    return res.data
-}
+export const listEntries = entries.list
+export const createEntry = entries.create
+export const updateEntry = entries.update
+export const deleteEntry = entries.remove
 
 export async function updateCreatedAt(listId: number, entryId: number, createdAt: string): Promise<WaitingListEntry> {
     const res = await client.put<WaitingListEntry>(`/waiting-lists/${listId}/entries/${entryId}/created-at`, { createdAt })
     return res.data
-}
-
-export async function deleteEntry(listId: number, entryId: number): Promise<void> {
-    await client.delete(`/waiting-lists/${listId}/entries/${entryId}`)
 }
 
 // State transitions

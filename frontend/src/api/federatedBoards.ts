@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import { createCrudResource } from './crud'
 import type { BoardTicket, BoardLane, BoardLabel, BoardField, BoardChecklistItem, BoardComment, BoardTicketLink, BoardTicketTransition, BoardTicketHistoryEntry, BoardTicketAttachment } from './boards'
 
 // -- Types --
@@ -78,25 +79,19 @@ export async function discoverBoards(): Promise<DiscoveredBoard[]> {
 
 // -- Bookmarks --
 
-export async function listBookmarks(): Promise<FederatedBoardBookmark[]> {
-    const res = await client.get<FederatedBoardBookmark[]>('/federated/boards/bookmarks')
-    return res.data
-}
-
-export async function createBookmark(data: {
+interface BookmarkRequest {
     partnerUid: string
     remoteBoardUid: string
     remoteBoardName: string
     remoteBoardShortKey: string
     shareMode: BoardShareModeName
-}): Promise<FederatedBoardBookmark> {
-    const res = await client.post<FederatedBoardBookmark>('/federated/boards/bookmarks', data)
-    return res.data
 }
 
-export async function deleteBookmark(bookmarkId: number): Promise<void> {
-    await client.delete(`/federated/boards/bookmarks/${bookmarkId}`)
-}
+const bookmarks = createCrudResource<FederatedBoardBookmark, BookmarkRequest>('/federated/boards/bookmarks')
+
+export const listBookmarks = bookmarks.list
+export const createBookmark = bookmarks.create
+export const deleteBookmark = bookmarks.remove
 
 // -- Members --
 

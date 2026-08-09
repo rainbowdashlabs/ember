@@ -6,7 +6,7 @@
 package dev.chojo.ember.feature.federation.service;
 
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
-import dev.chojo.ember.feature.federation.route.FederationRemoteRoutes;
+import dev.chojo.ember.feature.federation.route.RemoteFederationRoutes;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -65,7 +65,7 @@ public class FederationVersionBroadcaster {
                             partner.partnerStationId(),
                             partner.stationId(),
                             station.federationPrivateKey(),
-                            FederationRemoteRoutes.VersionPingResponse.class);
+                            RemoteFederationRoutes.VersionPingResponse.class);
 
                     if (response != null && response.version() != null) {
                         String remoteVersion = response.version();

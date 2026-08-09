@@ -11,7 +11,7 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import THead from '@/components/table/THead.vue'
+import DataTable from '@/components/table/DataTable.vue'
 import TRow from '@/components/table/TRow.vue'
 import Td from '@/components/table/Td.vue'
 import Th from '@/components/table/Th.vue'
@@ -51,32 +51,26 @@ const {t} = useI18n()
     <HelpSection :title="t('helpCenter.attendanceReport.tableTitle')">
       <NeutralContainer class="space-y-3">
         <SubHeader>{{ t('attendanceReport.summary') }} – Mitglied</SubHeader>
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead>
-            <THead>
-              <th class="text-left py-2 px-3">{{ t('attendanceReport.name') }}</th>
-              <Th align="center">{{ t('attendanceReport.sessions') }}</Th>
-              <Th align="center">{{ t('attendanceReport.present') }}</Th>
-              <th class="text-right py-2 px-3">{{ t('attendanceReport.hours') }}</th>
-            </THead>
-            </thead>
-            <tbody>
-            <TRow>
-              <Td>Max Mustermann</Td>
-              <Td align="center">8</Td>
-              <Td align="center">7</Td>
-              <Td align="right" class="font-mono">14.0</Td>
-            </TRow>
-            <TRow>
-              <Td>Erika Muster</Td>
-              <Td align="center">8</Td>
-              <Td align="center">6</Td>
-              <Td align="right" class="font-mono">12.5</Td>
-            </TRow>
-            </tbody>
-          </table>
-        </div>
+        <DataTable plain>
+          <template #head>
+            <th class="text-left py-2 px-3">{{ t('attendanceReport.name') }}</th>
+            <Th align="center">{{ t('attendanceReport.sessions') }}</Th>
+            <Th align="center">{{ t('attendanceReport.present') }}</Th>
+            <th class="text-right py-2 px-3">{{ t('attendanceReport.hours') }}</th>
+          </template>
+          <TRow>
+            <Td>Max Mustermann</Td>
+            <Td align="center">8</Td>
+            <Td align="center">7</Td>
+            <Td align="right" class="font-mono">14.0</Td>
+          </TRow>
+          <TRow>
+            <Td>Erika Muster</Td>
+            <Td align="center">8</Td>
+            <Td align="center">6</Td>
+            <Td align="right" class="font-mono">12.5</Td>
+          </TRow>
+        </DataTable>
       </NeutralContainer>
 
       <div class="flex justify-end mt-3">

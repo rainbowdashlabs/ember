@@ -6,9 +6,11 @@
 <script setup lang="ts">
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import InventoryItemCard from './InventoryItemCard.vue'
 import EmptySlotCard from './EmptySlotCard.vue'
-import type { CheckResult, InventoryItem, RequiredInventoryItem } from '@/api/types'
+import type { InventoryItem } from '@/api/inventory'
+import type { CheckResult, RequiredInventoryItem } from '@/api/inventoryCheck'
 
 const props = defineProps<{
   req: RequiredInventoryItem
@@ -29,7 +31,7 @@ const emit = defineEmits<{
   setNote: [itemId: number, note: string]
   unassign: [itemId: number]
   createProcurement: [item: InventoryItem]
-  changeItem: [currentItemId: number, inventoryId: number]
+  changeItem: [currentItemId: number]
   createAndChange: [currentItemId: number, req: RequiredInventoryItem]
   toggleNotInPossession: [inventoryId: number, slotIndex: number]
   assignToSlot: [inventoryId: number, slotIndex: number]
@@ -42,12 +44,12 @@ const emit = defineEmits<{
   <NeutralContainer class="space-y-3">
     <div class="flex items-center justify-between gap-2">
       <SubHeader>{{ req.inventoryName }}</SubHeader>
-      <span class="text-sm text-(--text-muted) shrink-0">
+      <MutedText size="sm" class="shrink-0">
         {{ req.assignedQuantity }} / {{ req.requiredQuantity }}
         <span v-if="req.assignedQuantity < req.requiredQuantity" class="text-error">
           ({{ req.requiredQuantity - req.assignedQuantity }} fehlt)
         </span>
-      </span>
+      </MutedText>
     </div>
 
     <!-- Assigned items -->
@@ -68,7 +70,7 @@ const emit = defineEmits<{
         @set-note="(id, n) => emit('setNote', id, n)"
         @unassign="id => emit('unassign', id)"
         @create-procurement="item => emit('createProcurement', item)"
-        @change-item="(id, inv) => emit('changeItem', id, inv)"
+        @change-item="id => emit('changeItem', id)"
         @create-and-change="(id, r) => emit('createAndChange', id, r)"
         @update-selection="(k, v) => emit('updateSelection', k, v)"
       />

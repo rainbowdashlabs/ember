@@ -9,7 +9,8 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ExchangeStatusUpdatePanel from './ExchangeStatusUpdatePanel.vue'
 import ExchangeTableHeader from './ExchangeTableHeader.vue'
 import ExchangeTableRow from './ExchangeTableRow.vue'
-import type { ExchangeRequestEntry, ExchangeStatusName, InventoryItem } from '@/api/types'
+import type { ExchangeRequestEntry, ExchangeStatusName } from '@/api/exchanges'
+import type { InventoryItem } from '@/api/inventory'
 
 const props = defineProps<{
   requests: ExchangeRequestEntry[]

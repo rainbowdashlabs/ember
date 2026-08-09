@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ReportHelp from '~/views/helpcenter/stationview/attendance/ReportHelp'
+import ReportHelp from '~/views/helpcenter/stationview/attendance/ReportHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

@@ -10,8 +10,8 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import type {EnrichedMessage, LendingRequestDetail} from '@/api/lending'
-import {LendingStatus} from '@/api/lending'
+import {LendingStatus, type EnrichedMessage, type LendingRequestDetail} from '@/api/lending'
+import {formatDateTime} from '@/util/format'
 
 const newMessage = defineModel<string>('newMessage', {required: true})
 
@@ -32,10 +32,6 @@ function scrollToBottom() {
   if (chatContainer.value) {
     chatContainer.value.scrollTop = chatContainer.value.scrollHeight
   }
-}
-
-function formatTime(d: string): string {
-  return new Date(d).toLocaleString('de-DE', {dateStyle: 'short', timeStyle: 'short'})
 }
 
 watch(() => props.messages, async () => {
@@ -61,13 +57,13 @@ defineExpose({scrollToBottom})
       <div v-for="msg in messages" :key="msg.message.id"
            :class="msg.message.isSystem ? 'text-center text-xs text-[var(--text-muted)] italic py-1' : 'flex flex-col gap-0.5'">
         <template v-if="msg.message.isSystem">
-          <span>{{ msg.message.message }} - {{ formatTime(msg.message.createdAt) }}</span>
+          <span>{{ msg.message.message }} - {{ formatDateTime(msg.message.createdAt) }}</span>
         </template>
         <template v-else>
           <div class="flex items-center gap-2">
             <span v-if="msg.senderName" class="text-xs font-medium">{{ msg.senderName }} <span class="text-[var(--text-muted)]">({{ msg.senderStationName }})</span></span>
             <span v-else class="text-xs font-medium">{{ msg.senderStationName }}</span>
-            <span class="text-xs text-[var(--text-muted)]">{{ formatTime(msg.message.createdAt) }}</span>
+            <span class="text-xs text-[var(--text-muted)]">{{ formatDateTime(msg.message.createdAt) }}</span>
           </div>
           <div class="bg-[var(--bg)] rounded px-3 py-1.5 text-sm">{{ msg.message.message }}</div>
         </template>

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import TestEvaluateHelp from '~/views/helpcenter/stationview/quiz/TestEvaluateHelp'
+import TestEvaluateHelp from '~/views/helpcenter/stationview/quiz/TestEvaluateHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

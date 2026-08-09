@@ -17,10 +17,10 @@ import type { LaneDraft } from './boardsettingsview/BoardLanesSection.vue'
 import type { FieldDraft } from './boardsettingsview/BoardFieldsSection.vue'
 import { boards, stationMembers, memberGroups, userTags, federation } from '@/api'
 import type { Board, FederationTarget } from '@/api/boards'
-import type { PermissionGrant, MemberGroup, UserTag } from '@/api/types'
-import { StationUserType, StationUserTypeLabels, StationPermission } from '@/api/types'
+import {StationPermission, StationUserType, StationUserTypeLabels, type MemberGroup, type PermissionGrant, type UserTag} from '@/api/types'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { useFlashMessage } from '@/composables/useFlashMessage'
 import type { PartnerResponse } from '@/api/federation'
 
 const { t } = useI18n()
@@ -31,7 +31,8 @@ const canFederate = computed(() => hasPermission(StationPermission.BOARD_FEDERAT
 
 const boardKey = computed(() => route.params.boardKey as string)
 const board = ref<Board | null>(null)
-const saved = ref(false)
+const {message: savedMessage, flash: flashSaved} = useFlashMessage(2000)
+const saved = computed(() => savedMessage.value !== '')
 
 const name = ref('')
 const description = ref('')
@@ -163,8 +164,7 @@ async function saveNow() {
                 editUserTypes: federatedEditUserTypes.value,
             })
         }
-        saved.value = true
-        setTimeout(() => saved.value = false, 2000)
+        flashSaved(t('common.saved'))
     } catch {
         error.value = t('common.error')
     } finally {
@@ -194,10 +194,11 @@ function removeLane(index: number) {
 
 function moveLane(index: number, dir: -1 | 1) {
     const newIndex = index + dir
-    if (newIndex < 0 || newIndex >= lanes.value.length) return
-    const temp = lanes.value[index]
-    lanes.value[index] = lanes.value[newIndex]
-    lanes.value[newIndex] = temp
+    const current = lanes.value[index]
+    const target = lanes.value[newIndex]
+    if (!current || !target) return
+    lanes.value[index] = target
+    lanes.value[newIndex] = current
 }
 
 function addField() {
@@ -213,10 +214,11 @@ function removeField(index: number) {
 
 function moveField(index: number, dir: -1 | 1) {
     const newIndex = index + dir
-    if (newIndex < 0 || newIndex >= fields.value.length) return
-    const temp = fields.value[index]
-    fields.value[index] = fields.value[newIndex]
-    fields.value[newIndex] = temp
+    const current = fields.value[index]
+    const target = fields.value[newIndex]
+    if (!current || !target) return
+    fields.value[index] = target
+    fields.value[newIndex] = current
 }
 
 const fieldTypeOptions = [

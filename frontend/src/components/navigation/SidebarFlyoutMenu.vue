@@ -23,7 +23,11 @@ const emit = defineEmits<{
   'header-click': []
 }>()
 
-provideSidebarFlyoutContext()
+provideSidebarFlyoutContext({
+  enter: () => emit('enter'),
+  leave: () => emit('leave'),
+  close: () => emit('close'),
+})
 
 const panel = ref<HTMLDivElement | null>(null)
 const left = ref(0)
@@ -40,9 +44,9 @@ function reposition() {
   const vw = window.innerWidth
   const vh = window.innerHeight
 
-  let nextLeft = anchorRect.right + margin
+  let nextLeft = anchorRect.right
   if (nextLeft + panelRect.width > vw - margin) {
-    nextLeft = anchorRect.left - panelRect.width - margin
+    nextLeft = anchorRect.left - panelRect.width
   }
   if (nextLeft < margin) nextLeft = margin
 
@@ -84,6 +88,8 @@ function onDocumentMouseDown(event: MouseEvent) {
   if (!target) return
   if (panel.value?.contains(target)) return
   if (props.anchor?.contains(target)) return
+  const element = target instanceof Element ? target : target.parentElement
+  if (element?.closest('[data-sidebar-flyout]')) return
   emit('close')
 }
 
@@ -126,31 +132,36 @@ function onHeaderClick() {
     <div
         v-if="visible"
         ref="panel"
-        role="menu"
+        data-sidebar-flyout
         :style="{left: `${left}px`, top: `${top}px`}"
-        class="sidebar-flyout fixed z-50 min-w-56 max-w-72 rounded-theme border bg-bg-light-accent dark:bg-bg-dark-accent shadow-xl py-1.5"
+        class="fixed z-50 px-2"
         @mouseenter="emit('enter')"
         @mouseleave="emit('leave')"
         @focusin="emit('enter')"
         @focusout="emit('leave')"
     >
-      <component
-          :is="to ? 'router-link' : 'div'"
-          v-if="label"
-          :to="to"
-          :class="to ? 'cursor-pointer hover:bg-primary/5' : ''"
-          class="flex items-center gap-3 px-3 py-2 mb-1 border-b border-bg-light dark:border-bg-dark text-sm font-semibold no-underline text-[var(--text)]"
-          @click="onHeaderClick"
+      <div
+          role="menu"
+          class="sidebar-flyout min-w-56 max-w-72 rounded-theme border bg-bg-light-accent dark:bg-bg-dark-accent shadow-xl py-1.5"
       >
-        <font-awesome-icon v-if="icon" :icon="icon" class="w-4 shrink-0"/>
-        <span class="flex-1 truncate">{{ label }}</span>
-        <span v-if="badge && badge > 0"
-              class="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-xs font-bold bg-error text-error-text">{{
-            badge
-          }}</span>
-      </component>
-      <div class="flex flex-col gap-0.5 px-1">
-        <slot/>
+        <component
+            :is="to ? 'router-link' : 'div'"
+            v-if="label"
+            :to="to"
+            :class="to ? 'cursor-pointer hover:bg-primary/5' : ''"
+            class="flex items-center gap-3 px-3 py-2 mb-1 border-b border-bg-light dark:border-bg-dark text-sm font-semibold no-underline text-[var(--text)]"
+            @click="onHeaderClick"
+        >
+          <font-awesome-icon v-if="icon" :icon="icon" class="w-4 shrink-0"/>
+          <span class="flex-1 truncate">{{ label }}</span>
+          <span v-if="badge && badge > 0"
+                class="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-xs font-bold bg-error text-error-text">{{
+              badge
+            }}</span>
+        </component>
+        <div class="flex flex-col gap-0.5 px-1">
+          <slot/>
+        </div>
       </div>
     </div>
   </Teleport>

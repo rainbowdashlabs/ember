@@ -11,7 +11,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TrainingQuestionCard from '@/views/stationview/quiz/trainingview/TrainingQuestionCard.vue'
 import * as publicQuiz from '@/api/publicQuiz'
-import {QuizQuestionTypes, type QuizQuestion, type QuizQuestionTypeName} from '@/api/types'
+import {QuizQuestionTypes, type QuizQuestion, type QuizQuestionTypeName} from '@/api/quiz'
 
 /**
  * Public {@code QUIZ_TEASER} renderer. Mirrors the in-app training experience: the visitor
@@ -183,7 +183,7 @@ function setFillGap(gapIndex: number, value: string) {
                 :connect-right-order="connectRightOrder"
                 :direct-image-src="adaptedQuestion.imageUrl"
                 @toggle-mc-option="toggleMcOption"
-                @update:user-tf-answer="(v: boolean) => userTfAnswer = v"
+                @update:user-tf-answer="(v: boolean | null) => userTfAnswer = v"
                 @update:user-answer="(v: string) => userAnswer = v"
                 @reorder-items="reorderItems"
                 @move-order-item="moveOrderItem"

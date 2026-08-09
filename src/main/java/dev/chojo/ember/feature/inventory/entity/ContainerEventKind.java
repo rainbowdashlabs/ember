@@ -12,17 +12,31 @@ public enum ContainerEventKind {
     /**
      * Container row was created.
      */
-    CREATED,
+    CREATED(ContainerHistoryDetails.Created.class),
     /**
      * Container was renamed.
      */
-    RENAMED,
+    RENAMED(ContainerHistoryDetails.Renamed.class),
     /**
      * Container's parent changed.
      */
-    MOVED,
+    MOVED(ContainerHistoryDetails.Moved.class),
     /**
      * Container was deleted; row survives with {@code container_id = NULL}.
      */
-    DELETED
+    DELETED(ContainerHistoryDetails.Deleted.class);
+
+    private final Class<? extends ContainerHistoryDetails> detailsClass;
+
+    ContainerEventKind(Class<? extends ContainerHistoryDetails> detailsClass) {
+        this.detailsClass = detailsClass;
+    }
+
+    /**
+     * Returns the {@link ContainerHistoryDetails} variant that the {@code details}
+     * JSONB of a row with this kind deserialises into.
+     */
+    public Class<? extends ContainerHistoryDetails> detailsClass() {
+        return detailsClass;
+    }
 }

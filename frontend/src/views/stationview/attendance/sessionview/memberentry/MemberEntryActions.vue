@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import MemberEntryStatusButtons from './MemberEntryStatusButtons.vue'
 import MemberEntryTimeRange from './MemberEntryTimeRange.vue'
-import type {AttendanceEntry, AttendanceStatus} from '@/api/types'
+import type {AttendanceEntry, AttendanceStatus} from '@/api/attendance'
 
 defineProps<{
   entry: AttendanceEntry

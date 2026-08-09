@@ -4,8 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import { ref, computed } from 'vue'
-import type { ProfileField, StationMember, MemberGroup, UserTag, PermissionGrant } from '@/api/types'
-import { parseFieldConfig } from '@/api/types'
+import {parseFieldConfig, type ProfileField} from '@/api/profileFields'
+import type { StationMember, MemberGroup, UserTag, PermissionGrant } from '@/api/types'
 import { profileFields, stationMembers } from '@/api'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 

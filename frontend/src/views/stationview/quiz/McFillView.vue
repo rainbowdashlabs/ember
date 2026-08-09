@@ -24,10 +24,12 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import AiSettingsPanel from './cataloggenerateview/AiSettingsPanel.vue'
 import {quiz, ai} from '@/api'
-import {getItem} from '@/api/storage'
+import {type AiCredentials, readAiCredentials} from '@/util/aiCredentials'
 import {useSession} from '@/composables/useSession'
 import {useConfigPanel} from '@/composables/useConfigPanel'
-import {QuizQuestionTypes} from '@/api/types'
+import {QuizQuestionTypes, type QuizQuestion} from '@/api/quiz'
+import {reportCaughtError} from '@/util/devErrorReporter'
+import MutedIcon from '@/components/display/MutedIcon.vue'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -67,11 +69,43 @@ const phase = ref<'config' | 'review'>('config')
 // Save phase
 const savedCount = ref(0)
 
+async function buildReviewItem(q: QuizQuestion, credentials: AiCredentials): Promise<ReviewQuestion | null> {
+  const config = q.config ?? {}
+  const options: { text: string; correct: boolean }[] = (config.options as { text: string; correct: boolean }[]) || []
+  const correctAnswers = options.filter(o => o.correct).map(o => o.text)
+  if (correctAnswers.length === 0) return null
+
+  const needed = countMode.value === 'fillTo'
+      ? Math.max(0, count.value - options.length)
+      : count.value
+  if (needed <= 0) return null
+
+  const results = await ai.generate({
+    provider: credentials.provider,
+    apiKey: credentials.apiKey,
+    model: credentials.model || null,
+    question: q.title,
+    correctAnswer: correctAnswers.join(', '),
+    count: needed,
+  })
+  if (results.length === 0) return null
+
+  return {
+    questionId: q.id,
+    title: q.title,
+    description: q.description,
+    categoryId: q.categoryId,
+    points: q.points,
+    autoPoints: q.autoPoints,
+    existingOptions: options,
+    existingConfig: config,
+    newAnswers: results,
+  }
+}
+
 async function generate() {
-  const provider = getItem('ai_provider') || 'openai'
-  const apiKey = getItem('ai_api_key') || ''
-  const model = getItem('ai_model') || ''
-  if (!apiKey) {
+  const credentials = readAiCredentials()
+  if (!credentials.apiKey) {
     error.value = t('quiz.ai.noKeyConfigured')
     return
   }
@@ -88,35 +122,12 @@ async function generate() {
     for (const q of mcQuestions) {
       done++
       generatingProgress.value = `${done}/${mcQuestions.length}`
-      const config = q.config ?? {}
-      const options: { text: string; correct: boolean }[] = (config.options as { text: string; correct: boolean }[]) || []
-      const correctAnswers = options.filter(o => o.correct).map(o => o.text)
-      if (correctAnswers.length === 0) continue
-
-      const needed = countMode.value === 'fillTo'
-          ? Math.max(0, count.value - options.length)
-          : count.value
-      if (needed <= 0) continue
-
       try {
-        const results = await ai.generate({
-          provider, apiKey, model: model || null,
-          question: q.title, correctAnswer: correctAnswers.join(', '), count: needed,
-        })
-        if (results.length > 0) {
-          reviewItems.value.push({
-            questionId: q.id,
-            title: q.title,
-            description: q.description,
-            categoryId: q.categoryId,
-            points: q.points,
-            autoPoints: q.autoPoints,
-            existingOptions: options,
-            existingConfig: config,
-            newAnswers: results,
-          })
-        }
-      } catch { /* skip */ }
+        const item = await buildReviewItem(q, credentials)
+        if (item) reviewItems.value.push(item)
+      } catch (e) {
+        reportCaughtError(e, 'multiple-choice answer generation')
+      }
     }
 
     phase.value = 'review'
@@ -129,11 +140,13 @@ async function generate() {
 }
 
 function removeAnswer(qIdx: number, aIdx: number) {
-  reviewItems.value[qIdx].newAnswers.splice(aIdx, 1)
+  reviewItems.value[qIdx]?.newAnswers.splice(aIdx, 1)
 }
 
 function editAnswer(qIdx: number, aIdx: number, value: string) {
-  reviewItems.value[qIdx].newAnswers[aIdx] = value
+  const item = reviewItems.value[qIdx]
+  if (!item) return
+  item.newAnswers[aIdx] = value
 }
 
 function removeQuestion(qIdx: number) {
@@ -247,7 +260,7 @@ watch(loaded, v => { if (v) loadData() }, {immediate: true})
             <!-- Existing wrong answers -->
             <div v-for="opt in item.existingOptions.filter(o => !o.correct)" :key="'e-' + opt.text"
                  class="flex items-center gap-2 px-3 py-1.5 rounded bg-[var(--bg-accent)]">
-              <font-awesome-icon :icon="['fas', 'xmark']" class="text-(--text-muted) text-xs shrink-0"/>
+              <MutedIcon :icon="['fas', 'xmark']" size="inline" class="shrink-0"/>
               <span class="text-sm text-(--text-muted)">{{ opt.text }}</span>
             </div>
             <!-- New generated answers (highlighted) -->

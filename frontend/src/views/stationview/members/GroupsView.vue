@@ -9,18 +9,21 @@ import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import type {MemberGroup, PermissionGrant, StationMember} from '@/api/types'
-import {StationPermission} from '@/api/types'
+import {StationPermission, type MemberGroup, type PermissionGrant, type StationMember} from '@/api/types'
 import {memberGroups, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useConfirmAction} from '@/composables/useConfirmAction'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import GroupListPanel from './groupsview/GroupListPanel.vue'
 import GroupDetailPanel from './groupsview/GroupDetailPanel.vue'
 import GroupFormModal from './groupsview/GroupFormModal.vue'
 import GroupDeleteModal from './groupsview/GroupDeleteModal.vue'
 import GroupConvertModal from './groupsview/GroupConvertModal.vue'
+import {useMemberAssignment} from './useMemberAssignment'
+import {memberDisplayName} from './listview/useMemberData'
+import {apiErrorMessage} from '@/util/apiError'
 
 const {t} = useI18n()
 const {canManageMembers, isManager, hasPermission} = useSession()
@@ -47,7 +50,6 @@ const editingGroup = ref<MemberGroup | null>(null)
 const groupName = ref('')
 const groupColor = ref('')
 const groupPosition = ref(0)
-const groupSaving = ref(false)
 
 const {loading, error} = useAsyncLoader(async () => {
   const [g, m, r] = await Promise.all([
@@ -98,17 +100,16 @@ const sortedGroupMembers = computed(() =>
     [...groupMembers.value].sort((a, b) => memberDisplayName(a).localeCompare(memberDisplayName(b)))
 )
 
-const availableMembers = computed(() => {
-  const memberIds = new Set(groupMembers.value.map(m => m.id))
-  return allMembers.value
-      .filter(m => !memberIds.has(m.id))
-      .sort((a, b) => memberDisplayName(a).localeCompare(memberDisplayName(b)))
-})
-
-function memberDisplayName(member: StationMember): string {
-  if (member.name && member.name.trim()) return member.name
-  return member.email ?? `#${member.id}`
-}
+const {
+  availableMembers,
+  addMember: addMemberToGroup,
+  removeMember: removeMemberFromGroup,
+} = useMemberAssignment(
+    allMembers,
+    groupMembers,
+    ids => memberGroups.setGroupMembers(selectedGroup.value!.id, {memberIds: ids}),
+    error,
+)
 
 async function selectGroup(group: MemberGroup) {
   selectedGroup.value = group
@@ -145,54 +146,26 @@ function openEditGroup(group: MemberGroup) {
   showGroupModal.value = true
 }
 
-async function saveGroup() {
-  groupSaving.value = true
+const {running: groupSaving, error: groupSaveError, run: saveGroup} = useAsyncAction(async () => {
   error.value = ''
-  try {
-    if (editingGroup.value) {
-      await memberGroups.updateGroup(editingGroup.value.id, {name: groupName.value, color: groupColor.value || null, position: groupPosition.value})
-    } else {
-      await memberGroups.createGroup({name: groupName.value, color: groupColor.value || null, position: groupPosition.value})
-    }
-    showGroupModal.value = false
-    groups.value = await memberGroups.listGroups()
-    if (selectedGroup.value && editingGroup.value?.id === selectedGroup.value.id) {
-      selectedGroup.value = groups.value.find(g => g.id === selectedGroup.value!.id) ?? null
-    }
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    groupSaving.value = false
+  if (editingGroup.value) {
+    await memberGroups.updateGroup(editingGroup.value.id, {name: groupName.value, color: groupColor.value || null, position: groupPosition.value})
+  } else {
+    await memberGroups.createGroup({name: groupName.value, color: groupColor.value || null, position: groupPosition.value})
   }
-}
-
-async function addMemberToGroup(member: StationMember) {
-  if (!selectedGroup.value) return
-  const newIds = [...groupMembers.value.map(m => m.id), member.id]
-  try {
-    groupMembers.value = await memberGroups.setGroupMembers(selectedGroup.value.id, {memberIds: newIds})
-  } catch {
-    error.value = t('common.error')
+  showGroupModal.value = false
+  groups.value = await memberGroups.listGroups()
+  if (selectedGroup.value && editingGroup.value?.id === selectedGroup.value.id) {
+    selectedGroup.value = groups.value.find(g => g.id === selectedGroup.value!.id) ?? null
   }
-}
-
-async function removeMemberFromGroup(member: StationMember) {
-  if (!selectedGroup.value) return
-  const newIds = groupMembers.value.filter(m => m.id !== member.id).map(m => m.id)
-  try {
-    groupMembers.value = await memberGroups.setGroupMembers(selectedGroup.value.id, {memberIds: newIds})
-  } catch {
-    error.value = t('common.error')
-  }
-}
+}, {formatError: () => t('common.error')})
 
 async function syncGroupRoles(newIds: Set<number>) {
   if (!selectedGroup.value) return
   try {
     groupRoles.value = await memberGroups.setGroupPermissions(selectedGroup.value.id, {permissionIds: [...newIds]})
   } catch (e: unknown) {
-    const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
-    error.value = msg || t('common.error')
+    error.value = apiErrorMessage(e) || t('common.error')
   }
 }
 
@@ -205,7 +178,7 @@ async function syncGroupRoles(newIds: Set<number>) {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <Alert v-if="error || groupSaveError" variant="error">{{ error || groupSaveError }}</Alert>
 
       <div v-if="!loading" class="grid gap-6 lg:grid-cols-2">
         <GroupListPanel :groups="groups" :selected-group="selectedGroup" :can-convert-to-tag="canConvertToTag"

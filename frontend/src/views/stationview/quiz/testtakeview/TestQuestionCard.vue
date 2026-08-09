@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import QuestionInputCard from '../questioncard/QuestionInputCard.vue'
-import type { QuizQuestion } from '@/api/types'
+import type { QuizQuestion } from '@/api/quiz'
 
 const props = defineProps<{
   questionDetail: QuizQuestion

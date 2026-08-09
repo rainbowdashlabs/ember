@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {onBeforeUnmount, onMounted} from 'vue'
+import {onMounted} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SidebarLayout from '@/components/layout/SidebarLayout.vue'
 import SidebarGroup from '@/components/navigation/SidebarGroup.vue'
@@ -16,7 +16,7 @@ import {useSession} from '@/composables/useSession'
 import HelpCenterLink from '@/components/navigation/HelpCenterLink.vue'
 import QuickSearchPalette from '@/components/quicksearch/QuickSearchPalette.vue'
 import QuickSearchTrigger from '@/components/quicksearch/QuickSearchTrigger.vue'
-import {useQuickSearch} from '@/composables/useQuickSearch'
+import {useQuickSearchShortcut} from '@/composables/useQuickSearchShortcut'
 import {usePageHeader} from '@/composables/usePageHeader'
 
 const {t} = useI18n()
@@ -27,28 +27,12 @@ const {title: pageTitle, subtitle: pageSubtitle} = usePageHeader()
 // (production bundles tree-shake the branch out via Vite's import.meta.env).
 const isDev = import.meta.env.DEV
 
-const {open: openQuickSearch, close: closeQuickSearch, isOpen: quickSearchOpen} = useQuickSearch()
-
-function onGlobalKeydown(event: KeyboardEvent) {
-  const isCtrlK = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k'
-  if (!isCtrlK) return
-  event.preventDefault()
-  if (quickSearchOpen.value) {
-    closeQuickSearch()
-  } else {
-    openQuickSearch('admin')
-  }
-}
+const {open: openQuickSearch} = useQuickSearchShortcut('admin')
 
 onMounted(() => {
   if (!loaded.value) {
     load()
   }
-  window.addEventListener('keydown', onGlobalKeydown)
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener('keydown', onGlobalKeydown)
 })
 
 </script>

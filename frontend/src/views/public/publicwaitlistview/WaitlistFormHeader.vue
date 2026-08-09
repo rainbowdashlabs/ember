@@ -26,7 +26,7 @@ const {t} = useI18n()
   <NeutralContainer class="space-y-2">
     <div class="flex items-center justify-between">
       <SubHeader>{{ listName }}</SubHeader>
-      <SecondaryButton v-if="showBack" size="sm" @click="emit('back')">
+      <SecondaryButton v-if="showBack" compact @click="emit('back')">
         {{ t('waitingList.back') }}
       </SecondaryButton>
     </div>

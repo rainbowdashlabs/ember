@@ -10,9 +10,10 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
-import type { ExchangeRequestEntry, ExchangeStatusName, InventoryItem } from '@/api/types'
-import { ExchangeStatus, InventoryTypes, ItemSource } from '@/api/types'
+import {ExchangeStatus, type ExchangeRequestEntry, type ExchangeStatusName} from '@/api/exchanges'
+import {InventoryTypes, ItemSource, type InventoryItem} from '@/api/inventory'
 import { exchanges, inventory, procurement } from '@/api'
+import { useAsyncAction } from '@/composables/useAsyncAction'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const { t } = useI18n()
@@ -31,7 +32,6 @@ const emit = defineEmits<{
 
 const updateTargetStatus = ref<string>('')
 const updateNote = ref('')
-const updateSaving = ref(false)
 const updateExchangedItemId = ref<string>('')
 const createNewItemForExchange = ref(false)
 const newItemName = ref(props.request.inventoryName)
@@ -41,33 +41,32 @@ function statusLabel(status: ExchangeStatusName): string {
   return t(`exchanges.status.${status}`)
 }
 
+const {running: updateSaving, run: runStatusUpdate} = useAsyncAction(async () => {
+  let exchangedItemId: number | undefined = updateExchangedItemId.value ? Number(updateExchangedItemId.value) : undefined
+  if (createNewItemForExchange.value && newItemName.value.trim()) {
+    const newItem = await inventory.createItem(props.request.inventoryId, {
+      name: newItemName.value.trim(),
+      internalId: '',
+      sizeId: props.request.newSizeId ?? props.request.oldSizeId ?? undefined,
+      itemSource: ItemSource.EXTERNAL,
+    })
+    exchangedItemId = newItem.id
+  }
+  await exchanges.updateStatus(props.request.id, {
+    status: updateTargetStatus.value,
+    note: updateNote.value || undefined,
+    exchangedItemId,
+  })
+  createNewItemForExchange.value = false
+  newItemName.value = ''
+  emit('done')
+  return true
+})
+
 async function submitStatusUpdate() {
   if (!updateTargetStatus.value) return
-  updateSaving.value = true
-  try {
-    let exchangedItemId: number | undefined = updateExchangedItemId.value ? Number(updateExchangedItemId.value) : undefined
-    if (createNewItemForExchange.value && newItemName.value.trim()) {
-      const newItem = await inventory.createItem(props.request.inventoryId, {
-        name: newItemName.value.trim(),
-        internalId: '',
-        sizeId: props.request.newSizeId ?? props.request.oldSizeId ?? undefined,
-        itemSource: ItemSource.EXTERNAL,
-      })
-      exchangedItemId = newItem.id
-    }
-    await exchanges.updateStatus(props.request.id, {
-      status: updateTargetStatus.value,
-      note: updateNote.value || undefined,
-      exchangedItemId,
-    })
-    createNewItemForExchange.value = false
-    newItemName.value = ''
-    emit('done')
-  } catch {
-    emit('error', t('common.error'))
-  } finally {
-    updateSaving.value = false
-  }
+  const ok = await runStatusUpdate()
+  if (!ok) emit('error', t('common.error'))
 }
 
 async function createProcurementFromExchange() {

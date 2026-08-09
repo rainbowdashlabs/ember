@@ -11,7 +11,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
-import {InventoryTypes} from '@/api/types'
+import {InventoryTypes} from '@/api/inventory'
 
 const name = defineModel<string>('name', {required: true})
 const type = defineModel<'INTERNAL' | 'EXTERNAL' | 'MIXED'>('type', {required: true})
@@ -44,7 +44,7 @@ function onSizeInput(index: number, value: string, current: string[]) {
     <FieldLabel>{{ t('inventory.unknownScan.newInventoryType') }}</FieldLabel>
     <SelectInput
         :model-value="type"
-        @update:model-value="(v: string) => type = v as 'INTERNAL' | 'EXTERNAL' | 'MIXED'"
+        @update:model-value="(v: string | number | null | undefined) => type = String(v ?? '') as 'INTERNAL' | 'EXTERNAL' | 'MIXED'"
     >
       <option :value="InventoryTypes.INTERNAL">{{ t('inventory.unknownScan.types.INTERNAL') }}</option>
       <option :value="InventoryTypes.EXTERNAL">{{ t('inventory.unknownScan.types.EXTERNAL') }}</option>
@@ -63,7 +63,7 @@ function onSizeInput(index: number, value: string, current: string[]) {
           :model-value="value"
           :placeholder="t('inventory.unknownScan.newInventorySizePlaceholder')"
           class="flex-1"
-          @update:model-value="(v: string) => onSizeInput(idx, v, sizes)"
+          @update:model-value="(v: string | undefined) => onSizeInput(idx, v ?? '', sizes)"
       />
       <IconButton
           v-if="sizes.length > 1"
@@ -72,7 +72,7 @@ function onSizeInput(index: number, value: string, current: string[]) {
           @click="emit('removeSize', idx)"
       />
     </div>
-    <SecondaryButton size="sm" @click="emit('addSize')">
+    <SecondaryButton compact @click="emit('addSize')">
       <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
       {{ t('inventory.unknownScan.addSize') }}
     </SecondaryButton>

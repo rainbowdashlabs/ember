@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import AdminStatisticsView from '~/views/adminview/AdminStatisticsView'
+import AdminStatisticsView from '~/views/adminview/AdminStatisticsView.vue'
 
 definePageMeta({
   layout: 'admin',

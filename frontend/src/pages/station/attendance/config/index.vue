@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import AttendanceConfigView from '~/views/stationview/manage/AttendanceConfigView'
+import AttendanceConfigView from '~/views/stationview/manage/AttendanceConfigView.vue'
 
 definePageMeta({
   layout: 'station',

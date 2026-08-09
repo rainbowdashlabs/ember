@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.comment.repository;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.comment.entity.Comment;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.time.LocalDate;
@@ -23,6 +24,9 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 @Singleton
 public class EventCommentRepository {
 
+    private static final String COMMENT_COLUMNS =
+            "id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at, event_date";
+
     /**
      * Finds all comments for an event, ordered by creation time.
      * Includes soft-deleted comments so the thread structure is preserved.
@@ -32,20 +36,10 @@ public class EventCommentRepository {
      */
     public List<Comment> findByEvent(int eventId) {
         return query("""
-                SELECT
-                    id,
-                    parent_id,
-                    author_station_uid,
-                    author_member_uid,
-                    content,
-                    deleted,
-                    created_at,
-                    updated_at,
-                    event_date
-                FROM
-                    event_comment
+                SELECT %s
+                FROM event_comment
                 WHERE event_id = :event_id
-                ORDER BY created_at;""")
+                ORDER BY created_at;""", COMMENT_COLUMNS)
                 .single(call().bind("event_id", eventId))
                 .map(Comment.map())
                 .all();
@@ -59,41 +53,21 @@ public class EventCommentRepository {
     public List<Comment> findByEventAndDate(int eventId, LocalDate eventDate) {
         if (eventDate == null) {
             return query("""
-                    SELECT
-                        id,
-                        parent_id,
-                        author_station_uid,
-                        author_member_uid,
-                        content,
-                        deleted,
-                        created_at,
-                        updated_at,
-                        event_date
-                    FROM
-                        event_comment
+                    SELECT %s
+                    FROM event_comment
                     WHERE event_id = :event_id
                       AND event_date IS NULL
-                    ORDER BY created_at;""")
+                    ORDER BY created_at;""", COMMENT_COLUMNS)
                     .single(call().bind("event_id", eventId))
                     .map(Comment.map())
                     .all();
         }
         return query("""
-                SELECT
-                    id,
-                    parent_id,
-                    author_station_uid,
-                    author_member_uid,
-                    content,
-                    deleted,
-                    created_at,
-                    updated_at,
-                    event_date
-                FROM
-                    event_comment
+                SELECT %s
+                FROM event_comment
                 WHERE event_id = :event_id
                   AND event_date = :event_date
-                ORDER BY created_at;""")
+                ORDER BY created_at;""", COMMENT_COLUMNS)
                 .single(call().bind("event_id", eventId).bind("event_date", eventDate))
                 .map(Comment.map())
                 .all();
@@ -106,20 +80,7 @@ public class EventCommentRepository {
      * @return the comment, if found
      */
     public Optional<Comment> findById(int id) {
-        return query("""
-                SELECT
-                    id,
-                    parent_id,
-                    author_station_uid,
-                    author_member_uid,
-                    content,
-                    deleted,
-                    created_at,
-                    updated_at,
-                    event_date
-                FROM
-                    event_comment
-                WHERE id = :id;""").single(call().bind("id", id)).map(Comment.map()).first();
+        return SqlSupport.findById("event_comment", COMMENT_COLUMNS, id, Comment.map());
     }
 
     /**
@@ -132,15 +93,16 @@ public class EventCommentRepository {
      * @return the created comment
      */
     public Comment create(int eventId, Integer parentId, MemberIdentity author, String content, LocalDate eventDate) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT
-                        INTO
-                            event_comment
-                            (event_id, parent_id, author_station_uid, author_member_uid, content, event_date)
-                        VALUES
-                            (:event_id, :parent_id, :author_station_uid::UUID, :author_member_uid::UUID, :content, :event_date)
-                        RETURNING id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at, event_date;""")
-                .single(call().bind("event_id", eventId)
+                INTO
+                    event_comment
+                    (event_id, parent_id, author_station_uid, author_member_uid, content, event_date)
+                VALUES
+                    (:event_id, :parent_id, :author_station_uid::UUID, :author_member_uid::UUID, :content, :event_date)
+                RETURNING %s;""",
+                call().bind("event_id", eventId)
                         .bind("parent_id", parentId)
                         .bind(
                                 "author_station_uid",
@@ -151,10 +113,9 @@ public class EventCommentRepository {
                                 author != null ? author.memberUid() : null,
                                 StandardValueConverter.UUID_STRING)
                         .bind("content", content)
-                        .bind("event_date", eventDate))
-                .map(Comment.map())
-                .first()
-                .orElseThrow();
+                        .bind("event_date", eventDate),
+                Comment.map(),
+                COMMENT_COLUMNS);
     }
 
     /**
@@ -185,10 +146,7 @@ public class EventCommentRepository {
                     .update()
                     .changed();
         }
-        return query("DELETE FROM event_comment WHERE id = :id;")
-                .single(call().bind("id", id))
-                .update()
-                .changed();
+        return SqlSupport.deleteById("event_comment", id);
     }
 
     /**
@@ -198,10 +156,6 @@ public class EventCommentRepository {
      * @return {@code true} if the comment has children
      */
     public boolean hasChildren(int id) {
-        return query("SELECT exists(SELECT 1 FROM event_comment WHERE parent_id = :id);")
-                .single(call().bind("id", id))
-                .map(row -> row.getBoolean(1))
-                .first()
-                .orElse(false);
+        return SqlSupport.exists("SELECT 1 FROM event_comment WHERE parent_id = :id LIMIT 1;", call().bind("id", id));
     }
 }

@@ -4,9 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, ref, watch} from 'vue'
-import client from '@/api/client'
+import {computed} from 'vue'
 import type {MemberIdentity} from '@/api/types'
+import {useAuthImage} from '@/composables/useAuthImage'
 
 const props = withDefaults(defineProps<{
   identity?: MemberIdentity | null
@@ -15,9 +15,6 @@ const props = withDefaults(defineProps<{
 }>(), {
   size: 'md',
 })
-
-const hasAvatar = ref(false)
-const imgSrc = ref('')
 
 const sizeClasses = computed(() => {
   switch (props.size) {
@@ -33,35 +30,10 @@ const sizeClasses = computed(() => {
 const initials = computed(() => {
   if (!props.name) return '?'
   const parts = props.name.trim().split(/\s+/)
-  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-  return parts[0][0]?.toUpperCase() ?? '?'
+  const first = parts[0]?.[0] ?? ''
+  const last = parts.length >= 2 ? (parts[parts.length - 1]?.[0] ?? '') : ''
+  return (first + last).toUpperCase() || '?'
 })
-
-function revokeOld() {
-  if (imgSrc.value && imgSrc.value.startsWith('blob:')) {
-    URL.revokeObjectURL(imgSrc.value)
-  }
-}
-
-async function loadAvatar() {
-  revokeOld()
-  hasAvatar.value = false
-  imgSrc.value = ''
-
-  const url = resolveUrl()
-  if (!url) return
-
-  try {
-    const res = await client.get(url, {
-      responseType: 'blob',
-      validateStatus: (status) => status === 200 || status === 204 || status === 404,
-    })
-    if (res.status === 200 && res.data) {
-      imgSrc.value = URL.createObjectURL(res.data)
-      hasAvatar.value = true
-    }
-  } catch { /* no avatar */ }
-}
 
 function resolveUrl(): string | null {
   if (props.identity?.accountUid) {
@@ -73,11 +45,7 @@ function resolveUrl(): string | null {
   return null
 }
 
-watch(
-  () => `${props.identity?.accountUid ?? ''}/${props.identity?.stationUid ?? ''}/${props.identity?.memberUid ?? ''}`,
-  loadAvatar,
-  {immediate: true},
-)
+const {src: imgSrc} = useAuthImage(() => resolveUrl())
 </script>
 
 <template>
@@ -86,7 +54,7 @@ watch(
       :title="name"
       class="shrink-0 rounded-full overflow-hidden bg-primary/15 text-primary font-bold flex items-center justify-center"
   >
-    <img v-if="hasAvatar" :src="imgSrc" alt="" loading="lazy" class="h-full w-full object-cover"/>
+    <img v-if="imgSrc" :src="imgSrc" alt="" loading="lazy" class="h-full w-full object-cover"/>
     <span v-else>{{ initials }}</span>
   </div>
 </template>

@@ -10,14 +10,10 @@ import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
-import EmptyState from '@/components/feedback/EmptyState.vue'
-import Modal from '@/components/feedback/Modal.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import AsyncSection from '@/components/feedback/AsyncSection.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import NewsList, { type UnifiedNewsItem } from './listview/NewsList.vue'
-import type { NewsEntry } from '@/api/types'
-import type { FederatedNewsItem } from '@/api/news'
+import type {FederatedNewsItem, NewsEntry} from '@/api/news'
 import { news } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useConfirmDelete } from '@/composables/useConfirmDelete'
@@ -238,34 +234,34 @@ watch(() => entries.value.length, async () => {
         </PrimaryButton>
       </div>
 
-      <Spinner v-if="loading" size="lg" />
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <AsyncSection
+        :empty="allNews.length === 0"
+        :empty-message="t('news.empty')"
+        :error="error"
+        :loading="loading"
+      >
+        <NewsList
+          :items="allNews"
+          :can-edit-news="canEditNews"
+          :comments-open-key="commentsOpenId"
+          :item-key="itemKey"
+          :set-news-item-ref="setNewsItemRef"
+          :set-view-badge-ref="setViewBadgeRef"
+          :on-open="openItem"
+          :on-toggle-comments="toggleComments"
+          :on-request-delete="requestDelete"
+        />
 
-      <EmptyState v-if="!loading && allNews.length === 0">{{ t('news.empty') }}</EmptyState>
-
-      <NewsList
-        :items="allNews"
-        :can-edit-news="canEditNews"
-        :comments-open-key="commentsOpenId"
-        :item-key="itemKey"
-        :set-news-item-ref="setNewsItemRef"
-        :set-view-badge-ref="setViewBadgeRef"
-        :on-open="openItem"
-        :on-toggle-comments="toggleComments"
-        :on-request-delete="requestDelete"
-      />
-
-      <Spinner v-if="loadingMore" size="md" />
-
-      <Modal v-model="showDeleteModal">
-        <div class="space-y-4">
-          <p>{{ t('news.deleteConfirm', { title: deleteTarget?.title }) }}</p>
-          <div class="flex justify-end gap-3">
-            <SecondaryButton @click="showDeleteModal = false">{{ t('common.cancel') }}</SecondaryButton>
-            <ErrorButton @click="confirmDelete">{{ t('common.delete') }}</ErrorButton>
-          </div>
+        <div v-if="loadingMore" class="flex justify-center py-4">
+          <Spinner size="md" />
         </div>
-      </Modal>
+      </AsyncSection>
+
+      <ConfirmDeleteModal
+        v-model="showDeleteModal"
+        :message="t('news.deleteConfirm', { title: deleteTarget?.title })"
+        @confirm="confirmDelete"
+      />
     </div>
   </ViewContent>
 </template>

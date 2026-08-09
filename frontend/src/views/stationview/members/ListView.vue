@@ -13,11 +13,14 @@ import Modal from '@/components/feedback/Modal.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import type { StationMember } from '@/api/types'
-import { StationPermission, StationUserType, parseFieldConfig } from '@/api/types'
-import { useMemberData, memberDisplayName } from './listview/useMemberData'
-import { useSavedFilters, emptyTabState, type TabFilterState } from './listview/useSavedFilters'
-import { useExport } from './listview/useExport'
+import {StationPermission, StationUserType, type StationMember} from '@/api/types'
+import { parseFieldConfig } from '@/api/profileFields'
+import { useMemberData, memberDisplayName, getMemberFirstName, getMemberLastName } from './listview/useMemberData'
+import { useSavedFilters, type MemberSortKey } from './listview/useSavedFilters'
+import { useMemberListTabs } from './listview/useMemberListTabs'
+import { useExport, type ExportColumn } from '@/composables/useExport'
+import { useAsyncAction } from '@/composables/useAsyncAction'
+import { byValue, useSortable, type SortDirection } from '@/composables/useSortable'
 import { useMemberFilter } from '@/composables/useMemberFilter'
 import { useSession } from '@/composables/useSession'
 import { stationMembers } from '@/api'
@@ -36,78 +39,16 @@ const {
   toggleExpand,
 } = useMemberData()
 
-const activeTab = ref('ALL')
-
-const tabStates = ref<Record<string, TabFilterState>>({
-  ALL: emptyTabState(),
-  TRIAL: emptyTabState(),
-  MEMBER: emptyTabState(),
-  GUARDIAN: emptyTabState(),
-  TEAM: emptyTabState(),
-})
-
-const currentTabState = computed(() => tabStates.value[activeTab.value] ?? emptyTabState())
-const filterText = computed({
-  get: () => currentTabState.value.filterText,
-  set: (v: string) => { tabStates.value[activeTab.value].filterText = v },
-})
-const columnMultiFilters = computed(() => currentTabState.value.columnMultiFilters)
-const columnEmptyFilters = computed(() => currentTabState.value.columnEmptyFilters)
-const sortColumn = computed(() => currentTabState.value.sortColumn)
-const sortAsc = computed(() => currentTabState.value.sortAsc)
-
-const tabs = computed(() => [
-  { key: 'ALL', label: t('membersList.tabAll') },
-  { key: 'TRIAL', label: t('membersList.tabTrial') },
-  { key: 'MEMBER', label: t('membersList.tabMember') },
-  { key: 'GUARDIAN', label: t('membersList.tabMemberManager') },
-  { key: 'TEAM', label: t('membersList.tabTeam') },
-  { key: 'MANAGER', label: t('membersList.tabManager') },
-])
+const {
+  activeTab, tabStates, tabs,
+  filterText, columnMultiFilters, columnEmptyFilters, sortKey, sortDirection,
+  extraColumnIds, hiddenColumnIds,
+  tabScopedFields, tabOverviewFields, tabNonOverviewFields, visibleColumns, toggleColumn,
+  applyColumnFilter,
+} = useMemberListTabs(fields)
 
 const { savedFilters, loadSavedFilters, saveCurrentFilter, applyFilter, deleteFilter, clearFilters } =
   useSavedFilters(tabStates, activeTab)
-
-const extraColumnIds = ref<Set<number>>(new Set())
-const hiddenColumnIds = ref<Set<number>>(new Set())
-
-const tabScopedFields = computed(() => {
-  const scopeForTab: Record<string, string[]> = {
-    ALL: [StationUserType.TRIAL, StationUserType.MEMBER, StationUserType.GUARDIAN, StationUserType.TEAM, StationUserType.MANAGER],
-    [StationUserType.TRIAL]: [StationUserType.TRIAL],
-    [StationUserType.MEMBER]: [StationUserType.MEMBER],
-    [StationUserType.GUARDIAN]: [StationUserType.GUARDIAN],
-    [StationUserType.TEAM]: [StationUserType.TEAM],
-    [StationUserType.MANAGER]: [StationUserType.MANAGER],
-  }
-  const scopes = scopeForTab[activeTab.value] ?? []
-  return fields.value.filter(f => {
-    if (f.scope === 'GROUP') return false
-    return scopes.includes(f.scope ?? StationUserType.MEMBER)
-  })
-})
-
-const tabOverviewFields = computed(() => tabScopedFields.value.filter(f => parseFieldConfig(f.config).overview))
-const tabNonOverviewFields = computed(() => tabScopedFields.value.filter(f => !parseFieldConfig(f.config).overview))
-
-const visibleColumns = computed(() => {
-  const overview = tabOverviewFields.value.filter(f => !hiddenColumnIds.value.has(f.id))
-  const extra = tabNonOverviewFields.value.filter(f => extraColumnIds.value.has(f.id))
-  return [...overview, ...extra]
-})
-
-function toggleColumn(fieldId: number) {
-  const isOverview = tabOverviewFields.value.some(f => f.id === fieldId)
-  if (isOverview) {
-    const next = new Set(hiddenColumnIds.value)
-    if (next.has(fieldId)) next.delete(fieldId); else next.add(fieldId)
-    hiddenColumnIds.value = next
-  } else {
-    const next = new Set(extraColumnIds.value)
-    if (next.has(fieldId)) next.delete(fieldId); else next.add(fieldId)
-    extraColumnIds.value = next
-  }
-}
 
 const {
   onFilter: onMemberFilter,
@@ -151,40 +92,41 @@ const filteredMembers = computed(() => {
       return values.length === 0 || values.every(v => !v)
     })
   }
-  return [...list].sort((a, b) => {
-    let valA: string, valB: string
-    if (sortColumn.value === 'name') {
-      valA = memberDisplayName(a).toLowerCase()
-      valB = memberDisplayName(b).toLowerCase()
-    } else {
-      valA = getFieldValueAsString(a.id, sortColumn.value).toLowerCase()
-      valB = getFieldValueAsString(b.id, sortColumn.value).toLowerCase()
-    }
-    const cmp = valA.localeCompare(valB)
-    return sortAsc.value ? cmp : -cmp
-  })
+  return list
 })
 
-function toggleSort(column: 'name' | number) {
-  const state = tabStates.value[activeTab.value]
-  if (state.sortColumn === column) { state.sortAsc = !state.sortAsc }
-  else { state.sortColumn = column; state.sortAsc = true }
-}
+const {sorted: sortedMembers, toggle: toggleSort} = useSortable<StationMember, MemberSortKey>({
+  items: filteredMembers,
+  initialKey: 'name',
+  state: {key: sortKey, direction: sortDirection},
+  comparators: key => key === 'name'
+      ? byValue(memberDisplayName)
+      : byValue(member => getFieldValueAsString(member.id, key)),
+})
 
-function applyColumnFilter(key: 'name' | 'groups' | 'tags' | number, selected: Set<string>, includeEmpty: boolean) {
-  const state = tabStates.value[activeTab.value]
-  const newMap = new Map(state.columnMultiFilters)
-  if (selected.size > 0) { newMap.set(key, selected) } else { newMap.delete(key) }
-  state.columnMultiFilters = newMap
-  const newEmpty = new Set(state.columnEmptyFilters)
-  if (includeEmpty) { newEmpty.add(key) } else { newEmpty.delete(key) }
-  state.columnEmptyFilters = newEmpty
-}
+const exportColumns = computed((): ExportColumn<StationMember>[] => [
+  {key: 'firstName', label: t('membersList.export.colFirstName'), value: getMemberFirstName},
+  {key: 'lastName', label: t('membersList.export.colLastName'), value: getMemberLastName},
+  {key: 'email', label: t('membersList.export.colEmail'), value: m => m.email ?? ''},
+  {key: 'groups', label: t('membersList.export.colGroups'), value: m => getMemberGroups(m.id).join(', ')},
+  ...tabScopedFields.value.map(f => ({
+    key: `field:${f.id}`,
+    label: f.name ?? '',
+    value: (m: StationMember) => getFieldValueAsString(m.id, f.id),
+  })),
+])
 
 const {
-  exportMode, selectedIds, showExportModal,
-  toggleExportMode, toggleSelect, toggleSelectAll, openExportModal, performExport,
-} = useExport(filteredMembers, fields, getMemberGroups, getFieldValueAsString)
+  exportMode, selectedIds, showExportModal, selectedColumns, columnOptions,
+  toggleExportMode, toggleRow, toggleAllRows, toggleColumn: toggleExportColumn,
+  selectColumns, openExportModal, performExport,
+} = useExport({
+  rows: () => sortedMembers.value,
+  rowId: m => m.id,
+  columns: () => exportColumns.value,
+  fileName: 'mitglieder',
+  defaultColumns: ['firstName', 'lastName', 'email'],
+})
 
 function navigateToDetail(member: StationMember, event: Event) {
   event.stopPropagation()
@@ -197,30 +139,29 @@ function navigateToEdit(member: StationMember, event: Event) {
 }
 
 const resendTarget = ref<StationMember | null>(null)
-const resending = ref(false)
-const resendError = ref('')
 const resendSuccess = ref('')
+
+const {
+  running: resending,
+  error: resendError,
+  run: confirmResendSetup,
+  clearError: clearResendError,
+} = useAsyncAction(async () => {
+  if (!resendTarget.value) return
+  await stationMembers.resendSetupMail(resendTarget.value.id)
+  resendSuccess.value = t('membersList.resendSuccess')
+  resendTarget.value = null
+}, {
+  formatError: e => {
+    const data = (e as {response?: {data?: {title?: string; message?: string}}})?.response?.data
+    return data?.title ?? data?.message ?? t('common.error')
+  },
+})
 
 function openResendSetup(member: StationMember, event: Event) {
   event.stopPropagation()
   resendTarget.value = member
-  resendError.value = ''
-}
-
-async function confirmResendSetup() {
-  if (!resendTarget.value) return
-  resending.value = true
-  resendError.value = ''
-  try {
-    await stationMembers.resendSetupMail(resendTarget.value.id)
-    resendSuccess.value = t('membersList.resendSuccess')
-    resendTarget.value = null
-  } catch (e) {
-    const data = (e as {response?: {data?: {title?: string; message?: string}}})?.response?.data
-    resendError.value = data?.title ?? data?.message ?? t('common.error')
-  } finally {
-    resending.value = false
-  }
+  clearResendError()
 }
 
 onMounted(() => {
@@ -243,7 +184,8 @@ onMounted(() => {
       :saved-filters="savedFilters"
       :tab-overview-fields="tabOverviewFields"
       :tab-non-overview-fields="tabNonOverviewFields"
-      :tab-scoped-fields="tabScopedFields"
+      :export-columns="columnOptions"
+      :selected-export-columns="selectedColumns"
       :extra-column-ids="extraColumnIds"
       :hidden-column-ids="hiddenColumnIds"
       :export-mode="exportMode"
@@ -252,11 +194,11 @@ onMounted(() => {
       :can-edit="canEdit"
       :groups="allGroups"
       :tags="allTags"
-      :filtered-members="filteredMembers"
+      :members="sortedMembers"
       :visible-columns="visibleColumns"
       :expanded-id="expandedId"
-      :sort-column="sortColumn"
-      :sort-asc="sortAsc"
+      :sort-key="sortKey"
+      :sort-direction="sortDirection"
       :column-multi-filters="columnMultiFilters"
       :column-empty-filters="columnEmptyFilters"
       :member-groups-map="memberGroupsMap"
@@ -280,8 +222,10 @@ onMounted(() => {
       @navigate-detail="navigateToDetail"
       @navigate-edit="navigateToEdit"
       @resend-setup="openResendSetup"
-      @toggle-select="toggleSelect"
-      @toggle-select-all="toggleSelectAll"
+      @toggle-select="toggleRow"
+      @toggle-select-all="toggleAllRows"
+      @toggle-export-column="toggleExportColumn"
+      @select-export-columns="selectColumns"
       @export="performExport"
     />
 

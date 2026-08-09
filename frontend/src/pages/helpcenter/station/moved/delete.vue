@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import StationMovedDeleteHelp from '~/views/helpcenter/stationmovedview/StationMovedDeleteHelp'
+import StationMovedDeleteHelp from '~/views/helpcenter/stationmovedview/StationMovedDeleteHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

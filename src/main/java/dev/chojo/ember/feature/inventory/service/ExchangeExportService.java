@@ -21,8 +21,6 @@ import dev.chojo.ember.util.TypstCompiler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -47,7 +45,6 @@ import static org.slf4j.LoggerFactory.getLogger;
 @Singleton
 public class ExchangeExportService {
     private static final Logger log = getLogger(ExchangeExportService.class);
-    private static final ObjectMapper MAPPER = JsonMapper.builder().build();
     private static final DateTimeFormatter DATE_TIME_FMT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
     private final ExchangeRepository exchangeRepository;
     private final InventoryRepository inventoryRepository;
@@ -245,8 +242,7 @@ public class ExchangeExportService {
         return TypstCompiler.compileTemplate(
                 data,
                 templateName,
-                logo != null ? new TypstCompiler.StationLogo(logo.data(), logo.contentType()) : null,
-                MAPPER);
+                logo != null ? new TypstCompiler.StationLogo(logo.data(), logo.contentType()) : null);
     }
 
     record SizeChange(String oldSize, String newSize) {}

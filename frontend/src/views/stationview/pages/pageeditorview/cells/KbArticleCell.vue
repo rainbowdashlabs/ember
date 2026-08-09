@@ -7,6 +7,7 @@
 import {computed, onMounted, ref, watch} from 'vue'
 import * as publicKb from '@/api/publicKb'
 import type {KbArticleConfig} from '@/api/pageManage'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const props = defineProps<{
     config: KbArticleConfig
@@ -37,7 +38,7 @@ const title = computed(() => resolvedTitle.value || 'Wiki-Artikel')
         <font-awesome-icon :icon="['fas', 'book']" class="text-xl text-primary"/>
         <div class="flex-1 min-w-0">
             <p class="font-medium truncate">{{ title }}</p>
-            <p class="text-xs text-(--text-muted) truncate">Wissensdatenbank</p>
+            <MutedText tag="p" class="truncate">Wissensdatenbank</MutedText>
         </div>
         <font-awesome-icon :icon="['fas', 'arrow-right']" class="text-(--text-muted)"/>
     </a>

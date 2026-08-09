@@ -6,14 +6,12 @@
 <script lang="ts" setup>
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
-import type { InventoryItem, InventorySize, StationMember } from '@/api/types'
-import { InventoryTypes, ItemSource } from '@/api/types'
+import {InventoryTypes, ItemSource, type InventoryItem, type InventorySize} from '@/api/inventory'
+import type { StationMember } from '@/api/types'
 import type { LentOutItem } from '@/api/lending'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
@@ -21,12 +19,12 @@ import { useBreakpoint } from '@/composables/useBreakpoint'
 import ItemActions from './itemstable/ItemActions.vue'
 import ItemsTableDesktop from './itemstable/ItemsTableDesktop.vue'
 import type { InventoryItemActionEmits } from './itemEmits'
+import type { ItemTableApi } from './itemtable/useItemTable'
 import { formatDate } from '@/util/format'
 
 const { isMobile } = useBreakpoint()
 
 const { t } = useI18n()
-const router = useRouter()
 
 const props = withDefaults(defineProps<{
   items: InventoryItem[]
@@ -39,11 +37,14 @@ const props = withDefaults(defineProps<{
   lentOutItems?: LentOutItem[]
   lentItemMap?: Map<number, string>
   containerPathById?: Map<number, string>
+  tableApi?: ItemTableApi
 }>(), {
   showActions: false,
   showHistory: false,
   inventoryType: InventoryTypes.INTERNAL,
 })
+
+const displayItems = computed(() => props.tableApi ? props.tableApi.filteredItems : props.items)
 
 function locationLabel(containerId: number | null | undefined): string {
   if (!containerId) return ''
@@ -63,21 +64,21 @@ const isMixed = computed(() => props.inventoryType === InventoryTypes.MIXED)
 const emit = defineEmits<InventoryItemActionEmits>()
 
 function getSizeLabel(sizeId: number | null | undefined): string {
-  if (!sizeId || !props.sizes) return t('common.unisize')
-  return props.sizes.find(s => s.id === sizeId)?.label ?? t('common.unisize')
+  if (!sizeId || !props.sizes) return ''
+  return props.sizes.find(s => s.id === sizeId)?.label ?? ''
 }
 
 function getMemberIdentity(memberId: number | null | undefined) {
   if (!memberId || !props.members) return undefined
   const m = props.members.get(memberId)
-  return m?.identity
+  return m?.identity ?? undefined
 }
 
 </script>
 
 <template>
   <div v-if="isMobile && items.length > 0" class="space-y-3">
-    <NeutralContainer v-for="item in items" :key="item.id" :class="item.lostAt ? 'opacity-60' : ''" class="space-y-2">
+    <NeutralContainer v-for="item in displayItems" :key="item.id" :class="item.lostAt ? 'opacity-60' : ''" class="space-y-2">
       <div class="flex items-center justify-between">
         <div>
           <router-link :to="{ name: 'inventory-item-detail', params: { id: item.id } }" class="font-medium hover:text-primary hover:underline">{{ item.name }}</router-link>
@@ -89,7 +90,7 @@ function getMemberIdentity(memberId: number | null | undefined) {
             </InfoBadge>
           </div>
         </div>
-        <div v-if="hasSizes">
+        <div v-if="hasSizes && getSizeLabel(item.sizeId)">
           <SizeBadge :lost="!!item.lostAt">{{ getSizeLabel(item.sizeId) }}</SizeBadge>
         </div>
       </div>
@@ -101,9 +102,9 @@ function getMemberIdentity(memberId: number | null | undefined) {
         </div>
         <div v-if="item.assignedTo">
           <span class="text-(--text-muted)">{{ t('inventory.edit.colAssigned') }}:</span>
-          <SecondaryButton class="!bg-transparent !p-0 ml-1 text-primary font-medium hover:underline" @click.stop="router.push({ name: 'inventory-member', params: { memberId: item.assignedTo } })">
+          <router-link :to="{ name: 'inventory-member', params: { memberId: item.assignedTo } }" class="inline-block ml-1 font-medium hover:text-primary hover:underline" @click.stop>
             <MemberName :identity="getMemberIdentity(item.assignedTo)"/>
-          </SecondaryButton>
+          </router-link>
         </div>
         <div v-else-if="locationLabel(item.containerId)" class="text-(--text-muted) flex items-center gap-1">
           <font-awesome-icon :icon="['fas', 'box']" class="h-3 w-3"/>
@@ -124,7 +125,8 @@ function getMemberIdentity(memberId: number | null | undefined) {
   </div>
 
   <ItemsTableDesktop v-else-if="items.length > 0"
-                     :items="items" :has-sizes="hasSizes" :is-mixed="isMixed"
+                     :items="displayItems" :has-sizes="hasSizes" :is-mixed="isMixed"
+                     :table-api="tableApi"
                      :show-actions="showActions" :show-history="showHistory"
                      :lent-item-map="lentItemMap"
                      :container-path-by-id="containerPathById"

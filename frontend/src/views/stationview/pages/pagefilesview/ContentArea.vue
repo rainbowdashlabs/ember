@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import Spinner from '@/components/feedback/Spinner.vue'
+import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import PageFilesGrid from './PageFilesGrid.vue'
 import PageFilesPagination from './PageFilesPagination.vue'
@@ -86,14 +86,11 @@ const {t} = useI18n()
 
     <Alert v-if="props.uploadError" variant="error">{{ props.uploadError }}</Alert>
 
-    <div v-if="props.loading" class="flex justify-center py-8">
-      <Spinner size="lg"/>
-    </div>
-    <p v-else-if="props.visibleFolders.length === 0 && props.filtered.length === 0"
-       class="text-sm text-(--text-muted) text-center py-8">
-      {{ t('stationPages.editor.browseFilesEmpty') }}
-    </p>
-    <template v-else>
+    <AsyncSection
+        :empty="props.visibleFolders.length === 0 && props.filtered.length === 0"
+        :empty-message="t('stationPages.editor.browseFilesEmpty')"
+        :loading="props.loading"
+    >
       <PageFilesGrid
           :folders="props.visibleFolders"
           :files="props.pagedFiles"
@@ -117,6 +114,6 @@ const {t} = useI18n()
           @update:current-page="(v: number) => emit('update:current-page', v)"
           @update:page-size="(v: number) => emit('update:page-size', v)"
       />
-    </template>
+    </AsyncSection>
   </div>
 </template>

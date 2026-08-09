@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import WaitingListStatusView from '~/views/WaitingListStatusView'
+import WaitingListStatusView from '~/views/WaitingListStatusView.vue'
 
 definePageMeta({
   layout: 'default',

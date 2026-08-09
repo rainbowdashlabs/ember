@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import RequirementsView from '~/views/stationview/RequirementsView'
+import RequirementsView from '~/views/stationview/RequirementsView.vue'
 
 definePageMeta({
   layout: 'station',

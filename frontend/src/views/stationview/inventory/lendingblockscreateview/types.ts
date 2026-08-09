@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {InventoryItem} from '@/api/types'
+import type {InventoryItem} from '@/api/inventory'
 
 export interface BlockEntry {
   inventoryId: number

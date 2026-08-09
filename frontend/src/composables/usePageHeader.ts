@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {ref} from 'vue'
+import {readonly, ref} from 'vue'
 
 /**
  * Reactive header state shared across the app. {@code ViewContent} writes to it
@@ -18,7 +18,7 @@ const subtitle = ref('')
 let owner: symbol | null = null
 
 export function usePageHeader() {
-    return {title, subtitle}
+    return {title: readonly(title), subtitle: readonly(subtitle)}
 }
 
 /**

@@ -15,7 +15,6 @@ defineProps<{
   peers: DiscoveryPeer[]
   sourceLabel: Record<DiscoveryPeerSource, string>
   inFlightKey: string | null
-  formatTimestamp: (ts: string | null) => string
 }>()
 
 const emit = defineEmits<{
@@ -41,7 +40,6 @@ const {t} = useI18n()
           :peer="p"
           :source-label="sourceLabel[p.source]"
           :in-flight="inFlightKey === p.publicKey"
-          :format-timestamp="formatTimestamp"
           @upvote="emit('upvote', p)"
           @downvote="emit('downvote', p)"
           @block="emit('block', p)"

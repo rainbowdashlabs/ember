@@ -7,7 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type {PublicWaitlistSummary} from '@/api/types'
+import type {PublicWaitlistSummary} from '@/api/waitingList'
 
 defineProps<{
   lists: PublicWaitlistSummary[]

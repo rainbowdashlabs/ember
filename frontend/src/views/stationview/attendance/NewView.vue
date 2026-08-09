@@ -10,13 +10,14 @@ import {useRoute, useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import type {AttendanceTemplate, StationEvent} from '@/api/types'
+import type {AttendanceTemplate} from '@/api/attendance'
+import type {StationEvent} from '@/api/events'
 import {attendance, events} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import TodayEventsGrid from '@/views/stationview/attendance/newview/TodayEventsGrid.vue'
 import TemplateGrid from '@/views/stationview/attendance/newview/TemplateGrid.vue'
-import {formatTime} from '@/util/format'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -25,7 +26,6 @@ const {loaded} = useSession()
 
 const templates = ref<AttendanceTemplate[]>([])
 const todayEvents = ref<StationEvent[]>([])
-const creating = ref(false)
 
 const eventsWithTemplate = computed(() =>
     todayEvents.value.filter(ev => ev.templateId != null)
@@ -46,19 +46,18 @@ const {loading, error, reload} = useAsyncLoader(async () => {
   }
 }, {autoLoad: false})
 
-async function createSession(templateId: number, eventId?: number | null) {
-  creating.value = true
+const {running: creating, error: createError, run: runCreate} = useAsyncAction(async (templateId: number, eventId?: number | null) => {
+  const session = await attendance.createSession(templateId, {
+    eventId: eventId ?? null,
+  })
+  router.push({name: 'attendance-session', params: {id: session.id}})
+})
+
+const displayError = computed(() => error.value || createError.value)
+
+function createSession(templateId: number, eventId?: number | null) {
   error.value = ''
-  try {
-    const session = await attendance.createSession(templateId, {
-      eventId: eventId ?? null,
-    })
-    router.push({name: 'attendance-session', params: {id: session.id}})
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    creating.value = false
-  }
+  return runCreate(templateId, eventId)
 }
 
 function createFromTemplate(templateId: number) {
@@ -87,13 +86,12 @@ watch(loaded, (isLoaded) => {
   >
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <Alert v-if="displayError" variant="error">{{ displayError }}</Alert>
 
       <template v-if="!loading && !creating">
         <TodayEventsGrid v-if="eventsWithTemplate.length > 0"
                          :events="eventsWithTemplate"
                          :template-name="getTemplateName"
-                         :format-time="formatTime"
                          @select="createFromEvent"/>
         <TemplateGrid :templates="templates" @select="createFromTemplate"/>
       </template>

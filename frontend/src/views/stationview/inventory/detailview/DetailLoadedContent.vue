@@ -6,15 +6,19 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
+import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ItemsTable from '../ItemsTable.vue'
+import type { ItemTableApi } from '../itemtable/useItemTable'
+import ItemTableFilterModal from '../itemtable/ItemTableFilterModal.vue'
+import ItemListControls from '../itemtable/ItemListControls.vue'
 import InventoryStatsPanel from './InventoryStatsPanel.vue'
 import LentOutTable from './LentOutTable.vue'
 import ProcurementTable from './ProcurementTable.vue'
 import LostItemsTable from './LostItemsTable.vue'
 import FreeItemsGrid from './FreeItemsGrid.vue'
-import type { InventoryDetail, InventoryItem, InventorySize, StationMember, ProcurementEntry } from '@/api/types'
-import { InventoryTypes } from '@/api/types'
+import {InventoryTypes, type InventoryDetail, type InventoryItem, type InventorySize} from '@/api/inventory'
+import type { ProcurementEntry } from '@/api/procurement'
+import type { StationMember } from '@/api/types'
 import type { LentOutItem } from '@/api/lending'
 import type { InventoryItemActionEmits } from '../itemEmits'
 
@@ -56,6 +60,7 @@ defineProps<{
   counts: Counts
   allSizeStats: SizeStat[]
   permissions: Permissions
+  itemTable: ItemTableApi
 }>()
 
 defineEmits<InventoryItemActionEmits & {
@@ -90,37 +95,40 @@ const { t } = useI18n()
 
   <LentOutTable :lent-out-items="lentOutItems" :lent-out-count="counts.lentOut" />
 
-  <div v-if="items.length > 0 || permissions.canCreateItem" class="flex flex-wrap items-center justify-between gap-2">
-    <SubHeader>{{ t('inventory.edit.itemsTitle') }} ({{ items.length }})</SubHeader>
-    <div v-if="permissions.canCreateItem" class="flex items-center gap-2">
-      <PrimaryButton v-if="permissions.canQuickAssign" :icon="['fas', 'user-plus']" @click="$emit('openQuickAssign')">
-        {{ t('inventory.edit.quickAssign') }}
-      </PrimaryButton>
-      <PrimaryButton v-if="permissions.canAddInternal" :icon="['fas', 'plus']" @click="$emit('openAdd')">
-        {{ t('inventory.edit.addItem') }}
-      </PrimaryButton>
-    </div>
-  </div>
-  <ItemsTable
-    v-if="items.length > 0"
-    :items="items"
-    :has-sizes="detail.hasSizes"
-    :sizes="detail.sizes"
-    :members="memberMap"
-    :show-actions="permissions.canEdit"
-    :show-history="true"
-    :inventory-type="detail.inventoryType ?? InventoryTypes.INTERNAL"
-    :lent-out-items="lentOutItems"
-    :lent-item-map="lentItemStationMap"
-    :container-path-by-id="containerPathById"
-    @assign="$emit('assign', $event)"
-    @unassign="$emit('unassign', $event)"
-    @edit="$emit('edit', $event)"
-    @mark-lost="$emit('markLost', $event)"
-    @mark-found="$emit('markFound', $event)"
-    @history="$emit('history', $event)"
-    @delete="$emit('delete', $event)"
-  />
+  <NeutralContainer v-if="items.length > 0 || permissions.canCreateItem" class="space-y-4">
+    <ItemListControls
+      :table="itemTable"
+      :count="items.length"
+      :show-quick-assign="permissions.canCreateItem && permissions.canQuickAssign"
+      :show-add="permissions.canCreateItem && permissions.canAddInternal"
+      :show-search="items.length > 0"
+      @quick-assign="$emit('openQuickAssign')"
+      @add="$emit('openAdd')"
+    />
+    <ItemsTable
+      v-if="items.length > 0"
+      :items="items"
+      :has-sizes="detail.hasSizes"
+      :sizes="detail.sizes"
+      :members="memberMap"
+      :show-actions="permissions.canEdit"
+      :show-history="true"
+      :inventory-type="detail.inventoryType ?? InventoryTypes.INTERNAL"
+      :lent-out-items="lentOutItems"
+      :lent-item-map="lentItemStationMap"
+      :container-path-by-id="containerPathById"
+      :table-api="itemTable"
+      @assign="$emit('assign', $event)"
+      @unassign="$emit('unassign', $event)"
+      @edit="$emit('edit', $event)"
+      @mark-lost="$emit('markLost', $event)"
+      @mark-found="$emit('markFound', $event)"
+      @history="$emit('history', $event)"
+      @delete="$emit('delete', $event)"
+    />
+  </NeutralContainer>
+
+  <ItemTableFilterModal :table="itemTable"/>
 
   <FreeItemsGrid
     v-if="permissions.canEdit"

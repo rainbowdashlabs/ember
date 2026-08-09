@@ -16,10 +16,12 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import GradingSectionPanel from './gradingview/GradingSectionPanel.vue'
 import { useSession } from '@/composables/useSession'
+import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { protocol, stationMembers } from '@/api'
 import type { TestProtocolSection, TestProtocolItem } from '@/api/protocol'
 import type { StationMember } from '@/api/types'
+import { reportCaughtError } from '@/util/devErrorReporter'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -37,7 +39,6 @@ const items = ref<TestProtocolItem[]>([])
 const checks = ref<Map<number, boolean>>(new Map())
 const doneSections = ref<Set<number>>(new Set())
 const member = ref<StationMember | null>(null)
-const saving = ref(false)
 const locked = ref(false)
 const currentSectionIndex = ref(0)
 
@@ -105,11 +106,15 @@ async function toggleSectionDone(sectionId: number) {
   doneSections.value = new Set(await protocol.toggleSectionDone(runId.value, memberId.value, sectionId))
 }
 
-async function autoSave() {
+function serializeChecks(): Record<number, boolean> {
   const checksObj: Record<number, boolean> = {}
   for (const [k, v] of checks.value) checksObj[k] = v
-  try { await protocol.saveChecks(runId.value, memberId.value, checksObj) }
-  catch { }
+  return checksObj
+}
+
+async function autoSave() {
+  try { await protocol.saveChecks(runId.value, memberId.value, serializeChecks()) }
+  catch (e) { reportCaughtError(e, 'grading autosave') }
 }
 
 const {loading, error, reload: loadData} = useAsyncLoader(async () => {
@@ -139,89 +144,68 @@ const {loading, error, reload: loadData} = useAsyncLoader(async () => {
   doneSections.value = new Set(doneIds)
 }, {autoLoad: false, errorMessageKey: 'protocol.lockError'})
 
-async function saveAndNext() {
-  saving.value = true
-  try {
-    const checksObj: Record<number, boolean> = {}
-    for (const [k, v] of checks.value) checksObj[k] = v
-    await protocol.saveChecks(runId.value, memberId.value, checksObj)
+const {running: saving, error: saveError, run: runSave} = useAsyncAction(
+  async (after: () => void | Promise<void>) => {
+    await protocol.saveChecks(runId.value, memberId.value, serializeChecks())
+    await after()
+  },
+  {formatError: () => t('common.error')},
+)
 
-    if (currentSectionIndex.value < topSections.value.length - 1) {
-      currentSectionIndex.value++
-    }
-  } catch { error.value = t('common.error') }
-  finally { saving.value = false }
+function goNextSection() {
+  if (currentSectionIndex.value < topSections.value.length - 1) {
+    currentSectionIndex.value++
+  }
 }
 
-async function savePrev() {
-  saving.value = true
-  try {
-    const checksObj: Record<number, boolean> = {}
-    for (const [k, v] of checks.value) checksObj[k] = v
-    await protocol.saveChecks(runId.value, memberId.value, checksObj)
+function saveAndNext() {
+  return runSave(goNextSection)
+}
+
+function savePrev() {
+  return runSave(() => {
     if (currentSectionIndex.value > 0) currentSectionIndex.value--
-  } catch { error.value = t('common.error') }
-  finally { saving.value = false }
+  })
 }
 
-async function finishGrading() {
-  saving.value = true
-  try {
-    const checksObj: Record<number, boolean> = {}
-    for (const [k, v] of checks.value) checksObj[k] = v
-    await protocol.saveChecks(runId.value, memberId.value, checksObj)
+function finishGrading() {
+  return runSave(async () => {
     await protocol.completeMember(runId.value, memberId.value)
     router.push({ name: 'protocol-run-detail', params: { id: runId.value } })
-  } catch { error.value = t('common.error') }
-  finally { saving.value = false }
+  })
 }
 
-async function markDoneAndNext() {
-  saving.value = true
-  try {
-    const checksObj: Record<number, boolean> = {}
-    for (const [k, v] of checks.value) checksObj[k] = v
-    await protocol.saveChecks(runId.value, memberId.value, checksObj)
-    if (!doneSections.value.has(currentSection.value.id)) {
-      doneSections.value = new Set(await protocol.toggleSectionDone(runId.value, memberId.value, currentSection.value.id))
+function markDoneAndNext() {
+  return runSave(async () => {
+    const section = currentSection.value
+    if (section && !doneSections.value.has(section.id)) {
+      doneSections.value = new Set(await protocol.toggleSectionDone(runId.value, memberId.value, section.id))
     }
-    if (currentSectionIndex.value < topSections.value.length - 1) {
-      currentSectionIndex.value++
-    }
-  } catch { error.value = t('common.error') }
-  finally { saving.value = false }
+    goNextSection()
+  })
 }
 
-async function markDoneAndExit() {
-  saving.value = true
-  try {
-    const checksObj: Record<number, boolean> = {}
-    for (const [k, v] of checks.value) checksObj[k] = v
-    await protocol.saveChecks(runId.value, memberId.value, checksObj)
-    if (!doneSections.value.has(currentSection.value.id)) {
-      await protocol.toggleSectionDone(runId.value, memberId.value, currentSection.value.id)
+function markDoneAndExit() {
+  return runSave(async () => {
+    const section = currentSection.value
+    if (section && !doneSections.value.has(section.id)) {
+      await protocol.toggleSectionDone(runId.value, memberId.value, section.id)
     }
     await protocol.unlockMember(runId.value, memberId.value)
     router.push({ name: 'protocol-run-detail', params: { id: runId.value } })
-  } catch { error.value = t('common.error') }
-  finally { saving.value = false }
+  })
 }
 
-async function saveAndExit() {
-  saving.value = true
-  try {
-    const checksObj: Record<number, boolean> = {}
-    for (const [k, v] of checks.value) checksObj[k] = v
-    await protocol.saveChecks(runId.value, memberId.value, checksObj)
+function saveAndExit() {
+  return runSave(async () => {
     await protocol.unlockMember(runId.value, memberId.value)
     router.push({ name: 'protocol-run-detail', params: { id: runId.value } })
-  } catch { error.value = t('common.error') }
-  finally { saving.value = false }
+  })
 }
 
 onBeforeUnmount(async () => {
   if (locked.value && storedRunId && storedMemberId) {
-    try { await protocol.unlockMember(storedRunId, storedMemberId) } catch { }
+    try { await protocol.unlockMember(storedRunId, storedMemberId) } catch (e) { reportCaughtError(e, 'grading member unlock') }
   }
 })
 
@@ -234,7 +218,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
       :subtitle="t('pages.protocol-grade.subtitle')"
   >
     <Spinner v-if="loading" size="lg" />
-    <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
+    <Alert v-if="error || saveError" variant="error" class="mb-4">{{ error || saveError }}</Alert>
 
     <template v-if="!loading && currentSection">
       <div class="flex items-center justify-between mb-2">

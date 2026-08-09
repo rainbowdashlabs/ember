@@ -29,8 +29,18 @@ import {
   recalculateAll,
 } from '@/api/storageMonitoring'
 import {STORAGE_CATEGORY_COLORS, buildStorageCategoryLabeler, formatBytes} from '@/util/storage'
+import {useAsyncAction} from '@/composables/useAsyncAction'
+import {errorMessage} from '@/util/apiError'
 
 use([CanvasRenderer, BarChart, PieChart, TitleComponent, TooltipComponent, GridComponent, LegendComponent])
+
+/** The subset of an ECharts tooltip callback payload these charts read. */
+interface TooltipParam {
+  name: string
+  value: number
+  dataIndex: number
+  percent: number
+}
 
 const {t} = useI18n()
 
@@ -38,10 +48,9 @@ const isDark = ref(document.documentElement.classList.contains('dark'))
 let observer: MutationObserver | null = null
 
 const loading = ref(true)
-const error = ref('')
+const loadError = ref('')
 const stations = ref<AdminStationUsage[]>([])
 const presets = ref<StorageQuotaPreset[]>([])
-const reconciling = ref(false)
 
 onMounted(() => {
   observer = new MutationObserver(() => {
@@ -57,13 +66,13 @@ onUnmounted(() => {
 
 async function loadData() {
   loading.value = true
-  error.value = ''
+  loadError.value = ''
   try {
     const [usageData, presetData] = await Promise.all([getAdminUsage(), getPresets()])
     stations.value = usageData
     presets.value = presetData
-  } catch (e: any) {
-    error.value = e.message || 'Failed to load storage data'
+  } catch (e) {
+    loadError.value = errorMessage(e) || 'Failed to load storage data'
   } finally {
     loading.value = false
   }
@@ -77,21 +86,19 @@ const textColor = computed(() => isDark.value ? '#e0e0e0' : '#333333')
 
 const categoryLabel = buildStorageCategoryLabeler(t)
 
-async function handleRecalculateAll() {
-  reconciling.value = true
-  try {
-    await recalculateAll()
-    setTimeout(() => loadData(), 2000)
-  } finally {
-    reconciling.value = false
-  }
-}
+const {running: reconciling, error: reconcileError, run: handleRecalculateAll} = useAsyncAction(async () => {
+  await recalculateAll()
+  setTimeout(() => loadData(), 2000)
+})
+
+const error = computed(() => loadError.value || reconcileError.value)
 
 const topStationsChart = computed(() => {
   const top = [...stations.value].filter(s => s.totalBytes > 0).sort((a, b) => b.totalBytes - a.totalBytes).slice(0, 15)
   return {
-    tooltip: {trigger: 'axis', axisPointer: {type: 'shadow'}, formatter: (params: any) => {
+    tooltip: {trigger: 'axis', axisPointer: {type: 'shadow'}, formatter: (params: TooltipParam | TooltipParam[]) => {
       const p = Array.isArray(params) ? params[0] : params
+      if (!p) return ''
       return `${p.name}<br/>${formatBytes(p.value)} / ${formatBytes(top[p.dataIndex]?.quotaBytes || 0)}`
     }},
     grid: {left: '3%', right: '4%', bottom: '3%', containLabel: true},
@@ -116,7 +123,7 @@ const categoryPieChart = computed(() => {
     }
   }
   return {
-    tooltip: {trigger: 'item', formatter: (p: any) => `${p.name}: ${formatBytes(p.value)} (${p.percent}%)`},
+    tooltip: {trigger: 'item', formatter: (p: TooltipParam) => `${p.name}: ${formatBytes(p.value)} (${p.percent}%)`},
     legend: {bottom: 0, textStyle: {color: textColor.value}},
     series: [{
       type: 'pie',

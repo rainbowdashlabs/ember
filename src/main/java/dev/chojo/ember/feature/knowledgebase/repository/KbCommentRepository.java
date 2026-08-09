@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.knowledgebase.repository;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.knowledgebase.entity.KbComment;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -22,6 +23,9 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 @Singleton
 public class KbCommentRepository {
 
+    private static final String KB_COMMENT_COLUMNS =
+            "id, file_id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at";
+
     /**
      * Finds all comments for a KB file, ordered by creation time.
      * Includes soft-deleted comments so the thread structure is preserved.
@@ -31,10 +35,10 @@ public class KbCommentRepository {
      */
     public List<KbComment> findByFile(int fileId) {
         return query("""
-                SELECT id, file_id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at
+                SELECT %s
                 FROM kb_comment
                 WHERE file_id = :file_id
-                ORDER BY created_at;""")
+                ORDER BY created_at;""", KB_COMMENT_COLUMNS)
                 .single(call().bind("file_id", fileId))
                 .map(KbComment.map())
                 .all();
@@ -47,10 +51,7 @@ public class KbCommentRepository {
      * @return the comment, if found
      */
     public Optional<KbComment> findById(int id) {
-        return query("""
-                SELECT id, file_id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at
-                FROM kb_comment
-                WHERE id = :id;""").single(call().bind("id", id)).map(KbComment.map()).first();
+        return SqlSupport.findById("kb_comment", KB_COMMENT_COLUMNS, id, KbComment.map());
     }
 
     /**
@@ -63,11 +64,12 @@ public class KbCommentRepository {
      * @return the created comment
      */
     public KbComment create(int fileId, Integer parentId, MemberIdentity author, String content) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT INTO kb_comment (file_id, parent_id, author_station_uid, author_member_uid, content)
                 VALUES (:file_id, :parent_id, :author_station_uid::UUID, :author_member_uid::UUID, :content)
-                RETURNING id, file_id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at;""")
-                .single(call().bind("file_id", fileId)
+                RETURNING %s;""",
+                call().bind("file_id", fileId)
                         .bind("parent_id", parentId)
                         .bind(
                                 "author_station_uid",
@@ -77,10 +79,9 @@ public class KbCommentRepository {
                                 "author_member_uid",
                                 author != null ? author.memberUid() : null,
                                 StandardValueConverter.UUID_STRING)
-                        .bind("content", content))
-                .map(KbComment.map())
-                .first()
-                .orElseThrow();
+                        .bind("content", content),
+                KbComment.map(),
+                KB_COMMENT_COLUMNS);
     }
 
     /**
@@ -110,10 +111,7 @@ public class KbCommentRepository {
                     .update()
                     .changed();
         }
-        return query("DELETE FROM kb_comment WHERE id = :id;")
-                .single(call().bind("id", id))
-                .update()
-                .changed();
+        return SqlSupport.deleteById("kb_comment", id);
     }
 
     /**
@@ -123,10 +121,6 @@ public class KbCommentRepository {
      * @return {@code true} if the comment has children
      */
     public boolean hasChildren(int id) {
-        return query("SELECT exists(SELECT 1 FROM kb_comment WHERE parent_id = :id);")
-                .single(call().bind("id", id))
-                .map(row -> row.getBoolean(1))
-                .first()
-                .orElse(false);
+        return SqlSupport.exists("SELECT 1 FROM kb_comment WHERE parent_id = :id LIMIT 1;", call().bind("id", id));
     }
 }

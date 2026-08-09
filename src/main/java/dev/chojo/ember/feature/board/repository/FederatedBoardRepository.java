@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.board.entity.BoardShareMode;
 import dev.chojo.ember.feature.board.entity.FederationBoardBookmark;
 import dev.chojo.ember.feature.board.entity.FederationBoardShare;
 import dev.chojo.ember.feature.board.entity.FederationBoardShareTarget;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -24,18 +25,21 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 @Singleton
 public class FederatedBoardRepository {
 
+    private static final String SHARE_COLUMNS = "id, board_id";
+    private static final String SHARE_TARGET_COLUMNS = "share_id, partner_id, share_mode, required_user_type";
+    private static final String BOOKMARK_COLUMNS =
+            "id, member_id, partner_id, remote_board_uid, remote_board_name, remote_board_short_key, share_mode, created_at";
+
     // -- Board Share --
 
     public FederationBoardShare createShare(int boardId) {
-        return query("INSERT INTO federation_board_share(board_id) VALUES (:board_id) RETURNING *;")
-                .single(call().bind("board_id", boardId))
-                .map(FederationBoardShare.map())
-                .first()
-                .orElseThrow();
+        return SqlSupport.insertReturning(
+                "INSERT INTO federation_board_share(board_id) VALUES (:board_id) RETURNING %s;",
+                call().bind("board_id", boardId), FederationBoardShare.map(), SHARE_COLUMNS);
     }
 
     public Optional<FederationBoardShare> findShare(int boardId) {
-        return query("SELECT * FROM federation_board_share WHERE board_id = :board_id;")
+        return query("SELECT %s FROM federation_board_share WHERE board_id = :board_id;", SHARE_COLUMNS)
                 .single(call().bind("board_id", boardId))
                 .map(FederationBoardShare.map())
                 .first();
@@ -79,7 +83,7 @@ public class FederatedBoardRepository {
     }
 
     public List<FederationBoardShareTarget> findShareTargets(int shareId) {
-        return query("SELECT * FROM federation_board_share_target WHERE share_id = :share_id;")
+        return query("SELECT %s FROM federation_board_share_target WHERE share_id = :share_id;", SHARE_TARGET_COLUMNS)
                 .single(call().bind("share_id", shareId))
                 .map(FederationBoardShareTarget.map())
                 .all();
@@ -145,11 +149,9 @@ public class FederatedBoardRepository {
     }
 
     public boolean hasFederatedEditUserTypes(int boardId) {
-        return query("SELECT 1 FROM federation_board_edit_user_type WHERE board_id = :board_id LIMIT 1;")
-                .single(call().bind("board_id", boardId))
-                .map(_ -> true)
-                .first()
-                .orElse(false);
+        return SqlSupport.exists(
+                "SELECT 1 FROM federation_board_edit_user_type WHERE board_id = :board_id LIMIT 1;",
+                call().bind("board_id", boardId));
     }
 
     // -- Bookmarks --
@@ -161,29 +163,27 @@ public class FederatedBoardRepository {
             String remoteBoardName,
             String remoteBoardShortKey,
             BoardShareMode shareMode) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT
                 INTO
                     federation_board_bookmark(member_id, partner_id, remote_board_uid, remote_board_name, remote_board_short_key,
                                               share_mode)
                 VALUES
                     (:member_id, :partner_id, :remote_board_uid::UUID, :remote_board_name, :remote_board_short_key, :share_mode)
-                RETURNING *;""")
-                .single(call().bind("member_id", memberId)
+                RETURNING %s;""",
+                call().bind("member_id", memberId)
                         .bind("partner_id", partnerId)
                         .bind("remote_board_uid", remoteBoardUid, StandardValueConverter.UUID_STRING)
                         .bind("remote_board_name", remoteBoardName)
                         .bind("remote_board_short_key", remoteBoardShortKey)
-                        .bind("share_mode", shareMode))
-                .map(FederationBoardBookmark.map())
-                .first()
-                .orElseThrow();
+                        .bind("share_mode", shareMode),
+                FederationBoardBookmark.map(),
+                BOOKMARK_COLUMNS);
     }
 
     public void deleteBookmark(int bookmarkId) {
-        query("DELETE FROM federation_board_bookmark WHERE id = :id;")
-                .single(call().bind("id", bookmarkId))
-                .delete();
+        SqlSupport.deleteById("federation_board_bookmark", bookmarkId);
     }
 
     public void deleteBookmarkByBoard(int memberId, int partnerId, UUID remoteBoardUid) {
@@ -201,7 +201,9 @@ public class FederatedBoardRepository {
     }
 
     public List<FederationBoardBookmark> findBookmarks(int memberId) {
-        return query("SELECT * FROM federation_board_bookmark WHERE member_id = :member_id ORDER BY created_at;")
+        return query(
+                        "SELECT %s FROM federation_board_bookmark WHERE member_id = :member_id ORDER BY created_at;",
+                        BOOKMARK_COLUMNS)
                 .single(call().bind("member_id", memberId))
                 .map(FederationBoardBookmark.map())
                 .all();
@@ -409,34 +411,30 @@ public class FederatedBoardRepository {
     }
 
     public boolean hasLocalViewOverride(int partnerId, UUID remoteBoardUid) {
-        return query("""
+        return SqlSupport.exists(
+                """
                 SELECT
                     1
                 FROM
                     federation_board_local_view_override
                 WHERE partner_id = :partner_id
                   AND remote_board_uid = :remote_board_uid::UUID
-                LIMIT 1;""")
-                .single(call().bind("partner_id", partnerId)
-                        .bind("remote_board_uid", remoteBoardUid, StandardValueConverter.UUID_STRING))
-                .map(_ -> true)
-                .first()
-                .orElse(false);
+                LIMIT 1;""",
+                call().bind("partner_id", partnerId)
+                        .bind("remote_board_uid", remoteBoardUid, StandardValueConverter.UUID_STRING));
     }
 
     public boolean hasLocalEditOverride(int partnerId, UUID remoteBoardUid) {
-        return query("""
+        return SqlSupport.exists(
+                """
                 SELECT
                     1
                 FROM
                     federation_board_local_edit_override
                 WHERE partner_id = :partner_id
                   AND remote_board_uid = :remote_board_uid::UUID
-                LIMIT 1;""")
-                .single(call().bind("partner_id", partnerId)
-                        .bind("remote_board_uid", remoteBoardUid, StandardValueConverter.UUID_STRING))
-                .map(_ -> true)
-                .first()
-                .orElse(false);
+                LIMIT 1;""",
+                call().bind("partner_id", partnerId)
+                        .bind("remote_board_uid", remoteBoardUid, StandardValueConverter.UUID_STRING));
     }
 }

@@ -11,12 +11,13 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import type {Comment} from '@/api/types'
+import type {Comment} from '@/api/comments'
 import type {MemberCompletion} from '@/api/stationMembers'
 import {comments as commentsApi, events, stationMembers} from '@/api'
 import type {FederatedEventDetail, FederatedRegistration} from '@/api/events'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import HeaderCard from './federatedeventdetailview/HeaderCard.vue'
 import RegistrationCard from './federatedeventdetailview/RegistrationCard.vue'
 import CommentsCard from './federatedeventdetailview/CommentsCard.vue'
@@ -31,7 +32,6 @@ const eventId = ref(Number(route.params.eventId))
 
 const detail = ref<FederatedEventDetail | null>(null)
 const myRegistrations = ref<FederatedRegistration[]>([])
-const registering = ref(false)
 const selectedMemberUid = ref('')
 
 const currentMemberUid = computed(() => sessionInfo.value?.member?.uid ?? '')
@@ -50,41 +50,41 @@ const eventData = computed(() => detail.value?.event ?? null)
 const publicFields = computed(() => detail.value?.publicFields ?? [])
 
 function getEventDate(): string {
-  if (eventData.value?.startTime) return new Date(eventData.value.startTime as string).toISOString().split('T')[0]
-  return new Date().toISOString().split('T')[0]
+  if (eventData.value?.startTime) return new Date(eventData.value.startTime as string).toISOString().slice(0, 10)
+  return new Date().toISOString().slice(0, 10)
 }
 
 function selectedUidForRegister(): string | null {
   const without = eligibleMembers.value.filter(m => !myRegistrations.value.some(r => r.eventId === eventId.value && r.remoteMemberId === m.uid))
-  if (without.length === 1) return without[0].uid
+  const single = without.length === 1 ? without[0] : undefined
+  if (single) return single.uid
   return selectedMemberUid.value || null
 }
 
-async function registerForEvent() {
+const {running: registering, error: registrationError, run: runRegistration} = useAsyncAction(
+    async (kind: 'register' | 'withdraw', uid: string) => {
+      if (kind === 'register') {
+        await events.registerForFederatedEvent(stationUid.value, eventId.value, getEventDate(), uid)
+        myRegistrations.value.push({
+          eventId: eventId.value, remoteMemberId: uid,
+          eventDate: getEventDate(), status: 'PENDING', partnerId: 0,
+        })
+      } else {
+        await events.withdrawFederatedRegistration(stationUid.value, eventId.value, getEventDate(), uid)
+        myRegistrations.value = myRegistrations.value.filter(r => !(r.eventId === eventId.value && r.remoteMemberId === uid))
+      }
+    },
+    {formatError: () => t('common.error')},
+)
+
+function registerForEvent() {
   const uid = selectedUidForRegister()
   if (!uid) return
-  registering.value = true
-  try {
-    await events.registerForFederatedEvent(stationUid.value, eventId.value, getEventDate(), uid)
-    myRegistrations.value.push({
-      eventId: eventId.value, remoteMemberId: uid,
-      eventDate: getEventDate(), status: 'PENDING', partnerId: 0,
-    })
-  } catch {
-    error.value = t('common.error')
-  }
-  registering.value = false
+  return runRegistration('register', uid)
 }
 
-async function withdrawRegistration(uid: string) {
-  registering.value = true
-  try {
-    await events.withdrawFederatedRegistration(stationUid.value, eventId.value, getEventDate(), uid)
-    myRegistrations.value = myRegistrations.value.filter(r => !(r.eventId === eventId.value && r.remoteMemberId === uid))
-  } catch {
-    error.value = t('common.error')
-  }
-  registering.value = false
+function withdrawRegistration(uid: string) {
+  return runRegistration('withdraw', uid)
 }
 
 const commentsList = ref<Comment[]>([])
@@ -162,7 +162,7 @@ watch(() => [route.params.stationUid, route.params.eventId], () => {
       </SecondaryButton>
 
       <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <Alert v-if="error || registrationError" variant="error">{{ error || registrationError }}</Alert>
 
       <template v-if="eventData && !loading">
         <HeaderCard :event="eventData" :public-fields="publicFields"/>

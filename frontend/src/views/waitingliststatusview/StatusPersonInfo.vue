@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import StatusFieldRow from './StatusFieldRow.vue'
-import type { WaitingListPublicStatus } from '@/api/types'
+import type { WaitingListPublicStatus } from '@/api/waitingList'
 
 const props = defineProps<{ status: WaitingListPublicStatus }>()
 

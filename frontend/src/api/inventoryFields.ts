@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import client from './client'
+import {createScopedCrudResource} from './crud'
 
 export const FieldType = {
     DATE: 'DATE',
@@ -20,18 +20,22 @@ export interface EnumOption {
 }
 
 export interface DateFieldConfig {
+    kind: 'DATE'
 }
 
 export interface EnumFieldConfig {
+    kind: 'ENUM'
     options: EnumOption[]
 }
 
 export interface TextFieldConfig {
+    kind: 'TEXT'
     multiline: boolean
     maxLength: number
 }
 
 export interface NumberFieldConfig {
+    kind: 'NUMBER'
     min?: number | null
     max?: number | null
     step?: number | null
@@ -39,6 +43,7 @@ export interface NumberFieldConfig {
 }
 
 export interface BooleanFieldConfig {
+    kind: 'BOOLEAN'
     trueLabel: string
     falseLabel: string
 }
@@ -77,46 +82,53 @@ export interface FieldUpdateRequest {
     config: FieldConfig
 }
 
-export async function listFields(inventoryId: number): Promise<InventoryFieldDefinition[]> {
-    const res = await client.get<InventoryFieldDefinition[]>(`/inventories/${inventoryId}/fields`)
-    return res.data
+const fields = createScopedCrudResource<
+    InventoryFieldDefinition,
+    FieldDefinitionRequest,
+    FieldUpdateRequest
+>((inventoryId: number) => `/inventories/${inventoryId}/fields`)
+
+export const listFields = fields.list
+export const createField = fields.create
+export const updateField = fields.update
+export const deleteField = fields.remove
+
+export interface NumberFieldViolation {
+    limit: 'min' | 'max'
+    bound: number
 }
 
-export async function createField(
-    inventoryId: number,
-    data: FieldDefinitionRequest,
-): Promise<InventoryFieldDefinition> {
-    const res = await client.post<InventoryFieldDefinition>(`/inventories/${inventoryId}/fields`, data)
-    return res.data
+export function numberFieldViolation(
+    def: InventoryFieldDefinition,
+    value: unknown,
+): NumberFieldViolation | null {
+    if (def.config.kind !== 'NUMBER') return null
+    if (value === undefined || value === null || value === '') return null
+    const num = Number(value)
+    if (Number.isNaN(num)) return null
+    if (def.config.min != null && num < def.config.min) return {limit: 'min', bound: def.config.min}
+    if (def.config.max != null && num > def.config.max) return {limit: 'max', bound: def.config.max}
+    return null
 }
 
-export async function updateField(
-    inventoryId: number,
-    fieldId: number,
-    data: FieldUpdateRequest,
-): Promise<InventoryFieldDefinition> {
-    const res = await client.put<InventoryFieldDefinition>(
-        `/inventories/${inventoryId}/fields/${fieldId}`,
-        data,
-    )
-    return res.data
-}
-
-export async function deleteField(inventoryId: number, fieldId: number): Promise<void> {
-    await client.delete(`/inventories/${inventoryId}/fields/${fieldId}`)
+export function hasInvalidFieldValues(
+    defs: InventoryFieldDefinition[],
+    values: Record<string, unknown>,
+): boolean {
+    return defs.some(def => numberFieldViolation(def, values[def.key]) !== null)
 }
 
 export function defaultFieldConfig(type: FieldTypeName): FieldConfig {
     switch (type) {
         case FieldType.DATE:
-            return {}
+            return {kind: 'DATE'}
         case FieldType.ENUM:
-            return {options: []}
+            return {kind: 'ENUM', options: []}
         case FieldType.TEXT:
-            return {multiline: false, maxLength: 200}
+            return {kind: 'TEXT', multiline: false, maxLength: 200}
         case FieldType.NUMBER:
-            return {min: null, max: null, step: null, unit: ''}
+            return {kind: 'NUMBER', min: null, max: null, step: null, unit: ''}
         case FieldType.BOOLEAN:
-            return {trueLabel: 'Yes', falseLabel: 'No'}
+            return {kind: 'BOOLEAN', trueLabel: 'Yes', falseLabel: 'No'}
     }
 }

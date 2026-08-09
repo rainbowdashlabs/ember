@@ -5,7 +5,7 @@
  */
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import type { WaitingListEntryWithScore } from '@/api/types'
+import type { WaitingListEntryWithScore } from '@/api/waitingList'
 
 const props = defineProps<{
   item: WaitingListEntryWithScore
@@ -21,13 +21,13 @@ const { t } = useI18n()
       <span class="text-xs font-semibold uppercase text-(--text-muted)">{{ t('waitingList.guardians') }}</span>
       <template v-if="props.layout === 'stack'">
         <div v-for="g in props.item.guardians" :key="g.id" class="text-sm flex flex-col">
-          <span class="font-medium">{{ g.name || '-' }}</span>
+          <span class="font-medium">{{ `${g.firstname} ${g.lastname}`.trim() || '-' }}</span>
           <span class="text-(--text-muted)">{{ g.email }}{{ g.phone ? ` · ${g.phone}` : '' }}</span>
         </div>
       </template>
       <template v-else>
         <div v-for="g in props.item.guardians" :key="g.id" class="flex items-center gap-4 text-sm">
-          <span class="font-medium">{{ g.name || '-' }}</span>
+          <span class="font-medium">{{ `${g.firstname} ${g.lastname}`.trim() || '-' }}</span>
           <span class="text-(--text-muted)">{{ g.email || '-' }}</span>
           <span v-if="g.phone" class="text-(--text-muted)">{{ g.phone }}</span>
         </div>

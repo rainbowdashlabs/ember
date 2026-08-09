@@ -25,7 +25,7 @@ const { t } = useI18n()
       <p class="text-sm font-medium">{{ t('forms.fillForWhom') }}</p>
       <SelectInput
           :model-value="String(selected ?? '')"
-          @update:model-value="(v: string | undefined) => selected = v ? Number(v) : null"
+          @update:model-value="(v: string | number | null | undefined) => selected = v ? Number(v) : null"
       >
         <option v-for="opt in options" :key="String(opt.id)" :value="String(opt.id ?? '')">
           {{ opt.label }}

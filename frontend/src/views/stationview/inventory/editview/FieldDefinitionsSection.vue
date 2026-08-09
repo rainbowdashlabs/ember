@@ -10,30 +10,34 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import DeleteButton from '@/components/button/DeleteButton.vue'
-import IconButton from '@/components/button/IconButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import DragList from '@/components/input/DragList.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {inventoryFields} from '@/api'
-import {FieldType, defaultFieldConfig} from '@/api/inventoryFields'
-import type {InventoryFieldDefinition} from '@/api/inventoryFields'
+import {defaultFieldConfig, FieldType, type InventoryFieldDefinition} from '@/api/inventoryFields'
 import FieldDraftEditor from './fielddefinitionssection/FieldDraftEditor.vue'
+import FieldRow from './fielddefinitionssection/FieldRow.vue'
 import type {DraftField} from './fielddefinitionssection/types'
 import {useConfigPanel} from '@/composables/useConfigPanel'
+import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useConfirmDelete} from '@/composables/useConfirmDelete'
+import {useBreakpoint} from '@/composables/useBreakpoint'
+import {apiErrorMessage} from '@/util/apiError'
 
 const props = defineProps<{
   inventoryId: number
 }>()
 
 const {t} = useI18n()
+const {isMobile} = useBreakpoint()
 
 const {config: fields, loading, error, reload: load} = useConfigPanel<InventoryFieldDefinition[]>({
   initial: [],
   fetch: () => inventoryFields.listFields(props.inventoryId),
-  formatError: (e: any) => e?.response?.data?.message ?? t('inventory.fields.errors.loadFailed'),
+  formatError: (e) => apiErrorMessage(e) ?? t('inventory.fields.errors.loadFailed'),
 })
 const editing = ref<number | null>(null)
 const draft = ref<DraftField | null>(null)
-const submitting = ref(false)
 
 const sortedFields = computed(() => [...fields.value].sort((a, b) => a.sortOrder - b.sortOrder || a.key.localeCompare(b.key)))
 
@@ -71,9 +75,8 @@ function cancelEdit() {
   editing.value = null
 }
 
-async function save() {
+const {running: submitting, run: save} = useAsyncAction(async () => {
   if (!draft.value) return
-  submitting.value = true
   error.value = ''
   try {
     if (draft.value.id) {
@@ -95,21 +98,47 @@ async function save() {
     }
     await load()
     cancelEdit()
-  } catch (e: any) {
-    error.value = e?.response?.data?.message ?? t('inventory.fields.errors.saveFailed')
-  } finally {
-    submitting.value = false
+  } catch (e) {
+    error.value = apiErrorMessage(e) ?? t('inventory.fields.errors.saveFailed')
+  }
+})
+
+const {
+  show: showDeleteModal,
+  target: deleteTarget,
+  requestDelete,
+  confirm: confirmDelete,
+} = useConfirmDelete<InventoryFieldDefinition>({
+  onDelete: field => inventoryFields.deleteField(props.inventoryId, field.id),
+  onSuccess: () => load(),
+  error,
+})
+
+async function persistOrder(ordered: InventoryFieldDefinition[]) {
+  error.value = ''
+  try {
+    for (const [i, f] of ordered.entries()) {
+      if (f.sortOrder !== i * 10) {
+        await inventoryFields.updateField(props.inventoryId, f.id, {
+          label: f.label,
+          required: f.required,
+          sortOrder: i * 10,
+          config: f.config,
+        })
+      }
+    }
+    await load()
+  } catch (e) {
+    error.value = apiErrorMessage(e) ?? t('inventory.fields.errors.saveFailed')
   }
 }
 
-async function remove(field: InventoryFieldDefinition) {
-  if (!confirm(t('inventory.fields.confirmDelete', {label: field.label}))) return
-  try {
-    await inventoryFields.deleteField(props.inventoryId, field.id)
-    await load()
-  } catch (e: any) {
-    error.value = e?.response?.data?.message ?? t('inventory.fields.errors.deleteFailed')
-  }
+function moveField(fromIndex: number, toIndex: number) {
+  const ordered = [...sortedFields.value]
+  const [moved] = ordered.splice(fromIndex, 1)
+  if (!moved) return
+  ordered.splice(toIndex, 0, moved)
+  persistOrder(ordered)
 }
 
 watch(() => props.inventoryId, load)
@@ -119,7 +148,7 @@ watch(() => props.inventoryId, load)
   <NeutralContainer>
     <div class="flex items-center justify-between mb-2">
       <SectionHeader>{{ t('inventory.fields.title') }}</SectionHeader>
-      <PrimaryButton v-if="!draft" size="sm" @click="startNew">
+      <PrimaryButton v-if="!draft" compact @click="startNew">
         <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" />
         {{ t('inventory.fields.add') }}
       </PrimaryButton>
@@ -140,17 +169,30 @@ watch(() => props.inventoryId, load)
       <p class="text-sm text-(--text-muted)">{{ t('common.loading') }}</p>
     </div>
     <EmptyState v-else-if="sortedFields.length === 0" :message="t('inventory.fields.empty')" />
-    <ul v-else class="divide-y divide-(--bg-accent)">
-      <li v-for="f in sortedFields" :key="f.id" class="py-2 flex items-center gap-3">
-        <span class="font-medium">{{ f.label }}</span>
-        <span class="text-xs text-(--text-muted)">{{ f.key }}</span>
-        <span class="text-xs text-(--text-muted)">{{ t(`inventory.fields.types.${f.fieldType}`) }}</span>
-        <span v-if="f.required" class="text-xs text-error">{{ t('inventory.fields.required') }}</span>
-        <div class="ml-auto flex gap-2">
-          <IconButton :icon="['fas', 'pen']" :label="t('common.edit')" @click="startEdit(f)" />
-          <DeleteButton :label="t('common.delete')" @click="remove(f)" />
-        </div>
+    <ul v-else-if="isMobile" class="list-none">
+      <li v-for="(f, i) in sortedFields" :key="f.id">
+        <FieldRow
+            :field="f"
+            mode="arrows"
+            :can-move-up="i > 0"
+            :can-move-down="i < sortedFields.length - 1"
+            @move-up="moveField(i, i - 1)"
+            @move-down="moveField(i, i + 1)"
+            @edit="startEdit(f)"
+            @delete="requestDelete(f)"
+        />
       </li>
     </ul>
+    <DragList v-else :items="sortedFields" :key-fn="(f) => f.id" @reorder="moveField">
+      <template #default="{ item: f }">
+        <FieldRow :field="f" mode="drag" @edit="startEdit(f)" @delete="requestDelete(f)"/>
+      </template>
+    </DragList>
+
+    <ConfirmDeleteModal
+        v-model="showDeleteModal"
+        :message="t('inventory.fields.confirmDelete', {label: deleteTarget?.label})"
+        @confirm="confirmDelete"
+    />
   </NeutralContainer>
 </template>

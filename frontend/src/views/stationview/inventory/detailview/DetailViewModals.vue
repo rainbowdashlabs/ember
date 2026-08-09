@@ -8,13 +8,12 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AssignItemModal from './AssignItemModal.vue'
 import ProcurementModal from './ProcurementModal.vue'
-import EditItemModal from './EditItemModal.vue'
 import HistoryModal from './HistoryModal.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import ItemModals from '../editview/ItemModals.vue'
 import { inventory, procurement } from '@/api'
-import { InventoryTypes } from '@/api/types'
-import type { InventoryDetail, InventoryItem, StationMember } from '@/api/types'
+import {InventoryTypes, type InventoryDetail, type InventoryItem} from '@/api/inventory'
+import type { StationMember } from '@/api/types'
 import { useModalTarget } from '@/composables/useModalTarget'
 
 const props = defineProps<{
@@ -47,8 +46,6 @@ const {isOpen: showProcurementModal, open: openProcurement} = useModalTarget<nul
   procNotes.value = ''
   procCreated.value = false
 })
-
-const {isOpen: showEditItemModal, target: editingItem, open: openEdit} = useModalTarget<InventoryItem>()
 
 const {isOpen: showHistoryModal, target: historyTarget, open: openHistory} = useModalTarget<InventoryItem>()
 
@@ -118,6 +115,7 @@ async function fulfillProcurement(id: number) {
 }
 
 function openQuickAssign() { itemModalsRef.value?.openQuickAssign() }
+function openEdit(item: InventoryItem) { itemModalsRef.value?.openEdit(item) }
 function openAdd() { itemModalsRef.value?.openAdd() }
 
 defineExpose({
@@ -153,14 +151,6 @@ defineExpose({
     :sizes="detail?.sizes"
     :members="unassignedMembers"
     @submit="submitProcurement"
-  />
-
-  <EditItemModal
-    v-model="showEditItemModal"
-    :item="editingItem"
-    :has-sizes="detail?.hasSizes ?? false"
-    :sizes="detail?.sizes ?? []"
-    @saved="emit('reload')"
   />
 
   <ItemModals

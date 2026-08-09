@@ -71,8 +71,9 @@ function onSelectMany(files: File[]) {
     }
     accepted.push(f)
   }
-  if (accepted.length > 0) {
-    lastFileName.value = accepted.length === 1 ? accepted[0].name : `${accepted.length} Dateien`
+  const [firstAccepted] = accepted
+  if (firstAccepted) {
+    lastFileName.value = accepted.length === 1 ? firstAccepted.name : `${accepted.length} Dateien`
     emit('selectMany', accepted)
   }
 }

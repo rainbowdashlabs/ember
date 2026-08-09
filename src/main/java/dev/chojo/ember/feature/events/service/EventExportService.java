@@ -8,6 +8,8 @@ package dev.chojo.ember.feature.events.service;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventBreakRepository;
+import dev.chojo.ember.feature.events.repository.EventCategoryRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -17,8 +19,6 @@ import dev.chojo.ember.util.TypstCompiler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -42,13 +42,14 @@ import static org.slf4j.LoggerFactory.getLogger;
 @Singleton
 public class EventExportService {
     private static final Logger log = getLogger(EventExportService.class);
-    private static final ObjectMapper MAPPER = JsonMapper.builder().build();
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
     private static final DateTimeFormatter DATE_TIME_FMT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
     private static final String[] DAY_NAMES = {"", "Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"};
 
     private final EventRepository eventRepository;
+    private final EventCategoryRepository categoryRepository;
+    private final EventBreakRepository breakRepository;
     private final EventFieldRepository eventFieldRepository;
     private final StationRepository stationRepository;
     private final Api apiConfig;
@@ -56,10 +57,14 @@ public class EventExportService {
     @Inject
     public EventExportService(
             EventRepository eventRepository,
+            EventCategoryRepository categoryRepository,
+            EventBreakRepository breakRepository,
             EventFieldRepository eventFieldRepository,
             StationRepository stationRepository,
             Api apiConfig) {
         this.eventRepository = eventRepository;
+        this.categoryRepository = categoryRepository;
+        this.breakRepository = breakRepository;
         this.eventFieldRepository = eventFieldRepository;
         this.stationRepository = stationRepository;
         this.apiConfig = apiConfig;
@@ -87,8 +92,8 @@ public class EventExportService {
         }
 
         var allEvents = eventRepository.findByStation(stationId);
-        var eventCategories = eventRepository.findCategoriesByStation(stationId);
-        var breaks = eventRepository.findBreaksByStation(stationId);
+        var eventCategories = categoryRepository.findByStation(stationId);
+        var breaks = breakRepository.findByStation(stationId);
 
         // Build column headers in order
         var columnHeaders = columns.stream().map(ExportColumn::label).toList();
@@ -258,8 +263,7 @@ public class EventExportService {
         return TypstCompiler.compileTemplate(
                 data,
                 templateName,
-                logo != null ? new TypstCompiler.StationLogo(logo.data(), logo.contentType()) : null,
-                MAPPER);
+                logo != null ? new TypstCompiler.StationLogo(logo.data(), logo.contentType()) : null);
     }
 
     public record ExportColumn(String type, String key, String fieldName, String label) {}

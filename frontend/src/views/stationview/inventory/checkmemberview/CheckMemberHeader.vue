@@ -9,7 +9,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
-import type { MemberCheckState } from '@/api/types'
+import type { MemberCheckState } from '@/api/inventoryCheck'
 
 defineProps<{
   state: MemberCheckState

@@ -306,6 +306,24 @@ class PageServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(22)
+    void renderedPageCarriesOgImageHash() {
+        assertNull(service.getPageRendered(pageId).orElseThrow().ogImageHash());
+
+        var page = service.getPage(pageId).orElseThrow();
+        assertTrue(service.savePage(pageId, page.title(), page.slug(), page.parentId(), null, imageId, List.of()));
+
+        var rendered = service.getPageRendered(pageId).orElseThrow();
+        assertEquals(imageId, rendered.ogImageId());
+        assertEquals(
+                service.findFile(imageId).orElseThrow().contentHash(),
+                rendered.ogImageHash(),
+                "clients build the image URL from the hash, so an id alone is not enough");
+
+        assertTrue(service.savePage(pageId, page.title(), page.slug(), page.parentId(), null, null, List.of()));
+    }
+
+    @Test
     @Order(23)
     void deleteFile() {
         assertTrue(service.deleteFile(imageId));

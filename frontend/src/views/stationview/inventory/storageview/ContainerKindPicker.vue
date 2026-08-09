@@ -9,9 +9,11 @@ import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
+import TreeNodeButton from '@/components/button/TreeNodeButton.vue'
 import {inventoryContainers} from '@/api'
 import type {InventoryContainerKind} from '@/api/inventoryContainers'
 import {showToast} from '@/util/toast'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 
 const KIND_ICONS: ReadonlyArray<{name: string; key: string}> = [
   {name: 'house', key: 'house'},
@@ -47,7 +49,6 @@ const inputValue = ref('')
 const showSuggestions = ref(false)
 const iconPickerOpen = ref(false)
 const pendingLabel = ref('')
-const creating = ref(false)
 const locallyCreated = ref<InventoryContainerKind[]>([])
 
 const allKinds = computed(() => {
@@ -118,35 +119,34 @@ function slugify(label: string): string {
       .slice(0, 32)
 }
 
+const {running: creating, run: runCreateKind} = useAsyncAction(async (iconName: string) => {
+  const slugBase = slugify(pendingLabel.value) || 'kind'
+  let key = slugBase
+  const existing = new Set(props.kinds.map(k => k.key))
+  let counter = 2
+  while (existing.has(key)) {
+    key = `${slugBase}_${counter++}`
+  }
+  const created = await inventoryContainers.createKind({
+    key,
+    label: pendingLabel.value,
+    icon: iconName,
+    sortOrder: Math.max(0, ...props.kinds.map(k => k.sortOrder)) + 10,
+    enabled: true,
+  })
+  locallyCreated.value = [...locallyCreated.value, created]
+  selectedId.value = created.id
+  emit('kind-created', created)
+  iconPickerOpen.value = false
+  pendingLabel.value = ''
+  inputValue.value = ''
+  return true
+})
+
 async function commitWithIcon(iconName: string) {
   if (creating.value) return
-  creating.value = true
-  try {
-    const slugBase = slugify(pendingLabel.value) || 'kind'
-    let key = slugBase
-    const existing = new Set(props.kinds.map(k => k.key))
-    let counter = 2
-    while (existing.has(key)) {
-      key = `${slugBase}_${counter++}`
-    }
-    const created = await inventoryContainers.createKind({
-      key,
-      label: pendingLabel.value,
-      icon: iconName,
-      sortOrder: Math.max(0, ...props.kinds.map(k => k.sortOrder)) + 10,
-      enabled: true,
-    })
-    locallyCreated.value = [...locallyCreated.value, created]
-    selectedId.value = created.id
-    emit('kind-created', created)
-    iconPickerOpen.value = false
-    pendingLabel.value = ''
-    inputValue.value = ''
-  } catch {
-    showToast(t('inventory.storage.fields.kindCreateFailed'), 'error')
-  } finally {
-    creating.value = false
-  }
+  const ok = await runCreateKind(iconName)
+  if (!ok) showToast(t('inventory.storage.fields.kindCreateFailed'), 'error')
 }
 
 function cancelIconPicker() {
@@ -213,17 +213,16 @@ defineExpose({resolve})
         {{ t('inventory.storage.fields.kindIconPickerHint', {label: pendingLabel}) }}
       </p>
       <div class="grid grid-cols-6 gap-2">
-        <button
+        <TreeNodeButton
             v-for="icon in KIND_ICONS"
             :key="icon.key"
-            type="button"
-            class="aspect-square rounded-theme border border-(--border) flex items-center justify-center hover:bg-(--bg-accent) transition-colors"
+            class="aspect-square border border-(--border) flex items-center justify-center hover:bg-(--bg-accent)"
             :disabled="creating"
             :title="icon.name"
             @click="commitWithIcon(icon.name)"
         >
           <font-awesome-icon :icon="['fas', icon.name]" class="text-lg" />
-        </button>
+        </TreeNodeButton>
       </div>
       <div class="flex justify-end">
         <IconButton

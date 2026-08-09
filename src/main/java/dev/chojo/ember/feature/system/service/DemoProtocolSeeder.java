@@ -8,6 +8,8 @@ package dev.chojo.ember.feature.system.service;
 import dev.chojo.ember.feature.protocol.repository.TestProtocolRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -17,8 +19,8 @@ import java.util.Random;
  * Seeds demo test protocol data modeled after the Jugendflamme Stufe 1 Prüfungsbogen.
  */
 @Singleton
-public class DemoProtocolSeeder {
-
+public class DemoProtocolSeeder implements DemoSeeder {
+    private static final Logger log = LoggerFactory.getLogger(DemoProtocolSeeder.class);
     private static final double ONE = 1.0;
     private static final double HALF = 0.5;
 
@@ -27,6 +29,18 @@ public class DemoProtocolSeeder {
     @Inject
     public DemoProtocolSeeder(TestProtocolRepository repo) {
         this.repo = repo;
+    }
+
+    @Override
+    public int order() {
+        return MODULES;
+    }
+
+    @Override
+    public void seed(DemoSeederContext context) {
+        var testees = context.members().anfaenger().stream().map(m -> m.id()).toList();
+        seed(context.stationId(), context.adminMember().id(), testees);
+        log.info("Demo: Created Test Protocol data");
     }
 
     public void seed(int stationId, int createdBy, List<Integer> memberIds) {

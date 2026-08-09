@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import AssignHelp from '~/views/helpcenter/stationview/inventory/AssignHelp'
+import AssignHelp from '~/views/helpcenter/stationview/inventory/AssignHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

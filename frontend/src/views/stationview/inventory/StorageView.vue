@@ -22,7 +22,8 @@ import ContainerTree from '@/views/stationview/inventory/storageview/ContainerTr
 import {inventory, inventoryContainers} from '@/api'
 import {containerPathFor} from '@/util/containerPath'
 import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
-import type {InventoryItem} from '@/api/types'
+import type {InventoryItem} from '@/api/inventory'
+import {apiErrorMessage} from '@/util/apiError'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -93,8 +94,8 @@ async function load() {
     containers.value = c
     kinds.value = k
     items.value = allItems
-  } catch (e: any) {
-    error.value = e?.response?.data?.message ?? t('inventory.storage.loadError')
+  } catch (e) {
+    error.value = apiErrorMessage(e) ?? t('inventory.storage.loadError')
   } finally {
     loading.value = false
   }

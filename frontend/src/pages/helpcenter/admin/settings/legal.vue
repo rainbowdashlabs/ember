@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import LegalHelp from '~/views/helpcenter/adminview/LegalHelp'
+import LegalHelp from '~/views/helpcenter/adminview/LegalHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter-admin',

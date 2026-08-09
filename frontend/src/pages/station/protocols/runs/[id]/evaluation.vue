@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import EvaluationView from '~/views/stationview/protocol/EvaluationView'
+import EvaluationView from '~/views/stationview/protocol/EvaluationView.vue'
 
 definePageMeta({
   layout: 'station',

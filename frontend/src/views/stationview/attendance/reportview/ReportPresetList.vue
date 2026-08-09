@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import type {MemberGroup} from '@/api/types'
 import type {ReportPreset} from '@/api/attendance'
 
@@ -30,16 +31,17 @@ function presetLabel(preset: ReportPreset): string {
 
 <template>
   <div v-if="presets.length > 0" class="flex flex-wrap gap-2">
-    <button
+    <SelectionToggleButton
         v-for="preset in presets"
         :key="preset.id"
-        class="rounded-lg px-3 py-1.5 text-xs font-medium border transition-all border-bg-light-accent dark:border-bg-dark-accent hover:border-primary flex items-center gap-2"
-        @click="emit('apply', preset)"
+        :selected="false"
+        class="flex items-center gap-2"
+        @toggle="emit('apply', preset)"
     >
       {{ presetLabel(preset) }}
       <span class="text-(--text-muted) hover:text-error cursor-pointer" @click.stop="emit('remove', preset.id)">
         <font-awesome-icon :icon="['fas', 'xmark']" class="h-3 w-3"/>
       </span>
-    </button>
+    </SelectionToggleButton>
   </div>
 </template>

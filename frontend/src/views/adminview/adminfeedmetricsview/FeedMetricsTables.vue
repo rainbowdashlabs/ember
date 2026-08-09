@@ -8,7 +8,9 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import TableHeaderCell from '@/components/typography/TableHeaderCell.vue'
 import type {FeedUserAgentStat} from '@/api/feedMetrics'
+import {formatDateTime} from '@/util/format'
 
 defineProps<{
   statusBreakdown: Array<[number, number]>
@@ -25,8 +27,8 @@ const {t, n} = useI18n()
       <table v-if="statusBreakdown.length > 0" class="w-full text-sm">
         <thead>
         <tr class="text-left text-(--text-muted)">
-          <th class="py-1 pr-3 font-medium">{{ t('feedMetrics.status') }}</th>
-          <th class="py-1 pr-3 font-medium">{{ t('feedMetrics.count') }}</th>
+          <TableHeaderCell>{{ t('feedMetrics.status') }}</TableHeaderCell>
+          <TableHeaderCell>{{ t('feedMetrics.count') }}</TableHeaderCell>
         </tr>
         </thead>
         <tbody>
@@ -45,16 +47,16 @@ const {t, n} = useI18n()
       <table v-if="userAgents.length > 0" class="w-full text-sm">
         <thead>
         <tr class="text-left text-(--text-muted)">
-          <th class="py-1 pr-3 font-medium">{{ t('feedMetrics.userAgent') }}</th>
-          <th class="py-1 pr-3 font-medium">{{ t('feedMetrics.requests') }}</th>
-          <th class="py-1 pr-3 font-medium">{{ t('feedMetrics.lastSeen') }}</th>
+          <TableHeaderCell>{{ t('feedMetrics.userAgent') }}</TableHeaderCell>
+          <TableHeaderCell>{{ t('feedMetrics.requests') }}</TableHeaderCell>
+          <TableHeaderCell>{{ t('feedMetrics.lastSeen') }}</TableHeaderCell>
         </tr>
         </thead>
         <tbody>
         <tr v-for="ua in userAgents" :key="ua.uaHash" class="border-t border-(--border) align-top">
           <td class="py-1 pr-3 font-mono break-all">{{ ua.uaString }}</td>
           <td class="py-1 pr-3 whitespace-nowrap">{{ n(ua.requestCount) }}</td>
-          <td class="py-1 pr-3 whitespace-nowrap">{{ new Date(ua.lastSeen).toLocaleString() }}</td>
+          <td class="py-1 pr-3 whitespace-nowrap">{{ formatDateTime(ua.lastSeen) }}</td>
         </tr>
         </tbody>
       </table>

@@ -5,11 +5,10 @@
  */
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import DataTable from '@/components/table/DataTable.vue'
 import Th from '@/components/table/Th.vue'
 import Td from '@/components/table/Td.vue'
-import THead from '@/components/table/THead.vue'
 import TRow from '@/components/table/TRow.vue'
 import type { StationMember } from '@/api/types'
 
@@ -27,28 +26,22 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <NeutralContainer class="overflow-x-auto">
-    <table class="w-full text-sm">
-      <thead>
-        <THead>
-          <Th>{{ t('membersList.colName') }}</Th>
-          <Th>{{ t('membersList.colEmail') }}</Th>
-          <Th>{{ t('formerMembers.colFormerAt') }}</Th>
-          <th class="px-3 py-2"></th>
-        </THead>
-      </thead>
-      <tbody>
-        <TRow v-for="member in members" :key="member.id">
-          <Td class="font-medium text-(--text-muted)">{{ memberDisplayName(member) }}</Td>
-          <Td muted>{{ member.email ?? '' }}</Td>
-          <Td muted>{{ formatDate(member.formerAt) }}</Td>
-          <Td align="right">
-            <PrimaryButton :icon="['fas', 'user-check']" @click="$emit('reactivate', member)">
-              {{ t('formerMembers.reactivate') }}
-            </PrimaryButton>
-          </Td>
-        </TRow>
-      </tbody>
-    </table>
-  </NeutralContainer>
+  <DataTable>
+    <template #head>
+      <Th>{{ t('membersList.colName') }}</Th>
+      <Th>{{ t('membersList.colEmail') }}</Th>
+      <Th>{{ t('formerMembers.colFormerAt') }}</Th>
+      <th class="px-3 py-2"></th>
+    </template>
+    <TRow v-for="member in members" :key="member.id">
+      <Td class="font-medium text-(--text-muted)">{{ memberDisplayName(member) }}</Td>
+      <Td muted>{{ member.email ?? '' }}</Td>
+      <Td muted>{{ formatDate(member.formerAt) }}</Td>
+      <Td align="right">
+        <PrimaryButton :icon="['fas', 'user-check']" @click="$emit('reactivate', member)">
+          {{ t('formerMembers.reactivate') }}
+        </PrimaryButton>
+      </Td>
+    </TRow>
+  </DataTable>
 </template>

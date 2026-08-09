@@ -26,7 +26,7 @@ const patch = useConfigPatch(() => props.config, emit)
     <MemberSearchPicker
         :model-value="(config.memberUid as string) ?? null"
         @pick="(item: {memberUid: string}) => patch({memberUid: item.memberUid})"
-        @update:model-value="(v: string | null) => patch({memberUid: v})"
+        @update:model-value="(v: string | null | undefined) => patch({memberUid: v ?? null})"
     />
     <FieldLabel hint class="mb-1">{{ TS('memberBlurb') }}</FieldLabel>
     <MarkdownFieldInput :model-value="(config.blurb as string) ?? ''" @update:model-value="patch({blurb: $event ?? ''})"/>

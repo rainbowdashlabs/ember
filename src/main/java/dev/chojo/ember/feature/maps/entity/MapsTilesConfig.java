@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.maps.entity;
 
-import tools.jackson.databind.json.JsonMapper;
+import dev.chojo.ember.util.Json;
 
 /**
  * Tile provider configuration, persisted as JSON in the {@code application_setting} table
@@ -19,11 +19,9 @@ public record MapsTilesConfig(
 
     public static final MapsTilesConfig DEFAULT = new MapsTilesConfig(MapTileProvider.OSM, "", "", "", 0, 19);
 
-    private static final JsonMapper MAPPER = JsonMapper.builder().build();
-
     public static MapsTilesConfig parse(String json) {
         try {
-            return MAPPER.readValue(json, MapsTilesConfig.class);
+            return Json.MAPPER.readValue(json, MapsTilesConfig.class);
         } catch (Exception e) {
             throw new RuntimeException("Failed to parse MapsTilesConfig", e);
         }
@@ -31,7 +29,7 @@ public record MapsTilesConfig(
 
     public String toJson() {
         try {
-            return MAPPER.writeValueAsString(this);
+            return Json.MAPPER.writeValueAsString(this);
         } catch (Exception e) {
             throw new RuntimeException("Failed to serialize MapsTilesConfig", e);
         }

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 import {useI18n} from 'vue-i18n'
 import PasswordInput from '@/components/input/text/PasswordInput.vue'
@@ -14,6 +14,8 @@ import {auth} from '@/api'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
+import {useAsyncAction} from '@/composables/useAsyncAction'
+import {apiErrorMessage} from '@/util/apiError'
 
 const {t, te} = useI18n()
 const route = useRoute()
@@ -21,39 +23,33 @@ const router = useRouter()
 
 const newPassword = ref('')
 const confirmPassword = ref('')
-const error = ref('')
-const loading = ref(false)
+const validationError = ref('')
 
 const token = route.query.token as string
 
-async function handleSetPassword() {
-  error.value = ''
+const {running: loading, error: submitError, run: runSetPassword} = useAsyncAction(async () => {
+  await auth.setPassword({token, password: newPassword.value})
+  await router.push({name: 'login'})
+}, {formatError: (e) => {
+  const raw = apiErrorMessage(e)
+  return raw ? (te(raw) ? t(raw) : raw) : t('common.error')
+}})
 
+const error = computed(() => validationError.value || submitError.value)
+
+function handleSetPassword() {
   if (!newPassword.value) {
-    error.value = t('setPassword.required')
+    validationError.value = t('setPassword.required')
     return
   }
 
   if (newPassword.value !== confirmPassword.value) {
-    error.value = t('setPassword.mismatch')
+    validationError.value = t('setPassword.mismatch')
     return
   }
 
-  loading.value = true
-  try {
-    await auth.setPassword({token, password: newPassword.value})
-    await router.push({name: 'login'})
-  } catch (e) {
-    if (e instanceof Error && 'response' in e) {
-      const axiosErr = e as any
-      const raw = axiosErr.response?.data?.message as string | undefined
-      error.value = raw ? (te(raw) ? t(raw) : raw) : t('common.error')
-    } else {
-      error.value = t('common.error')
-    }
-  } finally {
-    loading.value = false
-  }
+  validationError.value = ''
+  void runSetPassword()
 }
 </script>
 

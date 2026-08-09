@@ -39,7 +39,8 @@ class GdprExportServiceTest extends RepositoryTestBase {
     @Test
     @Order(1)
     void setup() {
-        gdprService = new GdprExportService(accountRepo, stationMemberRepo, mock(KbFileStorageService.class));
+        gdprService = new GdprExportService(
+                accountRepo, stationMemberRepo, memberLookupService, mock(KbFileStorageService.class));
 
         // Create account
         account = accountRepo.create("gdpr-test@example.com", "Max", "Mustermann", true);
@@ -103,7 +104,7 @@ class GdprExportServiceTest extends RepositoryTestBase {
                 null,
                 null,
                 null);
-        eventRepo.createRegistration(event.id(), member.id(), LocalDate.now(), RegistrationStatus.ACCEPTED, null);
+        eventRegistrationRepo.create(event.id(), member.id(), LocalDate.now(), RegistrationStatus.ACCEPTED, null);
 
         // Create absence
         attendanceRepo.createAbsence(

@@ -55,6 +55,7 @@ function updateCell(index: number, cell: CellEditData) {
 
 function deleteCell(index: number) {
     const current = row.value.cells[index]
+    if (!current) return
     const isEmpty = current.contentType === CellContentType.EMPTY
     if (isEmpty && row.value.cells.length <= 1) {
         emit('delete')
@@ -78,7 +79,7 @@ function deleteCell(index: number) {
         return
     }
     const cells = [...row.value.cells]
-    cells[index] = {...cells[index], contentType: CellContentType.EMPTY, content: '', config: {}}
+    cells[index] = {...current, contentType: CellContentType.EMPTY, content: '', config: {}}
     updateCells(cells)
 }
 
@@ -101,8 +102,11 @@ function insertColumn(index: number) {
 
 function onResize(cellIndex: number, leftDelta: number) {
     const cells = [...row.value.cells]
-    cells[cellIndex] = {...cells[cellIndex], widthPercent: cells[cellIndex].widthPercent + leftDelta}
-    cells[cellIndex + 1] = {...cells[cellIndex + 1], widthPercent: cells[cellIndex + 1].widthPercent - leftDelta}
+    const left = cells[cellIndex]
+    const right = cells[cellIndex + 1]
+    if (!left || !right) return
+    cells[cellIndex] = {...left, widthPercent: left.widthPercent + leftDelta}
+    cells[cellIndex + 1] = {...right, widthPercent: right.widthPercent - leftDelta}
     updateCells(cells)
 }
 
@@ -125,9 +129,11 @@ function setCellWidth(cellIndex: number, widthPercent: number) {
 
 function swapCells(leftIndex: number) {
     const cells = [...row.value.cells]
-    const temp = cells[leftIndex]
-    cells[leftIndex] = cells[leftIndex + 1]
-    cells[leftIndex + 1] = temp
+    const left = cells[leftIndex]
+    const right = cells[leftIndex + 1]
+    if (!left || !right) return
+    cells[leftIndex] = right
+    cells[leftIndex + 1] = left
     updateCells(cells)
 }
 
@@ -203,7 +209,7 @@ function onPasteCell() {
                 <ColumnGutter
                     v-if="ci < row.cells.length - 1"
                     :left-percent="cell.widthPercent"
-                    :right-percent="row.cells[ci + 1].widthPercent"
+                    :right-percent="row.cells[ci + 1]?.widthPercent ?? 0"
                     :can-add-column="row.cells.length < 4"
                     @resize="onResize(ci, $event)"
                     @swap="swapCells(ci)"

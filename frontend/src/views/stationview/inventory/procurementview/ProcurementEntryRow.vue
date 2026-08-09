@@ -12,7 +12,7 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
-import type { ProcurementEntry } from '@/api/types'
+import type { ProcurementEntry } from '@/api/procurement'
 import { formatDate } from '@/util/format'
 
 const { t } = useI18n()

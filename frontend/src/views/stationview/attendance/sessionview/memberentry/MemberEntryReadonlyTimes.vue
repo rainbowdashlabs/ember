@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import type {AttendanceEntry} from '@/api/types'
+import type {AttendanceEntry} from '@/api/attendance'
 import {formatTime} from '@/util/format'
 
 defineProps<{

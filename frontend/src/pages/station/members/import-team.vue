@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import TeamImportView from '~/views/stationview/members/TeamImportView'
+import TeamImportView from '~/views/stationview/members/TeamImportView.vue'
 
 definePageMeta({
   layout: 'station',

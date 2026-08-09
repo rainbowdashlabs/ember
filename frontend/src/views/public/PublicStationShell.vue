@@ -13,15 +13,16 @@ import SidebarLink from '@/components/navigation/SidebarLink.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import type {PublicStationInfo} from '@/api/discovery'
-import {getPublicStationInfo} from '@/api/discovery'
+import {getPublicStationInfo, type PublicStationInfo} from '@/api/discovery'
 import {listPublicPages, type PublicPageSummary} from '@/api/publicPages'
 import {useCanonical} from '~/composables/useCanonical'
+import {usePageHeader} from '@/composables/usePageHeader'
 import {useTheme} from '@/composables/useTheme'
 
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
+const {title: pageTitle, subtitle: pageSubtitle} = usePageHeader()
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -115,7 +116,7 @@ useHead(computed(() => {
     script: [
       {
         type: 'application/ld+json',
-        children: JSON.stringify({
+        innerHTML: JSON.stringify({
           '@context': 'https://schema.org',
           '@type': 'Organization',
           name: s.name,
@@ -136,6 +137,8 @@ useHead(computed(() => {
       v-else-if="station"
       :station-name="station.name"
       :station-logo-url="logoUrl"
+      :title="pageTitle"
+      :subtitle="pageSubtitle"
   >
     <template #sidebar="{ close }">
       <!-- Landing page (home) first -->

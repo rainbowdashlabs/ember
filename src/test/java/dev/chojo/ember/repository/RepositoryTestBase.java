@@ -13,9 +13,11 @@ import de.chojo.sadu.postgresql.mapper.PostgresqlMapper;
 import de.chojo.sadu.queries.api.configuration.QueryConfiguration;
 import de.chojo.sadu.updater.QueryReplacement;
 import de.chojo.sadu.updater.SqlUpdater;
+import dev.chojo.ember.TestContainers;
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.board.repository.BoardRepository;
 import dev.chojo.ember.feature.board.repository.BoardTicketRepository;
@@ -27,9 +29,22 @@ import dev.chojo.ember.feature.discovery.repository.DiscoveryBlocklistRepository
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPeerRepository;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPingRepository;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryStationCacheRepository;
+import dev.chojo.ember.feature.events.repository.EventBreakRepository;
+import dev.chojo.ember.feature.events.repository.EventCategoryRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.events.repository.EventFieldDefaultRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
+import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
+import dev.chojo.ember.feature.events.repository.EventReminderRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
+import dev.chojo.ember.feature.events.service.EventBreakService;
+import dev.chojo.ember.feature.events.service.EventCategoryService;
+import dev.chojo.ember.feature.events.service.EventCrudService;
+import dev.chojo.ember.feature.events.service.EventFieldDefaultService;
+import dev.chojo.ember.feature.events.service.EventOccurrenceService;
+import dev.chojo.ember.feature.events.service.EventRegistrationService;
+import dev.chojo.ember.feature.events.service.EventReminderService;
+import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.feed.repository.FeedMetricsRepository;
 import dev.chojo.ember.feature.feed.repository.FeedTokenRepository;
@@ -55,6 +70,7 @@ import dev.chojo.ember.feature.members.repository.UserSettingsRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.feature.members.service.MemberLookupService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
@@ -67,7 +83,8 @@ import dev.chojo.ember.feature.protocol.repository.TestProtocolRepository;
 import dev.chojo.ember.feature.quiz.repository.AiProviderRepository;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
 import dev.chojo.ember.feature.quiz.repository.QuizTestRepository;
-import dev.chojo.ember.feature.restriction.RestrictionRepository;
+import dev.chojo.ember.feature.restriction.repository.RestrictionRepository;
+import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.feature.station.repository.StationApplicationRepository;
 import dev.chojo.ember.feature.station.repository.StationMailConfigRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -111,7 +128,7 @@ public abstract class RepositoryTestBase {
             .withDatabaseName("ember_test")
             .withUsername("test")
             .withPassword("test")
-            .withStartupAttempts(4);
+            .withStartupAttempts(8);
 
     protected static AccountRepository accountRepo;
     protected static StationRepository stationRepo;
@@ -122,6 +139,11 @@ public abstract class RepositoryTestBase {
     protected static ProfileFieldRepository profileFieldRepo;
     protected static RegistrationCodeRepository registrationCodeRepo;
     protected static EventRepository eventRepo;
+    protected static EventBreakRepository eventBreakRepo;
+    protected static EventCategoryRepository eventCategoryRepo;
+    protected static EventFieldDefaultRepository eventFieldDefaultRepo;
+    protected static EventRegistrationRepository eventRegistrationRepo;
+    protected static EventReminderRepository eventReminderRepo;
     protected static SavedFilterRepository savedFilterRepo;
     protected static InventoryCheckRepository inventoryCheckRepo;
     protected static EventFieldRepository eventFieldRepo;
@@ -152,6 +174,7 @@ public abstract class RepositoryTestBase {
     protected static TestProtocolRepository testProtocolRepo;
     protected static KnowledgeBaseRepository knowledgeBaseRepo;
     protected static RestrictionRepository restrictionRepo;
+    protected static RestrictionService restrictionService;
     protected static ApplicationSettingRepository applicationSettingRepo;
     protected static ProblemReportRepository problemReportRepo;
     protected static BoardRepository boardRepo;
@@ -172,14 +195,13 @@ public abstract class RepositoryTestBase {
     protected static TwoFactorRepository twoFactorRepo;
     protected static MemberIdentityFactory memberIdentityFactory;
     protected static MemberNameResolver memberNameResolver;
+    protected static MemberLookupService memberLookupService;
     protected static DataSource dataSource;
     protected static String schemaName;
 
     @BeforeAll
     static void setupDatabase() throws Exception {
-        if (!PG.isRunning()) {
-            PG.start();
-        }
+        TestContainers.startExclusively(PG);
         String SCHEMA = "ember_t" + SCHEMA_COUNTER.incrementAndGet();
         DatabaseConfig dbConfig = new DatabaseConfig() {
             @Override
@@ -228,13 +250,19 @@ public abstract class RepositoryTestBase {
         QueryConfiguration.setDefault(config);
         accountRepo = new AccountRepository(TokenHasher.forTesting("repository-test-pepper"));
         stationRepo = new StationRepository();
-        stationMemberRepo = new StationMemberRepository(stationRepo);
+        stationMemberRepo = new StationMemberRepository();
+        memberLookupService = new MemberLookupService(stationMemberRepo, stationRepo);
         attendanceRepo = new AttendanceRepository();
         inventoryRepo = new InventoryRepository();
         memberGroupRepo = new MemberGroupRepository();
         profileFieldRepo = new ProfileFieldRepository();
         registrationCodeRepo = new RegistrationCodeRepository();
         eventRepo = new EventRepository();
+        eventBreakRepo = new EventBreakRepository();
+        eventCategoryRepo = new EventCategoryRepository();
+        eventFieldDefaultRepo = new EventFieldDefaultRepository();
+        eventRegistrationRepo = new EventRegistrationRepository();
+        eventReminderRepo = new EventReminderRepository();
         savedFilterRepo = new SavedFilterRepository();
         inventoryCheckRepo = new InventoryCheckRepository();
         eventFieldRepo = new EventFieldRepository();
@@ -264,11 +292,12 @@ public abstract class RepositoryTestBase {
         aiProviderRepo = new AiProviderRepository();
         testProtocolRepo = new TestProtocolRepository();
         knowledgeBaseRepo = new KnowledgeBaseRepository();
-        restrictionRepo = new RestrictionRepository(stationMemberRepo, memberGroupRepo, userTagRepo);
+        restrictionRepo = new RestrictionRepository();
+        restrictionService = new RestrictionService(restrictionRepo, stationMemberRepo, memberGroupRepo, userTagRepo);
         applicationSettingRepo = new ApplicationSettingRepository();
         problemReportRepo = new ProblemReportRepository();
         boardRepo = new BoardRepository();
-        boardTicketRepo = new BoardTicketRepository(stationMemberRepo, stationRepo);
+        boardTicketRepo = new BoardTicketRepository();
         federatedBoardRepo = new FederatedBoardRepository();
         checklistRepo = new ChecklistRepository();
         procedureRepo = new ProcedureRepository();
@@ -285,13 +314,54 @@ public abstract class RepositoryTestBase {
         twoFactorRepo = new TwoFactorRepository();
         var eventFedRepo = new EventFederationRepository();
         var fedRepo = new FederationRepository();
-        var memberSvc = new StationMemberService(stationMemberRepo, stationRepo, accountRepo, null);
+        var memberSvc = newStationMemberService(accountRepo, null);
         var groupSvc =
                 new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo, new DomainEventBus(Set.of()));
         var tagSvc = new UserTagService(userTagRepo, memberGroupRepo);
         memberNameResolver =
                 new MemberNameResolver(memberSvc, accountRepo, eventFedRepo, fedRepo, stationRepo, groupSvc, tagSvc);
-        memberIdentityFactory = new MemberIdentityFactory(stationRepo, stationMemberRepo, memberNameResolver);
+        memberIdentityFactory = new MemberIdentityFactory(stationRepo, memberLookupService, memberNameResolver);
+    }
+
+    /**
+     * Builds a {@link StationMemberService} over the shared repositories and lookup service, so no
+     * test has to repeat the fixed half of its constructor argument list.
+     */
+    protected static StationMemberService newStationMemberService(
+            AccountRepository accountRepository, AuthService authService) {
+        return new StationMemberService(
+                stationMemberRepo, stationRepo, accountRepository, authService, memberLookupService);
+    }
+
+    /**
+     * The event domain's services, wired against this class's repositories. Tests take the one they
+     * exercise instead of repeating the construction, which differs per service.
+     */
+    protected record EventServices(
+            EventCrudService crud,
+            EventOccurrenceService occurrence,
+            EventCategoryService category,
+            EventBreakService breaks,
+            EventRestrictionService restriction,
+            EventFieldDefaultService fieldDefault,
+            EventRegistrationService registration,
+            EventReminderService reminder) {}
+
+    /**
+     * Builds the event domain's services over the shared repositories.
+     */
+    protected static EventServices newEventServices(DomainEventBus eventBus) {
+        var crudService = new EventCrudService(eventRepo, eventBus);
+        var breakService = new EventBreakService(eventBreakRepo);
+        return new EventServices(
+                crudService,
+                new EventOccurrenceService(crudService, breakService),
+                new EventCategoryService(eventCategoryRepo),
+                breakService,
+                new EventRestrictionService(eventRepo, restrictionService),
+                new EventFieldDefaultService(eventFieldDefaultRepo, eventRepo),
+                new EventRegistrationService(eventRegistrationRepo, eventRepo, eventBus),
+                new EventReminderService(eventReminderRepo));
     }
 
     /**

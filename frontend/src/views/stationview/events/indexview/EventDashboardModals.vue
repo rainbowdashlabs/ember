@@ -9,7 +9,7 @@ import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import BreakModal from './BreakModal.vue'
 import HolidayImportModal from './HolidayImportModal.vue'
 import ExportModal from './ExportModal.vue'
-import type {EventBreak, EventCategory, StationEvent} from '@/api/types'
+import type {EventBreak, EventCategory, StationEvent} from '@/api/events'
 
 const {t} = useI18n()
 

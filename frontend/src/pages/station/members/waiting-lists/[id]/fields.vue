@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import FieldEditorView from '~/views/stationview/members/waitinglist/FieldEditorView'
+import FieldEditorView from '~/views/stationview/members/waitinglist/FieldEditorView.vue'
 
 definePageMeta({
   layout: 'station',

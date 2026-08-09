@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ImportView from '~/views/stationview/members/ImportView'
+import ImportView from '~/views/stationview/members/ImportView.vue'
 
 definePageMeta({
   layout: 'station',

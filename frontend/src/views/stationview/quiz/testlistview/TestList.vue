@@ -5,7 +5,7 @@
  */
 <script setup lang="ts">
 import TestRow from './TestRow.vue'
-import type { QuizTest } from '@/api/types'
+import type { QuizTest } from '@/api/quiz'
 
 defineProps<{
   tests: QuizTest[]

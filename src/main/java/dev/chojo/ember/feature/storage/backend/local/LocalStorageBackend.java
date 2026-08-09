@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.storage.backend.local;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.chojo.ember.feature.storage.backend.BackendCapability;
 import dev.chojo.ember.feature.storage.backend.HealthStatus;
 import dev.chojo.ember.feature.storage.backend.MetadataSidecar;
@@ -14,10 +13,12 @@ import dev.chojo.ember.feature.storage.backend.StorageBackend;
 import dev.chojo.ember.feature.storage.backend.StorageBackendType;
 import dev.chojo.ember.feature.storage.backend.StorageException;
 import dev.chojo.ember.feature.storage.backend.StoredStream;
+import dev.chojo.ember.util.Json;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.core.JacksonException;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -63,7 +64,6 @@ public class LocalStorageBackend implements StorageBackend {
     private static final String PROBE_PREFIX = "_probe";
     private static final int TRANSFER_BUFFER_BYTES = 8 * 1024;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
     private final Path root;
 
     @Inject
@@ -306,7 +306,7 @@ public class LocalStorageBackend implements StorageBackend {
     }
 
     private void writeMetadataSidecar(Path target, ObjectMetadata metadata) throws IOException {
-        byte[] bytes = objectMapper.writeValueAsBytes(MetadataSidecar.from(metadata));
+        byte[] bytes = Json.MAPPER.writeValueAsBytes(MetadataSidecar.from(metadata));
         Path meta = metadataPath(target);
         Path partial = meta.resolveSibling(meta.getFileName() + ".partial." + UUID.randomUUID());
         try {
@@ -323,10 +323,10 @@ public class LocalStorageBackend implements StorageBackend {
             return ObjectMetadata.of("application/octet-stream");
         }
         try {
-            return objectMapper
+            return Json.MAPPER
                     .readValue(Files.readAllBytes(meta), MetadataSidecar.class)
                     .toObjectMetadata();
-        } catch (IOException e) {
+        } catch (IOException | JacksonException e) {
             log.warn("Failed to read metadata sidecar {}", meta, e);
             return ObjectMetadata.of("application/octet-stream");
         }

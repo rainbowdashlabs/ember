@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ProcedureTemplateEditView from '~/views/stationview/procedure/ProcedureTemplateEditView'
+import ProcedureTemplateEditView from '~/views/stationview/procedure/ProcedureTemplateEditView.vue'
 
 definePageMeta({
   layout: 'station',

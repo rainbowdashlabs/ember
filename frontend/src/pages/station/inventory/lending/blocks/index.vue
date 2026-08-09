@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import LendingBlocksView from '~/views/stationview/inventory/LendingBlocksView'
+import LendingBlocksView from '~/views/stationview/inventory/LendingBlocksView.vue'
 
 definePageMeta({
   layout: 'station',

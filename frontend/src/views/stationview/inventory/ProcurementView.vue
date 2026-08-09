@@ -8,15 +8,10 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
-import EmptyState from '@/components/feedback/EmptyState.vue'
-import type {
-  ProcurementEntry,
-  Inventory,
-  StationMember,
-} from '@/api/types'
-import { StationPermission } from '@/api/types'
+import AsyncSection from '@/components/feedback/AsyncSection.vue'
+import type {Inventory} from '@/api/inventory'
+import type {ProcurementEntry} from '@/api/procurement'
+import {StationPermission, type StationMember} from '@/api/types'
 import { procurement, inventory, stationMembers } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
@@ -93,21 +88,23 @@ function onCreateError() {
         </PrimaryButton>
       </div>
 
-      <Spinner v-if="loading" size="lg" />
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
-
-      <EmptyState v-if="!loading && entries.length === 0">{{ t('procurement.empty') }}</EmptyState>
-
-      <div v-if="!loading" class="space-y-3">
-        <ProcurementEntryRow
-          v-for="entry in entries"
-          :key="entry.id"
-          :entry="entry"
-          :can-manage-procurement="canManageProcurement"
-          @fulfill="fulfillEntry"
-          @delete="deleteEntry"
-        />
-      </div>
+      <AsyncSection
+        :empty="entries.length === 0"
+        :empty-message="t('procurement.empty')"
+        :error="error"
+        :loading="loading"
+      >
+        <div class="space-y-3">
+          <ProcurementEntryRow
+            v-for="entry in entries"
+            :key="entry.id"
+            :entry="entry"
+            :can-manage-procurement="canManageProcurement"
+            @fulfill="fulfillEntry"
+            @delete="deleteEntry"
+          />
+        </div>
+      </AsyncSection>
 
       <ProcurementCreateModal
         v-model="showCreateModal"

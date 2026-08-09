@@ -6,7 +6,8 @@
 <script lang="ts" setup>
 import MemberTableHeader from './MemberTableHeader.vue'
 import MemberTableBody from './MemberTableBody.vue'
-import type {ProfileField, StationMember} from '@/api/types'
+import type {ProfileField} from '@/api/profileFields'
+import type {StationMember} from '@/api/types'
 
 type ColumnKey = 'name' | 'groups' | 'tags' | number
 

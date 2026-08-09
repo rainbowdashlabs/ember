@@ -13,8 +13,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
@@ -29,8 +28,8 @@ import { useConfirmAction } from '@/composables/useConfirmAction'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { procedures } from '@/api'
 import { StationPermission } from '@/api/types'
-import type { Procedure, ProcedureTemplate } from '@/api/procedures'
-import { ProcedureStatus } from '@/api/procedures'
+import {ProcedureStatus, type Procedure, type ProcedureRequest, type ProcedureTemplate} from '@/api/procedures'
+import { formatDate } from '@/util/format'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -46,7 +45,6 @@ const searchQuery = ref('')
 const statusFilter = ref<string>(ProcedureStatus.OPEN)
 const assigneeFilter = ref<string>(canEdit.value ? 'all' : 'me')
 
-// Create modal
 const showCreateModal = ref(false)
 const createMode = ref<'manual' | 'template'>('manual')
 const newName = ref('')
@@ -87,7 +85,9 @@ const filteredItems = computed(() => {
 async function loadTemplates() {
   try {
     templates.value = (await procedures.getTemplates()).filter(tpl => !tpl.archived)
-  } catch { /* ignore */ }
+  } catch {
+    return
+  }
 }
 
 function openCreateModal() {
@@ -104,25 +104,16 @@ async function handleCreate() {
   if (createMode.value === 'manual' && !newName.value.trim()) return
   if (createMode.value === 'template' && newTemplateId.value == null) return
   try {
-    const data: Record<string, unknown> = {}
-    if (createMode.value === 'template') {
-      data.templateId = newTemplateId.value
-    } else {
-      data.name = newName.value.trim()
-      data.description = newDescription.value || undefined
-    }
+    const data: ProcedureRequest = createMode.value === 'template'
+        ? { templateId: newTemplateId.value ?? undefined }
+        : { name: newName.value.trim(), description: newDescription.value || undefined }
     if (newDueAt.value) data.dueAt = newDueAt.value
-    const created = await procedures.createProcedure(data as Parameters<typeof procedures.createProcedure>[0])
+    const created = await procedures.createProcedure(data)
     showCreateModal.value = false
     router.push({ name: 'procedure-detail', params: { id: created.id } })
   } catch {
     error.value = t('common.error')
   }
-}
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return ''
-  return new Date(dateStr).toLocaleDateString('de-DE')
 }
 
 watch([statusFilter, assigneeFilter], () => reload())
@@ -161,41 +152,40 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
       </SelectionToggleButton>
     </div>
 
-    <Spinner v-if="loading" />
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
-
-    <div v-if="!loading && filteredItems.length === 0" class="text-center text-[var(--text-muted)] py-8">
-      {{ t('procedures.empty') }}
-    </div>
-
-    <div class="space-y-2">
-      <NeutralContainer
-        v-for="p in filteredItems"
-        :key="p.id"
-        class="flex items-center gap-3 cursor-pointer hover:border-[var(--primary)] transition-colors group"
-        @click="router.push({ name: 'procedure-detail', params: { id: p.id } })"
-      >
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2">
-            <span class="font-medium">{{ p.name }}</span>
-            <SuccessBadge v-if="p.status === ProcedureStatus.RESOLVED">{{ t('procedures.resolved') }}</SuccessBadge>
-            <PrimaryBadge v-else>{{ t('procedures.open') }}</PrimaryBadge>
+    <AsyncSection
+      :empty="filteredItems.length === 0"
+      :empty-message="t('procedures.empty')"
+      :error="error"
+      :loading="loading"
+    >
+      <div class="space-y-2">
+        <NeutralContainer
+          v-for="p in filteredItems"
+          :key="p.id"
+          class="flex items-center gap-3 cursor-pointer hover:border-[var(--primary)] transition-colors group"
+          @click="router.push({ name: 'procedure-detail', params: { id: p.id } })"
+        >
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="font-medium">{{ p.name }}</span>
+              <SuccessBadge v-if="p.status === ProcedureStatus.RESOLVED">{{ t('procedures.resolved') }}</SuccessBadge>
+              <PrimaryBadge v-else>{{ t('procedures.open') }}</PrimaryBadge>
+            </div>
+            <div v-if="p.description" class="text-sm text-[var(--text-muted)] truncate">{{ p.description }}</div>
           </div>
-          <div v-if="p.description" class="text-sm text-[var(--text-muted)] truncate">{{ p.description }}</div>
-        </div>
-        <div class="flex items-center gap-3 text-sm text-[var(--text-muted)] shrink-0">
-          <span v-if="p.dueAt" class="flex items-center gap-1">
-            <font-awesome-icon :icon="['fas', 'calendar']" class="w-3 h-3" />
-            {{ formatDate(p.dueAt) }}
-          </span>
-        </div>
-        <div v-if="canEdit" class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <DeleteButton :label="t('common.delete')" @click.stop="requestDelete(p)" />
-        </div>
-      </NeutralContainer>
-    </div>
+          <div class="flex items-center gap-3 text-sm text-[var(--text-muted)] shrink-0">
+            <span v-if="p.dueAt" class="flex items-center gap-1">
+              <font-awesome-icon :icon="['fas', 'calendar']" class="w-3 h-3" />
+              {{ formatDate(p.dueAt) }}
+            </span>
+          </div>
+          <div v-if="canEdit" class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <DeleteButton :label="t('common.delete')" @click.stop="requestDelete(p)" />
+          </div>
+        </NeutralContainer>
+      </div>
+    </AsyncSection>
 
-    <!-- Create Modal -->
     <Modal v-model="showCreateModal">
       <SubHeader class="mb-3">{{ t('procedures.createProcedure') }}</SubHeader>
       <div class="flex gap-2 mb-4">
@@ -210,7 +200,7 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
         <template v-if="createMode === 'template'">
           <FieldLabel class="mb-1">{{ t('procedures.selectTemplate') }}</FieldLabel>
           <div v-if="templates.length === 0" class="text-sm text-[var(--text-muted)]">{{ t('procedures.noTemplates') }}</div>
-          <SelectInput v-else :model-value="newTemplateId != null ? String(newTemplateId) : ''" @update:model-value="(v: string | undefined) => { newTemplateId = v ? Number(v) : null }">
+          <SelectInput v-else :model-value="newTemplateId != null ? String(newTemplateId) : ''" @update:model-value="(v: string | number | null | undefined) => { newTemplateId = v ? Number(v) : null }">
             <option value="">—</option>
             <option v-for="tpl in templates" :key="tpl.id" :value="String(tpl.id)">{{ tpl.name }}</option>
           </SelectInput>

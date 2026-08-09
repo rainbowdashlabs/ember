@@ -1,5 +1,57 @@
 # Changelog
 
+## v26.11.7
+
+### New Features
+
+- **Sortable and filterable item lists.** The item tables on the inventory detail and edit pages can show custom fields as columns, sort by any column, and filter by specific values — including by source and assignment state (assigned, not assigned, in storage, not in storage). A column picker shows or hides additional columns.
+- **Custom fields when adding items.** The add-item dialog fills in the inventory's custom fields directly, and number fields check their allowed range while typing.
+- **Help articles for the setup assistant.** Every step of the station setup assistant has its own help article, reachable from the help center menu and the search box.
+- **A help article for every page.** The pages that still had no guide — event templates, a single news article, an inventory item, the answer generator for choice questions, the partner-station views and the reported-problems page — now have one, and every article in the help center is searchable from the menu.
+- **Separate help articles for procedures.** The procedure list, the editor, the detail page and the templates each have their own article instead of sharing one general page.
+
+### Changes
+
+- **No size placeholder for unsized items.** Item lists and member inventory pages leave the size empty for items without sizes instead of showing a one-size label. Size transitions in exchange and procurement views are unchanged.
+- **Item actions in one menu.** The action buttons on each inventory item row are collected in a single menu with labelled entries.
+- **Custom item fields are easier to set up.** The technical key and the values of selection options are suggested automatically from the entered names, and fields can be reordered by dragging them (on phones, with up and down arrows).
+- **One item edit dialog everywhere.** Editing an inventory item from the edit page now opens the same dialog as the detail page, including custom fields, storage container, and ownership. Custom field values are kept when saving.
+- **Confirmations use the app's own dialog.** Deleting a file tag or folder, unassigning an item during a check, and handing over an item another member still holds all ask in a styled dialog instead of a plain browser prompt.
+- **Number fields in attendance can have a default.** A number field on an attendance session takes a default value like every other field type, entered as a number rather than as text.
+
+### Security
+
+- **Boards you cannot see stay hidden.** Ticket comments, checklists, links, labels and history on a board you have no access to are no longer readable, and such a board now answers exactly as a missing one so its existence cannot be probed. Being unable to edit a board you can see is still reported separately.
+
+### Fixes
+
+- **Public blog article links work.** Opening a single article from a station's public blog loads the article instead of failing.
+- **Reordering tickets on a partner's board works.** Dragging a ticket within a lane on a board shared by a federation partner saves the new order.
+- **Creating custom item fields works.** Adding a custom field to an inventory saves correctly for every field type, including selection fields with options.
+- **Custom item field values are kept.** Values entered for an item's custom fields show up again after saving, and editing an item's name, identifier, or size no longer clears them.
+- **Opening a station loads it completely.** Picking a station on the cross-station overview reliably shows that station's profile and menu instead of occasionally returning to the overview or showing an empty page. Links from emails and feeds that point into a specific station open in that station.
+- **A clear message when session data cannot be loaded.** If loading the session fails, an error message with a retry button appears instead of an empty page with a bare menu.
+- **Forms and polls on public pages can be submitted.** A form or poll placed on a public page shows the consent checkbox and accepts the submission.
+- **Contact form submissions open.** The submissions view for a contact form on a page lists the received responses.
+- **Guardian names appear on waiting list entries.** The guardians of a waiting list applicant show their first and last name instead of a dash.
+- **Attendance field entries save immediately.** Yes/no, date, selection and member fields in an attendance session are stored as soon as they change, rather than after a short delay.
+- **Editing a form response works after new questions are added.** Opening a submitted response shows every question, including ones added after the response was sent.
+- **The public waiting list and public blog switches are saved.** Turning either on or off under Station → Federation keeps the setting.
+- **Replacing a presentation file works.** Uploading a new version of a presentation in the knowledge base replaces the stored file.
+- **Saved member filters apply reliably.** Applying a saved filter on the member list works even when it was saved for a tab that is no longer available.
+- **Ordering questions in quiz training keep all their items.** Moving an entry in an ordering question no longer leaves a blank item behind.
+- **The feed notification switch shows its real state.** The feed channel under Account → Notifications reflects whether it is actually enabled.
+- **Attendance help pages open with the help center menu.** The attendance, attendance settings and attendance settings editing help pages show the help center navigation.
+- **Public station pages show their title in the header.** Pages under a station's public area display the page name in the header bar.
+- **The relocation notice highlights its menu entry.** Opening the page that announces a station's move marks the matching menu entry as active.
+- **Comments on a partner's knowledge base article can be deleted.** Removing your own comment on an article shared by a federation partner completes instead of failing.
+- **Notifications for comments on partner news reach the right members.** Replies and mentions on a news article shared by a federation partner are delivered to the members of the station that owns the article.
+- **Knowledge base search accepts any input.** Searching for text made only of punctuation returns no results instead of failing with an error.
+- **Link previews stay clean when a page cannot be reached.** A link added to a knowledge base article keeps its address as the label instead of picking up the title of an error page.
+- **Uploads with unusual file names are accepted.** Files whose name is missing or whose extension is written in capitals are recognised by type instead of failing.
+- **The public forms and polls pages show their own titles.** Both pages display their own name in the header instead of the general forms title.
+- **Reordering board checklist items and partner board tickets works.** Dragging a checklist entry into a new position on a board ticket is saved, and so is moving a ticket within a lane on a board shared by a federation partner.
+
 ## v26.11.6
 
 ### Changes

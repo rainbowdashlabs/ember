@@ -10,9 +10,10 @@ import TabBar from '@/components/navigation/TabBar.vue'
 import CommentThread from '@/components/comment/CommentThread.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import type { BoardComment, BoardTicketTransition, BoardTicketHistoryEntry, BoardLane, BoardLabel } from '@/api/boards'
-import type { Comment } from '@/api/types'
+import type { Comment } from '@/api/comments'
 import type { MemberCompletion } from '@/api/stationMembers'
 import { contrastTextColor } from '@/theme/contrast'
+import { formatDateTime } from '@/util/format'
 
 const props = defineProps<{
     comments: BoardComment[]
@@ -80,13 +81,13 @@ const tabs = computed(() => [
     { key: 'all', label: t('boards.activityAll') },
 ])
 
+function activityKey(item: ActivityItem): string {
+    return `${item.type}-${item.data.id}`
+}
+
 function laneName(id: number | null): string {
     if (id === null) return '—'
     return props.lanes.find(l => l.id === id)?.name ?? `#${id}`
-}
-
-function formatDate(iso: string): string {
-    return new Date(iso).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
 </script>
@@ -95,7 +96,6 @@ function formatDate(iso: string): string {
     <div>
         <TabBar v-model="activeTab" :tabs="tabs" class="mb-3" />
 
-        <!-- Comments (using CommentThread) -->
         <div v-if="activeTab === 'comments'">
             <CommentThread
                 :comments="commentsAsGeneric"
@@ -108,16 +108,15 @@ function formatDate(iso: string): string {
             />
         </div>
 
-        <!-- Transitions + History (chronologically merged) -->
         <div v-if="activeTab === 'transitions'" class="space-y-2">
-            <template v-for="item in changesActivity" :key="`${item.type}-${(item.data as any).id}`">
+            <template v-for="item in changesActivity" :key="activityKey(item)">
                 <div v-if="item.type === 'transition'" class="flex items-center gap-2 text-sm text-(--text-muted) flex-wrap">
                     <MemberName :identity="(item.data as BoardTicketTransition).actor" size="sm" />
                     <span>{{ t('boards.movedFrom') }}</span>
                     <BaseBadge bg-class="" class="font-medium" :style="{ backgroundColor: lanes.find(l => l.id === (item.data as BoardTicketTransition).fromLaneId)?.color ?? 'var(--primary)', color: contrastTextColor(lanes.find(l => l.id === (item.data as BoardTicketTransition).fromLaneId)?.color ?? '#fd4f00') }">{{ laneName((item.data as BoardTicketTransition).fromLaneId) }}</BaseBadge>
                     <span>{{ t('boards.movedTo') }}</span>
                     <BaseBadge bg-class="" class="font-medium" :style="{ backgroundColor: lanes.find(l => l.id === (item.data as BoardTicketTransition).toLaneId)?.color ?? 'var(--primary)', color: contrastTextColor(lanes.find(l => l.id === (item.data as BoardTicketTransition).toLaneId)?.color ?? '#fd4f00') }">{{ laneName((item.data as BoardTicketTransition).toLaneId) }}</BaseBadge>
-                    <span class="ml-auto text-xs">{{ formatDate(item.ts) }}</span>
+                    <span class="ml-auto text-xs">{{ formatDateTime(item.ts) }}</span>
                 </div>
                 <div v-else-if="item.type === 'history'" class="flex items-center gap-2 text-sm text-(--text-muted) flex-wrap">
                     <MemberName :identity="(item.data as BoardTicketHistoryEntry).actor" size="sm" />
@@ -135,20 +134,19 @@ function formatDate(iso: string): string {
                         <span class="text-(--text)">{{ (item.data as BoardTicketHistoryEntry).detail }}</span>
                     </template>
                     <span v-else-if="(item.data as BoardTicketHistoryEntry).detail" class="text-(--text)">{{ (item.data as BoardTicketHistoryEntry).detail }}</span>
-                    <span class="ml-auto text-xs">{{ formatDate(item.ts) }}</span>
+                    <span class="ml-auto text-xs">{{ formatDateTime(item.ts) }}</span>
                 </div>
             </template>
             <p v-if="changesActivity.length === 0" class="text-sm text-(--text-muted) text-center py-4">—</p>
         </div>
 
-        <!-- All (interleaved) -->
         <div v-if="activeTab === 'all'" class="space-y-3">
             <div v-for="item in allActivity" :key="`${item.type}-${item.data.id}`">
                 <div v-if="item.type === 'comment'" class="flex gap-2">
                     <div class="flex-1">
                         <div class="flex items-center gap-2 text-xs text-(--text-muted)">
                             <MemberName :identity="(item.data as BoardComment).author" size="sm" class="font-medium" />
-                            <span>{{ formatDate(item.ts) }}</span>
+                            <span>{{ formatDateTime(item.ts) }}</span>
                         </div>
                         <p class="text-sm mt-0.5 whitespace-pre-wrap">{{ (item.data as BoardComment).content }}</p>
                     </div>
@@ -159,7 +157,7 @@ function formatDate(iso: string): string {
                     <BaseBadge bg-class="" class="font-medium" :style="{ backgroundColor: lanes.find(l => l.id === (item.data as BoardTicketTransition).fromLaneId)?.color ?? 'var(--primary)', color: contrastTextColor(lanes.find(l => l.id === (item.data as BoardTicketTransition).fromLaneId)?.color ?? '#fd4f00') }">{{ laneName((item.data as BoardTicketTransition).fromLaneId) }}</BaseBadge>
                     <span>{{ t('boards.movedTo') }}</span>
                     <BaseBadge bg-class="" class="font-medium" :style="{ backgroundColor: lanes.find(l => l.id === (item.data as BoardTicketTransition).toLaneId)?.color ?? 'var(--primary)', color: contrastTextColor(lanes.find(l => l.id === (item.data as BoardTicketTransition).toLaneId)?.color ?? '#fd4f00') }">{{ laneName((item.data as BoardTicketTransition).toLaneId) }}</BaseBadge>
-                    <span class="ml-auto text-xs">{{ formatDate(item.ts) }}</span>
+                    <span class="ml-auto text-xs">{{ formatDateTime(item.ts) }}</span>
                 </div>
                 <div v-else-if="item.type === 'history'" class="flex items-center gap-2 text-sm text-(--text-muted) flex-wrap">
                     <MemberName :identity="(item.data as BoardTicketHistoryEntry).actor" size="sm" />
@@ -174,7 +172,7 @@ function formatDate(iso: string): string {
                         <BaseBadge bg-class="" :style="{ backgroundColor: findLabel((item.data as BoardTicketHistoryEntry).detail!)?.color ?? '#6b7280', color: contrastTextColor(findLabel((item.data as BoardTicketHistoryEntry).detail!)?.color ?? '#6b7280') }">{{ (item.data as BoardTicketHistoryEntry).detail }}</BaseBadge>
                     </template>
                     <span v-else-if="(item.data as BoardTicketHistoryEntry).detail" class="text-(--text)">{{ (item.data as BoardTicketHistoryEntry).detail }}</span>
-                    <span class="ml-auto text-xs">{{ formatDate(item.ts) }}</span>
+                    <span class="ml-auto text-xs">{{ formatDateTime(item.ts) }}</span>
                 </div>
             </div>
             <p v-if="allActivity.length === 0" class="text-sm text-(--text-muted) text-center py-4">—</p>

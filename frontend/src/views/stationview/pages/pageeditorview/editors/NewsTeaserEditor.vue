@@ -25,6 +25,6 @@ const patch = useConfigPatch(() => props.config, emit)
         :model-value="(config.newsUid as string) ?? null"
         :station-uid="stationUid"
         @pick="(item: {publicUid: string}) => patch({newsUid: item.publicUid})"
-        @update:model-value="(v: string | null) => patch({newsUid: v})"
+        @update:model-value="(v: string | null | undefined) => patch({newsUid: v ?? null})"
     />
 </template>

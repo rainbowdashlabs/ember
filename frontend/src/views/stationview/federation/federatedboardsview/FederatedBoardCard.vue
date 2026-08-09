@@ -7,6 +7,8 @@
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import InfoBadge from '@/components/badge/InfoBadge.vue'
+import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import {type DiscoveredBoard, BoardShareMode} from '@/api/federatedBoards'
 
 const props = defineProps<{
@@ -52,20 +54,14 @@ function truncate(text: string, maxLength: number): string {
             />
         </div>
         <div class="flex items-center gap-2 mt-3">
-            <span
-                v-if="board.shareMode === BoardShareMode.READ_ONLY"
-                class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-bg-light-accent dark:bg-bg-dark-accent"
-            >
+            <InfoBadge v-if="board.shareMode === BoardShareMode.READ_ONLY" class="inline-flex items-center gap-1">
                 <font-awesome-icon :icon="['fas', 'lock']" class="text-[0.65rem]"/>
                 {{ t('boards.readOnlyBadge') }}
-            </span>
-            <span
-                v-else-if="board.shareMode === BoardShareMode.FULL"
-                class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
-            >
+            </InfoBadge>
+            <SuccessBadge v-else-if="board.shareMode === BoardShareMode.FULL" class="inline-flex items-center gap-1">
                 <font-awesome-icon :icon="['fas', 'pen']" class="text-[0.65rem]"/>
                 {{ t('boards.fullAccessBadge') }}
-            </span>
+            </SuccessBadge>
         </div>
     </NeutralContainer>
 </template>

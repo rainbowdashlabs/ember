@@ -8,16 +8,15 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { useAsyncAction } from '@/composables/useAsyncAction'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
-import type { Form, FormQuestion } from '@/api/types'
-import { QuestionTypes } from '@/api/types'
+import {QuestionTypes, type EligibleMembers, type Form, type FormQuestion} from '@/api/forms'
 import { forms } from '@/api'
-import type { EligibleMembers } from '@/api/forms'
 import { useSession } from '@/composables/useSession'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'
 import MemberSelector from './fillview/MemberSelector.vue'
@@ -54,6 +53,11 @@ const showMemberSelector = computed(() => {
 
 const showSingleManagedHint = computed(() => {
   return !canFillForSelf.value && eligibleManagedMembers.value.length === 1
+})
+
+const singleManagedName = computed(() => {
+  const member = eligibleManagedMembers.value[0]
+  return member?.name || member?.email
 })
 
 const fillTargetOptions = computed(() => {
@@ -105,6 +109,7 @@ async function loadExistingResponse() {
     response = await forms.getMyResponse(formId.value)
     if (response.response) {
       hasExistingResponse.value = true
+      initAnswerDefaults()
       for (const answer of response.answers) {
         try {
           answers.value[answer.questionId] = JSON.parse(answer.value)
@@ -130,10 +135,11 @@ const { loading, error, reload } = useAsyncLoader(async () => {
   form.value = f
   questions.value = qs
 
+  const firstManaged = eligibleManagedMembers.value[0]
   if (canFillForSelf.value) {
     selectedMemberId.value = null
-  } else if (eligibleManagedMembers.value.length > 0) {
-    selectedMemberId.value = eligibleManagedMembers.value[0].id
+  } else if (firstManaged) {
+    selectedMemberId.value = firstManaged.id
   }
 
   await loadExistingResponse()
@@ -146,36 +152,33 @@ watch(selectedMemberId, async () => {
   }
 })
 
-async function submit() {
-  error.value = ''
-  try {
-    const answerMap: Record<number, Record<string, unknown>> = {}
-    for (const q of questions.value) {
-      const value = answers.value[q.id]
-      if (value === undefined) continue
-      const type = q.formQuestionType
-      answerMap[q.id] = { type, ...value }
-    }
-
-    if (effectiveMemberId.value) {
-      if (hasExistingResponse.value) {
-        await forms.updateForMember(formId.value, effectiveMemberId.value, { answers: answerMap })
-      } else {
-        await forms.submitForMember(formId.value, effectiveMemberId.value, { answers: answerMap })
-      }
-    } else {
-      if (hasExistingResponse.value) {
-        await forms.updateResponse(formId.value, { answers: answerMap })
-      } else {
-        await forms.submitResponse(formId.value, { answers: answerMap })
-      }
-    }
-    refreshSidebarCounts()
-    router.push({ name: 'forms-list' })
-  } catch {
-    error.value = t('common.error')
+const {error: submitError, run: submit} = useAsyncAction(async () => {
+  const answerMap: Record<number, Record<string, unknown>> = {}
+  for (const q of questions.value) {
+    const value = answers.value[q.id]
+    if (value === undefined) continue
+    const type = q.formQuestionType
+    answerMap[q.id] = { type, ...value }
   }
-}
+
+  if (effectiveMemberId.value) {
+    if (hasExistingResponse.value) {
+      await forms.updateForMember(formId.value, effectiveMemberId.value, { answers: answerMap })
+    } else {
+      await forms.submitForMember(formId.value, effectiveMemberId.value, { answers: answerMap })
+    }
+  } else {
+    if (hasExistingResponse.value) {
+      await forms.updateResponse(formId.value, { answers: answerMap })
+    } else {
+      await forms.submitResponse(formId.value, { answers: answerMap })
+    }
+  }
+  refreshSidebarCounts()
+  router.push({ name: 'forms-list' })
+}, {formatError: () => t('common.error')})
+
+const displayError = computed(() => error.value || submitError.value)
 
 onMounted(() => {
   if (loaded.value) reload()
@@ -193,7 +196,7 @@ watch(loaded, (isLoaded) => {
   >
     <div class="space-y-6 max-w-3xl">
       <Spinner v-if="loading" size="lg" />
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <Alert v-if="displayError" variant="error">{{ displayError }}</Alert>
 
       <template v-if="!loading && form">
         <div>
@@ -206,7 +209,7 @@ watch(loaded, (isLoaded) => {
 
         <InfoContainer v-if="showSingleManagedHint">
           <p class="text-sm">
-            {{ t('forms.fillForSingleManaged', { name: eligibleManagedMembers[0].name || eligibleManagedMembers[0].email }) }}
+            {{ t('forms.fillForSingleManaged', { name: singleManagedName }) }}
           </p>
         </InfoContainer>
 

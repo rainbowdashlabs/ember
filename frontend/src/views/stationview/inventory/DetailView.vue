@@ -10,8 +10,9 @@ import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import type { InventoryDetail, InventoryItem, InventorySize, StationMember, ProcurementEntry } from '@/api/types'
-import { InventoryTypes, StationPermission } from '@/api/types'
+import {InventoryTypes, type InventoryDetail, type InventoryItem, type InventorySize} from '@/api/inventory'
+import type { ProcurementEntry } from '@/api/procurement'
+import {StationPermission, type StationMember} from '@/api/types'
 import { inventory, inventoryContainers, stationMembers, procurement } from '@/api'
 import type { InventoryContainer } from '@/api/inventoryContainers'
 import { useSession } from '@/composables/useSession'
@@ -22,6 +23,8 @@ import { containerPathFor } from '@/util/containerPath'
 import DetailHeader from './detailview/DetailHeader.vue'
 import DetailLoadedContent from './detailview/DetailLoadedContent.vue'
 import DetailViewModals from './detailview/DetailViewModals.vue'
+import { useItemTable } from './itemtable/useItemTable'
+import { memberDisplayName } from '@/views/stationview/members/listview/useMemberData'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -44,6 +47,26 @@ const containerPathById = computed(() => {
   const out = new Map<number, string>()
   for (const c of containers.value) out.set(c.id, containerPathFor(byId, c.id))
   return out
+})
+
+function itemSizeLabel(item: InventoryItem): string {
+  if (!item.sizeId || !detail.value?.sizes) return ''
+  return detail.value.sizes.find(s => s.id === item.sizeId)?.label ?? ''
+}
+
+function itemAssignedName(item: InventoryItem): string {
+  if (!item.assignedTo) return ''
+  const member = memberMap.value.get(item.assignedTo)
+  return member ? memberDisplayName(member) : `#${item.assignedTo}`
+}
+
+const itemTable = useItemTable({
+  inventoryId: () => inventoryId.value,
+  items: () => items.value,
+  hasSizes: () => detail.value?.hasSizes ?? false,
+  isMixed: () => detail.value?.inventoryType === InventoryTypes.MIXED,
+  sizeLabel: itemSizeLabel,
+  assignedName: itemAssignedName,
 })
 
 const canEdit = computed(() => hasPermission(StationPermission.INVENTORY_EDIT))
@@ -180,6 +203,7 @@ function goBack() { router.push({ name: 'inventory-manage' }) }
         :counts="counts"
         :all-size-stats="allSizeStats"
         :permissions="permissions"
+        :item-table="itemTable"
         @fulfill-procurement="modals?.fulfillProcurement($event)"
         @open-procurement-modal="modals?.openProcurement()"
         @open-quick-assign="modals?.openQuickAssign()"

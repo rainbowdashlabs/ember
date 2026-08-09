@@ -16,7 +16,6 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
-import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.NotFoundResponse;
@@ -50,9 +49,8 @@ class FormAnalyticsAssemblerTest extends RepositoryTestBase {
         var memberService = mock(StationMemberService.class);
         var groupService = mock(MemberGroupService.class);
         var tagService = mock(UserTagService.class);
-        var restrictionRepo = new RestrictionRepository(stationMemberRepo, memberGroupRepo, userTagRepo);
 
-        formService = new FormService(formRepo, memberService, groupService, tagService, restrictionRepo, eventBus);
+        formService = new FormService(formRepo, memberService, groupService, tagService, restrictionService, eventBus);
         assembler = new FormAnalyticsAssembler(formService, stationMemberRepo, accountRepo, memberIdentityFactory);
 
         station = stationRepo.create("FormAssemblerStation");

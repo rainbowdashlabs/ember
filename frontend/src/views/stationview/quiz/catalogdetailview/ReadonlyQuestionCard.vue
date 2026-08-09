@@ -10,7 +10,8 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ReadonlyQuestionAnswers from './ReadonlyQuestionAnswers.vue'
-import type { QuizQuestion, QuizCategory } from '@/api/types'
+import MutedText from '@/components/typography/MutedText.vue'
+import type { QuizQuestion, QuizCategory } from '@/api/quiz'
 
 const props = defineProps<{
   question: QuizQuestion
@@ -36,7 +37,7 @@ const categoryName = computed(() => {
         </div>
         <p v-if="question.description" class="text-xs text-(--text-muted)">{{ question.description }}</p>
       </div>
-      <span class="text-sm text-(--text-muted) shrink-0">{{ question.points }} {{ t('quiz.questions.points') }}</span>
+      <MutedText size="sm" class="shrink-0">{{ question.points }} {{ t('quiz.questions.points') }}</MutedText>
     </div>
     <ReadonlyQuestionAnswers :question="question" />
   </NeutralContainer>

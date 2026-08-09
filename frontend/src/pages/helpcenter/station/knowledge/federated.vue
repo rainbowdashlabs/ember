@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import FederatedKbHelp from '~/views/helpcenter/stationview/knowledge/FederatedKbHelp'
+import FederatedKbHelp from '~/views/helpcenter/stationview/knowledge/FederatedKbHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

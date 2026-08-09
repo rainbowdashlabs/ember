@@ -5,7 +5,7 @@
  */
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import type { QuizQuestion } from '@/api/types'
+import type { QuizQuestion } from '@/api/quiz'
 
 defineProps<{
   question: QuizQuestion

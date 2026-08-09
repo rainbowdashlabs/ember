@@ -12,7 +12,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import type { QuizCatalogDetail } from '@/api/types'
+import type { QuizCatalogDetail } from '@/api/quiz'
 import { quiz, ai as aiApi } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useConfigPanel } from '@/composables/useConfigPanel'
@@ -95,8 +95,9 @@ async function generateQuestions(entries: GenEntry[], userPrompt: string) {
 }
 
 async function regenerateQuestion(index: number) {
-  genRegenerating.value = index
   const prev = genPreviews.value[index]
+  if (!prev) return
+  genRegenerating.value = index
   try {
     const ai = getAiParams()
     const generated = await aiApi.generateQuestions({
@@ -105,10 +106,11 @@ async function regenerateQuestion(index: number) {
       locale: 'de',
       entries: [{ questionType: prev.quizQuestionType, count: 1, categoryId: prev.categoryId }],
     })
-    if (generated.length > 0) {
+    const first = generated[0]
+    if (first) {
       genPreviews.value[index] = {
-        title: generated[0].title, config: generated[0].config,
-        quizQuestionType: generated[0].questionType, categoryId: generated[0].categoryId, accepted: true,
+        title: first.title, config: first.config,
+        quizQuestionType: first.questionType, categoryId: first.categoryId, accepted: true,
       }
     }
   } catch (e: unknown) {
@@ -119,7 +121,9 @@ async function regenerateQuestion(index: number) {
 }
 
 function toggleGenPreview(index: number) {
-  genPreviews.value[index].accepted = !genPreviews.value[index].accepted
+  const preview = genPreviews.value[index]
+  if (!preview) return
+  preview.accepted = !preview.accepted
 }
 
 async function saveGeneratedQuestions() {

@@ -7,7 +7,9 @@
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import NewsListItemHeader from './NewsListItemHeader.vue'
 import NewsListItemComments from './NewsListItemComments.vue'
-import type {NewsEntry, MemberIdentity} from '@/api/types'
+import type {NewsEntry} from '@/api/news'
+import type {MemberIdentity} from '@/api/types'
+import ProseContent from '@/components/display/ProseContent.vue'
 
 defineProps<{
   kind: 'local' | 'federated'
@@ -55,7 +57,7 @@ const emit = defineEmits<{
       :set-view-badge-ref="setViewBadgeRef"
       :on-request-delete="onRequestDelete"
     />
-    <div v-if="contentHtml" class="prose prose-sm dark:prose-invert max-w-none" v-html="contentHtml"/>
+    <ProseContent v-if="contentHtml" v-html="contentHtml"/>
     <NewsListItemComments
       :news-id="id"
       :station-uid="kind === 'federated' ? stationUid : undefined"

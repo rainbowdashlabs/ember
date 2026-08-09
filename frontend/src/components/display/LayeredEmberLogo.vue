@@ -174,7 +174,7 @@ function pickNextGazeDirection(): EyeDirection | null {
   if (positions.length < 2) return null
   const current = getCurrentDirection()
   const others = positions.filter(d => d !== current)
-  return others[Math.floor(Math.random() * others.length)]
+  return others[Math.floor(Math.random() * others.length)] ?? null
 }
 
 function scheduleNextGaze() {

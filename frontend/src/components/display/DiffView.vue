@@ -25,10 +25,10 @@ const props = withDefaults(defineProps<{
 
 const diffLines = computed<DiffLine[]>(() => {
   const lines: DiffLine[] = []
-  const parsed = parsePatch(props.patch)
-  if (parsed.length === 0) return lines
+  const [firstPatch] = parsePatch(props.patch)
+  if (!firstPatch) return lines
 
-  for (const hunk of parsed[0].hunks) {
+  for (const hunk of firstPatch.hunks) {
     let oldLine = hunk.oldStart
     let newLine = hunk.newStart
     for (const line of hunk.lines) {

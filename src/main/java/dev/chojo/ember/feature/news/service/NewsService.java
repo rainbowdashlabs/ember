@@ -19,15 +19,16 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.entity.MentionType;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.MemberLookupService;
 import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsComment;
 import dev.chojo.ember.feature.news.entity.NewsViewer;
 import dev.chojo.ember.feature.news.repository.NewsRepository;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
-import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionSet;
 import dev.chojo.ember.feature.restriction.RestrictionType;
+import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -51,22 +52,25 @@ public class NewsService {
             Pattern.compile("@\\[(GROUP|EVENT|REGISTERED|DECLINED):([^:]+):(\\d+)]");
 
     private final NewsRepository newsRepository;
-    private final RestrictionRepository restrictionRepository;
+    private final RestrictionService restrictionService;
     private final DomainEventBus eventBus;
     private final StationMemberRepository stationMemberRepository;
+    private final MemberLookupService memberLookupService;
     private final AccountRepository accountRepository;
 
     @Inject
     public NewsService(
             NewsRepository newsRepository,
-            RestrictionRepository restrictionRepository,
+            RestrictionService restrictionService,
             DomainEventBus eventBus,
             StationMemberRepository stationMemberRepository,
+            MemberLookupService memberLookupService,
             AccountRepository accountRepository) {
         this.newsRepository = newsRepository;
-        this.restrictionRepository = restrictionRepository;
+        this.restrictionService = restrictionService;
         this.eventBus = eventBus;
         this.stationMemberRepository = stationMemberRepository;
+        this.memberLookupService = memberLookupService;
         this.accountRepository = accountRepository;
     }
 
@@ -283,16 +287,14 @@ public class NewsService {
     public RestrictionSet findRestrictions(int newsId) {
         var news = newsRepository.findById(newsId).orElse(null);
         RestrictionMode mode = news != null ? news.restrictionMode() : RestrictionMode.AND;
-        return restrictionRepository.findRestrictionSet(
-                RestrictionType.NEWS.table(), RestrictionType.NEWS.fkColumn(), newsId, mode);
+        return restrictionService.findRestrictionSet(RestrictionType.NEWS, newsId, mode);
     }
 
     /**
      * Sets all restrictions for a news article.
      */
     public void setRestrictions(int newsId, RestrictionSelection selection) {
-        restrictionRepository.setRestrictions(
-                RestrictionType.NEWS.table(), RestrictionType.NEWS.fkColumn(), newsId, selection);
+        restrictionService.setRestrictions(RestrictionType.NEWS, newsId, selection);
     }
 
     /**
@@ -326,13 +328,13 @@ public class NewsService {
             if (parentId != null) {
                 var parentComment = newsRepository.findCommentById(parentId).orElse(null);
                 if (parentComment != null && parentComment.author() != null) {
-                    parentAuthorMemberId = stationMemberRepository
+                    parentAuthorMemberId = memberLookupService
                             .resolveId(stationId, parentComment.author().memberUid())
                             .orElse(null);
                 }
             }
             Integer authorMemberId = author != null
-                    ? stationMemberRepository
+                    ? memberLookupService
                             .resolveId(stationId, author.memberUid())
                             .orElse(null)
                     : null;
@@ -353,7 +355,7 @@ public class NewsService {
                 while (matcher.find()) {
                     try {
                         var memberUid = UUID.fromString(matcher.group(2));
-                        stationMemberRepository.resolveId(stationId, memberUid).ifPresent(mentionedId -> {
+                        memberLookupService.resolveId(stationId, memberUid).ifPresent(mentionedId -> {
                             if (!mentionedId.equals(authorMemberId)) {
                                 eventBus.publish(new MentionedInComment(
                                         stationId,
@@ -468,7 +470,7 @@ public class NewsService {
 
     private String resolveAuthorName(int stationId, MemberIdentity author) {
         if (author == null) return "";
-        return stationMemberRepository
+        return memberLookupService
                 .resolveId(stationId, author.memberUid())
                 .flatMap(memberId -> stationMemberRepository
                         .findById(memberId)

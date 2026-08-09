@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.insights.repository;
 
 import de.chojo.sadu.mapper.wrapper.Row;
 import dev.chojo.ember.feature.insights.entity.PageHitBucket;
+import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
 
 import java.sql.SQLException;
@@ -158,7 +159,7 @@ public class PageHitRepository {
      * bots. Used by the headline chart on the insights view.
      */
     public List<HourlyTotal> stationHourlyTotals(int stationId, Instant from, Instant to, boolean includeBots) {
-        String botPredicate = includeBots ? "" : "AND h.is_bot = FALSE";
+        var where = WhereBuilder.create().addIf(!includeBots, "AND h.is_bot = FALSE");
         return query("""
                 SELECT h.hour AS hour, sum(h.hits) AS hits
                 FROM page_hit_hourly h
@@ -168,10 +169,10 @@ public class PageHitRepository {
                   AND h.hour <= :to
                   %s
                 GROUP BY h.hour
-                ORDER BY h.hour;""", botPredicate)
-                .single(call().bind("station_id", stationId)
+                ORDER BY h.hour;""", where.fragment())
+                .single(where.apply(call().bind("station_id", stationId)
                         .bind("from", from, INSTANT_TIMESTAMP)
-                        .bind("to", to, INSTANT_TIMESTAMP))
+                        .bind("to", to, INSTANT_TIMESTAMP)))
                 .map(row -> new HourlyTotal(row.get("hour", INSTANT_TIMESTAMP), row.getLong("hits")))
                 .all();
     }

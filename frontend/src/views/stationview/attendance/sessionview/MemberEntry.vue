@@ -9,7 +9,8 @@ import MemberName from '@/components/avatar/MemberName.vue'
 import MemberEntryStatusIcon from './memberentry/MemberEntryStatusIcon.vue'
 import MemberEntryActions from './memberentry/MemberEntryActions.vue'
 import MemberEntryReadonlyTimes from './memberentry/MemberEntryReadonlyTimes.vue'
-import type {AttendanceEntry, AttendanceStatus, StationMember} from '@/api/types'
+import type {AttendanceEntry, AttendanceStatus} from '@/api/attendance'
+import type {StationMember} from '@/api/types'
 
 const {t} = useI18n()
 

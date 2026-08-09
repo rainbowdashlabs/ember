@@ -12,7 +12,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import type {EventBreak} from '@/api/types'
+import type {EventBreak} from '@/api/events'
 import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()

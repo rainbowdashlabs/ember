@@ -9,8 +9,7 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import type { ExchangeStatusName } from '@/api/types'
-import { ExchangeStatus } from '@/api/types'
+import {ExchangeStatus, type ExchangeStatusName} from '@/api/exchanges'
 
 const { t } = useI18n()
 

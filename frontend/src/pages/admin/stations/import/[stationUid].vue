@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import AdminStationImportView from '~/views/adminview/AdminStationImportView'
+import AdminStationImportView from '~/views/adminview/AdminStationImportView.vue'
 
 definePageMeta({
   layout: 'admin',

@@ -13,7 +13,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import FieldTable from './FieldTable.vue'
 import TemplateButtons from './TemplateButtons.vue'
 import type {FieldTemplate} from './fieldTemplates'
-import type {ProfileField} from '@/api/types'
+import type {ProfileField} from '@/api/profileFields'
 
 const props = defineProps<{
   activeTab: string

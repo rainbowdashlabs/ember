@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import CheckResultView from '~/views/stationview/inventory/CheckResultView'
+import CheckResultView from '~/views/stationview/inventory/CheckResultView.vue'
 
 definePageMeta({
   layout: 'station',

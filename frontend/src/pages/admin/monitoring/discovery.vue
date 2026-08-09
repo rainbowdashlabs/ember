@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import AdminDiscoveryView from '~/views/adminview/AdminDiscoveryView'
+import AdminDiscoveryView from '~/views/adminview/AdminDiscoveryView.vue'
 
 definePageMeta({
   layout: 'admin',

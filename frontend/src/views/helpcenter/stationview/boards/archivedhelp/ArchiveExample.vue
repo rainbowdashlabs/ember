@@ -18,7 +18,7 @@ const dummyLabels = [
     {name: t('helpCenter.archived.dummyLabel1'), color: '#ec2929'},
     {name: t('helpCenter.archived.dummyLabel2'), color: '#3694FF'},
     {name: t('helpCenter.archived.dummyLabel3'), color: '#00C507'},
-]
+] as const
 </script>
 
 <template>

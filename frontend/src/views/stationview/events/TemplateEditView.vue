@@ -20,7 +20,8 @@ import Alert from '@/components/feedback/Alert.vue'
 import EventFieldList from './eventshared/EventFieldList.vue'
 import EventReminderEditor from './eventshared/EventReminderEditor.vue'
 import EventDefaultsSection from './templateeditview/EventDefaultsSection.vue'
-import type {AttendanceTemplate, AttendanceTemplateField, EventCategory, EventFieldEntry} from '@/api/types'
+import type {AttendanceTemplate, AttendanceTemplateField} from '@/api/attendance'
+import type {EventCategory, EventFieldEntry, EventTemplateDetail} from '@/api/events'
 import {attendance, events} from '@/api'
 import {useSession} from '@/composables/useSession'
 
@@ -52,6 +53,29 @@ const reminderDays = ref<number[]>([])
 onMounted(() => { if (loaded.value) loadData() })
 watch(loaded, (v) => { if (v && loading.value) loadData() })
 
+function seedForm(detail: EventTemplateDetail) {
+  const tpl = detail.template
+  name.value = tpl.name
+  title.value = tpl.title ?? ''
+  description.value = tpl.description ?? ''
+  categoryId.value = tpl.categoryId ? String(tpl.categoryId) : ''
+  eventType.value = tpl.eventType ?? ''
+  requiresRegistration.value = tpl.requiresRegistration ?? false
+  requiresConfirmation.value = tpl.requiresConfirmation ?? false
+  registrationLimit.value = tpl.registrationLimit ?? undefined
+  attendanceTemplateId.value = tpl.attendanceTemplateId ? String(tpl.attendanceTemplateId) : ''
+  reminderDays.value = detail.reminderDays ?? []
+  fields.value = detail.fields.map(f => ({
+    name: f.name,
+    fieldType: f.fieldType,
+    config: typeof f.config === 'string' ? (f.config ? JSON.parse(f.config) : {}) : (f.config ?? {}),
+    value: '',
+    overview: f.overview,
+    attendanceFieldId: f.attendanceFieldId ?? null,
+    isPublic: f.isPublic,
+  }))
+}
+
 async function loadData() {
   loading.value = true
   error.value = ''
@@ -67,26 +91,7 @@ async function loadData() {
     const fieldResults = await Promise.all(attTpls.map(t => attendance.listTemplateFields(t.id)))
     attendanceFields.value = fieldResults.flat()
 
-    const tpl = detail.template
-    name.value = tpl.name
-    title.value = tpl.title ?? ''
-    description.value = tpl.description ?? ''
-    categoryId.value = tpl.categoryId ? String(tpl.categoryId) : ''
-    eventType.value = tpl.eventType ?? ''
-    requiresRegistration.value = tpl.requiresRegistration ?? false
-    requiresConfirmation.value = tpl.requiresConfirmation ?? false
-    registrationLimit.value = tpl.registrationLimit ?? undefined
-    attendanceTemplateId.value = tpl.attendanceTemplateId ? String(tpl.attendanceTemplateId) : ''
-    reminderDays.value = detail.reminderDays ?? []
-    fields.value = detail.fields.map(f => ({
-      name: f.name,
-      fieldType: f.fieldType,
-      config: typeof f.config === 'string' ? (f.config ? JSON.parse(f.config) : {}) : (f.config ?? {}),
-      value: '',
-      overview: f.overview,
-      attendanceFieldId: f.attendanceFieldId ?? null,
-      isPublic: f.isPublic,
-    }))
+    seedForm(detail)
   } catch (e) {
     reportCaughtError(e, 'TemplateEditView.loadData')
     error.value = t('common.error')

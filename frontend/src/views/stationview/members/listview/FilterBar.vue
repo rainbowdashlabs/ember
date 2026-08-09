@@ -8,31 +8,25 @@ import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
-import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
+import ColumnPickerButton from '@/components/table/ColumnPickerButton.vue'
 import { type RestrictionSelection, emptyRestriction } from '@/components/input/restriction'
 import type { FilterCriteria } from '@/composables/useMemberFilter'
-import type { ProfileField, MemberGroup, UserTag } from '@/api/types'
+import type { ProfileField } from '@/api/profileFields'
+import type { MemberGroup, UserTag } from '@/api/types'
 import { useBreakpoint } from '@/composables/useBreakpoint'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
+import type { ColumnPickerOption } from '@/components/table/columns'
+import type { SavedFilterPreset } from './useSavedFilters'
 
 const { t } = useI18n()
 const { isMobile } = useBreakpoint()
 
-interface SavedFilter {
-  id?: number
-  name: string
-  tab: string
-  textFilters: Record<string, string>
-  multiFilters: Record<string, string[]>
-}
-
 const filterText = defineModel<string>('filterText', {required: true})
 
 const props = defineProps<{
-  savedFilters: SavedFilter[]
+  savedFilters: SavedFilterPreset[]
   overviewFields: ProfileField[]
   nonOverviewFields: ProfileField[]
   extraColumnIds: Set<number>
@@ -46,7 +40,7 @@ const props = defineProps<{
 
 const sortedColumnFields = computed(() =>
   [...props.overviewFields, ...props.nonOverviewFields].sort((a, b) =>
-    a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
+    (a.name ?? '').localeCompare(b.name ?? '', undefined, { sensitivity: 'base' }),
   ),
 )
 const overviewIds = computed(() => new Set(props.overviewFields.map(f => f.id)))
@@ -55,10 +49,13 @@ function isColumnVisible(fieldId: number): boolean {
     ? !props.hiddenColumnIds.has(fieldId)
     : props.extraColumnIds.has(fieldId)
 }
+const pickerOptions = computed<ColumnPickerOption[]>(() =>
+  sortedColumnFields.value.map(f => ({ key: f.id, label: f.name ?? '', visible: isColumnVisible(f.id) })),
+)
 
 const emit = defineEmits<{
   clearFilters: []
-  applyFilter: [preset: SavedFilter]
+  applyFilter: [preset: SavedFilterPreset]
   deleteFilter: [index: number]
   saveFilter: [name: string]
   toggleColumn: [fieldId: number]
@@ -67,7 +64,6 @@ const emit = defineEmits<{
   filter: [criteria: FilterCriteria]
 }>()
 
-const showColumnPicker = ref(false)
 const showSaveFilter = ref(false)
 const filterPresetName = ref('')
 
@@ -115,19 +111,12 @@ function submitSaveFilter() {
   <div class="space-y-2">
     <SearchInput v-model="filterText" :placeholder="t('membersList.filter')" autofocus />
     <div class="grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-2">
-      <div class="relative">
-        <SecondaryButton :icon="['fas', 'table-columns']" :full-width="isMobile" @click="showColumnPicker = !showColumnPicker">
-          {{ t('membersList.columns') }}
-        </SecondaryButton>
-        <div v-if="showColumnPicker" class="absolute right-0 top-full mt-1 z-10 rounded-lg border border-bg-light-accent dark:border-bg-dark-accent bg-bg-light dark:bg-bg-dark shadow-lg p-3 min-w-48 space-y-1">
-          <p class="text-xs font-semibold text-(--text-muted) mb-2">{{ t('membersList.columns') }}</p>
-          <div v-if="sortedColumnFields.length === 0" class="text-xs text-(--text-muted)">{{ t('membersList.noExtraColumns') }}</div>
-          <FieldLabel v-for="field in sortedColumnFields" :key="field.id" inline class="cursor-pointer py-0.5">
-            <CheckboxInput :model-value="isColumnVisible(field.id)" @update:model-value="emit('toggleColumn', field.id)" />
-            {{ field.name }}
-          </FieldLabel>
-        </div>
-      </div>
+      <ColumnPickerButton
+          :options="pickerOptions"
+          :empty-label="t('membersList.noExtraColumns')"
+          :full-width="isMobile"
+          @toggle="emit('toggleColumn', Number($event))"
+      />
       <SecondaryButton :icon="['fas', 'xmark']" :full-width="isMobile" @click="emit('clearFilters')">
         {{ t('membersList.clearFilters') }}
       </SecondaryButton>

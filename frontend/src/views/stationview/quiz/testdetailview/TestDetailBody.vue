@@ -16,8 +16,8 @@ import TestInfoCard from './TestInfoCard.vue'
 import TestSectionsList from './TestSectionsList.vue'
 import FrozenQuestionsList from './FrozenQuestionsList.vue'
 import PickQuestionModal from './PickQuestionModal.vue'
-import type { QuizTestDetail, QuizTestAttempt, MemberGroup, UserTag, QuizQuestion, StationMember } from '@/api/types'
-import type { FrozenQuestionDetail } from '@/api/quiz'
+import type {FrozenQuestionDetail, QuizQuestion, QuizTestAttempt, QuizTestDetail} from '@/api/quiz'
+import type { MemberGroup, UserTag, StationMember } from '@/api/types'
 
 defineProps<{
   test: QuizTestDetail['test']

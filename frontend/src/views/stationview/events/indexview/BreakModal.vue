@@ -13,7 +13,7 @@ import DateInput from '@/components/input/datetime/DateInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type {EventBreak} from '@/api/types'
+import type {EventBreak} from '@/api/events'
 
 const {t} = useI18n()
 
@@ -30,7 +30,6 @@ const emit = defineEmits<{
 const breakName = ref('')
 const breakStartDate = ref('')
 const breakEndDate = ref('')
-const saving = ref(false)
 
 watch(modelValue, (open) => {
   if (!open) return
@@ -47,9 +46,7 @@ watch(modelValue, (open) => {
 })
 
 function submit() {
-  saving.value = true
   emit('save', {name: breakName.value, startDate: breakStartDate.value, endDate: breakEndDate.value})
-  saving.value = false
 }
 </script>
 
@@ -76,8 +73,8 @@ function submit() {
 
       <div class="flex justify-end gap-3">
         <SecondaryButton @click="modelValue = false">{{ t('common.cancel') }}</SecondaryButton>
-        <PrimaryButton :disabled="saving || !breakName || !breakStartDate || !breakEndDate" @click="submit">
-          {{ saving ? t('common.loading') : t('common.save') }}
+        <PrimaryButton :disabled="!breakName || !breakStartDate || !breakEndDate" @click="submit">
+          {{ t('common.save') }}
         </PrimaryButton>
       </div>
     </div>

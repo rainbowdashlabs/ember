@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import DetailView from '~/views/stationview/news/DetailView'
+import DetailView from '~/views/stationview/news/DetailView.vue'
 
 definePageMeta({
   layout: 'station',

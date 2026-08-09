@@ -18,10 +18,9 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvite;
 import dev.chojo.ember.feature.waitinglist.entity.WaitlistVerificationToken;
 import dev.chojo.ember.util.JsonUtil;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Instant;
 import java.util.List;
@@ -31,33 +30,52 @@ import java.util.Optional;
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
+import static dev.chojo.ember.util.sql.SqlSupport.alias;
+import static dev.chojo.ember.util.sql.SqlSupport.count;
+import static dev.chojo.ember.util.sql.SqlSupport.deleteById;
+import static dev.chojo.ember.util.sql.SqlSupport.insertReturning;
 
 @Singleton
 public class WaitingListRepository {
 
-    private static final ObjectMapper JSON = JsonMapper.builder().build();
+    private static final String WAITING_LIST_COLUMNS = """
+            id, station_id, name, description, scoring_formula, confirm_interval_days, created_at, \
+            visible_fields, testing_group_id, join_group_id, join_user_type, attendance_threshold, public""";
+    private static final String WAITING_LIST_FIELD_COLUMNS =
+            "id, list_id, name, field_type, config, position, required, public";
+    private static final String WAITING_LIST_INVITE_COLUMNS =
+            "id, list_id, code, max_uses, uses, expires_at, created_at";
+    private static final String WAITING_LIST_ENTRY_COLUMNS = """
+            id, list_id, firstname, lastname, parent_name, email, access_token, status, confirmed_at, \
+            reminder_sent_at, created_at, notes, member_id, invited_at, testing_at, joined_at, \
+            withdrawn_at, attendance_count""";
+    private static final String WAITING_LIST_ENTRY_VALUE_COLUMNS = "entry_id, field_id, value";
+    private static final String WAITING_LIST_ENTRY_GUARDIAN_COLUMNS =
+            "id, entry_id, firstname, lastname, email, phone, position";
+    private static final String WAITLIST_VERIFICATION_TOKEN_COLUMNS = """
+            id, token, list_id, firstname, lastname, email, guardians, field_values, notes, \
+            created_at, expires_at, consent_proof""";
 
     // --- Waiting List CRUD ---
 
     public List<WaitingList> findAll() {
-        return query("SELECT * FROM waiting_list ORDER BY created_at DESC;")
+        return query("SELECT %s FROM waiting_list ORDER BY created_at DESC;", WAITING_LIST_COLUMNS)
                 .single(call())
                 .map(WaitingList.map())
                 .all();
     }
 
     public List<WaitingList> findByStation(int stationId) {
-        return query("SELECT * FROM waiting_list WHERE station_id = :station_id ORDER BY created_at DESC;")
+        return query(
+                        "SELECT %s FROM waiting_list WHERE station_id = :station_id ORDER BY created_at DESC;",
+                        WAITING_LIST_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(WaitingList.map())
                 .all();
     }
 
     public Optional<WaitingList> findById(int id) {
-        return query("SELECT * FROM waiting_list WHERE id = :id;")
-                .single(call().bind("id", id))
-                .map(WaitingList.map())
-                .first();
+        return SqlSupport.findById("waiting_list", WAITING_LIST_COLUMNS, id, WaitingList.map());
     }
 
     public WaitingList create(
@@ -70,7 +88,8 @@ public class WaitingListRepository {
             Integer joinGroupId,
             int attendanceThreshold,
             boolean isPublic) {
-        return query("""
+        return insertReturning(
+                """
                 INSERT
                 INTO
                     waiting_list
@@ -79,8 +98,8 @@ public class WaitingListRepository {
                 VALUES
                     (:station_id, :name, :description, :scoring_formula, :confirm_interval_days,
                      :testing_group_id, :join_group_id, :attendance_threshold, :public)
-                RETURNING *;""")
-                .single(call().bind("station_id", stationId)
+                RETURNING %s;""",
+                call().bind("station_id", stationId)
                         .bind("name", name)
                         .bind("description", description)
                         .bind("scoring_formula", scoringFormula)
@@ -88,10 +107,9 @@ public class WaitingListRepository {
                         .bind("testing_group_id", testingGroupId)
                         .bind("join_group_id", joinGroupId)
                         .bind("attendance_threshold", attendanceThreshold)
-                        .bind("public", isPublic))
-                .map(WaitingList.map())
-                .first()
-                .orElseThrow();
+                        .bind("public", isPublic),
+                WaitingList.map(),
+                WAITING_LIST_COLUMNS);
     }
 
     public Optional<WaitingList> update(
@@ -116,7 +134,7 @@ public class WaitingListRepository {
                     attendance_threshold  = :attendance_threshold,
                     public                = :public
                 WHERE id = :id
-                RETURNING *;""")
+                RETURNING %s;""", WAITING_LIST_COLUMNS)
                 .single(call().bind("id", id)
                         .bind("name", name)
                         .bind("description", description)
@@ -133,22 +151,22 @@ public class WaitingListRepository {
     public Optional<WaitingList> updateVisibleFields(int id, String visibleFieldsJson) {
         return query("""
                 UPDATE waiting_list SET visible_fields = :visible_fields::JSONB
-                WHERE id = :id RETURNING *;""")
+                WHERE id = :id RETURNING %s;""", WAITING_LIST_COLUMNS)
                 .single(call().bind("id", id).bind("visible_fields", visibleFieldsJson))
                 .map(WaitingList.map())
                 .first();
     }
 
     public void delete(int id) {
-        query("DELETE FROM waiting_list WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete();
+        deleteById("waiting_list", id);
     }
 
     // --- Fields ---
 
     public List<WaitingListField> findFieldsByList(int listId) {
-        return query("SELECT * FROM waiting_list_field WHERE list_id = :list_id ORDER BY position;")
+        return query(
+                        "SELECT %s FROM waiting_list_field WHERE list_id = :list_id ORDER BY position;",
+                        WAITING_LIST_FIELD_COLUMNS)
                 .single(call().bind("list_id", listId))
                 .map(WaitingListField.map())
                 .all();
@@ -162,20 +180,20 @@ public class WaitingListRepository {
             int position,
             boolean required,
             boolean isPublic) {
-        return query("""
+        return insertReturning(
+                """
                 INSERT INTO waiting_list_field (list_id, name, field_type, config, position, required, public)
                 VALUES (:list_id, :name, :field_type, :config::JSONB, :position, :required, :public)
-                RETURNING *;""")
-                .single(call().bind("list_id", listId)
+                RETURNING %s;""",
+                call().bind("list_id", listId)
                         .bind("name", name)
                         .bind("field_type", fieldType)
                         .bind("config", config.toJson())
                         .bind("position", position)
                         .bind("required", required)
-                        .bind("public", isPublic))
-                .map(WaitingListField.map())
-                .first()
-                .orElseThrow();
+                        .bind("public", isPublic),
+                WaitingListField.map(),
+                WAITING_LIST_FIELD_COLUMNS);
     }
 
     public Optional<WaitingListField> updateField(
@@ -196,7 +214,7 @@ public class WaitingListRepository {
                     required   = :required,
                     public     = :public
                 WHERE id = :id
-                RETURNING *;""")
+                RETURNING %s;""", WAITING_LIST_FIELD_COLUMNS)
                 .single(call().bind("id", fieldId)
                         .bind("name", name)
                         .bind("field_type", fieldType)
@@ -209,36 +227,36 @@ public class WaitingListRepository {
     }
 
     public void deleteField(int fieldId) {
-        query("DELETE FROM waiting_list_field WHERE id = :id;")
-                .single(call().bind("id", fieldId))
-                .delete();
+        deleteById("waiting_list_field", fieldId);
     }
 
     // --- Invites ---
 
     public List<WaitingListInvite> findInvitesByList(int listId) {
-        return query("SELECT * FROM waiting_list_invite WHERE list_id = :list_id ORDER BY created_at DESC;")
+        return query(
+                        "SELECT %s FROM waiting_list_invite WHERE list_id = :list_id ORDER BY created_at DESC;",
+                        WAITING_LIST_INVITE_COLUMNS)
                 .single(call().bind("list_id", listId))
                 .map(WaitingListInvite.map())
                 .all();
     }
 
     public WaitingListInvite createInvite(int listId, String code, int maxUses, Instant expiresAt) {
-        return query("""
+        return insertReturning(
+                """
                 INSERT
                 INTO
                     waiting_list_invite
                     (list_id, code, max_uses, expires_at)
                 VALUES
                     (:list_id, :code, :max_uses, :expires_at)
-                RETURNING *;""")
-                .single(call().bind("list_id", listId)
+                RETURNING %s;""",
+                call().bind("list_id", listId)
                         .bind("code", code)
                         .bind("max_uses", maxUses)
-                        .bind("expires_at", expiresAt, INSTANT_TIMESTAMP))
-                .map(WaitingListInvite.map())
-                .first()
-                .orElseThrow();
+                        .bind("expires_at", expiresAt, INSTANT_TIMESTAMP),
+                WaitingListInvite.map(),
+                WAITING_LIST_INVITE_COLUMNS);
     }
 
     public void incrementInviteUses(int inviteId) {
@@ -248,22 +266,22 @@ public class WaitingListRepository {
     }
 
     public Optional<WaitingListInvite> findInviteByCode(String code) {
-        return query("SELECT * FROM waiting_list_invite WHERE code = :code;")
+        return query("SELECT %s FROM waiting_list_invite WHERE code = :code;", WAITING_LIST_INVITE_COLUMNS)
                 .single(call().bind("code", code))
                 .map(WaitingListInvite.map())
                 .first();
     }
 
     public void deleteInvite(int inviteId) {
-        query("DELETE FROM waiting_list_invite WHERE id = :id;")
-                .single(call().bind("id", inviteId))
-                .delete();
+        deleteById("waiting_list_invite", inviteId);
     }
 
     // --- Entries ---
 
     public List<WaitingListEntry> findEntriesByList(int listId) {
-        return query("SELECT * FROM waiting_list_entry WHERE list_id = :list_id ORDER BY created_at;")
+        return query(
+                        "SELECT %s FROM waiting_list_entry WHERE list_id = :list_id ORDER BY created_at;",
+                        WAITING_LIST_ENTRY_COLUMNS)
                 .single(call().bind("list_id", listId))
                 .map(WaitingListEntry.map())
                 .all();
@@ -271,21 +289,19 @@ public class WaitingListRepository {
 
     public List<WaitingListEntry> findEntriesByStatus(int listId, WaitingListEntryStatus status) {
         return query(
-                        "SELECT * FROM waiting_list_entry WHERE list_id = :list_id AND status = :status ORDER BY created_at;")
+                        "SELECT %s FROM waiting_list_entry WHERE list_id = :list_id AND status = :status ORDER BY created_at;",
+                        WAITING_LIST_ENTRY_COLUMNS)
                 .single(call().bind("list_id", listId).bind("status", status.name()))
                 .map(WaitingListEntry.map())
                 .all();
     }
 
     public Optional<WaitingListEntry> findEntryById(int id) {
-        return query("SELECT * FROM waiting_list_entry WHERE id = :id;")
-                .single(call().bind("id", id))
-                .map(WaitingListEntry.map())
-                .first();
+        return SqlSupport.findById("waiting_list_entry", WAITING_LIST_ENTRY_COLUMNS, id, WaitingListEntry.map());
     }
 
     public Optional<WaitingListEntry> findEntryByToken(String token) {
-        return query("SELECT * FROM waiting_list_entry WHERE access_token = :token;")
+        return query("SELECT %s FROM waiting_list_entry WHERE access_token = :token;", WAITING_LIST_ENTRY_COLUMNS)
                 .single(call().bind("token", token))
                 .map(WaitingListEntry.map())
                 .first();
@@ -300,25 +316,25 @@ public class WaitingListRepository {
             String accessToken,
             String notes,
             ConsentProof consent) {
-        return query("""
+        return insertReturning(
+                """
                 INSERT
                 INTO
                     waiting_list_entry
                     (list_id, firstname, lastname, parent_name, email, access_token, notes, consent_proof)
                 VALUES
                     (:list_id, :firstname, :lastname, :parent_name, :email, :access_token, :notes, :consent_proof::JSONB)
-                RETURNING *;""")
-                .single(call().bind("list_id", listId)
+                RETURNING %s;""",
+                call().bind("list_id", listId)
                         .bind("firstname", firstname)
                         .bind("lastname", lastname)
                         .bind("parent_name", parentName)
                         .bind("email", email)
                         .bind("access_token", accessToken)
                         .bind("notes", notes)
-                        .bind("consent_proof", consent != null ? consent.toJson() : null))
-                .map(WaitingListEntry.map())
-                .first()
-                .orElseThrow();
+                        .bind("consent_proof", consent != null ? consent.toJson() : null),
+                WaitingListEntry.map(),
+                WAITING_LIST_ENTRY_COLUMNS);
     }
 
     public void updateEntryStatus(int id, WaitingListEntryStatus status) {
@@ -328,7 +344,7 @@ public class WaitingListRepository {
     }
 
     public void updateEntryStatusWithTimestamp(int id, WaitingListEntryStatus status, String timestampColumn) {
-        query("UPDATE waiting_list_entry SET status = :status, " + timestampColumn + " = :ts WHERE id = :id;")
+        query("UPDATE waiting_list_entry SET status = :status, %s = :ts WHERE id = :id;", timestampColumn)
                 .single(call().bind("id", id)
                         .bind("status", status.name())
                         .bind("ts", Instant.now(), INSTANT_TIMESTAMP))
@@ -390,20 +406,18 @@ public class WaitingListRepository {
     }
 
     public void deleteEntry(int id) {
-        query("DELETE FROM waiting_list_entry WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete();
+        deleteById("waiting_list_entry", id);
     }
 
     public List<WaitingListEntry> findExpiredConfirmations(int listId, int intervalDays) {
         return query("""
-                SELECT *
+                SELECT %s
                 FROM
                     waiting_list_entry
                 WHERE list_id = :list_id
                   AND status = 'WAITING'
                   AND confirmed_at + make_interval(days => :interval_days) < now()
-                  AND reminder_sent_at IS NULL;""")
+                  AND reminder_sent_at IS NULL;""", WAITING_LIST_ENTRY_COLUMNS)
                 .single(call().bind("list_id", listId).bind("interval_days", intervalDays))
                 .map(WaitingListEntry.map())
                 .all();
@@ -411,14 +425,14 @@ public class WaitingListRepository {
 
     public List<WaitingListEntry> findPreRemovalWarningDue(int listId) {
         return query("""
-                SELECT *
+                SELECT %s
                 FROM
                     waiting_list_entry
                 WHERE list_id = :list_id
                   AND status = 'WAITING'
                   AND reminder_sent_at IS NOT NULL
                   AND reminder_sent_at + INTERVAL '16 days' < now()
-                  AND reminder_sent_at + INTERVAL '17 days' > now();""")
+                  AND reminder_sent_at + INTERVAL '17 days' > now();""", WAITING_LIST_ENTRY_COLUMNS)
                 .single(call().bind("list_id", listId))
                 .map(WaitingListEntry.map())
                 .all();
@@ -426,30 +440,30 @@ public class WaitingListRepository {
 
     public List<WaitingListEntry> findGracePeriodExpired(int listId) {
         return query("""
-                SELECT *
+                SELECT %s
                 FROM
                     waiting_list_entry
                 WHERE list_id = :list_id
                   AND status = 'WAITING'
                   AND reminder_sent_at IS NOT NULL
-                  AND reminder_sent_at + INTERVAL '30 days' < now();""")
+                  AND reminder_sent_at + INTERVAL '30 days' < now();""", WAITING_LIST_ENTRY_COLUMNS)
                 .single(call().bind("list_id", listId))
                 .map(WaitingListEntry.map())
                 .all();
     }
 
     public int countEntriesByList(int listId) {
-        return query("SELECT count(*) AS cnt FROM waiting_list_entry WHERE list_id = :list_id AND status = 'WAITING';")
-                .single(call().bind("list_id", listId))
-                .map(row -> row.getInt("cnt"))
-                .first()
-                .orElse(0);
+        return count(
+                "SELECT count(*) AS cnt FROM waiting_list_entry WHERE list_id = :list_id AND status = 'WAITING';",
+                call().bind("list_id", listId));
     }
 
     // --- Entry Values ---
 
     public List<WaitingListEntryValue> findEntryValues(int entryId) {
-        return query("SELECT * FROM waiting_list_entry_value WHERE entry_id = :entry_id;")
+        return query(
+                        "SELECT %s FROM waiting_list_entry_value WHERE entry_id = :entry_id;",
+                        WAITING_LIST_ENTRY_VALUE_COLUMNS)
                 .single(call().bind("entry_id", entryId))
                 .map(WaitingListEntryValue.map())
                 .all();
@@ -467,7 +481,7 @@ public class WaitingListRepository {
     }
 
     public int countPendingEntries(int stationId) {
-        return query("""
+        return count("""
                 SELECT
                     count(*) AS cnt
                 FROM
@@ -475,17 +489,15 @@ public class WaitingListRepository {
                         JOIN waiting_list wl
                         ON wl.id = wle.list_id
                 WHERE wl.station_id = :station_id
-                  AND wle.status = 'WAITING';""")
-                .single(call().bind("station_id", stationId))
-                .map(row -> row.getInt("cnt"))
-                .first()
-                .orElse(0);
+                  AND wle.status = 'WAITING';""", call().bind("station_id", stationId));
     }
 
     // --- Guardians ---
 
     public List<WaitingListEntryGuardian> findGuardiansByEntry(int entryId) {
-        return query("SELECT * FROM waiting_list_entry_guardian WHERE entry_id = :entry_id ORDER BY position;")
+        return query(
+                        "SELECT %s FROM waiting_list_entry_guardian WHERE entry_id = :entry_id ORDER BY position;",
+                        WAITING_LIST_ENTRY_GUARDIAN_COLUMNS)
                 .single(call().bind("entry_id", entryId))
                 .map(WaitingListEntryGuardian.map())
                 .all();
@@ -494,13 +506,13 @@ public class WaitingListRepository {
     public List<WaitingListEntryGuardian> findGuardiansByList(int listId) {
         return query("""
                 SELECT
-                    g.*
+                    %s
                 FROM
                     waiting_list_entry_guardian g
                         JOIN waiting_list_entry e
                         ON e.id = g.entry_id
                 WHERE e.list_id = :list_id
-                ORDER BY g.entry_id, g.position;""")
+                ORDER BY g.entry_id, g.position;""", alias("g", WAITING_LIST_ENTRY_GUARDIAN_COLUMNS))
                 .single(call().bind("list_id", listId))
                 .map(WaitingListEntryGuardian.map())
                 .all();
@@ -508,23 +520,23 @@ public class WaitingListRepository {
 
     public void createGuardian(
             int entryId, String firstname, String lastname, String email, String phone, int position) {
-        query("""
+        insertReturning(
+                """
                 INSERT
                 INTO
                     waiting_list_entry_guardian
                     (entry_id, firstname, lastname, email, phone, position)
                 VALUES
                     (:entry_id, :firstname, :lastname, :email, :phone, :position)
-                RETURNING *;""")
-                .single(call().bind("entry_id", entryId)
+                RETURNING %s;""",
+                call().bind("entry_id", entryId)
                         .bind("firstname", firstname)
                         .bind("lastname", lastname)
                         .bind("email", email)
                         .bind("phone", phone)
-                        .bind("position", position))
-                .map(WaitingListEntryGuardian.map())
-                .first()
-                .orElseThrow();
+                        .bind("position", position),
+                WaitingListEntryGuardian.map(),
+                WAITING_LIST_ENTRY_GUARDIAN_COLUMNS);
     }
 
     public void deleteGuardiansByEntry(int entryId) {
@@ -537,14 +549,17 @@ public class WaitingListRepository {
 
     public List<WaitingList> findPublicByStation(int stationId) {
         return query(
-                        "SELECT * FROM waiting_list WHERE station_id = :station_id AND public = TRUE ORDER BY created_at DESC;")
+                        "SELECT %s FROM waiting_list WHERE station_id = :station_id AND public = TRUE ORDER BY created_at DESC;",
+                        WAITING_LIST_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(WaitingList.map())
                 .all();
     }
 
     public List<WaitingListField> findPublicFieldsByList(int listId) {
-        return query("SELECT * FROM waiting_list_field WHERE list_id = :list_id AND public = TRUE ORDER BY position;")
+        return query(
+                        "SELECT %s FROM waiting_list_field WHERE list_id = :list_id AND public = TRUE ORDER BY position;",
+                        WAITING_LIST_FIELD_COLUMNS)
                 .single(call().bind("list_id", listId))
                 .map(WaitingListField.map())
                 .all();
@@ -569,15 +584,16 @@ public class WaitingListRepository {
             String notes,
             WaitingListEntryStatus status,
             ConsentProof consent) {
-        return query("""
+        return insertReturning(
+                """
                 INSERT
                 INTO
                     waiting_list_entry
                     (list_id, firstname, lastname, parent_name, email, access_token, notes, status, consent_proof)
                 VALUES
                     (:list_id, :firstname, :lastname, :parent_name, :email, :access_token, :notes, :status, :consent_proof::JSONB)
-                RETURNING *;""")
-                .single(call().bind("list_id", listId)
+                RETURNING %s;""",
+                call().bind("list_id", listId)
                         .bind("firstname", firstname)
                         .bind("lastname", lastname)
                         .bind("parent_name", parentName)
@@ -585,10 +601,9 @@ public class WaitingListRepository {
                         .bind("access_token", accessToken)
                         .bind("notes", notes)
                         .bind("status", status.name())
-                        .bind("consent_proof", consent != null ? consent.toJson() : null))
-                .map(WaitingListEntry.map())
-                .first()
-                .orElseThrow();
+                        .bind("consent_proof", consent != null ? consent.toJson() : null),
+                WaitingListEntry.map(),
+                WAITING_LIST_ENTRY_COLUMNS);
     }
 
     // --- Verification tokens ---
@@ -603,40 +618,38 @@ public class WaitingListRepository {
             Map<Integer, JsonNode> fieldValues,
             String notes,
             ConsentProof consent) {
-        String guardiansPayload = JSON.writeValueAsString(guardians != null ? guardians : List.of());
-        String fieldValuesPayload = JSON.writeValueAsString(fieldValues != null ? fieldValues : Map.of());
-        query("""
+        insertReturning(
+                """
                 INSERT
                 INTO
                     waitlist_verification_token
                     (token, list_id, firstname, lastname, email, guardians, field_values, notes, consent_proof)
                 VALUES
                     (:token, :list_id, :firstname, :lastname, :email, :guardians::JSONB, :field_values::JSONB, :notes, :consent_proof::JSONB)
-                RETURNING *;""")
-                .single(call().bind("token", token)
+                RETURNING %s;""".formatted(WAITLIST_VERIFICATION_TOKEN_COLUMNS),
+                call().bind("token", token)
                         .bind("list_id", listId)
                         .bind("firstname", firstname)
                         .bind("lastname", lastname)
                         .bind("email", email)
-                        .bind("guardians", guardiansPayload)
-                        .bind("field_values", fieldValuesPayload)
+                        .bind("guardians", WaitlistVerificationToken.guardiansToJson(guardians))
+                        .bind("field_values", WaitlistVerificationToken.fieldValuesToJson(fieldValues))
                         .bind("notes", notes)
-                        .bind("consent_proof", consent.toJson()))
-                .map(WaitlistVerificationToken.map())
-                .first()
-                .orElseThrow();
+                        .bind("consent_proof", consent.toJson()),
+                WaitlistVerificationToken.map(),
+                WAITLIST_VERIFICATION_TOKEN_COLUMNS);
     }
 
     public Optional<WaitlistVerificationToken> findVerificationByToken(String token) {
-        return query("SELECT * FROM waitlist_verification_token WHERE token = :token;")
+        return query(
+                        "SELECT %s FROM waitlist_verification_token WHERE token = :token;",
+                        WAITLIST_VERIFICATION_TOKEN_COLUMNS)
                 .single(call().bind("token", token))
                 .map(WaitlistVerificationToken.map())
                 .first();
     }
 
     public void deleteVerificationToken(int id) {
-        query("DELETE FROM waitlist_verification_token WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete();
+        deleteById("waitlist_verification_token", id);
     }
 }

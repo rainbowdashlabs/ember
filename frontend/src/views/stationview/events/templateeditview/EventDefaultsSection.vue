@@ -14,7 +14,8 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import EventDefaultsGrid from './EventDefaultsGrid.vue'
-import type {AttendanceTemplate, EventCategory} from '@/api/types'
+import type {AttendanceTemplate} from '@/api/attendance'
+import type {EventCategory} from '@/api/events'
 
 const {t} = useI18n()
 

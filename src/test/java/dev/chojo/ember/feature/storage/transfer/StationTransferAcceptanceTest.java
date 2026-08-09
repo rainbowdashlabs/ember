@@ -19,6 +19,12 @@ import dev.chojo.ember.feature.page.service.PageImageVariantService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.service.StationExportService;
 import dev.chojo.ember.feature.station.service.StationImportService;
+import dev.chojo.ember.feature.station.transfer.AccountCredentialTableImporter;
+import dev.chojo.ember.feature.station.transfer.AccountTableImporter;
+import dev.chojo.ember.feature.station.transfer.DisabledModuleTableImporter;
+import dev.chojo.ember.feature.station.transfer.ImportProgress;
+import dev.chojo.ember.feature.station.transfer.StationTableImporter;
+import dev.chojo.ember.feature.station.transfer.TransferFileImporter;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.credential.CredentialCipher;
@@ -28,6 +34,7 @@ import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import dev.chojo.ember.feature.storage.service.StorageService;
+import dev.chojo.ember.feature.storage.service.TransferBackendDescriptorService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.TestRemoteUrlValidator;
 import dev.chojo.ember.util.WebpEncoder;
@@ -53,6 +60,7 @@ import java.util.Base64;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import javax.imageio.ImageIO;
 
@@ -107,19 +115,23 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         var descriptorService = new TransferBackendDescriptorService(configRepo, credentialCipher);
 
         exportService = new StationExportService(stationRepo, new Api());
+        var fileImporter = new TransferFileImporter(
+                storageService, avatarService, imageVariantService, pageFileStorageService, pageImageVariantService);
+        var stationImporter = new StationTableImporter(stationRepo);
         importService = new StationImportService(
                 stationRepo,
-                accountRepo,
                 exportService,
                 new Api(),
                 backendImporter,
-                storageService,
-                avatarService,
-                imageVariantService,
-                pageFileStorageService,
-                pageImageVariantService,
+                fileImporter,
                 new FederationPartnerTransferFixupService(new FederationRepository(), null, stationRepo),
-                TestRemoteUrlValidator.permissive());
+                TestRemoteUrlValidator.permissive(),
+                stationImporter,
+                Set.of(
+                        stationImporter,
+                        new AccountTableImporter(accountRepo),
+                        new AccountCredentialTableImporter(accountRepo),
+                        new DisabledModuleTableImporter(stationRepo)));
 
         var transferRoutes = new TransferRoutes(
                 exportService,
@@ -357,10 +369,10 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         Duration timeout = Duration.ofSeconds(120);
         long deadline = System.nanoTime() + timeout.toNanos();
         while (System.nanoTime() < deadline) {
-            StationImportService.ImportProgress progress = importService.getProgress(stationId);
+            ImportProgress progress = importService.getProgress(stationId);
             assertNotNull(progress, "import progress disappeared");
-            if (progress.status() == StationImportService.ImportProgress.Status.COMPLETED) return;
-            if (progress.status() == StationImportService.ImportProgress.Status.FAILED) {
+            if (progress.status() == ImportProgress.Status.COMPLETED) return;
+            if (progress.status() == ImportProgress.Status.FAILED) {
                 fail("import failed: " + progress.error());
             }
             Thread.sleep(50);

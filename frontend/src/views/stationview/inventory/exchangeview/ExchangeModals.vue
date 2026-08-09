@@ -6,7 +6,8 @@
 <script setup lang="ts">
 import ExchangeCreateModal from './ExchangeCreateModal.vue'
 import ExchangeLogModal from './ExchangeLogModal.vue'
-import type { ExchangeRequestEntry, StationMember } from '@/api/types'
+import type { ExchangeRequestEntry } from '@/api/exchanges'
+import type { StationMember } from '@/api/types'
 import type { ManagedMember } from '@/api/managedMembers'
 
 const showCreate = defineModel<boolean>('showCreate', { required: true })

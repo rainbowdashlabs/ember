@@ -15,12 +15,12 @@ import Modal from '@/components/feedback/Modal.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import type {LendingRequestDetail, EnrichedMessage, AvailableItemDetail} from '@/api/lending'
-import {LendingStatus} from '@/api/lending'
+import {LendingStatus, type AvailableItemDetail, type EnrichedMessage, type LendingRequestDetail} from '@/api/lending'
 import * as lending from '@/api/lending'
 import {useSession} from '@/composables/useSession'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import LendingRequestHeader from './lendingrequestview/LendingRequestHeader.vue'
 import LendingRequestInfo from './lendingrequestview/LendingRequestInfo.vue'
 import LendingItemsTable from './lendingrequestview/LendingItemsTable.vue'
@@ -37,14 +37,12 @@ const {refresh: refreshSidebarCounts} = useSidebarCounts()
 const detail = ref<LendingRequestDetail | null>(null)
 const messages = ref<EnrichedMessage[]>([])
 const newMessage = ref('')
-const sending = ref(false)
 const showDeclineModal = ref(false)
 const declineReason = ref('')
 
 const availableItems = ref<AvailableItemDetail[]>([])
 const selectedItemIds = ref<Set<number>>(new Set())
 const loadingItems = ref(false)
-const assigning = ref(false)
 
 const requestId = Number(route.params.id)
 
@@ -80,7 +78,7 @@ async function loadAvailableItems() {
         }
       }
     }
-  } catch { /* ignore */ } finally {
+  } catch { void 0 } finally {
     loadingItems.value = false
   }
 }
@@ -95,43 +93,33 @@ function toggleItem(itemId: number) {
   selectedItemIds.value = s
 }
 
-async function handleAssignAndLend() {
-  assigning.value = true
-  try {
-    const items = availableItems.value
-        .filter(i => selectedItemIds.value.has(i.itemId))
-        .map(i => ({requestItemId: i.requestItemId, itemId: i.itemId}))
-    await lending.assignItems(requestId, items)
-    await lending.markLent(requestId)
-    await loadData()
-    refreshSidebarCounts()
-  } catch { /* ignore */ } finally {
-    assigning.value = false
-  }
-}
+const {running: assigning, run: handleAssignAndLend} = useAsyncAction(async () => {
+  const items = availableItems.value
+      .filter(i => selectedItemIds.value.has(i.itemId))
+      .map(i => ({requestItemId: i.requestItemId, itemId: i.itemId}))
+  await lending.assignItems(requestId, items)
+  await lending.markLent(requestId)
+  await loadData()
+  refreshSidebarCounts()
+})
 
 watch(loaded, (v) => {
   if (v) loadData()
 }, {immediate: true})
 
-async function handleSendMessage() {
+const {running: sending, run: handleSendMessage} = useAsyncAction(async () => {
   if (!newMessage.value.trim()) return
-  sending.value = true
-  try {
-    await lending.sendMessage(requestId, newMessage.value.trim())
-    newMessage.value = ''
-    messages.value = await lending.getMessages(requestId)
-  } catch { /* ignore */ } finally {
-    sending.value = false
-  }
-}
+  await lending.sendMessage(requestId, newMessage.value.trim())
+  newMessage.value = ''
+  messages.value = await lending.getMessages(requestId)
+})
 
 async function handleApprove() {
   try {
     await lending.approveRequest(requestId)
     await loadData()
     refreshSidebarCounts()
-  } catch { /* ignore */ }
+  } catch { void 0 }
 }
 
 async function handleDecline() {
@@ -141,7 +129,7 @@ async function handleDecline() {
     declineReason.value = ''
     await loadData()
     refreshSidebarCounts()
-  } catch { /* ignore */ }
+  } catch { void 0 }
 }
 
 async function handleMarkReturned() {
@@ -149,7 +137,7 @@ async function handleMarkReturned() {
     await lending.markReturned(requestId)
     await loadData()
     refreshSidebarCounts()
-  } catch { /* ignore */ }
+  } catch { void 0 }
 }
 
 async function handleClose() {
@@ -157,7 +145,7 @@ async function handleClose() {
     await lending.closeRequest(requestId)
     await loadData()
     refreshSidebarCounts()
-  } catch { /* ignore */ }
+  } catch { void 0 }
 }
 </script>
 

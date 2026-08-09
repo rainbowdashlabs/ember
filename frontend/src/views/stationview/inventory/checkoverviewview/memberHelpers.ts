@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {MemberCheckSummary} from '@/api/types'
+import type {MemberCheckSummary} from '@/api/inventoryCheck'
+import {formatDateTime} from '@/util/format'
 
 /** Full display name of the member. */
 export function memberName(member: MemberCheckSummary): string {
@@ -25,7 +26,7 @@ export function lockerName(member: MemberCheckSummary): string {
 /** Localised date or the provided fallback label when the date is missing. */
 export function formatDate(dateStr: string | null | undefined, neverCheckedLabel: string): string {
   if (!dateStr) return neverCheckedLabel
-  return new Date(dateStr).toLocaleString('de-DE')
+  return formatDateTime(dateStr)
 }
 
 /** True when the lock on this member is held by the current member. */

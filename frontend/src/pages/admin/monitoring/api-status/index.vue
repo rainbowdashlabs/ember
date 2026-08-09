@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import AdminApiStatusView from '~/views/adminview/AdminApiStatusView'
+import AdminApiStatusView from '~/views/adminview/AdminApiStatusView.vue'
 
 definePageMeta({
   layout: 'admin',

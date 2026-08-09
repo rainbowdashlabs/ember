@@ -7,7 +7,7 @@
 import { useI18n } from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type { WaitingListField } from '@/api/types'
+import type { WaitingListField } from '@/api/waitingList'
 import CustomFieldInput from './CustomFieldInput.vue'
 
 const props = defineProps<{

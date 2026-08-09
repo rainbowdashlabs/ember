@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.quiz.repository;
 
+import dev.chojo.ember.feature.quiz.entity.QuizAnswerValue;
 import dev.chojo.ember.feature.quiz.entity.QuizTest;
 import dev.chojo.ember.feature.quiz.entity.QuizTestAnswer;
 import dev.chojo.ember.feature.quiz.entity.QuizTestAttempt;
@@ -14,6 +15,7 @@ import dev.chojo.ember.feature.quiz.entity.QuizTestSection;
 import dev.chojo.ember.feature.quiz.entity.QuizTestSectionSource;
 import dev.chojo.ember.feature.quiz.entity.TestStatus;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
@@ -23,6 +25,10 @@ import java.util.Optional;
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
+import static dev.chojo.ember.util.sql.SqlSupport.count;
+import static dev.chojo.ember.util.sql.SqlSupport.deleteById;
+import static dev.chojo.ember.util.sql.SqlSupport.exists;
+import static dev.chojo.ember.util.sql.SqlSupport.insertReturning;
 
 @Singleton
 public class QuizTestRepository {
@@ -31,6 +37,16 @@ public class QuizTestRepository {
             "t.id, t.station_id, t.title, t.description, t.status, t.time_limit, t.shuffle, t.forced, t.start_at, t.end_at, t.created_by, t.created_at, t.updated_at, t.restriction_mode, EXISTS(SELECT 1 FROM quiz_test_restriction r WHERE r.test_id = t.id) AS restricted";
     private static final String TEST_COLUMNS_BARE =
             "id, station_id, title, description, status, time_limit, shuffle, forced, start_at, end_at, created_by, created_at, updated_at, restriction_mode, EXISTS(SELECT 1 FROM quiz_test_restriction r WHERE r.test_id = id) AS restricted";
+    private static final String QUIZ_TEST_SECTION_COLUMNS = "id, test_id, title, description, position";
+    private static final String QUIZ_TEST_SECTION_SOURCE_COLUMNS =
+            "id, section_id, catalog_id, category_id, question_count";
+    private static final String QUIZ_TEST_ATTEMPT_COLUMNS =
+            "id, test_id, member_id, status, started_at, submitted_at, graded_at, graded_by, total_points, max_points";
+    private static final String QUIZ_TEST_ATTEMPT_QUESTION_COLUMNS =
+            "id, attempt_id, question_id, section_id, position";
+    private static final String QUIZ_TEST_ANSWER_COLUMNS =
+            "id, attempt_id, question_id, section_id, answer, points, graded, position";
+    private static final String QUIZ_TEST_FROZEN_QUESTION_COLUMNS = "id, test_id, question_id, section_id, position";
 
     // -- Tests --
 
@@ -94,20 +110,20 @@ public class QuizTestRepository {
             boolean shuffle,
             boolean forced,
             int createdBy) {
-        return query("""
+        return insertReturning(
+                """
                 INSERT INTO quiz_test(station_id, title, description, time_limit, shuffle, forced, created_by)
                 VALUES (:station_id, :title, :description, :time_limit, :shuffle, :forced, :created_by)
-                RETURNING %s;""", TEST_COLUMNS_BARE)
-                .single(call().bind("station_id", stationId)
+                RETURNING %s;""",
+                call().bind("station_id", stationId)
                         .bind("title", title)
                         .bind("description", description)
                         .bind("time_limit", timeLimit)
                         .bind("shuffle", shuffle)
                         .bind("forced", forced)
-                        .bind("created_by", createdBy))
-                .map(QuizTest.map())
-                .first()
-                .orElseThrow();
+                        .bind("created_by", createdBy),
+                QuizTest.map(),
+                TEST_COLUMNS_BARE);
     }
 
     public boolean update(
@@ -145,41 +161,38 @@ public class QuizTestRepository {
     }
 
     public boolean delete(int id) {
-        return query("DELETE FROM quiz_test WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return deleteById("quiz_test", id);
     }
 
     public int countAttempts(int testId) {
-        return query("SELECT count(*) AS cnt FROM quiz_test_attempt WHERE test_id = :test_id;")
-                .single(call().bind("test_id", testId))
-                .map(row -> row.getInt("cnt"))
-                .first()
-                .orElse(0);
+        return count(
+                "SELECT count(*) AS cnt FROM quiz_test_attempt WHERE test_id = :test_id;",
+                call().bind("test_id", testId));
     }
 
     // -- Sections --
 
     public List<QuizTestSection> findSections(int testId) {
-        return query("SELECT * FROM quiz_test_section WHERE test_id = :test_id ORDER BY position;")
+        return query(
+                        "SELECT %s FROM quiz_test_section WHERE test_id = :test_id ORDER BY position;",
+                        QUIZ_TEST_SECTION_COLUMNS)
                 .single(call().bind("test_id", testId))
                 .map(QuizTestSection.map())
                 .all();
     }
 
     public QuizTestSection createSection(int testId, String title, String description, int position) {
-        return query("""
+        return insertReturning(
+                """
                 INSERT INTO quiz_test_section(test_id, title, description, position)
                 VALUES (:test_id, :title, :description, :position)
-                RETURNING *;""")
-                .single(call().bind("test_id", testId)
+                RETURNING %s;""",
+                call().bind("test_id", testId)
                         .bind("title", title)
                         .bind("description", description)
-                        .bind("position", position))
-                .map(QuizTestSection.map())
-                .first()
-                .orElseThrow();
+                        .bind("position", position),
+                QuizTestSection.map(),
+                QUIZ_TEST_SECTION_COLUMNS);
     }
 
     public boolean updateSection(int id, String title, String description, int position) {
@@ -194,10 +207,7 @@ public class QuizTestRepository {
     }
 
     public boolean deleteSection(int id) {
-        return query("DELETE FROM quiz_test_section WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return deleteById("quiz_test_section", id);
     }
 
     public void deleteSectionsByTest(int testId) {
@@ -209,31 +219,30 @@ public class QuizTestRepository {
     // -- Section Sources --
 
     public List<QuizTestSectionSource> findSources(int sectionId) {
-        return query("SELECT * FROM quiz_test_section_source WHERE section_id = :section_id;")
+        return query(
+                        "SELECT %s FROM quiz_test_section_source WHERE section_id = :section_id;",
+                        QUIZ_TEST_SECTION_SOURCE_COLUMNS)
                 .single(call().bind("section_id", sectionId))
                 .map(QuizTestSectionSource.map())
                 .all();
     }
 
     public QuizTestSectionSource createSource(int sectionId, int catalogId, Integer categoryId, int questionCount) {
-        return query("""
+        return insertReturning(
+                """
                 INSERT INTO quiz_test_section_source(section_id, catalog_id, category_id, question_count)
                 VALUES (:section_id, :catalog_id, :category_id, :question_count)
-                RETURNING *;""")
-                .single(call().bind("section_id", sectionId)
+                RETURNING %s;""",
+                call().bind("section_id", sectionId)
                         .bind("catalog_id", catalogId)
                         .bind("category_id", categoryId)
-                        .bind("question_count", questionCount))
-                .map(QuizTestSectionSource.map())
-                .first()
-                .orElseThrow();
+                        .bind("question_count", questionCount),
+                QuizTestSectionSource.map(),
+                QUIZ_TEST_SECTION_SOURCE_COLUMNS);
     }
 
     public boolean deleteSource(int id) {
-        return query("DELETE FROM quiz_test_section_source WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return deleteById("quiz_test_section_source", id);
     }
 
     public void deleteSourcesBySection(int sectionId) {
@@ -245,38 +254,37 @@ public class QuizTestRepository {
     // -- Attempts --
 
     public List<QuizTestAttempt> findAttempts(int testId) {
-        return query("SELECT * FROM quiz_test_attempt WHERE test_id = :test_id ORDER BY started_at DESC;")
+        return query(
+                        "SELECT %s FROM quiz_test_attempt WHERE test_id = :test_id ORDER BY started_at DESC;",
+                        QUIZ_TEST_ATTEMPT_COLUMNS)
                 .single(call().bind("test_id", testId))
                 .map(QuizTestAttempt.map())
                 .all();
     }
 
     public Optional<QuizTestAttempt> findAttempt(int testId, int memberId) {
-        return query("SELECT * FROM quiz_test_attempt WHERE test_id = :test_id AND member_id = :member_id;")
+        return query(
+                        "SELECT %s FROM quiz_test_attempt WHERE test_id = :test_id AND member_id = :member_id;",
+                        QUIZ_TEST_ATTEMPT_COLUMNS)
                 .single(call().bind("test_id", testId).bind("member_id", memberId))
                 .map(QuizTestAttempt.map())
                 .first();
     }
 
     public Optional<QuizTestAttempt> findAttemptById(int id) {
-        return query("SELECT * FROM quiz_test_attempt WHERE id = :id;")
-                .single(call().bind("id", id))
-                .map(QuizTestAttempt.map())
-                .first();
+        return SqlSupport.findById("quiz_test_attempt", QUIZ_TEST_ATTEMPT_COLUMNS, id, QuizTestAttempt.map());
     }
 
     public QuizTestAttempt createAttempt(int testId, int memberId, double maxPoints) {
-        return query("""
+        return insertReturning(
+                """
                 INSERT INTO quiz_test_attempt(test_id, member_id, max_points)
                 VALUES (:test_id, :member_id, :max_points)
                 ON CONFLICT (test_id, member_id) DO NOTHING
-                RETURNING *;""")
-                .single(call().bind("test_id", testId)
-                        .bind("member_id", memberId)
-                        .bind("max_points", maxPoints))
-                .map(QuizTestAttempt.map())
-                .first()
-                .orElseThrow();
+                RETURNING %s;""",
+                call().bind("test_id", testId).bind("member_id", memberId).bind("max_points", maxPoints),
+                QuizTestAttempt.map(),
+                QUIZ_TEST_ATTEMPT_COLUMNS);
     }
 
     public boolean submitAttempt(int id) {
@@ -307,7 +315,9 @@ public class QuizTestRepository {
     // -- Attempt Questions --
 
     public List<QuizTestAttemptQuestion> findAttemptQuestions(int attemptId) {
-        return query("SELECT * FROM quiz_test_attempt_question WHERE attempt_id = :attempt_id ORDER BY position;")
+        return query(
+                        "SELECT %s FROM quiz_test_attempt_question WHERE attempt_id = :attempt_id ORDER BY position;",
+                        QUIZ_TEST_ATTEMPT_QUESTION_COLUMNS)
                 .single(call().bind("attempt_id", attemptId))
                 .map(QuizTestAttemptQuestion.map())
                 .all();
@@ -327,20 +337,19 @@ public class QuizTestRepository {
     // -- Answers --
 
     public List<QuizTestAnswer> findAnswers(int attemptId) {
-        return query("SELECT * FROM quiz_test_answer WHERE attempt_id = :attempt_id ORDER BY position;")
+        return query(
+                        "SELECT %s FROM quiz_test_answer WHERE attempt_id = :attempt_id ORDER BY position;",
+                        QUIZ_TEST_ANSWER_COLUMNS)
                 .single(call().bind("attempt_id", attemptId))
                 .map(QuizTestAnswer.map())
                 .all();
     }
 
     public Optional<QuizTestAnswer> findAnswerById(int id) {
-        return query("SELECT * FROM quiz_test_answer WHERE id = :id;")
-                .single(call().bind("id", id))
-                .map(QuizTestAnswer.map())
-                .first();
+        return SqlSupport.findById("quiz_test_answer", QUIZ_TEST_ANSWER_COLUMNS, id, QuizTestAnswer.map());
     }
 
-    public void upsertAnswer(int attemptId, int questionId, Integer sectionId, String answer, int position) {
+    public void upsertAnswer(int attemptId, int questionId, Integer sectionId, QuizAnswerValue answer, int position) {
         query("""
                 INSERT INTO quiz_test_answer(attempt_id, question_id, section_id, answer, position)
                 VALUES (:attempt_id, :question_id, :section_id, :answer::JSONB, :position)
@@ -348,19 +357,19 @@ public class QuizTestRepository {
                 .single(call().bind("attempt_id", attemptId)
                         .bind("question_id", questionId)
                         .bind("section_id", sectionId)
-                        .bind("answer", answer)
+                        .bind("answer", answer == null ? null : answer.toJson())
                         .bind("position", position))
                 .insert();
     }
 
-    public void saveAnswer(int attemptId, int questionId, String answer) {
+    public void saveAnswer(int attemptId, int questionId, QuizAnswerValue answer) {
         query("""
                 INSERT INTO quiz_test_answer(attempt_id, question_id, answer)
                 VALUES (:attempt_id, :question_id, :answer::jsonb)
                 ON CONFLICT (attempt_id, question_id) DO UPDATE SET answer = EXCLUDED.answer;""")
                 .single(call().bind("attempt_id", attemptId)
                         .bind("question_id", questionId)
-                        .bind("answer", answer))
+                        .bind("answer", answer == null ? null : answer.toJson()))
                 .insert();
     }
 
@@ -385,14 +394,10 @@ public class QuizTestRepository {
     }
 
     public boolean hasMemberAccess(int testId, int memberId) {
-        return query("""
+        return exists("""
                 SELECT 1 FROM quiz_test_member_access
                 WHERE test_id = :test_id AND member_id = :member_id
-                AND (closes_at IS NULL OR closes_at > now());""")
-                .single(call().bind("test_id", testId).bind("member_id", memberId))
-                .map(_ -> true)
-                .first()
-                .isPresent();
+                AND (closes_at IS NULL OR closes_at > now());""", call().bind("test_id", testId).bind("member_id", memberId));
     }
 
     public void revokeMemberAccess(int testId, int memberId) {
@@ -404,7 +409,9 @@ public class QuizTestRepository {
     // -- Frozen Questions --
 
     public List<QuizTestFrozenQuestion> findFrozenQuestions(int testId) {
-        return query("SELECT * FROM quiz_test_frozen_question WHERE test_id = :test_id ORDER BY position;")
+        return query(
+                        "SELECT %s FROM quiz_test_frozen_question WHERE test_id = :test_id ORDER BY position;",
+                        QUIZ_TEST_FROZEN_QUESTION_COLUMNS)
                 .single(call().bind("test_id", testId))
                 .map(QuizTestFrozenQuestion.map())
                 .all();

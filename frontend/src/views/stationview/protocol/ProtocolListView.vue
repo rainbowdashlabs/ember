@@ -17,8 +17,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
@@ -26,6 +25,7 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import { useSession } from '@/composables/useSession'
+import { useConfirmAction } from '@/composables/useConfirmAction'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { protocol, federation } from '@/api'
 import type { TestProtocol, SharedProtocolEntry } from '@/api/protocol'
@@ -39,7 +39,6 @@ const canConfigure = computed(() => hasPermission(StationPermission.PROTOCOL_CON
 const protocols = ref<TestProtocol[]>([])
 const sharedProtocols = ref<SharedProtocolEntry[]>([])
 
-// Search & filters
 const searchQuery = ref('')
 const showFederated = ref(true)
 const filterStationId = ref<string | null>(null)
@@ -49,10 +48,6 @@ const newName = ref('')
 const newDescription = ref('')
 const newPassThreshold = ref<number | undefined>(undefined)
 
-const showDeleteModal = ref(false)
-const deleteTarget = ref<TestProtocol | null>(null)
-
-// Unique partner stations from shared protocols
 const partnerStations = computed(() => {
   const map = new Map<string, string>()
   for (const s of sharedProtocols.value) {
@@ -61,7 +56,6 @@ const partnerStations = computed(() => {
   return [...map.entries()].map(([id, name]) => ({ id, name }))
 })
 
-// Filtered local protocols
 const filteredProtocols = computed(() => {
   if (!searchQuery.value.trim()) return protocols.value
   const q = searchQuery.value.trim().toLowerCase()
@@ -70,7 +64,6 @@ const filteredProtocols = computed(() => {
   )
 })
 
-// Filtered shared protocols
 const filteredShared = computed(() => {
   if (!showFederated.value) return []
   let result = sharedProtocols.value
@@ -97,6 +90,17 @@ const {loading, error, reload} = useAsyncLoader(async () => {
   }
 }, {autoLoad: false})
 
+const {
+  show: showDeleteModal,
+  target: deleteTarget,
+  request: requestDelete,
+  confirm: handleDelete,
+} = useConfirmAction<TestProtocol>({
+  onConfirm: p => protocol.deleteProtocol(p.id),
+  onSuccess: () => reload(),
+  error,
+})
+
 async function handleCreate() {
   if (!newName.value.trim()) return
   try {
@@ -110,16 +114,6 @@ async function handleCreate() {
     newDescription.value = ''
     newPassThreshold.value = undefined
     router.push({ name: 'protocol-detail', params: { id: created.id } })
-  } catch { error.value = t('common.error') }
-}
-
-async function handleDelete() {
-  if (!deleteTarget.value) return
-  try {
-    await protocol.deleteProtocol(deleteTarget.value.id)
-    showDeleteModal.value = false
-    deleteTarget.value = null
-    await reload()
   } catch { error.value = t('common.error') }
 }
 
@@ -160,7 +154,7 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
         v-if="showFederated && partnerStations.length > 0"
         :model-value="filterStationId != null ? String(filterStationId) : ''"
         class="!w-auto !text-xs !py-1"
-        @update:model-value="(v: string | undefined) => { filterStationId = v || null }"
+        @update:model-value="(v: string | number | null | undefined) => { filterStationId = v ? String(v) : null }"
       >
         <option value="">{{ t('protocol.allStations') }}</option>
         <option v-for="station in partnerStations" :key="station.id" :value="String(station.id)">
@@ -169,57 +163,54 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
       </SelectInput>
     </div>
 
-    <Spinner v-if="loading" />
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
-
-    <div v-if="!loading && filteredProtocols.length === 0 && filteredShared.length === 0" class="text-center text-[var(--text-muted)] py-8">
-      {{ t('protocol.empty') }}
-    </div>
-
-    <div class="space-y-2">
-      <!-- Local protocols -->
-      <NeutralContainer
-        v-for="p in filteredProtocols"
-        :key="'local-' + p.id"
-        class="flex items-center gap-2 cursor-pointer hover:border-[var(--primary)] transition-colors group"
-        @click="router.push({ name: 'protocol-detail', params: { id: p.id } })"
-      >
-        <div class="flex-1 min-w-0">
-          <div class="font-medium">{{ p.name }}</div>
-          <div v-if="p.description" class="text-sm text-[var(--text-muted)] truncate">{{ p.description }}</div>
-        </div>
-        <span v-if="p.passThreshold" class="text-xs text-[var(--text-muted)]">{{ t('protocol.threshold') }}: {{ p.passThreshold }}P</span>
-        <div v-if="canConfigure" class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <EditButton :label="t('common.edit')" @click.stop="router.push({ name: 'protocol-detail', params: { id: p.id } })" />
-          <DeleteButton :label="t('common.delete')" @click.stop="deleteTarget = p; showDeleteModal = true" />
-        </div>
-      </NeutralContainer>
-
-      <!-- Shared protocols from partner stations -->
-      <NeutralContainer
-        v-for="s in filteredShared"
-        :key="'shared-' + s.id + '-' + s.sourceStationId"
-        class="flex items-center gap-2 cursor-pointer hover:border-[var(--primary)] transition-colors group"
-        @click="router.push({ name: 'protocol-detail', params: { id: s.id } })"
-      >
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2">
-            <span class="font-medium">{{ s.name }}</span>
-            <StationBadge :station-name="s.stationName" />
+    <AsyncSection
+      :empty="filteredProtocols.length === 0 && filteredShared.length === 0"
+      :empty-message="t('protocol.empty')"
+      :error="error"
+      :loading="loading"
+    >
+      <div class="space-y-2">
+        <NeutralContainer
+          v-for="p in filteredProtocols"
+          :key="'local-' + p.id"
+          class="flex items-center gap-2 cursor-pointer hover:border-[var(--primary)] transition-colors group"
+          @click="router.push({ name: 'protocol-detail', params: { id: p.id } })"
+        >
+          <div class="flex-1 min-w-0">
+            <div class="font-medium">{{ p.name }}</div>
+            <div v-if="p.description" class="text-sm text-[var(--text-muted)] truncate">{{ p.description }}</div>
           </div>
-          <div v-if="s.description" class="text-sm text-[var(--text-muted)] truncate">{{ s.description }}</div>
-        </div>
-        <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <IconButton
-            :icon="['fas', 'copy']"
-            :label="t('federation.copyToStation')"
-            @click.stop="copySharedProtocol(s.id)"
-          />
-        </div>
-      </NeutralContainer>
-    </div>
+          <span v-if="p.passThreshold" class="text-xs text-[var(--text-muted)]">{{ t('protocol.threshold') }}: {{ p.passThreshold }}P</span>
+          <div v-if="canConfigure" class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <EditButton :label="t('common.edit')" @click.stop="router.push({ name: 'protocol-detail', params: { id: p.id } })" />
+            <DeleteButton :label="t('common.delete')" @click.stop="requestDelete(p)" />
+          </div>
+        </NeutralContainer>
 
-    <!-- Create Modal -->
+        <NeutralContainer
+          v-for="s in filteredShared"
+          :key="'shared-' + s.id + '-' + s.sourceStationId"
+          class="flex items-center gap-2 cursor-pointer hover:border-[var(--primary)] transition-colors group"
+          @click="router.push({ name: 'protocol-detail', params: { id: s.id } })"
+        >
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="font-medium">{{ s.name }}</span>
+              <StationBadge :station-name="s.stationName" />
+            </div>
+            <div v-if="s.description" class="text-sm text-[var(--text-muted)] truncate">{{ s.description }}</div>
+          </div>
+          <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <IconButton
+              :icon="['fas', 'copy']"
+              :label="t('federation.copyToStation')"
+              @click.stop="copySharedProtocol(s.id)"
+            />
+          </div>
+        </NeutralContainer>
+      </div>
+    </AsyncSection>
+
     <Modal v-model="showCreateModal">
       <SubHeader class="mb-3">{{ t('protocol.create') }}</SubHeader>
       <form @submit.prevent="handleCreate" class="space-y-3">

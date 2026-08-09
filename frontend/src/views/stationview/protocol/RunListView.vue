@@ -14,8 +14,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
+import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
@@ -28,8 +27,8 @@ import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { protocol, stationMembers, memberGroups, userTags } from '@/api'
 import type { TestProtocol, TestProtocolRun } from '@/api/protocol'
-import type { StationMember, MemberGroup, UserTag } from '@/api/types'
-import { StationPermission } from '@/api/types'
+import {StationPermission, type MemberGroup, type StationMember, type UserTag} from '@/api/types'
+import { formatDate } from '@/util/format'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -42,7 +41,6 @@ const members = ref<StationMember[]>([])
 const allGroups = ref<MemberGroup[]>([])
 const allTags = ref<UserTag[]>([])
 
-// Create modal
 const showCreateModal = ref(false)
 const newProtocolId = ref<string>('')
 const newName = ref('')
@@ -113,30 +111,29 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
       </PrimaryButton>
     </div>
 
-    <Spinner v-if="loading" />
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <AsyncSection
+      :empty="runs.length === 0"
+      :empty-message="t('protocol.noRuns')"
+      :error="error"
+      :loading="loading"
+    >
+      <div class="space-y-2">
+        <NeutralContainer
+          v-for="run in runs"
+          :key="run.id"
+          class="flex items-center gap-2 cursor-pointer hover:border-[var(--primary)] transition-colors"
+          @click="router.push({ name: 'protocol-run-detail', params: { id: run.id } })"
+        >
+          <div class="flex-1 min-w-0">
+            <div class="font-medium">{{ run.name }}</div>
+            <div class="text-sm text-[var(--text-muted)]">{{ protocolName(run.protocolId) }} &mdash; {{ formatDate(run.testDate) }}</div>
+          </div>
+          <SuccessBadge v-if="run.status === 'CLOSED'">{{ t('protocol.closed') }}</SuccessBadge>
+          <PrimaryBadge v-else>{{ t('protocol.open') }}</PrimaryBadge>
+        </NeutralContainer>
+      </div>
+    </AsyncSection>
 
-    <div v-if="!loading && runs.length === 0" class="text-center text-[var(--text-muted)] py-8">
-      {{ t('protocol.noRuns') }}
-    </div>
-
-    <div class="space-y-2">
-      <NeutralContainer
-        v-for="run in runs"
-        :key="run.id"
-        class="flex items-center gap-2 cursor-pointer hover:border-[var(--primary)] transition-colors"
-        @click="router.push({ name: 'protocol-run-detail', params: { id: run.id } })"
-      >
-        <div class="flex-1 min-w-0">
-          <div class="font-medium">{{ run.name }}</div>
-          <div class="text-sm text-[var(--text-muted)]">{{ protocolName(run.protocolId) }} &mdash; {{ new Date(run.testDate).toLocaleDateString('de-DE') }}</div>
-        </div>
-        <SuccessBadge v-if="run.status === 'CLOSED'">{{ t('protocol.closed') }}</SuccessBadge>
-        <PrimaryBadge v-else>{{ t('protocol.open') }}</PrimaryBadge>
-      </NeutralContainer>
-    </div>
-
-    <!-- Create Run Modal -->
     <Modal v-model="showCreateModal" @update:model-value="v => { if (!v) resetCreateModal() }">
       <SubHeader class="mb-3">{{ t('protocol.createRun') }}</SubHeader>
       <form @submit.prevent="handleCreate" class="space-y-3">

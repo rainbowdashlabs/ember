@@ -8,8 +8,8 @@ import { useI18n } from 'vue-i18n'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type { Inventory, MemberGroup } from '@/api/types'
-import { StationUserType } from '@/api/types'
+import type { Inventory } from '@/api/inventory'
+import {StationUserType, type MemberGroup} from '@/api/types'
 import { userTypeFriendlyNames } from './types'
 
 const targetType = defineModel<'userType' | 'group'>('targetType', { default: 'userType' })

@@ -73,7 +73,8 @@ export function useOnboardingTour() {
     function nextStep() {
         if (currentStep.value < totalSteps.value - 1) {
             currentStep.value++
-            navigateToStep(filteredSteps.value[currentStep.value])
+            const step = filteredSteps.value[currentStep.value]
+            if (step) navigateToStep(step)
         } else {
             finishTour()
         }
@@ -82,7 +83,8 @@ export function useOnboardingTour() {
     function prevStep() {
         if (currentStep.value > 0) {
             currentStep.value--
-            navigateToStep(filteredSteps.value[currentStep.value])
+            const step = filteredSteps.value[currentStep.value]
+            if (step) navigateToStep(step)
         }
     }
 

@@ -27,7 +27,7 @@ const {t} = useI18n()
       </div>
       <p class="text-sm text-(--text-muted)">{{ t('forms.analytics.missingHelp') }}</p>
       <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        <li v-for="member in members" :key="member.memberUid ?? member.name" class="min-w-0">
+        <li v-for="member in members" :key="member.memberUid ?? member.name ?? ''" class="min-w-0">
           <MemberName :identity="member"/>
         </li>
       </ul>

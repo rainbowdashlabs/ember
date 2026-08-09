@@ -20,6 +20,7 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import * as lending from '@/api/lending'
 import {useSession} from '@/composables/useSession'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 
 const {t} = useI18n()
@@ -31,15 +32,11 @@ const inventoryId = Number(route.query.inventoryId)
 const stationId = String(route.query.stationId ?? '')
 const stationName = String(route.query.stationName || '')
 
-// Form state
 const dateFrom = ref('')
 const dateTo = ref('')
 const quantity = ref(1)
 const note = ref('')
-const submitting = ref(false)
-const submitError = ref('')
 
-// Available items from partner
 const availableItems = ref<lending.AvailableInventoryEntry[]>([])
 const loadingItems = ref(true)
 const itemsError = ref('')
@@ -63,24 +60,16 @@ async function loadItems() {
   }
 }
 
-async function handleSubmit() {
+const {running: submitting, error: submitError, run: handleSubmit} = useAsyncAction(async () => {
   if (!dateFrom.value) return
-  submitting.value = true
-  submitError.value = ''
-  try {
-    const result = await lending.createRequest({
-      owningStationId: stationId,
-      dateFrom: dateFrom.value,
-      dateTo: dateTo.value || null,
-      items: [{inventoryId, quantity: quantity.value}],
-    })
-    await router.push({name: 'inventory-lending-request', params: {id: result.request.id}})
-  } catch {
-    submitError.value = t('lending.createError')
-  } finally {
-    submitting.value = false
-  }
-}
+  const result = await lending.createRequest({
+    owningStationId: stationId,
+    dateFrom: dateFrom.value,
+    dateTo: dateTo.value || null,
+    items: [{inventoryId, quantity: quantity.value}],
+  })
+  await router.push({name: 'inventory-lending-request', params: {id: result.request.id}})
+}, {formatError: () => t('lending.createError')})
 
 onMounted(() => {
   if (loaded.value) loadItems()

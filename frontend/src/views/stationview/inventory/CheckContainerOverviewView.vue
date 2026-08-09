@@ -16,6 +16,7 @@ import SearchInput from '@/components/input/text/SearchInput.vue'
 import ContainerTree from '@/views/stationview/inventory/storageview/ContainerTree.vue'
 import {inventoryContainers} from '@/api'
 import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
+import {apiErrorMessage} from '@/util/apiError'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -60,8 +61,8 @@ async function load() {
     ])
     containers.value = c
     kinds.value = k
-  } catch (e: any) {
-    error.value = e?.response?.data?.message ?? t('inventory.checkContainer.loadError')
+  } catch (e) {
+    error.value = apiErrorMessage(e) ?? t('inventory.checkContainer.loadError')
   } finally {
     loading.value = false
   }

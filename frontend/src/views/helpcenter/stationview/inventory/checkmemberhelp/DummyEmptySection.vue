@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const {t} = useI18n()
 </script>
@@ -15,7 +16,7 @@ const {t} = useI18n()
   <NeutralContainer class="space-y-3">
     <div class="flex items-center justify-between gap-2">
       <SubHeader>Stiefel</SubHeader>
-      <span class="text-sm text-(--text-muted) shrink-0">0 / 1</span>
+      <MutedText size="sm" class="shrink-0">0 / 1</MutedText>
     </div>
 
     <div class="rounded border border-bg-light-accent/50 dark:border-bg-dark-accent/50 p-3 border-dashed">

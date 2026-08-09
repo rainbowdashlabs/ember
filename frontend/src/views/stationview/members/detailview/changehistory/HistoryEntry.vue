@@ -10,7 +10,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
-import type {ProfileFieldChange} from '@/api/types'
+import type {ProfileFieldChange} from '@/api/profileFieldChanges'
 import ChangeValueDiff from '../../changesview/ChangeValueDiff.vue'
 import AcknowledgementList from '../../changesview/AcknowledgementList.vue'
 
@@ -31,8 +31,8 @@ const emit = defineEmits<{
   (e: 'update:commentValue', v: string): void
 }>()
 
-function updateComment(v: string) {
-  emit('update:commentValue', v)
+function updateComment(v: string | undefined) {
+  emit('update:commentValue', v ?? '')
 }
 </script>
 

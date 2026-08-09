@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import DiscoveryHelp from '~/views/helpcenter/adminview/DiscoveryHelp'
+import DiscoveryHelp from '~/views/helpcenter/adminview/DiscoveryHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter-admin',

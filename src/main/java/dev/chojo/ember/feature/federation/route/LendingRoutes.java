@@ -5,12 +5,10 @@
  */
 package dev.chojo.ember.feature.federation.route;
 
-import dev.chojo.ember.api.FederationSession;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
-import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.LendingMessage;
 import dev.chojo.ember.feature.federation.entity.LendingRequest;
 import dev.chojo.ember.feature.federation.entity.LendingRequestItem;
@@ -25,7 +23,6 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -41,7 +38,9 @@ import java.util.UUID;
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
 /**
- * Routes for cross-station inventory lending, chat messages, and date blocking.
+ * Routes for cross-station inventory lending, chat messages, and date blocking, as seen by the
+ * station that owns the request. The aggregated partner inventory listing lives in
+ * {@link FederatedLendingRoutes}, the server-to-server endpoints in {@link RemoteLendingRoutes}.
  */
 @Singleton
 public class LendingRoutes implements Routes {
@@ -71,16 +70,6 @@ public class LendingRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        // Federated available inventory (aggregated from partners)
-        routes.get(
-                prefix + "/federated/lending/available",
-                this::listAvailable,
-                StationPermission.INVENTORY_LENDING_REQUEST);
-
-        // Remote (server-to-server, RSA signature auth)
-        routes.get(prefix + "/remote/lending/messages/{requestId}", this::remoteGetMessages);
-
-        // Lending requests — both roles can list/view/chat; handler filters by role
         routes.get(
                 prefix + "/lending/requests",
                 this::listRequests,
@@ -93,7 +82,6 @@ public class LendingRoutes implements Routes {
                 StationPermission.INVENTORY_LENDING_REQUEST,
                 StationPermission.INVENTORY_LENDING_MANAGER);
 
-        // Owner-only management actions
         routes.post(
                 prefix + "/lending/requests/{id}/approve",
                 this::approveRequest,
@@ -113,7 +101,6 @@ public class LendingRoutes implements Routes {
         routes.post(
                 prefix + "/lending/requests/{id}/lent", this::markLent, StationPermission.INVENTORY_LENDING_MANAGER);
 
-        // Both sides can mark returned and close
         routes.post(
                 prefix + "/lending/requests/{id}/returned",
                 this::markReturned,
@@ -125,13 +112,11 @@ public class LendingRoutes implements Routes {
                 StationPermission.INVENTORY_LENDING_REQUEST,
                 StationPermission.INVENTORY_LENDING_MANAGER);
 
-        // Lent-out items by inventory
         routes.get(
                 prefix + "/lending/inventory/{inventoryId}/lent-out",
                 this::lentOutByInventory,
                 StationPermission.INVENTORY_READ);
 
-        // Chat messages — both roles
         routes.get(
                 prefix + "/lending/requests/{id}/messages",
                 this::getMessages,
@@ -143,13 +128,10 @@ public class LendingRoutes implements Routes {
                 StationPermission.INVENTORY_LENDING_REQUEST,
                 StationPermission.INVENTORY_LENDING_MANAGER);
 
-        // Inventory blocks — manager only
         routes.get(prefix + "/lending/blocks", this::listBlocks, StationPermission.INVENTORY_LENDING_MANAGER);
         routes.post(prefix + "/lending/blocks", this::createBlock, StationPermission.INVENTORY_LENDING_MANAGER);
         routes.delete(prefix + "/lending/blocks/{id}", this::deleteBlock, StationPermission.INVENTORY_LENDING_MANAGER);
     }
-
-    // -- Requests --
 
     private void listRequests(Context ctx) {
         var session = UserSession.from(ctx);
@@ -180,7 +162,6 @@ public class LendingRoutes implements Routes {
                 dateTo,
                 session.member().id());
 
-        // Add items
         if (req.items() != null) {
             for (var item : req.items()) {
                 service.addRequestItem(request.id(), item.inventoryId(), item.itemId(), item.quantity());
@@ -225,7 +206,6 @@ public class LendingRoutes implements Routes {
         var request = service.findRequest(id).orElseThrow(NotFoundResponse::new);
         verifyOwner(request, session.stationId());
 
-        // Collect all inventory IDs from request items
         var requestItems = service.findRequestItems(id);
         var result = new ArrayList<AvailableItemDetail>();
         for (var ri : requestItems) {
@@ -301,8 +281,6 @@ public class LendingRoutes implements Routes {
         ctx.json(enrichRequest(service.findRequest(id).orElseThrow(), session.stationId()));
     }
 
-    // -- Messages --
-
     private void getMessages(Context ctx) {
         var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
@@ -350,8 +328,6 @@ public class LendingRoutes implements Routes {
         ctx.status(HttpStatus.CREATED).json(msg);
     }
 
-    // -- Blocks --
-
     private void listBlocks(Context ctx) {
         var session = UserSession.from(ctx);
         ctx.json(service.findBlocks(session.stationId()));
@@ -378,20 +354,6 @@ public class LendingRoutes implements Routes {
         service.deleteBlock(id);
         ctx.status(HttpStatus.NO_CONTENT);
     }
-
-    // -- Available inventory --
-
-    private void listAvailable(Context ctx) {
-        var session = UserSession.from(ctx);
-        String query = ctx.queryParam("q");
-        String fromParam = ctx.queryParam("from");
-        String toParam = ctx.queryParam("to");
-        LocalDate dateFrom = fromParam != null && !fromParam.isBlank() ? LocalDate.parse(fromParam) : null;
-        LocalDate dateTo = toParam != null && !toParam.isBlank() ? LocalDate.parse(toParam) : dateFrom;
-        ctx.json(service.findAvailableInventory(session.stationId(), query, dateFrom, dateTo));
-    }
-
-    // -- Helpers --
 
     private void verifyAccess(LendingRequest request, int stationId) {
         UUID stationUid = stationRepository.resolveUid(stationId);
@@ -443,31 +405,12 @@ public class LendingRoutes implements Routes {
                 .toList();
     }
 
-    // -- Lent-out items by inventory --
-
     private void lentOutByInventory(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int inventoryId = pathInt(ctx, "inventoryId");
         var lentItems = lendingRepository.findLentOutByInventory(
                 inventoryId, stationRepository.resolveUid(session.stationId()));
         ctx.json(lentItems);
-    }
-
-    // -- Records --
-
-    private void remoteGetMessages(Context ctx) {
-        var partner = requireFederationPartner(ctx);
-        int requestId = pathInt(ctx, "requestId");
-        var messages = service.getLocalMessages(requestId, partner.stationId());
-        ctx.json(messages);
-    }
-
-    private FederationPartner requireFederationPartner(Context ctx) {
-        var session = FederationSession.from(ctx);
-        if (session == null) {
-            throw new ForbiddenResponse("Missing or invalid federation signature");
-        }
-        return session.partner();
     }
 
     public record CreateLendingRequest(
@@ -505,8 +448,6 @@ public class LendingRoutes implements Routes {
             String sizeName,
             int requestItemId,
             boolean preselected) {}
-
-    // -- Remote endpoints (server-to-server, RSA signature auth) --
 
     public record AssignItemsRequest(List<ItemAssignment> items) {}
 

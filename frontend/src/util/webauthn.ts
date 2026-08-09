@@ -28,8 +28,38 @@ function bufferToBase64Url(buffer: ArrayBuffer | null | undefined): string {
     if (!buffer) return ''
     const bytes = new Uint8Array(buffer)
     let binary = ''
-    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i])
+    for (const byte of bytes) binary += String.fromCharCode(byte)
     return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+
+/** A credential descriptor as the server serialises it: the id arrives URL-safe base64 encoded. */
+interface ServerCredentialDescriptor extends Omit<PublicKeyCredentialDescriptor, 'id'> {
+    id: string
+}
+
+/** Server JSON for a registration ceremony: the binary fields arrive URL-safe base64 encoded. */
+interface ServerCreationOptions extends Omit<PublicKeyCredentialCreationOptions, 'challenge' | 'user' | 'excludeCredentials'> {
+    challenge: string
+    user: Omit<PublicKeyCredentialUserEntity, 'id'> & {id: string}
+    excludeCredentials?: ServerCredentialDescriptor[]
+}
+
+/** Server JSON for an assertion ceremony: the binary fields arrive URL-safe base64 encoded. */
+interface ServerRequestOptions extends Omit<PublicKeyCredentialRequestOptions, 'challenge' | 'allowCredentials'> {
+    challenge: string
+    allowCredentials?: ServerCredentialDescriptor[]
+}
+
+function unwrapPublicKey<T>(json: string): T {
+    const raw = JSON.parse(json) as T & {publicKey?: T}
+    return raw.publicKey ?? raw
+}
+
+function decodeDescriptors(descriptors: ServerCredentialDescriptor[] | undefined): PublicKeyCredentialDescriptor[] {
+    return (descriptors ?? []).map((descriptor) => ({
+        ...descriptor,
+        id: base64UrlToBuffer(descriptor.id),
+    }))
 }
 
 /**
@@ -38,8 +68,7 @@ function bufferToBase64Url(buffer: ArrayBuffer | null | undefined): string {
  * Either Yubico variant works — this helper massages the inputs for the WebAuthn DOM API.
  */
 function decodeCreationOptions(json: string): PublicKeyCredentialCreationOptions {
-    const raw = JSON.parse(json)
-    const source: any = raw.publicKey ?? raw
+    const source = unwrapPublicKey<ServerCreationOptions>(json)
     return {
         ...source,
         challenge: base64UrlToBuffer(source.challenge),
@@ -47,23 +76,16 @@ function decodeCreationOptions(json: string): PublicKeyCredentialCreationOptions
             ...source.user,
             id: base64UrlToBuffer(source.user.id),
         },
-        excludeCredentials: (source.excludeCredentials ?? []).map((c: any) => ({
-            ...c,
-            id: base64UrlToBuffer(c.id),
-        })),
+        excludeCredentials: decodeDescriptors(source.excludeCredentials),
     }
 }
 
 function decodeRequestOptions(json: string): PublicKeyCredentialRequestOptions {
-    const raw = JSON.parse(json)
-    const source: any = raw.publicKey ?? raw
+    const source = unwrapPublicKey<ServerRequestOptions>(json)
     return {
         ...source,
         challenge: base64UrlToBuffer(source.challenge),
-        allowCredentials: (source.allowCredentials ?? []).map((c: any) => ({
-            ...c,
-            id: base64UrlToBuffer(c.id),
-        })),
+        allowCredentials: decodeDescriptors(source.allowCredentials),
     }
 }
 
@@ -79,7 +101,7 @@ function encodeRegistrationResponse(credential: PublicKeyCredential): string {
         type: credential.type,
         id: credential.id,
         rawId: bufferToBase64Url(credential.rawId),
-        authenticatorAttachment: (credential as any).authenticatorAttachment ?? null,
+        authenticatorAttachment: credential.authenticatorAttachment ?? null,
         response: {
             attestationObject: bufferToBase64Url(response.attestationObject),
             clientDataJSON: bufferToBase64Url(response.clientDataJSON),
@@ -95,7 +117,7 @@ function encodeAssertionResponse(credential: PublicKeyCredential): string {
         type: credential.type,
         id: credential.id,
         rawId: bufferToBase64Url(credential.rawId),
-        authenticatorAttachment: (credential as any).authenticatorAttachment ?? null,
+        authenticatorAttachment: credential.authenticatorAttachment ?? null,
         response: {
             authenticatorData: bufferToBase64Url(response.authenticatorData),
             clientDataJSON: bufferToBase64Url(response.clientDataJSON),

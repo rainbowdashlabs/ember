@@ -13,8 +13,7 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import type {EventRegistrationEntry} from '@/api/events'
-import {RegistrationStatus} from '@/api/types'
+import {RegistrationStatus, type EventRegistrationEntry} from '@/api/events'
 
 const props = defineProps<{
   eligibleMembers: { id: number; name: string }[]
@@ -41,7 +40,8 @@ const membersWithoutRegistration = computed(() =>
     props.eligibleMembers.filter(m => !getRegistration(m.id)))
 
 const selectedId = computed((): number | null => {
-  if (membersWithoutRegistration.value.length === 1) return membersWithoutRegistration.value[0].id
+  const single = membersWithoutRegistration.value.length === 1 ? membersWithoutRegistration.value[0] : undefined
+  if (single) return single.id
   return selectedMemberId.value ? Number(selectedMemberId.value) : null
 })
 

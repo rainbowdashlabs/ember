@@ -4,38 +4,37 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import {createCrudResource} from './crud'
 import type {
-    GroupDetail,
-    GroupRequest,
     MemberGroup,
     PermissionGrant,
-    SetMembersRequest,
     StationMember,
 } from './types'
 
-export async function listGroups(): Promise<MemberGroup[]> {
-    const res = await client.get<MemberGroup[]>('/groups')
-    return res.data
+export interface GroupRequest {
+    name?: string
+    color?: string | null
+    position?: number
 }
 
-export async function getGroup(id: number): Promise<GroupDetail> {
-    const res = await client.get<GroupDetail>(`/groups/${id}`)
-    return res.data
+export interface GroupDetail {
+    id: number
+    stationId: string
+    name?: string
+    members?: StationMember[]
 }
 
-export async function createGroup(data: GroupRequest): Promise<MemberGroup> {
-    const res = await client.post<MemberGroup>('/groups', data)
-    return res.data
+export interface SetMembersRequest {
+    memberIds?: number[]
 }
 
-export async function updateGroup(id: number, data: GroupRequest): Promise<MemberGroup> {
-    const res = await client.put<MemberGroup>(`/groups/${id}`, data)
-    return res.data
-}
+const groups = createCrudResource<MemberGroup, GroupRequest, GroupRequest, GroupDetail>('/groups')
 
-export async function deleteGroup(id: number): Promise<void> {
-    await client.delete(`/groups/${id}`)
-}
+export const listGroups = groups.list
+export const getGroup = groups.get
+export const createGroup = groups.create
+export const updateGroup = groups.update
+export const deleteGroup = groups.remove
 
 export async function getGroupMembers(groupId: number): Promise<StationMember[]> {
     const res = await client.get<StationMember[]>(`/groups/${groupId}/members`)

@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import AuthImage from '@/components/display/AuthImage.vue'
-import type { QuizQuestion } from '@/api/types'
+import type { QuizQuestion } from '@/api/quiz'
 import { quiz } from '@/api'
 
 const props = defineProps<{

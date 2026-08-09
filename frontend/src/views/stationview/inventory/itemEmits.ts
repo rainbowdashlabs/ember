@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type { InventoryItem } from '@/api/types'
+import type { InventoryItem } from '@/api/inventory'
 
 /**
  * Shared emit shape for inventory item action events.

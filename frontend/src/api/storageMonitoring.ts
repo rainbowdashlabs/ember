@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import {createCrudResource} from './crud'
 
 export interface CategoryUsage {
     category: string
@@ -87,24 +88,12 @@ export async function recalculateStation(stationUid: string): Promise<void> {
 }
 
 // Admin: presets CRUD
-export async function getPresets(): Promise<StorageQuotaPreset[]> {
-    const {data} = await client.get<StorageQuotaPreset[]>('/admin/storage/presets')
-    return data
-}
+const presets = createCrudResource<StorageQuotaPreset, PresetRequest>('/admin/storage/presets')
 
-export async function createPreset(preset: PresetRequest): Promise<StorageQuotaPreset> {
-    const {data} = await client.post<StorageQuotaPreset>('/admin/storage/presets', preset)
-    return data
-}
-
-export async function updatePreset(id: number, preset: PresetRequest): Promise<StorageQuotaPreset> {
-    const {data} = await client.put<StorageQuotaPreset>(`/admin/storage/presets/${id}`, preset)
-    return data
-}
-
-export async function deletePreset(id: number): Promise<void> {
-    await client.delete(`/admin/storage/presets/${id}`)
-}
+export const getPresets = presets.list
+export const createPreset = presets.create
+export const updatePreset = presets.update
+export const deletePreset = presets.remove
 
 export async function applyPreset(id: number, stationUids: string[]): Promise<void> {
     await client.post(`/admin/storage/presets/${id}/apply`, {stationUids})

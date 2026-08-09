@@ -34,7 +34,7 @@ function pickPerspective() {
     )
     activeView.value = match?.key ?? props.perspectives[0]?.key ?? ''
   } else if (loaded.value && props.perspectives.length > 0) {
-    activeView.value = props.perspectives[0].key
+    activeView.value = props.perspectives[0]?.key ?? ''
   }
 }
 

@@ -18,6 +18,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import type {AiModel} from '@/api/ai'
 import {ai as aiApi} from '@/api'
 import {getItem, setItem} from '@/api/storage'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 
 const {t} = useI18n()
 
@@ -27,53 +28,49 @@ const aiBatchApiKey = ref(getItem('ai_api_key') || '')
 const aiBatchModel = ref(getItem('ai_model') || '')
 const saveOnServer = ref(false)
 const aiModels = ref<AiModel[]>([])
-const aiFetchingModels = ref(false)
-const savingToServer = ref(false)
 
-// Persist to localStorage on change
 watch(aiBatchProvider, v => setItem('ai_provider', v))
 watch(aiBatchApiKey, v => setItem('ai_api_key', v))
 watch(aiBatchModel, v => setItem('ai_model', v))
 
-// Load server settings if they exist
+/**
+ * Loads the server-side provider settings and applies them only when no local key is set.
+ */
 async function loadServerSettings() {
   try {
     const settings = await aiApi.getSettings()
-    if (settings.providers.length > 0) {
-      const p = settings.providers[0]
-      // Only apply server settings if no local key is set
-      if (!aiBatchApiKey.value) {
-        aiBatchProvider.value = p.provider
-        aiBatchModel.value = p.model ?? ''
-        saveOnServer.value = true
-      }
+    const p = settings.providers[0]
+    if (p && !aiBatchApiKey.value) {
+      aiBatchProvider.value = p.provider
+      aiBatchModel.value = p.model ?? ''
+      saveOnServer.value = true
     }
-  } catch { /* ignore */ }
+  } catch { void 0 }
 }
+
+const {running: aiFetchingModels, run: runLoadAiModels} = useAsyncAction(async () => {
+  aiModels.value = await aiApi.fetchModels(aiBatchProvider.value, aiBatchApiKey.value)
+})
 
 async function loadAiModels() {
   if (!aiBatchApiKey.value) return
-  aiFetchingModels.value = true
-  try {
-    aiModels.value = await aiApi.fetchModels(aiBatchProvider.value, aiBatchApiKey.value)
-  } catch { /* ignore */ }
-  finally { aiFetchingModels.value = false }
+  await runLoadAiModels()
 }
+
+const {run: runSaveToServer} = useAsyncAction(() =>
+  aiApi.saveProvider(aiBatchProvider.value, aiBatchApiKey.value, aiBatchModel.value || null),
+)
 
 async function saveToServer() {
   if (!aiBatchApiKey.value) return
-  savingToServer.value = true
-  try {
-    await aiApi.saveProvider(aiBatchProvider.value, aiBatchApiKey.value, aiBatchModel.value || null)
-  } catch { /* ignore */ }
-  finally { savingToServer.value = false }
+  await runSaveToServer()
 }
 
 async function removeFromServer() {
   try {
     await aiApi.deleteProvider(aiBatchProvider.value)
     saveOnServer.value = false
-  } catch { /* ignore */ }
+  } catch { void 0 }
 }
 
 watch(saveOnServer, async (val) => {
@@ -104,7 +101,6 @@ defineExpose({getProvider, getTransientKey, getModel})
 
     <NeutralContainer v-if="showAiSettings">
       <div class="space-y-4">
-        <!-- Provider + Model -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <FieldLabel hint class="mb-1">{{ t('quiz.ai.provider') }}</FieldLabel>
@@ -130,14 +126,12 @@ defineExpose({getProvider, getTransientKey, getModel})
           </div>
         </div>
 
-        <!-- API Key -->
         <div>
           <FieldLabel hint class="mb-1">{{ t('quiz.ai.apiKey') }}</FieldLabel>
           <TextInput v-model="aiBatchApiKey" type="password" placeholder="sk-..."/>
           <MutedText tag="p" class="mt-1">{{ t('quiz.ai.keyLocalHint') }}</MutedText>
         </div>
 
-        <!-- Server save toggle -->
         <div class="flex items-center gap-2">
           <ToggleInput v-model="saveOnServer"/>
           <span class="text-sm font-medium">{{ t('quiz.ai.saveOnServer') }}</span>

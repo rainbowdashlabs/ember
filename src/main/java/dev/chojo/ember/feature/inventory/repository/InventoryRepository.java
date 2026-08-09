@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.inventory.entity.InventoryRequirement;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventorySummary;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
@@ -30,8 +31,14 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  */
 @Singleton
 public class InventoryRepository {
-
-    // -- Inventory --
+    private static final String INVENTORY_COLUMNS = "id, station_id, name, inventory_type, has_sizes";
+    private static final String INVENTORY_SIZE_COLUMNS = "id, inventory_id, label, position, note";
+    private static final String INVENTORY_ITEM_COLUMNS =
+            "id, inventory_id, internal_id, name, size_id, metadata, assigned_to, lost_at, item_source, container_id";
+    private static final String INVENTORY_ITEM_HISTORY_COLUMNS =
+            "id, item_id, member_id, member_name, given_out, returned";
+    private static final String INVENTORY_REQUIREMENT_COLUMNS =
+            "id, inventory_id, user_type, group_id, quantity, position";
 
     /**
      * Finds an inventory by its ID.
@@ -40,10 +47,7 @@ public class InventoryRepository {
      * @return the inventory, or empty if not found
      */
     public Optional<Inventory> findById(int id) {
-        return query("SELECT id, station_id, name, inventory_type, has_sizes FROM inventory WHERE id = :id;")
-                .single(call().bind("id", id))
-                .map(Inventory.map())
-                .first();
+        return SqlSupport.findById("inventory", INVENTORY_COLUMNS, id, Inventory.map());
     }
 
     /**
@@ -53,8 +57,8 @@ public class InventoryRepository {
      * @return list of inventories for the station
      */
     public List<Inventory> findByStation(int stationId) {
-        return query(
-                        "SELECT id, station_id, name, inventory_type, has_sizes FROM inventory WHERE station_id = :station_id;")
+        return query("""
+                SELECT %s FROM inventory WHERE station_id = :station_id;""", INVENTORY_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(Inventory.map())
                 .all();
@@ -62,7 +66,7 @@ public class InventoryRepository {
 
     public List<InventorySummary> findSummariesByStation(int stationId) {
         return query("""
-                SELECT i.id, i.station_id, i.name, i.inventory_type, i.has_sizes,
+                SELECT %s,
                        coalesce(counts.item_count, 0) AS item_count,
                        coalesce(counts.lost_count, 0) AS lost_count,
                        coalesce(proc.procurement_count, 0) AS procurement_count,
@@ -91,7 +95,7 @@ public class InventoryRepository {
                     GROUP BY li.inventory_id
                 ) lent ON lent.inventory_id = i.id
                 WHERE i.station_id = :station_id
-                ORDER BY i.name;""")
+                ORDER BY i.name;""", SqlSupport.alias("i", INVENTORY_COLUMNS))
                 .single(call().bind("station_id", stationId))
                 .map(InventorySummary.map())
                 .all();
@@ -107,15 +111,17 @@ public class InventoryRepository {
      * @return the created inventory
      */
     public Inventory create(int stationId, String name, InventoryType inventoryType, boolean hasSizes) {
-        return query(
-                        "INSERT INTO inventory(station_id, name, inventory_type, has_sizes) VALUES(:station_id, :name, :inventory_type, :has_sizes) RETURNING id, station_id, name, inventory_type, has_sizes;")
-                .single(call().bind("station_id", stationId)
+        return SqlSupport.insertReturning(
+                """
+                INSERT INTO inventory(station_id, name, inventory_type, has_sizes)
+                VALUES(:station_id, :name, :inventory_type, :has_sizes)
+                RETURNING %s;""",
+                call().bind("station_id", stationId)
                         .bind("name", name)
                         .bind("inventory_type", inventoryType)
-                        .bind("has_sizes", hasSizes))
-                .map(Inventory.map())
-                .first()
-                .orElseThrow();
+                        .bind("has_sizes", hasSizes),
+                Inventory.map(),
+                INVENTORY_COLUMNS);
     }
 
     /**
@@ -145,13 +151,8 @@ public class InventoryRepository {
      * @return {@code true} if the inventory was deleted
      */
     public boolean delete(int id) {
-        return query("DELETE FROM inventory WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("inventory", id);
     }
-
-    // -- Sizes --
 
     /**
      * Finds all sizes for an inventory, ordered by position.
@@ -160,8 +161,8 @@ public class InventoryRepository {
      * @return list of sizes
      */
     public List<InventorySize> findSizes(int inventoryId) {
-        return query(
-                        "SELECT id, inventory_id, label, position, note FROM inventory_size WHERE inventory_id = :inventory_id ORDER BY position;")
+        return query("""
+                SELECT %s FROM inventory_size WHERE inventory_id = :inventory_id ORDER BY position;""", INVENTORY_SIZE_COLUMNS)
                 .single(call().bind("inventory_id", inventoryId))
                 .map(InventorySize.map())
                 .all();
@@ -211,13 +212,8 @@ public class InventoryRepository {
      * @return {@code true} if the size was deleted
      */
     public boolean deleteSize(int id) {
-        return query("DELETE FROM inventory_size WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("inventory_size", id);
     }
-
-    // -- Items --
 
     /**
      * Finds an inventory item by its ID.
@@ -226,18 +222,15 @@ public class InventoryRepository {
      * @return the item, or empty if not found
      */
     public Optional<InventoryItem> findItemById(int id) {
-        return query("SELECT * FROM inventory_item WHERE id = :id;")
-                .single(call().bind("id", id))
-                .map(InventoryItem.map())
-                .first();
+        return SqlSupport.findById("inventory_item", INVENTORY_ITEM_COLUMNS, id, InventoryItem.map());
     }
 
     public Optional<InventoryItem> findByInternalId(int stationId, String internalId) {
         return query("""
-                SELECT ii.* FROM inventory_item ii
+                SELECT %s FROM inventory_item ii
                 JOIN inventory i ON i.id = ii.inventory_id
                 WHERE i.station_id = :station_id AND ii.internal_id = :internal_id
-                LIMIT 1;""")
+                LIMIT 1;""", SqlSupport.alias("ii", INVENTORY_ITEM_COLUMNS))
                 .single(call().bind("station_id", stationId).bind("internal_id", internalId))
                 .map(InventoryItem.map())
                 .first();
@@ -245,7 +238,7 @@ public class InventoryRepository {
 
     public List<InventoryItem> findFreeItems(int inventoryId, LocalDate dateFrom, LocalDate dateTo) {
         return query("""
-                SELECT * FROM inventory_item
+                SELECT %s FROM inventory_item
                 WHERE inventory_id = :inventory_id
                   AND assigned_to IS NULL
                   AND lost_at IS NULL
@@ -257,7 +250,7 @@ public class InventoryRepository {
                         AND lr.requested_date_from <= :date_to
                         AND (lr.requested_date_to IS NULL OR lr.requested_date_to >= :date_from)
                   )
-                ORDER BY id;""")
+                ORDER BY id;""", INVENTORY_ITEM_COLUMNS)
                 .single(call().bind("inventory_id", inventoryId)
                         .bind("date_from", dateFrom)
                         .bind("date_to", dateTo))
@@ -272,7 +265,8 @@ public class InventoryRepository {
      * @return list of items
      */
     public List<InventoryItem> findItems(int inventoryId) {
-        return query("SELECT * FROM inventory_item WHERE inventory_id = :inventory_id;")
+        return query("""
+                SELECT %s FROM inventory_item WHERE inventory_id = :inventory_id;""", INVENTORY_ITEM_COLUMNS)
                 .single(call().bind("inventory_id", inventoryId))
                 .map(InventoryItem.map())
                 .all();
@@ -280,9 +274,9 @@ public class InventoryRepository {
 
     public List<InventoryItem> findItemsByStation(int stationId) {
         return query("""
-                SELECT ii.* FROM inventory_item ii
+                SELECT %s FROM inventory_item ii
                 JOIN inventory i ON i.id = ii.inventory_id
-                WHERE i.station_id = :station_id;""")
+                WHERE i.station_id = :station_id;""", SqlSupport.alias("ii", INVENTORY_ITEM_COLUMNS))
                 .single(call().bind("station_id", stationId))
                 .map(InventoryItem.map())
                 .all();
@@ -290,27 +284,26 @@ public class InventoryRepository {
 
     public List<InventorySize> findSizesByStation(int stationId) {
         return query("""
-                SELECT s.id, s.inventory_id, s.label, s.position, s.note FROM inventory_size s
+                SELECT %s FROM inventory_size s
                 JOIN inventory i ON i.id = s.inventory_id
-                WHERE i.station_id = :station_id ORDER BY s.position;""")
+                WHERE i.station_id = :station_id ORDER BY s.position;""", SqlSupport.alias("s", INVENTORY_SIZE_COLUMNS))
                 .single(call().bind("station_id", stationId))
                 .map(InventorySize.map())
                 .all();
     }
 
     public List<InventoryItem> findItemsByMember(int memberId) {
-        return query("SELECT * FROM inventory_item WHERE assigned_to = :member_id;")
+        return query("""
+                SELECT %s FROM inventory_item WHERE assigned_to = :member_id;""", INVENTORY_ITEM_COLUMNS)
                 .single(call().bind("member_id", memberId))
                 .map(InventoryItem.map())
                 .all();
     }
 
     public int countItemsByMember(int memberId) {
-        return query("SELECT count(*) FROM inventory_item WHERE assigned_to = :member_id;")
-                .single(call().bind("member_id", memberId))
-                .map(row -> row.getInt(1))
-                .first()
-                .orElse(0);
+        return SqlSupport.count(
+                "SELECT count(*) FROM inventory_item WHERE assigned_to = :member_id;",
+                call().bind("member_id", memberId));
     }
 
     /**
@@ -320,8 +313,8 @@ public class InventoryRepository {
      * @return list of available items
      */
     public List<InventoryItem> findUnassignedItems(int inventoryId) {
-        return query(
-                        "SELECT * FROM inventory_item WHERE inventory_id = :inventory_id AND assigned_to IS NULL AND lost_at IS NULL ORDER BY name;")
+        return query("""
+                SELECT %s FROM inventory_item WHERE inventory_id = :inventory_id AND assigned_to IS NULL AND lost_at IS NULL ORDER BY name;""", INVENTORY_ITEM_COLUMNS)
                 .single(call().bind("inventory_id", inventoryId))
                 .map(InventoryItem.map())
                 .all();
@@ -360,19 +353,19 @@ public class InventoryRepository {
             Integer sizeId,
             InventoryItemMetadata metadata,
             InventoryItem.ItemSource itemSource) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT INTO inventory_item(inventory_id, internal_id, name, size_id, metadata, item_source)
                 VALUES (:inventory_id, :internal_id, :name, :size_id, :metadata::JSONB, :item_source)
-                RETURNING *;""")
-                .single(call().bind("inventory_id", inventoryId)
+                RETURNING %s;""",
+                call().bind("inventory_id", inventoryId)
                         .bind("internal_id", internalId)
                         .bind("name", name)
                         .bind("size_id", sizeId)
                         .bind("metadata", (metadata != null ? metadata : InventoryItemMetadata.empty()).toJson())
-                        .bind("item_source", itemSource))
-                .map(InventoryItem.map())
-                .first()
-                .orElseThrow();
+                        .bind("item_source", itemSource),
+                InventoryItem.map(),
+                INVENTORY_ITEM_COLUMNS);
     }
 
     /**
@@ -447,19 +440,17 @@ public class InventoryRepository {
      * Returns whether the given station has any item whose internal id matches.
      */
     public boolean itemInternalIdExists(int stationId, String internalId, Integer excludeItemId) {
-        return query("""
+        return SqlSupport.exists(
+                """
                 SELECT 1 FROM inventory_item ii
                 JOIN inventory i ON i.id = ii.inventory_id
                 WHERE i.station_id = :station_id
                   AND ii.internal_id = :internal_id
                   AND (:exclude_id::int IS NULL OR ii.id <> :exclude_id)
-                LIMIT 1;""")
-                .single(call().bind("station_id", stationId)
+                LIMIT 1;""",
+                call().bind("station_id", stationId)
                         .bind("internal_id", internalId)
-                        .bind("exclude_id", excludeItemId))
-                .map(row -> row.getInt(1))
-                .first()
-                .isPresent();
+                        .bind("exclude_id", excludeItemId));
     }
 
     /**
@@ -495,13 +486,8 @@ public class InventoryRepository {
      * @return {@code true} if the item was deleted
      */
     public boolean deleteItem(int id) {
-        return query("DELETE FROM inventory_item WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("inventory_item", id);
     }
-
-    // -- History --
 
     /**
      * Finds the assignment history for an item, ordered by most recent first.
@@ -510,8 +496,8 @@ public class InventoryRepository {
      * @return list of history entries
      */
     public List<InventoryItemHistory> findHistory(int itemId) {
-        return query(
-                        "SELECT id, item_id, member_id, member_name, given_out, returned FROM inventory_item_history WHERE item_id = :itemId ORDER BY given_out DESC;")
+        return query("""
+                SELECT %s FROM inventory_item_history WHERE item_id = :itemId ORDER BY given_out DESC;""", INVENTORY_ITEM_HISTORY_COLUMNS)
                 .single(call().bind("itemId", itemId))
                 .map(InventoryItemHistory.map())
                 .all();
@@ -526,12 +512,14 @@ public class InventoryRepository {
      * @return the created history entry
      */
     public InventoryItemHistory createHistory(int itemId, int memberId, String memberName) {
-        return query(
-                        "INSERT INTO inventory_item_history(item_id, member_id, member_name) VALUES(:itemId, :memberId, :memberName) RETURNING id, item_id, member_id, member_name, given_out, returned;")
-                .single(call().bind("itemId", itemId).bind("memberId", memberId).bind("memberName", memberName))
-                .map(InventoryItemHistory.map())
-                .first()
-                .orElseThrow();
+        return SqlSupport.insertReturning(
+                """
+                INSERT INTO inventory_item_history(item_id, member_id, member_name)
+                VALUES(:itemId, :memberId, :memberName)
+                RETURNING %s;""",
+                call().bind("itemId", itemId).bind("memberId", memberId).bind("memberName", memberName),
+                InventoryItemHistory.map(),
+                INVENTORY_ITEM_HISTORY_COLUMNS);
     }
 
     /**
@@ -571,8 +559,6 @@ public class InventoryRepository {
                 .changed();
     }
 
-    // -- Requirements --
-
     /**
      * Finds all inventory requirements for a station, ordered by position.
      *
@@ -580,8 +566,8 @@ public class InventoryRepository {
      * @return list of requirements
      */
     public List<InventoryRequirement> findAllRequirementsByStation(int stationId) {
-        return query(
-                        "SELECT r.id, r.inventory_id, r.user_type, r.group_id, r.quantity, r.position FROM inventory_requirement r JOIN inventory i ON r.inventory_id = i.id WHERE i.station_id = :stationId ORDER BY r.position, r.id;")
+        return query("""
+                SELECT %s FROM inventory_requirement r JOIN inventory i ON r.inventory_id = i.id WHERE i.station_id = :stationId ORDER BY r.position, r.id;""", SqlSupport.alias("r", INVENTORY_REQUIREMENT_COLUMNS))
                 .single(call().bind("stationId", stationId))
                 .map(InventoryRequirement.map())
                 .all();
@@ -598,15 +584,17 @@ public class InventoryRepository {
      */
     public InventoryRequirement createRequirement(
             int inventoryId, StationUserType userType, int groupId, int quantity) {
-        return query(
-                        "INSERT INTO inventory_requirement(inventory_id, user_type, group_id, quantity) VALUES(:inventoryId, :userType, :groupId, :quantity) RETURNING id, inventory_id, user_type, group_id, quantity, position;")
-                .single(call().bind("inventoryId", inventoryId)
+        return SqlSupport.insertReturning(
+                """
+                INSERT INTO inventory_requirement(inventory_id, user_type, group_id, quantity)
+                VALUES(:inventoryId, :userType, :groupId, :quantity)
+                RETURNING %s;""",
+                call().bind("inventoryId", inventoryId)
                         .bind("userType", userType)
                         .bind("groupId", groupId == 0 ? null : groupId)
-                        .bind("quantity", quantity))
-                .map(InventoryRequirement.map())
-                .first()
-                .orElseThrow();
+                        .bind("quantity", quantity),
+                InventoryRequirement.map(),
+                INVENTORY_REQUIREMENT_COLUMNS);
     }
 
     /**
@@ -644,9 +632,6 @@ public class InventoryRepository {
      * @return {@code true} if the requirement was deleted
      */
     public boolean deleteRequirement(int id) {
-        return query("DELETE FROM inventory_requirement WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("inventory_requirement", id);
     }
 }

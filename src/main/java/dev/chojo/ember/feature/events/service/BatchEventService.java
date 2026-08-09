@@ -12,8 +12,8 @@ import dev.chojo.ember.feature.events.entity.BatchRequest;
 import dev.chojo.ember.feature.events.entity.BatchRow;
 import dev.chojo.ember.feature.events.entity.IntervalConfig;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventBreakRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
-import dev.chojo.ember.feature.events.repository.EventRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -31,20 +31,23 @@ import java.util.Map;
 public class BatchEventService {
     private static final Logger log = LoggerFactory.getLogger(BatchEventService.class);
 
-    private final EventService eventService;
+    private final EventCrudService crudService;
+    private final EventRestrictionService restrictionService;
     private final EventFieldService eventFieldService;
-    private final EventRepository eventRepository;
+    private final EventBreakRepository breakRepository;
     private final DomainEventBus eventBus;
 
     @Inject
     public BatchEventService(
-            EventService eventService,
+            EventCrudService crudService,
+            EventRestrictionService restrictionService,
             EventFieldService eventFieldService,
-            EventRepository eventRepository,
+            EventBreakRepository breakRepository,
             DomainEventBus eventBus) {
-        this.eventService = eventService;
+        this.crudService = crudService;
+        this.restrictionService = restrictionService;
         this.eventFieldService = eventFieldService;
-        this.eventRepository = eventRepository;
+        this.breakRepository = breakRepository;
         this.eventBus = eventBus;
     }
 
@@ -59,7 +62,7 @@ public class BatchEventService {
 
             // Use createWithoutEvent to suppress per-row EventCreated fan-out — we emit one
             // aggregate EventsBatchCreated below so users get a single notification.
-            var event = eventService.createWithoutEvent(
+            var event = crudService.createWithoutEvent(
                     stationId,
                     eventName,
                     request.description(),
@@ -78,7 +81,7 @@ public class BatchEventService {
                     null);
 
             if (request.restriction() != null) {
-                eventService.setRestrictions(event.id(), request.restriction());
+                restrictionService.setRestrictions(event.id(), request.restriction());
             }
 
             var fieldEntries = fieldDefs.stream()
@@ -107,7 +110,7 @@ public class BatchEventService {
         var dates = expandInterval(interval);
         if (!ignoreBreaks) {
             dates = dates.stream()
-                    .filter(date -> !eventRepository.isDateInBreak(stationId, date))
+                    .filter(date -> !breakRepository.isDateInBreak(stationId, date))
                     .toList();
         }
         LocalTime startOfDay = interval.startTime() != null ? interval.startTime() : LocalTime.of(0, 0);

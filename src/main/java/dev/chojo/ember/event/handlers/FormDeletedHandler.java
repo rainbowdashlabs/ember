@@ -35,9 +35,8 @@ public class FormDeletedHandler implements DomainEventHandler<FormDeleted> {
         notificationService.deleteByTypeContaining(
                 NotificationType.NEW_FORM,
                 NotificationData.of(
-                                new NotificationParams.NewForm(null),
-                                new NotificationData.NotificationLink(
-                                        "forms-fill", Map.of("id", String.valueOf(event.formId()))))
-                        .toJson());
+                        new NotificationParams.NewForm(null),
+                        new NotificationData.NotificationLink(
+                                "forms-fill", Map.of("id", String.valueOf(event.formId())))));
     }
 }

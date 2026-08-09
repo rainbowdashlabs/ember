@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.members.repository;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -21,22 +22,23 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  */
 @Singleton
 public class MemberGroupRepository {
+    private static final String MEMBER_GROUP_COLUMNS = "id, station_id, name, color, position";
+    private static final String STATION_MEMBER_COLUMNS =
+            "id, station_id, uid, account_id, former, former_at, display_name, user_type, join_date";
 
     /**
      * Finds a member group by its identifier.
      */
     public Optional<MemberGroup> findById(int id) {
-        return query("SELECT * FROM member_group WHERE id = :id;")
-                .single(call().bind("id", id))
-                .map(MemberGroup.map())
-                .first();
+        return SqlSupport.findById("member_group", MEMBER_GROUP_COLUMNS, id, MemberGroup.map());
     }
 
     /**
      * Finds all member groups for a station.
      */
     public List<MemberGroup> findByStation(int stationId) {
-        return query("SELECT * FROM member_group WHERE station_id = :station_id ORDER BY position DESC, name;")
+        return query("""
+                SELECT %s FROM member_group WHERE station_id = :station_id ORDER BY position DESC, name;""", MEMBER_GROUP_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(MemberGroup.map())
                 .all();
@@ -48,25 +50,20 @@ public class MemberGroupRepository {
      * the full list.
      */
     public boolean existsForStation(int stationId) {
-        return query("SELECT 1 FROM member_group WHERE station_id = :station_id LIMIT 1;")
-                .single(call().bind("station_id", stationId))
-                .map(_ -> true)
-                .first()
-                .orElse(false);
+        return SqlSupport.exists(
+                "SELECT 1 FROM member_group WHERE station_id = :station_id LIMIT 1;",
+                call().bind("station_id", stationId));
     }
 
     /**
      * Creates a new member group for a station.
      */
     public MemberGroup create(int stationId, String name) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT INTO member_group(station_id, name, position)
                 VALUES(:station_id, :name, coalesce((SELECT max(position) + 1 FROM member_group WHERE station_id = :station_id), 0))
-                RETURNING *;""")
-                .single(call().bind("station_id", stationId).bind("name", name))
-                .map(MemberGroup.map())
-                .first()
-                .orElseThrow();
+                RETURNING %s;""", call().bind("station_id", stationId).bind("name", name), MemberGroup.map(), MEMBER_GROUP_COLUMNS);
     }
 
     /**
@@ -86,13 +83,8 @@ public class MemberGroupRepository {
      * Deletes a member group by its identifier.
      */
     public boolean delete(int id) {
-        return query("DELETE FROM member_group WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("member_group", id);
     }
-
-    // -- Group Entries --
 
     /**
      * Finds all members belonging to a group.
@@ -100,12 +92,12 @@ public class MemberGroupRepository {
     public List<StationMember> findMembers(int groupId) {
         return query("""
                 SELECT
-                    sm.*
+                    %s
                 FROM
                     station_member sm
                         JOIN member_group_entry mge
                         ON sm.id = mge.member_id
-                WHERE mge.group_id = :group_id AND NOT sm.former;""")
+                WHERE mge.group_id = :group_id AND NOT sm.former;""", SqlSupport.alias("sm", STATION_MEMBER_COLUMNS))
                 .single(call().bind("group_id", groupId))
                 .map(StationMember.map())
                 .all();
@@ -116,11 +108,11 @@ public class MemberGroupRepository {
      */
     public List<MemberGroup> findGroupsForMember(int memberId) {
         return query("""
-                SELECT mg.*
+                SELECT %s
                 FROM member_group mg
                 JOIN member_group_entry mge ON mg.id = mge.group_id
                 WHERE mge.member_id = :member_id
-                ORDER BY mg.position DESC, mg.name;""")
+                ORDER BY mg.position DESC, mg.name;""", SqlSupport.alias("mg", MEMBER_GROUP_COLUMNS))
                 .single(call().bind("member_id", memberId))
                 .map(MemberGroup.map())
                 .all();
@@ -144,8 +136,6 @@ public class MemberGroupRepository {
                 .delete()
                 .changed();
     }
-
-    // -- Group Permissions --
 
     /**
      * Finds all permissions assigned to a group.

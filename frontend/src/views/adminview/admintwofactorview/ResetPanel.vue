@@ -16,6 +16,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import AccountSearchPicker from '@/components/input/search/AccountSearchPicker.vue'
 import {twoFactorAdmin} from '@/api'
 import type {AccountSearchResult} from '@/api/twoFactorAdmin'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 
 const emit = defineEmits<{
   (e: 'reset-performed'): void
@@ -26,10 +27,8 @@ const {t} = useI18n()
 const resetAccountId = ref<number | null>(null)
 const resetAccountUid = ref<string | null>(null)
 const resetAccountName = ref<string | null>(null)
-const resetLoading = ref(false)
 const resetConfirmOpen = ref(false)
 const resetSuccess = ref('')
-const error = ref('')
 
 function onResetPick(item: AccountSearchResult) {
   resetAccountId.value = item.id
@@ -37,8 +36,8 @@ function onResetPick(item: AccountSearchResult) {
   resetAccountName.value = `${item.displayName} (${item.email})`
 }
 
-function onResetUidUpdate(uid: string | null) {
-  resetAccountUid.value = uid
+function onResetUidUpdate(uid: string | null | undefined) {
+  resetAccountUid.value = uid ?? null
   if (uid == null) {
     resetAccountId.value = null
     resetAccountName.value = null
@@ -51,22 +50,16 @@ function openResetModal() {
   resetConfirmOpen.value = true
 }
 
-async function confirmReset() {
+const {running: resetLoading, error, run: confirmReset} = useAsyncAction(async () => {
   if (!resetAccountId.value) return
-  resetLoading.value = true
-  try {
-    await twoFactorAdmin.resetAccount2FAByInstanceAdmin(resetAccountId.value)
-    resetSuccess.value = t('twoFactor.admin.resetSuccess', {name: resetAccountName.value ?? resetAccountId.value})
-    resetConfirmOpen.value = false
-    resetAccountId.value = null
-    resetAccountUid.value = null
-    resetAccountName.value = null
-    emit('reset-performed')
-  } catch (e: any) {
-    error.value = e?.response?.data?.message || t('common.error')
-  }
-  resetLoading.value = false
-}
+  await twoFactorAdmin.resetAccount2FAByInstanceAdmin(resetAccountId.value)
+  resetSuccess.value = t('twoFactor.admin.resetSuccess', {name: resetAccountName.value ?? resetAccountId.value})
+  resetConfirmOpen.value = false
+  resetAccountId.value = null
+  resetAccountUid.value = null
+  resetAccountName.value = null
+  emit('reset-performed')
+})
 </script>
 
 <template>

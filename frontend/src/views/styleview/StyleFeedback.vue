@@ -17,6 +17,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
+import AsyncSection from '@/components/feedback/AsyncSection.vue'
 
 const modalOpen = ref(false)
 </script>
@@ -68,6 +69,18 @@ const modalOpen = ref(false)
     <SectionHeader>Empty State</SectionHeader>
     <EmptyState>No items found.</EmptyState>
     <EmptyState compact>No items (compact).</EmptyState>
+    <EmptyState message="No items (message prop)."/>
+  </section>
+
+  <!-- Async Section -->
+  <section class="space-y-4">
+    <SectionHeader>Async Section</SectionHeader>
+    <AsyncSection :loading="true"/>
+    <AsyncSection :loading="false" error="Loading failed."/>
+    <AsyncSection :empty="true" :loading="false" empty-message="Nothing here yet."/>
+    <AsyncSection :empty="false" :loading="false">
+      <MutedText size="sm">Loaded content renders in the default slot.</MutedText>
+    </AsyncSection>
   </section>
 
   <!-- Modal -->

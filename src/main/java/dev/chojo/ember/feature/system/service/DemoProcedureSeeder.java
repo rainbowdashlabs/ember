@@ -12,6 +12,8 @@ import dev.chojo.ember.feature.procedure.entity.ProcedureTemplateItem;
 import dev.chojo.ember.feature.procedure.repository.ProcedureRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -20,13 +22,26 @@ import java.util.List;
 import java.util.Random;
 
 @Singleton
-public class DemoProcedureSeeder {
+public class DemoProcedureSeeder implements DemoSeeder {
+    private static final Logger log = LoggerFactory.getLogger(DemoProcedureSeeder.class);
 
     private final ProcedureRepository repo;
 
     @Inject
     public DemoProcedureSeeder(ProcedureRepository repo) {
         this.repo = repo;
+    }
+
+    @Override
+    public int order() {
+        return MODULES;
+    }
+
+    @Override
+    public void seed(DemoSeederContext context) {
+        var members = context.members();
+        seed(context.stationId(), context.adminMember(), members.betreuer(), members.anfaenger(), new Random(42_020));
+        log.info("Demo: Created Procedure data");
     }
 
     public void seed(

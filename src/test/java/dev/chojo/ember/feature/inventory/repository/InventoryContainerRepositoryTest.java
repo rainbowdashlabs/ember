@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.inventory.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.ContainerEventKind;
+import dev.chojo.ember.feature.inventory.entity.ContainerHistoryDetails;
 import dev.chojo.ember.feature.inventory.entity.ContainerPath;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryContainer;
@@ -133,14 +134,23 @@ class InventoryContainerRepositoryTest extends RepositoryTestBase {
                 .isEmpty());
 
         containerRepo.appendHistory(
-                hall.id(), station.id(), ContainerEventKind.RENAMED, member.id(), "{\"from\":\"x\",\"to\":\"y\"}");
-        containerRepo.appendHistory(hall.id(), station.id(), ContainerEventKind.MOVED, null, null);
+                hall.id(), station.id(), member.id(), new ContainerHistoryDetails.Renamed("x", "y"));
+        containerRepo.appendHistory(hall.id(), station.id(), null, new ContainerHistoryDetails.Moved(null, hall.id()));
         assertEquals(2, containerRepo.findHistory(hall.id()).size());
+        assertEquals(
+                new ContainerHistoryDetails.Renamed("x", "y"),
+                containerRepo.findHistory(hall.id()).stream()
+                        .filter(h -> h.eventKind() == ContainerEventKind.RENAMED)
+                        .findFirst()
+                        .orElseThrow()
+                        .details());
         assertFalse(containerRepo.findRecentHistory(station.id(), 1).isEmpty());
 
-        containerRepo.appendHistory(null, station.id(), ContainerEventKind.DELETED, member.id(), "{\"id\":42}");
+        containerRepo.appendHistory(null, station.id(), member.id(), new ContainerHistoryDetails.Deleted(42, "Gone"));
         assertTrue(containerRepo.findRecentHistory(station.id(), 10).stream()
-                .anyMatch(h -> h.eventKind() == ContainerEventKind.DELETED));
+                .anyMatch(h -> h.eventKind() == ContainerEventKind.DELETED
+                        && h.details() instanceof ContainerHistoryDetails.Deleted deleted
+                        && deleted.id() == 42));
 
         assertTrue(containerRepo.delete(hall.id()));
         assertFalse(containerRepo.delete(hall.id()));

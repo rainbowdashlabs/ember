@@ -4,20 +4,12 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import type {StationEvent} from '@/api/types'
-
-interface MultiDayBarData {
-  event: StationEvent
-  startCol: number
-  endCol: number
-  lane: number
-  continuesLeft: boolean
-  continuesRight: boolean
-  startIso: string
-}
+import EventChipButton from '@/components/button/EventChipButton.vue'
+import type {StationEvent} from '@/api/events'
+import type {MultiDayBar} from '@/composables/useEventCalendarGrid'
 
 const props = defineProps<{
-  bar: MultiDayBarData
+  bar: MultiDayBar
   chipStyle: (ev: StationEvent) => {backgroundColor: string; color: string} | undefined
   formatTime: (iso?: string) => string
 }>()
@@ -30,11 +22,9 @@ void props
 </script>
 
 <template>
-  <button
-      type="button"
-      class="relative z-10 text-left text-[10px] sm:text-xs leading-tight px-1 truncate cursor-pointer transition-opacity self-center"
+  <EventChipButton
+      class="relative z-10 leading-tight px-1 self-center"
       :class="[
-        chipStyle(bar.event) ? 'hover:opacity-80' : 'bg-primary/30 hover:bg-primary/50 text-primary',
         bar.continuesLeft ? 'rounded-l-none ml-0' : 'rounded-l ml-0.5',
         bar.continuesRight ? 'rounded-r-none mr-0' : 'rounded-r mr-0.5',
       ]"
@@ -42,12 +32,12 @@ void props
         gridColumnStart: bar.startCol,
         gridColumnEnd: bar.endCol + 1,
         gridRow: bar.lane + 2,
-        ...(chipStyle(bar.event) ?? {}),
       }"
+      :custom-style="chipStyle(bar.event)"
       :title="`${bar.event.name}${bar.event.startTime ? ' · ' + formatTime(bar.event.startTime) : ''}`"
       @click="$emit('open', bar.event, bar.startIso)"
   >
     <font-awesome-icon v-if="bar.event.restricted" :icon="['fas', 'lock']" class="mr-0.5 inline h-2.5 w-2.5"/>
     {{ bar.event.name }}
-  </button>
+  </EventChipButton>
 </template>

@@ -19,7 +19,7 @@ import java.time.LocalDate;
  * Seeds demo lending requests, chat messages, and inventory blocks between stations.
  */
 @Singleton
-public class DemoLendingSeeder {
+public class DemoLendingSeeder implements DemoSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoLendingSeeder.class);
 
     private final LendingService lendingService;
@@ -29,6 +29,25 @@ public class DemoLendingSeeder {
     public DemoLendingSeeder(LendingService lendingService, InventoryRepository inventoryRepository) {
         this.lendingService = lendingService;
         this.inventoryRepository = inventoryRepository;
+    }
+
+    /**
+     * Runs after the federation band because the requests are exchanged with the partner station.
+     */
+    @Override
+    public int order() {
+        return FEDERATED_MODULES;
+    }
+
+    @Override
+    public void seed(DemoSeederContext context) {
+        var federation = context.federation();
+        seed(
+                context.stationId(),
+                federation.partnerStationId(),
+                context.adminMember().id(),
+                federation.partnerMemberId());
+        log.info("Demo: Created lending data");
     }
 
     /**

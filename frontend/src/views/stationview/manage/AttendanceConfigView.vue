@@ -8,16 +8,14 @@ import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import Modal from '@/components/feedback/Modal.vue'
-import type {AttendanceTemplate} from '@/api/types'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
+import type {AttendanceTemplate} from '@/api/attendance'
 import {attendance} from '@/api'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import {useConfigPanel} from '@/composables/useConfigPanel'
@@ -108,15 +106,11 @@ async function duplicateTemplate(tpl: AttendanceTemplate) {
         </NeutralContainer>
       </div>
 
-      <Modal v-model="showDeleteModal">
-        <div class="space-y-4">
-          <p>{{ t('attendanceConfig.deleteConfirm', {name: deleteTarget?.name}) }}</p>
-          <div class="flex justify-end gap-3">
-            <SecondaryButton @click="showDeleteModal = false">{{ t('attendanceConfig.cancel') }}</SecondaryButton>
-            <ErrorButton @click="confirmDelete">{{ t('attendanceConfig.delete') }}</ErrorButton>
-          </div>
-        </div>
-      </Modal>
+      <ConfirmDeleteModal
+          v-model="showDeleteModal"
+          :message="t('attendanceConfig.deleteConfirm', {name: deleteTarget?.name})"
+          @confirm="confirmDelete"
+      />
     </div>
   </ViewContent>
 </template>

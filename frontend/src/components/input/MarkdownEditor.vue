@@ -5,7 +5,7 @@
  */
 <script setup lang="ts">
 import { ref, onBeforeUnmount, watch, nextTick, onMounted } from 'vue'
-import { useEditor, EditorContent } from '@tiptap/vue-3'
+import {EditorContent, useEditor} from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
 import Link from '@tiptap/extension-link'
@@ -16,14 +16,13 @@ import { TableHeader } from '@tiptap/extension-table-header'
 import { TableCell } from '@tiptap/extension-table-cell'
 import { Highlight } from '@tiptap/extension-highlight'
 import { Youtube } from '@tiptap/extension-youtube'
-import Image from '@tiptap/extension-image'
 import { Color } from '@tiptap/extension-color'
 import { TextStyle } from '@tiptap/extension-text-style'
-import { VueNodeViewRenderer } from '@tiptap/vue-3'
-import TurndownService from 'turndown'
 import { marked } from 'marked'
 import { uploadKbImage, kbImageUrl } from '@/api/knowledgeBase'
-import ImageNodeView from './ImageNodeView.vue'
+import { createMarkdownTurndown } from './markdowneditor/markdownTurndown'
+import { ResizableImage } from './markdowneditor/resizableImage'
+import { isYoutubeUrl, videoEmbedUrl } from '@/util/youtube'
 import EditorToolbar from './markdowneditor/EditorToolbar.vue'
 import EditorTableBar from './markdowneditor/EditorTableBar.vue'
 import EditorLinkDialog from './markdowneditor/EditorLinkDialog.vue'
@@ -38,74 +37,7 @@ const props = defineProps<{
   fileId?: number
 }>()
 
-// --- Turndown (HTML → Markdown) ---
-
-const turndown = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced', bulletListMarker: '-' })
-
-turndown.addRule('strikethrough', { filter: ['del', 's'], replacement: (c) => `~~${c}~~` })
-turndown.addRule('underline', { filter: ['u'], replacement: (c) => `<u>${c}</u>` })
-turndown.addRule('highlight', {
-  filter: ['mark'],
-  replacement: (c, node) => {
-    const el = node as HTMLElement
-    const color = el.getAttribute('data-color') || el.style.backgroundColor
-    if (color && color !== '#fef08a') return `<mark data-color="${color}" style="background-color: ${color}">${c}</mark>`
-    return `==${c}==`
-  },
-})
-turndown.addRule('coloredText', {
-  filter: (node) => node.nodeName === 'SPAN' && !!(node as HTMLElement).style.color,
-  replacement: (c, node) => {
-    const color = (node as HTMLElement).style.color
-    return color ? `<span style="color: ${color}">${c}</span>` : c
-  },
-})
-turndown.addRule('image', {
-  filter: 'img',
-  replacement: (_c, node) => {
-    const el = node as HTMLImageElement
-    const alt = el.getAttribute('alt') || ''
-    const src = el.getAttribute('src') || ''
-    const width = el.getAttribute('width') || ''
-    if (width) {
-      return `\n<img src="${src}" alt="${alt}" width="${width}" style="width: ${width}px" />\n`
-    }
-    return `![${alt}](${src})`
-  },
-})
-turndown.addRule('youtube', {
-  filter: (node) => {
-    const el = node as HTMLElement
-    return el.hasAttribute('data-youtube-video') || (el.tagName === 'IFRAME' && (el.getAttribute('src') ?? '').includes('youtube'))
-  },
-  replacement: (_c, node) => {
-    const el = node as HTMLElement
-    const iframe = el.tagName === 'IFRAME' ? el : el.querySelector('iframe')
-    if (!iframe) return ''
-    const src = iframe.getAttribute('src') || ''
-    const match = src.match(/embed\/([a-zA-Z0-9_-]{11})/)
-    if (match) return `\n<iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/${match[1]}" frameborder="0" allowfullscreen></iframe>\n`
-    return `\n<iframe src="${src}" frameborder="0" allowfullscreen></iframe>\n`
-  },
-})
-
-// --- Custom Image Extension (width only, NodeView) ---
-
-const ResizableImage = Image.extend({
-  addAttributes() {
-    return {
-      ...this.parent?.(),
-      width: {
-        default: null,
-        parseHTML: (el: HTMLElement) => el.getAttribute('width') || el.style.width?.replace('px', '') || null,
-        renderHTML: (attrs: Record<string, unknown>) => attrs.width ? { width: String(attrs.width), style: `width: ${attrs.width}px` } : {},
-      },
-    }
-  },
-  addNodeView() {
-    return VueNodeViewRenderer(ImageNodeView)
-  },
-}).configure({ inline: false, allowBase64: false })
+const turndown = createMarkdownTurndown()
 
 // --- Editor State ---
 
@@ -264,22 +196,15 @@ async function uploadImage(file: File, alt: string) {
 
 function openVideoDialog() { videoDialogPos.value = cursorPos(); showVideoDialog.value = true }
 
-function toEmbedUrl(url: string): string {
-  const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/)
-  if (yt) return `https://www.youtube-nocookie.com/embed/${yt[1]}`
-  const vm = url.match(/vimeo\.com\/(\d+)/)
-  if (vm) return `https://player.vimeo.com/video/${vm[1]}`
-  const pt = url.match(/(https?:\/\/[^/]+)\/videos\/watch\/(.+)/)
-  if (pt) return `${pt[1]}/videos/embed/${pt[2]}`
-  const dm = url.match(/(?:dailymotion\.com\/video\/|dai\.ly\/)([a-zA-Z0-9]+)/)
-  if (dm) return `https://www.dailymotion.com/embed/video/${dm[1]}`
-  return url
-}
-
 function applyVideo(url: string) {
   if (!editor.value) return
-  if (/youtube|youtu\.be/i.test(url)) { editor.value.chain().focus().setYoutubeVideo({ src: url }).run() }
-  else { editor.value.chain().focus().insertContent(`<iframe src="${toEmbedUrl(url.trim())}" width="560" height="315" frameborder="0" allowfullscreen></iframe>`).run() }
+  if (isYoutubeUrl(url)) {
+    editor.value.chain().focus().setYoutubeVideo({ src: url }).run()
+  } else {
+    editor.value.chain().focus().insertContent(
+        `<iframe src="${videoEmbedUrl(url.trim())}" width="560" height="315" frameborder="0" allowfullscreen></iframe>`,
+    ).run()
+  }
   showVideoDialog.value = false
 }
 </script>

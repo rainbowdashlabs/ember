@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -19,6 +19,7 @@ import SmtpPanel from './adminmailingview/SmtpPanel.vue'
 import {adminSettings} from '@/api'
 import type {MailingConfig} from '@/api/adminSettings'
 import {useConfigPanel} from '@/composables/useConfigPanel'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 
 const {t} = useI18n()
 
@@ -28,7 +29,7 @@ function describeAxiosError(e: unknown): string {
   return raw ? t('adminSettings.mailing.saveFailed', {error: raw}) : t('common.error')
 }
 
-const {config: mailingConfig, loading, error, runWith, reload} = useConfigPanel<MailingConfig>({
+const {config: mailingConfig, loading, error: panelError, runWith, reload} = useConfigPanel<MailingConfig>({
   initial: {
     provider: 'SMTP',
     senderAddress: '',
@@ -47,39 +48,25 @@ const {config: mailingConfig, loading, error, runWith, reload} = useConfigPanel<
 })
 
 const showClearModal = ref(false)
-const clearing = ref(false)
-const sendingTestMail = ref(false)
 const testMailSent = ref(false)
 
 async function saveMailingConfig() {
   await runWith(() => adminSettings.updateMailingConfig(mailingConfig.value), {rethrow: true})
 }
 
-async function sendTestMail() {
-  sendingTestMail.value = true
+const {running: sendingTestMail, error: testMailError, run: sendTestMail} = useAsyncAction(async () => {
   testMailSent.value = false
-  try {
-    await adminSettings.sendTestMail()
-    testMailSent.value = true
-  } catch (e) {
-    error.value = describeAxiosError(e)
-  } finally {
-    sendingTestMail.value = false
-  }
-}
+  await adminSettings.sendTestMail()
+  testMailSent.value = true
+}, {formatError: describeAxiosError})
 
-async function clearMailingConfig() {
-  clearing.value = true
-  try {
-    await adminSettings.clearMailingConfig()
-    showClearModal.value = false
-    await reload()
-  } catch (e) {
-    error.value = describeAxiosError(e)
-  } finally {
-    clearing.value = false
-  }
-}
+const {running: clearing, error: clearError, run: clearMailingConfig} = useAsyncAction(async () => {
+  await adminSettings.clearMailingConfig()
+  showClearModal.value = false
+  await reload()
+}, {formatError: describeAxiosError})
+
+const error = computed(() => panelError.value || testMailError.value || clearError.value)
 </script>
 
 <template>

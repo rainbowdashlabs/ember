@@ -12,8 +12,9 @@ import Modal from '@/components/feedback/Modal.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import {checklists} from '@/api'
-import type {ChecklistCellDto, ChecklistNoteHistoryEntry} from '@/api/types'
+import type {ChecklistCellDto, ChecklistNoteHistoryEntry} from '@/api/checklists'
 import {formatDateTime} from '@/util/format'
 
 const props = defineProps<{
@@ -36,7 +37,11 @@ const showNote = ref(false)
 const noteDraft = ref(props.note ?? '')
 const history = ref<ChecklistNoteHistoryEntry[]>([])
 const loadingHistory = ref(false)
-const saving = ref(false)
+
+const {running: saving, run: runWriteCell} = useAsyncAction(
+    (payload: {checked: boolean; note: string | null}) =>
+        checklists.writeCell(props.checklistId, props.entryId, props.columnId, payload),
+)
 
 watch(() => props.checked, v => {
   localChecked.value = v
@@ -47,17 +52,12 @@ watch(() => props.note, v => {
 
 async function pushBoolean(value: boolean) {
   if (props.disabled || saving.value) return
-  saving.value = true
-  try {
-    const cell = await checklists.writeCell(props.checklistId, props.entryId, props.columnId, {
-      checked: value,
-      note: props.note ?? null,
-    })
+  const cell = await runWriteCell({checked: value, note: props.note ?? null})
+  if (cell) {
     emit('changed', cell)
-  } catch {
+  } else {
     localChecked.value = props.checked
   }
-  saving.value = false
 }
 
 function onToggle() {
@@ -81,18 +81,11 @@ async function openNote() {
 }
 
 async function saveNote() {
-  saving.value = true
-  try {
-    const note = noteDraft.value.trim() === '' ? null : noteDraft.value
-    const cell = await checklists.writeCell(props.checklistId, props.entryId, props.columnId, {
-      checked: localChecked.value,
-      note,
-    })
-    showNote.value = false
-    emit('changed', cell)
-  } finally {
-    saving.value = false
-  }
+  const note = noteDraft.value.trim() === '' ? null : noteDraft.value
+  const cell = await runWriteCell({checked: localChecked.value, note})
+  if (!cell) return
+  showNote.value = false
+  emit('changed', cell)
 }
 
 function describeHistory(entry: ChecklistNoteHistoryEntry): string {
@@ -119,7 +112,7 @@ function describeHistory(entry: ChecklistNoteHistoryEntry): string {
     <Modal v-model="showNote" size="md">
       <div class="space-y-3">
         <div class="font-semibold">{{ t('checklist.noteSave') }}</div>
-        <TextAreaInput v-model="noteDraft" :placeholder="t('checklist.notePlaceholder')" rows="3"/>
+        <TextAreaInput v-model="noteDraft" :placeholder="t('checklist.notePlaceholder')" :rows="3"/>
         <div class="flex justify-end gap-2">
           <SecondaryButton @click="showNote = false">{{ t('checklist.cancel') }}</SecondaryButton>
           <PrimaryButton :disabled="saving" @click="saveNote">{{ t('checklist.noteSave') }}</PrimaryButton>

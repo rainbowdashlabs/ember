@@ -162,9 +162,8 @@ class NotificationServiceTest extends RepositoryTestBase {
         service.deleteByTypeContaining(
                 NotificationType.LOST_AND_FOUND_NEW,
                 NotificationData.of(
-                                new NotificationParams.LostAndFoundNew("Blue hat"),
-                                new NotificationData.NotificationLink("dashboard-overview"))
-                        .toJson());
+                        new NotificationParams.LostAndFoundNew("Blue hat"),
+                        new NotificationData.NotificationLink("dashboard-overview")));
 
         assertFalse(service.findUnacknowledged(member1.id()).stream()
                 .anyMatch(n -> n.type() == NotificationType.LOST_AND_FOUND_NEW));

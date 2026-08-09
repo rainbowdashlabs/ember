@@ -11,8 +11,8 @@ import DateInput from '@/components/input/datetime/DateInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import { parseFieldConfig } from '@/api/types'
-import type { WaitingListField } from '@/api/types'
+import { parseFieldConfig } from '@/api/profileFields'
+import type { WaitingListField } from '@/api/waitingList'
 
 const props = defineProps<{
   field: WaitingListField

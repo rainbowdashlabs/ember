@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import CheckMemberView from '~/views/stationview/inventory/CheckMemberView'
+import CheckMemberView from '~/views/stationview/inventory/CheckMemberView.vue'
 
 definePageMeta({
   layout: 'station',

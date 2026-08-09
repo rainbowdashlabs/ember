@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationExportService;
 import dev.chojo.ember.feature.station.service.StationImportService;
+import dev.chojo.ember.feature.station.transfer.ImportProgress;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -34,6 +35,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.UUID;
+
+import static dev.chojo.ember.api.RouteSupport.pathUuid;
 
 /**
  * Routes for station data transfer including token-authenticated public export endpoints
@@ -283,12 +286,7 @@ public class TransferRoutes implements Routes {
                 @OpenApiResponse(status = "404")
             })
     private void importProgress(Context ctx) {
-        UUID stationUid;
-        try {
-            stationUid = UUID.fromString(ctx.pathParam("stationUid"));
-        } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse("Invalid stationUid");
-        }
+        UUID stationUid = pathUuid(ctx, "stationUid");
         var progress = importService.getProgressByUid(stationUid);
         if (progress == null) {
             throw new NotFoundResponse("No active import for station " + stationUid);
@@ -317,12 +315,7 @@ public class TransferRoutes implements Routes {
                 @OpenApiResponse(status = "404")
             })
     private void retryImport(Context ctx) {
-        UUID stationUid;
-        try {
-            stationUid = UUID.fromString(ctx.pathParam("stationUid"));
-        } catch (IllegalArgumentException e) {
-            throw new BadRequestResponse("Invalid stationUid");
-        }
+        UUID stationUid = pathUuid(ctx, "stationUid");
         var result = importService.retryFailedImport(stationUid);
         ctx.status(HttpStatus.CREATED).json(new ImportStartResponse(result.stationId(), result.stationName()));
     }
@@ -343,7 +336,7 @@ public class TransferRoutes implements Routes {
     public record ImportProgressResponse(
             int stationId,
             String stationName,
-            StationImportService.ImportProgress.Status status,
+            ImportProgress.Status status,
             List<String> phases,
             int completedPhases,
             String currentPhase,

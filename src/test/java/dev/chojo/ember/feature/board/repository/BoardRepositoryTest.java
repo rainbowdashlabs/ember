@@ -448,18 +448,20 @@ class BoardRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(80)
     void addAndFindWatchers() {
-        boardTicketRepo.addWatcher(ticketId1, member.id());
-        var watchers = boardTicketRepo.findWatchers(ticketId1);
+        var identity = memberLookupService.resolveIdentity(member.id());
+        boardTicketRepo.addWatcher(ticketId1, identity);
+        var watchers = boardTicketRepo.findWatcherIdentities(ticketId1);
         assertEquals(1, watchers.size());
-        assertEquals(member.id(), watchers.getFirst());
-        assertTrue(boardTicketRepo.isWatching(ticketId1, member.id()));
+        assertEquals(identity.memberUid(), watchers.getFirst().memberUid());
+        assertTrue(boardTicketRepo.isWatching(ticketId1, identity));
     }
 
     @Test
     @Order(81)
     void removeWatcher() {
-        assertTrue(boardTicketRepo.removeWatcher(ticketId1, member.id()));
-        assertFalse(boardTicketRepo.isWatching(ticketId1, member.id()));
+        var identity = memberLookupService.resolveIdentity(member.id());
+        assertTrue(boardTicketRepo.removeWatcher(ticketId1, identity));
+        assertFalse(boardTicketRepo.isWatching(ticketId1, identity));
     }
 
     // -- Activity feed --
@@ -509,7 +511,7 @@ class BoardRepositoryTest extends RepositoryTestBase {
         boardRepo.createField(boardId, "TestField", BoardFieldType.STRING, new BoardFieldConfig.Simple(false), 0);
         var fields = boardRepo.findFields(boardId);
         int fieldId = fields.getFirst().id();
-        boardTicketRepo.setFieldValue(ticketId1, fieldId, "{\"value\":\"hello\"}");
+        boardTicketRepo.setFieldValue(ticketId1, fieldId, new BoardFieldValue.StringValue("hello"));
         var values = boardTicketRepo.findFieldValues(ticketId1);
         assertEquals(1, values.size());
         assertInstanceOf(BoardFieldValue.StringValue.class, values.getFirst().value());

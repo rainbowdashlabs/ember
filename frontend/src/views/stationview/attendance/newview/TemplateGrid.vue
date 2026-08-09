@@ -9,7 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {AttendanceTemplate} from '@/api/types'
+import type {AttendanceTemplate} from '@/api/attendance'
 
 const props = defineProps<{
   templates: AttendanceTemplate[]

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import TypePermissionsHelp from '~/views/helpcenter/stationview/members/TypePermissionsHelp'
+import TypePermissionsHelp from '~/views/helpcenter/stationview/members/TypePermissionsHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

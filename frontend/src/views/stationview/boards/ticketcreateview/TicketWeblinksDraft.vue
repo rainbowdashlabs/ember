@@ -9,6 +9,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import MutedIcon from '@/components/display/MutedIcon.vue'
 
 export interface DraftWeblink { key: number; url: string; title: string }
 
@@ -32,7 +33,7 @@ const { t } = useI18n()
     <NeutralContainer>
         <SubHeader class="mb-2">{{ t('boards.weblinks') }}</SubHeader>
         <div v-for="wl in weblinks" :key="wl.key" class="flex items-center gap-2 py-0.5 group">
-            <font-awesome-icon :icon="['fas', 'globe']" class="text-(--text-muted) text-xs shrink-0" />
+            <MutedIcon :icon="['fas', 'globe']" size="inline" class="shrink-0"/>
             <span class="text-sm truncate flex-1">{{ wl.title || wl.url }}</span>
             <IconButton :icon="['fas', 'xmark']" label="Remove" class="text-xs sm:opacity-0 sm:group-hover:opacity-100" @click="emit('remove', wl.key)" />
         </div>

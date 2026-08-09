@@ -10,7 +10,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import DecimalInput from '@/components/input/number/DecimalInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import type {QuizCategory} from '@/api/types'
+import type {QuizCategory} from '@/api/quiz'
 
 const {t} = useI18n()
 

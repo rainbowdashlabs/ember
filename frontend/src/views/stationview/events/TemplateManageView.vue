@@ -16,11 +16,9 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
-import Alert from '@/components/feedback/Alert.vue'
-import EmptyState from '@/components/feedback/EmptyState.vue'
+import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {EventTemplate} from '@/api/types'
+import type {EventTemplate} from '@/api/events'
 import {events} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -68,25 +66,26 @@ async function deleteTemplate(id: number) {
         <PrimaryButton :icon="['fas', 'plus']" @click="createOpen = true">{{ t('eventTemplates.create') }}</PrimaryButton>
       </div>
 
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
-      <Spinner v-if="loading" />
+      <AsyncSection
+          :empty="templates.length === 0"
+          :empty-message="t('eventTemplates.empty')"
+          :error="error"
+          :loading="loading"
+      >
+        <div class="space-y-2">
+          <NeutralContainer v-for="tpl in templates" :key="tpl.id" class="flex items-center justify-between">
+            <div>
+              <span class="font-medium">{{ tpl.name }}</span>
+              <MutedText v-if="tpl.title" size="sm" class="ml-2">{{ tpl.title }}</MutedText>
+            </div>
+            <div class="flex items-center gap-2">
+              <EditButton @click="router.push({name: 'event-template-edit', params: {id: tpl.id}})"/>
+              <DeleteButton @click="deleteTemplate(tpl.id)"/>
+            </div>
+          </NeutralContainer>
+        </div>
+      </AsyncSection>
 
-      <EmptyState v-if="!loading && templates.length === 0">{{ t('eventTemplates.empty') }}</EmptyState>
-
-      <div v-if="!loading" class="space-y-2">
-        <NeutralContainer v-for="tpl in templates" :key="tpl.id" class="flex items-center justify-between">
-          <div>
-            <span class="font-medium">{{ tpl.name }}</span>
-            <MutedText v-if="tpl.title" size="sm" class="ml-2">{{ tpl.title }}</MutedText>
-          </div>
-          <div class="flex items-center gap-2">
-            <EditButton @click="router.push({name: 'event-template-edit', params: {id: tpl.id}})"/>
-            <DeleteButton @click="deleteTemplate(tpl.id)"/>
-          </div>
-        </NeutralContainer>
-      </div>
-
-      <!-- Create modal -->
       <Modal v-model="createOpen">
         <div class="space-y-4">
           <SubHeader>{{ t('eventTemplates.create') }}</SubHeader>

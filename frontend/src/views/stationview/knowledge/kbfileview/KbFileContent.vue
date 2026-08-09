@@ -14,8 +14,7 @@ import AuthImage from '@/components/display/AuthImage.vue'
 import AuthIframe from '@/components/display/AuthIframe.vue'
 import KbMarkdownView from './KbMarkdownView.vue'
 import KbPresentationContent from './KbPresentationContent.vue'
-import type {KbFile} from '@/api/knowledgeBase'
-import {KbFileType} from '@/api/knowledgeBase'
+import {KbFileType, type KbFile} from '@/api/knowledgeBase'
 import {downloadAuthed} from '@/util/downloadAuthed'
 
 const props = defineProps<{
@@ -32,7 +31,7 @@ const editContent = defineModel<string>('editContent', {required: true})
 
 const emit = defineEmits<{
   contentInput: []
-  reupload: []
+  reupload: [file: File]
 }>()
 
 const {t} = useI18n()
@@ -121,7 +120,7 @@ async function downloadOther() {
   <template v-else-if="file.fileType === KbFileType.PRESENTATION">
     <KbPresentationContent
         :file="file" :content-url="contentUrl" :can-edit="canEdit"
-        @reupload="emit('reupload')"
+        @reupload="emit('reupload', $event)"
     />
   </template>
 

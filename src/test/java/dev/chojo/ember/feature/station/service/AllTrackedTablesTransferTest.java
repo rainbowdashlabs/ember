@@ -10,6 +10,10 @@ import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.station.entity.StationModule;
+import dev.chojo.ember.feature.station.transfer.AccountCredentialTableImporter;
+import dev.chojo.ember.feature.station.transfer.AccountTableImporter;
+import dev.chojo.ember.feature.station.transfer.DisabledModuleTableImporter;
+import dev.chojo.ember.feature.station.transfer.StationTableImporter;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.tracking.DataTrackingLoader;
 import dev.chojo.ember.tracking.OutputShape;
@@ -56,19 +60,21 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         exportService = new StationExportService(stationRepo, new Api());
+        var stationImporter = new StationTableImporter(stationRepo);
         importService = new StationImportService(
                 stationRepo,
-                accountRepo,
                 exportService,
                 new Api(),
                 null,
                 null,
-                null,
-                null,
-                null,
-                null,
                 new FederationPartnerTransferFixupService(new FederationRepository(), null, stationRepo),
-                TestRemoteUrlValidator.permissive());
+                TestRemoteUrlValidator.permissive(),
+                stationImporter,
+                Set.of(
+                        stationImporter,
+                        new AccountTableImporter(accountRepo),
+                        new AccountCredentialTableImporter(accountRepo),
+                        new DisabledModuleTableImporter(stationRepo)));
     }
 
     @Test
@@ -161,7 +167,7 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
         userTagRepo.create(sourceStationId, "Tag1");
         userTagRepo.create(sourceStationId, "Tag2");
 
-        eventRepo.createCategory(sourceStationId, "Cat", 0, null);
+        eventCategoryRepo.create(sourceStationId, "Cat", 0, null);
         inventoryRepo.create(sourceStationId, "Inv", InventoryType.INTERNAL, false);
 
         // -- Snapshot per-table source counts for every TRACKED table --

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import PublicFormSubmitView from '~/views/public/PublicFormSubmitView'
+import PublicFormSubmitView from '~/views/public/PublicFormSubmitView.vue'
 
 definePageMeta({
   layout: 'public-station',

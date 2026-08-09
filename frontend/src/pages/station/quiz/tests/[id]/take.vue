@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import TestTakeView from '~/views/stationview/quiz/TestTakeView'
+import TestTakeView from '~/views/stationview/quiz/TestTakeView.vue'
 
 definePageMeta({
   layout: 'station',

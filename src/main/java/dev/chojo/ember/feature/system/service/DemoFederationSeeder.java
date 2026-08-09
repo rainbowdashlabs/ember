@@ -10,25 +10,28 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Demo;
-import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.events.service.EventCategoryService;
+import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventFederationService;
-import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.knowledgebase.service.KbCommentService;
+import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
-import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.feature.members.service.MemberLookupService;
 import dev.chojo.ember.feature.news.entity.NewsVisibilityRole;
 import dev.chojo.ember.feature.news.service.NewsFederationService;
 import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
+import dev.chojo.ember.feature.quiz.entity.CreateQuestionCommand;
 import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.service.QuizService;
@@ -52,19 +55,23 @@ import java.util.UUID;
  * Shares knowledge base content, a quiz catalog, and a test protocol.
  */
 @Singleton
-public class DemoFederationSeeder {
+public class DemoFederationSeeder implements DemoSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoFederationSeeder.class);
 
     private final StationRepository stationRepository;
     private final FederationService federationService;
     private final KnowledgeBaseService kbService;
+    private final KbCommentService kbCommentService;
+    private final KnowledgeBaseFederationService kbFederationService;
     private final QuizService quizService;
     private final TestProtocolService protocolService;
-    private final EventService eventService;
+    private final EventCrudService crudService;
+    private final EventCategoryService categoryService;
     private final EventFederationService eventFederationService;
     private final EventFederationRepository eventFederationRepository;
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
+    private final MemberLookupService memberLookupService;
     private final PasswordHasher passwordHasher;
     private final NewsService newsService;
     private final NewsFederationService newsFederationService;
@@ -78,13 +85,17 @@ public class DemoFederationSeeder {
             StationRepository stationRepository,
             FederationService federationService,
             KnowledgeBaseService kbService,
+            KbCommentService kbCommentService,
+            KnowledgeBaseFederationService kbFederationService,
             QuizService quizService,
             TestProtocolService protocolService,
-            EventService eventService,
+            EventCrudService crudService,
+            EventCategoryService categoryService,
             EventFederationService eventFederationService,
             EventFederationRepository eventFederationRepository,
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
+            MemberLookupService memberLookupService,
             PasswordHasher passwordHasher,
             NewsService newsService,
             NewsFederationService newsFederationService,
@@ -95,13 +106,17 @@ public class DemoFederationSeeder {
         this.stationRepository = stationRepository;
         this.federationService = federationService;
         this.kbService = kbService;
+        this.kbCommentService = kbCommentService;
+        this.kbFederationService = kbFederationService;
         this.quizService = quizService;
         this.protocolService = protocolService;
-        this.eventService = eventService;
+        this.crudService = crudService;
+        this.categoryService = categoryService;
         this.eventFederationService = eventFederationService;
         this.eventFederationRepository = eventFederationRepository;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
+        this.memberLookupService = memberLookupService;
         this.passwordHasher = passwordHasher;
         this.newsService = newsService;
         this.newsFederationService = newsFederationService;
@@ -127,6 +142,17 @@ public class DemoFederationSeeder {
         return event.startTime() != null
                 ? event.startTime().atZone(ZoneId.systemDefault()).toLocalDate()
                 : today;
+    }
+
+    @Override
+    public int order() {
+        return MODULES;
+    }
+
+    @Override
+    public void seed(DemoSeederContext context) {
+        context.federation(seed(context.stationId(), context.adminMember().id()));
+        log.info("Demo: Created federation data");
     }
 
     /**
@@ -159,7 +185,7 @@ public class DemoFederationSeeder {
         accountRepository.setUid(partnerAccount.id(), DemoUids.account("partner@demo.ember"));
         accountRepository.createCredential(partnerAccount.id(), passwordHasher.hash("demo"));
         var partnerMember = stationMemberRepository.create(partnerStation.id(), partnerAccount.id());
-        stationMemberRepository.setUid(partnerMember.id(), DemoUids.member("partner@demo.ember", partnerStation.id()));
+        memberLookupService.setUid(partnerMember.id(), DemoUids.member("partner@demo.ember", partnerStation.id()));
         var managerRole = stationMemberRepository
                 .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
                 .orElseThrow();
@@ -183,7 +209,7 @@ public class DemoFederationSeeder {
         accountRepository.setUid(team1Account.id(), DemoUids.account("team1@partner.ember"));
         accountRepository.createCredential(team1Account.id(), passwordHasher.hash("demo"));
         var team1 = stationMemberRepository.create(partnerStation.id(), team1Account.id());
-        stationMemberRepository.setUid(team1.id(), DemoUids.member("team1@partner.ember", partnerStation.id()));
+        memberLookupService.setUid(team1.id(), DemoUids.member("team1@partner.ember", partnerStation.id()));
         stationMemberRepository.setUserType(team1.id(), StationUserType.TEAM);
         stationMemberRepository.grantPermission(team1.id(), loginRole.id());
 
@@ -191,7 +217,7 @@ public class DemoFederationSeeder {
         accountRepository.setUid(team2Account.id(), DemoUids.account("team2@partner.ember"));
         accountRepository.createCredential(team2Account.id(), passwordHasher.hash("demo"));
         var team2 = stationMemberRepository.create(partnerStation.id(), team2Account.id());
-        stationMemberRepository.setUid(team2.id(), DemoUids.member("team2@partner.ember", partnerStation.id()));
+        memberLookupService.setUid(team2.id(), DemoUids.member("team2@partner.ember", partnerStation.id()));
         stationMemberRepository.setUserType(team2.id(), StationUserType.TEAM);
         stationMemberRepository.grantPermission(team2.id(), loginRole.id());
 
@@ -199,7 +225,7 @@ public class DemoFederationSeeder {
         accountRepository.setUid(member1Account.id(), DemoUids.account("member1@partner.ember"));
         accountRepository.createCredential(member1Account.id(), passwordHasher.hash("demo"));
         var member1 = stationMemberRepository.create(partnerStation.id(), member1Account.id());
-        stationMemberRepository.setUid(member1.id(), DemoUids.member("member1@partner.ember", partnerStation.id()));
+        memberLookupService.setUid(member1.id(), DemoUids.member("member1@partner.ember", partnerStation.id()));
         stationMemberRepository.setUserType(member1.id(), StationUserType.MEMBER);
         stationMemberRepository.grantPermission(member1.id(), loginRole.id());
         stationMemberRepository.grantPermission(member1.id(), memberRole.id());
@@ -208,7 +234,7 @@ public class DemoFederationSeeder {
         accountRepository.setUid(member2Account.id(), DemoUids.account("member2@partner.ember"));
         accountRepository.createCredential(member2Account.id(), passwordHasher.hash("demo"));
         var member2 = stationMemberRepository.create(partnerStation.id(), member2Account.id());
-        stationMemberRepository.setUid(member2.id(), DemoUids.member("member2@partner.ember", partnerStation.id()));
+        memberLookupService.setUid(member2.id(), DemoUids.member("member2@partner.ember", partnerStation.id()));
         stationMemberRepository.setUserType(member2.id(), StationUserType.MEMBER);
         stationMemberRepository.grantPermission(member2.id(), loginRole.id());
         stationMemberRepository.grantPermission(member2.id(), memberRole.id());
@@ -217,7 +243,7 @@ public class DemoFederationSeeder {
         accountRepository.setUid(guardianAccount.id(), DemoUids.account("guardian@partner.ember"));
         accountRepository.createCredential(guardianAccount.id(), passwordHasher.hash("demo"));
         var guardian = stationMemberRepository.create(partnerStation.id(), guardianAccount.id());
-        stationMemberRepository.setUid(guardian.id(), DemoUids.member("guardian@partner.ember", partnerStation.id()));
+        memberLookupService.setUid(guardian.id(), DemoUids.member("guardian@partner.ember", partnerStation.id()));
         stationMemberRepository.setUserType(guardian.id(), StationUserType.GUARDIAN);
         stationMemberRepository.grantPermission(guardian.id(), loginRole.id());
         stationMemberRepository.grantPermission(guardian.id(), guardianRole.id());
@@ -326,33 +352,24 @@ public class DemoFederationSeeder {
         var partnerCatalog = quizService.createCatalog(
                 partnerStation.id(), "Grundwissen Feuerwehr", "Quiz zur Grundausbildung der Partnerwache", true);
         var partnerCategory = quizService.createCategory(partnerStation.id(), "Allgemein", "Allgemeine Fragen", 0);
-        quizService.createQuestion(
-                partnerCatalog.id(),
-                partnerCategory.id(),
-                QuizQuestionType.MULTIPLE_CHOICE,
-                "Was bedeutet RLBS?",
-                "Die vier Grundaufgaben der Feuerwehr",
-                null,
-                1,
-                true,
-                new QuestionConfig.MultipleChoice(
+        quizService.createQuestion(CreateQuestionCommand.builder(
+                        partnerCatalog.id(), QuizQuestionType.MULTIPLE_CHOICE, "Was bedeutet RLBS?")
+                .category(partnerCategory.id())
+                .description("Die vier Grundaufgaben der Feuerwehr")
+                .config(new QuestionConfig.MultipleChoice(
                         List.of(
                                 new QuestionConfig.MultipleChoice.Option("Retten, Löschen, Bergen, Schützen", true),
                                 new QuestionConfig.MultipleChoice.Option("Räumen, Löschen, Bauen, Sichern", false),
                                 new QuestionConfig.MultipleChoice.Option("Retten, Leiten, Bergen, Senden", false)),
-                        1),
-                0);
-        quizService.createQuestion(
-                partnerCatalog.id(),
-                partnerCategory.id(),
-                QuizQuestionType.TRUE_FALSE,
-                "Der Notruf 112 ist kostenlos",
-                "Gilt in ganz Europa",
-                null,
-                1,
-                true,
-                new QuestionConfig.TrueFalse(true),
-                1);
+                        1))
+                .build());
+        quizService.createQuestion(CreateQuestionCommand.builder(
+                        partnerCatalog.id(), QuizQuestionType.TRUE_FALSE, "Der Notruf 112 ist kostenlos")
+                .category(partnerCategory.id())
+                .description("Gilt in ganz Europa")
+                .config(new QuestionConfig.TrueFalse(true))
+                .position(1)
+                .build());
         federationService.createQuizShare(partnerStation.id(), partnerCatalog.id(), ShareScope.ALL_PARTNERS);
 
         // Create and share a test protocol on the partner station
@@ -378,13 +395,13 @@ public class DemoFederationSeeder {
         }
 
         // Create a public event on the partner station (visible via federation)
-        var eventCategory = eventService.createCategory(partnerStation.id(), "Gemeinsame Übung", 0, "#3694ff");
+        var eventCategory = categoryService.create(partnerStation.id(), "Gemeinsame Übung", 0, "#3694ff");
         Instant nextSatStart = LocalDate.now()
                 .plusDays(14 - LocalDate.now().getDayOfWeek().getValue() % 7)
                 .atTime(9, 0)
                 .toInstant(ZoneOffset.UTC);
         Instant nextSatEnd = nextSatStart.plusSeconds(4 * 3600);
-        var fedEvent = eventService.create(
+        var fedEvent = crudService.create(
                 partnerStation.id(),
                 "Gemeinsame Großübung",
                 "Übergreifende Übung mit beiden Wehren — Einsatzszenarien Brand und THL",
@@ -522,7 +539,7 @@ public class DemoFederationSeeder {
         log.info("Demo: Shared news with partner and added federated comments");
 
         // -- Event comments (local + federated) --
-        var primaryEvents = eventService.findByStation(primaryStationId);
+        var primaryEvents = crudService.findByStation(primaryStationId);
         primaryEvents.stream()
                 .filter(e -> "Übung".equals(e.name()) && e.eventType() == StationEvent.EventType.RECURRING)
                 .findFirst()
@@ -590,13 +607,14 @@ public class DemoFederationSeeder {
         if (!primaryKbFilesForComments.isEmpty()) {
             var kbFile = primaryKbFilesForComments.getFirst();
             // Local comment on a KB file
-            kbService.createComment(primaryStationId, kbFile.id(), null, createdBy, "Admin", "Sehr hilfreich, danke!");
+            kbCommentService.createComment(
+                    primaryStationId, kbFile.id(), null, createdBy, "Admin", "Sehr hilfreich, danke!");
         }
         var partnerKbFiles = kbService.findFiles(partnerStation.id(), null);
         if (!partnerKbFiles.isEmpty() && reversePartnerForEvents != null) {
             // Federated comment from primary station admin on partner's shared KB file
             var sharedKbFile = partnerKbFiles.getFirst();
-            var kc1 = kbService.createRemoteComment(
+            var kc1 = kbFederationService.createRemoteComment(
                     sharedKbFile.id(),
                     reversePartnerForEvents.id(),
                     primaryAdmin.uid(),
@@ -604,7 +622,7 @@ public class DemoFederationSeeder {
                     null,
                     "Können wir den Ausbildungsleitfaden auch als PDF bekommen?");
             // Reply from the partner station member (local on partner station)
-            kbService.createComment(
+            kbCommentService.createComment(
                     partnerStation.id(),
                     sharedKbFile.id(),
                     kc1.id(),
@@ -627,7 +645,7 @@ public class DemoFederationSeeder {
         accountRepository.setUid(thirdAccount.id(), DemoUids.account("nachbar@demo.ember"));
         accountRepository.createCredential(thirdAccount.id(), passwordHasher.hash("demo"));
         var thirdMember = stationMemberRepository.create(thirdStation.id(), thirdAccount.id());
-        stationMemberRepository.setUid(thirdMember.id(), DemoUids.member("nachbar@demo.ember", thirdStation.id()));
+        memberLookupService.setUid(thirdMember.id(), DemoUids.member("nachbar@demo.ember", thirdStation.id()));
         stationMemberRepository.setUserType(thirdMember.id(), StationUserType.MANAGER);
         stationMemberRepository.grantPermission(thirdMember.id(), managerRole.id());
         stationMemberRepository.grantPermission(thirdMember.id(), loginRole.id());
@@ -659,55 +677,6 @@ public class DemoFederationSeeder {
         log.info("Demo: Created third station with manager nachbar@demo.ember (not federated)");
 
         return new SeedResult(partnerStation.id(), partnerMember.id());
-    }
-
-    /**
-     * Creates an {@code FF Musterstadt} station, mirrors every active {@code MANAGER} and
-     * {@code TEAM} member of the given Jugendfeuerwehr station onto it (reusing the same
-     * account so the user can switch stations after login), and federates the two stations
-     * bidirectionally with all default capabilities enabled.
-     */
-    public void seedFfMusterstadt(int jfStationId) {
-        var ffStation = stationRepository.create("FF Musterstadt", DemoUids.station("ff-musterstadt"));
-        stationRepository.updatePublicSlug(ffStation.id(), "ff-musterstadt");
-
-        var managerRole = stationMemberRepository
-                .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
-                .orElseThrow();
-        var loginRole = stationMemberRepository
-                .findPermissionByName(StationPermission.LOGIN)
-                .orElseThrow();
-
-        int mirrored = 0;
-        for (var userType : List.of(StationUserType.MANAGER, StationUserType.TEAM)) {
-            for (StationMember jfMember : stationMemberRepository.findByStationAndUserType(jfStationId, userType)) {
-                if (jfMember.accountId() == null) continue;
-                String email = accountRepository
-                        .findById(jfMember.accountId())
-                        .map(Account::email)
-                        .orElseThrow();
-                var ffMember = stationMemberRepository.create(ffStation.id(), jfMember.accountId());
-                stationMemberRepository.setUid(ffMember.id(), DemoUids.member(email, ffStation.id()));
-                stationMemberRepository.setUserType(ffMember.id(), userType);
-                stationMemberRepository.grantPermission(ffMember.id(), loginRole.id());
-                if (userType == StationUserType.MANAGER) {
-                    stationMemberRepository.grantPermission(ffMember.id(), managerRole.id());
-                    stationRepository.setOwner(ffStation.id(), ffMember.id());
-                }
-                mirrored++;
-            }
-        }
-
-        String remoteHost = demoConfig.federationForceHttp() ? "http://localhost:" + apiConfig.port() : null;
-        var keyPair = federationService.generateKeyPair();
-        stationRepository.updateFederationPrivateKey(ffStation.id(), federationService.encodePrivateKey(keyPair));
-        federationService.acceptInvite(
-                jfStationId, ffStation.id(), federationService.encodePublicKey(keyPair), remoteHost, remoteHost);
-
-        log.info(
-                "Demo: Created FF Musterstadt (id={}) with {} mirrored members, federated with JF Musterstadt",
-                ffStation.id(),
-                mirrored);
     }
 
     public record SeedResult(int partnerStationId, int partnerMemberId) {}

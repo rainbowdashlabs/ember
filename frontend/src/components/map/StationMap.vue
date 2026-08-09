@@ -5,6 +5,7 @@
  */
 <script setup lang="ts">
 import {nextTick, onBeforeUnmount, onMounted, ref, watch} from 'vue'
+import type {LayerGroup, Map as LeafletMap, Marker, TileLayer} from 'leaflet'
 import {useMapsConfig} from '@/composables/useMapsConfig'
 import {loadLeaflet} from '@/util/leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -50,10 +51,12 @@ const emit = defineEmits<{
 const mapEl = ref<HTMLDivElement | null>(null)
 const {load} = useMapsConfig()
 
-let mapInstance: any = null
-let tileLayer: any = null
-let markerLayer: any = null
-let markers: Map<string, any> = new Map()
+type Leaflet = Awaited<ReturnType<typeof loadLeaflet>>
+
+let mapInstance: LeafletMap | null = null
+let tileLayer: TileLayer | null = null
+let markerLayer: LayerGroup | null = null
+const markers: Map<string, Marker> = new Map()
 
 async function init() {
   if (!mapEl.value || typeof window === 'undefined') return
@@ -74,7 +77,7 @@ async function init() {
     maxZoom: config.maxZoom,
     attribution: config.attribution,
   }).addTo(mapInstance)
-  markerLayer = props.cluster ? (L as any).markerClusterGroup() : L.layerGroup()
+  markerLayer = props.cluster ? L.markerClusterGroup() : L.layerGroup()
   markerLayer.addTo(mapInstance)
   renderMarkers(L)
   emit('ready')
@@ -93,7 +96,7 @@ function tintColor(tint?: MapStation['tint']): string {
   }
 }
 
-function renderMarkers(L: any) {
+function renderMarkers(L: Leaflet) {
   if (!markerLayer) return
   markerLayer.clearLayers()
   markers.clear()

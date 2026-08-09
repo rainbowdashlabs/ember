@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import { createCrudResource, createScopedCrudResource } from './crud'
 import type { MemberIdentity } from './types'
 
 // -- Types --
@@ -66,58 +67,105 @@ export interface ProcedureItem {
 export interface TemplateDetail {
     template: ProcedureTemplate
     items: ProcedureTemplateItem[]
-    dependencies: number[][]
+    dependencies: [number, number][]
 }
 
 export interface ProcedureDetail {
     procedure: Procedure
     items: ProcedureItem[]
-    dependencies: number[][]
+    dependencies: [number, number][]
     assigneeIds: number[]
     assignees: MemberIdentity[]
 }
 
+interface TemplateRequest {
+    name: string
+    description?: string
+}
+
+interface TemplateItemRequest {
+    title: string
+    description?: string
+    isPublic?: boolean
+    userAssigned?: boolean
+}
+
+interface TemplateItemUpdateRequest extends TemplateItemRequest {
+    position?: number
+}
+
+export interface ProcedureRequest {
+    name?: string
+    description?: string
+    templateId?: number
+    dueAt?: string
+    isPublic?: boolean
+    assigneeIds?: number[]
+}
+
+interface ProcedureUpdateRequest {
+    name: string
+    description?: string
+    dueAt?: string | null
+    isPublic?: boolean
+}
+
+interface ProcedureItemRequest {
+    title: string
+    description?: string
+    isPublic?: boolean
+    userAssigned?: boolean
+    position?: number
+}
+
+interface ProcedureItemUpdateRequest {
+    title?: string
+    description?: string
+    note?: string
+    isPublic?: boolean
+    userAssigned?: boolean
+    position?: number
+}
+
+const templates = createCrudResource<
+    ProcedureTemplate,
+    TemplateRequest,
+    TemplateRequest,
+    TemplateDetail
+>('/procedure-templates')
+
+const templateItems = createScopedCrudResource<
+    ProcedureTemplateItem,
+    TemplateItemRequest,
+    TemplateItemUpdateRequest
+>((templateId: number) => `/procedure-templates/${templateId}/items`)
+
+const procedures = createCrudResource<
+    Procedure,
+    ProcedureRequest,
+    ProcedureUpdateRequest,
+    ProcedureDetail
+>('/procedures')
+
+const procedureItems = createScopedCrudResource<
+    ProcedureItem,
+    ProcedureItemRequest,
+    ProcedureItemUpdateRequest
+>((procedureId: number) => `/procedures/${procedureId}/items`)
+
 // -- Templates --
 
-export async function getTemplates(): Promise<ProcedureTemplate[]> {
-    const res = await client.get<ProcedureTemplate[]>('/procedure-templates')
-    return res.data
-}
-
-export async function getTemplate(id: number): Promise<TemplateDetail> {
-    const res = await client.get<TemplateDetail>(`/procedure-templates/${id}`)
-    return res.data
-}
-
-export async function createTemplate(data: { name: string; description?: string }): Promise<ProcedureTemplate> {
-    const res = await client.post<ProcedureTemplate>('/procedure-templates', data)
-    return res.data
-}
-
-export async function updateTemplate(id: number, data: { name: string; description?: string }): Promise<ProcedureTemplate> {
-    const res = await client.put<ProcedureTemplate>(`/procedure-templates/${id}`, data)
-    return res.data
-}
-
-export async function archiveTemplate(id: number): Promise<void> {
-    await client.delete(`/procedure-templates/${id}`)
-}
+export const getTemplates = templates.list
+export const getTemplate = templates.get
+export const createTemplate = templates.create
+export const updateTemplate = templates.update
+export const archiveTemplate = templates.remove
 
 // -- Template Items --
 
-export async function createTemplateItem(templateId: number, data: { title: string; description?: string; isPublic?: boolean; userAssigned?: boolean }): Promise<ProcedureTemplateItem> {
-    const res = await client.post<ProcedureTemplateItem>(`/procedure-templates/${templateId}/items`, data)
-    return res.data
-}
-
-export async function updateTemplateItem(templateId: number, itemId: number, data: { title: string; description?: string; isPublic?: boolean; userAssigned?: boolean; position?: number }): Promise<ProcedureTemplateItem> {
-    const res = await client.put<ProcedureTemplateItem>(`/procedure-templates/${templateId}/items/${itemId}`, data)
-    return res.data
-}
-
-export async function deleteTemplateItem(templateId: number, itemId: number): Promise<void> {
-    await client.delete(`/procedure-templates/${templateId}/items/${itemId}`)
-}
+export const createTemplateItem = templateItems.create
+export const updateTemplateItem = templateItems.update
+export const deleteTemplateItem = templateItems.remove
 
 // -- Template Dependencies --
 
@@ -132,28 +180,13 @@ export async function setProcedureDependencies(procedureId: number, dependencies
 // -- Procedures --
 
 export async function getProcedures(params?: { status?: string; assignee?: string }): Promise<Procedure[]> {
-    const res = await client.get<Procedure[]>('/procedures', { params })
-    return res.data
+    return procedures.list(params)
 }
 
-export async function getProcedure(id: number): Promise<ProcedureDetail> {
-    const res = await client.get<ProcedureDetail>(`/procedures/${id}`)
-    return res.data
-}
-
-export async function createProcedure(data: { name: string; description?: string; templateId?: number; dueAt?: string; isPublic?: boolean; assigneeIds?: number[] }): Promise<Procedure> {
-    const res = await client.post<Procedure>('/procedures', data)
-    return res.data
-}
-
-export async function updateProcedure(id: number, data: { name: string; description?: string; dueAt?: string | null; isPublic?: boolean }): Promise<Procedure> {
-    const res = await client.put<Procedure>(`/procedures/${id}`, data)
-    return res.data
-}
-
-export async function deleteProcedure(id: number): Promise<void> {
-    await client.delete(`/procedures/${id}`)
-}
+export const getProcedure = procedures.get
+export const createProcedure = procedures.create
+export const updateProcedure = procedures.update
+export const deleteProcedure = procedures.remove
 
 export async function resolveProcedure(id: number): Promise<Procedure> {
     const res = await client.post<Procedure>(`/procedures/${id}/resolve`)
@@ -177,19 +210,9 @@ export async function removeAssignee(id: number, memberId: number): Promise<void
 
 // -- Procedure Items --
 
-export async function addItem(procedureId: number, data: { title: string; description?: string; isPublic?: boolean; userAssigned?: boolean }): Promise<ProcedureItem> {
-    const res = await client.post<ProcedureItem>(`/procedures/${procedureId}/items`, data)
-    return res.data
-}
-
-export async function editItem(procedureId: number, itemId: number, data: { title?: string; description?: string; note?: string; isPublic?: boolean; userAssigned?: boolean; position?: number }): Promise<ProcedureItem> {
-    const res = await client.put<ProcedureItem>(`/procedures/${procedureId}/items/${itemId}`, data)
-    return res.data
-}
-
-export async function deleteItem(procedureId: number, itemId: number): Promise<void> {
-    await client.delete(`/procedures/${procedureId}/items/${itemId}`)
-}
+export const addItem = procedureItems.create
+export const editItem = procedureItems.update
+export const deleteItem = procedureItems.remove
 
 export async function patchItem(procedureId: number, itemId: number, data: { checked?: boolean; note?: string }): Promise<ProcedureItem> {
     const res = await client.patch<ProcedureItem>(`/procedures/${procedureId}/items/${itemId}`, data)

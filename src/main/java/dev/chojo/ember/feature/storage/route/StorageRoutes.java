@@ -17,7 +17,6 @@ import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.conf.file.elements.StorageBackendSettings;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.audit.StorageAuditAction;
-import dev.chojo.ember.feature.storage.audit.StorageBackendAuditService;
 import dev.chojo.ember.feature.storage.backend.HealthStatus;
 import dev.chojo.ember.feature.storage.backend.StorageBackend;
 import dev.chojo.ember.feature.storage.backend.StorageBackendFactory;
@@ -26,11 +25,12 @@ import dev.chojo.ember.feature.storage.backend.StorageBackendType;
 import dev.chojo.ember.feature.storage.credential.CredentialCipher;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageUsage;
-import dev.chojo.ember.feature.storage.migration.InstanceStorageMigrationService;
 import dev.chojo.ember.feature.storage.migration.MigrationException;
 import dev.chojo.ember.feature.storage.repository.StorageBackendAuditRepository;
 import dev.chojo.ember.feature.storage.repository.StorageQuotaPresetRepository;
 import dev.chojo.ember.feature.storage.repository.StorageUsageRepository;
+import dev.chojo.ember.feature.storage.service.InstanceStorageMigrationService;
+import dev.chojo.ember.feature.storage.service.StorageBackendAuditService;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import dev.chojo.ember.feature.storage.service.StorageReconciliationService;
 import io.javalin.http.BadRequestResponse;
@@ -51,6 +51,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
+import static dev.chojo.ember.api.RouteSupport.pathUuid;
 
 @Singleton
 public class StorageRoutes implements Routes {
@@ -255,7 +256,7 @@ public class StorageRoutes implements Routes {
     }
 
     private void recalculateStation(Context ctx) {
-        UUID uid = UUID.fromString(ctx.pathParam("stationUid"));
+        UUID uid = pathUuid(ctx, "stationUid");
         var stationId = stationRepository.resolveId(uid);
         if (stationId.isEmpty()) {
             ctx.status(HttpStatus.NOT_FOUND);
@@ -692,7 +693,7 @@ public class StorageRoutes implements Routes {
     // -- Station quota management --
 
     private void updateStationQuotas(Context ctx) {
-        UUID uid = UUID.fromString(ctx.pathParam("stationUid"));
+        UUID uid = pathUuid(ctx, "stationUid");
         var stationId = stationRepository.resolveId(uid);
         if (stationId.isEmpty()) {
             ctx.status(HttpStatus.NOT_FOUND);
@@ -712,7 +713,7 @@ public class StorageRoutes implements Routes {
     }
 
     private void resetStationQuotas(Context ctx) {
-        UUID uid = UUID.fromString(ctx.pathParam("stationUid"));
+        UUID uid = pathUuid(ctx, "stationUid");
         var stationId = stationRepository.resolveId(uid);
         if (stationId.isEmpty()) {
             ctx.status(HttpStatus.NOT_FOUND);

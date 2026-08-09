@@ -4,29 +4,41 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {ClaimLostAndFoundRequest, CreateLostAndFoundRequest, LostAndFoundItem, MessageResponse} from './types'
+import {createCrudResource} from './crud'
+import {uploadFile} from './upload'
+import type {MessageResponse} from './types'
 
-export async function listItems(): Promise<LostAndFoundItem[]> {
-    const res = await client.get<LostAndFoundItem[]>('/lost-and-found')
-    return res.data
+export interface LostAndFoundItem {
+    id: number
+    stationId: string
+    description?: string
+    foundAt?: string
+    hasImage: boolean
+    claimedBy?: number | null
+    claimedByName?: string | null
+    claimedAt?: string | null
+    createdBy: number
+    createdAt: string
 }
 
-export async function getItem(id: number): Promise<LostAndFoundItem> {
-    const res = await client.get<LostAndFoundItem>(`/lost-and-found/${id}`)
-    return res.data
+export interface CreateLostAndFoundRequest {
+    description?: string
+    foundAt?: string
 }
 
-export async function createItem(data: CreateLostAndFoundRequest): Promise<LostAndFoundItem> {
-    const res = await client.post<LostAndFoundItem>('/lost-and-found', data)
-    return res.data
+export interface ClaimLostAndFoundRequest {
+    memberId?: number | null
 }
+
+const items = createCrudResource<LostAndFoundItem, CreateLostAndFoundRequest>('/lost-and-found')
+
+export const listItems = items.list
+export const getItem = items.get
+export const createItem = items.create
+export const deleteItem = items.remove
 
 export async function uploadImage(id: number, file: File): Promise<void> {
-    const formData = new FormData()
-    formData.append('image', file)
-    await client.post(`/lost-and-found/${id}/image`, formData, {
-        headers: {'Content-Type': 'multipart/form-data'},
-    })
+    await uploadFile(`/lost-and-found/${id}/image`, {image: file})
 }
 
 export function imageUrl(id: number, size?: number): string {
@@ -41,8 +53,4 @@ export async function claimItem(id: number, request?: ClaimLostAndFoundRequest):
 
 export async function markProvided(id: number): Promise<void> {
     await client.post(`/lost-and-found/${id}/provided`)
-}
-
-export async function deleteItem(id: number): Promise<void> {
-    await client.delete(`/lost-and-found/${id}`)
 }

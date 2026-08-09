@@ -24,6 +24,8 @@ import ContainerHistorySection from '@/views/stationview/inventory/containerdeta
 import AddItemsModal from '@/views/stationview/inventory/containerdetailview/AddItemsModal.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import {inventoryContainers} from '@/api'
+import {useAsyncAction} from '@/composables/useAsyncAction'
+import {apiErrorMessage} from '@/util/apiError'
 import type {
   ContainerDetail,
   ContainerContents,
@@ -55,7 +57,6 @@ function onAddChildChoice(target: 'existing' | 'new') {
   if (target === 'existing') showAddExistingModal.value = true
   else showNewChildModal.value = true
 }
-const submitting = ref(false)
 
 const containerId = computed(() => Number(route.params.id))
 const kindById = computed(() => {
@@ -78,8 +79,8 @@ async function load() {
     kinds.value = k
     allContainers.value = all
     await Promise.all([loadContents(), loadHistory()])
-  } catch (e: any) {
-    error.value = e?.response?.data?.message ?? t('inventory.storage.loadError')
+  } catch (e) {
+    error.value = apiErrorMessage(e) ?? t('inventory.storage.loadError')
   } finally {
     loading.value = false
   }
@@ -102,18 +103,16 @@ function onEditError(message: string) {
   error.value = message
 }
 
-async function confirmDelete() {
+const {run: confirmDelete} = useAsyncAction(async () => {
   if (!detail.value) return
-  submitting.value = true
   try {
     await inventoryContainers.deleteContainer(detail.value.container.id)
     router.push({name: 'inventory-storage'})
-  } catch (e: any) {
+  } catch (e) {
     error.value = mapContainerError(t, e, 'inventory.storage.errors.deleteFailed')
-    submitting.value = false
     showDeleteConfirm.value = false
   }
-}
+})
 
 function navigateToContainer(id: number) {
   router.push({name: 'inventory-container-detail', params: {id: String(id)}})

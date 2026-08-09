@@ -42,12 +42,12 @@ class InventoryFieldDefinitionServiceTest {
                         Mockito.eq(FieldType.NUMBER),
                         Mockito.eq(false),
                         Mockito.eq(0),
-                        Mockito.anyString()))
+                        Mockito.any(FieldConfig.class)))
                 .thenAnswer(inv -> definition(1, "weight", FieldType.NUMBER, service.defaultConfig(FieldType.NUMBER)));
         InventoryFieldDefinition created = service.create(1, "weight", "Weight", FieldType.NUMBER, false, 0, null);
         assertEquals("weight", created.key());
 
-        ArgumentCaptor<String> jsonCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<FieldConfig> configCaptor = ArgumentCaptor.forClass(FieldConfig.class);
         Mockito.verify(repository)
                 .create(
                         Mockito.eq(1),
@@ -56,8 +56,8 @@ class InventoryFieldDefinitionServiceTest {
                         Mockito.eq(FieldType.NUMBER),
                         Mockito.eq(false),
                         Mockito.eq(0),
-                        jsonCaptor.capture());
-        assertTrue(jsonCaptor.getValue().contains("unit"));
+                        configCaptor.capture());
+        assertEquals(service.defaultConfig(FieldType.NUMBER), configCaptor.getValue());
     }
 
     @Test
@@ -108,7 +108,7 @@ class InventoryFieldDefinitionServiceTest {
                         Mockito.anyString(),
                         Mockito.anyBoolean(),
                         Mockito.anyInt(),
-                        Mockito.anyString()))
+                        Mockito.any(FieldConfig.class)))
                 .thenReturn(true);
 
         Optional<InventoryFieldDefinition> updated = service.update(7, "Weight Label", true, 5, null);
@@ -128,7 +128,7 @@ class InventoryFieldDefinitionServiceTest {
                         Mockito.anyString(),
                         Mockito.anyBoolean(),
                         Mockito.anyInt(),
-                        Mockito.anyString()))
+                        Mockito.any(FieldConfig.class)))
                 .thenReturn(false);
         assertTrue(service.update(7, "Other", false, 0, null).isEmpty());
     }

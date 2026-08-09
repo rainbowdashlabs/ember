@@ -16,7 +16,6 @@ import dev.chojo.ember.feature.insights.repository.PageHitRepository.PageLeaderb
 import dev.chojo.ember.feature.page.repository.PageRepository;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
@@ -131,7 +130,7 @@ public class StationInsightsRoutes implements Routes {
         int pageId = parsePageId(ctx);
         var page = pages.findById(pageId).orElseThrow(NotFoundResponse::new);
         if (page.stationId() != stationId) {
-            throw new ForbiddenResponse("Page does not belong to your station");
+            throw new NotFoundResponse();
         }
         Instant from = parseInstant(ctx, "from");
         Instant to = parseInstant(ctx, "to");

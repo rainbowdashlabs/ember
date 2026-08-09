@@ -14,9 +14,11 @@ import ProfileTab from './ProfileTab.vue'
 import PermissionsTab from './PermissionsTab.vue'
 import GuardiansTab from './GuardiansTab.vue'
 import InventoryTab from './InventoryTab.vue'
-import type { ProfileField, ProfileFieldChange, StationMember, PermissionGrant, MemberGroup, UserTag } from '@/api/types'
+import type { ProfileFieldChange } from '@/api/profileFieldChanges'
+import type { ProfileField } from '@/api/profileFields'
+import type { StationMember, PermissionGrant, MemberGroup, UserTag } from '@/api/types'
 import type { MyInventoryItem } from '@/api/inventory'
-import type { ExchangeRequestEntry } from '@/api/types'
+import type { ExchangeRequestEntry } from '@/api/exchanges'
 
 defineProps<{
   member: StationMember

@@ -263,7 +263,7 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
       <SubHeader class="mb-3">{{ t('procedures.dependencies') }}: {{ depTargetItem?.title }}</SubHeader>
       <div v-if="detail" class="space-y-3">
         <div class="flex gap-2">
-          <SelectInput :model-value="depSelectedId != null ? String(depSelectedId) : ''" @update:model-value="(v: string | undefined) => { depSelectedId = v ? Number(v) : null }" class="flex-1">
+          <SelectInput :model-value="depSelectedId != null ? String(depSelectedId) : ''" @update:model-value="(v: string | number | null | undefined) => { depSelectedId = v ? Number(v) : null }" class="flex-1">
             <option value="">{{ t('procedures.dependsOn') }}...</option>
             <option
               v-for="item in detail.items.filter(i => i.id !== depTargetItem?.id && !getDepsForItem(depTargetItem?.id ?? 0).includes(i.id))"

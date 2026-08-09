@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import {createCrudResource} from './crud'
 
 // -- Types --
 
@@ -154,20 +155,18 @@ export async function listAvailable(options?: { q?: string; from?: string; to?: 
 
 // -- Requests --
 
-export async function listRequests(): Promise<LendingRequestResponse[]> {
-    const res = await client.get<LendingRequestResponse[]>('/lending/requests')
-    return res.data
-}
+const requests = createCrudResource<
+    LendingRequestResponse,
+    CreateLendingRequestPayload,
+    CreateLendingRequestPayload,
+    LendingRequestDetail
+>('/lending/requests')
 
-export async function createRequest(data: CreateLendingRequestPayload): Promise<LendingRequestResponse> {
-    const res = await client.post<LendingRequestResponse>('/lending/requests', data)
-    return res.data
-}
+const blocks = createCrudResource<InventoryBlock, CreateBlockPayload>('/lending/blocks')
 
-export async function getRequest(id: number): Promise<LendingRequestDetail> {
-    const res = await client.get<LendingRequestDetail>(`/lending/requests/${id}`)
-    return res.data
-}
+export const listRequests = requests.list
+export const createRequest = requests.create
+export const getRequest = requests.get
 
 export async function approveRequest(id: number): Promise<LendingRequestResponse> {
     const res = await client.post<LendingRequestResponse>(`/lending/requests/${id}/approve`)
@@ -219,16 +218,6 @@ export async function sendMessage(requestId: number, message: string): Promise<L
 
 // -- Blocks --
 
-export async function listBlocks(): Promise<InventoryBlock[]> {
-    const res = await client.get<InventoryBlock[]>('/lending/blocks')
-    return res.data
-}
-
-export async function createBlock(data: CreateBlockPayload): Promise<InventoryBlock> {
-    const res = await client.post<InventoryBlock>('/lending/blocks', data)
-    return res.data
-}
-
-export async function deleteBlock(id: number): Promise<void> {
-    await client.delete(`/lending/blocks/${id}`)
-}
+export const listBlocks = blocks.list
+export const createBlock = blocks.create
+export const deleteBlock = blocks.remove

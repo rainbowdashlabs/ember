@@ -14,8 +14,8 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
-import { QuizTestStatus } from '@/api/types'
-import type { QuizTest } from '@/api/types'
+import {QuizTestStatus, type QuizTest} from '@/api/quiz'
+import { formatDateTime } from '@/util/format'
 
 defineProps<{
   test: QuizTest
@@ -36,12 +36,6 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-
-function formatDateTime(dateStr: string | null): string {
-  if (!dateStr) return '-'
-  const d = new Date(dateStr)
-  return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
-}
 </script>
 
 <template>

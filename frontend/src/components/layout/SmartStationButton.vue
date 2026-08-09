@@ -39,8 +39,9 @@ function open() {
     router.push('/station/dashboard/overview')
     return
   }
-  if (list.length === 1) {
-    setActiveStation(list[0].stationId)
+  const [onlyStation] = list
+  if (list.length === 1 && onlyStation) {
+    setActiveStation(onlyStation.stationId)
     router.push('/station/dashboard/overview')
     return
   }

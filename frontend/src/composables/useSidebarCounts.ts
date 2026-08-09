@@ -4,8 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {readonly, ref} from 'vue'
-import type {SidebarCounts} from '@/api/sidebar'
-import {getSidebarCounts} from '@/api/sidebar'
+import {getSidebarCounts, type SidebarCounts} from '@/api/sidebar'
 
 const counts = ref<SidebarCounts>({
     notifications: 0,

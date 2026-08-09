@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import EntitySearchPicker from './EntitySearchPicker.vue'
 import {searchEvents, type EventPickerMode, type EventSearchResult} from '@/api/events'
 import {listPublicEvents} from '@/api/publicEvents'
+import {formatDateTime} from '@/util/format'
 
 const model = defineModel<string | null>()
 
@@ -34,7 +35,7 @@ const searchFn = (q: string) => searchEvents(q, props.mode, 10)
 const displayFn = (item: EventSearchResult) => item.name
 const subtitleFn = (item: EventSearchResult) => {
     const parts = [
-        item.startTime ? new Date(item.startTime).toLocaleString('de-DE', {dateStyle: 'medium', timeStyle: 'short'}) : '',
+        formatDateTime(item.startTime),
         item.categoryName ?? '',
     ].filter(Boolean)
     return parts.join(' · ')

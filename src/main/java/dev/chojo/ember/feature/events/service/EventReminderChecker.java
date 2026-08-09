@@ -6,6 +6,8 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
+import dev.chojo.ember.feature.events.repository.EventReminderRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -33,6 +35,8 @@ public class EventReminderChecker {
     private static final Logger log = LoggerFactory.getLogger(EventReminderChecker.class);
 
     private final EventRepository eventRepository;
+    private final EventReminderRepository reminderRepository;
+    private final EventRegistrationRepository registrationRepository;
     private final StationMemberRepository stationMemberRepository;
     private final NotificationService notificationService;
     private final StationReadOnlyGuard readOnlyGuard;
@@ -40,10 +44,14 @@ public class EventReminderChecker {
     @Inject
     public EventReminderChecker(
             EventRepository eventRepository,
+            EventReminderRepository reminderRepository,
+            EventRegistrationRepository registrationRepository,
             StationMemberRepository stationMemberRepository,
             NotificationService notificationService,
             StationReadOnlyGuard readOnlyGuard) {
         this.eventRepository = eventRepository;
+        this.reminderRepository = reminderRepository;
+        this.registrationRepository = registrationRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.notificationService = notificationService;
         this.readOnlyGuard = readOnlyGuard;
@@ -62,14 +70,14 @@ public class EventReminderChecker {
 
             for (var event : events) {
                 if (!readOnlyGuard.isWritable(event.stationId())) continue;
-                var reminderDays = eventRepository.findReminderDays(event.id());
+                var reminderDays = reminderRepository.findDays(event.id());
                 var occurrences = computeOccurrences(event, today, reminderDays);
 
                 for (var occurrence : occurrences) {
                     for (int daysBefore : reminderDays) {
                         LocalDate reminderDate = occurrence.minusDays(daysBefore);
                         if (!today.equals(reminderDate)) continue;
-                        if (eventRepository.isReminderSent(event.id(), occurrence, daysBefore)) continue;
+                        if (reminderRepository.isSent(event.id(), occurrence, daysBefore)) continue;
 
                         var targetIds = resolveTargetMembers(event, occurrence);
                         if (!targetIds.isEmpty()) {
@@ -96,7 +104,7 @@ public class EventReminderChecker {
                                     occurrence,
                                     daysBefore);
                         }
-                        eventRepository.markReminderSent(event.id(), occurrence, daysBefore);
+                        reminderRepository.markSent(event.id(), occurrence, daysBefore);
                     }
                 }
             }
@@ -130,10 +138,10 @@ public class EventReminderChecker {
 
     private List<Integer> resolveTargetMembers(StationEvent event, LocalDate eventDate) {
         if (event.requiresRegistration()) {
-            return eventRepository.findRegisteredMemberIds(event.id());
+            return registrationRepository.findRegisteredMemberIds(event.id());
         }
         var allMembers = stationMemberRepository.findByStation(event.stationId());
-        var declinedIds = new HashSet<>(eventRepository.findDeclinedMemberIds(event.id(), eventDate));
+        var declinedIds = new HashSet<>(registrationRepository.findDeclinedMemberIds(event.id(), eventDate));
         return allMembers.stream()
                 .map(StationMember::id)
                 .filter(id -> !declinedIds.contains(id))

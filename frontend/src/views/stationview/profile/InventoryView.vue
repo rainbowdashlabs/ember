@@ -10,12 +10,12 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {inventory, managedMembers, exchanges} from '@/api'
-import type {ExchangeRequestEntry, InventorySize} from '@/api/types'
-import {ExchangeStatus} from '@/api/types'
-import type {MyInventoryItem, MyRequirement} from '@/api/inventory'
+import {ExchangeStatus, type ExchangeRequestEntry} from '@/api/exchanges'
+import type {InventorySize, MyInventoryItem, MyRequirement} from '@/api/inventory'
 import type {ManagedMember} from '@/api/managedMembers'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import MemberTabSelector from './inventoryview/MemberTabSelector.vue'
 import InventoryGroupList from './inventoryview/InventoryGroupList.vue'
 import ExchangeModal from './inventoryview/ExchangeModal.vue'
@@ -96,7 +96,7 @@ const grouped = computed((): InventoryGroup[] => {
     for (const [invId, invItems] of extraByInv) {
       groups.push({
         inventoryId: invId,
-        inventoryName: invItems[0].inventoryName,
+        inventoryName: invItems[0]?.inventoryName ?? '',
         requiredQuantity: 0,
         items: invItems,
       })
@@ -153,10 +153,11 @@ async function init() {
       } catch { void 0 }
     }
 
+    const firstManaged = managed.value[0]
     if (showOwnTab.value) {
       selectedMemberId.value = String(currentMemberId.value)
-    } else if (managed.value.length > 0) {
-      selectedMemberId.value = String(managed.value[0].id)
+    } else if (firstManaged) {
+      selectedMemberId.value = String(firstManaged.id)
     } else {
       selectedMemberId.value = String(currentMemberId.value)
     }
@@ -192,6 +193,7 @@ async function openExchange(item: MyInventoryItem) {
   exchangeNewSizeId.value = ''
   exchangeSizes.value = []
   exchangeSuccess.value = ''
+  clearExchangeError()
   showExchangeModal.value = true
   try {
     exchangeSizes.value = await inventory.listSizes(item.inventoryId)
@@ -203,22 +205,25 @@ function closeExchange() {
   exchangeItem.value = null
 }
 
-async function submitExchange() {
+const {
+  running: submittingExchange,
+  error: exchangeError,
+  run: submitExchange,
+  clearError: clearExchangeError,
+} = useAsyncAction(async () => {
   if (!exchangeItem.value || !exchangeReason.value.trim()) return
-  try {
-    const created = await exchanges.createExchange({
-      memberId: viewingMemberId.value ?? undefined,
-      itemId: exchangeItem.value.id,
-      inventoryId: exchangeItem.value.inventoryId,
-      oldSizeId: exchangeItem.value.sizeId ?? undefined,
-      newSizeId: exchangeNewSizeId.value ? Number(exchangeNewSizeId.value) : undefined,
-      reason: exchangeReason.value.trim(),
-    })
-    activeExchanges.value = [...activeExchanges.value, created]
-    exchangeSuccess.value = t('profile.exchangeCreated')
-    closeExchange()
-  } catch { void 0 }
-}
+  const created = await exchanges.createExchange({
+    memberId: viewingMemberId.value ?? undefined,
+    itemId: exchangeItem.value.id,
+    inventoryId: exchangeItem.value.inventoryId,
+    oldSizeId: exchangeItem.value.sizeId ?? undefined,
+    newSizeId: exchangeNewSizeId.value ? Number(exchangeNewSizeId.value) : undefined,
+    reason: exchangeReason.value.trim(),
+  })
+  activeExchanges.value = [...activeExchanges.value, created]
+  exchangeSuccess.value = t('profile.exchangeCreated')
+  closeExchange()
+})
 </script>
 
 <template>
@@ -248,6 +253,8 @@ async function submitExchange() {
           v-model:new-size-id="exchangeNewSizeId"
           :item="exchangeItem"
           :sizes="exchangeSizes"
+          :submitting="submittingExchange"
+          :error="exchangeError"
           @cancel="closeExchange"
           @submit="submitExchange"
       />

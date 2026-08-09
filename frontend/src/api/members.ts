@@ -4,7 +4,25 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {InviteRequest, InviteResponse, MessageResponse, ResetPasswordRequest} from './types'
+import type {MessageResponse} from './types'
+
+export interface InviteRequest {
+    email?: string
+    firstName?: string
+    lastName?: string
+}
+
+export interface InviteResponse {
+    id: number
+    email?: string
+    firstName?: string
+    lastName?: string
+}
+
+export interface ResetPasswordRequest {
+    accountId?: number
+    forceChange?: boolean
+}
 
 export async function invite(data: InviteRequest): Promise<InviteResponse> {
     const res = await client.post<InviteResponse>('/members/invite', data)

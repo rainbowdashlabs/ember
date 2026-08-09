@@ -3,14 +3,13 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {KbFile} from '@/api/knowledgeBase'
 import {KbFileType} from '@/api/knowledgeBase'
 
 /**
  * Returns the FontAwesome icon tuple for a knowledge-base file based on its
- * type, with a generic file fallback for unknown types.
+ * type, with a generic file fallback for unknown and federated types.
  */
-export function fileIcon(file: KbFile): string[] {
+export function fileIcon(file: {fileType?: string}): string[] {
     switch (file.fileType) {
         case KbFileType.MARKDOWN:
         case KbFileType.TEXT:

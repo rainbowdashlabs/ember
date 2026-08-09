@@ -4,31 +4,57 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {
-    AcknowledgeRequest,
-    MemberChangeSummary,
-    MemberIdentity,
-    ProfileFieldChange,
-    ProfileFieldChangeAcknowledgement,
-} from './types'
+import {pageParams} from './crud'
+import type {MemberIdentity, PageMeta} from './types'
+
+export interface ProfileFieldChangeAcknowledgement {
+    id: number
+    changeId: number
+    acknowledgedBy: number
+    acknowledgedAt?: string
+    comment?: string
+    acknowledgedByName?: string
+}
+
+export interface ProfileFieldChange {
+    id: number
+    fieldId: number
+    memberId: number
+    oldValue?: string
+    newValue?: string
+    changedBy: number
+    changedAt?: string
+    requiresAcknowledgement: boolean
+    changedByName?: string
+    fieldName?: string
+    acknowledgements: ProfileFieldChangeAcknowledgement[]
+    memberName?: string | null
+    memberIdentity?: MemberIdentity | null
+}
+
+export interface MemberChangeSummary {
+    memberId: number
+    memberName?: string
+    pendingCount: number
+    latestChange?: string
+    identity?: MemberIdentity | null
+}
+
+export interface AcknowledgeRequest {
+    comment?: string
+}
 
 interface EnrichedProfileFieldChange {
     change: ProfileFieldChange
     memberIdentity?: MemberIdentity | null
 }
 
-interface RawPagedChangesResponse {
+interface RawPagedChangesResponse extends PageMeta {
     changes: EnrichedProfileFieldChange[]
-    total: number
-    offset: number
-    limit: number
 }
 
-export interface PagedChangesResponse {
+export interface PagedChangesResponse extends PageMeta {
     changes: ProfileFieldChange[]
-    total: number
-    offset: number
-    limit: number
 }
 
 function flatten(enriched: EnrichedProfileFieldChange): ProfileFieldChange {
@@ -36,7 +62,9 @@ function flatten(enriched: EnrichedProfileFieldChange): ProfileFieldChange {
 }
 
 export async function getAllChanges(offset = 0, limit = 20): Promise<PagedChangesResponse> {
-    const res = await client.get<RawPagedChangesResponse>('/profile-changes/all', { params: { offset, limit } })
+    const res = await client.get<RawPagedChangesResponse>('/profile-changes/all', {
+        params: pageParams({offset, limit}),
+    })
     return {
         ...res.data,
         changes: res.data.changes.map(flatten),

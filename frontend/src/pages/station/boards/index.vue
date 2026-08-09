@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import BoardOverviewView from '~/views/stationview/boards/BoardOverviewView'
+import BoardOverviewView from '~/views/stationview/boards/BoardOverviewView.vue'
 
 definePageMeta({
   layout: 'station',

@@ -9,12 +9,10 @@ import Alert from '@/components/feedback/Alert.vue'
 import type {
   AttendanceEntry,
   AttendanceSession,
-  AttendanceSessionField,
   AttendanceStatus,
   AttendanceTemplateField,
-  MemberGroup,
-  StationMember,
-} from '@/api/types'
+} from '@/api/attendance'
+import type {MemberGroup, MemberIdentity, StationMember} from '@/api/types'
 import SessionToolbar from './SessionToolbar.vue'
 import SessionHeader from './SessionHeader.vue'
 import CheckModePanel from './CheckModePanel.vue'
@@ -39,9 +37,9 @@ defineProps<{
   uncheckedEntries: AttendanceEntry[]
   currentCheckEntry: AttendanceEntry | null
   currentMemberName: string
-  currentMemberIdentity: string | null
+  currentMemberIdentity: MemberIdentity | null
   templateFields: AttendanceTemplateField[]
-  fieldValues: Map<number, AttendanceSessionField>
+  fieldValues: Map<number, string>
   groupMembers: Map<number, StationMember[]>
   allMembers: StationMember[]
   entries: AttendanceEntry[]
@@ -59,8 +57,8 @@ const emit = defineEmits<{
   checkSetStatus: [status: AttendanceStatus]
   skipCheck: []
   endCheckMode: []
-  fieldUpdate: [fieldId: number, value: string]
-  fieldMemberIds: [fieldId: number, memberIds: number[]]
+  fieldUpdate: [fieldId: number, value: string, immediate: boolean]
+  fieldMemberIds: [fieldId: number, memberIds: string[]]
   setStatus: [entryId: number, status: AttendanceStatus]
   checkIn: [entryId: number, time: string]
   checkOut: [entryId: number, time: string]
@@ -112,7 +110,7 @@ const emit = defineEmits<{
             :group-members="groupMembers"
             :all-members="allMembers"
             :readonly="!canEdit"
-            @field-update="(fieldId, value) => emit('fieldUpdate', fieldId, value)"
+            @field-update="(fieldId, value, immediate) => emit('fieldUpdate', fieldId, value, immediate)"
             @field-member-ids="(fieldId, memberIds) => emit('fieldMemberIds', fieldId, memberIds)"
         />
 

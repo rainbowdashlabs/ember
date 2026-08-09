@@ -39,7 +39,7 @@ const {t} = useI18n()
             </p>
             <SelectInput :model-value="moveTarget === null ? '' : String(moveTarget)"
                          class="w-full"
-                         @update:model-value="(v: string) => moveTarget = v ? +v : null">
+                         @update:model-value="(v: string | number | null | undefined) => moveTarget = v ? +v : null">
                 <option value="">{{ t('stationPages.editor.rootFolder') }}</option>
                 <option v-for="f in folders" :key="f.id" :value="f.id">{{ f.name }}</option>
             </SelectInput>

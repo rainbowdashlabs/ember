@@ -8,7 +8,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
-import type { FormListEntry } from '@/api/types'
+import type { FormListEntry } from '@/api/forms'
 
 defineProps<{
   form: FormListEntry

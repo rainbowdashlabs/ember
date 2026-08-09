@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import PrivacyPolicyView from '~/views/PrivacyPolicyView'
+import PrivacyPolicyView from '~/views/PrivacyPolicyView.vue'
 import {useCanonical} from '~/composables/useCanonical'
 
 definePageMeta({

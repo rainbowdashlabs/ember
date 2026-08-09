@@ -10,10 +10,12 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import {inventory} from '@/api'
-import type {InventoryItem, InventorySize, StationMember} from '@/api/types'
+import type {InventoryItem, InventorySize} from '@/api/inventory'
+import type {StationMember} from '@/api/types'
 import type {ItemLocationResponse} from '@/api/inventoryContainers'
 import ItemEditForm from './ItemEditForm.vue'
 import ItemMetadataDisplay from './ItemMetadataDisplay.vue'
+import {parseItemMetadata} from '../detailview/itemMetadata'
 
 const props = defineProps<{
   item: InventoryItem
@@ -48,6 +50,7 @@ async function saveEdit() {
       name: editName.value,
       internalId: editInternalId.value,
       sizeId: editSizeId.value ? Number(editSizeId.value) : undefined,
+      metadata: parseItemMetadata(props.item.metadata),
     })
     editing.value = false
     emit('updated', updated)

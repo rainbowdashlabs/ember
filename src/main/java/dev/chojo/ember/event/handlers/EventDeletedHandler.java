@@ -32,7 +32,6 @@ public class EventDeletedHandler implements DomainEventHandler<EventDeleted> {
     public void handle(EventDeleted event) {
         notificationService.deleteByTypeContaining(
                 NotificationType.NEW_EVENT,
-                NotificationData.of(new NotificationParams.NewEvent(event.eventName(), null))
-                        .toJson());
+                NotificationData.of(new NotificationParams.NewEvent(event.eventName(), null)));
     }
 }

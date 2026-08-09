@@ -12,7 +12,8 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import type { InventorySize, StationMember } from '@/api/types'
+import type { InventorySize } from '@/api/inventory'
+import type { StationMember } from '@/api/types'
 
 const modelValue = defineModel<boolean>({required: true})
 const memberId = defineModel<string>('memberId', {required: true})

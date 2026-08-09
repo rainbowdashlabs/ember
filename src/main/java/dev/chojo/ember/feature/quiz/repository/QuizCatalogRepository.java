@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.entity.QuizCategory;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -17,38 +18,45 @@ import java.util.Optional;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
+import static dev.chojo.ember.util.sql.SqlSupport.alias;
+import static dev.chojo.ember.util.sql.SqlSupport.count;
+import static dev.chojo.ember.util.sql.SqlSupport.deleteById;
+import static dev.chojo.ember.util.sql.SqlSupport.insertReturning;
 
 @Singleton
 public class QuizCatalogRepository {
+    private static final String QUIZ_CATALOG_COLUMNS =
+            "id, station_id, name, description, training_enabled, public_render, created_at, updated_at";
+    private static final String QUIZ_CATEGORY_COLUMNS = "id, station_id, name, description, position";
+    private static final String QUIZ_QUESTION_COLUMNS = """
+            id, catalog_id, category_id, question_type, title, description, image_url, points, \
+            auto_points, config, position, created_at, updated_at""";
 
     // -- Catalogs --
 
     public List<QuizCatalog> findByStation(int stationId) {
-        return query("SELECT * FROM quiz_catalog WHERE station_id = :station_id ORDER BY name;")
+        return query("SELECT %s FROM quiz_catalog WHERE station_id = :station_id ORDER BY name;", QUIZ_CATALOG_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(QuizCatalog.map())
                 .all();
     }
 
     public Optional<QuizCatalog> findById(int id) {
-        return query("SELECT * FROM quiz_catalog WHERE id = :id;")
-                .single(call().bind("id", id))
-                .map(QuizCatalog.map())
-                .first();
+        return SqlSupport.findById("quiz_catalog", QUIZ_CATALOG_COLUMNS, id, QuizCatalog.map());
     }
 
     public QuizCatalog create(int stationId, String name, String description, boolean trainingEnabled) {
-        return query("""
+        return insertReturning(
+                """
                 INSERT INTO quiz_catalog(station_id, name, description, training_enabled)
                 VALUES (:station_id, :name, :description, :training_enabled)
-                RETURNING *;""")
-                .single(call().bind("station_id", stationId)
+                RETURNING %s;""",
+                call().bind("station_id", stationId)
                         .bind("name", name)
                         .bind("description", description)
-                        .bind("training_enabled", trainingEnabled))
-                .map(QuizCatalog.map())
-                .first()
-                .orElseThrow();
+                        .bind("training_enabled", trainingEnabled),
+                QuizCatalog.map(),
+                QUIZ_CATALOG_COLUMNS);
     }
 
     public boolean update(int id, String name, String description, boolean trainingEnabled) {
@@ -65,10 +73,7 @@ public class QuizCatalogRepository {
     }
 
     public boolean delete(int id) {
-        return query("DELETE FROM quiz_catalog WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return deleteById("quiz_catalog", id);
     }
 
     /**
@@ -91,9 +96,9 @@ public class QuizCatalogRepository {
      */
     public List<QuizCatalog> findPublicByStation(int stationId) {
         return query("""
-                SELECT * FROM quiz_catalog
+                SELECT %s FROM quiz_catalog
                 WHERE station_id = :station_id AND public_render = TRUE
-                ORDER BY name;""")
+                ORDER BY name;""", QUIZ_CATALOG_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(QuizCatalog.map())
                 .all();
@@ -109,13 +114,13 @@ public class QuizCatalogRepository {
     public Optional<QuizQuestion> findRandomPublicQuestion(int stationId, List<Integer> catalogIds) {
         if (catalogIds == null || catalogIds.isEmpty()) return Optional.empty();
         return query("""
-                SELECT q.* FROM quiz_question q
+                SELECT %s FROM quiz_question q
                 JOIN quiz_catalog c ON c.id = q.catalog_id
                 WHERE c.station_id = :station_id
                   AND c.public_render = TRUE
                   AND q.catalog_id = ANY(:catalog_ids)
                 ORDER BY random()
-                LIMIT 1;""")
+                LIMIT 1;""", alias("q", QUIZ_QUESTION_COLUMNS))
                 .single(call().bind("station_id", stationId).bind("catalog_ids", catalogIds, PostgreSqlTypes.INTEGER))
                 .map(QuizQuestion.map())
                 .first();
@@ -124,31 +129,30 @@ public class QuizCatalogRepository {
     // -- Categories --
 
     public List<QuizCategory> findCategoriesByStation(int stationId) {
-        return query("SELECT * FROM quiz_category WHERE station_id = :station_id ORDER BY position;")
+        return query(
+                        "SELECT %s FROM quiz_category WHERE station_id = :station_id ORDER BY position;",
+                        QUIZ_CATEGORY_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(QuizCategory.map())
                 .all();
     }
 
     public Optional<QuizCategory> findCategoryById(int id) {
-        return query("SELECT * FROM quiz_category WHERE id = :id;")
-                .single(call().bind("id", id))
-                .map(QuizCategory.map())
-                .first();
+        return SqlSupport.findById("quiz_category", QUIZ_CATEGORY_COLUMNS, id, QuizCategory.map());
     }
 
     public QuizCategory createCategory(int stationId, String name, String description, int position) {
-        return query("""
+        return insertReturning(
+                """
                 INSERT INTO quiz_category(station_id, name, description, position)
                 VALUES (:station_id, :name, :description, :position)
-                RETURNING *;""")
-                .single(call().bind("station_id", stationId)
+                RETURNING %s;""",
+                call().bind("station_id", stationId)
                         .bind("name", name)
                         .bind("description", description)
-                        .bind("position", position))
-                .map(QuizCategory.map())
-                .first()
-                .orElseThrow();
+                        .bind("position", position),
+                QuizCategory.map(),
+                QUIZ_CATEGORY_COLUMNS);
     }
 
     public boolean updateCategory(int id, String name, String description, int position) {
@@ -163,16 +167,15 @@ public class QuizCatalogRepository {
     }
 
     public boolean deleteCategory(int id) {
-        return query("DELETE FROM quiz_category WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return deleteById("quiz_category", id);
     }
 
     // -- Questions --
 
     public List<QuizQuestion> findQuestions(int catalogId) {
-        return query("SELECT * FROM quiz_question WHERE catalog_id = :catalog_id ORDER BY position;")
+        return query(
+                        "SELECT %s FROM quiz_question WHERE catalog_id = :catalog_id ORDER BY position;",
+                        QUIZ_QUESTION_COLUMNS)
                 .single(call().bind("catalog_id", catalogId))
                 .map(QuizQuestion.map())
                 .all();
@@ -180,22 +183,20 @@ public class QuizCatalogRepository {
 
     public List<QuizQuestion> findQuestionsByCategory(int catalogId, int categoryId) {
         return query(
-                        "SELECT * FROM quiz_question WHERE catalog_id = :catalog_id AND category_id = :category_id ORDER BY position;")
+                        "SELECT %s FROM quiz_question WHERE catalog_id = :catalog_id AND category_id = :category_id ORDER BY position;",
+                        QUIZ_QUESTION_COLUMNS)
                 .single(call().bind("catalog_id", catalogId).bind("category_id", categoryId))
                 .map(QuizQuestion.map())
                 .all();
     }
 
     public Optional<QuizQuestion> findQuestionById(int id) {
-        return query("SELECT * FROM quiz_question WHERE id = :id;")
-                .single(call().bind("id", id))
-                .map(QuizQuestion.map())
-                .first();
+        return SqlSupport.findById("quiz_question", QUIZ_QUESTION_COLUMNS, id, QuizQuestion.map());
     }
 
     public List<QuizQuestion> findQuestionsByIds(List<Integer> ids) {
         if (ids.isEmpty()) return List.of();
-        return query("SELECT * FROM quiz_question WHERE id = ANY(:ids);")
+        return query("SELECT %s FROM quiz_question WHERE id = ANY(:ids);", QUIZ_QUESTION_COLUMNS)
                 .single(call().bind("ids", ids, PostgreSqlTypes.INTEGER))
                 .map(QuizQuestion.map())
                 .all();
@@ -212,11 +213,12 @@ public class QuizCatalogRepository {
             boolean autoPoints,
             String config,
             int position) {
-        return query("""
+        return insertReturning(
+                """
                 INSERT INTO quiz_question(catalog_id, category_id, question_type, title, description, image_url, points, auto_points, config, position)
                 VALUES (:catalog_id, :category_id, :question_type, :title, :description, :image_url, :points, :auto_points, :config::JSONB, :position)
-                RETURNING *;""")
-                .single(call().bind("catalog_id", catalogId)
+                RETURNING %s;""",
+                call().bind("catalog_id", catalogId)
                         .bind("category_id", categoryId)
                         .bind("question_type", quizQuestionType.name())
                         .bind("title", title)
@@ -225,10 +227,9 @@ public class QuizCatalogRepository {
                         .bind("points", points)
                         .bind("auto_points", autoPoints)
                         .bind("config", config)
-                        .bind("position", position))
-                .map(QuizQuestion.map())
-                .first()
-                .orElseThrow();
+                        .bind("position", position),
+                QuizQuestion.map(),
+                QUIZ_QUESTION_COLUMNS);
     }
 
     public boolean updateQuestion(
@@ -261,23 +262,19 @@ public class QuizCatalogRepository {
     }
 
     public boolean deleteQuestion(int id) {
-        return query("DELETE FROM quiz_question WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return deleteById("quiz_question", id);
     }
 
     public int countQuestions(int catalogId) {
-        return query("SELECT count(*) AS cnt FROM quiz_question WHERE catalog_id = :catalog_id;")
-                .single(call().bind("catalog_id", catalogId))
-                .map(row -> row.getInt("cnt"))
-                .first()
-                .orElse(0);
+        return count(
+                "SELECT count(*) AS cnt FROM quiz_question WHERE catalog_id = :catalog_id;",
+                call().bind("catalog_id", catalogId));
     }
 
     public List<QuizCatalog> findTrainingCatalogs(int stationId) {
         return query(
-                        "SELECT * FROM quiz_catalog WHERE station_id = :station_id AND training_enabled = TRUE ORDER BY name;")
+                        "SELECT %s FROM quiz_catalog WHERE station_id = :station_id AND training_enabled = TRUE ORDER BY name;",
+                        QUIZ_CATALOG_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(QuizCatalog.map())
                 .all();

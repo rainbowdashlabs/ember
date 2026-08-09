@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.page.repository;
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.feature.page.entity.PageFileFolder;
 import dev.chojo.ember.feature.page.entity.PageFileTag;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.util.HashMap;
@@ -23,34 +24,34 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 @Singleton
 public class PageFileMetaRepository {
 
+    private static final String FOLDER_COLUMNS = "id, station_id, parent_id, name, sort_order, created_at";
+    private static final String TAG_COLUMNS = "id, station_id, name, color";
+
     // --- Folders ---
 
     public PageFileFolder createFolder(int stationId, Integer parentId, String name, int sortOrder) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT INTO page_file_folder(station_id, parent_id, name, sort_order)
                 VALUES (:station_id, :parent_id, :name, :sort_order)
-                RETURNING *;""")
-                .single(call().bind("station_id", stationId)
+                RETURNING %s;""",
+                call().bind("station_id", stationId)
                         .bind("parent_id", parentId)
                         .bind("name", name)
-                        .bind("sort_order", sortOrder))
-                .map(PageFileFolder.map())
-                .first()
-                .orElseThrow();
+                        .bind("sort_order", sortOrder),
+                PageFileFolder.map(),
+                FOLDER_COLUMNS);
     }
 
     public Optional<PageFileFolder> findFolder(int folderId) {
-        return query("SELECT * FROM page_file_folder WHERE id = :id;")
-                .single(call().bind("id", folderId))
-                .map(PageFileFolder.map())
-                .first();
+        return SqlSupport.findById("page_file_folder", FOLDER_COLUMNS, folderId, PageFileFolder.map());
     }
 
     public List<PageFileFolder> findFoldersByStation(int stationId) {
         return query("""
-                SELECT * FROM page_file_folder
+                SELECT %s FROM page_file_folder
                 WHERE station_id = :station_id
-                ORDER BY parent_id NULLS FIRST, sort_order, name;""")
+                ORDER BY parent_id NULLS FIRST, sort_order, name;""", FOLDER_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(PageFileFolder.map())
                 .all();
@@ -70,10 +71,7 @@ public class PageFileMetaRepository {
     }
 
     public boolean deleteFolder(int folderId) {
-        return query("DELETE FROM page_file_folder WHERE id = :id;")
-                .single(call().bind("id", folderId))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("page_file_folder", folderId);
     }
 
     public boolean moveFileToFolder(int fileId, Integer folderId) {
@@ -86,25 +84,22 @@ public class PageFileMetaRepository {
     // --- Tags ---
 
     public PageFileTag createTag(int stationId, String name, String color) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT INTO page_file_tag(station_id, name, color)
                 VALUES (:station_id, :name, :color)
-                RETURNING *;""")
-                .single(call().bind("station_id", stationId).bind("name", name).bind("color", color))
-                .map(PageFileTag.map())
-                .first()
-                .orElseThrow();
+                RETURNING %s;""",
+                call().bind("station_id", stationId).bind("name", name).bind("color", color),
+                PageFileTag.map(),
+                TAG_COLUMNS);
     }
 
     public Optional<PageFileTag> findTag(int tagId) {
-        return query("SELECT * FROM page_file_tag WHERE id = :id;")
-                .single(call().bind("id", tagId))
-                .map(PageFileTag.map())
-                .first();
+        return SqlSupport.findById("page_file_tag", TAG_COLUMNS, tagId, PageFileTag.map());
     }
 
     public List<PageFileTag> findTagsByStation(int stationId) {
-        return query("SELECT * FROM page_file_tag WHERE station_id = :station_id ORDER BY name;")
+        return query("SELECT %s FROM page_file_tag WHERE station_id = :station_id ORDER BY name;", TAG_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(PageFileTag.map())
                 .all();
@@ -118,10 +113,7 @@ public class PageFileMetaRepository {
     }
 
     public boolean deleteTag(int tagId) {
-        return query("DELETE FROM page_file_tag WHERE id = :id;")
-                .single(call().bind("id", tagId))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("page_file_tag", tagId);
     }
 
     public void assignTag(int fileId, int tagId) {

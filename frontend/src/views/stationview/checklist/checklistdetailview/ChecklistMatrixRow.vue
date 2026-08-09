@@ -4,13 +4,13 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
+import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import IconButton from '@/components/button/IconButton.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
-import type {ChecklistCellDto, ChecklistColumnDto, ChecklistEntryDto} from '@/api/types'
+import type {ChecklistCellDto, ChecklistColumnDto, ChecklistEntryDto} from '@/api/checklists'
 import ChecklistCellToggle from './ChecklistCellToggle.vue'
 
 const props = defineProps<{
@@ -28,12 +28,10 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
-const confirmDelete = ref(false)
 
-function applyDelete() {
-  emit('delete')
-  confirmDelete.value = false
-}
+const {show: confirmDelete, requestDelete, confirm: applyDelete} = useConfirmDelete<ChecklistEntryDto>({
+  onDelete: async () => { emit('delete') },
+})
 </script>
 
 <template>
@@ -44,7 +42,7 @@ function applyDelete() {
             v-if="!readOnly && !entry.deletedAt"
             :icon="['fas', 'trash']"
             :label="t('checklist.deleteRow')"
-            @click="confirmDelete = true"
+            @click="requestDelete(entry)"
         />
         <div class="flex-1 min-w-0">
           <div class="font-medium truncate">{{ entry.memberName }}</div>

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import GradingView from '~/views/stationview/protocol/GradingView'
+import GradingView from '~/views/stationview/protocol/GradingView.vue'
 
 definePageMeta({
   layout: 'station',

@@ -10,7 +10,8 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
-import type {AttendanceEntry, MemberGroup, StationMember} from '@/api/types'
+import type {AttendanceEntry} from '@/api/attendance'
+import type {MemberGroup, StationMember} from '@/api/types'
 
 const {t} = useI18n()
 

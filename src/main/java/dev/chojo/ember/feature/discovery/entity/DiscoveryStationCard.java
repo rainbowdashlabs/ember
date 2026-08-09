@@ -5,9 +5,8 @@
  */
 package dev.chojo.ember.feature.discovery.entity;
 
+import dev.chojo.ember.util.Json;
 import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -35,11 +34,9 @@ public record DiscoveryStationCard(
         BigDecimal latitude,
         BigDecimal longitude) {
 
-    private static final ObjectMapper MAPPER = JsonMapper.builder().build();
-
     public static DiscoveryStationCard parse(String json) {
         try {
-            return MAPPER.readValue(json, DiscoveryStationCard.class);
+            return Json.MAPPER.readValue(json, DiscoveryStationCard.class);
         } catch (Exception e) {
             throw new RuntimeException("Failed to parse DiscoveryStationCard", e);
         }
@@ -57,12 +54,12 @@ public record DiscoveryStationCard(
     }
 
     public JsonNode toJson() {
-        return MAPPER.valueToTree(this);
+        return Json.MAPPER.valueToTree(this);
     }
 
     public String toJsonString() {
         try {
-            return MAPPER.writeValueAsString(this);
+            return Json.MAPPER.writeValueAsString(this);
         } catch (Exception e) {
             throw new RuntimeException("Failed to serialize DiscoveryStationCard", e);
         }

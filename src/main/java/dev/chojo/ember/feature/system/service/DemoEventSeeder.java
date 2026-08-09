@@ -14,9 +14,10 @@ import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventCategoryRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
-import dev.chojo.ember.feature.events.repository.EventRepository;
-import dev.chojo.ember.feature.events.service.EventService;
+import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
+import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventTemplateService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import jakarta.inject.Inject;
@@ -35,27 +36,47 @@ import java.util.List;
  * event fields, attendance templates, and event templates.
  */
 @Singleton
-public class DemoEventSeeder {
+public class DemoEventSeeder implements DemoSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoEventSeeder.class);
 
-    private final EventRepository eventRepository;
+    private final EventCategoryRepository categoryRepository;
+    private final EventRegistrationRepository registrationRepository;
     private final EventFieldRepository eventFieldRepository;
     private final AttendanceRepository attendanceRepository;
-    private final EventService eventService;
+    private final EventCrudService crudService;
     private final EventTemplateService eventTemplateService;
 
     @Inject
     public DemoEventSeeder(
-            EventRepository eventRepository,
+            EventCategoryRepository categoryRepository,
+            EventRegistrationRepository registrationRepository,
             EventFieldRepository eventFieldRepository,
             AttendanceRepository attendanceRepository,
-            EventService eventService,
+            EventCrudService crudService,
             EventTemplateService eventTemplateService) {
-        this.eventRepository = eventRepository;
+        this.categoryRepository = categoryRepository;
+        this.registrationRepository = registrationRepository;
         this.eventFieldRepository = eventFieldRepository;
         this.attendanceRepository = attendanceRepository;
-        this.eventService = eventService;
+        this.crudService = crudService;
         this.eventTemplateService = eventTemplateService;
+    }
+
+    @Override
+    public int order() {
+        return EVENTS;
+    }
+
+    @Override
+    public void seed(DemoSeederContext context) {
+        var members = context.members();
+        context.events(seed(
+                context.stationId(),
+                members.groupAnfaenger().id(),
+                members.groupFortgeschritten().id(),
+                members.anfaenger(),
+                members.fortgeschritten()));
+        seedTemplates(context.stationId());
     }
 
     public SeedResult seed(
@@ -87,11 +108,11 @@ public class DemoEventSeeder {
                         new AttendanceRepository.TemplateGroup(groupFortgeschrittenId, 1)));
 
         // -- Event categories --
-        var catUebung = eventRepository.createCategory(stationId, "Übungen", 0, "#ff6421");
-        var catVeranstaltung = eventRepository.createCategory(stationId, "Veranstaltungen", 1, "#73ceff");
-        var catWettbewerb = eventRepository.createCategory(stationId, "Wettbewerbe", 2, "#ffdd1b");
+        var catUebung = categoryRepository.create(stationId, "Übungen", 0, "#ff6421");
+        var catVeranstaltung = categoryRepository.create(stationId, "Veranstaltungen", 1, "#73ceff");
+        var catWettbewerb = categoryRepository.create(stationId, "Wettbewerbe", 2, "#ffdd1b");
         // Make Veranstaltungen public (all events in this category visible on public calendar)
-        eventRepository.updateCategory(
+        categoryRepository.update(
                 catVeranstaltung.id(),
                 catVeranstaltung.name(),
                 catVeranstaltung.position(),
@@ -105,7 +126,7 @@ public class DemoEventSeeder {
         Instant satStart = LocalDate.now().atTime(10, 0).toInstant(ZoneOffset.UTC);
         Instant satEnd = LocalDate.now().atTime(13, 0).toInstant(ZoneOffset.UTC);
 
-        var evUebung = eventService.create(
+        var evUebung = crudService.create(
                 stationId,
                 "Übung",
                 "Wöchentliche Übung für alle Gruppen",
@@ -122,7 +143,7 @@ public class DemoEventSeeder {
                 null,
                 null,
                 null);
-        var evGesamt = eventService.create(
+        var evGesamt = crudService.create(
                 stationId,
                 "Gesamtübung",
                 "Gemeinsame Übung aller Gruppen",
@@ -141,7 +162,7 @@ public class DemoEventSeeder {
                 null);
 
         // Monthly: first Saturday = Elternabend
-        eventService.create(
+        crudService.create(
                 stationId,
                 "Elternabend",
                 "Monatliches Treffen mit den Eltern",
@@ -160,7 +181,7 @@ public class DemoEventSeeder {
                 null);
 
         // Quarterly: first Saturday = Dienstbesprechung
-        eventService.create(
+        crudService.create(
                 stationId,
                 "Dienstbesprechung",
                 "Vierteljährliche Besprechung aller Betreuer",
@@ -183,7 +204,7 @@ public class DemoEventSeeder {
                 LocalDate.now().withMonth(9).withDayOfMonth(20).atTime(18, 0).toInstant(ZoneOffset.UTC);
         Instant jhvEnd =
                 LocalDate.now().withMonth(9).withDayOfMonth(20).atTime(21, 0).toInstant(ZoneOffset.UTC);
-        eventService.create(
+        crudService.create(
                 stationId,
                 "Jahreshauptversammlung",
                 "Jährliche Versammlung mit Berichten und Wahlen",
@@ -210,7 +231,7 @@ public class DemoEventSeeder {
                 List.of(
                         new AttendanceRepository.TemplateGroup(groupAnfaengerId, 0),
                         new AttendanceRepository.TemplateGroup(groupFortgeschrittenId, 1)));
-        var theorieabend = eventService.create(
+        var theorieabend = crudService.create(
                 stationId,
                 "Theorieabend",
                 "Theoretische Grundlagen und Fahrzeugkunde",
@@ -229,7 +250,7 @@ public class DemoEventSeeder {
                 null);
         LocalDate todayDate = LocalDate.now();
         for (int i = 0; i < 5 && i < anfaengerMembers.size(); i++) {
-            eventRepository.createRegistration(
+            registrationRepository.create(
                     theorieabend.id(), anfaengerMembers.get(i).id(), todayDate, RegistrationStatus.DECLINED, null);
         }
 
@@ -241,7 +262,7 @@ public class DemoEventSeeder {
         Instant deadline =
                 LocalDate.now().plusMonths(1).withDayOfMonth(10).atTime(23, 59).toInstant(ZoneOffset.UTC);
 
-        var tagDerOffenenTuer = eventService.create(
+        var tagDerOffenenTuer = crudService.create(
                 stationId,
                 "Tag der offenen Tür",
                 "Öffentlichkeitsarbeit: Vorführungen und Mitmach-Aktionen",
@@ -264,7 +285,7 @@ public class DemoEventSeeder {
         Instant oeffentlichkeitDeadline =
                 LocalDate.now().plusWeeks(2).atTime(23, 59).toInstant(ZoneOffset.UTC);
 
-        var stadtfest = eventService.create(
+        var stadtfest = crudService.create(
                 stationId,
                 "Stadtfest Musterstadt",
                 "Stand der Jugendfeuerwehr beim Stadtfest",
@@ -289,7 +310,7 @@ public class DemoEventSeeder {
         Instant wettbewerbDeadline =
                 LocalDate.now().plusMonths(2).withDayOfMonth(1).atTime(23, 59).toInstant(ZoneOffset.UTC);
 
-        var kreisWettbewerb = eventService.create(
+        var kreisWettbewerb = crudService.create(
                 stationId,
                 "Kreiswettbewerb",
                 "Jährlicher Kreiswettbewerb der Jugendfeuerwehren",
@@ -311,7 +332,7 @@ public class DemoEventSeeder {
         LocalDate tagDate = LocalDate.now().plusMonths(1).withDayOfMonth(15);
         LocalDate stadtfestDate = LocalDate.now().plusWeeks(3);
         for (int i = 0; i < 8 && i < fortgeschrittenMembers.size(); i++) {
-            eventRepository.createRegistration(
+            registrationRepository.create(
                     tagDerOffenenTuer.id(),
                     fortgeschrittenMembers.get(i).id(),
                     tagDate,
@@ -319,11 +340,11 @@ public class DemoEventSeeder {
                     null);
         }
         for (int i = 0; i < 5 && i < anfaengerMembers.size(); i++) {
-            eventRepository.createRegistration(
+            registrationRepository.create(
                     stadtfest.id(), anfaengerMembers.get(i).id(), stadtfestDate, RegistrationStatus.ACCEPTED, null);
         }
         for (int i = 0; i < 3 && i < fortgeschrittenMembers.size(); i++) {
-            eventRepository.createRegistration(
+            registrationRepository.create(
                     stadtfest.id(),
                     fortgeschrittenMembers.get(i).id(),
                     stadtfestDate,
@@ -333,18 +354,18 @@ public class DemoEventSeeder {
         // Some pending registrations for Kreiswettbewerb
         LocalDate kwDate = LocalDate.now().plusMonths(2).withDayOfMonth(20);
         for (int i = 0; i < 6 && i < fortgeschrittenMembers.size(); i++) {
-            eventRepository.createRegistration(
+            registrationRepository.create(
                     kreisWettbewerb.id(), fortgeschrittenMembers.get(i).id(), kwDate, RegistrationStatus.PENDING, null);
         }
 
         // Declined registrations for Stadtfest
         for (int i = 5; i < 8 && i < anfaengerMembers.size(); i++) {
-            eventRepository.createRegistration(
+            registrationRepository.create(
                     stadtfest.id(), anfaengerMembers.get(i).id(), stadtfestDate, RegistrationStatus.DECLINED, null);
         }
         // Declined registrations for Kreiswettbewerb
         for (int i = 6; i < 9 && i < fortgeschrittenMembers.size(); i++) {
-            eventRepository.createRegistration(
+            registrationRepository.create(
                     kreisWettbewerb.id(),
                     fortgeschrittenMembers.get(i).id(),
                     kwDate,
@@ -353,13 +374,13 @@ public class DemoEventSeeder {
         }
         // Denied registration for Tag der offenen Tuer
         if (anfaengerMembers.size() > 9) {
-            eventRepository.createRegistration(
+            registrationRepository.create(
                     tagDerOffenenTuer.id(), anfaengerMembers.get(9).id(), tagDate, RegistrationStatus.DENIED, null);
         }
 
         // -- Oeffentlichkeitsarbeit events --
-        var catOeffentlichkeit = eventRepository.createCategory(stationId, "Öffentlichkeitsarbeit", 3, "#00c507");
-        eventRepository.updateCategory(
+        var catOeffentlichkeit = categoryRepository.create(stationId, "Öffentlichkeitsarbeit", 3, "#00c507");
+        categoryRepository.update(
                 catOeffentlichkeit.id(),
                 catOeffentlichkeit.name(),
                 catOeffentlichkeit.position(),
@@ -391,7 +412,7 @@ public class DemoEventSeeder {
             LocalDate eventDate = LocalDate.now().minusWeeks(oeNames.length - e);
             Instant oeStart = eventDate.atTime(10, 0).toInstant(ZoneOffset.UTC);
             Instant oeEnd = eventDate.atTime(16, 0).toInstant(ZoneOffset.UTC);
-            var oeEvent = eventService.create(
+            var oeEvent = crudService.create(
                     stationId,
                     oeNames[e],
                     "Öffentlichkeitsarbeit der Jugendfeuerwehr",
@@ -434,7 +455,7 @@ public class DemoEventSeeder {
             for (int i = 0; i < count; i++) {
                 int rotatedIdx = (i + acceptOffset) % allMembers.size();
                 var status = i < 6 ? RegistrationStatus.ACCEPTED : RegistrationStatus.DENIED;
-                eventRepository.createRegistration(
+                registrationRepository.create(
                         oeEvent.id(), allMembers.get(rotatedIdx).id(), eventDate, status, null);
             }
         }
@@ -444,7 +465,7 @@ public class DemoEventSeeder {
         Instant openStart = openDate.atTime(9, 0).toInstant(ZoneOffset.UTC);
         Instant openEnd = openDate.atTime(15, 0).toInstant(ZoneOffset.UTC);
         Instant openDeadline = LocalDate.now().plusDays(3).atTime(23, 59).toInstant(ZoneOffset.UTC);
-        var oeOpen = eventService.create(
+        var oeOpen = crudService.create(
                 stationId,
                 "Blaulichtmeile Bürgerfest",
                 "Öffentlichkeitsarbeit — Anmeldung offen",
@@ -495,7 +516,7 @@ public class DemoEventSeeder {
         int openCount = Math.min(14, allMembers.size());
         for (int i = 0; i < openCount; i++) {
             var status = i < 6 ? RegistrationStatus.ACCEPTED : RegistrationStatus.PENDING;
-            eventRepository.createRegistration(oeOpen.id(), allMembers.get(i).id(), openDate, status, null);
+            registrationRepository.create(oeOpen.id(), allMembers.get(i).id(), openDate, status, null);
         }
 
         // -- Event Fields --

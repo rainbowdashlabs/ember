@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import RequirementsHelp from '~/views/helpcenter/stationview/inventory/RequirementsHelp'
+import RequirementsHelp from '~/views/helpcenter/stationview/inventory/RequirementsHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

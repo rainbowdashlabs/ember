@@ -11,7 +11,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import CustomFieldsSection from '@/views/stationview/inventory/detailview/CustomFieldsSection.vue'
 import NewInventoryFields from '@/views/stationview/inventory/unknownscanmodal/NewInventoryFields.vue'
 import ItemBasicsFields from '@/views/stationview/inventory/unknownscanmodal/ItemBasicsFields.vue'
-import type {Inventory} from '@/api/types'
+import type {Inventory} from '@/api/inventory'
 import type {InventoryFieldDefinition} from '@/api/inventoryFields'
 
 const targetInventoryId = defineModel<number | 'new'>('targetInventoryId', {required: true})
@@ -47,7 +47,7 @@ const {t} = useI18n()
       <FieldLabel>{{ t('inventory.unknownScan.targetInventory') }}</FieldLabel>
       <SelectInput
           :model-value="String(targetInventoryId)"
-          @update:model-value="(v: string) => targetInventoryId = v === 'new' ? 'new' : Number(v)"
+          @update:model-value="(v: string | number | null | undefined) => targetInventoryId = v === 'new' ? 'new' : Number(v)"
       >
         <option v-for="inv in sortedInventories" :key="inv.id" :value="inv.id">{{ inv.name }}</option>
         <option value="new">{{ t('inventory.unknownScan.createNewInventory') }}</option>

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import TicketDetailView from '~/views/stationview/boards/TicketDetailView'
+import TicketDetailView from '~/views/stationview/boards/TicketDetailView.vue'
 
 definePageMeta({
   layout: 'station',

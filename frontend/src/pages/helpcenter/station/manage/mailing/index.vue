@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import MailConfigHelp from '~/views/helpcenter/stationview/manage/MailConfigHelp'
+import MailConfigHelp from '~/views/helpcenter/stationview/manage/MailConfigHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

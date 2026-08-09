@@ -5,19 +5,22 @@
  */
 import { ref, type Ref } from 'vue'
 import { savedFilters as savedFiltersApi } from '@/api'
+import type { SortDirection } from '@/composables/useSortable'
 
 export type FilterKey = 'name' | 'groups' | 'tags' | number
+
+export type MemberSortKey = 'name' | number
 
 export interface TabFilterState {
   filterText: string
   columnMultiFilters: Map<FilterKey, Set<string>>
   columnEmptyFilters: Set<FilterKey>
-  sortColumn: 'name' | number
-  sortAsc: boolean
+  sortKey: MemberSortKey
+  sortDirection: SortDirection
 }
 
 export function emptyTabState(): TabFilterState {
-  return { filterText: '', columnMultiFilters: new Map(), columnEmptyFilters: new Set(), sortColumn: 'name', sortAsc: true }
+  return { filterText: '', columnMultiFilters: new Map(), columnEmptyFilters: new Set(), sortKey: 'name', sortDirection: 'asc' }
 }
 
 export interface SavedFilterPreset {
@@ -46,6 +49,7 @@ export function useSavedFilters(tabStates: Ref<Record<string, TabFilterState>>, 
 
   async function saveCurrentFilter(name: string) {
     const state = tabStates.value[activeTab.value]
+    if (!state) return
     const textFilters: Record<string, string> = {}
     const multiFilters: Record<string, string[]> = {}
     for (const [k, v] of state.columnMultiFilters) { multiFilters[String(k)] = [...v] }
@@ -58,8 +62,9 @@ export function useSavedFilters(tabStates: Ref<Record<string, TabFilterState>>, 
   }
 
   function applyFilter(preset: SavedFilterPreset) {
-    activeTab.value = preset.tab
     const state = tabStates.value[preset.tab]
+    if (!state) return
+    activeTab.value = preset.tab
     const multiMap = new Map<FilterKey, Set<string>>()
     for (const [k, v] of Object.entries(preset.multiFilters)) {
       const key: FilterKey = (k === 'name' || k === 'groups' || k === 'tags') ? k : Number(k)
@@ -84,6 +89,7 @@ export function useSavedFilters(tabStates: Ref<Record<string, TabFilterState>>, 
 
   function clearFilters() {
     const state = tabStates.value[activeTab.value]
+    if (!state) return
     state.columnMultiFilters = new Map()
     state.columnEmptyFilters = new Set()
     state.filterText = ''

@@ -12,12 +12,13 @@ import Alert from '@/components/feedback/Alert.vue'
 import ReportPresetList from './reportview/ReportPresetList.vue'
 import ReportFilters from './reportview/ReportFilters.vue'
 import ReportPreview from './reportview/ReportPreview.vue'
-import type {MemberGroup} from '@/api/types'
-import {StationUserType, StationUserTypeLabels} from '@/api/types'
+import {StationUserType, StationUserTypeLabels, type MemberGroup} from '@/api/types'
 import {attendance, memberGroups} from '@/api'
 import type {ReportData, ReportPreset} from '@/api/attendance'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useAsyncAction} from '@/composables/useAsyncAction'
+import {saveBlob} from '@/util/downloadAuthed'
 
 const {t} = useI18n()
 const {loaded} = useSession()
@@ -25,8 +26,6 @@ const {loaded} = useSession()
 const groups = ref<MemberGroup[]>([])
 const presets = ref<ReportPreset[]>([])
 const report = ref<ReportData | null>(null)
-const previewing = ref(false)
-const exporting = ref(false)
 
 const selectedUserTypes = ref<string[]>([])
 const selectedGroupIds = ref<string[]>([])
@@ -129,39 +128,31 @@ const {loading, error, reload} = useAsyncLoader(async () => {
   presets.value = allPresets
 }, {autoLoad: false})
 
-async function preview() {
-  if (!canPreview.value) return
-  previewing.value = true
-  error.value = ''
+const {running: previewing, error: previewError, run: runPreview, clearError: clearPreviewError} = useAsyncAction(async () => {
   report.value = null
-  try {
-    report.value = await attendance.reportPreview(buildParams())
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    previewing.value = false
-  }
+  report.value = await attendance.reportPreview(buildParams())
+})
+
+const {running: exporting, error: exportError, run: runExport, clearError: clearExportError} = useAsyncAction(async () => {
+  const params = buildParams()
+  params.set('period', selectedPeriod.value)
+  saveBlob(await attendance.reportExport(params), 'attendance-report.pdf')
+})
+
+const displayError = computed(() => error.value || previewError.value || exportError.value)
+
+function preview() {
+  if (!canPreview.value) return
+  error.value = ''
+  clearExportError()
+  return runPreview()
 }
 
-async function exportPdf() {
+function exportPdf() {
   if (!canPreview.value) return
-  exporting.value = true
   error.value = ''
-  try {
-    const params = buildParams()
-    params.set('period', selectedPeriod.value)
-    const blob = await attendance.reportExport(params)
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'attendance-report.pdf'
-    a.click()
-    URL.revokeObjectURL(url)
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    exporting.value = false
-  }
+  clearPreviewError()
+  return runExport()
 }
 
 async function savePreset() {
@@ -211,7 +202,7 @@ watch(loaded, (isLoaded) => {
       :subtitle="t('pages.attendance-report.subtitle')"
   >
     <Spinner v-if="loading" size="lg"/>
-    <Alert v-if="error" variant="error">{{ error }}</Alert>
+    <Alert v-if="displayError" variant="error">{{ displayError }}</Alert>
     <template v-if="!loading">
       <ReportPresetList
           :presets="presets"

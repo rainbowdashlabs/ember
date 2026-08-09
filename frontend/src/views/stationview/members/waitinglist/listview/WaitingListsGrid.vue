@@ -6,7 +6,8 @@
 <script setup lang="ts">
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type { WaitingListWithCount } from '@/api/types'
+import type { WaitingListWithCount } from '@/api/waitingList'
+import { formatDate } from '@/util/format'
 
 defineProps<{
   lists: WaitingListWithCount[]
@@ -15,10 +16,6 @@ defineProps<{
 const emit = defineEmits<{
   select: [id: number]
 }>()
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString()
-}
 </script>
 
 <template>

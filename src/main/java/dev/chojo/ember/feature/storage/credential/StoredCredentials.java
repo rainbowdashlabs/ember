@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.storage.credential;
 
-import tools.jackson.databind.json.JsonMapper;
+import dev.chojo.ember.util.Json;
 
 /**
  * Plaintext shapes for the credential payload that lives encrypted inside an
@@ -13,13 +13,12 @@ import tools.jackson.databind.json.JsonMapper;
  * stays explicit instead of riding inside a free-form map.
  */
 public final class StoredCredentials {
-    private static final JsonMapper MAPPER = JsonMapper.builder().build();
 
     private StoredCredentials() {}
 
     private static String write(Object value) {
         try {
-            return MAPPER.writeValueAsString(value);
+            return Json.MAPPER.writeValueAsString(value);
         } catch (Exception e) {
             throw new IllegalStateException("Failed to serialize stored credentials", e);
         }
@@ -27,7 +26,7 @@ public final class StoredCredentials {
 
     private static <T> T read(String json, Class<T> type) {
         try {
-            return MAPPER.readValue(json, type);
+            return Json.MAPPER.readValue(json, type);
         } catch (Exception e) {
             throw new IllegalArgumentException("Failed to deserialize stored credentials", e);
         }

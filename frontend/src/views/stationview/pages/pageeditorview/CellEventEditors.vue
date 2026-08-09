@@ -15,7 +15,7 @@ import EventSearchPicker from '@/components/input/search/EventSearchPicker.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import * as publicEvents from '@/api/publicEvents'
 import * as events from '@/api/events'
-import type {EventCategory} from '@/api/types'
+import type {EventCategory} from '@/api/events'
 import {useConfigPatch} from '@/composables/useConfigPatch'
 
 /**
@@ -79,7 +79,7 @@ async function onFeaturedEventPick(eventUid: string) {
             mode="ALL"
             :station-uid="stationUid"
             @pick="(item: {eventUid: string}) => onFeaturedEventPick(item.eventUid)"
-            @update:model-value="(v: string | null) => patch({eventUid: v})"
+            @update:model-value="(v: string | null | undefined) => patch({eventUid: v ?? null})"
         />
         <FieldLabel hint class="mb-1">{{ TS('eventDescription') }}</FieldLabel>
         <MarkdownFieldInput
@@ -131,7 +131,7 @@ async function onFeaturedEventPick(eventUid: string) {
             mode="PAST"
             :station-uid="stationUid"
             @pick="(item: {eventUid: string}) => patch({eventUid: item.eventUid})"
-            @update:model-value="(v: string | null) => patch({eventUid: v})"
+            @update:model-value="(v: string | null | undefined) => patch({eventUid: v ?? null})"
         />
         <FieldLabel hint class="mb-1">{{ TS('eventDescription') }}</FieldLabel>
         <MarkdownFieldInput

@@ -15,6 +15,9 @@ import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.entity.FormResponse;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.restriction.RestrictionSql;
+import dev.chojo.ember.feature.restriction.RestrictionType;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
@@ -33,10 +36,19 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING
 @Singleton
 public class FormRepository {
 
-    private static final String FORM_COLUMNS =
-            "f.id, f.station_id, f.title, f.description, f.status, f.shuffle_questions, f.allow_edit, f.forced, f.start_at, f.end_at, f.closed_at, f.created_by, f.created_at, f.updated_at, f.restriction_mode, EXISTS(SELECT 1 FROM form_restriction r WHERE r.form_id = f.id) AS restricted, f.purpose, f.public_uid, (SELECT count(*) FROM form_response fr WHERE fr.form_id = f.id)::INT AS response_count, GREATEST(f.updated_at, (SELECT MAX(fr2.updated_at) FROM form_response fr2 WHERE fr2.form_id = f.id)) AS last_activity_at";
     private static final String FORM_COLUMNS_BARE =
-            "id, station_id, title, description, status, shuffle_questions, allow_edit, forced, start_at, end_at, closed_at, created_by, created_at, updated_at, restriction_mode, EXISTS(SELECT 1 FROM form_restriction r WHERE r.form_id = id) AS restricted, purpose, public_uid, 0::INT AS response_count, updated_at AS last_activity_at";
+            "id, station_id, title, description, status, shuffle_questions, allow_edit, forced, start_at, end_at, closed_at, created_by, created_at, updated_at, restriction_mode, purpose, public_uid";
+    private static final String FORM_COLUMNS = SqlSupport.alias("f", FORM_COLUMNS_BARE);
+    private static final String FORM_COMPUTED =
+            "%s, (SELECT count(*) FROM form_response fr WHERE fr.form_id = f.id)::INT AS response_count, GREATEST(f.updated_at, (SELECT MAX(fr2.updated_at) FROM form_response fr2 WHERE fr2.form_id = f.id)) AS last_activity_at"
+                    .formatted(RestrictionSql.restrictedFlag(RestrictionType.FORM, "f.id"));
+    private static final String FORM_VISIBLE_FOR_MEMBER =
+            RestrictionSql.visibleFor(RestrictionType.FORM, "f.id", ":member_id");
+    private static final String QUESTION_COLUMNS =
+            "id, form_id, position, question_type, title, description, required, shuffle, config";
+    private static final String RESPONSE_COLUMNS =
+            "id, form_id, member_id, submitted_by, submitted_at, updated_at, submitter_hash, acknowledged_at, acknowledged_by";
+    private static final String ANSWER_COLUMNS = "id, response_id, question_id, value";
 
     // -- Forms --
 
@@ -49,11 +61,11 @@ public class FormRepository {
     public List<Form> findByStation(int stationId) {
         return query("""
                 SELECT
-                    %s
+                    %s, %s
                 FROM
                     form f
                 WHERE f.station_id = :station_id
-                ORDER BY f.created_at DESC;""", FORM_COLUMNS)
+                ORDER BY f.created_at DESC;""", FORM_COLUMNS, FORM_COMPUTED)
                 .single(call().bind("station_id", stationId))
                 .map(Form.map())
                 .all();
@@ -69,12 +81,12 @@ public class FormRepository {
     public List<Form> findByStationAndPurpose(int stationId, FormPurpose purpose) {
         return query("""
                 SELECT
-                    %s
+                    %s, %s
                 FROM
                     form f
                 WHERE f.station_id = :station_id
                   AND f.purpose = :purpose
-                ORDER BY f.created_at DESC;""", FORM_COLUMNS)
+                ORDER BY f.created_at DESC;""", FORM_COLUMNS, FORM_COMPUTED)
                 .single(call().bind("station_id", stationId).bind("purpose", purpose))
                 .map(Form.map())
                 .all();
@@ -89,10 +101,10 @@ public class FormRepository {
     public Optional<Form> findByPublicUid(UUID publicUid) {
         return query("""
                 SELECT
-                    %s
+                    %s, %s
                 FROM
                     form f
-                WHERE f.public_uid = :public_uid::uuid;""", FORM_COLUMNS)
+                WHERE f.public_uid = :public_uid::uuid;""", FORM_COLUMNS, FORM_COMPUTED)
                 .single(call().bind("public_uid", publicUid, UUID_STRING))
                 .map(Form.map())
                 .first();
@@ -108,11 +120,11 @@ public class FormRepository {
      */
     public List<Form> findByStationForMember(int stationId, int memberId) {
         return query("""
-                SELECT %s
+                SELECT %s, %s
                 FROM form f
                 WHERE f.station_id = :station_id
-                  AND check_restriction('form_restriction', 'form_id', 'form', 'id', f.id, :member_id, 'POLL_MANAGER')
-                ORDER BY f.created_at DESC;""", FORM_COLUMNS)
+                  AND %s
+                ORDER BY f.created_at DESC;""", FORM_COLUMNS, FORM_COMPUTED, FORM_VISIBLE_FOR_MEMBER)
                 .single(call().bind("station_id", stationId).bind("member_id", memberId))
                 .map(Form.map())
                 .all();
@@ -126,9 +138,9 @@ public class FormRepository {
      */
     public Optional<Form> findById(int id) {
         return query("""
-                SELECT %s
+                SELECT %s, %s
                 FROM form f
-                WHERE f.id = :id;""", FORM_COLUMNS)
+                WHERE f.id = :id;""", FORM_COLUMNS, FORM_COMPUTED)
                 .single(call().bind("id", id))
                 .map(Form.map())
                 .first();
@@ -136,7 +148,7 @@ public class FormRepository {
 
     public List<Form> findForcedPending(int stationId, int memberId) {
         return query("""
-                SELECT %s
+                SELECT %s, %s
                 FROM form f
                 WHERE f.station_id = :station_id
                   AND f.forced = TRUE
@@ -146,7 +158,7 @@ public class FormRepository {
                   AND NOT exists (
                       SELECT 1 FROM form_response fr
                       WHERE fr.form_id = f.id AND fr.member_id = :member_id)
-                ORDER BY f.title;""", FORM_COLUMNS)
+                ORDER BY f.title;""", FORM_COLUMNS, FORM_COMPUTED)
                 .single(call().bind("station_id", stationId).bind("member_id", memberId))
                 .map(Form.map())
                 .all();
@@ -176,11 +188,12 @@ public class FormRepository {
             Instant endAt,
             int createdBy,
             FormPurpose purpose) {
-        return query("""
-                INSERT INTO form(station_id, title, description, shuffle_questions, allow_edit, forced, start_at, end_at, created_by, purpose)
+        return SqlSupport.insertReturning(
+                """
+                INSERT INTO form AS f(station_id, title, description, shuffle_questions, allow_edit, forced, start_at, end_at, created_by, purpose)
                 VALUES (:station_id, :title, :description, :shuffle_questions, :allow_edit, :forced, :start_at, :end_at, :created_by, :purpose)
-                RETURNING %s;""", FORM_COLUMNS_BARE)
-                .single(call().bind("station_id", stationId)
+                RETURNING %s, %s;""",
+                call().bind("station_id", stationId)
                         .bind("title", title)
                         .bind("description", description)
                         .bind("shuffle_questions", shuffleQuestions)
@@ -189,10 +202,10 @@ public class FormRepository {
                         .bind("start_at", startAt, INSTANT_TIMESTAMP)
                         .bind("end_at", endAt, INSTANT_TIMESTAMP)
                         .bind("created_by", createdBy)
-                        .bind("purpose", purpose.name()))
-                .map(Form.map())
-                .first()
-                .orElseThrow();
+                        .bind("purpose", purpose.name()),
+                Form.map(),
+                FORM_COLUMNS,
+                FORM_COMPUTED);
     }
 
     /**
@@ -242,10 +255,7 @@ public class FormRepository {
      * @return {@code true} if a row was deleted
      */
     public boolean delete(int id) {
-        return query("DELETE FROM form WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("form", id);
     }
 
     /**
@@ -277,7 +287,7 @@ public class FormRepository {
      * @return list of questions
      */
     public List<FormQuestion> findQuestions(int formId) {
-        return query("SELECT * FROM form_question WHERE form_id = :form_id ORDER BY position;")
+        return query("SELECT %s FROM form_question WHERE form_id = :form_id ORDER BY position;", QUESTION_COLUMNS)
                 .single(call().bind("form_id", formId))
                 .map(FormQuestion.map())
                 .all();
@@ -305,21 +315,21 @@ public class FormRepository {
             boolean required,
             boolean shuffle,
             FormQuestionConfig config) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT INTO form_question(form_id, position, question_type, title, description, required, shuffle, config)
                 VALUES (:form_id, :position, :question_type, :title, :description, :required, :shuffle, :config::JSONB)
-                RETURNING *;""")
-                .single(call().bind("form_id", formId)
+                RETURNING %s;""",
+                call().bind("form_id", formId)
                         .bind("position", position)
                         .bind("question_type", formQuestionType.name())
                         .bind("title", title)
                         .bind("description", description)
                         .bind("required", required)
                         .bind("shuffle", shuffle)
-                        .bind("config", config.toJson()))
-                .map(FormQuestion.map())
-                .first()
-                .orElseThrow();
+                        .bind("config", config.toJson()),
+                FormQuestion.map(),
+                QUESTION_COLUMNS);
     }
 
     /**
@@ -365,10 +375,7 @@ public class FormRepository {
      * @return {@code true} if a row was deleted
      */
     public boolean deleteQuestion(int id) {
-        return query("DELETE FROM form_question WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("form_question", id);
     }
 
     /**
@@ -391,7 +398,7 @@ public class FormRepository {
      * @return list of responses
      */
     public List<FormResponse> findResponses(int formId) {
-        return query("SELECT * FROM form_response WHERE form_id = :form_id ORDER BY submitted_at;")
+        return query("SELECT %s FROM form_response WHERE form_id = :form_id ORDER BY submitted_at;", RESPONSE_COLUMNS)
                 .single(call().bind("form_id", formId))
                 .map(FormResponse.map())
                 .all();
@@ -405,7 +412,9 @@ public class FormRepository {
      * @return the response, or empty if the member has not responded
      */
     public Optional<FormResponse> findResponse(int formId, int memberId) {
-        return query("SELECT * FROM form_response WHERE form_id = :form_id AND member_id = :member_id;")
+        return query(
+                        "SELECT %s FROM form_response WHERE form_id = :form_id AND member_id = :member_id;",
+                        RESPONSE_COLUMNS)
                 .single(call().bind("form_id", formId).bind("member_id", memberId))
                 .map(FormResponse.map())
                 .first();
@@ -416,10 +425,7 @@ public class FormRepository {
      * a {@code responseId} actually belongs to the form being acknowledged.
      */
     public Optional<FormResponse> findResponseById(int responseId) {
-        return query("SELECT * FROM form_response WHERE id = :id;")
-                .single(call().bind("id", responseId))
-                .map(FormResponse.map())
-                .first();
+        return SqlSupport.findById("form_response", RESPONSE_COLUMNS, responseId, FormResponse.map());
     }
 
     /**
@@ -447,7 +453,8 @@ public class FormRepository {
      * @return the created or updated response
      */
     public FormResponse createResponse(int formId, int memberId, int submittedBy) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT
                 INTO
                     form_response(form_id, member_id, submitted_by)
@@ -458,13 +465,10 @@ public class FormRepository {
                     SET
                         submitted_by = :submitted_by,
                         updated_at   = now()
-                RETURNING *;""")
-                .single(call().bind("form_id", formId)
-                        .bind("member_id", memberId)
-                        .bind("submitted_by", submittedBy))
-                .map(FormResponse.map())
-                .first()
-                .orElseThrow();
+                RETURNING %s;""",
+                call().bind("form_id", formId).bind("member_id", memberId).bind("submitted_by", submittedBy),
+                FormResponse.map(),
+                RESPONSE_COLUMNS);
     }
 
     /**
@@ -475,16 +479,16 @@ public class FormRepository {
      * @return the newly created response
      */
     public FormResponse createAnonymousResponse(int formId, byte[] submitterHash, ConsentProof consent) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT INTO form_response(form_id, member_id, submitted_by, submitter_hash, consent_proof)
                 VALUES (:form_id, NULL, NULL, :submitter_hash, :consent_proof::JSONB)
-                RETURNING *;""")
-                .single(call().bind("form_id", formId)
+                RETURNING %s;""",
+                call().bind("form_id", formId)
                         .bind("submitter_hash", submitterHash)
-                        .bind("consent_proof", consent.toJson()))
-                .map(FormResponse.map())
-                .first()
-                .orElseThrow();
+                        .bind("consent_proof", consent.toJson()),
+                FormResponse.map(),
+                RESPONSE_COLUMNS);
     }
 
     /**
@@ -497,13 +501,13 @@ public class FormRepository {
     public Optional<FormResponse> findAnonymousResponse(int formId, byte[] submitterHash) {
         return query("""
                 SELECT
-                    *
+                    %s
                 FROM
                     form_response
                 WHERE form_id = :form_id
                   AND submitter_hash = :submitter_hash
                 ORDER BY submitted_at DESC
-                LIMIT 1;""")
+                LIMIT 1;""", RESPONSE_COLUMNS)
                 .single(call().bind("form_id", formId).bind("submitter_hash", submitterHash))
                 .map(FormResponse.map())
                 .first();
@@ -516,10 +520,7 @@ public class FormRepository {
      * @return {@code true} if a row was deleted
      */
     public boolean deleteResponse(int responseId) {
-        return query("DELETE FROM form_response WHERE id = :id;")
-                .single(call().bind("id", responseId))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("form_response", responseId);
     }
 
     /**
@@ -529,11 +530,8 @@ public class FormRepository {
      * @return the response count
      */
     public int countResponses(int formId) {
-        return query("SELECT count(*) AS cnt FROM form_response WHERE form_id = :form_id;")
-                .single(call().bind("form_id", formId))
-                .map(row -> row.getInt("cnt"))
-                .first()
-                .orElse(0);
+        return SqlSupport.count(
+                "SELECT count(*) AS cnt FROM form_response WHERE form_id = :form_id;", call().bind("form_id", formId));
     }
 
     /**
@@ -544,11 +542,9 @@ public class FormRepository {
      * @return {@code true} if the member has responded
      */
     public boolean hasResponded(int formId, int memberId) {
-        return query("SELECT 1 FROM form_response WHERE form_id = :form_id AND member_id = :member_id;")
-                .single(call().bind("form_id", formId).bind("member_id", memberId))
-                .map(_ -> true)
-                .first()
-                .isPresent();
+        return SqlSupport.exists(
+                "SELECT 1 FROM form_response WHERE form_id = :form_id AND member_id = :member_id;",
+                call().bind("form_id", formId).bind("member_id", memberId));
     }
 
     // -- Answers --
@@ -560,7 +556,7 @@ public class FormRepository {
      * @return list of answers
      */
     public List<FormAnswer> findAnswers(int responseId) {
-        return query("SELECT * FROM form_answer WHERE response_id = :response_id;")
+        return query("SELECT %s FROM form_answer WHERE response_id = :response_id;", ANSWER_COLUMNS)
                 .single(call().bind("response_id", responseId))
                 .map(FormAnswer.map())
                 .all();
@@ -573,7 +569,7 @@ public class FormRepository {
      * @return list of answers from all respondents
      */
     public List<FormAnswer> findAllAnswersForQuestion(int questionId) {
-        return query("SELECT * FROM form_answer WHERE question_id = :question_id;")
+        return query("SELECT %s FROM form_answer WHERE question_id = :question_id;", ANSWER_COLUMNS)
                 .single(call().bind("question_id", questionId))
                 .map(FormAnswer.map())
                 .all();

@@ -10,7 +10,8 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import FieldValueDisplay from '@/components/display/FieldValueDisplay.vue'
 import ChangeHistory from './ChangeHistory.vue'
-import type { ProfileField, ProfileFieldChange } from '@/api/types'
+import type { ProfileFieldChange } from '@/api/profileFieldChanges'
+import type { ProfileField } from '@/api/profileFields'
 
 defineProps<{
   applicableFields: ProfileField[]

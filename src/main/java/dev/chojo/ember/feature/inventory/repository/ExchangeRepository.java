@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.inventory.repository;
 import dev.chojo.ember.feature.inventory.entity.ExchangeLog;
 import dev.chojo.ember.feature.inventory.entity.ExchangeRequest;
 import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
@@ -23,6 +24,10 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  */
 @Singleton
 public class ExchangeRepository {
+    private static final String EXCHANGE_REQUEST_COLUMNS =
+            "id, station_id, member_id, item_id, inventory_id, old_size_id, new_size_id, exchanged_item_id, status, reason, created_at, updated_at, created_by";
+    private static final String EXCHANGE_LOG_COLUMNS =
+            "id, request_id, old_status, new_status, changed_by, changed_at, note";
 
     /**
      * Creates a new exchange request.
@@ -46,21 +51,21 @@ public class ExchangeRepository {
             Integer newSizeId,
             String reason,
             Integer createdBy) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT INTO equipment_exchange_request(station_id, member_id, item_id, inventory_id, old_size_id, new_size_id, reason, created_by)
                 VALUES(:station_id, :member_id, :item_id, :inventory_id, :old_size_id, :new_size_id, :reason, :created_by)
-                RETURNING *;""")
-                .single(call().bind("station_id", stationId)
+                RETURNING %s;""",
+                call().bind("station_id", stationId)
                         .bind("member_id", memberId)
                         .bind("item_id", itemId)
                         .bind("inventory_id", inventoryId)
                         .bind("old_size_id", oldSizeId)
                         .bind("new_size_id", newSizeId)
                         .bind("reason", reason != null ? reason : "")
-                        .bind("created_by", createdBy))
-                .map(ExchangeRequest.map())
-                .first()
-                .orElseThrow();
+                        .bind("created_by", createdBy),
+                ExchangeRequest.map(),
+                EXCHANGE_REQUEST_COLUMNS);
     }
 
     /**
@@ -70,10 +75,7 @@ public class ExchangeRepository {
      * @return the exchange request, or empty if not found
      */
     public Optional<ExchangeRequest> findById(int id) {
-        return query("SELECT * FROM equipment_exchange_request WHERE id = :id;")
-                .single(call().bind("id", id))
-                .map(ExchangeRequest.map())
-                .first();
+        return SqlSupport.findById("equipment_exchange_request", EXCHANGE_REQUEST_COLUMNS, id, ExchangeRequest.map());
     }
 
     /**
@@ -83,8 +85,8 @@ public class ExchangeRepository {
      * @return list of exchange requests
      */
     public List<ExchangeRequest> findByStation(int stationId) {
-        return query(
-                        "SELECT * FROM equipment_exchange_request WHERE station_id = :station_id ORDER BY created_at DESC;")
+        return query("""
+                SELECT %s FROM equipment_exchange_request WHERE station_id = :station_id ORDER BY created_at DESC;""", EXCHANGE_REQUEST_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(ExchangeRequest.map())
                 .all();
@@ -97,7 +99,8 @@ public class ExchangeRepository {
      * @return list of exchange requests
      */
     public List<ExchangeRequest> findByMember(int memberId) {
-        return query("SELECT * FROM equipment_exchange_request WHERE member_id = :member_id ORDER BY created_at DESC;")
+        return query("""
+                SELECT %s FROM equipment_exchange_request WHERE member_id = :member_id ORDER BY created_at DESC;""", EXCHANGE_REQUEST_COLUMNS)
                 .single(call().bind("member_id", memberId))
                 .map(ExchangeRequest.map())
                 .all();
@@ -150,18 +153,18 @@ public class ExchangeRepository {
      */
     public ExchangeLog createLog(
             int requestId, ExchangeStatus oldStatus, ExchangeStatus newStatus, int changedBy, String note) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT INTO equipment_exchange_log(request_id, old_status, new_status, changed_by, note)
                 VALUES(:request_id, :old_status, :new_status, :changed_by, :note)
-                RETURNING *;""")
-                .single(call().bind("request_id", requestId)
+                RETURNING %s;""",
+                call().bind("request_id", requestId)
                         .bind("old_status", oldStatus)
                         .bind("new_status", newStatus)
                         .bind("changed_by", changedBy)
-                        .bind("note", note != null ? note : ""))
-                .map(ExchangeLog.map())
-                .first()
-                .orElseThrow();
+                        .bind("note", note != null ? note : ""),
+                ExchangeLog.map(),
+                EXCHANGE_LOG_COLUMNS);
     }
 
     /**
@@ -171,19 +174,17 @@ public class ExchangeRepository {
      * @return list of log entries
      */
     public List<ExchangeLog> findLogs(int requestId) {
-        return query("SELECT * FROM equipment_exchange_log WHERE request_id = :request_id ORDER BY changed_at ASC;")
+        return query("""
+                SELECT %s FROM equipment_exchange_log WHERE request_id = :request_id ORDER BY changed_at ASC;""", EXCHANGE_LOG_COLUMNS)
                 .single(call().bind("request_id", requestId))
                 .map(ExchangeLog.map())
                 .all();
     }
 
     public int countPendingByStation(int stationId) {
-        return query(
-                        "SELECT count(*) FROM equipment_exchange_request WHERE station_id = :station_id AND status != :done;")
-                .single(call().bind("station_id", stationId).bind("done", ExchangeStatus.DONE))
-                .map(row -> row.getInt(1))
-                .first()
-                .orElse(0);
+        return SqlSupport.count(
+                "SELECT count(*) FROM equipment_exchange_request WHERE station_id = :station_id AND status != :done;",
+                call().bind("station_id", stationId).bind("done", ExchangeStatus.DONE));
     }
 
     /**
@@ -193,9 +194,6 @@ public class ExchangeRepository {
      * @return {@code true} if the request was deleted
      */
     public boolean delete(int id) {
-        return query("DELETE FROM equipment_exchange_request WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("equipment_exchange_request", id);
     }
 }

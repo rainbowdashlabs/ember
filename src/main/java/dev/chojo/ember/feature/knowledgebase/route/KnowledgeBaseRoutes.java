@@ -5,49 +5,29 @@
  */
 package dev.chojo.ember.feature.knowledgebase.route;
 
-import dev.chojo.ember.api.FederationSession;
-import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.api.auth.StationUserType;
-import dev.chojo.ember.event.DomainEventBus;
-import dev.chojo.ember.event.events.CommentDeleted;
-import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
-import dev.chojo.ember.feature.events.repository.EventFederationRepository;
-import dev.chojo.ember.feature.federation.entity.FederationPartner;
-import dev.chojo.ember.feature.federation.entity.FederationShare;
-import dev.chojo.ember.feature.federation.repository.FederationRepository;
-import dev.chojo.ember.feature.federation.service.FederationDisplayNames;
-import dev.chojo.ember.feature.federation.service.FederationHttpClient;
-import dev.chojo.ember.feature.knowledgebase.entity.KbAccessRestriction;
-import dev.chojo.ember.feature.knowledgebase.entity.KbComment;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
-import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
+import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
+import dev.chojo.ember.feature.knowledgebase.service.KbAuthorNameService;
+import dev.chojo.ember.feature.knowledgebase.service.KbContentService;
 import dev.chojo.ember.feature.knowledgebase.service.KbIconService;
 import dev.chojo.ember.feature.knowledgebase.service.KbImageService;
+import dev.chojo.ember.feature.knowledgebase.service.KbPresentationService;
+import dev.chojo.ember.feature.knowledgebase.service.KbSearchService;
+import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
-import dev.chojo.ember.feature.members.entity.MemberGroup;
-import dev.chojo.ember.feature.members.entity.UserTag;
-import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.members.repository.UserTagRepository;
-import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
-import dev.chojo.ember.feature.members.service.MemberNameResolver;
-import dev.chojo.ember.feature.restriction.RestrictionSelection;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.PandocConverter;
 import dev.chojo.ember.util.SafeContentDisposition;
 import dev.chojo.ember.util.SafeInlineMime;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ContentType;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.InternalServerErrorResponse;
 import io.javalin.http.NotFoundResponse;
@@ -60,99 +40,55 @@ import org.slf4j.Logger;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
+import static dev.chojo.ember.feature.knowledgebase.route.KbRouteAccess.requireOwnedFile;
+import static dev.chojo.ember.feature.knowledgebase.route.KbRouteAccess.requireOwnedFolder;
 import static org.slf4j.LoggerFactory.getLogger;
 
+/**
+ * Local knowledge-base routes: folders, files and their content, version history, related files,
+ * search, browsing and the images embedded in knowledge-base content.
+ */
 @Singleton
 public class KnowledgeBaseRoutes implements Routes {
     private static final Logger log = getLogger(KnowledgeBaseRoutes.class);
-    private static final long MAX_UPLOAD_SIZE = 50 * 1024 * 1024; // 50 MB
-
+    private static final long MAX_UPLOAD_SIZE = 50 * 1024 * 1024;
     private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of("image/png", "image/jpeg", "image/webp");
 
     private final KnowledgeBaseService service;
-    private final StationMemberRepository stationMemberRepository;
-    private final AccountRepository accountRepository;
-    private final MemberGroupRepository memberGroupRepository;
-    private final UserTagRepository userTagRepository;
+    private final KbContentService contentService;
+    private final KbSearchService searchService;
+    private final KbAccessService accessService;
+    private final KbPresentationService presentationService;
+    private final KbAuthorNameService authorNameService;
+    private final KnowledgeBaseFederationService federationService;
     private final KbIconService iconService;
     private final KbImageService imageService;
-    private final FederationRepository federationRepository;
-    private final StationRepository stationRepository;
-    private final KbCommentRepository kbCommentRepository;
-    private final EventFederationRepository eventFederationRepository;
-    private final FederationHttpClient federationHttpClient;
-    private final DomainEventBus eventBus;
-    private final MemberNameResolver memberNameResolver;
-    private final MemberIdentityFactory memberIdentityFactory;
 
     @Inject
     public KnowledgeBaseRoutes(
             KnowledgeBaseService service,
-            StationMemberRepository stationMemberRepository,
-            AccountRepository accountRepository,
-            MemberGroupRepository memberGroupRepository,
-            UserTagRepository userTagRepository,
+            KbContentService contentService,
+            KbSearchService searchService,
+            KbAccessService accessService,
+            KbPresentationService presentationService,
+            KbAuthorNameService authorNameService,
+            KnowledgeBaseFederationService federationService,
             KbIconService iconService,
-            KbImageService imageService,
-            FederationRepository federationRepository,
-            StationRepository stationRepository,
-            KbCommentRepository kbCommentRepository,
-            EventFederationRepository eventFederationRepository,
-            FederationHttpClient federationHttpClient,
-            DomainEventBus eventBus,
-            MemberNameResolver memberNameResolver,
-            MemberIdentityFactory memberIdentityFactory) {
+            KbImageService imageService) {
         this.service = service;
-        this.stationMemberRepository = stationMemberRepository;
-        this.accountRepository = accountRepository;
-        this.memberGroupRepository = memberGroupRepository;
-        this.userTagRepository = userTagRepository;
+        this.contentService = contentService;
+        this.searchService = searchService;
+        this.accessService = accessService;
+        this.presentationService = presentationService;
+        this.authorNameService = authorNameService;
+        this.federationService = federationService;
         this.iconService = iconService;
         this.imageService = imageService;
-        this.federationRepository = federationRepository;
-        this.stationRepository = stationRepository;
-        this.kbCommentRepository = kbCommentRepository;
-        this.eventFederationRepository = eventFederationRepository;
-        this.federationHttpClient = federationHttpClient;
-        this.eventBus = eventBus;
-        this.memberNameResolver = memberNameResolver;
-        this.memberIdentityFactory = memberIdentityFactory;
-    }
-
-    /**
-     * Loads a knowledge-base file and asserts it belongs to the caller's station, returning it.
-     * Answers 404 when the file is absent and 403 when owned by another station, so a file id
-     * from one station cannot expose its content, metadata, or comments to another.
-     */
-    private KbFile requireOwnedFile(int fileId, UserSession session) {
-        var file = service.findFile(fileId).orElseThrow(NotFoundResponse::new);
-        if (file.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
-        return file;
-    }
-
-    /**
-     * Loads a knowledge-base folder and asserts it belongs to the caller's station, returning it.
-     * Answers 404 when the folder is absent and 403 when owned by another station.
-     */
-    private KbFolder requireOwnedFolder(int folderId, UserSession session) {
-        var folder = service.findFolder(folderId).orElseThrow(NotFoundResponse::new);
-        if (folder.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
-        return folder;
     }
 
     private static String detectPandocFormat(String filename, String mimeType) {
@@ -185,38 +121,38 @@ public class KnowledgeBaseRoutes implements Routes {
         return file;
     }
 
+    private static Integer optionalFolderId(Context ctx, String param) {
+        return ctx.queryParam(param) != null
+                ? ctx.queryParamAsClass(param, Integer.class).get()
+                : null;
+    }
+
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        // Folders
         routes.get(prefix + "/kb/folders", this::listFolders, StationPermission.USER);
         routes.post(prefix + "/kb/folders", this::createFolder, StationPermission.KNOWLEDGE_EDIT);
         routes.get(prefix + "/kb/folders/{id}", this::getFolder, StationPermission.USER);
         routes.put(prefix + "/kb/folders/{id}", this::updateFolder, StationPermission.KNOWLEDGE_EDIT);
         routes.delete(prefix + "/kb/folders/{id}", this::deleteFolder, StationPermission.KNOWLEDGE_EDIT);
 
-        // Files
         routes.get(prefix + "/kb/files", this::listFiles, StationPermission.USER);
         routes.get(prefix + "/kb/files/{id}", this::getFile, StationPermission.USER);
         routes.put(prefix + "/kb/files/{id}", this::updateFile, StationPermission.KNOWLEDGE_EDIT);
         routes.delete(prefix + "/kb/files/{id}", this::deleteFile, StationPermission.KNOWLEDGE_EDIT);
 
-        // File creation
         routes.post(prefix + "/kb/files/markdown", this::createMarkdownFile, StationPermission.KNOWLEDGE_EDIT);
         routes.post(prefix + "/kb/files/youtube", this::createYoutubeFile, StationPermission.KNOWLEDGE_EDIT);
         routes.post(prefix + "/kb/files/upload", this::uploadFile, StationPermission.KNOWLEDGE_EDIT);
         routes.post(prefix + "/kb/files/import-document", this::importDocument, StationPermission.KNOWLEDGE_EDIT);
         routes.post(prefix + "/kb/files/link", this::createLinkFile, StationPermission.KNOWLEDGE_EDIT);
 
-        // File content
         routes.get(prefix + "/kb/files/{id}/content", this::getFileContent, StationPermission.USER);
         routes.get(prefix + "/kb/files/{id}/html", this::getMarkdownHtml, StationPermission.USER);
         routes.put(prefix + "/kb/files/{id}/content", this::updateMarkdownContent, StationPermission.KNOWLEDGE_EDIT);
 
-        // Presentation original file
         routes.get(prefix + "/kb/files/{id}/original", this::getOriginalFile, StationPermission.USER);
         routes.put(prefix + "/kb/files/{id}/original", this::reuploadOriginal, StationPermission.KNOWLEDGE_EDIT);
 
-        // Versions (markdown only)
         routes.get(prefix + "/kb/files/{id}/versions", this::listVersions, StationPermission.USER);
         routes.get(prefix + "/kb/files/{id}/versions/{version}", this::getVersion, StationPermission.USER);
         routes.post(
@@ -224,156 +160,22 @@ public class KnowledgeBaseRoutes implements Routes {
                 this::revertToVersion,
                 StationPermission.KNOWLEDGE_EDIT);
 
-        // Related files
         routes.get(prefix + "/kb/files/{id}/related", this::getRelatedFiles, StationPermission.USER);
         routes.put(prefix + "/kb/files/{id}/related", this::setRelatedFiles, StationPermission.KNOWLEDGE_EDIT);
 
-        // Search
         routes.get(prefix + "/kb/search", this::search, StationPermission.USER);
-
-        // Browse (combined folders + files for a given parent)
         routes.get(prefix + "/kb/browse", this::browse, StationPermission.USER);
 
-        // Access restrictions
-        routes.get(
-                prefix + "/kb/folders/{id}/restrictions",
-                this::getFolderRestrictions,
-                StationPermission.KNOWLEDGE_FEDERATE);
-        routes.put(
-                prefix + "/kb/folders/{id}/restrictions",
-                this::setFolderRestrictions,
-                StationPermission.KNOWLEDGE_FEDERATE);
-        routes.get(
-                prefix + "/kb/files/{id}/restrictions",
-                this::getFileRestrictions,
-                StationPermission.KNOWLEDGE_FEDERATE);
-        routes.put(
-                prefix + "/kb/files/{id}/restrictions",
-                this::setFileRestrictions,
-                StationPermission.KNOWLEDGE_FEDERATE);
-
-        // Public visibility overrides
-        routes.get(
-                prefix + "/kb/files/{id}/public-visibility",
-                this::getFilePublicVisibility,
-                StationPermission.KNOWLEDGE_EDIT);
-        routes.put(
-                prefix + "/kb/files/{id}/public-visibility",
-                this::setFilePublicVisibility,
-                StationPermission.KNOWLEDGE_EDIT);
-        routes.get(
-                prefix + "/kb/folders/{id}/public-visibility",
-                this::getFolderPublicVisibility,
-                StationPermission.KNOWLEDGE_EDIT);
-        routes.put(
-                prefix + "/kb/folders/{id}/public-visibility",
-                this::setFolderPublicVisibility,
-                StationPermission.KNOWLEDGE_EDIT);
-
-        // Folder icons
         routes.get(prefix + "/kb/folders/{id}/icon", this::getFolderIcon, StationPermission.USER);
         routes.post(prefix + "/kb/folders/{id}/icon", this::uploadFolderIcon, StationPermission.KNOWLEDGE_EDIT);
 
-        // KB Images (for markdown embedding)
         routes.post(prefix + "/kb/files/{id}/images", this::uploadKbImage, StationPermission.KNOWLEDGE_EDIT);
         routes.get(prefix + "/kb/images/{imageId}", this::getKbImage, StationPermission.USER);
-
-        // Tags
-        routes.get(prefix + "/kb/tags", this::listTags, StationPermission.USER);
-        routes.get(prefix + "/kb/tags/{name}/scope", this::getTagScope, StationPermission.USER);
-        routes.get(prefix + "/kb/files/{id}/tags", this::getFileTags, StationPermission.USER);
-        routes.put(prefix + "/kb/files/{id}/tags", this::setFileTags, StationPermission.KNOWLEDGE_EDIT);
-        routes.get(prefix + "/kb/folders/{id}/tags", this::getFolderTags, StationPermission.USER);
-        routes.put(prefix + "/kb/folders/{id}/tags", this::setFolderTags, StationPermission.KNOWLEDGE_EDIT);
-
-        // KB Comments (local)
-        routes.get(prefix + "/kb/files/{fileId}/comments", this::listComments, StationPermission.LOGIN);
-        routes.post(prefix + "/kb/files/{fileId}/comments", this::createComment, StationPermission.LOGIN);
-        routes.put(prefix + "/kb/comments/{commentId}", this::updateComment, StationPermission.LOGIN);
-        routes.delete(prefix + "/kb/comments/{commentId}", this::deleteComment, StationPermission.LOGIN);
-
-        // Federated (user-facing, bearer token auth)
-        routes.get(prefix + "/federated/kb", this::federatedBrowseKb, StationPermission.USER);
-        routes.get(prefix + "/federated/{stationuid}/kb/files/{id}", this::federatedGetFile, StationPermission.USER);
-        routes.get(
-                prefix + "/federated/{stationuid}/kb/files/{id}/content",
-                this::federatedGetFileContent,
-                StationPermission.USER);
-        routes.post(
-                prefix + "/federated/kb/files/{id}/copy", this::federatedCopyFile, StationPermission.KNOWLEDGE_EDIT);
-        routes.post(
-                prefix + "/federated/{stationuid}/kb/files/{id}/copy",
-                this::federatedCopyFile,
-                StationPermission.KNOWLEDGE_EDIT);
-
-        // Federated KB comments (user-facing proxy)
-        routes.get(
-                prefix + "/federated/{stationuid}/kb/files/{fileId}/comments",
-                this::federatedListComments,
-                StationPermission.LOGIN);
-        routes.post(
-                prefix + "/federated/{stationuid}/kb/files/{fileId}/comments",
-                this::federatedCreateComment,
-                StationPermission.LOGIN);
-        routes.put(
-                prefix + "/federated/{stationuid}/kb/comments/{commentId}",
-                this::federatedUpdateComment,
-                StationPermission.LOGIN);
-        routes.delete(
-                prefix + "/federated/{stationuid}/kb/comments/{commentId}",
-                this::federatedDeleteComment,
-                StationPermission.LOGIN);
-
-        // Remote (server-to-server, RSA signature auth)
-        routes.get(prefix + "/remote/kb/browse", this::remoteBrowseKb);
-        routes.get(prefix + "/remote/kb/search", this::remoteSearchKb);
-        routes.get(prefix + "/remote/kb/files/{id}", this::remoteGetFile);
-        routes.get(prefix + "/remote/kb/files/{id}/content", this::remoteGetFileContent);
-        routes.get(prefix + "/remote/kb/files/{fileId}/comments", this::remoteListComments);
-        routes.post(prefix + "/remote/kb/files/{fileId}/comments", this::remoteCreateComment);
-        routes.put(prefix + "/remote/kb/comments/{commentId}", this::remoteUpdateComment);
-        routes.delete(prefix + "/remote/kb/comments/{commentId}", this::remoteDeleteComment);
-    }
-
-    private String resolveFolderPath(Integer folderId) {
-        if (folderId == null) return "/";
-        var parts = new ArrayList<String>();
-        Integer current = folderId;
-        while (current != null) {
-            var folder = service.findFolder(current);
-            if (folder.isEmpty()) break;
-            parts.addFirst(folder.get().name());
-            current = folder.get().parentId();
-        }
-        return "/" + String.join("/", parts);
-    }
-
-    // -- Folders --
-
-    private String resolveMemberName(int memberId) {
-        return stationMemberRepository
-                .findById(memberId)
-                .map(member -> {
-                    if (member.displayName() != null && !member.displayName().isBlank()) {
-                        return member.displayName();
-                    }
-                    if (member.accountId() != null) {
-                        return accountRepository
-                                .findById(member.accountId())
-                                .map(Account::fullName)
-                                .orElse("Unbekannt");
-                    }
-                    return "Unbekannt";
-                })
-                .orElse("Unbekannt");
     }
 
     private void listFolders(Context ctx) {
         var session = UserSession.from(ctx);
-        Integer parentId = ctx.queryParam("parentId") != null
-                ? ctx.queryParamAsClass("parentId", Integer.class).get()
-                : null;
-        ctx.json(service.findFolders(session.stationId(), parentId));
+        ctx.json(service.findFolders(session.stationId(), optionalFolderId(ctx, "parentId")));
     }
 
     private void createFolder(Context ctx) {
@@ -389,14 +191,13 @@ public class KnowledgeBaseRoutes implements Routes {
     }
 
     private void getFolder(Context ctx) {
-        var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        ctx.json(requireOwnedFolder(id, session));
+        ctx.json(requireOwnedFolder(ctx, service, id));
     }
 
     private void updateFolder(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedFolder(id, UserSession.from(ctx));
+        requireOwnedFolder(ctx, service, id);
         var req = ctx.bodyAsClass(FolderRequest.class);
         if (!service.updateFolder(
                 id,
@@ -411,35 +212,29 @@ public class KnowledgeBaseRoutes implements Routes {
         });
     }
 
-    // -- Files --
-
     private void deleteFolder(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedFolder(id, UserSession.from(ctx));
+        requireOwnedFolder(ctx, service, id);
         if (!service.deleteFolder(id)) throw new NotFoundResponse();
         ctx.status(204);
     }
 
     private void listFiles(Context ctx) {
         var session = UserSession.from(ctx);
-        Integer folderId = ctx.queryParam("folderId") != null
-                ? ctx.queryParamAsClass("folderId", Integer.class).get()
-                : null;
-        ctx.json(service.findFiles(session.stationId(), folderId).stream()
+        ctx.json(service.findFiles(session.stationId(), optionalFolderId(ctx, "folderId")).stream()
                 .map(KbFileSummary::of)
                 .toList());
     }
 
     private void getFile(Context ctx) {
-        var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var file = requireOwnedFile(id, session);
-        ctx.json(new FileResponse(file, resolveMemberName(file.createdBy())));
+        var file = requireOwnedFile(ctx, service, id);
+        ctx.json(new FileResponse(file, authorNameService.resolveMemberName(file.createdBy())));
     }
 
     private void updateFile(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedFile(id, UserSession.from(ctx));
+        requireOwnedFile(ctx, service, id);
         var req = ctx.bodyAsClass(FileUpdateRequest.class);
         if (!service.updateFile(
                 id,
@@ -454,11 +249,9 @@ public class KnowledgeBaseRoutes implements Routes {
         });
     }
 
-    // -- File Creation --
-
     private void deleteFile(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedFile(id, UserSession.from(ctx));
+        requireOwnedFile(ctx, service, id);
         if (!service.deleteFile(id)) throw new NotFoundResponse();
         ctx.status(204);
     }
@@ -536,7 +329,6 @@ public class KnowledgeBaseRoutes implements Routes {
         String name = ctx.formParam("name");
         if (name == null || name.isBlank()) {
             name = file.filename();
-            // Strip extension for the title
             int dot = name.lastIndexOf('.');
             if (dot > 0) name = name.substring(0, dot);
         }
@@ -545,7 +337,6 @@ public class KnowledgeBaseRoutes implements Routes {
         String folderIdStr = ctx.formParam("folderId");
         if (folderIdStr != null && !folderIdStr.isBlank()) folderId = Integer.parseInt(folderIdStr);
 
-        // Detect format from filename/mime
         String format = detectPandocFormat(file.filename(), file.contentType());
         if (format == null) {
             throw new BadRequestResponse("Unsupported document format. Supported: .docx, .odt, .html, .rtf");
@@ -567,22 +358,19 @@ public class KnowledgeBaseRoutes implements Routes {
         }
     }
 
-    // -- Content --
-
     private void getFileContent(Context ctx) {
-        var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var file = requireOwnedFile(id, session);
+        var file = requireOwnedFile(ctx, service, id);
 
         switch (file.fileType()) {
             case MARKDOWN, TEXT -> {
-                var text = service.getMarkdownContent(id);
+                var text = contentService.getMarkdownContent(id);
                 if (text.isEmpty()) throw new NotFoundResponse();
                 ctx.contentType(ContentType.TEXT_PLAIN);
                 ctx.result(text.get());
             }
             case PDF, IMAGE, OTHER -> {
-                var data = service.getFileContent(id);
+                var data = contentService.getFileContent(id);
                 if (data.isEmpty()) throw new NotFoundResponse();
                 String mime = SafeInlineMime.safeContentType(file.mimeType());
                 var disposition = SafeInlineMime.isInlineSafe(file.mimeType())
@@ -593,7 +381,7 @@ public class KnowledgeBaseRoutes implements Routes {
                 ctx.result(data.get());
             }
             case PRESENTATION -> {
-                var pdf = service.getPresentationPdf(id);
+                var pdf = presentationService.getPresentationPdf(id);
                 if (pdf.isEmpty()) throw new NotFoundResponse("Conversion not ready");
                 ctx.contentType("application/pdf");
                 ctx.header(
@@ -607,35 +395,31 @@ public class KnowledgeBaseRoutes implements Routes {
     }
 
     private void getMarkdownHtml(Context ctx) {
-        var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        requireOwnedFile(id, session);
-        var text = service.getMarkdownContent(id);
+        requireOwnedFile(ctx, service, id);
+        var text = contentService.getMarkdownContent(id);
         if (text.isEmpty()) throw new NotFoundResponse();
-        String html = service.renderMarkdown(text.get());
+        String html = contentService.renderMarkdown(text.get());
         ctx.json(new MarkdownHtmlResponse(html, text.get()));
     }
 
     private void updateMarkdownContent(Context ctx) {
         int id = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
-        requireOwnedFile(id, session);
+        requireOwnedFile(ctx, service, id);
         var req = ctx.bodyAsClass(ContentUpdateRequest.class);
-        service.updateMarkdownContent(
+        contentService.updateMarkdownContent(
                 id, req.content() != null ? req.content() : "", session.member().id());
         ctx.status(204);
     }
 
-    // -- Presentation Original --
-
     private void getOriginalFile(Context ctx) {
-        var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var file = requireOwnedFile(id, session);
+        var file = requireOwnedFile(ctx, service, id);
         if (file.fileType() != KbFileType.PRESENTATION) {
             throw new BadRequestResponse("Only presentation files have an original");
         }
-        var data = service.getFileContent(id);
+        var data = contentService.getFileContent(id);
         if (data.isEmpty()) throw new NotFoundResponse();
         ctx.contentType(SafeInlineMime.safeContentType(file.mimeType()));
         ctx.header(
@@ -645,19 +429,15 @@ public class KnowledgeBaseRoutes implements Routes {
     }
 
     private void reuploadOriginal(Context ctx) {
-        var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        var file = service.findFile(id).orElseThrow(NotFoundResponse::new);
+        var file = requireOwnedFile(ctx, service, id);
         if (file.fileType() != KbFileType.PRESENTATION) {
             throw new BadRequestResponse("Only presentation files support re-upload");
-        }
-        if (file.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
         }
         var uploaded = requireUpload(ctx);
         try (var content = uploaded.content()) {
             byte[] data = content.readAllBytes();
-            service.reuploadPresentation(id, data, uploaded.contentType(), uploaded.filename());
+            presentationService.reuploadPresentation(id, data, uploaded.contentType(), uploaded.filename());
             ctx.json(service.findFile(id).orElseThrow());
         } catch (Exception e) {
             log.warn("Failed to re-upload presentation file", e);
@@ -665,30 +445,25 @@ public class KnowledgeBaseRoutes implements Routes {
         }
     }
 
-    // -- Versions --
-
     private void listVersions(Context ctx) {
-        var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        requireOwnedFile(id, session);
-        var versions = service.findVersions(id);
-        ctx.json(versions.stream()
+        requireOwnedFile(ctx, service, id);
+        ctx.json(contentService.findVersions(id).stream()
                 .map(v -> new VersionResponse(
                         v.id(),
                         v.version(),
                         v.isFull(),
                         v.createdBy(),
-                        resolveMemberName(v.createdBy()),
+                        authorNameService.resolveMemberName(v.createdBy()),
                         v.createdAt()))
                 .toList());
     }
 
     private void getVersion(Context ctx) {
-        var session = UserSession.from(ctx);
         int fileId = pathInt(ctx, "id");
         int version = pathInt(ctx, "version");
-        requireOwnedFile(fileId, session);
-        service.findVersion(fileId, version).ifPresentOrElse(ctx::json, () -> {
+        requireOwnedFile(ctx, service, fileId);
+        contentService.findVersion(fileId, version).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
         });
     }
@@ -697,32 +472,24 @@ public class KnowledgeBaseRoutes implements Routes {
         int fileId = pathInt(ctx, "id");
         int version = pathInt(ctx, "version");
         var session = UserSession.from(ctx);
-        var file = service.findFile(fileId).orElseThrow(NotFoundResponse::new);
-        if (file.stationId() != session.stationId()) {
-            throw new ForbiddenResponse("Cannot access resources from another station");
-        }
-        service.revertToVersion(fileId, version, session.member().id());
+        requireOwnedFile(ctx, service, fileId);
+        contentService.revertToVersion(fileId, version, session.member().id());
         ctx.status(204);
     }
 
-    // -- Related Files --
-
     private void getRelatedFiles(Context ctx) {
-        var session = UserSession.from(ctx);
         int id = pathInt(ctx, "id");
-        requireOwnedFile(id, session);
+        requireOwnedFile(ctx, service, id);
         ctx.json(service.findRelatedFiles(id));
     }
 
     private void setRelatedFiles(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedFile(id, UserSession.from(ctx));
+        requireOwnedFile(ctx, service, id);
         var req = ctx.bodyAsClass(RelatedFilesRequest.class);
         service.setRelatedFiles(id, req.fileIds() != null ? req.fileIds() : List.of());
         ctx.json(service.findRelatedFiles(id));
     }
-
-    // -- Search --
 
     private void search(Context ctx) {
         var session = UserSession.from(ctx);
@@ -733,10 +500,8 @@ public class KnowledgeBaseRoutes implements Routes {
             return;
         }
 
-        // Local search
-        var localFuture = CompletableFuture.supplyAsync(() -> service.searchWithSnippets(session.stationId(), query));
-
-        // Federated search (parallel)
+        var localFuture =
+                CompletableFuture.supplyAsync(() -> searchService.searchWithSnippets(session.stationId(), query));
         var federatedFuture = federated
                 ? CompletableFuture.supplyAsync(() -> searchFederated(session.stationId(), query))
                 : CompletableFuture.completedFuture(List.<SearchResultResponse>of());
@@ -746,173 +511,52 @@ public class KnowledgeBaseRoutes implements Routes {
                         r.file(), r.snippet(), resolveFolderPath(r.file().folderId()), null, null))
                 .toList();
 
-        var fedResults = federatedFuture.join();
-
         var all = new ArrayList<>(localResults);
-        all.addAll(fedResults);
+        all.addAll(federatedFuture.join());
         ctx.json(all);
     }
 
     private List<SearchResultResponse> searchFederated(int stationId, String query) {
-        return service.searchFederatedKb(stationId, query).stream()
+        return federationService.searchFederatedKb(stationId, query).stream()
                 .map(r ->
                         new SearchResultResponse(r.file().toKbFile(), r.snippet(), "", r.stationName(), r.stationUid()))
                 .toList();
     }
 
-    // -- Browse (combined) --
+    private String resolveFolderPath(Integer folderId) {
+        if (folderId == null) return "/";
+        var parts = new ArrayList<String>();
+        Integer current = folderId;
+        while (current != null) {
+            var folder = service.findFolder(current);
+            if (folder.isEmpty()) break;
+            parts.addFirst(folder.get().name());
+            current = folder.get().parentId();
+        }
+        return "/" + String.join("/", parts);
+    }
 
     private void browse(Context ctx) {
         var session = UserSession.from(ctx);
-        Integer folderId = ctx.queryParam("folderId") != null
-                ? ctx.queryParamAsClass("folderId", Integer.class).get()
-                : null;
+        Integer folderId = optionalFolderId(ctx, "folderId");
         var folders = service.findFolders(session.stationId(), folderId);
         var files = service.findFiles(session.stationId(), folderId);
         KbFolder currentFolder = folderId != null ? service.findFolder(folderId).orElse(null) : null;
 
-        // Filter by access restrictions unless user has KNOWLEDGE_MANAGER role
         if (!session.hasPermission(StationPermission.KNOWLEDGE_MANAGER)) {
-            int memberId = session.member().id();
-            StationUserType memberUserType = session.member().userType();
-            var memberGroupIds = memberGroupRepository.findGroupsForMember(memberId).stream()
-                    .map(MemberGroup::id)
-                    .toList();
-            var memberTagIds = userTagRepository.findTagsForMember(memberId).stream()
-                    .map(UserTag::id)
-                    .toList();
-
+            var access = accessService.memberAccess(
+                    session.member().id(), session.member().userType());
             folders = folders.stream()
-                    .filter(f ->
-                            service.canAccess(memberId, f.id(), null, memberUserType, memberGroupIds, memberTagIds))
+                    .filter(folder -> accessService.canAccess(access, folder.id(), null))
                     .toList();
             files = files.stream()
-                    .filter(f ->
-                            service.canAccess(memberId, null, f.id(), memberUserType, memberGroupIds, memberTagIds))
+                    .filter(file -> accessService.canAccess(access, null, file.id()))
                     .toList();
         }
 
         ctx.json(new BrowseResponse(
                 currentFolder, folders, files.stream().map(KbFileSummary::of).toList()));
     }
-
-    // -- Access Restrictions --
-
-    private void getFolderRestrictions(Context ctx) {
-        var session = UserSession.from(ctx);
-        int id = pathInt(ctx, "id");
-        requireOwnedFolder(id, session);
-        var restrictions = service.findRestrictions(id, null);
-        ctx.json(toRestrictionResponse(restrictions));
-    }
-
-    private void setFolderRestrictions(Context ctx) {
-        int id = pathInt(ctx, "id");
-        requireOwnedFolder(id, UserSession.from(ctx));
-        var req = ctx.bodyAsClass(RestrictionRequest.class);
-        service.setRestrictions(
-                id,
-                null,
-                new RestrictionSelection(
-                        req.userTypes() == null
-                                ? List.of()
-                                : req.userTypes().stream()
-                                        .map(StationUserType::valueOf)
-                                        .toList(),
-                        req.groupIds(),
-                        req.tagIds(),
-                        req.memberIds(),
-                        null));
-        ctx.json(toRestrictionResponse(service.findRestrictions(id, null)));
-    }
-
-    private void getFileRestrictions(Context ctx) {
-        var session = UserSession.from(ctx);
-        int id = pathInt(ctx, "id");
-        requireOwnedFile(id, session);
-        var restrictions = service.findRestrictions(null, id);
-        ctx.json(toRestrictionResponse(restrictions));
-    }
-
-    private void setFileRestrictions(Context ctx) {
-        int id = pathInt(ctx, "id");
-        requireOwnedFile(id, UserSession.from(ctx));
-        var req = ctx.bodyAsClass(RestrictionRequest.class);
-        service.setRestrictions(
-                null,
-                id,
-                new RestrictionSelection(
-                        req.userTypes() == null
-                                ? List.of()
-                                : req.userTypes().stream()
-                                        .map(StationUserType::valueOf)
-                                        .toList(),
-                        req.groupIds(),
-                        req.tagIds(),
-                        req.memberIds(),
-                        null));
-        ctx.json(toRestrictionResponse(service.findRestrictions(null, id)));
-    }
-
-    private RestrictionResponse toRestrictionResponse(List<KbAccessRestriction> restrictions) {
-        return new RestrictionResponse(
-                nonNullValues(restrictions, KbAccessRestriction::userType),
-                nonNullValues(restrictions, KbAccessRestriction::groupId),
-                nonNullValues(restrictions, KbAccessRestriction::tagId),
-                nonNullValues(restrictions, KbAccessRestriction::memberId));
-    }
-
-    /**
-     * Maps each restriction through {@code extractor} and returns the non-null results.
-     */
-    private static <R> List<R> nonNullValues(
-            List<KbAccessRestriction> restrictions, Function<KbAccessRestriction, R> extractor) {
-        return restrictions.stream().map(extractor).filter(Objects::nonNull).toList();
-    }
-
-    // -- Public Visibility --
-
-    private void getFilePublicVisibility(Context ctx) {
-        var session = UserSession.from(ctx);
-        int id = pathInt(ctx, "id");
-        requireOwnedFile(id, session);
-        var visible = service.findPublicVisibility(null, id).orElse(null);
-        ctx.json(new PublicVisibilityResponse(visible));
-    }
-
-    private void setFilePublicVisibility(Context ctx) {
-        int id = pathInt(ctx, "id");
-        requireOwnedFile(id, UserSession.from(ctx));
-        var req = ctx.bodyAsClass(PublicVisibilityRequest.class);
-        if (req.visible() == null) {
-            service.removePublicVisibility(null, id);
-        } else {
-            service.setPublicVisibility(null, id, req.visible());
-        }
-        ctx.json(new PublicVisibilityResponse(req.visible()));
-    }
-
-    private void getFolderPublicVisibility(Context ctx) {
-        var session = UserSession.from(ctx);
-        int id = pathInt(ctx, "id");
-        requireOwnedFolder(id, session);
-        var visible = service.findPublicVisibility(id, null).orElse(null);
-        ctx.json(new PublicVisibilityResponse(visible));
-    }
-
-    private void setFolderPublicVisibility(Context ctx) {
-        int id = pathInt(ctx, "id");
-        requireOwnedFolder(id, UserSession.from(ctx));
-        var req = ctx.bodyAsClass(PublicVisibilityRequest.class);
-        if (req.visible() == null) {
-            service.removePublicVisibility(id, null);
-        } else {
-            service.setPublicVisibility(id, null, req.visible());
-        }
-        ctx.json(new PublicVisibilityResponse(req.visible()));
-    }
-
-    // -- Request/Response Records --
 
     private void getFolderIcon(Context ctx) {
         var session = UserSession.from(ctx);
@@ -932,7 +576,7 @@ public class KnowledgeBaseRoutes implements Routes {
     private void uploadFolderIcon(Context ctx) {
         int id = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
-        var folder = requireOwnedFolder(id, session);
+        var folder = requireOwnedFolder(ctx, service, id);
         var file = ctx.uploadedFile("icon");
         if (file == null) throw new BadRequestResponse("No file uploaded");
         if (!ALLOWED_IMAGE_TYPES.contains(file.contentType())) {
@@ -941,7 +585,6 @@ public class KnowledgeBaseRoutes implements Routes {
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
             iconService.store(session.stationId(), id, data, file.contentType(), 5 * 1024 * 1024);
-            // Mark folder as having an icon so the frontend shows it
             service.updateFolder(id, folder.name(), folder.description(), iconService.key(id), folder.position());
             ctx.json(new MessageResponse("Icon updated"));
         } catch (IllegalArgumentException e) {
@@ -956,7 +599,7 @@ public class KnowledgeBaseRoutes implements Routes {
     private void uploadKbImage(Context ctx) {
         int fileId = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
-        requireOwnedFile(fileId, session);
+        requireOwnedFile(ctx, service, fileId);
         var file = ctx.uploadedFile("image");
         if (file == null) throw new BadRequestResponse("No image uploaded");
         if (!ALLOWED_IMAGE_TYPES.contains(file.contentType())) {
@@ -991,498 +634,7 @@ public class KnowledgeBaseRoutes implements Routes {
                         () -> ctx.status(HttpStatus.NOT_FOUND));
     }
 
-    private void listTags(Context ctx) {
-        var session = UserSession.from(ctx);
-        ctx.json(service.findTagsByStation(session.stationId()));
-    }
-
-    private void getFileTags(Context ctx) {
-        var session = UserSession.from(ctx);
-        int id = pathInt(ctx, "id");
-        requireOwnedFile(id, session);
-        ctx.json(service.findFileTags(id));
-    }
-
-    private void setFileTags(Context ctx) {
-        var session = UserSession.from(ctx);
-        int id = pathInt(ctx, "id");
-        requireOwnedFile(id, session);
-        var req = ctx.bodyAsClass(TagRequest.class);
-        ctx.json(service.setFileTags(id, req.tags(), session.stationId()));
-    }
-
-    private void getFolderTags(Context ctx) {
-        var session = UserSession.from(ctx);
-        int id = pathInt(ctx, "id");
-        requireOwnedFolder(id, session);
-        ctx.json(service.findFolderTags(id));
-    }
-
-    private void getTagScope(Context ctx) {
-        var session = UserSession.from(ctx);
-        String tagName = ctx.pathParam("name");
-        int stationId = session.stationId();
-
-        var matchingFiles = service.findFilesByTag(stationId, tagName);
-        var allFolders = service.findAllFolders(stationId);
-
-        // Apply access restrictions for non-managers.
-        if (!session.hasPermission(StationPermission.KNOWLEDGE_MANAGER)) {
-            int memberId = session.member().id();
-            StationUserType memberUserType = session.member().userType();
-            var memberGroupIds = memberGroupRepository.findGroupsForMember(memberId).stream()
-                    .map(MemberGroup::id)
-                    .toList();
-            var memberTagIds = userTagRepository.findTagsForMember(memberId).stream()
-                    .map(UserTag::id)
-                    .toList();
-            matchingFiles = matchingFiles.stream()
-                    .filter(f ->
-                            service.canAccess(memberId, null, f.id(), memberUserType, memberGroupIds, memberTagIds))
-                    .toList();
-        }
-
-        // Build parent lookup map for folder ancestry traversal.
-        var folderParent = new HashMap<Integer, Integer>();
-        for (var folder : allFolders) {
-            folderParent.put(folder.id(), folder.parentId());
-        }
-
-        var matchingFileIds = matchingFiles.stream().map(KbFile::id).toList();
-        var ancestorFolderIds = new HashSet<Integer>();
-        for (var file : matchingFiles) {
-            Integer cur = file.folderId();
-            while (cur != null && !ancestorFolderIds.contains(cur)) {
-                ancestorFolderIds.add(cur);
-                cur = folderParent.get(cur);
-            }
-        }
-
-        ctx.json(new TagScopeResponse(matchingFileIds, new ArrayList<>(ancestorFolderIds)));
-    }
-
-    private void setFolderTags(Context ctx) {
-        var session = UserSession.from(ctx);
-        int id = pathInt(ctx, "id");
-        requireOwnedFolder(id, session);
-        var req = ctx.bodyAsClass(TagRequest.class);
-        ctx.json(service.setFolderTags(id, req.tags(), session.stationId()));
-    }
-
-    private void federatedBrowseKb(Context ctx) {
-        var session = UserSession.from(ctx);
-        var items = service.browseSharedKb(session.stationId());
-        ctx.json(items.stream()
-                .map(i -> {
-                    var partner =
-                            federationRepository.findPartnerById(i.partnerId()).orElse(null);
-                    String name = FederationDisplayNames.partnerName(stationRepository, partner, "Unknown");
-                    return new FederatedKbItem(
-                            i.file().id(),
-                            i.file().name(),
-                            i.file().description() != null ? i.file().description() : "",
-                            name,
-                            i.sourceStationId(),
-                            i.partnerId());
-                })
-                .toList());
-    }
-
-    private void federatedGetFile(Context ctx) {
-        var session = UserSession.from(ctx);
-        var stationUid = UUID.fromString(ctx.pathParam("stationuid"));
-        int fileId = pathInt(ctx, "id");
-        ctx.json(service.getFederatedKbFile(session.stationId(), stationUid, fileId));
-    }
-
-    private void federatedGetFileContent(Context ctx) {
-        var session = UserSession.from(ctx);
-        var stationUid = UUID.fromString(ctx.pathParam("stationuid"));
-        int fileId = pathInt(ctx, "id");
-        var content = service.getFederatedKbFileContent(session.stationId(), stationUid, fileId);
-        ctx.json(new FileContentResponse(fileId, content));
-    }
-
-    private void federatedCopyFile(Context ctx) {
-        var session = UserSession.from(ctx);
-        int fileId = pathInt(ctx, "id");
-        var copied =
-                service.copyKbFile(fileId, session.stationId(), session.member().id());
-        ctx.status(HttpStatus.CREATED).json(copied);
-    }
-
-    // -- Folder Icons --
-
-    private void remoteBrowseKb(Context ctx) {
-        var partner = requireFederationPartner(ctx);
-        var shares = federationRepository.findKbShares(partner.stationId());
-        var result = shares.stream()
-                .filter(s -> s.fileId() != null)
-                .flatMap(s -> service.findFile(s.fileId()).stream())
-                .filter(file -> file.stationId() == partner.stationId())
-                .map(file -> new RemoteKbFileSummary(
-                        file.id(),
-                        file.name(),
-                        file.description() != null ? file.description() : "",
-                        file.fileType().name(),
-                        file.updatedAt().toString()))
-                .toList();
-        ctx.json(result);
-    }
-
-    private void remoteSearchKb(Context ctx) {
-        var partner = requireFederationPartner(ctx);
-        String query = ctx.queryParam("q");
-        if (query == null || query.isBlank()) {
-            ctx.json(List.of());
-            return;
-        }
-        var results = service.searchWithSnippets(partner.stationId(), query);
-        var shares = federationRepository.findKbShares(partner.stationId());
-        var sharedFileIds = shares.stream()
-                .map(FederationShare::fileId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-        ctx.json(results.stream()
-                .filter(r -> sharedFileIds.contains(r.file().id()))
-                .map(r -> new RemoteKbSearchResultItem(
-                        r.file().id(),
-                        r.file().name(),
-                        r.file().description() != null ? r.file().description() : "",
-                        r.snippet() != null ? r.snippet() : ""))
-                .toList());
-    }
-
-    // -- KB Images --
-
-    private void remoteGetFile(Context ctx) {
-        var partner = requireFederationPartner(ctx);
-        int fileId = pathInt(ctx, "id");
-        var file = service.findFile(fileId).orElseThrow(NotFoundResponse::new);
-        if (file.stationId() != partner.stationId()) {
-            throw new ForbiddenResponse("File not shared with this partner");
-        }
-        ctx.json(file);
-    }
-
-    private void remoteGetFileContent(Context ctx) {
-        var partner = requireFederationPartner(ctx);
-        int fileId = pathInt(ctx, "id");
-        var file = service.findFile(fileId).orElseThrow(NotFoundResponse::new);
-        if (file.stationId() != partner.stationId()) {
-            throw new ForbiddenResponse("File not shared with this partner");
-        }
-        var content = service.getMarkdownContent(fileId).orElse("");
-        ctx.json(new FileContentResponse(fileId, content));
-    }
-
-    // -- Tags --
-
-    private void listComments(Context ctx) {
-        var session = UserSession.from(ctx);
-        int fileId = pathInt(ctx, "fileId");
-        requireOwnedFile(fileId, session);
-        var comments = kbCommentRepository.findByFile(fileId);
-        ctx.json(comments.stream().map(this::toCommentResponse).toList());
-    }
-
-    private void createComment(Context ctx) {
-        int fileId = pathInt(ctx, "fileId");
-        UserSession session = UserSession.from(ctx);
-        requireOwnedFile(fileId, session);
-        var req = ctx.bodyAsClass(CreateKbCommentRequest.class);
-        if (req.content() == null || req.content().isBlank()) {
-            throw new BadRequestResponse("content is required");
-        }
-        String authorName = resolveMemberName(session.member().id());
-        var comment = service.createComment(
-                session.stationId(), fileId, req.parentId(), session.member().id(), authorName, req.content());
-        ctx.status(HttpStatus.CREATED).json(toCommentResponse(comment));
-    }
-
-    /**
-     * Loads a comment and asserts the caller's station owns the file it belongs to, returning the
-     * comment. Answers 404 when the comment is absent and 403 when the file belongs to another station.
-     */
-    private KbComment requireOwnedComment(int commentId, UserSession session) {
-        var comment = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
-        requireOwnedFile(comment.fileId(), session);
-        return comment;
-    }
-
-    /**
-     * Deletes a comment and, on success, publishes a deletion event carrying a short content preview
-     * before answering 204. Answers 404 when no comment was removed.
-     */
-    private void deleteCommentAndPublish(Context ctx, KbComment comment, int commentId, int stationId) {
-        if (kbCommentRepository.delete(commentId)) {
-            String preview =
-                    comment.content().length() > 100 ? comment.content().substring(0, 100) + "..." : comment.content();
-            eventBus.publish(new CommentDeleted(stationId, commentId, preview));
-            ctx.status(HttpStatus.NO_CONTENT);
-        } else {
-            throw new NotFoundResponse();
-        }
-    }
-
-    private void updateComment(Context ctx) {
-        int commentId = pathInt(ctx, "commentId");
-        UserSession session = UserSession.from(ctx);
-        var comment = requireOwnedComment(commentId, session);
-        var memberIdentity = memberIdentityFactory.local(
-                session.stationId(), session.member().id());
-        if (comment.author() == null || !comment.author().sameMember(memberIdentity)) {
-            throw new ForbiddenResponse("You can only edit your own comments");
-        }
-        var req = ctx.bodyAsClass(UpdateKbCommentRequest.class);
-        if (req.content() == null || req.content().isBlank()) {
-            throw new BadRequestResponse("content is required");
-        }
-        kbCommentRepository.update(commentId, req.content());
-        var updated = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
-        ctx.json(toCommentResponse(updated));
-    }
-
-    private void deleteComment(Context ctx) {
-        int commentId = pathInt(ctx, "commentId");
-        UserSession session = UserSession.from(ctx);
-        var comment = requireOwnedComment(commentId, session);
-        var authorIdentity = memberIdentityFactory.local(
-                session.stationId(), session.member().id());
-        boolean isAuthor = comment.author() != null && comment.author().sameMember(authorIdentity);
-        boolean canModerate = session.hasPermission(StationPermission.KNOWLEDGE_MANAGER);
-        if (!isAuthor && !canModerate) {
-            throw new ForbiddenResponse("You can only delete your own comments");
-        }
-        deleteCommentAndPublish(ctx, comment, commentId, session.stationId());
-    }
-
-    private void remoteListComments(Context ctx) {
-        requireFederationPartner(ctx);
-        int fileId = pathInt(ctx, "fileId");
-        var comments = kbCommentRepository.findByFile(fileId);
-        ctx.json(comments.stream().map(this::toCommentResponse).toList());
-    }
-
-    private void remoteCreateComment(Context ctx) {
-        var partner = requireFederationPartner(ctx);
-        int fileId = pathInt(ctx, "fileId");
-        var req = ctx.bodyAsClass(RemoteKbCommentRequest.class);
-        if (req.content() == null || req.content().isBlank()) {
-            throw new BadRequestResponse("content is required");
-        }
-        var authorIdentity = new MemberIdentity(partner.partnerStationId(), req.remoteMemberUid());
-        var comment = kbCommentRepository.create(fileId, req.parentId(), authorIdentity, req.content());
-        eventFederationRepository.cacheName(partner.id(), req.remoteMemberUid(), req.displayName());
-        ctx.status(HttpStatus.CREATED).json(toCommentResponse(comment));
-    }
-
-    private void remoteUpdateComment(Context ctx) {
-        var partner = requireFederationPartner(ctx);
-        int commentId = pathInt(ctx, "commentId");
-        var req = ctx.bodyAsClass(RemoteKbCommentUpdateRequest.class);
-        if (req.content() == null || req.content().isBlank()) {
-            throw new BadRequestResponse("content is required");
-        }
-        var comment = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
-        var expectedAuthor = new MemberIdentity(partner.partnerStationId(), req.remoteMemberUid());
-        if (comment.author() == null || !comment.author().sameMember(expectedAuthor)) {
-            throw new ForbiddenResponse("You can only edit your own comments");
-        }
-        kbCommentRepository.update(commentId, req.content());
-        var updated = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
-        ctx.json(toCommentResponse(updated));
-    }
-
-    private void remoteDeleteComment(Context ctx) {
-        var partner = requireFederationPartner(ctx);
-        int commentId = pathInt(ctx, "commentId");
-        var req = ctx.bodyAsClass(RemoteKbCommentDeleteRequest.class);
-        var comment = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
-        var expectedAuthor = new MemberIdentity(partner.partnerStationId(), req.remoteMemberUid());
-        if (comment.author() == null || !comment.author().sameMember(expectedAuthor)) {
-            throw new ForbiddenResponse("You can only delete your own comments");
-        }
-        deleteCommentAndPublish(ctx, comment, commentId, partner.stationId());
-    }
-
-    private void federatedListComments(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        var station = stationRepository.findById(session.stationId()).orElseThrow();
-        var partner = resolvePartner(ctx, session.stationId());
-        int fileId = pathInt(ctx, "fileId");
-
-        if (partner.isRemote()) {
-            var result = federationHttpClient.getList(
-                    partner.remoteHost(),
-                    "/remote/kb/files/" + fileId + "/comments",
-                    partner.partnerStationId(),
-                    station.id(),
-                    station.federationPrivateKey(),
-                    KbCommentResponse.class);
-            ctx.json(result);
-        } else {
-            var comments = kbCommentRepository.findByFile(fileId);
-            ctx.json(comments.stream().map(this::toCommentResponse).toList());
-        }
-    }
-
-    private void federatedCreateComment(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        var station = stationRepository.findById(session.stationId()).orElseThrow();
-        var partner = resolvePartner(ctx, session.stationId());
-        int fileId = pathInt(ctx, "fileId");
-        var req = ctx.bodyAsClass(CreateKbCommentRequest.class);
-        if (req.content() == null || req.content().isBlank()) {
-            throw new BadRequestResponse("content is required");
-        }
-
-        UUID memberUid = session.member().uid();
-        String displayName = session.account().fullName().trim();
-
-        if (partner.isRemote()) {
-            var body = new RemoteKbCommentRequest(memberUid, displayName, req.parentId(), req.content());
-            var result = federationHttpClient.post(
-                    partner.remoteHost(),
-                    "/remote/kb/files/" + fileId + "/comments",
-                    body,
-                    partner.partnerStationId(),
-                    station.id(),
-                    station.federationPrivateKey(),
-                    KbCommentResponse.class);
-            if (result == null) throw new InternalServerErrorResponse("Failed to create comment on partner");
-            ctx.status(HttpStatus.CREATED).json(result);
-        } else {
-            var authorId = new MemberIdentity(partner.partnerStationId(), memberUid);
-            var comment = kbCommentRepository.create(fileId, req.parentId(), authorId, req.content());
-            eventFederationRepository.cacheName(partner.id(), memberUid, displayName);
-            ctx.status(HttpStatus.CREATED).json(toCommentResponse(comment));
-        }
-    }
-
-    private void federatedUpdateComment(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        var station = stationRepository.findById(session.stationId()).orElseThrow();
-        var partner = resolvePartner(ctx, session.stationId());
-        int commentId = pathInt(ctx, "commentId");
-        var req = ctx.bodyAsClass(UpdateKbCommentRequest.class);
-        if (req.content() == null || req.content().isBlank()) {
-            throw new BadRequestResponse("content is required");
-        }
-
-        UUID memberUid = session.member().uid();
-
-        if (partner.isRemote()) {
-            var body = new RemoteKbCommentUpdateRequest(memberUid, req.content());
-            var result = federationHttpClient.put(
-                    partner.remoteHost(),
-                    "/remote/kb/comments/" + commentId,
-                    body,
-                    partner.partnerStationId(),
-                    station.id(),
-                    station.federationPrivateKey(),
-                    KbCommentResponse.class);
-            if (result == null) throw new InternalServerErrorResponse("Failed to update comment on partner");
-            ctx.json(result);
-        } else {
-            var existingComment = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
-            if (existingComment.author() == null
-                    || !existingComment.author().memberUid().equals(memberUid)) {
-                throw new ForbiddenResponse("You can only edit your own comments");
-            }
-            kbCommentRepository.update(commentId, req.content());
-            var updated = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
-            ctx.json(toCommentResponse(updated));
-        }
-    }
-
-    private void federatedDeleteComment(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        var station = stationRepository.findById(session.stationId()).orElseThrow();
-        var partner = resolvePartner(ctx, session.stationId());
-        int commentId = pathInt(ctx, "commentId");
-
-        UUID memberUid = session.member().uid();
-
-        if (partner.isRemote()) {
-            boolean success = federationHttpClient.delete(
-                    partner.remoteHost(),
-                    "/remote/kb/comments/" + commentId,
-                    partner.partnerStationId(),
-                    station.id(),
-                    station.federationPrivateKey());
-            if (!success) throw new InternalServerErrorResponse("Failed to delete comment on partner");
-            ctx.status(HttpStatus.NO_CONTENT);
-        } else {
-            var existingComment = kbCommentRepository.findById(commentId).orElseThrow(NotFoundResponse::new);
-            if (existingComment.author() == null
-                    || !existingComment.author().memberUid().equals(memberUid)) {
-                throw new ForbiddenResponse("You can only delete your own comments");
-            }
-            if (kbCommentRepository.delete(commentId)) {
-                ctx.status(HttpStatus.NO_CONTENT);
-            } else {
-                throw new NotFoundResponse();
-            }
-        }
-    }
-
-    private FederationPartner requireFederationPartner(Context ctx) {
-        var session = FederationSession.from(ctx);
-        if (session == null) {
-            throw new ForbiddenResponse("Missing or invalid federation signature");
-        }
-        return session.partner();
-    }
-
-    private FederationPartner resolvePartner(Context ctx, int stationId) {
-        var partnerUid = UUID.fromString(ctx.pathParam("stationuid"));
-        return federationRepository
-                .findPartnerByStationAndRemoteUid(stationId, partnerUid)
-                .orElseThrow(() -> new NotFoundResponse("Unknown partner"));
-    }
-
-    private KbCommentResponse toCommentResponse(KbComment comment) {
-        if (comment.deleted()) {
-            return new KbCommentResponse(
-                    comment.id(),
-                    comment.fileId(),
-                    comment.parentId(),
-                    null,
-                    null,
-                    "",
-                    true,
-                    comment.createdAt(),
-                    null);
-        }
-
-        // Resolve author name and display metadata from inline identity
-        var identity = comment.author();
-        String authorName = "";
-        if (identity != null) {
-            var resolved = memberNameResolver.resolveDisplay(identity);
-            identity = resolved.identity();
-            authorName = resolved.name() != null ? resolved.name() : "";
-        }
-        return new KbCommentResponse(
-                comment.id(),
-                comment.fileId(),
-                comment.parentId(),
-                identity,
-                authorName,
-                comment.content(),
-                false,
-                comment.createdAt(),
-                comment.updatedAt());
-    }
-
     public record FolderRequest(Integer parentId, String name, String description, String iconUrl, Integer position) {}
-
-    public record PublicVisibilityRequest(Boolean visible) {}
-
-    // -- Federated endpoints (user-facing, aggregates from partners) --
-
-    public record PublicVisibilityResponse(Boolean visible) {}
 
     public record FileUpdateRequest(String name, String description, String iconUrl, Integer position) {}
 
@@ -1490,41 +642,21 @@ public class KnowledgeBaseRoutes implements Routes {
 
     public record YoutubeFileRequest(Integer folderId, String name, String description, String youtubeUrl) {}
 
-    // -- Remote endpoints (server-to-server, RSA signature auth) --
-
     public record LinkFileRequest(Integer folderId, String name, String description, String linkUrl) {}
-
-    public record RestrictionRequest(
-            List<String> userTypes, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {}
 
     public record ContentUpdateRequest(String content) {}
 
-    public record YoutubeResponse(String youtubeUrl) {}
+    public record RelatedFilesRequest(List<Integer> fileIds) {}
 
-    // -- Local KB comment endpoints --
+    public record YoutubeResponse(String youtubeUrl) {}
 
     public record LinkResponse(String linkUrl) {}
 
     public record MarkdownHtmlResponse(String html, String markdown) {}
 
-    public record RestrictionResponse(
-            List<StationUserType> userTypes, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {}
-
     public record BrowseResponse(KbFolder currentFolder, List<KbFolder> folders, List<KbFileSummary> files) {}
 
-    // -- Remote KB comment endpoints (server-to-server) --
-
-    public record TagScopeResponse(List<Integer> matchingFileIds, List<Integer> ancestorFolderIds) {}
-
-    public record TagRequest(List<String> tags) {}
-
-    public record RelatedFilesRequest(List<Integer> fileIds) {}
-
-    public record FileResponse(KbFile file, String lastEditedByName) {
-        // Jackson will serialize both the file fields and the name
-    }
-
-    // -- Federated KB comment proxy endpoints (user-facing) --
+    public record FileResponse(KbFile file, String lastEditedByName) {}
 
     public record VersionResponse(
             int id, int version, boolean isFull, int createdBy, String createdByName, Instant createdAt) {}
@@ -1533,40 +665,4 @@ public class KnowledgeBaseRoutes implements Routes {
             KbFile file, String snippet, String folderPath, String stationName, String sourceStationId) {}
 
     public record ImageUploadResponse(String imageId) {}
-
-    public record FederatedKbItem(
-            int remoteId, String title, String description, String stationName, int stationId, int partnerId) {}
-
-    // -- Federation helpers --
-
-    public record FileContentResponse(int fileId, String content) {}
-
-    public record RemoteKbFileSummary(int id, String name, String description, String fileType, String updatedAt) {}
-
-    // -- KB Comment response mapping --
-
-    public record RemoteKbSearchResultItem(int id, String name, String description, String snippet) {}
-
-    // -- KB Comment request/response records --
-
-    public record CreateKbCommentRequest(Integer parentId, String content) {}
-
-    public record UpdateKbCommentRequest(String content) {}
-
-    public record RemoteKbCommentRequest(UUID remoteMemberUid, String displayName, Integer parentId, String content) {}
-
-    public record RemoteKbCommentUpdateRequest(UUID remoteMemberUid, String content) {}
-
-    public record RemoteKbCommentDeleteRequest(UUID remoteMemberUid) {}
-
-    public record KbCommentResponse(
-            int id,
-            int fileId,
-            Integer parentId,
-            MemberIdentity author,
-            String authorName,
-            String content,
-            boolean deleted,
-            Instant createdAt,
-            Instant updatedAt) {}
 }

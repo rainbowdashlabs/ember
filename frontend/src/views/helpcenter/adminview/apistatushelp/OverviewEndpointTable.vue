@@ -6,6 +6,7 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import Td from '@/components/table/Td.vue'
 
 const {t} = useI18n()
 </script>
@@ -28,30 +29,30 @@ const {t} = useI18n()
           <td class="py-2 pr-3 font-mono text-xs">
             <span class="font-semibold mr-1 text-green-600">GET</span>/api/v1/kb/search
           </td>
-          <td class="py-2 pr-3 text-right tabular-nums">94</td>
-          <td class="py-2 pr-3 text-right tabular-nums">210ms</td>
-          <td class="py-2 pr-3 text-right tabular-nums text-(--text-muted)">45ms</td>
-          <td class="py-2 pr-3 text-right tabular-nums text-(--text-muted)">2340ms</td>
+          <Td dense align="right" class="tabular-nums">94</Td>
+          <Td dense align="right" class="tabular-nums">210ms</Td>
+          <Td dense muted align="right" class="tabular-nums">45ms</Td>
+          <Td dense muted align="right" class="tabular-nums">2340ms</Td>
           <td class="py-2 text-right tabular-nums">0.0%</td>
         </tr>
         <tr class="border-b border-[var(--border)] cursor-pointer hover:bg-[var(--bg-accent)]/10">
           <td class="py-2 pr-3 font-mono text-xs">
             <span class="font-semibold mr-1 text-blue-600">POST</span>/api/v1/quiz/submit
           </td>
-          <td class="py-2 pr-3 text-right tabular-nums">382</td>
-          <td class="py-2 pr-3 text-right tabular-nums">45ms</td>
-          <td class="py-2 pr-3 text-right tabular-nums text-(--text-muted)">12ms</td>
-          <td class="py-2 pr-3 text-right tabular-nums text-(--text-muted)">180ms</td>
+          <Td dense align="right" class="tabular-nums">382</Td>
+          <Td dense align="right" class="tabular-nums">45ms</Td>
+          <Td dense muted align="right" class="tabular-nums">12ms</Td>
+          <Td dense muted align="right" class="tabular-nums">180ms</Td>
           <td class="py-2 text-right tabular-nums">0.0%</td>
         </tr>
         <tr class="border-b border-[var(--border)] last:border-0 cursor-pointer hover:bg-[var(--bg-accent)]/10">
           <td class="py-2 pr-3 font-mono text-xs">
             <span class="font-semibold mr-1 text-blue-600">POST</span>/api/v1/mail/send
           </td>
-          <td class="py-2 pr-3 text-right tabular-nums">3</td>
-          <td class="py-2 pr-3 text-right tabular-nums">—</td>
-          <td class="py-2 pr-3 text-right tabular-nums text-(--text-muted)">—</td>
-          <td class="py-2 pr-3 text-right tabular-nums text-(--text-muted)">—</td>
+          <Td dense align="right" class="tabular-nums">3</Td>
+          <Td dense align="right" class="tabular-nums">—</Td>
+          <Td dense muted align="right" class="tabular-nums">—</Td>
+          <Td dense muted align="right" class="tabular-nums">—</Td>
           <td class="py-2 text-right tabular-nums text-red-500 font-semibold">100.0%</td>
         </tr>
       </tbody>

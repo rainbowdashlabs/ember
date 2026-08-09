@@ -7,8 +7,8 @@ package dev.chojo.ember.feature.news.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
+import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -87,19 +87,16 @@ class NewsRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(10)
     void setAndFindRestrictions() {
-        var restrictionRepo = new RestrictionRepository(stationMemberRepo, memberGroupRepo, userTagRepo);
         var group = memberGroupRepo.create(station.id(), "News Group");
         restrictionRepo.setRestrictions(
-                "news_restriction",
-                "news_id",
+                RestrictionType.NEWS,
                 newsId,
                 new RestrictionSelection(List.of(), List.of(group.id()), List.of(), List.of(), null));
-        var restrictions = restrictionRepo.findRestrictions("news_restriction", "news_id", newsId);
+        var restrictions = restrictionRepo.findRestrictions(RestrictionType.NEWS, newsId);
         assertEquals(1, restrictions.size());
-        restrictionRepo.setRestrictions("news_restriction", "news_id", newsId, RestrictionSelection.empty());
-        assertTrue(restrictionRepo
-                .findRestrictions("news_restriction", "news_id", newsId)
-                .isEmpty());
+        restrictionRepo.setRestrictions(RestrictionType.NEWS, newsId, RestrictionSelection.empty());
+        assertTrue(
+                restrictionRepo.findRestrictions(RestrictionType.NEWS, newsId).isEmpty());
         memberGroupRepo.delete(group.id());
     }
 
@@ -214,6 +211,27 @@ class NewsRepositoryTest extends RepositoryTestBase {
         var entries = newsRepo.findPublicBlogEntries(station.id(), 0, 10);
         assertTrue(entries.stream().anyMatch(n -> n.id() == newsId));
         newsRepo.updatePublicBlog(newsId, false);
+    }
+
+    @Test
+    @Order(41)
+    void findPublicBlogEntriesWithSearch() {
+        newsRepo.updatePublicBlog(newsId, true);
+        var hits = newsRepo.findPublicBlogEntries(station.id(), "updated", 0, 10);
+        assertTrue(hits.stream().anyMatch(n -> n.id() == newsId));
+        var misses = newsRepo.findPublicBlogEntries(station.id(), "zzz-no-match", 0, 10);
+        assertTrue(misses.stream().noneMatch(n -> n.id() == newsId));
+        newsRepo.updatePublicBlog(newsId, false);
+    }
+
+    @Test
+    @Order(41)
+    void findPublicByUid() {
+        newsRepo.updatePublicBlog(newsId, true);
+        var uid = newsRepo.findById(newsId).orElseThrow().publicUid();
+        assertTrue(newsRepo.findPublicByUid(station.id(), uid).isPresent());
+        newsRepo.updatePublicBlog(newsId, false);
+        assertTrue(newsRepo.findPublicByUid(station.id(), uid).isEmpty());
     }
 
     @Test

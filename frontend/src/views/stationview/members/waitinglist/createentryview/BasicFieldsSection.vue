@@ -25,11 +25,11 @@ const { t } = useI18n()
   <div class="grid gap-4 sm:grid-cols-2">
     <div class="space-y-1">
       <FieldLabel>{{ t('waitingList.firstname') }} <span class="text-error">*</span></FieldLabel>
-      <TextInput :model-value="firstname" @update:model-value="emit('update:firstname', $event)" :placeholder="t('waitingList.firstnamePlaceholder')"/>
+      <TextInput :model-value="firstname" @update:model-value="emit('update:firstname', $event ?? '')" :placeholder="t('waitingList.firstnamePlaceholder')"/>
     </div>
     <div class="space-y-1">
       <FieldLabel>{{ t('waitingList.lastname') }}</FieldLabel>
-      <TextInput :model-value="lastname" @update:model-value="emit('update:lastname', $event)" :placeholder="t('waitingList.lastnamePlaceholder')"/>
+      <TextInput :model-value="lastname" @update:model-value="emit('update:lastname', $event ?? '')" :placeholder="t('waitingList.lastnamePlaceholder')"/>
     </div>
   </div>
 </template>

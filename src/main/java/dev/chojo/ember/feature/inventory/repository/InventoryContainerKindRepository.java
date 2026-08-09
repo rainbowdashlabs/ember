@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.repository;
 
 import dev.chojo.ember.feature.inventory.entity.InventoryContainerKind;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -19,6 +20,8 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  */
 @Singleton
 public class InventoryContainerKindRepository {
+    private static final String INVENTORY_CONTAINER_KIND_COLUMNS =
+            "id, station_id, key, label, icon, sort_order, enabled";
 
     /**
      * Finds a kind by its ID.
@@ -27,13 +30,8 @@ public class InventoryContainerKindRepository {
      * @return the kind, or empty if not found
      */
     public Optional<InventoryContainerKind> findById(int id) {
-        return query("""
-                SELECT id, station_id, key, label, icon, sort_order, enabled
-                FROM inventory_container_kind
-                WHERE id = :id;""")
-                .single(call().bind("id", id))
-                .map(InventoryContainerKind.map())
-                .first();
+        return SqlSupport.findById(
+                "inventory_container_kind", INVENTORY_CONTAINER_KIND_COLUMNS, id, InventoryContainerKind.map());
     }
 
     /**
@@ -45,9 +43,9 @@ public class InventoryContainerKindRepository {
      */
     public Optional<InventoryContainerKind> findByKey(int stationId, String key) {
         return query("""
-                SELECT id, station_id, key, label, icon, sort_order, enabled
+                SELECT %s
                 FROM inventory_container_kind
-                WHERE station_id = :station_id AND key = :key;""")
+                WHERE station_id = :station_id AND key = :key;""", INVENTORY_CONTAINER_KIND_COLUMNS)
                 .single(call().bind("station_id", stationId).bind("key", key))
                 .map(InventoryContainerKind.map())
                 .first();
@@ -61,10 +59,10 @@ public class InventoryContainerKindRepository {
      */
     public List<InventoryContainerKind> findByStation(int stationId) {
         return query("""
-                SELECT id, station_id, key, label, icon, sort_order, enabled
+                SELECT %s
                 FROM inventory_container_kind
                 WHERE station_id = :station_id
-                ORDER BY sort_order, key;""")
+                ORDER BY sort_order, key;""", INVENTORY_CONTAINER_KIND_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(InventoryContainerKind.map())
                 .all();
@@ -83,19 +81,19 @@ public class InventoryContainerKindRepository {
      */
     public InventoryContainerKind create(
             int stationId, String key, String label, String icon, int sortOrder, boolean enabled) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT INTO inventory_container_kind(station_id, key, label, icon, sort_order, enabled)
                 VALUES(:station_id, :key, :label, :icon, :sort_order, :enabled)
-                RETURNING id, station_id, key, label, icon, sort_order, enabled;""")
-                .single(call().bind("station_id", stationId)
+                RETURNING %s;""",
+                call().bind("station_id", stationId)
                         .bind("key", key)
                         .bind("label", label)
                         .bind("icon", icon)
                         .bind("sort_order", sortOrder)
-                        .bind("enabled", enabled))
-                .map(InventoryContainerKind.map())
-                .first()
-                .orElseThrow();
+                        .bind("enabled", enabled),
+                InventoryContainerKind.map(),
+                INVENTORY_CONTAINER_KIND_COLUMNS);
     }
 
     /**
@@ -129,20 +127,15 @@ public class InventoryContainerKindRepository {
      * @return {@code true} if the kind was deleted
      */
     public boolean delete(int id) {
-        return query("DELETE FROM inventory_container_kind WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("inventory_container_kind", id);
     }
 
     /**
      * Returns whether any kind exists for the given station.
      */
     public boolean stationHasAnyKind(int stationId) {
-        return query("SELECT 1 FROM inventory_container_kind WHERE station_id = :station_id LIMIT 1;")
-                .single(call().bind("station_id", stationId))
-                .map(row -> row.getInt(1))
-                .first()
-                .isPresent();
+        return SqlSupport.exists(
+                "SELECT 1 FROM inventory_container_kind WHERE station_id = :station_id LIMIT 1;",
+                call().bind("station_id", stationId));
     }
 }

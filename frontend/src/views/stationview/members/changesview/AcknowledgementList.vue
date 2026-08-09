@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import type {ProfileFieldChange} from '@/api/types'
+import type {ProfileFieldChange} from '@/api/profileFieldChanges'
 
 defineProps<{
   acknowledgements: ProfileFieldChange['acknowledgements']

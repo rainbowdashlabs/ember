@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import client from './client'
+import {createCrudResource} from './crud'
 
 export interface SavedFilter {
     id: number
@@ -20,16 +20,11 @@ export interface CreateFilterRequest {
     filterData: string
 }
 
+const filters = createCrudResource<SavedFilter, CreateFilterRequest>('/saved-filters')
+
 export async function listFilters(tableType: string): Promise<SavedFilter[]> {
-    const res = await client.get('/saved-filters', {params: {tableType}})
-    return res.data
+    return filters.list({tableType})
 }
 
-export async function createFilter(data: CreateFilterRequest): Promise<SavedFilter> {
-    const res = await client.post('/saved-filters', data)
-    return res.data
-}
-
-export async function deleteFilter(id: number): Promise<void> {
-    await client.delete(`/saved-filters/${id}`)
-}
+export const createFilter = filters.create
+export const deleteFilter = filters.remove

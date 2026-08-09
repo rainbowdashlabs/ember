@@ -9,7 +9,8 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import InfoButton from '@/components/button/InfoButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import type { InventoryItem, RequiredInventoryItem } from '@/api/types'
+import type { InventoryItem } from '@/api/inventory'
+import type { RequiredInventoryItem } from '@/api/inventoryCheck'
 
 const props = defineProps<{
   req: RequiredInventoryItem
@@ -52,7 +53,7 @@ const { t } = useI18n()
       <SelectInput
         :model-value="slotSelections.get(`${req.inventoryId}-${slotIndex}`) ?? ''"
         class="flex-1"
-        @update:model-value="(v: string | undefined) => emit('updateSelection', `${req.inventoryId}-${slotIndex}`, v ?? '')"
+        @update:model-value="(v: string | number | null | undefined) => emit('updateSelection', `${req.inventoryId}-${slotIndex}`, String(v ?? ''))"
       >
         <option value="" disabled>{{ t('inventory.check.selectItem') }}</option>
         <option v-for="avail in availableItems" :key="avail.id" :value="String(avail.id)">
@@ -74,7 +75,7 @@ const { t } = useI18n()
         v-if="req.hasSizes && req.sizes.length > 0"
         :model-value="slotSelections.get(`create-${req.inventoryId}-${slotIndex}`) ?? ''"
         class="flex-1"
-        @update:model-value="(v: string | undefined) => emit('updateSelection', `create-${req.inventoryId}-${slotIndex}`, v ?? '')"
+        @update:model-value="(v: string | number | null | undefined) => emit('updateSelection', `create-${req.inventoryId}-${slotIndex}`, String(v ?? ''))"
       >
         <option value="" disabled>{{ t('inventory.check.selectSize') }}</option>
         <option v-for="size in req.sizes" :key="size.id" :value="String(size.id)">{{ size.label }}</option>

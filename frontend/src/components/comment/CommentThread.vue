@@ -6,7 +6,8 @@
 <script setup lang="ts">
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import type {Comment, MemberGroup} from '@/api/types'
+import type {Comment} from '@/api/comments'
+import type {MemberGroup} from '@/api/types'
 import type {MemberCompletion} from '@/api/stationMembers'
 import MentionInput, {type SpecialMention} from '@/components/comment/MentionInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -92,13 +93,13 @@ function resolveMentions(text: string): MentionPart[] {
     if (match.index > last) {
       parts.push({type: 'text', value: text.substring(last, match.index)})
     }
-    const inner = match[1]
+    const inner = match[1] ?? ''
     const colonIdx = inner.indexOf(':')
     const slashIdx = inner.indexOf('/')
     // Bulk mention: type:name:id (e.g. group:Vorstand:5)
-    const bulkMatch = inner.match(/^(GROUP|EVENT|REGISTERED|DECLINED):([^:]+):\d+$/)
-    if (bulkMatch) {
-      parts.push({type: 'mention', name: bulkMatch[2], bulk: true})
+    const bulkName = inner.match(/^(GROUP|EVENT|REGISTERED|DECLINED):([^:]+):\d+$/)?.[2]
+    if (bulkName) {
+      parts.push({type: 'mention', name: bulkName, bulk: true})
     } else if (slashIdx >= 0 && colonIdx > slashIdx) {
       const memberUid = inner.substring(slashIdx + 1, colonIdx)
       const fallback = inner.substring(colonIdx + 1)

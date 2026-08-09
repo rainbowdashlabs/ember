@@ -7,7 +7,7 @@ package dev.chojo.ember.event.handlers;
 
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.EventCancelled;
-import dev.chojo.ember.feature.events.repository.EventRepository;
+import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
@@ -20,12 +20,13 @@ import java.util.Map;
 @Singleton
 public class EventCancelledHandler implements DomainEventHandler<EventCancelled> {
     private final NotificationService notificationService;
-    private final EventRepository eventRepository;
+    private final EventRegistrationRepository registrationRepository;
 
     @Inject
-    public EventCancelledHandler(NotificationService notificationService, EventRepository eventRepository) {
+    public EventCancelledHandler(
+            NotificationService notificationService, EventRegistrationRepository registrationRepository) {
         this.notificationService = notificationService;
-        this.eventRepository = eventRepository;
+        this.registrationRepository = registrationRepository;
     }
 
     @Override
@@ -35,7 +36,7 @@ public class EventCancelledHandler implements DomainEventHandler<EventCancelled>
 
     @Override
     public void handle(EventCancelled event) {
-        var memberIds = eventRepository.findRegisteredMemberIds(event.eventId());
+        var memberIds = registrationRepository.findRegisteredMemberIds(event.eventId());
         for (int memberId : memberIds) {
             var link = new NotificationData.NotificationLink("event-detail", Map.of("id", event.eventId()));
             notificationService.notify(

@@ -9,7 +9,8 @@ import Modal from '@/components/feedback/Modal.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type { Inventory, MemberGroup } from '@/api/types'
+import type { Inventory } from '@/api/inventory'
+import type { MemberGroup } from '@/api/types'
 import RequirementAddForm from './RequirementAddForm.vue'
 
 const show = defineModel<boolean>('show', { default: false })

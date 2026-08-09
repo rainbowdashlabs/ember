@@ -38,7 +38,7 @@ function availableDeps() {
   return props.allItems.filter(i => i.tempId !== props.item.tempId && !props.item.dependsOn.includes(i.tempId))
 }
 
-function addDependency(value: string) {
+function addDependency(value: string | number | null | undefined) {
   if (value) props.item.dependsOn = [...props.item.dependsOn, Number(value)]
 }
 

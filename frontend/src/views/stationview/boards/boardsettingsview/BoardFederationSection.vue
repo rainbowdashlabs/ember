@@ -48,7 +48,7 @@ const { t } = useI18n()
             <p class="text-xs text-[var(--text-muted)] mb-3">{{ t('boards.federationShareDesc') }}</p>
             <BoardFederationTargetList :targets="targets" :partner-name="partnerName" @remove="index => emit('remove', index)" />
             <div v-if="availablePartners.length > 0" class="flex gap-2 mt-3">
-                <SelectInput :model-value="String(addPartnerId ?? '')" class="flex-1" @update:model-value="(v: any) => emit('update:addPartnerId', v ? Number(v) : null)">
+                <SelectInput :model-value="String(addPartnerId ?? '')" class="flex-1" @update:model-value="v => emit('update:addPartnerId', v ? Number(v) : null)">
                     <option value="">{{ t('boards.federationShare') }}...</option>
                     <option v-for="p in availablePartners" :key="p.partner.id" :value="String(p.partner.id)">{{ p.partnerStationName }}</option>
                 </SelectInput>

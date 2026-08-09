@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import Spinner from '@/components/feedback/Spinner.vue'
-import type {ProfileFieldChange} from '@/api/types'
+import type {ProfileFieldChange} from '@/api/profileFieldChanges'
 import HistoryChangeCard from './HistoryChangeCard.vue'
 import HistoryPagination from './HistoryPagination.vue'
 

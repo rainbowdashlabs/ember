@@ -33,19 +33,16 @@ const emit = defineEmits<{
 const newFirstName = ref('')
 const newLastName = ref('')
 const newEmail = ref('')
-const creating = ref(false)
 
 function memberDisplayName(m: StationMember): string {
   return m.name && m.name.trim() ? m.name : m.email ?? `#${m.id}`
 }
 
-async function submitCreate() {
-  creating.value = true
+function submitCreate() {
   emit('createManager', {firstName: newFirstName.value, lastName: newLastName.value, email: newEmail.value})
   newFirstName.value = ''
   newLastName.value = ''
   newEmail.value = ''
-  creating.value = false
 }
 </script>
 
@@ -54,7 +51,6 @@ async function submitCreate() {
     <SectionHeader>{{ t('membersCreate.stepManager') }}</SectionHeader>
     <p class="text-sm text-(--text-muted)">{{ t('membersCreate.stepManagerHint') }}</p>
 
-    <!-- Existing members -->
     <div v-if="members.length > 0" class="space-y-2">
       <SubHeader class="text-sm font-semibold uppercase text-(--text-muted)">{{ t('membersCreate.existingManagers') }}</SubHeader>
       <div
@@ -69,7 +65,6 @@ async function submitCreate() {
       </div>
     </div>
 
-    <!-- Create new manager -->
     <div class="space-y-3 pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">
       <SubHeader class="text-sm font-semibold uppercase text-(--text-muted)">{{ t('membersCreate.createNewManager') }}</SubHeader>
       <p class="text-xs text-(--text-muted)">{{ t('membersCreate.createNewManagerHint') }}</p>
@@ -78,11 +73,10 @@ async function submitCreate() {
         <TextInput v-model="newLastName" :placeholder="t('membersCreate.lastName')"/>
         <TextInput v-model="newEmail" :placeholder="t('membersCreate.email')"/>
       </div>
-      <SecondaryButton :icon="['fas', 'plus']" :disabled="!newEmail || !newFirstName || !newLastName || creating" @click="submitCreate">
-        {{ creating ? t('common.loading') : t('membersCreate.addManager') }}
+      <SecondaryButton :icon="['fas', 'plus']" :disabled="!newEmail || !newFirstName || !newLastName" @click="submitCreate">
+        {{ t('membersCreate.addManager') }}
       </SecondaryButton>
 
-      <!-- Newly created managers -->
       <div v-if="createdManagers.length > 0" class="space-y-1">
         <div v-for="mgr in createdManagers" :key="mgr.id"
              class="flex items-center gap-2 rounded-lg px-3 py-2 bg-primary/10 border border-primary">

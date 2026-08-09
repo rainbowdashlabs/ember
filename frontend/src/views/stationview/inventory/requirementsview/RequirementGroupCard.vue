@@ -12,7 +12,7 @@ import DragList from '@/components/input/DragList.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
-import type { InventoryRequirement } from '@/api/types'
+import type { InventoryRequirement } from '@/api/inventory'
 import type { RequirementGroup } from './types'
 
 const props = defineProps<{

@@ -7,11 +7,10 @@ package dev.chojo.ember.feature.waitinglist.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
+import dev.chojo.ember.util.Json;
 import org.slf4j.Logger;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Instant;
 import java.util.List;
@@ -35,7 +34,6 @@ public record WaitlistVerificationToken(
         ConsentProof consent) {
 
     private static final Logger log = getLogger(WaitlistVerificationToken.class);
-    private static final ObjectMapper MAPPER = JsonMapper.builder().build();
     private static final TypeReference<List<GuardianInput>> GUARDIAN_LIST = new TypeReference<>() {};
     private static final TypeReference<Map<Integer, JsonNode>> VALUE_MAP = new TypeReference<>() {};
 
@@ -55,10 +53,32 @@ public record WaitlistVerificationToken(
                 ConsentProof.parse(row.getString("consent_proof")));
     }
 
+    /**
+     * Serialises the guardians of a pending registration into the
+     * {@code waitlist_verification_token.guardians} JSONB payload.
+     *
+     * @param guardians the guardians to serialise, may be null for none
+     * @return the JSONB payload, never null
+     */
+    public static String guardiansToJson(List<GuardianInput> guardians) {
+        return Json.MAPPER.writeValueAsString(guardians != null ? guardians : List.of());
+    }
+
+    /**
+     * Serialises the submitted custom field values into the
+     * {@code waitlist_verification_token.field_values} JSONB payload.
+     *
+     * @param fieldValues field id to submitted value, may be null for none
+     * @return the JSONB payload, never null
+     */
+    public static String fieldValuesToJson(Map<Integer, JsonNode> fieldValues) {
+        return Json.MAPPER.writeValueAsString(fieldValues != null ? fieldValues : Map.of());
+    }
+
     private static List<GuardianInput> parseGuardians(String json) {
         if (json == null || json.isBlank()) return List.of();
         try {
-            return MAPPER.readValue(json, GUARDIAN_LIST);
+            return Json.MAPPER.readValue(json, GUARDIAN_LIST);
         } catch (Exception e) {
             log.warn("Failed to parse guardians JSON: {}", json, e);
             return List.of();
@@ -68,7 +88,7 @@ public record WaitlistVerificationToken(
     private static Map<Integer, JsonNode> parseFieldValues(String json) {
         if (json == null || json.isBlank()) return Map.of();
         try {
-            return MAPPER.readValue(json, VALUE_MAP);
+            return Json.MAPPER.readValue(json, VALUE_MAP);
         } catch (Exception e) {
             log.warn("Failed to parse field_values JSON: {}", json, e);
             return Map.of();

@@ -7,8 +7,8 @@
 import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import MutedText from '@/components/typography/MutedText.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -18,6 +18,7 @@ import StationMap, {type MapStation} from '@/components/map/StationMap.vue'
 import {discovery} from '@/api'
 import type {DiscoveryEntry} from '@/api/discovery'
 import {useSession} from '@/composables/useSession'
+import {useFlashMessage} from '@/composables/useFlashMessage'
 
 const {t} = useI18n()
 const {canManageFederation} = useSession()
@@ -25,7 +26,7 @@ const {canManageFederation} = useSession()
 const stations = ref<DiscoveryEntry[]>([])
 const loading = ref(true)
 const error = ref('')
-const success = ref('')
+const {message: success, flash} = useFlashMessage(3000)
 const inviteCode = ref('')
 const tab = ref<'list' | 'map'>('list')
 
@@ -55,8 +56,7 @@ onMounted(async () => {
 async function handleConnect(station: DiscoveryEntry) {
   try {
     await discovery.requestFederation(station.stationUid)
-    success.value = t('discovery.requestSent')
-    setTimeout(() => { success.value = '' }, 3000)
+    flash(t('discovery.requestSent'))
     stations.value = await discovery.listDiscoverable()
   } catch {
     error.value = t('discovery.requestError')
@@ -80,15 +80,12 @@ async function handleInvite(station: DiscoveryEntry) {
     <Alert v-if="error" variant="error" class="mb-2">{{ error }}</Alert>
     <Alert v-if="success" variant="success" class="mb-2">{{ success }}</Alert>
 
-    <!-- Invite code display -->
     <div v-if="inviteCode" class="mb-6 p-4 rounded bg-[var(--bg-accent)] border border-[var(--border)]">
       <MutedText size="sm" class="mb-2">{{ t('discovery.inviteHint') }}</MutedText>
       <code class="block rounded bg-[var(--bg)] p-3 font-mono text-center text-lg select-all break-all">{{ inviteCode }}</code>
     </div>
 
-    <Spinner v-if="loading"/>
-    <EmptyState v-else-if="stations.length === 0">{{ t('discovery.empty') }}</EmptyState>
-    <template v-else>
+    <AsyncSection :empty="stations.length === 0" :empty-message="t('discovery.empty')" :loading="loading">
       <div class="mb-4 flex justify-end gap-1">
         <SelectionToggleButton :selected="tab === 'list'" @toggle="tab = 'list'">
           <font-awesome-icon :icon="['fas', 'list']" class="mr-1"/>
@@ -100,11 +97,11 @@ async function handleInvite(station: DiscoveryEntry) {
         </SelectionToggleButton>
       </div>
       <NeutralContainer v-if="tab === 'map'">
-        <EmptyState v-if="mapStations.length === 0">{{ t('stationDiscovery.noCoordinatesForFilter') }}</EmptyState>
+        <EmptyState v-if="mapStations.length === 0" :message="t('stationDiscovery.noCoordinatesForFilter')"/>
         <StationMap v-else :stations="mapStations" height="520px"/>
       </NeutralContainer>
       <DiscoveryGrid v-else :stations="stations" :can-connect="canManageFederation()" :show-invite="true" @connect="handleConnect" @invite="handleInvite"/>
-    </template>
+    </AsyncSection>
   </div>
   </ViewContent>
 </template>

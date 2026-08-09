@@ -12,6 +12,9 @@ import dev.chojo.ember.feature.events.entity.EventTemplateField;
 import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
+import dev.chojo.ember.feature.restriction.RestrictionSql;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -23,41 +26,35 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 @Singleton
 public class EventTemplateRepository {
 
-    private static final String TEMPLATE_COLUMNS = """
+    private static final String EVENT_TEMPLATE_COLUMNS = """
             id, station_id, name, title, description, category_id, event_type,
             requires_registration, registration_deadline_offset, requires_confirmation,
             restriction_mode, attendance_template_id, registration_limit""";
+    private static final String RESTRICTION_TABLE = "event_template_restriction";
+    private static final String TEMPLATE_FK = "template_id";
 
     public List<EventTemplate> findByStation(int stationId) {
         return query("""
                 SELECT %s
                 FROM event_template
                 WHERE station_id = :station_id
-                ORDER BY name;""", TEMPLATE_COLUMNS)
+                ORDER BY name;""", EVENT_TEMPLATE_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(EventTemplate.map())
                 .all();
     }
 
     public Optional<EventTemplate> findById(int id) {
-        return query("""
-                SELECT %s
-                FROM event_template
-                WHERE id = :id;""", TEMPLATE_COLUMNS)
-                .single(call().bind("id", id))
-                .map(EventTemplate.map())
-                .first();
+        return SqlSupport.findById("event_template", EVENT_TEMPLATE_COLUMNS, id, EventTemplate.map());
     }
 
     public EventTemplate create(int stationId, String name) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT INTO event_template(station_id, name)
                 VALUES (:station_id, :name)
-                RETURNING %s;""", TEMPLATE_COLUMNS)
-                .single(call().bind("station_id", stationId).bind("name", name))
-                .map(EventTemplate.map())
-                .first()
-                .orElseThrow();
+                RETURNING %s;""",
+                call().bind("station_id", stationId).bind("name", name), EventTemplate.map(), EVENT_TEMPLATE_COLUMNS);
     }
 
     public boolean update(
@@ -104,10 +101,7 @@ public class EventTemplateRepository {
     }
 
     public boolean delete(int id) {
-        return query("DELETE FROM event_template WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("event_template", id);
     }
 
     public List<EventTemplateField> findFields(int templateId) {
@@ -142,24 +136,19 @@ public class EventTemplateRepository {
     }
 
     public List<String> findRestrictions(int templateId) {
-        return query("SELECT user_type FROM event_template_restriction WHERE template_id = :template_id;")
+        return query("SELECT user_type FROM %s WHERE %s = :template_id;", RESTRICTION_TABLE, TEMPLATE_FK)
                 .single(call().bind("template_id", templateId))
                 .map(row -> row.getString("user_type"))
                 .all();
     }
 
     public void setRestrictions(int templateId, List<StationUserType> userTypes) {
-        query("DELETE FROM event_template_restriction WHERE template_id = :template_id;")
-                .single(call().bind("template_id", templateId))
-                .delete();
-        for (StationUserType userType : userTypes) {
-            query("INSERT INTO event_template_restriction(template_id, user_type) VALUES (:template_id, :user_type);")
-                    .single(call().bind("template_id", templateId).bind("user_type", userType))
-                    .insert();
-        }
+        RestrictionSql.replace(
+                RESTRICTION_TABLE,
+                TEMPLATE_FK,
+                templateId,
+                new RestrictionSelection(userTypes, List.of(), List.of(), List.of(), null));
     }
-
-    // --- Reminders ---
 
     public List<Integer> findReminderDays(int templateId) {
         return query("""

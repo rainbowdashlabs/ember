@@ -7,6 +7,7 @@
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useSession} from '@/composables/useSession'
+import MutedIconButton from '@/components/button/MutedIconButton.vue'
 
 const {t} = useI18n()
 const {sessionInfo} = useSession()
@@ -45,14 +46,12 @@ function copyJson() {
     >
       <div class="flex items-center justify-between">
         <div class="font-semibold">{{ t('devTools.title') }}</div>
-        <button
-            type="button"
-            class="text-(--text-muted) hover:text-(--text)"
-            :title="t('devTools.copyJson')"
+        <MutedIconButton
+            :icon="['fas', 'copy']"
+            :label="t('devTools.copyJson')"
+            hover="text"
             @click="copyJson"
-        >
-          <font-awesome-icon :icon="['fas', 'copy']" class="h-4 w-4"/>
-        </button>
+        />
       </div>
 
       <div v-if="!sessionInfo" class="text-(--text-muted)">{{ t('devTools.noSession') }}</div>

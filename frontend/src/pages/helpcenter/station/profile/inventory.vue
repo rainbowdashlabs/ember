@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import InventoryHelp from '~/views/helpcenter/stationview/profile/InventoryHelp'
+import InventoryHelp from '~/views/helpcenter/stationview/profile/InventoryHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

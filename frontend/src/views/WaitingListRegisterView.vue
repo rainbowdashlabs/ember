@@ -6,7 +6,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute } from 'vue-router'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
@@ -14,18 +13,27 @@ import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
 import InviteHeader from './waitinglistregisterview/InviteHeader.vue'
 import RegisterForm from './waitinglistregisterview/RegisterForm.vue'
 import RegisterSuccess from './waitinglistregisterview/RegisterSuccess.vue'
-import type { GuardianInput, WaitingListInviteInfo } from '@/api/types'
+import type { GuardianInput, WaitingListInviteInfo } from '@/api/waitingList'
 import { waitingList } from '@/api'
+import { useAsyncAction } from '@/composables/useAsyncAction'
 import { getFieldValue as readFieldValue, setFieldValue as writeFieldValue } from '@/util/profileFields'
+import { useLinkAccessedResource } from '@/composables/useLinkAccessedResource'
 
 const { t } = useI18n()
-const route = useRoute()
 
-const code = ref('')
-const inviteInfo = ref<WaitingListInviteInfo | null>(null)
-const loading = ref(true)
-const error = ref('')
-const submitting = ref(false)
+const {
+  credential: code,
+  data: inviteInfo,
+  loading,
+  error: pageError,
+  load: loadInviteInfo,
+} = useLinkAccessedResource<WaitingListInviteInfo>(
+    'code',
+    () => t('waitingList.register.noCode'),
+    () => t('waitingList.register.invalidCode'),
+    (c) => waitingList.getInviteInfo(c),
+)
+
 const submitted = ref(false)
 const accessToken = ref('')
 
@@ -47,22 +55,6 @@ function setFieldValue(fieldId: number, value: string) {
   writeFieldValue(fieldValues, fieldId, value)
 }
 
-async function loadInviteInfo() {
-  code.value = (route.query.code as string) ?? ''
-  if (!code.value) {
-    error.value = t('waitingList.register.noCode')
-    loading.value = false
-    return
-  }
-  try {
-    inviteInfo.value = await waitingList.getInviteInfo(code.value)
-  } catch {
-    error.value = t('waitingList.register.invalidCode')
-  } finally {
-    loading.value = false
-  }
-}
-
 function addGuardian() {
   guardians.value = [...guardians.value, { firstname: '', lastname: '', email: '', phone: '' }]
 }
@@ -71,52 +63,51 @@ function removeGuardian(index: number) {
   guardians.value = guardians.value.filter((_, i) => i !== index)
 }
 
-async function submit() {
+const { running: submitting, error: submitError, run: runSubmit } = useAsyncAction(async () => {
+  const values: Record<number, string> = {}
+  for (const [fieldId, value] of fieldValues.value) {
+    if (value.trim()) {
+      values[fieldId] = value.trim()
+    }
+  }
+  const result = await waitingList.register({
+    inviteCode: code.value,
+    firstname: firstname.value.trim(),
+    lastname: lastname.value.trim(),
+    guardians: guardians.value.map(g => ({ firstname: g.firstname.trim(), lastname: g.lastname.trim(), email: g.email.trim(), phone: g.phone.trim() })),
+    notes: notes.value.trim(),
+    values,
+    consentVersion: consentVersion.value,
+    privacyVersion: privacyVersion.value,
+    tosVersion: tosVersion.value,
+  })
+  accessToken.value = result.accessToken
+  submitted.value = true
+})
+
+const error = computed(() => pageError.value || submitError.value)
+
+function submit() {
   if (!firstname.value.trim() || !guardians.value.some(g => g.email.trim())) {
-    error.value = t('waitingList.register.requiredFields')
+    pageError.value = t('waitingList.register.requiredFields')
     return
   }
   if (!consentAccepted.value) {
-    error.value = t('publicConsent.required')
+    pageError.value = t('publicConsent.required')
     return
   }
 
   if (inviteInfo.value) {
     for (const field of inviteInfo.value.fields) {
       if (field.required && !getFieldValue(field.id).trim()) {
-        error.value = t('waitingList.register.requiredField', { name: field.name })
+        pageError.value = t('waitingList.register.requiredField', { name: field.name })
         return
       }
     }
   }
 
-  submitting.value = true
-  error.value = ''
-  try {
-    const values: Record<number, string> = {}
-    for (const [fieldId, value] of fieldValues.value) {
-      if (value.trim()) {
-        values[fieldId] = value.trim()
-      }
-    }
-    const result = await waitingList.register({
-      inviteCode: code.value,
-      firstname: firstname.value.trim(),
-      lastname: lastname.value.trim(),
-      guardians: guardians.value.map(g => ({ firstname: g.firstname.trim(), lastname: g.lastname.trim(), email: g.email.trim(), phone: g.phone.trim() })),
-      notes: notes.value.trim(),
-      values,
-      consentVersion: consentVersion.value,
-      privacyVersion: privacyVersion.value,
-      tosVersion: tosVersion.value,
-    })
-    accessToken.value = result.accessToken
-    submitted.value = true
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    submitting.value = false
-  }
+  pageError.value = ''
+  void runSubmit()
 }
 
 const statusLink = computed(() => `${window.location.origin}/waiting-list/status?token=${accessToken.value}`)

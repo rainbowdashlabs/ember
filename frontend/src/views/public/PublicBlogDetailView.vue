@@ -12,10 +12,11 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import type {PublicBlogEntry} from '@/api/types'
+import type {PublicBlogEntry} from '@/api/news'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import {news} from '@/api'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {formatDateLong} from '@/util/format'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -29,10 +30,6 @@ const {loading, error} = useAsyncLoader(async () => {
   entry.value = await news.getPublicBlogEntry(stationUid.value, blogId.value)
 })
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('de-DE', {year: 'numeric', month: 'long', day: 'numeric'})
-}
-
 function goBack() {
   router.push({name: 'public-blog', params: {stationUid: stationUid.value}})
 }
@@ -41,7 +38,7 @@ function goBack() {
 <template>
   <ViewContent :title="t('pages.public-blog-detail.title')">
   <div class="space-y-6">
-    <SecondaryButton size="sm" :icon="['fas', 'arrow-left']" @click="goBack">
+    <SecondaryButton compact :icon="['fas', 'arrow-left']" @click="goBack">
       {{ t('publicStation.blogTitle') }}
     </SecondaryButton>
 
@@ -52,7 +49,7 @@ function goBack() {
       <SectionHeader>{{ entry.title }}</SectionHeader>
       <div class="flex items-center gap-3 text-sm text-(--text-muted)">
         <span v-if="entry.authorName">{{ t('publicStation.blogBy') }} {{ entry.authorName }}</span>
-        <span>{{ formatDate(entry.publishedAt) }}</span>
+        <span>{{ formatDateLong(entry.publishedAt) }}</span>
       </div>
       <NeutralContainer>
         <div class="prose dark:prose-invert max-w-none" v-html="entry.contentHtml"/>

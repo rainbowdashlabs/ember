@@ -16,8 +16,8 @@ import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
-import dev.chojo.ember.feature.events.service.EventService;
 import dev.chojo.ember.feature.federation.entity.LendingRequest;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.service.LendingService;
@@ -58,7 +58,7 @@ class NotificationFeedRendererTest {
     private NotificationService notificationService;
     private NotificationFeedRenderer renderer;
 
-    private EventService eventService;
+    private EventCrudService crudService;
     private EventFieldService eventFieldService;
     private LostAndFoundService lostAndFoundService;
     private LendingService lendingService;
@@ -70,7 +70,7 @@ class NotificationFeedRendererTest {
     @BeforeEach
     void setup() {
         notificationService = mock(NotificationService.class);
-        eventService = mock(EventService.class);
+        crudService = mock(EventCrudService.class);
         eventFieldService = mock(EventFieldService.class);
         lostAndFoundService = mock(LostAndFoundService.class);
         lendingService = mock(LendingService.class);
@@ -79,7 +79,7 @@ class NotificationFeedRendererTest {
         boardTicketService = mock(BoardTicketService.class);
         procedureService = mock(ProcedureService.class);
         // No-ops by default; per-test stubbing wires up real returns when needed.
-        when(eventService.findById(ArgumentMatchers.anyInt())).thenReturn(Optional.empty());
+        when(crudService.findById(ArgumentMatchers.anyInt())).thenReturn(Optional.empty());
         when(eventFieldService.findByEvent(ArgumentMatchers.anyInt())).thenReturn(List.of());
         when(lostAndFoundService.findById(ArgumentMatchers.anyInt())).thenReturn(Optional.empty());
         when(lendingService.findRequest(ArgumentMatchers.anyInt())).thenReturn(Optional.empty());
@@ -118,7 +118,7 @@ class NotificationFeedRendererTest {
         when(notificationService.resolveNotificationUrl(any(), any(), any())).thenReturn(null);
         renderer = new NotificationFeedRenderer(
                 notificationService,
-                eventService,
+                crudService,
                 eventFieldService,
                 lostAndFoundService,
                 lendingService,
@@ -277,7 +277,7 @@ class NotificationFeedRendererTest {
         var start = Instant.parse("2027-09-15T17:00:00Z");
         var end = Instant.parse("2027-09-15T19:00:00Z");
         var event = stubEvent(42, start, end);
-        when(eventService.findById(42)).thenReturn(Optional.of(event));
+        when(crudService.findById(42)).thenReturn(Optional.of(event));
         when(eventFieldService.findByEvent(42))
                 .thenReturn(List.of(
                         new EventField(

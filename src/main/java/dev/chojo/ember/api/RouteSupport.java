@@ -10,6 +10,7 @@ import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.NotFoundResponse;
 
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.IntFunction;
 import java.util.function.ToIntFunction;
 
@@ -28,6 +29,39 @@ public final class RouteSupport {
      */
     public static int pathInt(Context ctx, String name) {
         return ctx.pathParamAsClass(name, Integer.class).get();
+    }
+
+    /**
+     * Reads a UUID path parameter. Answers {@code 404} when the value is not a valid UUID —
+     * a malformed identifier can never address an existing resource, and this avoids
+     * leaking whether the parameter format alone was the problem.
+     */
+    public static UUID pathUuid(Context ctx, String name) {
+        try {
+            return UUID.fromString(ctx.pathParam(name));
+        } catch (IllegalArgumentException e) {
+            throw new NotFoundResponse();
+        }
+    }
+
+    /**
+     * Shortcut for resolving the caller's session, so handlers read as
+     * {@code session(ctx).stationId()} instead of repeating the static factory call.
+     */
+    public static UserSession session(Context ctx) {
+        return UserSession.from(ctx);
+    }
+
+    /**
+     * Confirms an already-loaded entity's owning station matches the caller's, answering
+     * {@code 404} on mismatch so cross-station resource existence is not revealed. For
+     * helpers that hold the entity and session directly, where
+     * {@link #requireOwnedOrNotFound} does not fit.
+     */
+    public static void requireSameStation(UserSession session, int entityStationId) {
+        if (session.stationId() == null || entityStationId != session.stationId()) {
+            throw new NotFoundResponse();
+        }
     }
 
     /**

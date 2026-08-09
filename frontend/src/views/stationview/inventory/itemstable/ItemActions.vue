@@ -5,10 +5,9 @@
  */
 <script lang="ts" setup>
 import { useI18n } from 'vue-i18n'
-import IconButton from '@/components/button/IconButton.vue'
-import EditButton from '@/components/button/EditButton.vue'
-import DeleteButton from '@/components/button/DeleteButton.vue'
-import type { InventoryItem } from '@/api/types'
+import ActionsMenu from '@/components/button/ActionsMenu.vue'
+import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
+import type { InventoryItem } from '@/api/inventory'
 import type { InventoryItemActionEmits } from '../itemEmits'
 
 withDefaults(defineProps<{
@@ -26,25 +25,37 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <template v-if="showActions">
-    <IconButton v-if="!item.lostAt && !lentOut" :icon="['fas', 'user']"
-                :label="item.assignedTo ? t('inventory.edit.reassign') : t('inventory.edit.assign')"
-                class="text-primary hover:bg-primary/15" @click="emit('assign', item)"/>
-    <IconButton v-if="item.assignedTo && !item.lostAt && !lentOut" :icon="['fas', 'right-from-bracket']"
-                :label="t('inventory.edit.unassign')"
-                class="text-(--text-muted) hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent"
-                @click="emit('unassign', item)"/>
-    <IconButton v-if="!item.lostAt && !lentOut" :icon="['fas', 'triangle-exclamation']"
-                :label="t('inventory.edit.markLost')" class="text-error hover:bg-error/15"
-                @click="emit('markLost', item)"/>
-    <IconButton v-if="item.lostAt" :icon="['fas', 'check']" :label="t('inventory.edit.markFound')"
-                class="text-success hover:bg-success/15" @click="emit('markFound', item)"/>
-  </template>
-  <IconButton :icon="['fas', 'clock-rotate-left']" :label="t('inventory.edit.historyTitle')"
-              class="text-(--text-muted) hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent"
-              @click="emit('history', item)"/>
-  <template v-if="showActions">
-    <EditButton @click="emit('edit', item)"/>
-    <DeleteButton v-if="!lentOut" @click="emit('delete', item)"/>
-  </template>
+  <ActionsMenu :label="t('common.actions')">
+    <template v-if="showActions">
+      <DropdownMenuItem v-if="!item.lostAt && !lentOut" :icon="['fas', 'user']"
+                        @click="emit('assign', item)">
+        {{ item.assignedTo ? t('inventory.edit.reassign') : t('inventory.edit.assign') }}
+      </DropdownMenuItem>
+      <DropdownMenuItem v-if="item.assignedTo && !item.lostAt && !lentOut" :icon="['fas', 'right-from-bracket']"
+                        icon-class="text-(--text-muted)" @click="emit('unassign', item)">
+        {{ t('inventory.edit.unassign') }}
+      </DropdownMenuItem>
+      <DropdownMenuItem v-if="!item.lostAt && !lentOut" :icon="['fas', 'triangle-exclamation']"
+                        icon-class="text-error" class="text-error" @click="emit('markLost', item)">
+        {{ t('inventory.edit.markLost') }}
+      </DropdownMenuItem>
+      <DropdownMenuItem v-if="item.lostAt" :icon="['fas', 'check']"
+                        icon-class="text-success" @click="emit('markFound', item)">
+        {{ t('inventory.edit.markFound') }}
+      </DropdownMenuItem>
+    </template>
+    <DropdownMenuItem :icon="['fas', 'clock-rotate-left']" icon-class="text-(--text-muted)"
+                      @click="emit('history', item)">
+      {{ t('inventory.edit.historyTitle') }}
+    </DropdownMenuItem>
+    <template v-if="showActions">
+      <DropdownMenuItem :icon="['fas', 'pen']" @click="emit('edit', item)">
+        {{ t('common.edit') }}
+      </DropdownMenuItem>
+      <DropdownMenuItem v-if="!lentOut" :icon="['fas', 'trash']"
+                        icon-class="text-error" class="text-error" @click="emit('delete', item)">
+        {{ t('common.delete') }}
+      </DropdownMenuItem>
+    </template>
+  </ActionsMenu>
 </template>

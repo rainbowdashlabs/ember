@@ -34,6 +34,9 @@ const {t} = useI18n()
       <SidebarLink :icon="['fas', 'file-import']" name="help-quiz-catalog-import" to="/helpcenter/station/quiz/catalogs/0/import" @navigate="close">
         {{ t('sidebar.quizCatalogImport') }}
       </SidebarLink>
+      <SidebarLink :icon="['fas', 'star']" name="help-quiz-catalog-mc-fill" to="/helpcenter/station/quiz/catalogs/0/mc-fill" @navigate="close">
+        {{ t('helpCenter.quizCatalogMcFill.title') }}
+      </SidebarLink>
     </SidebarExpandableLink>
     <SidebarExpandableLink :icon="['fas', 'file-lines']" name="help-quiz-tests"
                            to="/helpcenter/station/quiz/tests" prefix="/helpcenter/station/quiz/tests" @navigate="close">

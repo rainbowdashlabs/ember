@@ -7,7 +7,6 @@ package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.members.entity.MemberCompletion;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -22,16 +21,14 @@ import java.util.UUID;
 @Singleton
 public class MemberIdentityFactory {
     private final StationRepository stationRepository;
-    private final StationMemberRepository memberRepository;
+    private final MemberLookupService lookupService;
     private final MemberNameResolver nameResolver;
 
     @Inject
     public MemberIdentityFactory(
-            StationRepository stationRepository,
-            StationMemberRepository memberRepository,
-            MemberNameResolver nameResolver) {
+            StationRepository stationRepository, MemberLookupService lookupService, MemberNameResolver nameResolver) {
         this.stationRepository = stationRepository;
-        this.memberRepository = memberRepository;
+        this.lookupService = lookupService;
         this.nameResolver = nameResolver;
     }
 
@@ -40,7 +37,7 @@ public class MemberIdentityFactory {
      */
     public MemberIdentity local(int stationId, int memberId) {
         UUID stationUid = stationRepository.resolveUid(stationId);
-        UUID memberUid = memberRepository.resolveUid(memberId);
+        UUID memberUid = lookupService.resolveUid(memberId);
         if (stationUid == null || memberUid == null) {
             throw new IllegalStateException(
                     "Cannot resolve MemberIdentity for stationId=%d, memberId=%d (stationUid=%s, memberUid=%s)"
@@ -61,7 +58,7 @@ public class MemberIdentityFactory {
      * Resolves a member ID to an enriched MemberIdentity.
      */
     public MemberIdentity fromMemberId(int memberId) {
-        var identity = memberRepository.resolveIdentity(memberId);
+        var identity = lookupService.resolveIdentity(memberId);
         return identity != null ? nameResolver.enrichDisplay(identity) : null;
     }
 

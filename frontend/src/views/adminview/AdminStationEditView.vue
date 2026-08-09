@@ -12,7 +12,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import StationForm from './adminstationeditview/StationForm.vue'
-import type {ManagerDetail} from '@/api/types'
+import type {ManagerDetail} from '@/api/stations'
 import {stations} from '@/api'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 

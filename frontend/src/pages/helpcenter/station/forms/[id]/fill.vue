@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import FillHelp from '~/views/helpcenter/stationview/forms/FillHelp'
+import FillHelp from '~/views/helpcenter/stationview/forms/FillHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

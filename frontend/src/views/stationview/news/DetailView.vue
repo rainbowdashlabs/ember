@@ -20,10 +20,13 @@ import Modal from '@/components/feedback/Modal.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import NewsCommentSection from '@/components/comment/NewsCommentSection.vue'
-import NewsViewBadge from '@/components/news/NewsViewBadge.vue'
-import type {NewsEntry} from '@/api/types'
+import NewsViewBadge from './newsshared/NewsViewBadge.vue'
+import type {NewsEntry} from '@/api/news'
 import {news} from '@/api'
 import {useSession} from '@/composables/useSession'
+import {useConfirmAction} from '@/composables/useConfirmAction'
+import {formatDateTime} from '@/util/format'
+import ProseContent from '@/components/display/ProseContent.vue'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -31,7 +34,6 @@ const router = useRouter()
 const {canManageNews} = useSession()
 
 const entry = ref<NewsEntry | null>(null)
-const showDeleteModal = ref(false)
 const highlightCommentId = ref<number | null>(null)
 interface ViewBadgeRef {
   refresh: () => Promise<void>
@@ -50,24 +52,19 @@ const {loading, error, reload} = useAsyncLoader(async () => {
   }
 })
 
-function formatDate(dateStr?: string): string {
-  if (!dateStr) return ''
-  return new Date(dateStr).toLocaleDateString('de-DE', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  })
-}
-
-async function confirmDelete() {
-  if (!entry.value) return
-  try {
-    await news.deleteNews(entry.value.id)
-    showDeleteModal.value = false
+const {
+  show: showDeleteModal,
+  request: requestDelete,
+  confirm: confirmDelete,
+} = useConfirmAction<NewsEntry>({
+  onConfirm: async e => {
+    await news.deleteNews(e.id)
+  },
+  onSuccess: async () => {
     await router.push({name: 'news-list'})
-  } catch {
-    error.value = t('common.error')
-  }
-}
+  },
+  error,
+})
 
 function scrollToComment() {
   const commentId = route.query.comment
@@ -113,18 +110,18 @@ watch(loading, (isLoading) => {
                                    class="ml-1 h-3 w-3 text-[var(--text-muted)]"/>
               </SubHeader>
               <p class="text-xs text-(--text-muted)">
-                {{ entry.author?.name ?? entry.authorName }} &middot; {{ formatDate(entry.publishedAt) }}
+                {{ entry.author?.name ?? entry.authorName }} &middot; {{ formatDateTime(entry.publishedAt) }}
               </p>
             </div>
           </div>
           <div v-if="canManageNews()" class="flex items-center gap-1 shrink-0">
             <NewsViewBadge ref="viewBadge" :news-id="entry.id" :initial-count="entry.viewCount ?? 0" :news-title="entry.title"/>
             <EditButton @click="router.push({name: 'news-edit', params: {id: entry.id}})"/>
-            <DeleteButton @click="showDeleteModal = true"/>
+            <DeleteButton @click="requestDelete(entry)"/>
           </div>
         </div>
 
-        <div class="prose prose-sm dark:prose-invert max-w-none" v-html="entry.contentHtml"/>
+        <ProseContent v-html="entry.contentHtml"/>
 
         <div class="pt-3 border-t border-bg-light-accent dark:border-bg-dark-accent">
           <NewsCommentSection :news-id="entry.id" :highlight-comment-id="highlightCommentId"/>

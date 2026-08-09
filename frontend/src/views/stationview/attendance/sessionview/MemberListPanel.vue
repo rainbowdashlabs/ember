@@ -10,7 +10,8 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import MemberEntry from './MemberEntry.vue'
-import type {AttendanceEntry, AttendanceStatus, MemberGroup, StationMember} from '@/api/types'
+import type {AttendanceEntry, AttendanceStatus} from '@/api/attendance'
+import type {MemberGroup, StationMember} from '@/api/types'
 
 const {t} = useI18n()
 

@@ -17,9 +17,8 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import ItemSearchPicker from '@/components/input/search/ItemSearchPicker.vue'
-import type { StationMember, InventoryItem } from '@/api/types'
-import type { InventorySize } from '@/api/types'
-import type { MyInventoryItem } from '@/api/inventory'
+import type {InventoryItem, InventorySize, MyInventoryItem} from '@/api/inventory'
+import type { StationMember } from '@/api/types'
 
 const { t } = useI18n()
 
@@ -66,7 +65,6 @@ const showExchangeModal = ref(false)
 const exchangeItem = ref<MyInventoryItem | null>(null)
 const exchangeNewSizeId = ref<string>('')
 const exchangeReason = ref('')
-const exchangeSaving = ref(false)
 const exchangeSuccess = ref(false)
 
 const reassignTargets = computed(() => {
@@ -123,14 +121,12 @@ function openExchangeModal(item: MyInventoryItem) {
 
 function submitExchange() {
   if (!exchangeItem.value || !exchangeReason.value.trim()) return
-  exchangeSaving.value = true
   emit('submitExchange', {
     item: exchangeItem.value,
     newSizeId: exchangeNewSizeId.value ? Number(exchangeNewSizeId.value) : undefined,
     reason: exchangeReason.value.trim(),
   })
   exchangeSuccess.value = true
-  exchangeSaving.value = false
 }
 
 defineExpose({
@@ -267,8 +263,8 @@ defineExpose({
         </div>
         <div class="flex justify-end gap-2">
           <SecondaryButton @click="showExchangeModal = false">{{ t('common.cancel') }}</SecondaryButton>
-          <PrimaryButton :disabled="exchangeSaving || !exchangeReason.trim() || (exchangeSizes.length > 0 && !exchangeNewSizeId)" @click="submitExchange">
-            {{ exchangeSaving ? t('common.loading') : t('exchanges.submit') }}
+          <PrimaryButton :disabled="!exchangeReason.trim() || (exchangeSizes.length > 0 && !exchangeNewSizeId)" @click="submitExchange">
+            {{ t('exchanges.submit') }}
           </PrimaryButton>
         </div>
       </template>

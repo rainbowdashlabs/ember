@@ -4,20 +4,195 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {
-    QuizCatalog,
-    QuizCatalogDetail,
-    QuizCatalogExport,
-    QuizCategory,
-    QuizQuestion,
-    QuizTest,
-    QuizTestSummary,
-    QuizTestDetail,
-    QuizTestSection,
-    QuizTestAttempt,
-    QuizAttemptDetail,
-    QuizAvailableTest,
-} from './types'
+import {createCrudResource, createScopedCrudResource} from './crud'
+import type {MemberIdentity} from './types'
+
+export const QuizQuestionTypes = {
+    MULTIPLE_CHOICE: 'MULTIPLE_CHOICE',
+    FILL_IN_THE_BLANK: 'FILL_IN_THE_BLANK',
+    FREE_ANSWER: 'FREE_ANSWER',
+    CONNECT: 'CONNECT',
+    IMAGE_TEXT: 'IMAGE_TEXT',
+    TRUE_FALSE: 'TRUE_FALSE',
+    ORDERING: 'ORDERING',
+    ENUMERATION: 'ENUMERATION',
+} as const
+
+export type QuizQuestionTypeName = (typeof QuizQuestionTypes)[keyof typeof QuizQuestionTypes]
+
+export const QuizTestStatus = {
+    DRAFT: 'DRAFT',
+    ACTIVE: 'ACTIVE',
+    CLOSED: 'CLOSED',
+} as const
+
+export type QuizTestStatusName = (typeof QuizTestStatus)[keyof typeof QuizTestStatus]
+
+export const QuizAttemptStatus = {
+    IN_PROGRESS: 'IN_PROGRESS',
+    SUBMITTED: 'SUBMITTED',
+    GRADED: 'GRADED',
+} as const
+
+export type QuizAttemptStatusName = (typeof QuizAttemptStatus)[keyof typeof QuizAttemptStatus]
+
+export interface QuizCatalog {
+    id: number
+    stationId: string
+    name: string
+    description: string
+    trainingEnabled: boolean
+    createdAt: string
+    updatedAt: string
+}
+
+export interface QuizCategory {
+    id: number
+    stationId: string
+    name: string
+    description: string
+    position: number
+}
+
+export interface QuizQuestion {
+    id: number
+    catalogId: number
+    categoryId: number | null
+    quizQuestionType: QuizQuestionTypeName
+    title: string
+    description: string
+    imageUrl: string | null
+    points: number
+    autoPoints: boolean
+    config: Record<string, unknown>
+    position: number
+    createdAt: string
+    updatedAt: string
+}
+
+export interface QuizCatalogDetail {
+    id: number
+    stationId: string
+    name: string
+    description: string
+    trainingEnabled: boolean
+    questionCount: number
+    questionTypeCounts: Record<string, number>
+    categories: QuizCategory[]
+    createdAt: string
+    updatedAt: string
+}
+
+export interface QuizTest {
+    id: number
+    stationId: string
+    title: string
+    description: string
+    status: QuizTestStatusName
+    timeLimit: number | null
+    shuffle: boolean
+    forced?: boolean
+    startAt: string | null
+    endAt: string | null
+    createdBy: number
+    createdAt: string
+    updatedAt: string
+    restrictionMode?: string
+    restricted?: boolean
+}
+
+export interface QuizAvailableTest {
+    test: QuizTest
+    attemptStatus: string | null
+    startedAt: string | null
+    submittedAt: string | null
+}
+
+export interface QuizTestSummary {
+    test: QuizTest
+    attemptCount: number
+}
+
+export interface QuizTestSection {
+    id: number
+    testId: number
+    title: string
+    description: string
+    position: number
+}
+
+export interface QuizTestSectionSource {
+    id: number
+    sectionId: number
+    catalogId: number
+    categoryId: number | null
+    questionCount: number
+}
+
+export interface QuizSectionDetail {
+    id: number
+    testId: number
+    title: string
+    description: string
+    position: number
+    sources: QuizTestSectionSource[]
+}
+
+export interface QuizTestDetail {
+    test: QuizTest
+    sections: QuizSectionDetail[]
+    attemptCount: number
+}
+
+export interface QuizTestAttempt {
+    id: number
+    testId: number
+    memberId: number
+    status: QuizAttemptStatusName
+    startedAt: string
+    submittedAt: string | null
+    gradedAt: string | null
+    gradedBy: number | null
+    totalPoints: number
+    maxPoints: number
+}
+
+export interface QuizTestAttemptQuestion {
+    id: number
+    attemptId: number
+    questionId: number
+    sectionId: number | null
+    position: number
+}
+
+export interface QuizTestAnswer {
+    id: number
+    attemptId: number
+    questionId: number
+    sectionId: number | null
+    answer: string
+    points: number | null
+    graded: boolean
+    position: number
+}
+
+export interface QuizAttemptDetail {
+    attempt: QuizTestAttempt
+    questions: QuizTestAttemptQuestion[]
+    answers: QuizTestAnswer[]
+    questionDetails?: QuizQuestion[] | null
+    memberIdentity?: MemberIdentity | null
+}
+
+export interface QuizCatalogExport {
+    name: string
+    description: string
+    trainingEnabled: boolean
+    categories: QuizCategory[]
+    questions: QuizQuestion[]
+}
+import {uploadFile} from './upload'
+import {downloadAuthed} from '@/util/downloadAuthed'
 
 // -- Shared catalog entry from federation --
 
@@ -31,6 +206,57 @@ export interface CatalogListResponse {
     catalogs: QuizCatalog[]
     sharedCatalogs: SharedCatalogEntry[]
 }
+
+interface CatalogRequest {
+    name: string
+    description?: string
+    trainingEnabled?: boolean
+}
+
+interface CategoryRequest {
+    name: string
+    description?: string
+    position?: number
+}
+
+interface TestCreateRequest {
+    title: string
+    description?: string
+    timeLimit?: number | null
+    shuffle?: boolean
+    forced?: boolean
+}
+
+const catalogs = createCrudResource<
+    QuizCatalog,
+    CatalogRequest,
+    CatalogRequest,
+    QuizCatalogDetail
+>('/quiz/catalogs')
+
+const categories = createCrudResource<
+    QuizCategory,
+    CategoryRequest,
+    CategoryRequest,
+    QuizCategory,
+    QuizCategory,
+    void
+>('/quiz/categories')
+
+const catalogQuestions = createScopedCrudResource<
+    QuizQuestion,
+    Record<string, unknown>
+>((catalogId: number) => `/quiz/catalogs/${catalogId}/questions`)
+
+const questions = createCrudResource<QuizQuestion, Record<string, unknown>>('/quiz/questions')
+
+const tests = createCrudResource<
+    QuizTestSummary,
+    TestCreateRequest,
+    Record<string, unknown>,
+    QuizTestDetail,
+    QuizTest
+>('/quiz/tests')
 
 // -- Catalogs --
 
@@ -46,100 +272,37 @@ export async function searchCatalogs(query: string, federated: boolean): Promise
     return res.data
 }
 
-export async function getCatalog(id: number): Promise<QuizCatalogDetail> {
-    const res = await client.get<QuizCatalogDetail>(`/quiz/catalogs/${id}`)
-    return res.data
-}
-
-export async function createCatalog(data: { name: string; description?: string; trainingEnabled?: boolean }): Promise<QuizCatalog> {
-    const res = await client.post<QuizCatalog>('/quiz/catalogs', data)
-    return res.data
-}
-
-export async function updateCatalog(id: number, data: { name: string; description?: string; trainingEnabled?: boolean }): Promise<QuizCatalog> {
-    const res = await client.put<QuizCatalog>(`/quiz/catalogs/${id}`, data)
-    return res.data
-}
-
-export async function deleteCatalog(id: number): Promise<void> {
-    await client.delete(`/quiz/catalogs/${id}`)
-}
+export const getCatalog = catalogs.get
+export const createCatalog = catalogs.create
+export const updateCatalog = catalogs.update
+export const deleteCatalog = catalogs.remove
 
 // -- Categories (station-scoped) --
 
-export async function listCategories(): Promise<QuizCategory[]> {
-    const res = await client.get<QuizCategory[]>('/quiz/categories')
-    return res.data
-}
-
-export async function createCategory(data: { name: string; description?: string; position?: number }): Promise<QuizCategory> {
-    const res = await client.post<QuizCategory>('/quiz/categories', data)
-    return res.data
-}
-
-export async function updateCategory(id: number, data: { name: string; description?: string; position?: number }): Promise<void> {
-    await client.put(`/quiz/categories/${id}`, data)
-}
-
-export async function deleteCategory(id: number): Promise<void> {
-    await client.delete(`/quiz/categories/${id}`)
-}
+export const listCategories = categories.list
+export const createCategory = categories.create
+export const updateCategory = categories.update
+export const deleteCategory = categories.remove
 
 // -- Questions --
 
-export async function listQuestions(catalogId: number): Promise<QuizQuestion[]> {
-    const res = await client.get<QuizQuestion[]>(`/quiz/catalogs/${catalogId}/questions`)
-    return res.data
-}
-
-export async function getQuestion(id: number): Promise<QuizQuestion> {
-    const res = await client.get<QuizQuestion>(`/quiz/questions/${id}`)
-    return res.data
-}
-
-export async function createQuestion(catalogId: number, data: Record<string, unknown>): Promise<QuizQuestion> {
-    const res = await client.post<QuizQuestion>(`/quiz/catalogs/${catalogId}/questions`, data)
-    return res.data
-}
-
-export async function updateQuestion(id: number, data: Record<string, unknown>): Promise<QuizQuestion> {
-    const res = await client.put<QuizQuestion>(`/quiz/questions/${id}`, data)
-    return res.data
-}
-
-export async function deleteQuestion(id: number): Promise<void> {
-    await client.delete(`/quiz/questions/${id}`)
-}
+export const listQuestions = catalogQuestions.list
+export const createQuestion = catalogQuestions.create
+export const getQuestion = questions.get
+export const updateQuestion = questions.update
+export const deleteQuestion = questions.remove
 
 // -- Tests --
 
-export async function listTests(): Promise<QuizTestSummary[]> {
-    const res = await client.get<QuizTestSummary[]>('/quiz/tests')
-    return res.data
-}
+export const listTests = tests.list
+export const getTest = tests.get
+export const createTest = tests.create
+export const updateTest = tests.update
+export const deleteTest = tests.remove
 
 export async function listAvailableTests(): Promise<QuizAvailableTest[]> {
     const res = await client.get<QuizAvailableTest[]>('/quiz/tests/available')
     return res.data
-}
-
-export async function getTest(id: number): Promise<QuizTestDetail> {
-    const res = await client.get<QuizTestDetail>(`/quiz/tests/${id}`)
-    return res.data
-}
-
-export async function createTest(data: { title: string; description?: string; timeLimit?: number | null; shuffle?: boolean; forced?: boolean }): Promise<QuizTest> {
-    const res = await client.post<QuizTest>('/quiz/tests', data)
-    return res.data
-}
-
-export async function updateTest(id: number, data: Record<string, unknown>): Promise<QuizTest> {
-    const res = await client.put<QuizTest>(`/quiz/tests/${id}`, data)
-    return res.data
-}
-
-export async function deleteTest(id: number): Promise<void> {
-    await client.delete(`/quiz/tests/${id}`)
 }
 
 export async function activateTest(id: number): Promise<QuizTest> {
@@ -282,11 +445,7 @@ export function questionImageUrl(questionId: number, size?: number): string {
 }
 
 export async function uploadQuestionImage(questionId: number, file: File): Promise<void> {
-    const formData = new FormData()
-    formData.append('image', file)
-    await client.post(`/quiz/questions/${questionId}/image`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-    })
+    await uploadFile(`/quiz/questions/${questionId}/image`, {image: file})
 }
 
 export async function deleteQuestionImage(questionId: number): Promise<void> {
@@ -296,25 +455,11 @@ export async function deleteQuestionImage(questionId: number): Promise<void> {
 // -- PDF Export --
 
 export async function downloadQuestionPdf(testId: number): Promise<void> {
-    const res = await client.get(`/quiz/tests/${testId}/export/questions`, { responseType: 'blob' })
-    downloadBlob(res)
+    await downloadAuthed(`/quiz/tests/${testId}/export/questions`)
 }
 
 export async function downloadSolutionPdf(testId: number): Promise<void> {
-    const res = await client.get(`/quiz/tests/${testId}/export/solutions`, { responseType: 'blob' })
-    downloadBlob(res)
-}
-
-function downloadBlob(res: { data: Blob; headers: { [key: string]: unknown } }) {
-    const disposition = String(res.headers['content-disposition'] ?? '')
-    const match = disposition.match(/filename="?([^"]+)"?/)
-    const filename = match?.[1] ?? 'download'
-    const url = URL.createObjectURL(res.data)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = filename
-    a.click()
-    URL.revokeObjectURL(url)
+    await downloadAuthed(`/quiz/tests/${testId}/export/solutions`)
 }
 
 // -- Import/Export --
@@ -343,11 +488,8 @@ export interface CsvMappings {
 }
 
 export async function importCsv(catalogId: number, file: File, mappings: CsvMappings): Promise<{ imported: number }> {
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('mappings', JSON.stringify(mappings))
-    const res = await client.post<{ imported: number }>(`/quiz/catalogs/${catalogId}/import-csv`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+    return uploadFile<{ imported: number }>(`/quiz/catalogs/${catalogId}/import-csv`, {
+        file,
+        mappings: JSON.stringify(mappings),
     })
-    return res.data
 }

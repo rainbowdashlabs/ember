@@ -16,6 +16,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import {stationManage} from '@/api'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 
 const {hasPermission, loaded, load: reloadSession} = useSession()
 const router = useRouter()
@@ -28,9 +29,7 @@ watch(loaded, (isLoaded) => {
 const {t} = useI18n()
 
 const loading = ref(true)
-const error = ref('')
 const disabledModules = ref<Set<string>>(new Set())
-const modulesSaving = ref(false)
 
 const allModules = [
   {key: 'INVENTORY', label: 'moduleInventory'},
@@ -51,26 +50,23 @@ function isModuleEnabled(key: string): boolean {
   return !disabledModules.value.has(key)
 }
 
-async function toggleModule(key: string) {
-  modulesSaving.value = true
+const {running: modulesSaving, error, run: toggleModule} = useAsyncAction(async (key: string) => {
   const next = new Set(disabledModules.value)
   if (next.has(key)) next.delete(key)
   else next.add(key)
-  try {
-    const res = await stationManage.setDisabledModules([...next])
-    disabledModules.value = new Set(res.disabledModules)
-    reloadSession()
-  } catch {
-    error.value = t('common.error')
-  }
-  modulesSaving.value = false
-}
+  const res = await stationManage.setDisabledModules([...next])
+  disabledModules.value = new Set(res.disabledModules)
+  reloadSession()
+})
 
 onMounted(async () => {
   try {
     const res = await stationManage.getDisabledModules()
     disabledModules.value = new Set(res.disabledModules)
-  } catch { /* ignore */ }
+  } catch {
+    loading.value = false
+    return
+  }
   loading.value = false
 })
 </script>

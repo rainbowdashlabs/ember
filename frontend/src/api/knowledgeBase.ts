@@ -4,6 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import {createCrudResource, createScopedCrudResource} from './crud'
+import {uploadFile as uploadMultipart} from './upload'
 import type {MemberIdentity} from './types'
 
 export interface KbFolder {
@@ -53,8 +55,20 @@ export interface KbFileVersion {
     createdAt: string
 }
 
+/**
+ * The file facts a federated listing carries. Partner stations only publish the
+ * identity, the name and the description; the remaining metadata stays on the
+ * owning station, so everything past those three is optional.
+ */
+export interface SharedKbFile {
+    id: number
+    name: string
+    description: string
+    fileType?: string
+}
+
 export interface SharedFileEntry {
-    file: KbFile
+    file: SharedKbFile
     stationName: string
     sourceStationId: string
 }
@@ -93,70 +107,55 @@ export async function browse(folderId?: number | null): Promise<BrowseResponse> 
     return res.data
 }
 
-// -- Folders --
-
-export async function listFolders(parentId?: number | null): Promise<KbFolder[]> {
-    const params = parentId != null ? {parentId} : {}
-    const res = await client.get<KbFolder[]>('/kb/folders', {params})
-    return res.data
-}
-
-export async function getFolder(id: number): Promise<KbFolder> {
-    const res = await client.get<KbFolder>(`/kb/folders/${id}`)
-    return res.data
-}
-
-export async function createFolder(data: {
-    parentId?: number | null
-    name: string
-    description?: string
-}): Promise<KbFolder> {
-    const res = await client.post<KbFolder>('/kb/folders', data)
-    return res.data
-}
-
-export async function updateFolder(
-    id: number,
-    data: {name: string; description?: string; iconUrl?: string | null; position?: number},
-): Promise<KbFolder> {
-    const res = await client.put<KbFolder>(`/kb/folders/${id}`, data)
-    return res.data
-}
-
-export async function deleteFolder(id: number): Promise<void> {
-    await client.delete(`/kb/folders/${id}`)
-}
-
-// -- Files --
-
-export async function listFiles(folderId?: number | null): Promise<KbFile[]> {
-    const params = folderId != null ? {folderId} : {}
-    const res = await client.get<KbFile[]>('/kb/files', {params})
-    return res.data
-}
-
 export interface FileResponse {
     file: KbFile
     lastEditedByName: string | null
     isFavourite: boolean
 }
 
-export async function getFile(id: number): Promise<FileResponse> {
-    const res = await client.get<FileResponse>(`/kb/files/${id}`)
-    return res.data
+interface FolderCreateRequest {
+    parentId?: number | null
+    name: string
+    description?: string
 }
 
-export async function updateFile(
-    id: number,
-    data: {name: string; description?: string; iconUrl?: string | null; position?: number},
-): Promise<KbFile> {
-    const res = await client.put<KbFile>(`/kb/files/${id}`, data)
-    return res.data
+interface NodeUpdateRequest {
+    name: string
+    description?: string
+    iconUrl?: string | null
+    position?: number
 }
 
-export async function deleteFile(id: number): Promise<void> {
-    await client.delete(`/kb/files/${id}`)
+const folders = createCrudResource<KbFolder, FolderCreateRequest, NodeUpdateRequest>('/kb/folders')
+
+const files = createCrudResource<
+    KbFile,
+    NodeUpdateRequest,
+    NodeUpdateRequest,
+    FileResponse,
+    KbFile
+>('/kb/files')
+
+// -- Folders --
+
+export async function listFolders(parentId?: number | null): Promise<KbFolder[]> {
+    return folders.list({parentId})
 }
+
+export const getFolder = folders.get
+export const createFolder = folders.create
+export const updateFolder = folders.update
+export const deleteFolder = folders.remove
+
+// -- Files --
+
+export async function listFiles(folderId?: number | null): Promise<KbFile[]> {
+    return files.list({folderId})
+}
+
+export const getFile = files.get
+export const updateFile = files.update
+export const deleteFile = files.remove
 
 // -- File Creation --
 
@@ -196,15 +195,12 @@ export async function uploadFile(data: {
     description?: string
     file: File
 }): Promise<KbFile> {
-    const formData = new FormData()
-    formData.append('file', data.file)
-    if (data.name) formData.append('name', data.name)
-    if (data.description) formData.append('description', data.description)
-    if (data.folderId != null) formData.append('folderId', String(data.folderId))
-    const res = await client.post<KbFile>('/kb/files/upload', formData, {
-        headers: {'Content-Type': 'multipart/form-data'},
+    return uploadMultipart<KbFile>('/kb/files/upload', {
+        file: data.file,
+        name: data.name || undefined,
+        description: data.description || undefined,
+        folderId: data.folderId != null ? String(data.folderId) : undefined,
     })
-    return res.data
 }
 
 export async function importDocument(data: {
@@ -213,15 +209,12 @@ export async function importDocument(data: {
     description?: string
     file: File
 }): Promise<KbFile> {
-    const formData = new FormData()
-    formData.append('file', data.file)
-    if (data.name) formData.append('name', data.name)
-    if (data.description) formData.append('description', data.description)
-    if (data.folderId != null) formData.append('folderId', String(data.folderId))
-    const res = await client.post<KbFile>('/kb/files/import-document', formData, {
-        headers: {'Content-Type': 'multipart/form-data'},
+    return uploadMultipart<KbFile>('/kb/files/import-document', {
+        file: data.file,
+        name: data.name || undefined,
+        description: data.description || undefined,
+        folderId: data.folderId != null ? String(data.folderId) : undefined,
     })
-    return res.data
 }
 
 // -- Content --
@@ -265,12 +258,7 @@ export function originalFileUrl(id: number): string {
 }
 
 export async function reuploadOriginal(id: number, file: File): Promise<KbFile> {
-    const formData = new FormData()
-    formData.append('file', file)
-    const res = await client.put<KbFile>(`/kb/files/${id}/original`, formData, {
-        headers: {'Content-Type': 'multipart/form-data'},
-    })
-    return res.data
+    return uploadMultipart<KbFile>(`/kb/files/${id}/original`, {file}, 'put')
 }
 
 // -- Versions --
@@ -329,11 +317,7 @@ export function folderIconUrl(folderId: number, size = 128): string {
 }
 
 export async function uploadFolderIcon(folderId: number, file: File): Promise<void> {
-    const formData = new FormData()
-    formData.append('icon', file)
-    await client.post(`/kb/folders/${folderId}/icon`, formData, {
-        headers: {'Content-Type': 'multipart/form-data'},
-    })
+    await uploadMultipart(`/kb/folders/${folderId}/icon`, {icon: file})
 }
 
 // -- Tags --
@@ -398,12 +382,7 @@ export interface ImageUploadResponse {
 }
 
 export async function uploadKbImage(fileId: number, image: File): Promise<ImageUploadResponse> {
-    const formData = new FormData()
-    formData.append('image', image)
-    const res = await client.post<ImageUploadResponse>(`/kb/files/${fileId}/images`, formData, {
-        headers: {'Content-Type': 'multipart/form-data'},
-    })
-    return res.data
+    return uploadMultipart<ImageUploadResponse>(`/kb/files/${fileId}/images`, {image})
 }
 
 /**
@@ -476,23 +455,33 @@ export interface KbComment {
     updatedAt?: string | null
 }
 
-export async function listComments(fileId: number): Promise<KbComment[]> {
-    const res = await client.get<KbComment[]>(`/kb/files/${fileId}/comments`)
-    return res.data
+interface CommentCreateRequest {
+    parentId?: number | null
+    content: string
 }
 
-export async function createComment(fileId: number, data: {parentId?: number | null; content: string}): Promise<KbComment> {
-    const res = await client.post<KbComment>(`/kb/files/${fileId}/comments`, data)
-    return res.data
+interface CommentUpdateRequest {
+    content: string
 }
 
-export async function updateComment(commentId: number, data: {content: string}): Promise<void> {
-    await client.put(`/kb/comments/${commentId}`, data)
-}
+const fileComments = createScopedCrudResource<
+    KbComment,
+    CommentCreateRequest
+>((fileId: number) => `/kb/files/${fileId}/comments`)
 
-export async function deleteComment(commentId: number): Promise<void> {
-    await client.delete(`/kb/comments/${commentId}`)
-}
+const comments = createCrudResource<
+    KbComment,
+    CommentUpdateRequest,
+    CommentUpdateRequest,
+    KbComment,
+    KbComment,
+    void
+>('/kb/comments')
+
+export const listComments = fileComments.list
+export const createComment = fileComments.create
+export const updateComment = comments.update
+export const deleteComment = comments.remove
 
 // Federated KB comments
 

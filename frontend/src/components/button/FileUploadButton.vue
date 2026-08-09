@@ -22,10 +22,11 @@ defineExpose({ inputRef })
 
 function handleChange(event: Event) {
   const input = event.target as HTMLInputElement
-  const files = input.files
-  if (files && files.length > 0) {
-    if (props.multiple) emit('selectMany', Array.from(files))
-    else emit('select', files[0])
+  const files = Array.from(input.files ?? [])
+  const [first] = files
+  if (first) {
+    if (props.multiple) emit('selectMany', files)
+    else emit('select', first)
   }
   input.value = ''
 }
@@ -34,7 +35,7 @@ function handleChange(event: Event) {
 <template>
   <label
       :class="{ 'opacity-50 cursor-not-allowed pointer-events-none': disabled }"
-      class="inline-flex items-center cursor-pointer rounded-theme px-3 py-1.5 text-sm font-medium bg-primary text-primary-text hover:bg-primary-accent hover:text-primary-accent-text transition-all duration-150 active:scale-95"
+      class="inline-flex items-center cursor-pointer rounded-theme px-3 py-1.5 text-sm font-medium bg-primary text-primary-text hover:brightness-110 transition-all duration-150 active:scale-95"
   >
     <font-awesome-icon :icon="['fas', 'upload']" class="mr-2"/>
     <slot/>

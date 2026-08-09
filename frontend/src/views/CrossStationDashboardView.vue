@@ -7,9 +7,9 @@
 import {onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute} from 'vue-router'
-import type {CrossStationDashboard, CrossStationNotification} from '@/api/session'
-import {getCrossStationDashboard} from '@/api/session'
+import {getCrossStationDashboard, type CrossStationDashboard, type CrossStationNotification} from '@/api/session'
 import {useStations} from '@/composables/useStations'
+import {formatRelative} from '@/util/format'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
@@ -54,18 +54,6 @@ function selectStation(stationId: string) {
   window.location.href = redirect ?? '/station/dashboard/overview'
 }
 
-function formatTime(iso: string): string {
-  const date = new Date(iso)
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffMin = Math.floor(diffMs / 60000)
-  if (diffMin < 1) return 'gerade eben'
-  if (diffMin < 60) return `vor ${diffMin} Min.`
-  const diffH = Math.floor(diffMin / 60)
-  if (diffH < 24) return `vor ${diffH} Std.`
-  const diffD = Math.floor(diffH / 24)
-  return `vor ${diffD} Tag${diffD > 1 ? 'en' : ''}`
-}
 </script>
 
 <template>
@@ -121,7 +109,7 @@ function formatTime(iso: string): string {
             <SecondaryBadge class="shrink-0 mt-0.5">{{ n.stationName }}</SecondaryBadge>
             <div class="flex-1 min-w-0">
               <p class="text-sm">{{ t(n.localeKey, n.params) }}</p>
-              <span class="text-xs text-(--text-muted)">{{ formatTime(n.createdAt) }}</span>
+              <span class="text-xs text-(--text-muted)">{{ formatRelative(n.createdAt) }}</span>
             </div>
           </NeutralContainer>
         </div>

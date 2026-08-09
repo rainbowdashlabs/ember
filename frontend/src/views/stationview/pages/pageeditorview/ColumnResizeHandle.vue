@@ -4,8 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref, onBeforeUnmount} from 'vue'
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
+import {useColumnResize} from './useColumnResize'
 
 const props = withDefaults(defineProps<{
     leftPercent: number
@@ -21,47 +22,11 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-const dragging = ref(false)
-let startX = 0
-let containerWidth = 0
-
-function onMouseDown(event: MouseEvent) {
-    event.preventDefault()
-    dragging.value = true
-    startX = event.clientX
-    const container = (event.target as HTMLElement).closest('.editor-row-cells')
-    containerWidth = container?.getBoundingClientRect().width ?? 1
-    // Lock the entire document to the col-resize cursor while dragging so the pointer doesn't
-    // flicker back to default when it leaves the narrow handle.
-    document.body.style.cursor = 'col-resize'
-    document.body.style.userSelect = 'none'
-
-    document.addEventListener('mousemove', onMouseMove)
-    document.addEventListener('mouseup', onMouseUp)
-}
-
-function onMouseMove(event: MouseEvent) {
-    if (!dragging.value) return
-    const deltaX = event.clientX - startX
-    const deltaPercent = (deltaX / containerWidth) * 100
-
-    if (props.leftPercent + deltaPercent < 10 || props.rightPercent - deltaPercent < 10) {
-        return
-    }
-
-    startX = event.clientX
-    emit('resize', deltaPercent)
-}
-
-function onMouseUp() {
-    dragging.value = false
-    document.body.style.cursor = ''
-    document.body.style.userSelect = ''
-    document.removeEventListener('mousemove', onMouseMove)
-    document.removeEventListener('mouseup', onMouseUp)
-}
-
-onBeforeUnmount(onMouseUp)
+const {dragging, onMouseDown} = useColumnResize(
+    computed(() => props.leftPercent),
+    computed(() => props.rightPercent),
+    delta => emit('resize', delta),
+)
 </script>
 
 <template>

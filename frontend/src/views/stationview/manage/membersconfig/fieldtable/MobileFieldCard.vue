@@ -9,7 +9,7 @@ import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import CompactToggle from '@/components/input/toggle/CompactToggle.vue'
-import {type ProfileField, parseFieldConfig} from '@/api/types'
+import {type ProfileField, parseFieldConfig} from '@/api/profileFields'
 
 const {t} = useI18n()
 

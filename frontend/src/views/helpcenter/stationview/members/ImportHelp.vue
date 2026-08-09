@@ -51,25 +51,25 @@ const dummySeparator = ref(';')
 
     <!-- Dummy: Upload step -->
     <NeutralContainer class="space-y-4">
-      <SubHeader>{{ t('memberImport.upload') }}</SubHeader>
+      <SubHeader>{{ t('csvImport.uploadTitle') }}</SubHeader>
       <div class="flex items-center gap-4 flex-wrap">
         <SecondaryButton :icon="['fas', 'upload']">
-          {{ t('memberImport.chooseFile') }}
+          {{ t('csvImport.chooseFile') }}
         </SecondaryButton>
         <span class="text-sm">
           <font-awesome-icon :icon="['fas', 'check']" class="text-success mr-1"/>
-          mitglieder.csv (25 {{ t('memberImport.rows') }})
+          mitglieder.csv (25 {{ t('csvImport.rows') }})
         </span>
       </div>
       <div class="flex items-center gap-2">
-        <label class="text-sm font-medium">{{ t('memberImport.separator') }}</label>
+        <label class="text-sm font-medium">{{ t('csvImport.separator') }}</label>
         <SelectInput v-model="dummySeparator" class="w-20">
           <option value=";">;</option>
           <option value=",">,</option>
-          <option value="&#9;">Tab</option>
+          <option value="&#9;">{{ t('csvImport.tab') }}</option>
         </SelectInput>
       </div>
-      <PrimaryButton>{{ t('memberImport.next') }}</PrimaryButton>
+      <PrimaryButton>{{ t('csvImport.next') }}</PrimaryButton>
     </NeutralContainer>
 
     <HelpSection :title="t('helpCenter.membersImport.step2')">

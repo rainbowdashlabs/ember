@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {useRouter} from 'vue-router'
+import {useRouter, type RouteLocationRaw} from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -15,11 +15,8 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
-import type {StationEvent} from '@/api/types'
-import {isRecurringEvent, RegistrationStatus} from '@/api/types'
-import type {RouteLocationRaw} from 'vue-router'
+import {isRecurringEvent, RegistrationStatus, type EventRegistrationEntry, type StationEvent} from '@/api/events'
 import {events} from '@/api'
-import type {EventRegistrationEntry} from '@/api/events'
 import {useSession} from '@/composables/useSession'
 
 const {t} = useI18n()

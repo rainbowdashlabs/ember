@@ -9,7 +9,8 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import type {LostAndFoundItem} from '@/api/types'
+import type {LostAndFoundItem} from '@/api/lostAndFound'
+import {formatDate} from '@/util/format'
 
 const props = defineProps<{
   item: LostAndFoundItem
@@ -25,11 +26,6 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
-
-function formatDate(dateStr?: string): string {
-  if (!dateStr) return '–'
-  return new Date(dateStr).toLocaleDateString('de-DE', {day: '2-digit', month: '2-digit', year: 'numeric'})
-}
 </script>
 
 <template>
@@ -44,7 +40,7 @@ function formatDate(dateStr?: string): string {
 
     <div>
       <p class="text-sm font-medium">{{ item.description || t('lostAndFound.noDescription') }}</p>
-      <p class="text-xs text-(--text-muted)">{{ t('lostAndFound.foundAt') }}: {{ formatDate(item.foundAt) }}</p>
+      <p class="text-xs text-(--text-muted)">{{ t('lostAndFound.foundAt') }}: {{ formatDate(item.foundAt) || '–' }}</p>
     </div>
 
     <div v-if="item.claimedBy" class="space-y-2">

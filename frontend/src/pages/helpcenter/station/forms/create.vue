@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import BuilderHelp from '~/views/helpcenter/stationview/forms/BuilderHelp'
+import BuilderHelp from '~/views/helpcenter/stationview/forms/BuilderHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

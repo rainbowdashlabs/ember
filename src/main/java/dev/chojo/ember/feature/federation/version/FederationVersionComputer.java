@@ -9,6 +9,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import dev.chojo.ember.feature.board.route.BoardRoutes;
+import dev.chojo.ember.feature.board.route.FederatedBoardRoutes;
+import dev.chojo.ember.feature.board.route.RemoteBoardRoutes;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.ChangeType;
 import dev.chojo.ember.feature.federation.entity.ContentType;
@@ -24,9 +26,9 @@ import dev.chojo.ember.feature.federation.entity.LendingRequest;
 import dev.chojo.ember.feature.federation.entity.LendingRequestItem;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
-import dev.chojo.ember.feature.federation.route.FederationRemoteRoutes;
 import dev.chojo.ember.feature.federation.route.FederationRoutes;
 import dev.chojo.ember.feature.federation.route.LendingRoutes;
+import dev.chojo.ember.feature.federation.route.RemoteFederationRoutes;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 
 import java.lang.reflect.RecordComponent;
@@ -80,10 +82,12 @@ public final class FederationVersionComputer {
      */
     private static final List<Class<?>> DTO_CONTAINER_CLASSES = List.of(
             FederationHttpClient.class,
-            FederationRemoteRoutes.class,
+            RemoteFederationRoutes.class,
             FederationRoutes.class,
             LendingRoutes.class,
-            BoardRoutes.class);
+            BoardRoutes.class,
+            FederatedBoardRoutes.class,
+            RemoteBoardRoutes.class);
 
     /**
      * Revision tag for the request signing envelope. Bumped when the bytes covered

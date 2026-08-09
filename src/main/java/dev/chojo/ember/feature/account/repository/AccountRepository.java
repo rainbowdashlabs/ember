@@ -16,6 +16,8 @@ import dev.chojo.ember.feature.account.entity.AccountSession;
 import dev.chojo.ember.feature.account.entity.AccountToken;
 import dev.chojo.ember.feature.account.entity.TokenType;
 import dev.chojo.ember.feature.legal.entity.GdprConsent;
+import dev.chojo.ember.util.sql.SqlSupport;
+import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -41,6 +43,11 @@ public class AccountRepository {
             "id, uid, email, first_name, last_name, email_verified, instance_user_type, full_name, creating_station_id, setup_completed_at";
     private static final String CONSENT_COLUMNS =
             "id, account_id, consent_version, privacy_version, tos_version, ip_address, country, user_agent, consented_at";
+    private static final String EXTERNAL_AUTH_COLUMNS = "id, account_id, provider, external_id";
+    private static final String TOKEN_COLUMNS =
+            "id, account_id, token_hash, token_type, metadata, expires_at, created_at, confirmed_at";
+    private static final String SESSION_COLUMNS =
+            "id, account_id, token_hash, expires_at, created_at, user_agent, last_used_at, location, two_factor_verified_at";
 
     private final TokenHasher tokenHasher;
 
@@ -56,10 +63,7 @@ public class AccountRepository {
      * @return the account, or empty if not found
      */
     public Optional<Account> findById(int id) {
-        return query("SELECT %s FROM account WHERE id = :id;", ACCOUNT_COLUMNS)
-                .single(call().bind("id", id))
-                .map(Account.map())
-                .first();
+        return SqlSupport.findById("account", ACCOUNT_COLUMNS, id, Account.map());
     }
 
     /**
@@ -125,17 +129,12 @@ public class AccountRepository {
      */
     public List<PickerAccount> searchForPicker(String search, int limit) {
         boolean hasSearch = search != null && !search.isBlank();
-        String predicate = hasSearch
-                ? "WHERE LOWER(COALESCE(full_name, first_name || ' ' || last_name, '')) LIKE :q"
-                        + " OR LOWER(first_name) LIKE :q"
-                        + " OR LOWER(last_name) LIKE :q"
-                        + " OR LOWER(email) LIKE :q"
-                : "";
         String order = hasSearch ? "display_name" : "id DESC";
-        var c = call().bind("limit", limit);
-        if (hasSearch) {
-            c = c.bind("q", "%" + search.trim().toLowerCase() + "%");
-        }
+        var where = WhereBuilder.create().like("""
+                        WHERE LOWER(COALESCE(full_name, first_name || ' ' || last_name, '')) LIKE :q
+                           OR LOWER(first_name) LIKE :q
+                           OR LOWER(last_name) LIKE :q
+                           OR LOWER(email) LIKE :q""", "q", search);
         return query("""
                 SELECT id,
                        uid,
@@ -146,7 +145,10 @@ public class AccountRepository {
                 FROM account
                 %s
                 ORDER BY %s
-                LIMIT :limit;""", predicate, order).single(c).map(PickerAccount.map()).all();
+                LIMIT :limit;""", where.fragment(), order)
+                .single(where.apply(call().bind("limit", limit)))
+                .map(PickerAccount.map())
+                .all();
     }
 
     /**
@@ -193,20 +195,20 @@ public class AccountRepository {
      * @return the created account
      */
     public Account create(String email, String firstName, String lastName, Integer creatingStationId) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT
                 INTO
                     account(email, first_name, last_name, creating_station_id)
                 VALUES
                     (:email, :first_name, :last_name, :creating_station_id)
-                RETURNING %s;""", ACCOUNT_COLUMNS)
-                .single(call().bind("email", email)
+                RETURNING %s;""",
+                call().bind("email", email)
                         .bind("first_name", firstName)
                         .bind("last_name", lastName)
-                        .bind("creating_station_id", creatingStationId))
-                .map(Account.map())
-                .first()
-                .orElseThrow();
+                        .bind("creating_station_id", creatingStationId),
+                Account.map(),
+                ACCOUNT_COLUMNS);
     }
 
     /**
@@ -234,21 +236,21 @@ public class AccountRepository {
      */
     public Account create(
             String email, String firstName, String lastName, boolean emailVerified, Integer creatingStationId) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT
                 INTO
                     account(email, first_name, last_name, email_verified, creating_station_id)
                 VALUES
                     (:email, :first_name, :last_name, :verified, :creating_station_id)
-                RETURNING %s;""", ACCOUNT_COLUMNS)
-                .single(call().bind("email", email)
+                RETURNING %s;""",
+                call().bind("email", email)
                         .bind("first_name", firstName)
                         .bind("last_name", lastName)
                         .bind("verified", emailVerified)
-                        .bind("creating_station_id", creatingStationId))
-                .map(Account.map())
-                .first()
-                .orElseThrow();
+                        .bind("creating_station_id", creatingStationId),
+                Account.map(),
+                ACCOUNT_COLUMNS);
     }
 
     /**
@@ -297,11 +299,9 @@ public class AccountRepository {
      * Checks whether an account is an instance administrator.
      */
     public boolean isAdministrator(int accountId) {
-        return query("SELECT 1 FROM account WHERE id = :id AND instance_user_type = 'ADMINISTRATOR';")
-                .single(call().bind("id", accountId))
-                .map(_ -> true)
-                .first()
-                .isPresent();
+        return SqlSupport.exists(
+                "SELECT 1 FROM account WHERE id = :id AND instance_user_type = 'ADMINISTRATOR';",
+                call().bind("id", accountId));
     }
 
     // -- Instance User Type --
@@ -310,11 +310,7 @@ public class AccountRepository {
      * Checks whether any account in the system is an administrator.
      */
     public boolean anyAdministratorExists() {
-        return query("SELECT 1 FROM account WHERE instance_user_type = 'ADMINISTRATOR' LIMIT 1;")
-                .single()
-                .map(_ -> true)
-                .first()
-                .isPresent();
+        return SqlSupport.exists("SELECT 1 FROM account WHERE instance_user_type = 'ADMINISTRATOR' LIMIT 1;", call());
     }
 
     /**
@@ -383,8 +379,7 @@ public class AccountRepository {
      * @return {@code true} if the account was deleted
      */
     public boolean delete(int id) {
-        return query("""
-                DELETE FROM account WHERE id = :id;""").single(call().bind("id", id)).delete().changed();
+        return SqlSupport.deleteById("account", id);
     }
 
     // -- Credentials --
@@ -506,7 +501,7 @@ public class AccountRepository {
      * @return list of external auth records
      */
     public List<AccountExternalAuth> findExternalAuths(int accountId) {
-        return query("SELECT id, account_id, provider, external_id FROM account_external_auth WHERE account_id = :id;")
+        return query("SELECT %s FROM account_external_auth WHERE account_id = :id;", EXTERNAL_AUTH_COLUMNS)
                 .single(call().bind("id", accountId))
                 .map(AccountExternalAuth.map())
                 .all();
@@ -521,15 +516,10 @@ public class AccountRepository {
      */
     public Optional<AccountExternalAuth> findExternalAuth(String provider, String externalId) {
         return query("""
-                SELECT
-                    id,
-                    account_id,
-                    provider,
-                    external_id
-                FROM
-                    account_external_auth
+                SELECT %s
+                FROM account_external_auth
                 WHERE provider = :provider
-                  AND external_id = :external_id;""")
+                  AND external_id = :external_id;""", EXTERNAL_AUTH_COLUMNS)
                 .single(call().bind("provider", provider).bind("external_id", externalId))
                 .map(AccountExternalAuth.map())
                 .first();
@@ -562,10 +552,7 @@ public class AccountRepository {
      * @return {@code true} if the record was deleted
      */
     public boolean deleteExternalAuth(int id) {
-        return query("DELETE FROM account_external_auth WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("account_external_auth", id);
     }
 
     // -- Tokens --
@@ -578,18 +565,9 @@ public class AccountRepository {
      */
     public Optional<AccountToken> findToken(String token) {
         return query("""
-                SELECT
-                    id,
-                    account_id,
-                    token_hash,
-                    token_type,
-                    metadata,
-                    expires_at,
-                    created_at,
-                    confirmed_at
-                FROM
-                    account_token
-                WHERE token_hash = :token_hash;""")
+                SELECT %s
+                FROM account_token
+                WHERE token_hash = :token_hash;""", TOKEN_COLUMNS)
                 .single(call().bind("token_hash", tokenHasher.hash(token)))
                 .map(AccountToken.map())
                 .first();
@@ -614,22 +592,13 @@ public class AccountRepository {
      */
     public Optional<AccountToken> findEmailChangePartner(int accountId, String requestId, int selfId) {
         return query("""
-                SELECT
-                    id,
-                    account_id,
-                    token_hash,
-                    token_type,
-                    metadata,
-                    expires_at,
-                    created_at,
-                    confirmed_at
-                FROM
-                    account_token
+                SELECT %s
+                FROM account_token
                 WHERE account_id = :account_id
                     AND id <> :self_id
                     AND token_type IN ('EMAIL_CHANGE_RELEASE', 'EMAIL_CHANGE_CLAIM')
                     AND metadata LIKE :prefix
-                LIMIT 1;""")
+                LIMIT 1;""", TOKEN_COLUMNS)
                 .single(call().bind("account_id", accountId)
                         .bind("self_id", selfId)
                         .bind("prefix", requestId + "|%"))
@@ -740,19 +709,9 @@ public class AccountRepository {
      */
     public Optional<AccountSession> findSession(String token) {
         return query("""
-                SELECT
-                            id,
-                            account_id,
-                            token_hash,
-                            expires_at,
-                            created_at,
-                            user_agent,
-                            last_used_at,
-                            location,
-                            two_factor_verified_at
-                        FROM
-                            account_session
-                        WHERE token_hash = :token_hash;""")
+                SELECT %s
+                FROM account_session
+                WHERE token_hash = :token_hash;""", SESSION_COLUMNS)
                 .single(call().bind("token_hash", tokenHasher.hash(token)))
                 .map(AccountSession.map())
                 .first();
@@ -766,20 +725,10 @@ public class AccountRepository {
      */
     public List<AccountSession> findSessionsByAccount(int accountId) {
         return query("""
-                SELECT
-                    id,
-                    account_id,
-                    token_hash,
-                    expires_at,
-                    created_at,
-                    user_agent,
-                    last_used_at,
-                    location,
-                    two_factor_verified_at
-                FROM
-                    account_session
+                SELECT %s
+                FROM account_session
                 WHERE account_id = :account_id
-                ORDER BY last_used_at DESC;""")
+                ORDER BY last_used_at DESC;""", SESSION_COLUMNS)
                 .single(call().bind("account_id", accountId))
                 .map(AccountSession.map())
                 .all();

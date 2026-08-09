@@ -15,20 +15,18 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useSession} from '@/composables/useSession'
-import {useToast} from '@/composables/useToast'
-import {StationPermission} from '@/api/types'
+import {showToast} from '@/util/toast'
+import {StationPermission, type MemberGroup, type StationMember, type UserTag} from '@/api/types'
 import {checklists, memberGroups, stationMembers, userTags} from '@/api'
 import type {
   ChecklistAddMembersResult,
   ChecklistCellDto,
   ChecklistDetail,
   ChecklistRefreshResult,
-  MemberGroup,
-  StationMember,
-  UserTag,
-} from '@/api/types'
+} from '@/api/checklists'
 import EditButton from '@/components/button/EditButton.vue'
 import ChecklistMatrix from './checklistdetailview/ChecklistMatrix.vue'
 import ChecklistFilterBar from './checklistdetailview/ChecklistFilterBar.vue'
@@ -41,7 +39,6 @@ import ChecklistEditModal from './ChecklistEditModal.vue'
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
-const toast = useToast()
 const {hasPermission} = useSession()
 
 const canManage = computed(() => hasPermission(StationPermission.CHECKLIST_MANAGE))
@@ -57,11 +54,8 @@ const columnFilters = ref<Record<number, 'any' | 'checked' | 'unchecked'>>({})
 const showRemoved = ref(false)
 
 const showAddMembers = ref(false)
-const addingMembers = ref(false)
 const showDeleteConfirm = ref(false)
-const deleting = ref(false)
 const showEditMeta = ref(false)
-const savingMeta = ref(false)
 
 const checklistId = computed(() => Number(route.params.id))
 
@@ -127,28 +121,29 @@ async function onRefresh(): Promise<ChecklistRefreshResult> {
   if (!detail.value) throw new Error('Not loaded')
   const result = await checklists.refreshChecklist(detail.value.id)
   await reload()
-  toast.show(
+  showToast(
       t('checklist.refreshDone', {added: result.added, already: result.alreadyPresent}),
       'success',
   )
   return result
 }
 
-async function onAddMembers(memberIds: number[]) {
-  if (!detail.value) return
-  addingMembers.value = true
-  try {
-    const result: ChecklistAddMembersResult = await checklists.addMembers(detail.value.id, memberIds)
-    showAddMembers.value = false
-    await reload()
-    toast.show(
-        t('checklist.addedToast', {added: result.added, restored: result.restored, skipped: result.skipped}),
-        'success',
-    )
-  } catch {
-    error.value = t('checklist.savingError')
-  }
-  addingMembers.value = false
+const {running: addingMembers, error: addMembersError, run: runAddMembers} = useAsyncAction(
+    async (memberIds: number[]) => {
+      if (!detail.value) return
+      const result: ChecklistAddMembersResult = await checklists.addMembers(detail.value.id, memberIds)
+      showAddMembers.value = false
+      await reload()
+      showToast(
+          t('checklist.addedToast', {added: result.added, restored: result.restored, skipped: result.skipped}),
+          'success',
+      )
+    },
+    {formatError: () => t('checklist.savingError')},
+)
+
+function onAddMembers(memberIds: number[]) {
+  return runAddMembers(memberIds)
 }
 
 async function onDeleteEntry(entryId: number) {
@@ -161,44 +156,49 @@ async function onBulkSet(columnId: number, entryIds: number[], checked: boolean)
   if (!detail.value || entryIds.length === 0) return
   const result = await checklists.bulkSetColumn(detail.value.id, columnId, {entryIds, checked})
   await reload()
-  toast.show(t('checklist.bulkDone', {count: result.updated}), 'success')
+  showToast(t('checklist.bulkDone', {count: result.updated}), 'success')
 }
 
-async function onSaveMeta(payload: {name: string; description: string; orderedColumnIds: number[]}) {
-  if (!detail.value) return
-  savingMeta.value = true
-  try {
-    const updated = await checklists.updateChecklist(detail.value.id, {
-      name: payload.name,
-      description: payload.description,
-    })
-    detail.value.name = updated.name
-    detail.value.description = updated.description
+const {running: savingMeta, error: saveMetaError, run: runSaveMeta} = useAsyncAction(
+    async (payload: {name: string; description: string; orderedColumnIds: number[]}) => {
+      if (!detail.value) return
+      const updated = await checklists.updateChecklist(detail.value.id, {
+        name: payload.name,
+        description: payload.description,
+      })
+      detail.value.name = updated.name
+      detail.value.description = updated.description
 
-    const currentOrder = detail.value.columns.map(c => c.id).join(',')
-    if (payload.orderedColumnIds.join(',') !== currentOrder) {
-      await checklists.reorderColumns(detail.value.id, payload.orderedColumnIds)
-      await reload()
-    }
-    showEditMeta.value = false
-  } catch {
-    error.value = t('checklist.savingError')
-  }
-  savingMeta.value = false
+      const currentOrder = detail.value.columns.map(c => c.id).join(',')
+      if (payload.orderedColumnIds.join(',') !== currentOrder) {
+        await checklists.reorderColumns(detail.value.id, payload.orderedColumnIds)
+        await reload()
+      }
+      showEditMeta.value = false
+    },
+    {formatError: () => t('checklist.savingError')},
+)
+
+function onSaveMeta(payload: {name: string; description: string; orderedColumnIds: number[]}) {
+  return runSaveMeta(payload)
 }
 
-async function confirmDeleteChecklist() {
-  if (!detail.value) return
-  deleting.value = true
-  try {
-    await checklists.deleteChecklist(detail.value.id)
-    showDeleteConfirm.value = false
-    await router.push({name: 'checklist-list'})
-  } catch {
-    error.value = t('checklist.savingError')
-  }
-  deleting.value = false
+const {error: deleteError, run: runDeleteChecklist} = useAsyncAction(
+    async () => {
+      if (!detail.value) return
+      await checklists.deleteChecklist(detail.value.id)
+      showDeleteConfirm.value = false
+      await router.push({name: 'checklist-list'})
+    },
+    {formatError: () => t('checklist.savingError')},
+)
+
+function confirmDeleteChecklist() {
+  return runDeleteChecklist()
 }
+
+const pageError = computed(() =>
+    error.value || addMembersError.value || saveMetaError.value || deleteError.value)
 </script>
 
 <template>
@@ -207,7 +207,7 @@ async function confirmDeleteChecklist() {
       :subtitle="t('pages.checklist-detail.subtitle')"
   >
     <div v-if="loading" class="flex justify-center py-6"><Spinner/></div>
-    <Alert v-else-if="error" variant="error" class="mb-4">{{ error }}</Alert>
+    <Alert v-else-if="pageError" variant="error" class="mb-4">{{ pageError }}</Alert>
 
     <template v-else-if="detail">
       <div class="flex flex-wrap items-end justify-between gap-3 mb-3">

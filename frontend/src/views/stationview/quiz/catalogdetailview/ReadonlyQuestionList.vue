@@ -7,7 +7,7 @@
 import { useI18n } from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import ReadonlyQuestionCard from './ReadonlyQuestionCard.vue'
-import type { QuizQuestion, QuizCategory } from '@/api/types'
+import type { QuizQuestion, QuizCategory } from '@/api/quiz'
 
 defineProps<{
   questions: QuizQuestion[]

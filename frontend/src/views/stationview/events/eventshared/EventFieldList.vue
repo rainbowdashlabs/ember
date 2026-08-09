@@ -9,8 +9,10 @@ import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import EventFieldEditor from '@/components/input/EventFieldEditor.vue'
-import type {AttendanceTemplateField, EventFieldEntry, MemberGroup, StationMember, UserTag} from '@/api/types'
+import EventFieldEditor from './EventFieldEditor.vue'
+import type {AttendanceTemplateField} from '@/api/attendance'
+import type {EventFieldEntry} from '@/api/events'
+import type {MemberGroup, StationMember, UserTag} from '@/api/types'
 
 const fields = defineModel<EventFieldEntry[]>('fields', {required: true})
 

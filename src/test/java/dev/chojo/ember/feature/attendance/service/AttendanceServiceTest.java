@@ -46,7 +46,14 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new AttendanceService(attendanceRepo, eventRepo, eventFieldRepo, stationMemberRepo, memberGroupRepo);
+        service = new AttendanceService(
+                attendanceRepo,
+                eventRepo,
+                eventFieldRepo,
+                eventFieldDefaultRepo,
+                eventRegistrationRepo,
+                stationMemberRepo,
+                memberGroupRepo);
         station = stationRepo.create("AttendanceSvc Station");
         account = accountRepo.create("attend-svc@test.com", "Attend", "User");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -471,7 +478,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         var account2 = accountRepo.create("attend-svc2@test.com", "Attend2", "User");
         var member2 = stationMemberRepo.create(station.id(), account2.id());
 
-        eventRepo.createRegistration(event.id(), member2.id(), LocalDate.now(), RegistrationStatus.ACCEPTED, null);
+        eventRegistrationRepo.create(event.id(), member2.id(), LocalDate.now(), RegistrationStatus.ACCEPTED, null);
 
         var session = service.createSession(templateId, null, null, event.id(), null);
         var entries = service.syncFromEvent(session.id());
@@ -508,7 +515,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         var account3 = accountRepo.create("attend-dec@test.com", "Dec", "User");
         var member3 = stationMemberRepo.create(station.id(), account3.id());
 
-        eventRepo.createRegistration(event.id(), member3.id(), LocalDate.now(), RegistrationStatus.DECLINED, null);
+        eventRegistrationRepo.create(event.id(), member3.id(), LocalDate.now(), RegistrationStatus.DECLINED, null);
 
         var session = service.createSession(templateId, null, null, event.id(), null);
         var entries = service.syncFromEvent(session.id());
@@ -546,7 +553,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         var absence = service.createAbsence(
                 member.id(), LocalDate.now().minusDays(1), LocalDate.now().plusDays(1), "Sick", null);
 
-        eventRepo.createRegistration(event.id(), member.id(), LocalDate.now(), RegistrationStatus.ACCEPTED, null);
+        eventRegistrationRepo.create(event.id(), member.id(), LocalDate.now(), RegistrationStatus.ACCEPTED, null);
 
         var session = service.createSession(templateId, null, null, event.id(), null);
         var entries = service.syncFromEvent(session.id());
@@ -752,7 +759,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        eventRepo.createRegistration(event.id(), member7.id(), LocalDate.now(), RegistrationStatus.DECLINED, null);
+        eventRegistrationRepo.create(event.id(), member7.id(), LocalDate.now(), RegistrationStatus.DECLINED, null);
 
         var session = service.createSession(templateId, null, null, event.id(), null);
 
@@ -882,8 +889,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 .orElseThrow()
                 .id();
 
-        // Set field defaults with different sources
-        eventRepo.setFieldDefaults(
+        eventFieldDefaultRepo.replaceForEvent(
                 event.id(),
                 List.of(
                         new EventFieldDefault(event.id(), nameFieldId, "EVENT_NAME", null),
@@ -907,7 +913,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         assertTrue(sessionFields.stream().anyMatch(f -> f.fieldId() == endFieldId && f.value() != null));
 
         service.deleteSession(session.id());
-        eventRepo.setFieldDefaults(event.id(), List.of());
+        eventFieldDefaultRepo.replaceForEvent(event.id(), List.of());
         eventRepo.delete(event.id());
         service.deleteTemplate(fieldTemplate.id());
     }
@@ -959,7 +965,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        eventRepo.createRegistration(event.id(), member9.id(), LocalDate.now(), RegistrationStatus.PENDING, null);
+        eventRegistrationRepo.create(event.id(), member9.id(), LocalDate.now(), RegistrationStatus.PENDING, null);
 
         var session = service.createSession(templateId, null, null, event.id(), null);
         var entries = service.syncFromEvent(session.id());

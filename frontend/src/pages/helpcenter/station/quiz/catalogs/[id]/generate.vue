@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import CatalogGenerateHelp from '~/views/helpcenter/stationview/quiz/CatalogGenerateHelp'
+import CatalogGenerateHelp from '~/views/helpcenter/stationview/quiz/CatalogGenerateHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

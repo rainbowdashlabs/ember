@@ -16,6 +16,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import {useSession} from '@/composables/useSession'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import {StationPermission} from '@/api/types'
 import {transfer} from '@/api'
 
@@ -39,20 +40,15 @@ const tabs = computed(() =>
 
 const activeTab = ref<'info' | 'delete'>('info')
 const confirmOpen = ref(false)
-const deleting = ref(false)
-const error = ref<string | null>(null)
+
+const {running: deleting, error, run: runDelete} = useAsyncAction(async () => {
+  await transfer.deleteMovedStation()
+  window.location.href = '/'
+}, {formatError: () => t('pages.station-moved.deleteError')})
 
 async function performDelete() {
-  deleting.value = true
-  error.value = null
-  try {
-    await transfer.deleteMovedStation()
-    window.location.href = '/'
-  } catch (e) {
-    error.value = t('pages.station-moved.deleteError')
-    deleting.value = false
-    confirmOpen.value = false
-  }
+  await runDelete()
+  if (error.value) confirmOpen.value = false
 }
 </script>
 

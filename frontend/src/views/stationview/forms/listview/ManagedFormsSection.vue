@@ -4,7 +4,6 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, ref} from 'vue'
 import { useI18n } from 'vue-i18n'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -12,7 +11,8 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ManagedFormTile from './ManagedFormTile.vue'
-import type { Form } from '@/api/types'
+import type { Form } from '@/api/forms'
+import { byDate, byValue, useSortable } from '@/composables/useSortable'
 
 const props = defineProps<{
   forms: Form[]
@@ -21,25 +21,17 @@ const props = defineProps<{
   statusLabel: (status: string) => string
 }>()
 
-type SortKey = 'activity' | 'created' | 'title'
-const sortKey = ref<SortKey>('activity')
-const sortDir = ref<'desc' | 'asc'>('desc')
+type FormSortKey = 'activity' | 'created' | 'title'
 
-const sortedForms = computed(() => {
-  const list = [...props.forms]
-  const dir = sortDir.value === 'asc' ? 1 : -1
-  const cmpDate = (a?: string | null, b?: string | null) => {
-    const av = a ? new Date(a).getTime() : 0
-    const bv = b ? new Date(b).getTime() : 0
-    return (av - bv) * dir
-  }
-  if (sortKey.value === 'title') {
-    return list.sort((a, b) => a.title.localeCompare(b.title, 'de', {sensitivity: 'base'}) * dir)
-  }
-  if (sortKey.value === 'created') {
-    return list.sort((a, b) => cmpDate(a.createdAt, b.createdAt))
-  }
-  return list.sort((a, b) => cmpDate(a.lastActivityAt ?? a.updatedAt, b.lastActivityAt ?? b.updatedAt))
+const {sortKey, direction, sorted: sortedForms} = useSortable<Form, FormSortKey>({
+  items: () => props.forms,
+  initialKey: 'activity',
+  initialDirection: 'desc',
+  comparators: {
+    activity: byDate(form => form.lastActivityAt ?? form.updatedAt),
+    created: byDate(form => form.createdAt),
+    title: byValue(form => form.title),
+  },
 })
 
 const emit = defineEmits<{
@@ -75,7 +67,7 @@ const { t } = useI18n()
       </div>
       <div>
         <FieldLabel>{{ t('forms.sortOrder') }}</FieldLabel>
-        <SelectInput v-model="sortDir">
+        <SelectInput v-model="direction">
           <option value="desc">{{ t('forms.sortDesc') }}</option>
           <option value="asc">{{ t('forms.sortAsc') }}</option>
         </SelectInput>

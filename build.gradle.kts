@@ -22,7 +22,7 @@ application {
 
 group = "dev.chojo"
 // CalVer as YY.MINOR.MICRO -> https://calver.org/
-version = "26.11.6"
+version = "26.11.7"
 
 repositories {
     mavenCentral()
@@ -78,9 +78,28 @@ dependencies {
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.bundles.junit)
     testImplementation(libs.mockito)
+    testImplementation(libs.archunit)
+}
+
+/**
+ * Number of JVMs a test task may fork.
+ *
+ * Every fork starts its own database container, and rootless Docker allocates the host port in a
+ * check-then-bind that races every outbound socket on the machine. Disabling the Testcontainers
+ * reaper halves the containers a fork starts and removes the one that lost that race by far the most
+ * often, which is what keeps one fork per two cores workable. Override with `-PtestForks=N` when a
+ * machine needs a different balance.
+ */
+fun testForks(): Int {
+    val configured = providers.gradleProperty("testForks").orNull?.toIntOrNull()
+    return configured ?: (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
 }
 
 tasks {
+    withType<Test>().configureEach {
+        environment("TESTCONTAINERS_RYUK_DISABLED", "true")
+    }
+
     compileJava {
         options.isIncremental = true
         options.compilerArgs.addAll(listOf("-parameters"))
@@ -125,7 +144,7 @@ tasks {
         filter {
             excludeTestsMatching("dev.chojo.ember.tracking.*")
         }
-        maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
+        maxParallelForks = testForks()
     }
 
     register<Test>("testRepositories") {
@@ -136,7 +155,7 @@ tasks {
         useJUnitPlatform { excludeTags("locale") }
         testLogging { events("passed", "skipped", "failed") }
         filter { includeTestsMatching("*.repository.*") }
-        maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
+        maxParallelForks = testForks()
     }
 
     register<Test>("testServices") {
@@ -147,7 +166,7 @@ tasks {
         useJUnitPlatform { excludeTags("locale") }
         testLogging { events("passed", "skipped", "failed") }
         filter { includeTestsMatching("*.service.*") }
-        maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
+        maxParallelForks = testForks()
     }
 
     register<Test>("testOther") {
@@ -162,7 +181,7 @@ tasks {
             excludeTestsMatching("*.service.*")
             excludeTestsMatching("dev.chojo.ember.tracking.*")
         }
-        maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
+        maxParallelForks = testForks()
     }
 
     register("fetchCloudflareRanges") {
@@ -303,17 +322,18 @@ tasks {
                 element = "CLASS"
                 includes = listOf("*.service.*")
                 excludes = listOf(
-                    "*.route.*",
                     // Infrastructure that calls external systems
                     "*.mail.service.*",
                     "*.FederationHttpClient*",
                     "*.FederationWebhookService*",
-                    "*.FederatedBoardProxyService*",
                     "*.ApiRequestLogger*",
                     "*.DataInitializer",
                     "*.ProblemLogAppender*",
-                    // Demo/seed data generators
-                    "*.Demo*Seeder*",
+                    // Demo/seed data generators. Only the media seeder is exempt: it fetches
+                    // avatars from a third-party API with a hard-wired client and caches them in
+                    // a hard-wired directory, so covering it would mean two production seams for
+                    // demo data. The other 23 seeders are gated like any other service.
+                    "*.DemoMediaSeeder*",
                     "*.DemoService*",
                     // PDF/export services requiring external binaries
                     "*PdfService*",
@@ -324,19 +344,19 @@ tasks {
                     // File I/O services
                     "*.KbFileStorageService*",
                     "*.PageFileStorageService*",
-                    "*.PageImageVariantService*",
                     "*.PdfCompressor*",
                     "*.BoardAttachmentService*",
+                    // Unreachable catch: gzip() wraps a ByteArrayOutputStream, which cannot throw
+                    // the IOException the GZIP streams declare, so 2 of its 19 lines can never be
+                    // executed and it sits at 89.5%. Accepted permanently rather than restructured
+                    // — the catch is required by the checked signature.
                     "*.TextCompressionPolicy*",
                     // Unified storage façade — heavy I/O against the backend layer,
                     // public-surface paths covered by StorageServiceTest
                     "*.StorageService*",
-                    "*.StorageBackendResolver*",
-                    "*.LocalStorageBackend*",
                     // Image variant pipeline and the thin per-domain wrappers over it —
                     // exercised end-to-end via route tests, not unit-covered.
                     "*.ImageVariantService*",
-                    "*.AvatarService*",
                     "*.LostAndFoundImageService*",
                     "*.QuizQuestionImageService*",
                     "*.KbIconService*",
@@ -347,22 +367,23 @@ tasks {
                     // Daemon/scheduler threads
                     "*.RegistrationDeadlineChecker*",
                     "*.DueDateReminderChecker*",
-                    // Federated content service (HTTP federation calls)
-                    "*.FederatedContentService*",
-                    // Services with embedded daemon threads / federation HTTP code (>85% covered)
-                    "*.KnowledgeBaseService*",
-                    "*.WaitingListService*",
-                    // Import services (complex CSV parsing with many edge cases)
+                    // Complex CSV parsing with many edge cases
                     "*.MemberImportService*",
+                    // Not CSV parsing despite its name: the uncovered part is remote-transfer
+                    // orchestration on background executors against a live source instance over
+                    // HTTP. Needs an integration test, not a unit test.
                     "*.StationImportService*",
                     // Storage monitoring (filesystem walks, scheduled reconciliation, ZIP compression)
                     "*.StorageReconciliationService*",
-                    "*.PresentationCompressor*",
                     "*.StorageQuotaService*",
                     // Federation version broadcaster (daemon thread, startup-only)
                     "*.FederationVersionBroadcaster*",
                     // Maps tile cache (filesystem walks + outbound HTTP, exercised manually)
                     "*.MapTileCacheService*",
+                    // Startup refresh of Cloudflare's published edge ranges — outbound HTTP to
+                    // cloudflare.com with a hard-wired client; the parsing and matching logic it
+                    // delegates to lives in ClientIp and is covered there.
+                    "*.CloudflareRangesService*",
                     // Discovery chain (HTTP + daemon threads, exercised by integration tests)
                     "*.DiscoveryHttpClient*",
                     "*.DiscoveryPingScheduler*",
@@ -397,6 +418,12 @@ tasks {
         group = "verification"
         description = "Checks license headers for frontend Vue and JavaScript files"
         dependsOn("spotlessJavascriptCheck", "spotlessVueCheck")
+    }
+
+    register("formatFrontend") {
+        group = "formatting"
+        description = "Applies license headers and whitespace rules to frontend Vue, TypeScript and locale files"
+        dependsOn("spotlessJavascriptApply", "spotlessVueApply", "spotlessFrontendLocalesApply")
     }
 }
 

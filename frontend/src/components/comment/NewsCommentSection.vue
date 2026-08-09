@@ -6,7 +6,8 @@
 <script setup lang="ts">
 import {onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import type {Comment, MemberGroup} from '@/api/types'
+import type {Comment} from '@/api/comments'
+import type {MemberGroup} from '@/api/types'
 import type {MemberCompletion} from '@/api/stationMembers'
 import {news, stationMembers, memberGroups} from '@/api'
 import CommentThread from './CommentThread.vue'

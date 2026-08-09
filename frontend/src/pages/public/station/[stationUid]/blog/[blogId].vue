@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import PublicBlogDetailView from '~/views/public/PublicBlogDetailView'
+import PublicBlogDetailView from '~/views/public/PublicBlogDetailView.vue'
 
 definePageMeta({
   layout: 'public-station',

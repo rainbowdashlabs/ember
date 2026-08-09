@@ -4,19 +4,117 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {
-    AssignRequest,
-    Inventory,
-    InventoryDetail,
-    InventoryItem,
-    InventoryItemHistory,
-    InventoryRequest,
-    InventoryRequirement,
-    InventorySize,
-    ItemRequest,
-    RequirementRequest,
-    SizeRequest,
-} from './types'
+import {createCrudResource} from './crud'
+import type {MemberIdentity} from './types'
+
+export const InventoryTypes = {
+    INTERNAL: 'INTERNAL',
+    EXTERNAL: 'EXTERNAL',
+    MIXED: 'MIXED',
+} as const
+
+export type InventoryTypeName = (typeof InventoryTypes)[keyof typeof InventoryTypes]
+
+export const ItemSource = {
+    INTERNAL: 'INTERNAL',
+    EXTERNAL: 'EXTERNAL',
+} as const
+
+export type ItemSourceName = (typeof ItemSource)[keyof typeof ItemSource]
+
+export interface Inventory {
+    id: number
+    stationId: string
+    name?: string
+    inventoryType?: InventoryTypeName
+    hasSizes: boolean
+}
+
+export interface InventoryRequest {
+    name?: string
+    inventoryType?: InventoryTypeName
+    hasSizes: boolean
+}
+
+export interface InventoryDetail {
+    id: number
+    stationId: string
+    name?: string
+    inventoryType?: InventoryTypeName
+    hasSizes: boolean
+    sizes?: InventorySize[]
+}
+
+export interface InventorySize {
+    id: number
+    inventoryId: number
+    label?: string
+    position: number
+    note?: string
+}
+
+export interface SizeRequest {
+    label?: string
+    position: number
+    note?: string
+}
+
+export interface InventoryItem {
+    id: number
+    inventoryId: number
+    internalId?: string
+    name?: string
+    sizeId?: number | null
+    metadata?: string | ItemMetadata | null
+    assignedTo?: number | null
+    lostAt?: string | null
+    itemSource?: string | null
+    containerId?: number | null
+}
+
+export interface ItemMetadata {
+    owned: boolean
+    fields: Record<string, {kind: string; value: unknown}>
+}
+
+export interface ItemRequest {
+    internalId?: string
+    name?: string
+    sizeId?: number
+    metadata?: ItemMetadata
+    itemSource?: string
+}
+
+export interface AssignRequest {
+    memberId?: number | null
+    memberName?: string
+}
+
+export interface InventoryRequirement {
+    id: number
+    inventoryId: number
+    userType: string
+    groupId: number
+    quantity: number
+    position: number
+}
+
+export interface RequirementRequest {
+    inventoryId: number
+    userType?: string
+    groupId?: number
+    quantity?: number
+}
+
+export interface InventoryItemHistory {
+    id: number
+    itemId: number
+    memberId?: number | null
+    memberName?: string
+    givenOut?: string
+    returned?: string | null
+    memberIdentity?: MemberIdentity | null
+}
 
 export interface MyInventoryItem {
     id: number
@@ -50,31 +148,35 @@ export async function memberItems(memberId: number): Promise<MyInventoryItem[]> 
     return res.data
 }
 
+interface RequirementQuantityRequest {
+    quantity: number
+}
+
+const inventories = createCrudResource<
+    Inventory,
+    InventoryRequest,
+    InventoryRequest,
+    InventoryDetail
+>('/inventories')
+
+const items = createCrudResource<InventoryItem, ItemRequest>('/inventory-items')
+
+const requirements = createCrudResource<
+    InventoryRequirement,
+    RequirementRequest,
+    RequirementQuantityRequest,
+    InventoryRequirement,
+    InventoryRequirement,
+    void
+>('/inventory-requirements')
+
 // -- Inventories --
 
-export async function listInventories(): Promise<Inventory[]> {
-    const res = await client.get<Inventory[]>('/inventories')
-    return res.data
-}
-
-export async function getInventory(id: number): Promise<InventoryDetail> {
-    const res = await client.get<InventoryDetail>(`/inventories/${id}`)
-    return res.data
-}
-
-export async function createInventory(data: InventoryRequest): Promise<Inventory> {
-    const res = await client.post<Inventory>('/inventories', data)
-    return res.data
-}
-
-export async function updateInventory(id: number, data: InventoryRequest): Promise<Inventory> {
-    const res = await client.put<Inventory>(`/inventories/${id}`, data)
-    return res.data
-}
-
-export async function deleteInventory(id: number): Promise<void> {
-    await client.delete(`/inventories/${id}`)
-}
+export const listInventories = inventories.list
+export const getInventory = inventories.get
+export const createInventory = inventories.create
+export const updateInventory = inventories.update
+export const deleteInventory = inventories.remove
 
 // -- Sizes --
 
@@ -132,10 +234,7 @@ export async function listSummaries(): Promise<InventorySummary[]> {
     return res.data
 }
 
-export async function getItem(id: number): Promise<InventoryItem> {
-    const res = await client.get<InventoryItem>(`/inventory-items/${id}`)
-    return res.data
-}
+export const getItem = items.get
 
 export async function findByInternalId(internalId: string): Promise<InventoryItem | null> {
     try {
@@ -151,14 +250,8 @@ export async function createItem(inventoryId: number, data: ItemRequest): Promis
     return res.data
 }
 
-export async function updateItem(id: number, data: ItemRequest): Promise<InventoryItem> {
-    const res = await client.put<InventoryItem>(`/inventory-items/${id}`, data)
-    return res.data
-}
-
-export async function deleteItem(id: number): Promise<void> {
-    await client.delete(`/inventory-items/${id}`)
-}
+export const updateItem = items.update
+export const deleteItem = items.remove
 
 export async function assignItem(id: number, data: AssignRequest): Promise<InventoryItem> {
     const res = await client.put<InventoryItem>(`/inventory-items/${id}/assign`, data)
@@ -182,29 +275,16 @@ export async function markFound(id: number): Promise<InventoryItem> {
 
 // -- Requirements --
 
-export async function listAllRequirements(): Promise<InventoryRequirement[]> {
-    const res = await client.get<InventoryRequirement[]>('/inventory-requirements')
-    return res.data
-}
+export const listAllRequirements = requirements.list
+export const createRequirement = requirements.create
+export const updateRequirement = requirements.update
+export const deleteRequirement = requirements.remove
 
 export async function listRequirements(inventoryId: number): Promise<InventoryRequirement[]> {
     const res = await client.get<InventoryRequirement[]>(`/inventories/${inventoryId}/requirements`)
     return res.data
 }
 
-export async function createRequirement(data: RequirementRequest): Promise<InventoryRequirement> {
-    const res = await client.post<InventoryRequirement>('/inventory-requirements', data)
-    return res.data
-}
-
-export async function updateRequirement(id: number, data: { quantity: number }): Promise<void> {
-    await client.put(`/inventory-requirements/${id}`, data)
-}
-
 export async function updateRequirementPosition(id: number, position: number): Promise<void> {
     await client.patch(`/inventory-requirements/${id}/position`, {position})
-}
-
-export async function deleteRequirement(id: number): Promise<void> {
-    await client.delete(`/inventory-requirements/${id}`)
 }

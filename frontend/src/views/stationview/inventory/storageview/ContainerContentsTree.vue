@@ -7,8 +7,9 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ContainerContentsTreeNode from './ContainerContentsTreeNode.vue'
+import TreeNodeButton from '@/components/button/TreeNodeButton.vue'
 import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
-import type {InventoryItem} from '@/api/types'
+import type {InventoryItem} from '@/api/inventory'
 
 const props = defineProps<{
   rootContainerId: number
@@ -56,17 +57,16 @@ const {t} = useI18n()
 <template>
   <div class="flex flex-col gap-1">
     <template v-if="rootItems.length > 0">
-      <button
+      <TreeNodeButton
           v-for="item in rootItems"
           :key="`root-item-${item.id}`"
-          type="button"
-          class="flex items-center gap-2 px-2 py-1.5 rounded-theme hover:bg-(--bg-accent) text-left w-full"
+          class="flex items-center gap-2 px-2 py-1.5 hover:bg-(--bg-accent)"
           @click="$emit('open-item', item.id)"
       >
         <font-awesome-icon :icon="['fas', 'cube']" class="w-4 text-(--text-muted)" />
         <span class="font-medium">{{ item.name ?? '' }}</span>
         <span v-if="item.internalId" class="text-xs text-(--text-muted)">{{ item.internalId }}</span>
-      </button>
+      </TreeNodeButton>
     </template>
     <template v-if="rootChildren.length === 0 && rootItems.length === 0">
       <p class="text-sm text-(--text-muted) py-2">{{ t('inventory.storage.contentsEmpty') }}</p>

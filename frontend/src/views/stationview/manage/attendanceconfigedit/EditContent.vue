@@ -12,7 +12,8 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import GroupsEditor from './GroupsEditor.vue'
 import FieldsList from './FieldsList.vue'
-import type {AttendanceTemplateField, MemberGroup, TemplateGroupEntry} from '@/api/types'
+import type {AttendanceTemplateField, TemplateGroupEntry} from '@/api/attendance'
+import type {MemberGroup} from '@/api/types'
 
 const props = defineProps<{
   isEdit: boolean
@@ -49,7 +50,7 @@ const {t} = useI18n()
         <TextInput
             :model-value="props.name"
             :placeholder="t('attendanceConfig.namePlaceholder')"
-            @update:model-value="(v: string) => emit('update:name', v)"
+            @update:model-value="(v: string | undefined) => emit('update:name', v ?? '')"
         />
       </div>
       <SaveButton :disabled="!props.name" :action="props.saveTemplate">

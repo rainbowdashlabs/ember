@@ -6,14 +6,13 @@
 package dev.chojo.ember.feature.comment.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.events.service.EventService;
+import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import io.javalin.http.BadRequestResponse;
@@ -24,7 +23,6 @@ import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
-import io.javalin.openapi.OpenApiName;
 import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
@@ -32,7 +30,6 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
-import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -45,18 +42,18 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 @Singleton
 public class EventCommentRoutes implements Routes {
     private final CommentService commentService;
-    private final EventService eventService;
+    private final EventCrudService crudService;
     private final MemberIdentityFactory memberIdentityFactory;
     private final MemberNameResolver memberNameResolver;
 
     @Inject
     public EventCommentRoutes(
             CommentService commentService,
-            EventService eventService,
+            EventCrudService crudService,
             MemberIdentityFactory memberIdentityFactory,
             MemberNameResolver memberNameResolver) {
         this.commentService = commentService;
-        this.eventService = eventService;
+        this.crudService = crudService;
         this.memberIdentityFactory = memberIdentityFactory;
         this.memberNameResolver = memberNameResolver;
     }
@@ -128,8 +125,7 @@ public class EventCommentRoutes implements Routes {
         }
         var author = memberIdentityFactory.local(
                 session.stationId(), session.member().id());
-        String eventName =
-                eventService.findById(eventId).map(StationEvent::name).orElse("");
+        String eventName = crudService.findById(eventId).map(StationEvent::name).orElse("");
         var comment = commentService.create(
                 session.stationId(),
                 eventId,
@@ -200,31 +196,7 @@ public class EventCommentRoutes implements Routes {
     }
 
     private CommentResponse toResponse(Comment comment) {
-        if (comment.deleted()) {
-            return new CommentResponse(
-                    comment.id(),
-                    comment.parentId(),
-                    null,
-                    null,
-                    "",
-                    true,
-                    comment.createdAt(),
-                    null,
-                    comment.eventDate());
-        }
-
-        var resolved = memberNameResolver.resolveDisplay(comment.author());
-        String authorName = resolved.name() != null ? resolved.name() : "";
-        return new CommentResponse(
-                comment.id(),
-                comment.parentId(),
-                resolved.identity(),
-                authorName,
-                comment.content(),
-                false,
-                comment.createdAt(),
-                comment.updatedAt(),
-                comment.eventDate());
+        return CommentResponseMapper.fromEvent(memberNameResolver, comment);
     }
 
     /**
@@ -239,22 +211,4 @@ public class EventCommentRoutes implements Routes {
      * Request body for updating a comment.
      */
     public record UpdateCommentRequest(String content) {}
-
-    /**
-     * API response representing a comment with resolved author information.
-     *
-     * @param eventDate Occurrence date for date-scoped comments on recurring events; {@code null}
-     *                  for whole-event comments. Serialised as ISO {@code yyyy-MM-dd}.
-     */
-    @OpenApiName("EventCommentResponse")
-    public record CommentResponse(
-            int id,
-            Integer parentId,
-            MemberIdentity author,
-            String authorName,
-            String content,
-            boolean deleted,
-            Instant createdAt,
-            Instant updatedAt,
-            LocalDate eventDate) {}
 }

@@ -12,6 +12,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 
 const {t} = useI18n()
 
@@ -23,8 +24,6 @@ const emit = defineEmits<{
 
 const holidayState = ref('NW')
 const holidayYear = ref(String(new Date().getFullYear()))
-const loading = ref(false)
-const error = ref('')
 
 const germanStates = [
   {code: 'BW', name: 'Baden-Württemberg'},
@@ -45,25 +44,17 @@ const germanStates = [
   {code: 'TH', name: 'Thüringen'},
 ]
 
-async function importHolidays() {
-  loading.value = true
-  error.value = ''
-  try {
-    const res = await fetch(`https://deutsche-schulferien-api.vercel.app/api/v2/${holidayYear.value}?states=${holidayState.value}`)
-    if (!res.ok) throw new Error('Failed to fetch holidays')
-    const data: Array<{ name_cp: string; start: string; end: string }> = await res.json()
-    const holidays = data.map(h => ({
-      name: h.name_cp,
-      startDate: h.start.slice(0, 10),
-      endDate: h.end.slice(0, 10),
-    }))
-    emit('import', holidays)
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
+const {running: loading, error, run: importHolidays} = useAsyncAction(async () => {
+  const res = await fetch(`https://deutsche-schulferien-api.vercel.app/api/v2/${holidayYear.value}?states=${holidayState.value}`)
+  if (!res.ok) throw new Error('Failed to fetch holidays')
+  const data: Array<{ name_cp: string; start: string; end: string }> = await res.json()
+  const holidays = data.map(h => ({
+    name: h.name_cp,
+    startDate: h.start.slice(0, 10),
+    endDate: h.end.slice(0, 10),
+  }))
+  emit('import', holidays)
+}, {formatError: () => t('common.error')})
 </script>
 
 <template>

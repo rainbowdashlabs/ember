@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import FederatedEventDetailView from '~/views/stationview/events/FederatedEventDetailView'
+import FederatedEventDetailView from '~/views/stationview/events/FederatedEventDetailView.vue'
 
 definePageMeta({
   layout: 'station',

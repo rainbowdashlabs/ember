@@ -7,7 +7,7 @@
 import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import TrainingQuestionCard from './TrainingQuestionCard.vue'
-import type { QuizQuestion } from '@/api/types'
+import type { QuizQuestion } from '@/api/quiz'
 
 const userTfAnswer = defineModel<boolean | null>('userTfAnswer', {required: true})
 const userAnswer = defineModel<string>('userAnswer', {required: true})

@@ -4,12 +4,13 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref} from 'vue'
+import {computed, toRef} from 'vue'
 import {useI18n} from 'vue-i18n'
-import type {PermissionNode, PermissionGrant} from '@/api/types'
-import {data} from '@/api'
+import type {PermissionGrant} from '@/api/types'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
+import {usePermissionTree} from '@/composables/usePermissionTree'
+import {GROUP_ICONS} from '@/components/input/permissionpicker/groupIcons'
 
 const props = defineProps<{
   allRoles: PermissionGrant[]
@@ -23,241 +24,28 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-const hierarchy = ref<PermissionNode[]>([])
-const loading = ref(true)
-
-onMounted(async () => {
-  hierarchy.value = await data.getPermissionHierarchy()
-  loading.value = false
-})
-
-interface TreeNode {
-  name: string
-  children: TreeNode[]
-}
-
-const tree = computed<TreeNode[]>(() => {
-  if (hierarchy.value.length === 0) return []
-
-  const nodeMap = new Map<string, PermissionNode>()
-  for (const n of hierarchy.value) nodeMap.set(n.name, n)
-
-  function buildNode(name: string): TreeNode {
-    const source = nodeMap.get(name)
-    return {
-      name,
-      children: source?.children.map(buildNode) ?? [],
-    }
-  }
-
-  const admin = nodeMap.get('STATION_ADMINISTRATOR')
-  if (!admin) return []
-
-  function filterHidden(nodes: TreeNode[]): TreeNode[] {
-    return nodes
-        .filter(n => n.name !== 'USER')
-        .map(n => ({...n, children: filterHidden(n.children)}))
-  }
-
-  // STATION_ADMINISTRATOR transitively grants every other permission, so listing its
-  // descendants under the group header is just noise — keep the toggle but render it as a leaf.
-  const adminNode: TreeNode = {name: 'STATION_ADMINISTRATOR', children: []}
-  return filterHidden([adminNode, ...admin.children.map(buildNode)])
-})
-
-// Map permission name -> PermissionGrant (db id)
-const roleByName = computed(() => {
-  const map = new Map<string, PermissionGrant>()
-  for (const r of props.allRoles) map.set(r.permission, r)
-  return map
-})
-
-function isDirectlySelected(name: string): boolean {
-  const role = roleByName.value.get(name)
-  return role ? props.modelValue.has(role.id) : false
-}
-
-function isLocked(name: string): boolean {
-  return props.lockedPermissions?.has(name) ?? false
-}
-
-function lockedLabel(name: string): string {
-  return props.lockedPermissions?.get(name) ?? ''
-}
-
-// Map: permission name -> name of the ancestor that implicitly grants it
-const implicitlyGrantedBy = computed<Map<string, string>>(() => {
-  const map = new Map<string, string>()
-  function markChildren(node: TreeNode, grantedBy: string) {
-    for (const child of node.children) {
-      if (!map.has(child.name)) map.set(child.name, grantedBy)
-      markChildren(child, grantedBy)
-    }
-  }
-  function walk(nodes: TreeNode[]) {
-    for (const node of nodes) {
-      if (isDirectlySelected(node.name) || isLocked(node.name)) markChildren(node, node.name)
-      walk(node.children)
-    }
-  }
-  walk(tree.value)
-  if (isDirectlySelected('STATION_ADMINISTRATOR') || isLocked('STATION_ADMINISTRATOR')) {
-    function markAll(nodes: TreeNode[]) {
-      for (const node of nodes) {
-        if (node.name !== 'STATION_ADMINISTRATOR' && !map.has(node.name)) {
-          map.set(node.name, 'STATION_ADMINISTRATOR')
-        }
-        markAll(node.children)
-      }
-    }
-    markAll(tree.value)
-  }
-  return map
-})
-
-function isEffectivelyEnabled(name: string): boolean {
-  return isDirectlySelected(name) || implicitlyGrantedBy.value.has(name) || isLocked(name)
-}
-
-function isImplicit(name: string): boolean {
-  return implicitlyGrantedBy.value.has(name)
-}
-
-function isDisabled(name: string): boolean {
-  return isImplicit(name) || isLocked(name)
-}
-
-function grantedByLabel(name: string): string {
-  const grantedBy = implicitlyGrantedBy.value.get(name)
-  if (!grantedBy) return ''
-  return t(`permissions.${grantedBy}.label`)
-}
-
-function allChildNames(node: TreeNode): string[] {
-  const result: string[] = []
-  for (const child of node.children) {
-    result.push(child.name)
-    result.push(...allChildNames(child))
-  }
-  return result
-}
-
-function toggle(name: string, node: TreeNode) {
-  if (isDisabled(name)) return
-  const newSet = new Set(props.modelValue)
-  const role = roleByName.value.get(name)
-  if (!role) return
-
-  if (newSet.has(role.id)) {
-    newSet.delete(role.id)
-    // Restore children that were removed when this parent was enabled
-    const saved = collapsedChildren.value.get(name)
-    if (saved) {
-      for (const id of saved) newSet.add(id)
-      collapsedChildren.value.delete(name)
-    }
-  } else {
-    newSet.add(role.id)
-    // Remove explicitly selected children (now implicit), but remember them
-    const removed = new Set<number>()
-    for (const childName of allChildNames(node)) {
-      const childRole = roleByName.value.get(childName)
-      if (childRole && newSet.has(childRole.id)) {
-        removed.add(childRole.id)
-        newSet.delete(childRole.id)
-      }
-    }
-    if (removed.size > 0) collapsedChildren.value.set(name, removed)
-  }
-  emit('update:modelValue', newSet)
-}
-
-function toggleLeaf(name: string) {
-  if (isDisabled(name)) return
-  const newSet = new Set(props.modelValue)
-  const role = roleByName.value.get(name)
-  if (!role) return
-  if (newSet.has(role.id)) newSet.delete(role.id)
-  else newSet.add(role.id)
-  emit('update:modelValue', newSet)
-}
-
-// Remember children that were implicitly removed when a parent was enabled,
-// so they can be restored if the parent is unchecked in the same session.
-const collapsedChildren = ref<Map<string, Set<number>>>(new Map())
-
-const expanded = ref<Set<string>>(new Set())
-
-function toggleExpand(name: string) {
-  const newSet = new Set(expanded.value)
-  if (newSet.has(name)) newSet.delete(name)
-  else newSet.add(name)
-  expanded.value = newSet
-}
-
-function isExpanded(name: string): boolean {
-  return expanded.value.has(name)
-}
-
-interface FlatItem {
-  name: string
-  node: TreeNode
-  chainDepth: number
-}
-
-// Flatten all descendants of a node, sorted by chain depth (longest first)
-function flattenDescendants(node: TreeNode): FlatItem[] {
-  const items: FlatItem[] = []
-  const seen = new Set<string>()
-  function walk(n: TreeNode) {
-    for (const child of n.children) {
-      if (!seen.has(child.name)) {
-        seen.add(child.name)
-        items.push({ name: child.name, node: child, chainDepth: countMaxDepth(child) })
-      }
-      walk(child)
-    }
-  }
-  walk(node)
-  items.sort((a, b) => b.chainDepth - a.chainDepth)
-  return items
-}
-
-function countEnabledDescendants(node: TreeNode): number {
-  const items = flattenDescendants(node)
-  return items.filter(i => isEffectivelyEnabled(i.name)).length
-}
-
-function countTotalDescendants(node: TreeNode): number {
-  return flattenDescendants(node).length
-}
-
-function countMaxDepth(node: TreeNode): number {
-  if (node.children.length === 0) return 0
-  return 1 + Math.max(...node.children.map(countMaxDepth))
-}
-
-const GROUP_ICONS: Record<string, string[]> = {
-  STATION_ADMINISTRATOR: ['fas', 'user-shield'],
-  LOGIN: ['fas', 'right-to-bracket'],
-  ATTENDANCE_MANAGER: ['fas', 'clipboard-check'],
-  INVENTORY_MANAGER: ['fas', 'boxes-stacked'],
-  EVENT_MANAGER: ['fas', 'calendar-days'],
-  MEMBER_MANAGER: ['fas', 'users'],
-  WAITLIST_MANAGER: ['fas', 'clock'],
-  NEWS_MANAGER: ['fas', 'newspaper'],
-  POLL_MANAGER: ['fas', 'square-poll-vertical'],
-  LOST_AND_FOUND_MANAGER: ['fas', 'magnifying-glass'],
-  CHECKLIST_MANAGER: ['fas', 'square-check'],
-  TEST_MANAGER: ['fas', 'graduation-cap'],
-  PROTOCOL_MANAGER: ['fas', 'clipboard-list'],
-  BOARD_MANAGER: ['fas', 'table-columns'],
-  KNOWLEDGE_MANAGER: ['fas', 'book'],
-  PAGE_MANAGER: ['fas', 'file-lines'],
-  PROCEDURE_MANAGER: ['fas', 'list-check'],
-  STATION_MANAGER: ['fas', 'gear'],
-  NEWS_FEDERATE: ['fas', 'share-nodes'],
-}
+const {
+  loading,
+  tree,
+  isLocked,
+  lockedLabel,
+  isEffectivelyEnabled,
+  isImplicit,
+  isDisabled,
+  grantedByLabel,
+  toggle,
+  toggleLeaf,
+  toggleExpand,
+  isExpanded,
+  flattenDescendants,
+  countEnabledDescendants,
+  countTotalDescendants,
+} = usePermissionTree(
+    toRef(props, 'modelValue'),
+    toRef(props, 'allRoles'),
+    computed(() => props.lockedPermissions),
+    next => emit('update:modelValue', next),
+)
 </script>
 
 <template>

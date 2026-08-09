@@ -14,8 +14,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import type {InventorySize} from '@/api/types'
-import type {MyInventoryItem} from '@/api/inventory'
+import type {InventorySize, MyInventoryItem} from '@/api/inventory'
 import {useModelProxy} from '@/composables/useModelProxy'
 
 const props = defineProps<{
@@ -56,7 +55,7 @@ const submitDisabled = computed(() =>
       <template v-else>
         <p v-if="item" class="text-sm">
           {{ item.inventoryName }} — {{ item.name }}
-          <span class="text-(--text-muted)">{{ item.sizeName ?? t('common.unisize') }}</span>
+          <span v-if="item.sizeName" class="text-(--text-muted)">{{ item.sizeName }}</span>
         </p>
         <div v-if="sizes.length > 0" class="space-y-1">
           <FieldLabel>{{ t('exchanges.newSize') }}</FieldLabel>

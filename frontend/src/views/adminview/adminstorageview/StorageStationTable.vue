@@ -4,7 +4,6 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import {
@@ -13,7 +12,8 @@ import {
   resetStationQuotas,
 } from '@/api/storageMonitoring'
 import {STORAGE_CATEGORY_COLORS, buildStorageCategoryLabeler} from '@/util/storage'
-import StorageStationHeader from './storagestationtable/StorageStationHeader.vue'
+import {byValue, useSortable} from '@/composables/useSortable'
+import StorageStationHeader, {type StorageSortKey} from './storagestationtable/StorageStationHeader.vue'
 import StorageStationRow from './storagestationtable/StorageStationRow.vue'
 
 const props = defineProps<{ stations: AdminStationUsage[] }>()
@@ -21,26 +21,18 @@ const emit = defineEmits<{ reload: [] }>()
 
 const {t} = useI18n()
 
-type SortField = 'name' | 'usage' | 'percent'
-const sortBy = ref<SortField>('percent')
-const sortDesc = ref(true)
-
-const sortedStations = computed(() => {
-  return [...props.stations].sort((a, b) => {
-    let cmp = 0
-    if (sortBy.value === 'name') cmp = a.stationName.localeCompare(b.stationName)
-    else if (sortBy.value === 'usage') cmp = a.totalBytes - b.totalBytes
-    else cmp = a.quotaUsedPercent - b.quotaUsedPercent
-    return sortDesc.value ? -cmp : cmp
-  })
+const {sortKey, direction, sorted: sortedStations, toggle} = useSortable<AdminStationUsage, StorageSortKey>({
+  items: () => props.stations,
+  initialKey: 'percent',
+  initialDirection: 'desc',
+  comparators: {
+    name: byValue(station => station.stationName),
+    usage: byValue(station => station.totalBytes),
+    percent: byValue(station => station.quotaUsedPercent),
+  },
 })
 
 const categoryLabel = buildStorageCategoryLabeler(t)
-
-function toggleSort(field: SortField) {
-  if (sortBy.value === field) sortDesc.value = !sortDesc.value
-  else { sortBy.value = field; sortDesc.value = true }
-}
 
 async function handleRecalculate(uid: string) {
   await recalculateStation(uid)
@@ -58,7 +50,7 @@ async function handleReset(uid: string) {
     <SubHeader>{{ t('storageMonitoring.stationOverview') }}</SubHeader>
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
-        <StorageStationHeader :sort-by="sortBy" :sort-desc="sortDesc" @toggle="toggleSort"/>
+        <StorageStationHeader :sort-key="sortKey" :direction="direction" @sort="toggle"/>
         <tbody>
         <StorageStationRow v-for="station in sortedStations" :key="station.stationId"
                            :station="station"

@@ -5,11 +5,9 @@
  */
 package dev.chojo.ember.feature.inventory.entity;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import dev.chojo.ember.util.Json;
 import org.slf4j.Logger;
-import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -21,12 +19,7 @@ import static org.slf4j.LoggerFactory.getLogger;
  */
 public record InventoryItemMetadata(boolean owned, ItemFieldValues fields) {
     private static final Logger log = getLogger(InventoryItemMetadata.class);
-    private static final ObjectMapper MAPPER = JsonMapper.builder()
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-            .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
-            .changeDefaultVisibility(v -> v.withFieldVisibility(JsonAutoDetect.Visibility.ANY)
-                    .withGetterVisibility(JsonAutoDetect.Visibility.NONE))
-            .build();
+    private static final ObjectMapper MAPPER = Json.CONFIG_MAPPER;
     private static final InventoryItemMetadata EMPTY = new InventoryItemMetadata(false, ItemFieldValues.empty());
 
     /**

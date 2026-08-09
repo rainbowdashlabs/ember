@@ -8,8 +8,7 @@ import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
 import BarcodeScanModal from './BarcodeScanModal.vue'
-import {useBarcodeScanner} from './useBarcodeScanner'
-import type {BarcodeFormat} from './useBarcodeScanner'
+import {useBarcodeScanner, type BarcodeFormat} from './useBarcodeScanner'
 
 withDefaults(defineProps<{
   mode?: 'one-shot' | 'continuous'

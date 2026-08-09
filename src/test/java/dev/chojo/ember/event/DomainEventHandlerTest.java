@@ -60,6 +60,7 @@ import dev.chojo.ember.feature.comment.entity.MentionType;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
@@ -70,8 +71,8 @@ import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
-import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.restriction.RestrictionType;
+import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -90,7 +91,8 @@ class DomainEventHandlerTest {
     private StationMemberRepository memberRepository;
     private MemberGroupRepository memberGroupRepository;
     private EventRepository eventRepository;
-    private RestrictionRepository restrictionRepository;
+    private EventRegistrationRepository registrationRepository;
+    private RestrictionService restrictionService;
 
     private static final int STATION_ID = 1;
     private static final int MEMBER_ID = 10;
@@ -101,7 +103,8 @@ class DomainEventHandlerTest {
         memberRepository = mock(StationMemberRepository.class);
         memberGroupRepository = mock(MemberGroupRepository.class);
         eventRepository = mock(EventRepository.class);
-        restrictionRepository = mock(RestrictionRepository.class);
+        registrationRepository = mock(EventRegistrationRepository.class);
+        restrictionService = mock(RestrictionService.class);
     }
 
     private StationMember member(int id) {
@@ -231,7 +234,7 @@ class DomainEventHandlerTest {
 
         handler.handle(new EventDeleted(STATION_ID, 42, "Übungsabend"));
 
-        verify(notificationService).deleteByTypeContaining(eq(NotificationType.NEW_EVENT), anyString());
+        verify(notificationService).deleteByTypeContaining(eq(NotificationType.NEW_EVENT), any(NotificationData.class));
     }
 
     // -- EventsBatchCreatedHandler --
@@ -346,8 +349,9 @@ class DomainEventHandlerTest {
 
         handler.handle(new NewsDeleted(STATION_ID, 5, "Alte Nachricht"));
 
-        verify(notificationService).deleteByTypeContaining(eq(NotificationType.NEW_NEWS), anyString());
-        verify(notificationService).deleteByTypeContaining(eq(NotificationType.NEWS_COMMENT), anyString());
+        verify(notificationService).deleteByTypeContaining(eq(NotificationType.NEW_NEWS), any(NotificationData.class));
+        verify(notificationService)
+                .deleteByTypeContaining(eq(NotificationType.NEWS_COMMENT), any(NotificationData.class));
     }
 
     // -- FormPublishedHandler --
@@ -372,7 +376,7 @@ class DomainEventHandlerTest {
 
         handler.handle(new FormDeleted(STATION_ID, 7));
 
-        verify(notificationService).deleteByTypeContaining(eq(NotificationType.NEW_FORM), anyString());
+        verify(notificationService).deleteByTypeContaining(eq(NotificationType.NEW_FORM), any(NotificationData.class));
     }
 
     // -- CommentCreatedHandler --
@@ -459,7 +463,8 @@ class DomainEventHandlerTest {
 
         handler.handle(new CommentDeleted(STATION_ID, 100, "comment preview"));
 
-        verify(notificationService).deleteByTypeContaining(eq(NotificationType.NEWS_COMMENT), anyString());
+        verify(notificationService)
+                .deleteByTypeContaining(eq(NotificationType.NEWS_COMMENT), any(NotificationData.class));
     }
 
     // -- MentionedInCommentHandler --
@@ -492,7 +497,12 @@ class DomainEventHandlerTest {
 
     private BulkMentionedInCommentHandler bulkHandler() {
         return new BulkMentionedInCommentHandler(
-                notificationService, memberGroupRepository, eventRepository, memberRepository, restrictionRepository);
+                notificationService,
+                memberGroupRepository,
+                eventRepository,
+                registrationRepository,
+                memberRepository,
+                restrictionService);
     }
 
     @Test
@@ -553,7 +563,7 @@ class DomainEventHandlerTest {
         when(stationEvent.id()).thenReturn(42);
         when(stationEvent.stationId()).thenReturn(STATION_ID);
         when(eventRepository.findById(42)).thenReturn(Optional.of(stationEvent));
-        when(eventRepository.findAllRegistrations(42))
+        when(registrationRepository.findByEvent(42))
                 .thenReturn(List.of(
                         new EventRegistration(
                                 1, 42, 20, LocalDate.now(), RegistrationStatus.ACCEPTED, Instant.now(), null),
@@ -586,8 +596,8 @@ class DomainEventHandlerTest {
         when(stationEvent.id()).thenReturn(42);
         when(stationEvent.stationId()).thenReturn(STATION_ID);
         when(eventRepository.findById(42)).thenReturn(Optional.of(stationEvent));
-        when(eventRepository.findAllRegistrations(42)).thenReturn(List.of());
-        when(restrictionRepository.findMembersPassingRestriction(RestrictionType.EVENT, 42, STATION_ID))
+        when(registrationRepository.findByEvent(42)).thenReturn(List.of());
+        when(restrictionService.findMembersPassingRestriction(RestrictionType.EVENT, 42, STATION_ID))
                 .thenReturn(Set.of());
         when(memberRepository.findByStation(STATION_ID, false)).thenReturn(List.of(member(30), member(31)));
         when(memberRepository.findManagers(30)).thenReturn(List.of());
@@ -618,8 +628,8 @@ class DomainEventHandlerTest {
         when(stationEvent.id()).thenReturn(42);
         when(stationEvent.stationId()).thenReturn(STATION_ID);
         when(eventRepository.findById(42)).thenReturn(Optional.of(stationEvent));
-        when(eventRepository.findAllRegistrations(42)).thenReturn(List.of());
-        when(restrictionRepository.findMembersPassingRestriction(RestrictionType.EVENT, 42, STATION_ID))
+        when(registrationRepository.findByEvent(42)).thenReturn(List.of());
+        when(restrictionService.findMembersPassingRestriction(RestrictionType.EVENT, 42, STATION_ID))
                 .thenReturn(Set.of(30));
         when(memberRepository.findManagers(30)).thenReturn(List.of());
 
@@ -641,7 +651,7 @@ class DomainEventHandlerTest {
 
     @Test
     void bulkMentionRegisteredNotifiesAcceptedMembers() {
-        when(eventRepository.findAllRegistrations(42))
+        when(registrationRepository.findByEvent(42))
                 .thenReturn(List.of(
                         new EventRegistration(
                                 1, 42, 20, LocalDate.now(), RegistrationStatus.ACCEPTED, Instant.now(), null),
@@ -669,7 +679,7 @@ class DomainEventHandlerTest {
 
     @Test
     void bulkMentionDeclinedNotifiesDeclinedMembers() {
-        when(eventRepository.findAllRegistrations(42))
+        when(registrationRepository.findByEvent(42))
                 .thenReturn(List.of(
                         new EventRegistration(
                                 1, 42, 20, LocalDate.now(), RegistrationStatus.ACCEPTED, Instant.now(), null),
@@ -697,7 +707,7 @@ class DomainEventHandlerTest {
 
     @Test
     void bulkMentionAddsGuardiansForNonGroupMentions() {
-        when(eventRepository.findAllRegistrations(42))
+        when(registrationRepository.findByEvent(42))
                 .thenReturn(List.of(new EventRegistration(
                         1, 42, 20, LocalDate.now(), RegistrationStatus.ACCEPTED, Instant.now(), null)));
         when(memberRepository.findManagers(20)).thenReturn(List.of(member(50)));

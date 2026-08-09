@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import KnowledgeBaseHelp from '~/views/helpcenter/stationview/knowledge/KnowledgeBaseHelp'
+import KnowledgeBaseHelp from '~/views/helpcenter/stationview/knowledge/KnowledgeBaseHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

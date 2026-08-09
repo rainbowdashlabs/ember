@@ -5,16 +5,10 @@
  */
 <script lang="ts" setup>
 import BaseContainer from './BaseContainer.vue'
-
-const props = withDefaults(defineProps<{
-  padded?: boolean
-}>(), {
-  padded: true,
-})
 </script>
 
 <template>
-  <BaseContainer :padded="props.padded" class="border-secondary bg-secondary/10">
+  <BaseContainer class="border-secondary bg-secondary/10">
     <slot/>
   </BaseContainer>
 </template>

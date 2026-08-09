@@ -9,7 +9,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type { WaitingListEntryWithScore } from '@/api/types'
+import type { WaitingListEntryWithScore } from '@/api/waitingList'
 
 type TransitionKind = 'invite' | 'testing' | 'join' | 'approve' | 'reject' | 'withdraw'
 

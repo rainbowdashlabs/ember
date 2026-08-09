@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import tools.jackson.databind.node.IntNode;
 import tools.jackson.databind.node.StringNode;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -777,5 +778,121 @@ class WaitingListServiceTest extends RepositoryTestBase {
     void rejectNonPendingThrows() {
         var entry = service.createEntry(listId, "NotPending2", "", guardians("", "np2@test.com"), Map.of(), "");
         assertThrows(IllegalStateException.class, () -> service.rejectPendingEntry(entry.id()));
+    }
+
+    /**
+     * Edits aimed at a list or field that no longer exists change nothing and report the miss
+     * rather than inventing a row.
+     */
+    @Test
+    void editsToVanishedListsAndFieldsChangeNothing() {
+        int gone = 99_999_999;
+
+        assertTrue(service.update(gone, "Ghost", "", null, 180, null, null, 5, false)
+                .isEmpty());
+        assertTrue(service.updateVisibleFields(gone, "[]").isEmpty());
+        assertTrue(service.updateField(
+                        gone, "Ghost", WaitingListFieldType.TEXT, WaitingListFieldConfig.parse("{}"), 0, false, true)
+                .isEmpty());
+    }
+
+    /**
+     * The public queue position is driven by the list's scoring formula, not by arrival order:
+     * the highest scoring entry is first even when it registered last.
+     */
+    @Test
+    void waitingPositionRanksByScoreHighestFirst() {
+        var ageField = service.createField(
+                listId, "Alter", WaitingListFieldType.NUMBER, WaitingListFieldConfig.parse("{}"), 0, true, true);
+        service.update(listId, "Ranked", "", "[Alter]", 180, null, null, 5, false)
+                .orElseThrow();
+
+        var youngest = service.createEntry(
+                listId, "Young", "", guardians("", "young@test.com"), Map.of(ageField.id(), IntNode.valueOf(5)), "");
+        var middle = service.createEntry(
+                listId, "Middle", "", guardians("", "middle@test.com"), Map.of(ageField.id(), IntNode.valueOf(12)), "");
+        var oldest = service.createEntry(
+                listId, "Old", "", guardians("", "old@test.com"), Map.of(ageField.id(), IntNode.valueOf(20)), "");
+
+        assertEquals(1, service.findWaitingPositionByScore(oldest));
+        assertEquals(2, service.findWaitingPositionByScore(middle));
+        assertEquals(3, service.findWaitingPositionByScore(youngest));
+    }
+
+    /**
+     * Without a formula every entry scores the same, so the queue falls back to registration
+     * order and stays stable.
+     */
+    @Test
+    void waitingPositionFallsBackToRegistrationOrderOnATie() {
+        var first = service.createEntry(listId, "First", "", guardians("", "first@test.com"), Map.of(), "");
+        var second = service.createEntry(listId, "Second", "", guardians("", "second@test.com"), Map.of(), "");
+
+        assertEquals(1, service.findWaitingPositionByScore(first));
+        assertEquals(2, service.findWaitingPositionByScore(second));
+    }
+
+    /**
+     * Only entries still waiting have a position; once an entry has been invited it has left the
+     * queue and reports no position at all.
+     */
+    @Test
+    void waitingPositionIsZeroOnceAnEntryLeavesTheQueue() {
+        var list = service.create(station.id(), "Position Exit", "", null, 180, null, null, 5, false);
+        var entry = service.createEntry(list.id(), "Leaver", "", guardians("Parent", "leaver@test.com"), Map.of(), "");
+        assertEquals(1, service.findWaitingPositionByScore(entry));
+
+        var invited = service.inviteEntry(entry.id());
+
+        assertEquals(0, service.findWaitingPositionByScore(invited));
+    }
+
+    /**
+     * The scheduled confirmation sweep. It reminds entries whose confirmation has gone stale,
+     * warns the ones approaching removal, and withdraws the ones past the grace period — the last
+     * of which takes a place away from an applicant, so it is asserted directly rather than
+     * through the absence of a reminder.
+     */
+    @Test
+    void expiredConfirmationSweepRemindsWarnsAndWithdraws() {
+        var list = service.create(station.id(), "Sweep", "", null, 0, null, null, 5, false);
+
+        var stale = service.createEntry(list.id(), "Stale", "", guardians("P", "stale@test.com"), Map.of(), "");
+        waitingListRepo.updateConfirmedAt(stale.id(), Instant.now().minus(Duration.ofDays(2)));
+
+        var warned = service.createEntry(list.id(), "Warned", "", guardians("P", "warn@test.com"), Map.of(), "");
+        waitingListRepo.updateReminderSentAt(warned.id(), Instant.now().minus(Duration.ofHours(16 * 24 + 12)));
+
+        var abandoned = service.createEntry(list.id(), "Gone", "", guardians("P", "gone@test.com"), Map.of(), "");
+        waitingListRepo.updateReminderSentAt(abandoned.id(), Instant.now().minus(Duration.ofDays(31)));
+
+        service.checkExpiredConfirmations(service.findById(list.id()).orElseThrow());
+
+        assertNotNull(
+                service.findEntryById(stale.id()).orElseThrow().reminderSentAt(),
+                "a stale confirmation should have been reminded and stamped");
+        assertEquals(
+                WaitingListEntryStatus.WITHDRAWN,
+                service.findEntryById(abandoned.id()).orElseThrow().status(),
+                "an entry past the grace period should have been withdrawn");
+        assertEquals(
+                WaitingListEntryStatus.WAITING,
+                service.findEntryById(warned.id()).orElseThrow().status(),
+                "an entry only due a warning must keep its place");
+    }
+
+    /**
+     * The same sweep on a list with nothing due must not touch any entry.
+     */
+    @Test
+    void expiredConfirmationSweepLeavesAFreshListAlone() {
+        var list = service.create(station.id(), "Quiet Sweep", "", null, 180, null, null, 5, false);
+        var entry = service.createEntry(list.id(), "Fresh", "", guardians("P", "fresh@test.com"), Map.of(), "");
+
+        service.checkExpiredConfirmations(service.findById(list.id()).orElseThrow());
+
+        var after = service.findEntryById(entry.id()).orElseThrow();
+        assertEquals(WaitingListEntryStatus.WAITING, after.status());
+        assertNull(after.reminderSentAt());
     }
 }

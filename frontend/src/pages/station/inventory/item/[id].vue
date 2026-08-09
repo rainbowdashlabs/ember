@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import ItemDetailView from '~/views/stationview/inventory/ItemDetailView'
+import ItemDetailView from '~/views/stationview/inventory/ItemDetailView.vue'
 
 definePageMeta({
   layout: 'station',

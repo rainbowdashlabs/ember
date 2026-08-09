@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup generic="T">
-import {computed, onBeforeUnmount, ref, watch} from 'vue'
+import {computed, onBeforeUnmount, ref, shallowRef, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import IconButton from '@/components/button/IconButton.vue'
@@ -57,7 +57,7 @@ const model = defineModel<string | null>()
 const {t} = useI18n()
 
 const query = ref('')
-const results = ref<T[]>([])
+const results = shallowRef<T[]>([])
 const loading = ref(false)
 const open = ref(false)
 const rootRef = ref<HTMLElement | null>(null)

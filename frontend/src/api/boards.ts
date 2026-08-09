@@ -4,6 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import { createCrudResource, createScopedCrudResource } from './crud'
+import { uploadFile } from './upload'
+import { downloadAuthed } from '@/util/downloadAuthed'
 import type { MemberIdentity } from './types'
 
 // -- Types --
@@ -130,41 +133,41 @@ export interface AccessConfig {
 
 // -- Board CRUD --
 
-export async function listBoards(visibleOnly?: boolean): Promise<Board[]> {
-    const res = await client.get<Board[]>('/boards', { params: visibleOnly ? { visible: 'true' } : undefined })
-    return res.data
-}
-
-export async function getBoard(boardKey: string): Promise<Board> {
-    const res = await client.get<Board>(`/boards/${boardKey}`)
-    return res.data
-}
-
-export async function canEditBoard(boardKey: string): Promise<boolean> {
-    const res = await client.get<{ canEdit: boolean }>(`/boards/${boardKey}/can-edit`)
-    return res.data.canEdit
-}
-
-export async function createBoard(data: {
+interface BoardCreateRequest {
     name: string
     description?: string
     shortKey: string
     preset?: LanePresetName
-}): Promise<Board> {
-    const res = await client.post<Board>('/boards', data)
-    return res.data
 }
 
-export async function updateBoard(
-    boardKey: string,
-    data: { name: string; description: string; hideDoneAfterDays: number },
-): Promise<Board> {
-    const res = await client.put<Board>(`/boards/${boardKey}`, data)
-    return res.data
+interface BoardUpdateRequest {
+    name: string
+    description: string
+    hideDoneAfterDays: number
 }
 
-export async function deleteBoard(boardKey: string): Promise<void> {
-    await client.delete(`/boards/${boardKey}`)
+const boards = createCrudResource<
+    Board,
+    BoardCreateRequest,
+    BoardUpdateRequest,
+    Board,
+    Board,
+    Board,
+    string
+>('/boards')
+
+export async function listBoards(visibleOnly?: boolean): Promise<Board[]> {
+    return boards.list(visibleOnly ? { visible: 'true' } : undefined)
+}
+
+export const getBoard = boards.get
+export const createBoard = boards.create
+export const updateBoard = boards.update
+export const deleteBoard = boards.remove
+
+export async function canEditBoard(boardKey: string): Promise<boolean> {
+    const res = await client.get<{ canEdit: boolean }>(`/boards/${boardKey}/can-edit`)
+    return res.data.canEdit
 }
 
 // -- Members --
@@ -198,23 +201,31 @@ export interface BoardLabel {
     color: string
 }
 
-export async function getLabels(boardKey: string): Promise<BoardLabel[]> {
-    const res = await client.get<BoardLabel[]>(`/boards/${boardKey}/labels`)
-    return res.data
+interface LabelCreateRequest {
+    name: string
+    color?: string
 }
 
-export async function createLabel(boardKey: string, data: { name: string; color?: string }): Promise<BoardLabel> {
-    const res = await client.post<BoardLabel>(`/boards/${boardKey}/labels`, data)
-    return res.data
+interface LabelUpdateRequest {
+    name: string
+    color: string
 }
 
-export async function updateLabel(boardKey: string, labelId: number, data: { name: string; color: string }): Promise<void> {
-    await client.put(`/boards/${boardKey}/labels/${labelId}`, data)
-}
+const labels = createScopedCrudResource<
+    BoardLabel,
+    LabelCreateRequest,
+    LabelUpdateRequest,
+    BoardLabel,
+    BoardLabel,
+    void,
+    number,
+    string
+>((boardKey: string) => `/boards/${boardKey}/labels`)
 
-export async function deleteLabel(boardKey: string, labelId: number): Promise<void> {
-    await client.delete(`/boards/${boardKey}/labels/${labelId}`)
-}
+export const getLabels = labels.list
+export const createLabel = labels.create
+export const updateLabel = labels.update
+export const deleteLabel = labels.remove
 
 export async function getTicketLabels(boardKey: string, ticketNumber: number): Promise<BoardLabel[]> {
     const res = await client.get<BoardLabel[]>(`/boards/${boardKey}/tickets/${ticketNumber}/labels`)
@@ -312,49 +323,39 @@ export async function searchTickets(boardKey: string, query: string): Promise<Bo
     return res.data
 }
 
-export async function listTickets(boardKey: string): Promise<BoardTicket[]> {
-    const res = await client.get<BoardTicket[]>(`/boards/${boardKey}/tickets`)
-    return res.data
+interface TicketCreateRequest {
+    laneId: number
+    title: string
+    description?: string
+    assignedMemberId?: number | null
+    priority?: TicketPriorityName
+    dueDate?: string | null
 }
 
-export async function getTicket(boardKey: string, ticketNumber: number): Promise<BoardTicket> {
-    const res = await client.get<BoardTicket>(`/boards/${boardKey}/tickets/${ticketNumber}`)
-    return res.data
+interface TicketUpdateRequest {
+    title: string
+    description?: string | null
+    assignedMemberId?: number | null
+    priority: TicketPriorityName
+    dueDate?: string | null
 }
 
-export async function createTicket(
-    boardKey: string,
-    data: {
-        laneId: number
-        title: string
-        description?: string
-        assignedMemberId?: number | null
-        priority?: TicketPriorityName
-        dueDate?: string | null
-    },
-): Promise<BoardTicket> {
-    const res = await client.post<BoardTicket>(`/boards/${boardKey}/tickets`, data)
-    return res.data
-}
+const tickets = createScopedCrudResource<
+    BoardTicket,
+    TicketCreateRequest,
+    TicketUpdateRequest,
+    BoardTicket,
+    BoardTicket,
+    BoardTicket,
+    number,
+    string
+>((boardKey: string) => `/boards/${boardKey}/tickets`)
 
-export async function updateTicket(
-    boardKey: string,
-    ticketNumber: number,
-    data: {
-        title: string
-        description?: string | null
-        assignedMemberId?: number | null
-        priority: TicketPriorityName
-        dueDate?: string | null
-    },
-): Promise<BoardTicket> {
-    const res = await client.put<BoardTicket>(`/boards/${boardKey}/tickets/${ticketNumber}`, data)
-    return res.data
-}
-
-export async function deleteTicket(boardKey: string, ticketNumber: number): Promise<void> {
-    await client.delete(`/boards/${boardKey}/tickets/${ticketNumber}`)
-}
+export const listTickets = tickets.list
+export const getTicket = tickets.get
+export const createTicket = tickets.create
+export const updateTicket = tickets.update
+export const deleteTicket = tickets.remove
 
 export async function assignTicket(
     boardKey: string,
@@ -573,22 +574,11 @@ export async function uploadAttachment(
     ticketNumber: number,
     file: File,
 ): Promise<BoardTicketAttachment> {
-    const formData = new FormData()
-    formData.append('file', file)
-    const res = await client.post<BoardTicketAttachment>(
-        `/boards/${boardKey}/tickets/${ticketNumber}/attachments`,
-        formData,
-        { headers: { 'Content-Type': 'multipart/form-data' } },
-    )
-    return res.data
+    return uploadFile<BoardTicketAttachment>(`/boards/${boardKey}/tickets/${ticketNumber}/attachments`, { file })
 }
 
 export async function downloadAttachmentBlob(boardKey: string, ticketNumber: number, attachmentId: number, filename: string): Promise<void> {
-    const res = await client.get(`/boards/${boardKey}/tickets/${ticketNumber}/attachments/${attachmentId}/download`, { responseType: 'blob' })
-    const url = URL.createObjectURL(res.data as Blob)
-    const a = document.createElement('a')
-    a.href = url; a.download = filename; a.click()
-    URL.revokeObjectURL(url)
+    await downloadAuthed(`/boards/${boardKey}/tickets/${ticketNumber}/attachments/${attachmentId}/download`, filename)
 }
 
 export async function getAttachmentBlobUrl(boardKey: string, ticketNumber: number, attachmentId: number): Promise<string> {

@@ -12,7 +12,8 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
-import type { WaitingListEntryWithScore } from '@/api/types'
+import type { WaitingListEntryWithScore } from '@/api/waitingList'
+import { formatDate } from '@/util/format'
 
 const props = defineProps<{
   entries: WaitingListEntryWithScore[]
@@ -36,10 +37,6 @@ function toggleExpand(entryId: number) {
 function entryFullName(item: WaitingListEntryWithScore): string {
   const e = item.entry
   return e.lastname ? `${e.firstname} ${e.lastname}` : e.firstname
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' })
 }
 </script>
 
@@ -68,7 +65,7 @@ function formatDate(iso: string): string {
           <template v-if="item.guardians && item.guardians.length > 0">
             <span class="text-xs font-semibold uppercase text-(--text-muted)">{{ t('waitingList.guardians') }}</span>
             <div v-for="g in item.guardians" :key="g.id" class="text-sm flex flex-col">
-              <span class="font-medium">{{ g.name || '-' }}</span>
+              <span class="font-medium">{{ `${g.firstname} ${g.lastname}`.trim() || '-' }}</span>
               <span class="text-(--text-muted)">{{ g.email }}{{ g.phone ? ` · ${g.phone}` : '' }}</span>
             </div>
           </template>

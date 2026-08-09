@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -18,6 +18,7 @@ import ContainerKindPicker from '@/views/stationview/inventory/storageview/Conta
 import ContainerParentPicker from '@/views/stationview/inventory/storageview/ContainerParentPicker.vue'
 import {mapContainerError} from '@/views/stationview/inventory/storageview/containerErrors'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import {inventoryContainers} from '@/api'
 import type {InventoryContainer, InventoryContainerKind} from '@/api/inventoryContainers'
 
@@ -42,31 +43,29 @@ const description = ref('')
 const parentId = ref<number | null>(props.defaultParentId ?? null)
 const kindId = ref<number | null>(null)
 const kindPicker = ref<InstanceType<typeof ContainerKindPicker> | null>(null)
-const submitting = ref(false)
-const error = ref('')
+const validationError = ref('')
+
+const {running: submitting, error: createError, run: runCreate} = useAsyncAction(async () => {
+  const resolvedKindId = (await kindPicker.value?.resolve()) ?? null
+  await inventoryContainers.createContainer({
+    parentId: parentId.value,
+    internalId: internalId.value.trim() || null,
+    name: name.value.trim(),
+    kindId: resolvedKindId,
+    description: description.value.trim(),
+  })
+  emit('created')
+}, {formatError: (e) => mapContainerError(t, e, 'inventory.storage.errors.createFailed')})
+
+const error = computed(() => validationError.value || createError.value)
 
 async function submit() {
+  validationError.value = ''
   if (!name.value.trim()) {
-    error.value = t('inventory.storage.errors.nameRequired')
+    validationError.value = t('inventory.storage.errors.nameRequired')
     return
   }
-  submitting.value = true
-  error.value = ''
-  try {
-    const resolvedKindId = (await kindPicker.value?.resolve()) ?? null
-    await inventoryContainers.createContainer({
-      parentId: parentId.value,
-      internalId: internalId.value.trim() || null,
-      name: name.value.trim(),
-      kindId: resolvedKindId,
-      description: description.value.trim(),
-    })
-    emit('created')
-  } catch (e: any) {
-    error.value = mapContainerError(t, e, 'inventory.storage.errors.createFailed')
-  } finally {
-    submitting.value = false
-  }
+  await runCreate()
 }
 
 function onClose() {

@@ -7,14 +7,13 @@
 import {useRouter} from 'vue-router'
 import {useI18n} from 'vue-i18n'
 import SetupLayout from '@/views/stationview/setup/SetupLayout.vue'
-import {nextStep, stepRouteName} from '@/views/stationview/setup/steps'
+import {goToNextStep} from '@/views/stationview/setup/steps'
 
 const {t} = useI18n()
 const router = useRouter()
 
 function start() {
-    const next = nextStep('welcome')
-    if (next) router.push({name: stepRouteName(next)})
+    goToNextStep(router, 'welcome')
 }
 </script>
 

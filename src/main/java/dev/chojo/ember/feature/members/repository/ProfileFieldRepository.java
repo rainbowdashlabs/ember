@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -24,21 +25,14 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 @Singleton
 public class ProfileFieldRepository {
 
-    private static final String COLUMNS = "id, station_id, name, field_type, config, position, scope, keep_on_archive";
-
-    // -- Field Definitions --
+    private static final String PROFILE_FIELD_COLUMNS =
+            "id, station_id, name, field_type, config, position, scope, keep_on_archive";
 
     /**
      * Finds a profile field definition by its identifier.
      */
     public Optional<ProfileField> findById(int id) {
-        return query("""
-                SELECT %s
-                FROM profile_field
-                WHERE id = :id;""", COLUMNS)
-                .single(call().bind("id", id))
-                .map(ProfileField.map())
-                .first();
+        return SqlSupport.findById("profile_field", PROFILE_FIELD_COLUMNS, id, ProfileField.map());
     }
 
     /**
@@ -49,7 +43,7 @@ public class ProfileFieldRepository {
                 SELECT %s
                 FROM profile_field
                 WHERE station_id = :station_id
-                ORDER BY scope, position;""", COLUMNS)
+                ORDER BY scope, position;""", PROFILE_FIELD_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(ProfileField.map())
                 .all();
@@ -64,7 +58,7 @@ public class ProfileFieldRepository {
                 FROM profile_field
                 WHERE station_id = :station_id
                   AND scope = :scope
-                ORDER BY position;""", COLUMNS)
+                ORDER BY position;""", PROFILE_FIELD_COLUMNS)
                 .single(call().bind("station_id", stationId).bind("scope", scope))
                 .map(ProfileField.map())
                 .all();
@@ -80,19 +74,19 @@ public class ProfileFieldRepository {
             ProfileFieldConfig config,
             int position,
             ProfileFieldScope scope) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                 INSERT INTO profile_field(station_id, name, field_type, config, position, scope)
                 VALUES (:station_id, :name, :field_type, :config::JSONB, :position, :scope)
-                RETURNING %s;""", COLUMNS)
-                .single(call().bind("station_id", stationId)
+                RETURNING %s;""",
+                call().bind("station_id", stationId)
                         .bind("name", name)
                         .bind("field_type", fieldType)
                         .bind("config", config.toJson())
                         .bind("position", position)
-                        .bind("scope", scope))
-                .map(ProfileField.map())
-                .first()
-                .orElseThrow();
+                        .bind("scope", scope),
+                ProfileField.map(),
+                PROFILE_FIELD_COLUMNS);
     }
 
     /**
@@ -128,13 +122,8 @@ public class ProfileFieldRepository {
      * Deletes a profile field definition and all associated values.
      */
     public boolean delete(int id) {
-        return query("DELETE FROM profile_field WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("profile_field", id);
     }
-
-    // -- Field Values --
 
     /**
      * Finds all profile field values for a member.

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import PublicPageView from '~/views/public/PublicPageView'
+import PublicPageView from '~/views/public/PublicPageView.vue'
 
 definePageMeta({
   layout: 'public-station',

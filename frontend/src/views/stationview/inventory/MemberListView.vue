@@ -8,17 +8,18 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import MemberListHeader from './memberlistview/MemberListHeader.vue'
 import MemberListBody from './memberlistview/MemberListBody.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
-import { inventory, stationMembers, memberGroups, profileFields, userTags } from '@/api'
-import type { Inventory, InventoryItem, MemberGroup, ProfileField, StationMember, UserTag } from '@/api/types'
+import { inventory, stationMembers, memberGroups, userTags } from '@/api'
+import type { Inventory, InventoryItem } from '@/api/inventory'
+import type { MemberGroup, StationMember, UserTag } from '@/api/types'
 import { useMemberFilter } from '@/composables/useMemberFilter'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
-import client from '@/api/client'
+import { useInventoryMemberExport } from './memberlistview/useInventoryMemberExport'
 import { getItem, setItem } from '@/api/storage'
 
 const { t } = useI18n()
@@ -40,11 +41,6 @@ const showName = ref(getItem('inv-members-show-name') !== 'false')
 const showInternalId = ref(getItem('inv-members-show-internal-id') === 'true')
 const showSize = ref(getItem('inv-members-show-size') !== 'false')
 
-const exportMode = ref(false)
-const selectedForExport = ref<Set<number>>(new Set())
-const selectedExportFields = ref<Set<number>>(new Set())
-const allFields = ref<ProfileField[]>([])
-const exporting = ref(false)
 const filterText = ref('')
 
 const memberItemMap = computed(() => {
@@ -133,7 +129,7 @@ const {loading, error} = useAsyncLoader(async () => {
 
   const gNames = new Map<number, string[]>()
   grps.forEach((g, i) => {
-    for (const m of groupDetails[i]) {
+    for (const m of groupDetails[i] ?? []) {
       if (!gNames.has(m.id)) gNames.set(m.id, [])
       gNames.get(m.id)!.push(g.name ?? '')
     }
@@ -142,7 +138,7 @@ const {loading, error} = useAsyncLoader(async () => {
 
   const tNames = new Map<number, string[]>()
   tgs.forEach((tg, i) => {
-    for (const m of tagDetails[i]) {
+    for (const m of tagDetails[i] ?? []) {
       if (!tNames.has(m.id)) tNames.set(m.id, [])
       tNames.get(m.id)!.push(tg.name)
     }
@@ -168,39 +164,6 @@ watch(filteredMembers, list => {
   if (changed) selectedForExport.value = next
 })
 
-async function enterExportMode() {
-  exportMode.value = true
-  selectedForExport.value = new Set(filteredMembers.value.map(m => m.id))
-  selectedExportFields.value = new Set()
-  try { allFields.value = await profileFields.listFields() } catch { allFields.value = [] }
-}
-
-function cancelExport() {
-  exportMode.value = false
-  selectedForExport.value = new Set()
-  selectedExportFields.value = new Set()
-}
-
-function toggleExportField(fieldId: number) {
-  const s = new Set(selectedExportFields.value)
-  if (s.has(fieldId)) s.delete(fieldId); else s.add(fieldId)
-  selectedExportFields.value = s
-}
-
-function toggleExportSelection(id: number) {
-  const s = new Set(selectedForExport.value)
-  if (s.has(id)) s.delete(id); else s.add(id)
-  selectedForExport.value = s
-}
-
-function toggleSelectAll() {
-  if (selectedForExport.value.size === filteredMembers.value.length) {
-    selectedForExport.value = new Set()
-  } else {
-    selectedForExport.value = new Set(filteredMembers.value.map(m => m.id))
-  }
-}
-
 function formatItemLabel(item: InventoryItem): string {
   const parts: string[] = []
   if (showName.value && item.name) parts.push(item.name)
@@ -216,56 +179,29 @@ function memberInventoryItems(memberId: number, inventoryId: number): InventoryI
   return memberItemMap.value.get(memberId)?.get(inventoryId) ?? []
 }
 
-function exportCsv() {
-  const selected = filteredMembers.value.filter(m => selectedForExport.value.has(m.id))
-  const headers = [t('membersList.colName')]
-  for (const inv of displayedInventories.value) headers.push(inv.name ?? '')
-
-  const rows: string[][] = []
-  for (const member of selected) {
-    const row = [memberDisplayName(member)]
-    for (const inv of displayedInventories.value) {
-      const items = memberInventoryItems(member.id, inv.id)
-      row.push(items.map(i => {
-        const label = formatItemLabel(i)
-        return i.lostAt ? `${label} (${t('inventoryMembers.lost')})` : label
-      }).join(', '))
-    }
-    rows.push(row)
-  }
-
-  const csv = [headers.join(';'), ...rows.map(r => r.map(c => `"${c.replace(/"/g, '""')}"`).join(';'))].join('\n')
-  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = 'inventory-members.csv'
-  a.click()
-  URL.revokeObjectURL(url)
-  exportMode.value = false
-}
-
-async function exportPdf() {
-  exporting.value = true
-  try {
-    const memberIds = [...selectedForExport.value]
-    const inventoryIds = [...visibleInventoryIds.value]
-    const extraFieldIds = [...selectedExportFields.value]
-    const res = await client.post('/inventories/members/export', {
-      memberIds, inventoryIds, extraFieldIds,
-      showName: showName.value, showInternalId: showInternalId.value, showSize: showSize.value,
-    }, { responseType: 'blob' })
-    const blob = res.data as Blob
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'inventory-members.pdf'
-    a.click()
-    URL.revokeObjectURL(url)
-    exportMode.value = false
-  } catch { error.value = t('common.error') }
-  finally { exporting.value = false }
-}
+const {
+  exportMode,
+  selectedMemberIds: selectedForExport,
+  selectedFieldIds: selectedExportFields,
+  allFields,
+  exporting,
+  exportError,
+  enter: enterExportMode,
+  cancel: cancelExport,
+  toggleField: toggleExportField,
+  toggleMember: toggleExportSelection,
+  toggleSelectAll,
+  exportCsv,
+  exportPdf,
+} = useInventoryMemberExport(
+  filteredMembers,
+  displayedInventories,
+  visibleInventoryIds,
+  {showName, showInternalId, showSize},
+  memberDisplayName,
+  memberInventoryItems,
+  formatItemLabel,
+)
 
 function goToMember(memberId: number) {
   router.push({ name: 'inventory-member', params: { memberId } })
@@ -289,40 +225,40 @@ function goToMember(memberId: number) {
         @export-pdf="exportPdf"
       />
 
-      <Spinner v-if="loading" size="lg"/>
-      <Alert v-if="error" variant="error">{{ error }}</Alert>
+      <Alert v-if="error || exportError" variant="error">{{ error || exportError }}</Alert>
 
-      <SearchInput v-if="!loading" v-model="filterText" :placeholder="t('membersList.filter')" autofocus />
+      <AsyncSection :loading="loading">
+        <SearchInput v-model="filterText" :placeholder="t('membersList.filter')" autofocus />
 
-      <MemberListBody
-        v-if="!loading"
-        v-model:show-empty="showEmpty"
-        :groups="groups"
-        :tags="tags"
-        :inventories="inventories"
-        :displayed-inventories="displayedInventories"
-        :visible-inventory-ids="visibleInventoryIds"
-        :show-name="showName"
-        :show-internal-id="showInternalId"
-        :show-size="showSize"
-        :export-mode="exportMode"
-        :all-fields="allFields"
-        :selected-export-fields="selectedExportFields"
-        :filtered-members="filteredMembers"
-        :selected-for-export="selectedForExport"
-        :is-mobile="isMobile"
-        :member-item-map="memberItemMap"
-        :size-map="sizeMap"
-        @update:show-name="showName = $event"
-        @update:show-internal-id="showInternalId = $event"
-        @update:show-size="showSize = $event"
-        @filter="onFilter"
-        @toggle-inventory="toggleInventory"
-        @toggle-export-field="toggleExportField"
-        @go-to-member="goToMember"
-        @toggle-export-selection="toggleExportSelection"
-        @toggle-select-all="toggleSelectAll"
-      />
+        <MemberListBody
+          v-model:show-empty="showEmpty"
+          :groups="groups"
+          :tags="tags"
+          :inventories="inventories"
+          :displayed-inventories="displayedInventories"
+          :visible-inventory-ids="visibleInventoryIds"
+          :show-name="showName"
+          :show-internal-id="showInternalId"
+          :show-size="showSize"
+          :export-mode="exportMode"
+          :all-fields="allFields"
+          :selected-export-fields="selectedExportFields"
+          :filtered-members="filteredMembers"
+          :selected-for-export="selectedForExport"
+          :is-mobile="isMobile"
+          :member-item-map="memberItemMap"
+          :size-map="sizeMap"
+          @update:show-name="showName = $event"
+          @update:show-internal-id="showInternalId = $event"
+          @update:show-size="showSize = $event"
+          @filter="onFilter"
+          @toggle-inventory="toggleInventory"
+          @toggle-export-field="toggleExportField"
+          @go-to-member="goToMember"
+          @toggle-export-selection="toggleExportSelection"
+          @toggle-select-all="toggleSelectAll"
+        />
+      </AsyncSection>
     </div>
   </ViewContent>
 </template>

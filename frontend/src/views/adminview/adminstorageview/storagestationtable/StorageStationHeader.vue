@@ -5,16 +5,20 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
+import Th from '@/components/table/Th.vue'
+import THead from '@/components/table/THead.vue'
+import SortableHeader from '@/components/table/SortableHeader.vue'
+import type {SortDirection} from '@/composables/useSortable'
 
-type SortField = 'name' | 'usage' | 'percent'
+export type StorageSortKey = 'name' | 'usage' | 'percent'
 
 defineProps<{
-  sortBy: SortField
-  sortDesc: boolean
+  sortKey: StorageSortKey
+  direction: SortDirection
 }>()
 
 const emit = defineEmits<{
-  toggle: [field: SortField]
+  sort: [key: StorageSortKey]
 }>()
 
 const {t} = useI18n()
@@ -22,22 +26,33 @@ const {t} = useI18n()
 
 <template>
   <thead>
-  <tr class="border-b border-(--border)">
-    <th class="text-left p-2 cursor-pointer" @click="emit('toggle', 'name')">
-      {{ t('storageMonitoring.stationName') }}
-      <font-awesome-icon v-if="sortBy === 'name'" :icon="['fas', sortDesc ? 'sort-down' : 'sort-up']" class="ml-1"/>
-    </th>
-    <th class="text-left p-2 cursor-pointer min-w-50" @click="emit('toggle', 'usage')">
-      {{ t('storageMonitoring.usage') }}
-      <font-awesome-icon v-if="sortBy === 'usage'" :icon="['fas', sortDesc ? 'sort-down' : 'sort-up']" class="ml-1"/>
-    </th>
-    <th class="text-right p-2 cursor-pointer" @click="emit('toggle', 'percent')">
-      {{ t('storageMonitoring.quota') }}
-      <font-awesome-icon v-if="sortBy === 'percent'" :icon="['fas', sortDesc ? 'sort-down' : 'sort-up']" class="ml-1"/>
-    </th>
-    <th class="text-center p-2">{{ t('storageMonitoring.status') }}</th>
-    <th class="text-left p-2">{{ t('storageMonitoring.preset') }}</th>
-    <th class="text-right p-2">{{ t('storageMonitoring.actions') }}</th>
-  </tr>
+  <THead>
+    <SortableHeader
+        :label="t('storageMonitoring.stationName')"
+        sort-key="name"
+        :active-key="sortKey"
+        :direction="direction"
+        @sort="emit('sort', 'name')"
+    />
+    <SortableHeader
+        :label="t('storageMonitoring.usage')"
+        sort-key="usage"
+        :active-key="sortKey"
+        :direction="direction"
+        class="min-w-50"
+        @sort="emit('sort', 'usage')"
+    />
+    <SortableHeader
+        :label="t('storageMonitoring.quota')"
+        sort-key="percent"
+        :active-key="sortKey"
+        :direction="direction"
+        align="right"
+        @sort="emit('sort', 'percent')"
+    />
+    <Th align="center">{{ t('storageMonitoring.status') }}</Th>
+    <Th>{{ t('storageMonitoring.preset') }}</Th>
+    <Th align="right">{{ t('storageMonitoring.actions') }}</Th>
+  </THead>
   </thead>
 </template>

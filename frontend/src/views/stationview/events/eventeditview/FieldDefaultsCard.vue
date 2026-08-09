@@ -9,7 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import type {AttendanceTemplateField} from '@/api/types'
+import type {AttendanceTemplateField} from '@/api/attendance'
 
 interface FieldDefaultEntry {
   source: string

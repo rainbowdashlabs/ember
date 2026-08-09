@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import AnalyticsHelp from '~/views/helpcenter/stationview/forms/AnalyticsHelp'
+import AnalyticsHelp from '~/views/helpcenter/stationview/forms/AnalyticsHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',

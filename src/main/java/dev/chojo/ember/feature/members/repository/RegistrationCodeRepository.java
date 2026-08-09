@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.members.repository;
 
 import dev.chojo.ember.feature.members.entity.RegistrationCode;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -19,12 +20,14 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  */
 @Singleton
 public class RegistrationCodeRepository {
+    private static final String REGISTRATION_CODE_COLUMNS = "id, station_id, code, max_uses, uses";
 
     /**
      * Finds a registration code by its code string.
      */
     public Optional<RegistrationCode> findByCode(String code) {
-        return query("SELECT id, station_id, code, max_uses, uses FROM registration_code WHERE code = :code;")
+        return query("""
+                SELECT %s FROM registration_code WHERE code = :code;""", REGISTRATION_CODE_COLUMNS)
                 .single(call().bind("code", code))
                 .map(RegistrationCode.map())
                 .first();
@@ -35,10 +38,10 @@ public class RegistrationCodeRepository {
      */
     public Optional<RegistrationCode> findByStationAndCode(int stationId, String code) {
         return query("""
-                SELECT id, station_id, code, max_uses, uses
+                SELECT %s
                 FROM registration_code
                 WHERE station_id = :station_id
-                  AND code = :code;""")
+                  AND code = :code;""", REGISTRATION_CODE_COLUMNS)
                 .single(call().bind("station_id", stationId).bind("code", code))
                 .map(RegistrationCode.map())
                 .first();
@@ -48,18 +51,15 @@ public class RegistrationCodeRepository {
      * Finds a registration code by its identifier.
      */
     public Optional<RegistrationCode> findById(int id) {
-        return query("SELECT id, station_id, code, max_uses, uses FROM registration_code WHERE id = :id;")
-                .single(call().bind("id", id))
-                .map(RegistrationCode.map())
-                .first();
+        return SqlSupport.findById("registration_code", REGISTRATION_CODE_COLUMNS, id, RegistrationCode.map());
     }
 
     /**
      * Finds all registration codes for a station.
      */
     public List<RegistrationCode> findByStation(int stationId) {
-        return query(
-                        "SELECT id, station_id, code, max_uses, uses FROM registration_code WHERE station_id = :station_id;")
+        return query("""
+                SELECT %s FROM registration_code WHERE station_id = :station_id;""", REGISTRATION_CODE_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(RegistrationCode.map())
                 .all();
@@ -69,12 +69,13 @@ public class RegistrationCodeRepository {
      * Creates a new registration code for a station.
      */
     public RegistrationCode create(int stationId, String code, int maxUses) {
-        return query(
-                        "INSERT INTO registration_code(station_id, code, max_uses) VALUES(:station_id, :code, :max_uses) RETURNING id, station_id, code, max_uses, uses;")
-                .single(call().bind("station_id", stationId).bind("code", code).bind("max_uses", maxUses))
-                .map(RegistrationCode.map())
-                .first()
-                .orElseThrow();
+        return SqlSupport.insertReturning(
+                """
+                INSERT INTO registration_code(station_id, code, max_uses) VALUES(:station_id, :code, :max_uses)
+                RETURNING %s;""",
+                call().bind("station_id", stationId).bind("code", code).bind("max_uses", maxUses),
+                RegistrationCode.map(),
+                REGISTRATION_CODE_COLUMNS);
     }
 
     /**
@@ -91,13 +92,8 @@ public class RegistrationCodeRepository {
      * Deletes a registration code.
      */
     public boolean delete(int id) {
-        return query("DELETE FROM registration_code WHERE id = :id;")
-                .single(call().bind("id", id))
-                .delete()
-                .changed();
+        return SqlSupport.deleteById("registration_code", id);
     }
-
-    // -- Code-Group assignments --
 
     /**
      * Finds all group IDs assigned to a registration code.

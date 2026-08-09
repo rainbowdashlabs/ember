@@ -16,7 +16,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import {session as sessionApi} from '@/api'
-import type {ActiveSession} from '@/api/types'
+import type {ActiveSession} from '@/api/session'
 import SessionsSection from '@/views/stationview/profile/settingsview/SessionsSection.vue'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 

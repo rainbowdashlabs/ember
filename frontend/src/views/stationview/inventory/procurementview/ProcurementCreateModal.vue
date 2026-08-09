@@ -14,8 +14,10 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import type { Inventory, InventorySize, StationMember } from '@/api/types'
+import type { Inventory, InventorySize } from '@/api/inventory'
+import type { StationMember } from '@/api/types'
 import { inventory, procurement } from '@/api'
+import { useAsyncAction } from '@/composables/useAsyncAction'
 
 const { t } = useI18n()
 
@@ -35,7 +37,6 @@ const createInventoryId = ref<string>('')
 const createMemberId = ref<string>('')
 const createSizeId = ref<string>('')
 const createNotes = ref('')
-const createSaving = ref(false)
 const createSuccess = ref(false)
 const availableSizes = ref<InventorySize[]>([])
 
@@ -71,22 +72,21 @@ async function onInventorySelected() {
   }
 }
 
+const {running: createSaving, run: runCreate} = useAsyncAction(async () => {
+  await procurement.createProcurement({
+    inventoryId: Number(createInventoryId.value),
+    memberId: Number(createMemberId.value),
+    sizeId: createSizeId.value ? Number(createSizeId.value) : undefined,
+    notes: createNotes.value || undefined,
+  })
+  createSuccess.value = true
+  emit('created')
+  return true
+})
+
 async function submitCreate() {
-  createSaving.value = true
-  try {
-    await procurement.createProcurement({
-      inventoryId: Number(createInventoryId.value),
-      memberId: Number(createMemberId.value),
-      sizeId: createSizeId.value ? Number(createSizeId.value) : undefined,
-      notes: createNotes.value || undefined,
-    })
-    createSuccess.value = true
-    emit('created')
-  } catch {
-    emit('error')
-  } finally {
-    createSaving.value = false
-  }
+  const ok = await runCreate()
+  if (!ok) emit('error')
 }
 
 watch(

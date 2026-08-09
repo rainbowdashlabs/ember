@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {FieldTypeName, InventoryFieldDefinition} from '@/api/inventoryFields'
+import type {ItemMetadata} from '@/api/inventory'
 
 export interface ParsedItemMetadata {
     owned: boolean
@@ -11,14 +12,14 @@ export interface ParsedItemMetadata {
 }
 
 /**
- * Parses the JSONB blob persisted in {@code inventory_item.metadata}. Returns
- * an empty record when the input is missing or malformed so callers can bind
- * directly to the result.
+ * Parses the metadata attached to an inventory item. Accepts both the structured
+ * object the API serves and a raw JSONB string. Returns an empty record when the
+ * input is missing or malformed so callers can bind directly to the result.
  */
-export function parseItemMetadata(raw: string | undefined): ParsedItemMetadata {
+export function parseItemMetadata(raw: string | ItemMetadata | null | undefined): ParsedItemMetadata {
     if (!raw) return {owned: false, fields: {}}
     try {
-        const parsed = JSON.parse(raw)
+        const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
         return {
             owned: !!parsed?.owned,
             fields: (parsed?.fields ?? {}) as ParsedItemMetadata['fields'],

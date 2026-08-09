@@ -15,7 +15,6 @@ import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.IntervalConfig;
 import dev.chojo.ember.feature.events.entity.IntervalType;
 import dev.chojo.ember.feature.members.service.UserTagService;
-import dev.chojo.ember.feature.restriction.RestrictionRepository;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -46,11 +45,11 @@ class BatchEventServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         var domainEventBus = new DomainEventBus(Set.of());
-        EventService eventService = new EventService(
-                eventRepo, new RestrictionRepository(stationMemberRepo, memberGroupRepo, userTagRepo), domainEventBus);
+        var eventServices = newEventServices(domainEventBus);
         var fieldService = new EventFieldService(
                 eventFieldRepo, stationMemberRepo, memberGroupRepo, new UserTagService(userTagRepo, memberGroupRepo));
-        batchService = new BatchEventService(eventService, fieldService, eventRepo, domainEventBus);
+        batchService = new BatchEventService(
+                eventServices.crud(), eventServices.restriction(), fieldService, eventBreakRepo, domainEventBus);
 
         station = stationRepo.create("BatchEventServiceStation");
     }
