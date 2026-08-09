@@ -35,7 +35,8 @@ usage() {
 Usage: ./toolchain.sh <command> [args...]
 
 Frontend
-  fe-build              Full verification: all linters, vue-tsc, production build
+  fe-build              Full verification: formatting, all linters, vue-tsc, production build
+  fe-format             Apply license headers and whitespace rules to Vue/TypeScript/locales
   fe-typecheck          vue-tsc only (silent on success)
   fe-audit              All linters, non-gating; prints the warning backlog
   fe-lint <name> [args] One linter, e.g. `fe-lint style` runs scripts/lint-style.mjs. Trailing
@@ -67,7 +68,13 @@ cmd="${1:-help}"
 shift || true
 
 case "$cmd" in
-    fe-build)      fe; NODE_OPTIONS="$NODE_HEAP" run npm run build ;;
+    fe-build)
+        # Formatting first, mirroring be-verify: the frontend formats are Spotless tasks, so
+        # nothing in the npm chain would ever see them.
+        cd "$ROOT"; run ./gradlew formatFrontend
+        fe; NODE_OPTIONS="$NODE_HEAP" run npm run build
+        ;;
+    fe-format)     cd "$ROOT"; run ./gradlew formatFrontend "$@" ;;
     fe-typecheck)  fe; NODE_OPTIONS="$NODE_HEAP" run npx nuxi typecheck ;;
     fe-audit)      fe; NODE_OPTIONS="$NODE_HEAP" run npm run lint:audit ;;
     fe-lint)

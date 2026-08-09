@@ -3,7 +3,6 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-
 /**
  * Error payload the backend sends with a failed request. `message` comes from the
  * plain message envelope, `title` from the problem-detail envelope; `error` and

@@ -419,6 +419,12 @@ tasks {
         description = "Checks license headers for frontend Vue and JavaScript files"
         dependsOn("spotlessJavascriptCheck", "spotlessVueCheck")
     }
+
+    register("formatFrontend") {
+        group = "formatting"
+        description = "Applies license headers and whitespace rules to frontend Vue, TypeScript and locale files"
+        dependsOn("spotlessJavascriptApply", "spotlessVueApply", "spotlessFrontendLocalesApply")
+    }
 }
 
 java {
