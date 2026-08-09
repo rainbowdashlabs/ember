@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.architecture;
 
+import dev.chojo.ember.feature.federation.contract.FederationContractCatalog;
+import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -37,6 +39,8 @@ class RouteSourceConventionsTest {
 
     private static final Pattern INLINE_UUID_PATH_PARSE = Pattern.compile("UUID\\.fromString\\(\\s*ctx\\.pathParam");
 
+    private static final Pattern REMOTE_DIRECT_REGISTRATION = Pattern.compile("prefix\\s*\\+\\s*\"/remote");
+
     private static final Pattern PREFIX_ASSIGNMENT =
             Pattern.compile("String\\s+(\\w+)\\s*=\\s*prefix\\s*\\+\\s*\"([^\"]*)\"");
 
@@ -59,6 +63,35 @@ class RouteSourceConventionsTest {
     @Test
     void routesUsePathUuidInsteadOfInlineParsing() throws IOException {
         assertNoMatches(INLINE_UUID_PATH_PARSE, "parses a UUID path parameter inline; use RouteSupport.pathUuid");
+    }
+
+    /**
+     * Every {@code /remote} endpoint must be registered through the federation contract
+     * binder. The historical direct-registration pattern concatenated the prefix with a
+     * literal remote path, so its reappearance means an endpoint bypasses the versioned
+     * contract.
+     */
+    @Test
+    void noRemoteRouteBypassesTheContract() throws IOException {
+        assertNoMatches(
+                REMOTE_DIRECT_REGISTRATION,
+                "registers a /remote route outside the federation contract binder, bypassing the versioned contract");
+    }
+
+    /**
+     * A route class whose {@code CONTRACT} is missing from the catalog aggregation would
+     * still register and enforce, but its endpoints would contribute to no surface hash —
+     * payload changes would silently stop rolling versions, which is the exact failure the
+     * contract exists to prevent.
+     */
+    @Test
+    void everyDeclaredContractIsAggregatedInTheCatalog() throws IOException {
+        for (String routeClass : boundRouteClasses()) {
+            List<FederationEndpoint> contract = contractOf(routeClassOf(sourceOf(routeClass)));
+            assertTrue(
+                    FederationContractCatalog.ENDPOINTS.containsAll(contract),
+                    () -> routeClass + " declares a federation contract that is not aggregated in the catalog");
+        }
     }
 
     /**
@@ -198,6 +231,10 @@ class RouteSourceConventionsTest {
      * line-anchored scan sees none of them. Closing that blind spot took the scan from 750 resolved
      * registrations to 1,068, and the first thing the extra 318 turned up was a real unreachable
      * route in the federated board class.
+     *
+     * <p>Remote federation classes register through the contract binder instead of calling the
+     * router directly, so their registrations are read from the {@code FederationEndpoint} constants
+     * in the order the {@code handle} calls bind them.
      */
     private List<Registration> registrationsIn(Path path) throws IOException {
         String source = Files.readString(path);
@@ -217,7 +254,43 @@ class RouteSourceConventionsTest {
             registrations.add(
                     new Registration(matches.group(1), base + matches.group(3), lineAt(source, matches.start())));
         }
+        registrations.addAll(contractRegistrationsIn(path));
         return registrations;
+    }
+
+    /**
+     * The registrations a class binds through the federation contract binder. Read from the
+     * compiled {@code CONTRACT} constant rather than re-parsed from source — the binder
+     * enforces at startup that handlers are bound exactly in contract order, so the list
+     * <em>is</em> the router order, typed and complete.
+     */
+    private List<Registration> contractRegistrationsIn(Path path) {
+        List<FederationEndpoint> contract = contractOf(routeClassOf(path));
+        return contract.stream()
+                .map(endpoint -> new Registration(
+                        endpoint.method().name().toLowerCase(), endpoint.path(), contract.indexOf(endpoint) + 1))
+                .toList();
+    }
+
+    private Class<?> routeClassOf(Path path) {
+        String qualified =
+                MAIN_SOURCES.relativize(path).toString().replace(".java", "").replace(java.io.File.separatorChar, '.');
+        try {
+            return Class.forName(qualified);
+        } catch (ClassNotFoundException e) {
+            throw new AssertionError("Route source file has no class on the test classpath: " + path, e);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<FederationEndpoint> contractOf(Class<?> routeClass) {
+        try {
+            return (List<FederationEndpoint>) routeClass.getField("CONTRACT").get(null);
+        } catch (NoSuchFieldException e) {
+            return List.of();
+        } catch (IllegalAccessException e) {
+            throw new AssertionError("Unreadable CONTRACT field on " + routeClass, e);
+        }
     }
 
     private int lineAt(String source, int offset) {

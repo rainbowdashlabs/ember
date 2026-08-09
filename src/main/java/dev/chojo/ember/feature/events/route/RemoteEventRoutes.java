@@ -7,16 +7,20 @@ package dev.chojo.ember.feature.events.route;
 
 import dev.chojo.ember.api.FederationSession;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.feature.comment.route.CommentResponse;
+import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
+import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
+import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
+import dev.chojo.ember.feature.federation.contract.FederationSurface;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -38,6 +42,58 @@ import static dev.chojo.ember.api.RouteSupport.pathUuid;
  */
 @Singleton
 public class RemoteEventRoutes implements Routes {
+
+    public static final FederationEndpoint LIST_EVENTS =
+            FederationEndpoint.getList(FederationSurface.EVENT_SHARE, "/remote/events", RemoteEvent.class);
+    public static final FederationEndpoint GET_EVENT =
+            FederationEndpoint.get(FederationSurface.EVENT_SHARE, "/remote/events/{id}", RemoteEventDetail.class);
+    public static final FederationEndpoint REGISTER = FederationEndpoint.post(
+            FederationSurface.EVENT_SHARE,
+            "/remote/events/{id}/register",
+            RemoteRegistrationRequest.class,
+            EventFederationRegistration.class);
+    public static final FederationEndpoint WITHDRAW = FederationEndpoint.delete(
+            FederationSurface.EVENT_SHARE, "/remote/events/{id}/register", RemoteRegistrationRequest.class, Void.class);
+    public static final FederationEndpoint LIST_REGISTRATIONS = FederationEndpoint.getList(
+            FederationSurface.EVENT_SHARE, "/remote/events/{id}/registrations", EventFederationRegistration.class);
+    public static final FederationEndpoint LIST_MEMBER_REGISTRATIONS = FederationEndpoint.getList(
+            FederationSurface.EVENT_SHARE, "/remote/registrations/{memberUid}", RemoteMemberRegistration.class);
+    public static final FederationEndpoint REGISTRATION_STATUS_WEBHOOK = FederationEndpoint.post(
+            FederationSurface.EVENT_SHARE,
+            "/remote/webhook/event-registration-status",
+            Void.class,
+            FederatedEventRoutes.StatusResponse.class);
+    public static final FederationEndpoint LIST_COMMENTS = FederationEndpoint.getList(
+            FederationSurface.EVENT_SHARE, "/remote/events/{eventId}/comments", CommentResponse.class);
+    public static final FederationEndpoint CREATE_COMMENT = FederationEndpoint.post(
+            FederationSurface.EVENT_SHARE,
+            "/remote/events/{eventId}/comments",
+            RemoteCommentRequest.class,
+            CommentResponse.class);
+    public static final FederationEndpoint UPDATE_COMMENT = FederationEndpoint.put(
+            FederationSurface.EVENT_SHARE,
+            "/remote/events/comments/{commentId}",
+            RemoteCommentUpdateRequest.class,
+            CommentResponse.class);
+    public static final FederationEndpoint DELETE_COMMENT = FederationEndpoint.delete(
+            FederationSurface.EVENT_SHARE,
+            "/remote/events/comments/{commentId}",
+            RemoteCommentDeleteRequest.class,
+            Void.class);
+
+    public static final List<FederationEndpoint> CONTRACT = List.of(
+            LIST_EVENTS,
+            GET_EVENT,
+            REGISTER,
+            WITHDRAW,
+            LIST_REGISTRATIONS,
+            LIST_MEMBER_REGISTRATIONS,
+            REGISTRATION_STATUS_WEBHOOK,
+            LIST_COMMENTS,
+            CREATE_COMMENT,
+            UPDATE_COMMENT,
+            DELETE_COMMENT);
+
     private final EventCrudService crudService;
     private final EventFieldService eventFieldService;
     private final EventFederationService eventFederationService;
@@ -54,22 +110,22 @@ public class RemoteEventRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/remote/events", this::remoteListEvents);
-        routes.get(prefix + "/remote/events/{id}", this::remoteGetEvent);
-        routes.post(prefix + "/remote/events/{id}/register", this::remoteRegister);
-        routes.delete(prefix + "/remote/events/{id}/register", this::remoteWithdraw);
-        routes.get(prefix + "/remote/events/{id}/registrations", this::remoteListRegistrations);
-        routes.get(prefix + "/remote/registrations/{memberUid}", this::remoteListMemberRegistrations);
-        routes.post(prefix + "/remote/webhook/event-registration-status", this::remoteOnRegistrationStatus);
-
-        routes.get(prefix + "/remote/events/{eventId}/comments", this::remoteListComments);
-        routes.post(prefix + "/remote/events/{eventId}/comments", this::remoteCreateComment);
-        routes.put(prefix + "/remote/events/comments/{commentId}", this::remoteUpdateComment);
-        routes.delete(prefix + "/remote/events/comments/{commentId}", this::remoteDeleteComment);
+        FederationContractBinder.register(
+                routes, prefix, CONTRACT, binder -> binder.handle(LIST_EVENTS, this::remoteListEvents)
+                        .handle(GET_EVENT, this::remoteGetEvent)
+                        .handle(REGISTER, this::remoteRegister)
+                        .handle(WITHDRAW, this::remoteWithdraw)
+                        .handle(LIST_REGISTRATIONS, this::remoteListRegistrations)
+                        .handle(LIST_MEMBER_REGISTRATIONS, this::remoteListMemberRegistrations)
+                        .handle(REGISTRATION_STATUS_WEBHOOK, this::remoteOnRegistrationStatus)
+                        .handle(LIST_COMMENTS, this::remoteListComments)
+                        .handle(CREATE_COMMENT, this::remoteCreateComment)
+                        .handle(UPDATE_COMMENT, this::remoteUpdateComment)
+                        .handle(DELETE_COMMENT, this::remoteDeleteComment));
     }
 
     private void remoteListEvents(Context ctx) {
-        var partner = requireFederationPartner(ctx);
+        var partner = FederationSession.requirePartner(ctx);
         var eventIds = eventFederationService.findSharedEventIds(partner.id(), partner.stationId());
         var events = eventIds.stream()
                 .map(id -> crudService.findById(id).orElse(null))
@@ -80,7 +136,7 @@ public class RemoteEventRoutes implements Routes {
     }
 
     private void remoteGetEvent(Context ctx) {
-        var partner = requireFederationPartner(ctx);
+        var partner = FederationSession.requirePartner(ctx);
         int eventId = pathInt(ctx, "id");
         requireSharedEvent(partner, eventId);
         var event = crudService.findById(eventId).orElseThrow(NotFoundResponse::new);
@@ -91,7 +147,7 @@ public class RemoteEventRoutes implements Routes {
     }
 
     private void remoteRegister(Context ctx) {
-        var partner = requireFederationPartner(ctx);
+        var partner = FederationSession.requirePartner(ctx);
         int eventId = pathInt(ctx, "id");
         requireSharedEvent(partner, eventId);
         var req = ctx.bodyAsClass(RemoteRegistrationRequest.class);
@@ -101,7 +157,7 @@ public class RemoteEventRoutes implements Routes {
     }
 
     private void remoteWithdraw(Context ctx) {
-        var partner = requireFederationPartner(ctx);
+        var partner = FederationSession.requirePartner(ctx);
         int eventId = pathInt(ctx, "id");
         var req = ctx.bodyAsClass(RemoteRegistrationRequest.class);
         eventFederationService.withdrawRegistration(eventId, partner.id(), req.remoteMemberId(), req.eventDate());
@@ -109,7 +165,7 @@ public class RemoteEventRoutes implements Routes {
     }
 
     private void remoteListRegistrations(Context ctx) {
-        var partner = requireFederationPartner(ctx);
+        var partner = FederationSession.requirePartner(ctx);
         int eventId = pathInt(ctx, "id");
         requireSharedEvent(partner, eventId);
         var registrations = eventFederationService.findRegistrationsByPartner(partner.id()).stream()
@@ -119,7 +175,7 @@ public class RemoteEventRoutes implements Routes {
     }
 
     private void remoteListMemberRegistrations(Context ctx) {
-        var partner = requireFederationPartner(ctx);
+        var partner = FederationSession.requirePartner(ctx);
         var memberUid = pathUuid(ctx, "memberUid");
         var registrations = eventFederationService.findRegistrationsByRemoteMember(memberUid).stream()
                 .filter(r -> r.partnerId() == partner.id())
@@ -135,19 +191,19 @@ public class RemoteEventRoutes implements Routes {
     }
 
     private void remoteOnRegistrationStatus(Context ctx) {
-        requireFederationPartner(ctx);
+        FederationSession.requirePartner(ctx);
         ctx.json(new FederatedEventRoutes.StatusResponse("ok"));
     }
 
     private void remoteListComments(Context ctx) {
-        var partner = requireFederationPartner(ctx);
+        var partner = FederationSession.requirePartner(ctx);
         int eventId = pathInt(ctx, "eventId");
         requireSharedEvent(partner, eventId);
         ctx.json(eventFederationService.listComments(eventId));
     }
 
     private void remoteCreateComment(Context ctx) {
-        var partner = requireFederationPartner(ctx);
+        var partner = FederationSession.requirePartner(ctx);
         int eventId = pathInt(ctx, "eventId");
         requireSharedEvent(partner, eventId);
         var req = ctx.bodyAsClass(RemoteCommentRequest.class);
@@ -179,7 +235,7 @@ public class RemoteEventRoutes implements Routes {
     }
 
     private void remoteUpdateComment(Context ctx) {
-        var partner = requireFederationPartner(ctx);
+        var partner = FederationSession.requirePartner(ctx);
         int commentId = pathInt(ctx, "commentId");
         var req = ctx.bodyAsClass(RemoteCommentUpdateRequest.class);
         if (req.content() == null || req.content().isBlank()) {
@@ -189,7 +245,7 @@ public class RemoteEventRoutes implements Routes {
     }
 
     private void remoteDeleteComment(Context ctx) {
-        var partner = requireFederationPartner(ctx);
+        var partner = FederationSession.requirePartner(ctx);
         int commentId = pathInt(ctx, "commentId");
         var req = ctx.bodyAsClass(RemoteCommentDeleteRequest.class);
         if (eventFederationService.deleteRemoteComment(partner, commentId, req.remoteMemberUid())) {
@@ -197,14 +253,6 @@ public class RemoteEventRoutes implements Routes {
         } else {
             throw new NotFoundResponse();
         }
-    }
-
-    private FederationPartner requireFederationPartner(Context ctx) {
-        var session = FederationSession.from(ctx);
-        if (session == null) {
-            throw new ForbiddenResponse("Missing or invalid federation signature");
-        }
-        return session.partner();
     }
 
     /**

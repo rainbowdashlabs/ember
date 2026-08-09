@@ -5,9 +5,8 @@
  */
 package dev.chojo.ember.feature.federation.service;
 
+import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
-import dev.chojo.ember.feature.federation.route.RemoteFederationRoutes;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -17,24 +16,37 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 /**
- * On startup, pings all active remote federation partners to exchange version information.
- * The signed request carries our version in the X-Federation-Version header (set by FederationHttpClient),
- * and the response contains the partner's version which we store.
+ * Pings all active remote federation partners to exchange contract vectors. The signed
+ * request carries our core and surface hashes (set by FederationHttpClient), and the ping
+ * response contains the partner's full vector which we store.
+ * <p>
+ * The sweep repeats rather than running once at startup: a partner whose vector is unknown
+ * is treated as incompatible, which gates off every outbound feature request to it — so the
+ * request-driven refresh triggers can never fire for that partner and a single missed ping
+ * would pause the partnership until the next restart. The recurring sweep is the one path
+ * that does not depend on traffic, so an unreachable or still-restarting partner heals on
+ * its own once it answers.
+ * <p>
+ * Constructing this eager singleton also warms {@link FederationContractVersions}, so the
+ * reflective contract hash computation runs at boot instead of on whichever user-facing
+ * request happens to touch it first.
  */
 @Singleton
 public class FederationVersionBroadcaster {
     private static final Logger log = LoggerFactory.getLogger(FederationVersionBroadcaster.class);
 
+    private static final long INITIAL_DELAY_MINUTES = 2;
+    private static final long SWEEP_INTERVAL_MINUTES = 15;
+
     private final FederationRepository repository;
-    private final FederationHttpClient httpClient;
-    private final StationRepository stationRepository;
+    private final FederationContractRefreshService refreshService;
 
     @Inject
     public FederationVersionBroadcaster(
-            FederationRepository repository, FederationHttpClient httpClient, StationRepository stationRepository) {
+            FederationRepository repository, FederationContractRefreshService refreshService) {
         this.repository = repository;
-        this.httpClient = httpClient;
-        this.stationRepository = stationRepository;
+        this.refreshService = refreshService;
+        FederationContractVersions.current();
 
         // Delay to let the app finish booting (QueryConfiguration, Javalin, etc.)
         var scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
@@ -42,7 +54,8 @@ public class FederationVersionBroadcaster {
             t.setDaemon(true);
             return t;
         });
-        scheduler.schedule(this::broadcastVersion, 2, TimeUnit.MINUTES);
+        scheduler.scheduleWithFixedDelay(
+                this::broadcastVersion, INITIAL_DELAY_MINUTES, SWEEP_INTERVAL_MINUTES, TimeUnit.MINUTES);
     }
 
     private void broadcastVersion() {
@@ -50,39 +63,20 @@ public class FederationVersionBroadcaster {
             var partners = repository.findAllActiveRemotePartners();
             if (partners.isEmpty()) return;
 
-            log.info("Broadcasting federation version to {} remote partner(s)", partners.size());
-            int updated = 0;
-
+            int refreshed = 0;
             for (var partner : partners) {
                 try {
-                    var station =
-                            stationRepository.findById(partner.stationId()).orElse(null);
-                    if (station == null || station.federationPrivateKey() == null) continue;
-
-                    var response = httpClient.get(
-                            partner.remoteHost(),
-                            "/remote/federation/ping",
-                            partner.partnerStationId(),
-                            partner.stationId(),
-                            station.federationPrivateKey(),
-                            RemoteFederationRoutes.VersionPingResponse.class);
-
-                    if (response != null && response.version() != null) {
-                        String remoteVersion = response.version();
-                        if (!remoteVersion.equals(partner.federationVersion())) {
-                            repository.updateFederationVersion(partner.id(), remoteVersion);
-                            updated++;
-                        }
-                    }
+                    if (refreshService.refresh(partner)) refreshed++;
                 } catch (Exception e) {
                     log.debug(
                             "Failed to ping partner {} at {}: {}", partner.id(), partner.remoteHost(), e.getMessage());
                 }
             }
 
-            if (updated > 0) {
-                log.info("Updated federation version for {} remote partner(s)", updated);
-            }
+            log.info(
+                    "Exchanged federation contract vectors with {} of {} remote partner(s)",
+                    refreshed,
+                    partners.size());
         } catch (Exception e) {
             log.error("Error during federation version broadcast", e);
         }

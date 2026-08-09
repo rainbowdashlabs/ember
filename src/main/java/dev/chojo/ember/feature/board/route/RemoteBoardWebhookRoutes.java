@@ -10,6 +10,9 @@ import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteBoardRenamedW
 import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteBoardUnsharedWebhook;
 import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteShareModeChangedWebhook;
 import dev.chojo.ember.feature.board.service.FederatedBoardService;
+import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
+import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
+import dev.chojo.ember.feature.federation.contract.FederationSurface;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -22,6 +25,8 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+
 /**
  * Notification receivers a partner station calls when something changed on a board it shares with
  * us. Their literal {@code /remote/boards/webhook/*} paths sit under the same prefix as the
@@ -32,6 +37,35 @@ import org.slf4j.LoggerFactory;
 @Singleton
 public class RemoteBoardWebhookRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(RemoteBoardWebhookRoutes.class);
+
+    private static final String WEBHOOKS = "/remote/boards/webhook";
+
+    public static final FederationEndpoint TICKET_CHANGED = FederationEndpoint.post(
+            FederationSurface.BOARD_SHARE, WEBHOOKS + "/ticket-changed", Void.class, Void.class);
+    public static final FederationEndpoint MENTION =
+            FederationEndpoint.post(FederationSurface.BOARD_SHARE, WEBHOOKS + "/mention", Void.class, Void.class);
+    public static final FederationEndpoint ASSIGNMENT =
+            FederationEndpoint.post(FederationSurface.BOARD_SHARE, WEBHOOKS + "/assignment", Void.class, Void.class);
+    public static final FederationEndpoint UNASSIGNMENT =
+            FederationEndpoint.post(FederationSurface.BOARD_SHARE, WEBHOOKS + "/unassignment", Void.class, Void.class);
+    public static final FederationEndpoint BOARD_RENAMED = FederationEndpoint.post(
+            FederationSurface.BOARD_SHARE,
+            WEBHOOKS + "/board-renamed",
+            RemoteBoardRoutes.RemoteBoardRenamedWebhook.class,
+            Void.class);
+    public static final FederationEndpoint BOARD_UNSHARED = FederationEndpoint.post(
+            FederationSurface.BOARD_SHARE,
+            WEBHOOKS + "/board-unshared",
+            RemoteBoardRoutes.RemoteBoardUnsharedWebhook.class,
+            Void.class);
+    public static final FederationEndpoint SHARE_MODE_CHANGED = FederationEndpoint.post(
+            FederationSurface.BOARD_SHARE,
+            WEBHOOKS + "/share-mode-changed",
+            RemoteBoardRoutes.RemoteShareModeChangedWebhook.class,
+            Void.class);
+
+    public static final List<FederationEndpoint> CONTRACT = List.of(
+            TICKET_CHANGED, MENTION, ASSIGNMENT, UNASSIGNMENT, BOARD_RENAMED, BOARD_UNSHARED, SHARE_MODE_CHANGED);
 
     private final FederatedBoardService federatedBoardService;
     private final RemoteBoardGuards guards;
@@ -44,14 +78,14 @@ public class RemoteBoardWebhookRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        String rp = prefix + "/remote/boards/webhook";
-        routes.post(rp + "/ticket-changed", this::onTicketChanged);
-        routes.post(rp + "/mention", this::onMention);
-        routes.post(rp + "/assignment", this::onAssignment);
-        routes.post(rp + "/unassignment", this::onUnassignment);
-        routes.post(rp + "/board-renamed", this::onBoardRenamed);
-        routes.post(rp + "/board-unshared", this::onBoardUnshared);
-        routes.post(rp + "/share-mode-changed", this::onShareModeChanged);
+        FederationContractBinder.register(
+                routes, prefix, CONTRACT, binder -> binder.handle(TICKET_CHANGED, this::onTicketChanged)
+                        .handle(MENTION, this::onMention)
+                        .handle(ASSIGNMENT, this::onAssignment)
+                        .handle(UNASSIGNMENT, this::onUnassignment)
+                        .handle(BOARD_RENAMED, this::onBoardRenamed)
+                        .handle(BOARD_UNSHARED, this::onBoardUnshared)
+                        .handle(SHARE_MODE_CHANGED, this::onShareModeChanged));
     }
 
     @OpenApi(

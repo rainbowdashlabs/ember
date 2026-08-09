@@ -230,12 +230,12 @@ tasks {
 
     register<JavaExec>("generateFederationVersion") {
         group = "build"
-        description = "Generates the federation version hash from the API contract"
+        description = "Generates the per-surface federation contract hashes from the API contract"
         dependsOn("compileJava")
-        mainClass = "dev.chojo.ember.feature.federation.version.FederationVersionComputer"
+        mainClass = "dev.chojo.ember.feature.federation.contract.FederationVersionComputer"
         classpath = sourceSets.main.get().runtimeClasspath
         args = listOf(
-            file("src/main/resources/federation_version").absolutePath,
+            file("src/main/resources/federation_version.json").absolutePath,
             file("src/main/resources/federation_versions.json").absolutePath,
             project.version.toString(),
             file("frontend/src/federation_versions.json").absolutePath

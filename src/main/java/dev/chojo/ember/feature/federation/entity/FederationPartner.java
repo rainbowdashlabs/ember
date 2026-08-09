@@ -21,7 +21,7 @@ public record FederationPartner(
         String publicKey,
         String partnerPublicKey,
         FederationStatus status,
-        String federationVersion,
+        FederationContract federationContract,
         Instant createdAt,
         Instant updatedAt,
         String remoteHost,
@@ -36,7 +36,7 @@ public record FederationPartner(
                 row.getString("public_key"),
                 row.getString("partner_public_key"),
                 row.getEnum("status", FederationStatus.class),
-                row.getString("federation_version"),
+                FederationContract.fromJson(row.getString("federation_contract")),
                 row.get("created_at", INSTANT_TIMESTAMP),
                 row.get("updated_at", INSTANT_TIMESTAMP),
                 row.getString("remote_host"),
@@ -49,6 +49,14 @@ public record FederationPartner(
      */
     public boolean isRemote() {
         return remoteHost != null;
+    }
+
+    /**
+     * The core hash of the partner's last presented contract vector, or {@code null}
+     * while the vector is unknown.
+     */
+    public String coreHash() {
+        return federationContract != null ? federationContract.core() : null;
     }
 
     public enum FederationStatus {

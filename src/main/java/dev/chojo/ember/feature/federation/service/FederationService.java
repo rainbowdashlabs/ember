@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.federation.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.ChangeType;
 import dev.chojo.ember.feature.federation.entity.ContentType;
@@ -23,7 +24,6 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
@@ -37,7 +37,6 @@ import java.util.UUID;
 
 @Singleton
 public class FederationService {
-    public static final String FEDERATION_VERSION = loadFederationVersion();
     private static final Logger log = LoggerFactory.getLogger(FederationService.class);
     private final FederationRepository repository;
     private final StationRepository stationRepository;
@@ -48,20 +47,6 @@ public class FederationService {
         this.repository = repository;
         this.stationRepository = stationRepository;
         this.instanceHost = extractHost(apiConfig.baseUrl());
-
-        int updated = repository.backfillPartnerVersions(FEDERATION_VERSION);
-        if (updated > 0) {
-            log.info("Backfilled federation version for {} partner(s) from '0' to {}", updated, FEDERATION_VERSION);
-        }
-    }
-
-    private static String loadFederationVersion() {
-        try (var is = FederationService.class.getResourceAsStream("/federation_version")) {
-            if (is == null) throw new IllegalStateException("federation_version resource not found");
-            return new String(is.readAllBytes(), StandardCharsets.UTF_8).trim();
-        } catch (IOException e) {
-            throw new IllegalStateException("Failed to load federation_version", e);
-        }
     }
 
     private static String extractHost(String baseUrl) {
@@ -346,10 +331,31 @@ public class FederationService {
 
     // -- Capabilities --
 
-    public boolean hasCapability(int partnerId, CapabilityType capability, Direction direction) {
-        return repository.findCapabilities(partnerId).stream()
+    /**
+     * Whether a capability is effectively usable with a partner: the admin toggle is on and
+     * the partner's last presented contract vector matches this build for the core surface
+     * and the capability's feature surface. A feature that mismatches is paused without
+     * touching the toggles, so it resumes on its own once both sides run the same contract.
+     */
+    public boolean hasCapability(FederationPartner partner, CapabilityType capability, Direction direction) {
+        if (!contractCompatible(partner, capability)) return false;
+        return repository.findCapabilities(partner.id()).stream()
                 .anyMatch(
                         c -> c.capability().equals(capability) && c.direction().equals(direction) && c.enabled());
+    }
+
+    /**
+     * Whether the given feature of a partner speaks this build's contract. Partners on the
+     * same instance always do; a remote partner with no stored vector is incompatible until
+     * the first successful version exchange fills it in.
+     */
+    public boolean contractCompatible(FederationPartner partner, CapabilityType capability) {
+        if (!partner.isRemote()) return true;
+        var remote = partner.federationContract();
+        if (remote == null) return false;
+        var local = FederationContractVersions.current();
+        return local.core().equals(remote.core())
+                && local.featureHash(capability).equals(remote.featureHash(capability));
     }
 
     public List<FederationShare> findKbShares(int stationId) {
@@ -432,19 +438,6 @@ public class FederationService {
     }
 
     // -- Metadata Cache --
-
-    /**
-     * Returns the capabilities supported by this instance.
-     */
-    public List<CapabilityType> getSupportedCapabilities() {
-        return List.of(
-                CapabilityType.KB_SHARE,
-                CapabilityType.QUIZ_SHARE,
-                CapabilityType.PROTOCOL_SHARE,
-                CapabilityType.INVENTORY_LEND,
-                CapabilityType.EVENT_SHARE,
-                CapabilityType.BOARD_SHARE);
-    }
 
     /**
      * Logs a content change for federation sync polling.

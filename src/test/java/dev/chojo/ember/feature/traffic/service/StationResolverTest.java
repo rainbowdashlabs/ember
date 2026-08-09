@@ -81,7 +81,7 @@ class StationResolverTest {
                 "publicKey",
                 "partnerKey",
                 FederationPartner.FederationStatus.ACTIVE,
-                "1.0",
+                null,
                 Instant.now(),
                 Instant.now(),
                 "https://example",

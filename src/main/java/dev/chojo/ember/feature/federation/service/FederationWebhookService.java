@@ -5,8 +5,13 @@
  */
 package dev.chojo.ember.feature.federation.service;
 
+import dev.chojo.ember.api.FederationHeaders;
+import dev.chojo.ember.feature.federation.contract.FederationContractCatalog;
+import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
+import dev.chojo.ember.feature.federation.contract.FederationSurface;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import io.javalin.http.HandlerType;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -116,18 +121,23 @@ public class FederationWebhookService {
                                 "POST", pathWithQuery, partner.partnerStationId(), nonce, body, timestamp, privateKey);
                     }
 
-                    var request = HttpRequest.newBuilder()
+                    var local = FederationContractVersions.current();
+                    var builder = HttpRequest.newBuilder()
                             .uri(uri)
                             .header("Content-Type", "application/json")
-                            .header("X-Federation-Station-Id", String.valueOf(partner.stationId()))
+                            .header(FederationHeaders.HEADER_STATION_ID, String.valueOf(partner.stationId()))
                             .header("X-Federation-Timestamp", timestamp)
                             .header("X-Federation-Signature", signature)
                             .header("X-Federation-Nonce", nonce)
                             .header("X-Federation-Event", event.name())
-                            .header("X-Federation-Version", FederationService.FEDERATION_VERSION)
+                            .header(FederationHeaders.HEADER_CORE, local.core())
                             .POST(HttpRequest.BodyPublishers.ofString(body))
-                            .timeout(Duration.ofSeconds(15))
-                            .build();
+                            .timeout(Duration.ofSeconds(15));
+                    FederationContractCatalog.surfaceOfRequestPath(HandlerType.POST, uri.getPath())
+                            .filter(surface -> surface != FederationSurface.CORE)
+                            .ifPresent(surface -> builder.header(
+                                    FederationHeaders.HEADER_SURFACE, local.featureHash(surface.capability())));
+                    var request = builder.build();
 
                     var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
                     if (response.statusCode() >= 200 && response.statusCode() < 300) {

@@ -6,6 +6,11 @@
 import client from './client'
 import { createCrudResource } from './crud'
 
+export interface FederationContract {
+    core: string
+    features: Record<string, string>
+}
+
 export interface FederationPartner {
     id: number
     stationId: string
@@ -14,9 +19,10 @@ export interface FederationPartner {
     publicKey: string | null
     partnerPublicKey: string | null
     status: 'PENDING' | 'ACTIVE' | 'SUSPENDED'
-    federationVersion: string
+    federationContract: FederationContract | null
     createdAt: string
     updatedAt: string
+    remoteHost: string | null
 }
 
 export interface PartnerResponse {
@@ -190,8 +196,8 @@ export async function declinePairRequest(id: number): Promise<void> {
 
 // -- Info --
 
-export async function getFederationInfo(): Promise<{ federationVersion: string; supportedCapabilities: string[] }> {
-    const res = await client.get<{ federationVersion: string; supportedCapabilities: string[] }>('/federation/info')
+export async function getFederationInfo(): Promise<{ contract: FederationContract }> {
+    const res = await client.get<{ contract: FederationContract }>('/federation/info')
     return res.data
 }
 

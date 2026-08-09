@@ -541,8 +541,7 @@ public class EmberModule extends AbstractModule {
         // drops the schema and re-runs the migration on every start. In every other mode —
         // production, plain dev (DEMO_DEV=true without DEMO_ENABLED), and a fresh database under
         // either — the schema must be in place before Guice provisions services whose
-        // constructors already query it (FederationService.backfillPartnerVersions is the first
-        // to hit the wire and was the canary that flagged this).
+        // constructors already query it.
         if (!demo.enabled()) {
             SqlUpdater.builder(dataSource, PostgreSql.get())
                     .setReplacements(new QueryReplacement("ember_schema", database.schema()))

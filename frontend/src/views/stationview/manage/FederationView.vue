@@ -15,7 +15,6 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import InfoBadge from '@/components/badge/InfoBadge.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
@@ -23,8 +22,9 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import { useSession } from '@/composables/useSession'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'
+import FederationCompatibilityBadge from './federationview/FederationCompatibilityBadge.vue'
 import { federation } from '@/api'
-import type { PartnerResponse, PairRequest } from '@/api/federation'
+import type { FederationContract, PartnerResponse, PairRequest } from '@/api/federation'
 import { resolveFederationVersion } from '@/util/federationVersion'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useFlashMessage } from '@/composables/useFlashMessage'
@@ -37,7 +37,7 @@ const { refresh: refreshSidebarCounts } = useSidebarCounts()
 
 const partners = ref<PartnerResponse[]>([])
 const pairRequests = ref<PairRequest[]>([])
-const localVersion = ref('')
+const localContract = ref<FederationContract | null>(null)
 const {message: success, flash} = useFlashMessage(3000)
 
 const showInviteModal = ref(false)
@@ -52,7 +52,7 @@ const {loading, error, reload} = useAsyncLoader(async () => {
   ])
   partners.value = p
   pairRequests.value = r
-  localVersion.value = info.federationVersion
+  localContract.value = info.contract
 }, {autoLoad: false})
 
 async function handleAcceptRequest(id: number) {
@@ -133,12 +133,11 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
         <NeutralContainer v-for="p in partners" :key="p.partner.id" class="flex items-center gap-2">
           <div class="flex-1 min-w-0">
             <div class="font-medium">{{ p.partnerStationName }}</div>
-            <div class="text-xs text-[var(--text-muted)]">v{{ resolveFederationVersion(p.partner.federationVersion) }}</div>
+            <div v-if="p.partner.federationContract" class="text-xs text-[var(--text-muted)]">
+              v{{ resolveFederationVersion(p.partner.federationContract.core) }}
+            </div>
           </div>
-          <InfoBadge v-if="localVersion && p.partner.federationVersion !== localVersion" :title="t('federation.versionMismatchHint')">
-            <font-awesome-icon :icon="['fas', 'triangle-exclamation']" class="mr-1"/>
-            {{ t('federation.versionMismatch') }}
-          </InfoBadge>
+          <FederationCompatibilityBadge :local="localContract" :partner="p.partner" />
           <SuccessBadge v-if="p.partner.status === 'ACTIVE'">{{ t('federation.active') }}</SuccessBadge>
           <ErrorBadge v-else-if="p.partner.status === 'SUSPENDED'">{{ t('federation.suspended') }}</ErrorBadge>
           <SecondaryBadge v-else>{{ t('federation.pending') }}</SecondaryBadge>

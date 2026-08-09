@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.board.route;
 
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.feature.board.entity.BoardChecklistItem;
+import dev.chojo.ember.feature.board.entity.BoardComment;
 import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteChecklistItemRequest;
 import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteCommentRequest;
 import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteEditCommentRequest;
@@ -14,7 +16,11 @@ import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteUpdateCheckli
 import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.RemoteWatchRequest;
 import dev.chojo.ember.feature.board.route.RemoteBoardRoutes.WatcherResponse;
 import dev.chojo.ember.feature.board.service.BoardTicketService;
+import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
+import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
+import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
+import dev.chojo.ember.feature.federation.contract.FederationSurface;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
@@ -39,6 +45,53 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 @Singleton
 public class RemoteBoardTicketDetailRoutes implements Routes {
 
+    private static final String TICKET = RemoteBoardRoutes.TICKET_PATH;
+
+    public static final FederationEndpoint GET_COMMENTS =
+            FederationEndpoint.getList(FederationSurface.BOARD_SHARE, TICKET + "/comments", CommentResponse.class);
+    public static final FederationEndpoint ADD_COMMENT = FederationEndpoint.post(
+            FederationSurface.BOARD_SHARE, TICKET + "/comments", RemoteCommentRequest.class, BoardComment.class);
+    public static final FederationEndpoint EDIT_COMMENT = FederationEndpoint.put(
+            FederationSurface.BOARD_SHARE,
+            TICKET + "/comments/{commentId}",
+            RemoteEditCommentRequest.class,
+            Void.class);
+    public static final FederationEndpoint DELETE_COMMENT = FederationEndpoint.delete(
+            FederationSurface.BOARD_SHARE, TICKET + "/comments/{commentId}", Void.class, Void.class);
+    public static final FederationEndpoint GET_CHECKLIST =
+            FederationEndpoint.getList(FederationSurface.BOARD_SHARE, TICKET + "/checklist", BoardChecklistItem.class);
+    public static final FederationEndpoint ADD_CHECKLIST_ITEM = FederationEndpoint.post(
+            FederationSurface.BOARD_SHARE,
+            TICKET + "/checklist",
+            RemoteChecklistItemRequest.class,
+            BoardChecklistItem.class);
+    public static final FederationEndpoint UPDATE_CHECKLIST_ITEM = FederationEndpoint.put(
+            FederationSurface.BOARD_SHARE,
+            TICKET + "/checklist/{itemId}",
+            RemoteUpdateChecklistItemRequest.class,
+            Void.class);
+    public static final FederationEndpoint DELETE_CHECKLIST_ITEM = FederationEndpoint.delete(
+            FederationSurface.BOARD_SHARE, TICKET + "/checklist/{itemId}", Void.class, Void.class);
+    public static final FederationEndpoint GET_WATCHERS =
+            FederationEndpoint.get(FederationSurface.BOARD_SHARE, TICKET + "/watchers", WatcherResponse.class);
+    public static final FederationEndpoint WATCH_TICKET = FederationEndpoint.post(
+            FederationSurface.BOARD_SHARE, TICKET + "/watch", RemoteWatchRequest.class, Void.class);
+    public static final FederationEndpoint UNWATCH_TICKET = FederationEndpoint.delete(
+            FederationSurface.BOARD_SHARE, TICKET + "/watch", RemoteWatchRequest.class, Void.class);
+
+    public static final List<FederationEndpoint> CONTRACT = List.of(
+            GET_COMMENTS,
+            ADD_COMMENT,
+            EDIT_COMMENT,
+            DELETE_COMMENT,
+            GET_CHECKLIST,
+            ADD_CHECKLIST_ITEM,
+            UPDATE_CHECKLIST_ITEM,
+            DELETE_CHECKLIST_ITEM,
+            GET_WATCHERS,
+            WATCH_TICKET,
+            UNWATCH_TICKET);
+
     private final BoardTicketService ticketService;
     private final MemberNameResolver memberNameResolver;
     private final RemoteBoardGuards guards;
@@ -53,21 +106,18 @@ public class RemoteBoardTicketDetailRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        String rp = prefix + "/remote/boards/{boardKey}/tickets/{ticketNumber}";
-
-        routes.get(rp + "/comments", this::getComments);
-        routes.post(rp + "/comments", this::addComment);
-        routes.put(rp + "/comments/{commentId}", this::editComment);
-        routes.delete(rp + "/comments/{commentId}", this::deleteComment);
-
-        routes.get(rp + "/checklist", this::getChecklist);
-        routes.post(rp + "/checklist", this::addChecklistItem);
-        routes.put(rp + "/checklist/{itemId}", this::updateChecklistItem);
-        routes.delete(rp + "/checklist/{itemId}", this::deleteChecklistItem);
-
-        routes.get(rp + "/watchers", this::getWatchers);
-        routes.post(rp + "/watch", this::watchTicket);
-        routes.delete(rp + "/watch", this::unwatchTicket);
+        FederationContractBinder.register(
+                routes, prefix, CONTRACT, binder -> binder.handle(GET_COMMENTS, this::getComments)
+                        .handle(ADD_COMMENT, this::addComment)
+                        .handle(EDIT_COMMENT, this::editComment)
+                        .handle(DELETE_COMMENT, this::deleteComment)
+                        .handle(GET_CHECKLIST, this::getChecklist)
+                        .handle(ADD_CHECKLIST_ITEM, this::addChecklistItem)
+                        .handle(UPDATE_CHECKLIST_ITEM, this::updateChecklistItem)
+                        .handle(DELETE_CHECKLIST_ITEM, this::deleteChecklistItem)
+                        .handle(GET_WATCHERS, this::getWatchers)
+                        .handle(WATCH_TICKET, this::watchTicket)
+                        .handle(UNWATCH_TICKET, this::unwatchTicket));
     }
 
     private void getComments(Context ctx) {

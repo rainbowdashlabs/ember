@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.events.entity.EventFederationShare;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.events.route.RemoteEventRoutes;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationPartner.FederationStatus;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
@@ -198,7 +199,7 @@ public class EventFederationService {
                 for (var uid : memberUids) {
                     var remoteRegs = httpClient.getList(
                             partner.remoteHost(),
-                            "/remote/registrations/" + uid,
+                            RemoteEventRoutes.LIST_MEMBER_REGISTRATIONS.at(uid),
                             partner.partnerStationId(),
                             stationId,
                             station.federationPrivateKey(),
@@ -342,7 +343,7 @@ public class EventFederationService {
         return entityResolver.resolve(
                 localStationId,
                 partnerStationUid,
-                "/remote/events/" + eventId,
+                RemoteEventRoutes.GET_EVENT.at(eventId),
                 RemoteEventSummary.class,
                 "event",
                 partner -> {
@@ -421,7 +422,7 @@ public class EventFederationService {
         if (partner.isRemote()) {
             var result = httpClient.getList(
                     partner.remoteHost(),
-                    "/remote/events/" + eventId + "/comments",
+                    RemoteEventRoutes.LIST_COMMENTS.at(eventId),
                     partner.partnerStationId(),
                     station.id(),
                     station.federationPrivateKey(),
@@ -454,7 +455,7 @@ public class EventFederationService {
                     eventDate != null ? eventDate.toString() : null);
             var result = httpClient.post(
                     partner.remoteHost(),
-                    "/remote/events/" + eventId + "/comments",
+                    RemoteEventRoutes.CREATE_COMMENT.at(eventId),
                     body,
                     partner.partnerStationId(),
                     station.id(),
@@ -480,7 +481,7 @@ public class EventFederationService {
             var body = new RemoteCommentUpdateRequest(memberUid.toString(), content);
             var result = httpClient.put(
                     partner.remoteHost(),
-                    "/remote/events/comments/" + commentId,
+                    RemoteEventRoutes.UPDATE_COMMENT.at(commentId),
                     body,
                     partner.partnerStationId(),
                     station.id(),
@@ -506,7 +507,7 @@ public class EventFederationService {
         if (partner.isRemote()) {
             boolean success = httpClient.delete(
                     partner.remoteHost(),
-                    "/remote/events/comments/" + commentId,
+                    RemoteEventRoutes.DELETE_COMMENT.at(commentId),
                     partner.partnerStationId(),
                     station.id(),
                     station.federationPrivateKey());
@@ -533,7 +534,7 @@ public class EventFederationService {
             String remoteHost, UUID partnerStationUid, int localStationId, String localPrivateKeyBase64) {
         return httpClient.getList(
                 remoteHost,
-                "/remote/events",
+                RemoteEventRoutes.LIST_EVENTS.at(),
                 partnerStationUid,
                 localStationId,
                 localPrivateKeyBase64,
@@ -550,7 +551,7 @@ public class EventFederationService {
             String localPrivateKeyBase64) {
         return httpClient.post(
                 remoteHost,
-                "/remote/events/" + eventId + "/register",
+                RemoteEventRoutes.REGISTER.at(eventId),
                 new FederatedRegBody(remoteMemberId, eventDate),
                 partnerStationUid,
                 localStationId,
@@ -567,7 +568,7 @@ public class EventFederationService {
             String localPrivateKeyBase64) {
         return httpClient.delete(
                 remoteHost,
-                "/remote/events/" + eventId + "/register",
+                RemoteEventRoutes.WITHDRAW.at(eventId),
                 new FederatedRegBody(remoteMemberId, eventDate),
                 partnerStationUid,
                 localStationId,

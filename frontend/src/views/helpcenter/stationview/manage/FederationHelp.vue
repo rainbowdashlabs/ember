@@ -37,6 +37,8 @@ const dummyNewsImport = ref(true)
 const dummyNewsExport = ref(true)
 const dummyInventoryImport = ref(false)
 const dummyInventoryExport = ref(false)
+const dummyPausedImport = ref(true)
+const dummyPausedExport = ref(false)
 </script>
 
 <template>
@@ -171,6 +173,30 @@ const dummyInventoryExport = ref(false)
             <Td>{{ t('federation.cap.inventory') }}</Td>
             <Td align="center"><ToggleInput v-model="dummyInventoryImport" /></Td>
             <Td align="center"><ToggleInput v-model="dummyInventoryExport" /></Td>
+          </TRow>
+        </tbody>
+      </table>
+    </NeutralContainer>
+
+    <HelpSection :title="t('helpCenter.federation.compatibilityTitle')">
+      <p>{{ t('helpCenter.federation.compatibilityText') }}</p>
+      <p>{{ t('helpCenter.federation.compatibilityText2') }}</p>
+    </HelpSection>
+
+    <!-- Dummy: Incompatible feature row -->
+    <NeutralContainer>
+      <table class="w-full text-sm">
+        <tbody>
+          <TRow>
+            <Td>
+              {{ t('federation.cap.board') }}
+              <ErrorBadge class="ml-2">
+                <font-awesome-icon :icon="['fas', 'triangle-exclamation']" class="mr-1"/>
+                {{ t('federation.featureIncompatible') }}
+              </ErrorBadge>
+            </Td>
+            <Td align="center" class="w-32"><ToggleInput v-model="dummyPausedImport" /></Td>
+            <Td align="center" class="w-32"><ToggleInput v-model="dummyPausedExport" /></Td>
           </TRow>
         </tbody>
       </table>

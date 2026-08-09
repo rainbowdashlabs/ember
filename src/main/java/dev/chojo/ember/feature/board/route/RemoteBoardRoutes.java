@@ -8,11 +8,19 @@ package dev.chojo.ember.feature.board.route;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.feature.board.entity.BoardField;
+import dev.chojo.ember.feature.board.entity.BoardLabel;
+import dev.chojo.ember.feature.board.entity.BoardLane;
 import dev.chojo.ember.feature.board.entity.BoardShareMode;
 import dev.chojo.ember.feature.board.entity.LinkType;
+import dev.chojo.ember.feature.board.entity.TicketLabelMapping;
 import dev.chojo.ember.feature.board.service.BoardService;
 import dev.chojo.ember.feature.board.service.FederatedBoardDiscoveryService;
 import dev.chojo.ember.feature.board.service.FederatedBoardService;
+import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
+import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
+import dev.chojo.ember.feature.federation.contract.FederationSurface;
+import dev.chojo.ember.feature.members.entity.MemberCompletion;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -41,13 +49,51 @@ import java.util.UUID;
  * {@link RemoteBoardWebhookRoutes}. The local proxy calling all of them is
  * {@link FederatedBoardRoutes}.
  * <p>
- * This class also holds the request and response records of the whole {@code /remote/boards}
- * surface: the federation contract version is derived from the records declared here, so moving
- * one to another class would signal a protocol break that never happened.
+ * This class also holds the request and response records shared across the whole
+ * {@code /remote/boards} surface. The contract hash follows the types reachable from the
+ * declared endpoints, so their location is a code-organisation choice, not a protocol one.
  */
 @SuppressWarnings("DefaultAnnotationParam")
 @Singleton
 public class RemoteBoardRoutes implements Routes {
+
+    static final String TICKETS_PATH = "/remote/boards/{boardKey}/tickets";
+    static final String TICKET_PATH = TICKETS_PATH + "/{ticketNumber}";
+
+    public static final FederationEndpoint LIST_SHARED_BOARDS = FederationEndpoint.getList(
+            FederationSurface.BOARD_SHARE, "/remote/boards", RemoteSharedBoardResponse.class);
+    public static final FederationEndpoint GET_BOARD = FederationEndpoint.get(
+            FederationSurface.BOARD_SHARE,
+            "/remote/boards/{boardKey}",
+            FederatedBoardDiscoveryService.FederatedBoardDetail.class);
+    public static final FederationEndpoint GET_LANES = FederationEndpoint.getList(
+            FederationSurface.BOARD_SHARE, "/remote/boards/{boardKey}/lanes", BoardLane.class);
+    public static final FederationEndpoint GET_LABELS = FederationEndpoint.getList(
+            FederationSurface.BOARD_SHARE, "/remote/boards/{boardKey}/labels", BoardLabel.class);
+    public static final FederationEndpoint CREATE_LABEL = FederationEndpoint.post(
+            FederationSurface.BOARD_SHARE,
+            "/remote/boards/{boardKey}/labels",
+            RemoteCreateLabelRequest.class,
+            BoardLabel.class);
+    public static final FederationEndpoint GET_ALL_TICKET_LABELS = FederationEndpoint.getList(
+            FederationSurface.BOARD_SHARE, "/remote/boards/{boardKey}/ticket-labels", TicketLabelMapping.class);
+    public static final FederationEndpoint GET_FIELDS = FederationEndpoint.getList(
+            FederationSurface.BOARD_SHARE, "/remote/boards/{boardKey}/fields", BoardField.class);
+    public static final FederationEndpoint GET_ACCESS = FederationEndpoint.get(
+            FederationSurface.BOARD_SHARE, "/remote/boards/{boardKey}/access", RemoteAccessResponse.class);
+    public static final FederationEndpoint GET_MEMBERS = FederationEndpoint.getList(
+            FederationSurface.BOARD_SHARE, "/remote/boards/{boardKey}/members", MemberCompletion.class);
+
+    public static final List<FederationEndpoint> CONTRACT = List.of(
+            LIST_SHARED_BOARDS,
+            GET_BOARD,
+            GET_LANES,
+            GET_LABELS,
+            CREATE_LABEL,
+            GET_ALL_TICKET_LABELS,
+            GET_FIELDS,
+            GET_ACCESS,
+            GET_MEMBERS);
 
     private final BoardService boardService;
     private final FederatedBoardService federatedBoardService;
@@ -74,16 +120,16 @@ public class RemoteBoardRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        String rp = prefix + "/remote/boards";
-        routes.get(rp, this::listSharedBoards);
-        routes.get(rp + "/{boardKey}", this::getBoard);
-        routes.get(rp + "/{boardKey}/lanes", this::getLanes);
-        routes.get(rp + "/{boardKey}/labels", this::getLabels);
-        routes.post(rp + "/{boardKey}/labels", this::createLabel);
-        routes.get(rp + "/{boardKey}/ticket-labels", this::getAllTicketLabels);
-        routes.get(rp + "/{boardKey}/fields", this::getFields);
-        routes.get(rp + "/{boardKey}/access", this::getAccess);
-        routes.get(rp + "/{boardKey}/members", this::getMembers);
+        FederationContractBinder.register(
+                routes, prefix, CONTRACT, binder -> binder.handle(LIST_SHARED_BOARDS, this::listSharedBoards)
+                        .handle(GET_BOARD, this::getBoard)
+                        .handle(GET_LANES, this::getLanes)
+                        .handle(GET_LABELS, this::getLabels)
+                        .handle(CREATE_LABEL, this::createLabel)
+                        .handle(GET_ALL_TICKET_LABELS, this::getAllTicketLabels)
+                        .handle(GET_FIELDS, this::getFields)
+                        .handle(GET_ACCESS, this::getAccess)
+                        .handle(GET_MEMBERS, this::getMembers));
     }
 
     @OpenApi(

@@ -56,6 +56,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import static dev.chojo.ember.feature.federation.FederationTestContracts.pathContains;
+import static dev.chojo.ember.feature.federation.FederationTestContracts.pathIs;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -64,7 +66,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
-import static org.mockito.Mockito.contains;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
@@ -178,7 +179,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
 
         // Create a federation partner via direct SQL
         partnerId = Query.query(
-                        "INSERT INTO federation_partner(station_id, partner_station_id, status, federation_version) VALUES (:s, :p::UUID, 'ACTIVE', 1) RETURNING id;")
+                        "INSERT INTO federation_partner(station_id, partner_station_id, status) VALUES (:s, :p::UUID, 'ACTIVE') RETURNING id;")
                 .single(Call.of()
                         .bind("s", station1.id())
                         .bind("p", station2.uid(), StandardValueConverter.UUID_STRING))
@@ -215,13 +216,14 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                 null,
                 null,
                 FederationPartner.FederationStatus.ACTIVE,
-                "1",
+                null,
                 Instant.now(),
                 Instant.now(),
                 null,
                 null);
         when(federationService.findPartners(station1.id())).thenReturn(List.of(partner));
-        when(federationService.hasCapability(partnerId, CapabilityType.BOARD_SHARE, Direction.IMPORT))
+        when(federationService.hasCapability(
+                        any(FederationPartner.class), eq(CapabilityType.BOARD_SHARE), eq(Direction.IMPORT)))
                 .thenReturn(true);
 
         var discovered = discoveryService.discoverBoards(station1.id());
@@ -242,7 +244,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                 null,
                 null,
                 FederationPartner.FederationStatus.SUSPENDED,
-                "1",
+                null,
                 Instant.now(),
                 Instant.now(),
                 null,
@@ -264,13 +266,14 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                 null,
                 null,
                 FederationPartner.FederationStatus.ACTIVE,
-                "1",
+                null,
                 Instant.now(),
                 Instant.now(),
                 null,
                 null);
         when(federationService.findPartners(station1.id())).thenReturn(List.of(partner));
-        when(federationService.hasCapability(partnerId, CapabilityType.BOARD_SHARE, Direction.IMPORT))
+        when(federationService.hasCapability(
+                        any(FederationPartner.class), eq(CapabilityType.BOARD_SHARE), eq(Direction.IMPORT)))
                 .thenReturn(false);
 
         var discovered = discoveryService.discoverBoards(station1.id());
@@ -609,17 +612,23 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                 null,
                 null,
                 FederationPartner.FederationStatus.ACTIVE,
-                "1",
+                null,
                 Instant.now(),
                 Instant.now(),
                 "https://remote.example.com",
                 null);
         when(federationService.findPartners(station1.id())).thenReturn(List.of(partner));
-        when(federationService.hasCapability(partnerId, CapabilityType.BOARD_SHARE, Direction.IMPORT))
+        when(federationService.hasCapability(
+                        any(FederationPartner.class), eq(CapabilityType.BOARD_SHARE), eq(Direction.IMPORT)))
                 .thenReturn(true);
 
         when(httpClient.getList(
-                        eq("https://remote.example.com"), eq("/remote/boards"), any(), eq(station1.id()), any(), any()))
+                        eq("https://remote.example.com"),
+                        pathIs("/remote/boards"),
+                        any(),
+                        eq(station1.id()),
+                        any(),
+                        any()))
                 .thenReturn(List.of(new FederatedBoardDiscoveryService.RemoteDiscoveredBoard(
                         UUID.randomUUID().toString(),
                         "Remote Board",
@@ -645,13 +654,14 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                 null,
                 null,
                 FederationPartner.FederationStatus.ACTIVE,
-                "1",
+                null,
                 Instant.now(),
                 Instant.now(),
                 "https://remote.example.com",
                 null);
         when(federationService.findPartners(station1.id())).thenReturn(List.of(partner));
-        when(federationService.hasCapability(partnerId, CapabilityType.BOARD_SHARE, Direction.IMPORT))
+        when(federationService.hasCapability(
+                        any(FederationPartner.class), eq(CapabilityType.BOARD_SHARE), eq(Direction.IMPORT)))
                 .thenReturn(true);
         when(httpClient.getList(any(), any(), any(), anyInt(), any(), any()))
                 .thenThrow(new RuntimeException("Connection failed"));
@@ -701,7 +711,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                 null,
                 null,
                 FederationPartner.FederationStatus.ACTIVE,
-                "1",
+                null,
                 Instant.now(),
                 Instant.now(),
                 null,
@@ -717,7 +727,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                 null,
                 null,
                 FederationPartner.FederationStatus.ACTIVE,
-                "1",
+                null,
                 Instant.now(),
                 Instant.now(),
                 "https://remote.example.com",
@@ -1116,7 +1126,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
 
         // Create a second partner on station2, pointing to station1
         int partner2Id = Query.query(
-                        "INSERT INTO federation_partner(station_id, partner_station_id, status, federation_version) VALUES (:s, :p::UUID, 'ACTIVE', 1) RETURNING id;")
+                        "INSERT INTO federation_partner(station_id, partner_station_id, status) VALUES (:s, :p::UUID, 'ACTIVE') RETURNING id;")
                 .single(Call.of()
                         .bind("s", station2.id())
                         .bind("p", station1.uid(), StandardValueConverter.UUID_STRING))
@@ -1133,7 +1143,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                 null,
                 null,
                 FederationPartner.FederationStatus.ACTIVE,
-                "1",
+                null,
                 Instant.now(),
                 Instant.now(),
                 null,
@@ -1177,7 +1187,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                 remoteBoard, BoardShareMode.FULL, "Remote Station");
         when(httpClient.get(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY),
+                        pathIs("/remote/boards/" + BOARD_KEY),
                         any(),
                         anyInt(),
                         any(),
@@ -1199,7 +1209,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                 new TicketSummary(1, 10, 1, 1, "Remote Ticket", null, TicketPriority.MEDIUM, null, 0, null, 0, 0, 0);
         when(httpClient.getList(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets"),
                         any(),
                         anyInt(),
                         any(),
@@ -1236,7 +1246,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                 0);
         when(httpClient.post(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets"),
                         any(),
                         any(),
                         anyInt(),
@@ -1257,7 +1267,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         var lane = new BoardLane(1, 10, "To Do", "#3b82f6", 0);
         when(httpClient.getList(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/lanes"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/lanes"),
                         any(),
                         anyInt(),
                         any(),
@@ -1276,7 +1286,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         var label = new BoardLabel(1, 10, "Bug", "#ff0000");
         when(httpClient.getList(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/labels"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/labels"),
                         any(),
                         anyInt(),
                         any(),
@@ -1295,7 +1305,12 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         var remoteSummary =
                 new TicketSummary(1, 10, 1, 1, "Found Ticket", null, TicketPriority.MEDIUM, null, 0, null, 0, 0, 0);
         when(httpClient.getList(
-                        eq("https://remote.example.com"), contains("/tickets/search"), any(), anyInt(), any(), any()))
+                        eq("https://remote.example.com"),
+                        pathContains("/tickets/search"),
+                        any(),
+                        anyInt(),
+                        any(),
+                        any()))
                 .thenReturn(List.of(remoteSummary));
 
         var tickets = ticketProxy.proxySearchTickets(partnerId, BOARD_KEY, "Found");
@@ -1309,7 +1324,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
         when(httpClient.delete(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets/99"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/99"),
                         any(),
                         anyInt(),
                         any()))
@@ -1319,7 +1334,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         verify(httpClient)
                 .delete(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets/99"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/99"),
                         any(),
                         anyInt(),
                         any());
@@ -1331,7 +1346,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
         when(httpClient.getList(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/fields"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/fields"),
                         any(),
                         anyInt(),
                         any(),
@@ -1367,7 +1382,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                 0);
         when(httpClient.get(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets/1"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1"),
                         any(),
                         anyInt(),
                         any(),
@@ -1385,7 +1400,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
         when(httpClient.getList(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets/1/comments"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/comments"),
                         any(),
                         anyInt(),
                         any(),
@@ -1403,7 +1418,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
         when(httpClient.getList(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets/1/checklist"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/checklist"),
                         any(),
                         anyInt(),
                         any(),
@@ -1421,7 +1436,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
         when(httpClient.getList(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets/1/links"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/links"),
                         any(),
                         anyInt(),
                         any(),
@@ -1439,7 +1454,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
         when(httpClient.getList(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets/1/labels"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/labels"),
                         any(),
                         anyInt(),
                         any(),
@@ -1457,7 +1472,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
         when(httpClient.getList(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets/1/transitions"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/transitions"),
                         any(),
                         anyInt(),
                         any(),
@@ -1475,7 +1490,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
         when(httpClient.getList(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets/1/history"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/history"),
                         any(),
                         anyInt(),
                         any(),
@@ -1493,7 +1508,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
         when(httpClient.getList(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets/1/attachments"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/attachments"),
                         any(),
                         anyInt(),
                         any(),
@@ -1512,7 +1527,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         var watcherData = new FederatedTicketDetailProxy.FederatedWatcherData(List.of(), List.of());
         when(httpClient.get(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets/1/watchers"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/watchers"),
                         any(),
                         anyInt(),
                         any(),
@@ -1531,7 +1546,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                 1, 10, 1, 1, "Updated", "Desc", null, TicketPriority.LOW, null, 0, null, null, null, null, 0, 0, 0);
         when(httpClient.put(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets/1"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1"),
                         any(),
                         any(),
                         anyInt(),
@@ -1553,7 +1568,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                 1, 10, 2, 1, "Ticket", "Desc", null, TicketPriority.MEDIUM, null, 0, null, null, null, null, 0, 0, 0);
         when(httpClient.put(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets/1/move"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/move"),
                         any(),
                         any(),
                         anyInt(),
@@ -1572,7 +1587,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         var responseComment = new BoardComment(1, 1, null, null, "Hello", false, null, null);
         when(httpClient.post(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets/1/comments"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/comments"),
                         any(),
                         any(),
                         anyInt(),
@@ -1593,7 +1608,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         var responseItem = new BoardChecklistItem(1, 1, "Task", false, 0);
         when(httpClient.post(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets/1/checklist"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/checklist"),
                         any(),
                         any(),
                         anyInt(),
@@ -1613,7 +1628,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         var responseLabel = new BoardLabel(1, 10, "Feature", "#00ff00");
         when(httpClient.post(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/labels"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/labels"),
                         any(),
                         any(),
                         anyInt(),
@@ -1632,7 +1647,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
         when(httpClient.put(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets/reorder"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/reorder"),
                         any(),
                         any(),
                         anyInt(),
@@ -1643,7 +1658,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         verify(httpClient)
                 .put(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets/reorder"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/reorder"),
                         any(),
                         any(),
                         anyInt(),
@@ -1657,7 +1672,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         var responseLabel = new BoardLabel(1, 10, "Bug", "#ff0000");
         when(httpClient.postList(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets/1/labels/5"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/labels/5"),
                         any(),
                         any(),
                         anyInt(),
@@ -1679,7 +1694,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         verify(httpClient)
                 .post(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets/1/labels/5/remove"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/labels/5/remove"),
                         any(),
                         any(),
                         anyInt(),
@@ -1692,7 +1707,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
         when(httpClient.post(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets/1/watch"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/watch"),
                         any(),
                         any(),
                         anyInt(),
@@ -1703,7 +1718,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         verify(httpClient)
                 .post(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets/1/watch"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/watch"),
                         any(),
                         any(),
                         anyInt(),
@@ -1716,7 +1731,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
         when(httpClient.delete(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets/1/watch"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/watch"),
                         any(),
                         anyInt(),
                         any()))
@@ -1726,7 +1741,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         verify(httpClient)
                 .delete(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets/1/watch"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/watch"),
                         any(),
                         anyInt(),
                         any());
@@ -1738,7 +1753,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
         when(httpClient.put(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets/1/checklist/5"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/checklist/5"),
                         any(),
                         any(),
                         anyInt(),
@@ -1749,7 +1764,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         verify(httpClient)
                 .put(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets/1/checklist/5"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/checklist/5"),
                         any(),
                         any(),
                         anyInt(),
@@ -1762,7 +1777,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
         when(httpClient.delete(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets/1/checklist/5"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/checklist/5"),
                         any(),
                         anyInt(),
                         any()))
@@ -1772,7 +1787,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         verify(httpClient)
                 .delete(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets/1/checklist/5"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/checklist/5"),
                         any(),
                         anyInt(),
                         any());
@@ -1784,7 +1799,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
         when(httpClient.get(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY),
+                        pathIs("/remote/boards/" + BOARD_KEY),
                         any(),
                         anyInt(),
                         any(),
@@ -1800,7 +1815,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
         when(httpClient.getList(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/lanes"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/lanes"),
                         any(),
                         anyInt(),
                         any(),
@@ -1818,7 +1833,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
         when(httpClient.post(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets"),
                         any(),
                         any(),
                         anyInt(),
@@ -1846,7 +1861,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
         when(httpClient.put(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets/1"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1"),
                         any(),
                         any(),
                         anyInt(),
@@ -1865,7 +1880,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
         when(httpClient.postList(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets/1/labels/5"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/labels/5"),
                         any(),
                         any(),
                         anyInt(),
@@ -1884,7 +1899,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
         when(httpClient.post(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets"),
                         any(),
                         any(),
                         anyInt(),
@@ -1904,7 +1919,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
         when(httpClient.put(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets/1/move"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/move"),
                         any(),
                         any(),
                         anyInt(),
@@ -2182,7 +2197,8 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
     @Order(314)
     void discoverBoardsMergesReverseSharedBoards() {
         when(federationService.findPartners(station1.id())).thenReturn(List.of(localPartner()));
-        when(federationService.hasCapability(partnerId, CapabilityType.BOARD_SHARE, Direction.IMPORT))
+        when(federationService.hasCapability(
+                        any(FederationPartner.class), eq(CapabilityType.BOARD_SHARE), eq(Direction.IMPORT)))
                 .thenReturn(true);
         when(federationRepository.findPartnerByStationAndRemoteUid(station2.id(), station1.uid()))
                 .thenReturn(Optional.of(localPartner()));
@@ -2198,7 +2214,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
         when(httpClient.getList(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/members"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/members"),
                         any(),
                         anyInt(),
                         any(),
@@ -2216,7 +2232,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
         when(httpClient.getList(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/ticket-labels"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/ticket-labels"),
                         any(),
                         anyInt(),
                         any(),
@@ -2234,7 +2250,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
         when(httpClient.getList(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets/search"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/search"),
                         any(),
                         anyInt(),
                         any(),
@@ -2256,7 +2272,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         verify(httpClient)
                 .post(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets/1/links"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/links"),
                         any(),
                         any(),
                         anyInt(),
@@ -2272,7 +2288,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         verify(httpClient)
                 .delete(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY + "/tickets/1/links/2"),
+                        pathIs("/remote/boards/" + BOARD_KEY + "/tickets/1/links/2"),
                         any(),
                         any(),
                         anyInt(),
@@ -2285,7 +2301,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         when(federationRepository.findPartnerById(partnerId)).thenReturn(Optional.of(remotePartner()));
         when(httpClient.get(
                         eq("https://remote.example.com"),
-                        eq("/remote/boards/" + BOARD_KEY),
+                        pathIs("/remote/boards/" + BOARD_KEY),
                         any(),
                         anyInt(),
                         any(),

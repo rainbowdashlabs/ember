@@ -60,7 +60,7 @@ class KbCommentRepositoryTest extends RepositoryTestBase {
         // Create a partner station for federated author tests
         partnerStation = stationRepo.create("Partner Station");
         int partnerId = Query.query(
-                        "INSERT INTO federation_partner(station_id, partner_station_id, status, federation_version) VALUES (:s, :p::uuid, 'ACTIVE', 1) RETURNING id;")
+                        "INSERT INTO federation_partner(station_id, partner_station_id, status) VALUES (:s, :p::uuid, 'ACTIVE') RETURNING id;")
                 .single(Call.of()
                         .bind("s", station.id())
                         .bind("p", partnerStation.uid(), StandardValueConverter.UUID_STRING))

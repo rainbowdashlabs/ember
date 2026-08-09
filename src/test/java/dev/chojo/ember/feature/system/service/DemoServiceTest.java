@@ -27,6 +27,7 @@ import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.events.service.EventTemplateService;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
+import dev.chojo.ember.feature.federation.service.FederationContractRefreshService;
 import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
 import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
@@ -91,6 +92,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -121,8 +123,13 @@ class DemoServiceTest extends RepositoryTestBase {
         // -- Services --
         var federationService = new FederationService(federationRepo, stationRepo, apiConfig);
         var signingService = new FederationSigningService();
+        var contractRefreshRef = new AtomicReference<FederationContractRefreshService>();
         var federationHttpClient = new FederationHttpClient(
-                signingService, stationRepo, new RemoteUrlValidator(new Federation(), new Demo()));
+                signingService,
+                stationRepo,
+                new RemoteUrlValidator(new Federation(), new Demo()),
+                contractRefreshRef::get);
+        contractRefreshRef.set(new FederationContractRefreshService(federationRepo, stationRepo, federationHttpClient));
         var federationFanout = new FederationFanout();
         var federationEntityResolver = new FederationEntityResolver(federationRepo, stationRepo, federationHttpClient);
 

@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.protocol.entity.TestProtocolRunCheck;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolRunMember;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolSection;
 import dev.chojo.ember.feature.protocol.repository.TestProtocolRepository;
+import dev.chojo.ember.feature.protocol.route.RemoteTestProtocolRoutes;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.BadRequestResponse;
@@ -357,7 +358,7 @@ public class TestProtocolService {
     public List<SharedProtocolItem> browseSharedProtocols(int stationId) {
         var partners = federationService.findPartners(stationId).stream()
                 .filter(p -> p.status() == FederationPartner.FederationStatus.ACTIVE)
-                .filter(p -> federationService.hasCapability(p.id(), CapabilityType.PROTOCOL_SHARE, Direction.IMPORT))
+                .filter(p -> federationService.hasCapability(p, CapabilityType.PROTOCOL_SHARE, Direction.IMPORT))
                 .toList();
         return fanout.fanOut(
                 partners,
@@ -392,7 +393,7 @@ public class TestProtocolService {
         return entityResolver.resolve(
                 localStationId,
                 partnerStationUid,
-                "/remote/protocols/" + protocolId,
+                RemoteTestProtocolRoutes.GET_PROTOCOL.at(protocolId),
                 FederatedProtocolDetail.class,
                 "protocol",
                 partner -> {
@@ -460,7 +461,7 @@ public class TestProtocolService {
             String remoteHost, UUID partnerStationUid, int localStationId, String localPrivateKeyBase64) {
         return federationHttpClient.getList(
                 remoteHost,
-                "/remote/protocols",
+                RemoteTestProtocolRoutes.BROWSE_PROTOCOLS.at(),
                 partnerStationUid,
                 localStationId,
                 localPrivateKeyBase64,

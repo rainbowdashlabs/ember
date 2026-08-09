@@ -117,7 +117,7 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
 
         // Create federation partners via direct SQL
         partnerId = Query.query(
-                        "INSERT INTO federation_partner(station_id, partner_station_id, status, federation_version) VALUES (:s, :p::uuid, 'ACTIVE', 1) RETURNING id;")
+                        "INSERT INTO federation_partner(station_id, partner_station_id, status) VALUES (:s, :p::uuid, 'ACTIVE') RETURNING id;")
                 .single(Call.of()
                         .bind("s", station.id())
                         .bind("p", partnerStation.uid(), StandardValueConverter.UUID_STRING))
@@ -128,7 +128,7 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
         // Create second partner station and partner for multi-partner tests
         var partnerStation2 = stationRepo.create("FedBoardPartner2");
         partner2Id = Query.query(
-                        "INSERT INTO federation_partner(station_id, partner_station_id, status, federation_version) VALUES (:s, :p::uuid, 'ACTIVE', 1) RETURNING id;")
+                        "INSERT INTO federation_partner(station_id, partner_station_id, status) VALUES (:s, :p::uuid, 'ACTIVE') RETURNING id;")
                 .single(Call.of()
                         .bind("s", station.id())
                         .bind("p", partnerStation2.uid(), StandardValueConverter.UUID_STRING))

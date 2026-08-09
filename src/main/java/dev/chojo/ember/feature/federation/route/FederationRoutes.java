@@ -10,8 +10,10 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
+import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.Direction;
+import dev.chojo.ember.feature.federation.entity.FederationContract;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.service.FederationDisplayNames;
@@ -26,7 +28,6 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
-import java.util.List;
 import java.util.UUID;
 
 @Singleton
@@ -400,7 +401,7 @@ public class FederationRoutes implements Routes {
     // -- Info --
 
     private void getInfo(Context ctx) {
-        ctx.json(new FederationInfoResponse(FederationService.FEDERATION_VERSION, service.getSupportedCapabilities()));
+        ctx.json(new FederationInfoResponse(FederationContractVersions.current()));
     }
 
     // -- Records --
@@ -423,5 +424,5 @@ public class FederationRoutes implements Routes {
 
     public record MessageResponse(String message) {}
 
-    public record FederationInfoResponse(String federationVersion, List<CapabilityType> supportedCapabilities) {}
+    public record FederationInfoResponse(FederationContract contract) {}
 }

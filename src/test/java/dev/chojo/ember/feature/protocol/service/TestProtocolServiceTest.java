@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.protocol.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.federation.FederationTestContracts;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
@@ -28,6 +29,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
+import static dev.chojo.ember.feature.federation.FederationTestContracts.pathIs;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -80,6 +82,7 @@ class TestProtocolServiceTest extends RepositoryTestBase {
                 federationService.encodePublicKey(keyPairC),
                 "https://remote-proto.example.com",
                 null);
+        FederationTestContracts.storeCurrentContractOnRemotePartners(federationService, federationRepo, station.id());
     }
 
     @AfterAll
@@ -483,7 +486,7 @@ class TestProtocolServiceTest extends RepositoryTestBase {
     void browseSharedProtocolsViaHttp() {
         when(httpClient.getList(
                         eq("https://remote-proto.example.com"),
-                        eq("/remote/protocols"),
+                        pathIs("/remote/protocols"),
                         any(),
                         eq(station.id()),
                         any(),
@@ -500,7 +503,7 @@ class TestProtocolServiceTest extends RepositoryTestBase {
                 new TestProtocol(77, 0, "RemoteProto", "desc", 80, null, null), List.of(), List.of());
         when(httpClient.get(
                         eq("https://remote-proto.example.com"),
-                        eq("/remote/protocols/77"),
+                        pathIs("/remote/protocols/77"),
                         any(),
                         eq(station.id()),
                         any(),

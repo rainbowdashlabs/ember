@@ -12,11 +12,11 @@ import dev.chojo.ember.feature.federation.entity.ContentType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationCapability;
 import dev.chojo.ember.feature.federation.entity.FederationChangeLog;
+import dev.chojo.ember.feature.federation.entity.FederationContract;
 import dev.chojo.ember.feature.federation.entity.FederationMetadataCache;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationShare;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
-import dev.chojo.ember.feature.federation.service.FederationService;
 import jakarta.inject.Singleton;
 
 import java.time.Instant;
@@ -38,7 +38,7 @@ import static dev.chojo.ember.util.sql.SqlSupport.insertReturning;
 public class FederationRepository {
     private static final String FEDERATION_PARTNER_COLUMNS = """
             id, station_id, partner_station_id, invite_code, public_key, partner_public_key, status, \
-            federation_version, created_at, updated_at, remote_host, partner_station_name""";
+            federation_contract, created_at, updated_at, remote_host, partner_station_name""";
     private static final String FEDERATION_CAPABILITY_COLUMNS = "id, partner_id, capability, direction, enabled";
     private static final String FEDERATION_KB_SHARE_COLUMNS = "id, station_id, file_id, folder_id, share_scope";
     private static final String FEDERATION_QUIZ_SHARE_COLUMNS = "id, station_id, catalog_id, share_scope";
@@ -127,16 +127,15 @@ public class FederationRepository {
             int stationId, UUID partnerStationUid, String inviteCode, String publicKey, String remoteHost) {
         return insertReturning(
                 """
-                INSERT INTO federation_partner(station_id, partner_station_id, invite_code, public_key, status, remote_host, federation_version, partner_station_name)
-                VALUES (:station_id, :partner_station_id::UUID, :invite_code, :public_key, 'PENDING', :remote_host, :federation_version,
+                INSERT INTO federation_partner(station_id, partner_station_id, invite_code, public_key, status, remote_host, partner_station_name)
+                VALUES (:station_id, :partner_station_id::UUID, :invite_code, :public_key, 'PENDING', :remote_host,
                         (SELECT name FROM station WHERE uid = :partner_station_id::UUID))
                 RETURNING %s;""",
                 call().bind("station_id", stationId)
                         .bind("partner_station_id", partnerStationUid, UUID_STRING)
                         .bind("invite_code", inviteCode)
                         .bind("public_key", publicKey)
-                        .bind("remote_host", remoteHost)
-                        .bind("federation_version", FederationService.FEDERATION_VERSION),
+                        .bind("remote_host", remoteHost),
                 FederationPartner.map(),
                 FEDERATION_PARTNER_COLUMNS);
     }
@@ -156,9 +155,10 @@ public class FederationRepository {
                 .changed();
     }
 
-    public void updateFederationVersion(int id, String version) {
-        query("UPDATE federation_partner SET federation_version = :version, updated_at = now() WHERE id = :id;")
-                .single(call().bind("id", id).bind("version", version))
+    public void updateFederationContract(int id, FederationContract contract) {
+        query(
+                        "UPDATE federation_partner SET federation_contract = :contract::jsonb, updated_at = now() WHERE id = :id;")
+                .single(call().bind("id", id).bind("contract", contract.toJson()))
                 .update();
     }
 
@@ -172,20 +172,6 @@ public class FederationRepository {
                 .single(call())
                 .map(FederationPartner.map())
                 .all();
-    }
-
-    /**
-     * Sets the federation version for all partners that still have the placeholder '0' version.
-     * This handles partners created before the version was set at creation time.
-     */
-    public int backfillPartnerVersions(String currentVersion) {
-        return query("""
-                UPDATE federation_partner
-                SET federation_version = :version, updated_at = now()
-                WHERE federation_version = '0';""")
-                .single(call().bind("version", currentVersion))
-                .update()
-                .rows();
     }
 
     public boolean updatePartnerStatus(int id, FederationPartner.FederationStatus status) {

@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.maps.service;
 
-import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import dev.chojo.ember.feature.maps.entity.MapTileProvider;
 import dev.chojo.ember.feature.maps.entity.MapsTilesConfig;
 import jakarta.inject.Inject;
@@ -94,7 +94,7 @@ public class MapTileCacheService {
     }
 
     private static String userAgent() {
-        return "Ember/" + FederationService.FEDERATION_VERSION + " (https://github.com/RainbowDashLabs/ember)";
+        return "Ember/" + FederationContractVersions.current().core() + " (https://github.com/RainbowDashLabs/ember)";
     }
 
     /**

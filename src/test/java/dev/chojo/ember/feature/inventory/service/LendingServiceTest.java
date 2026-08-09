@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.inventory.service;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.federation.contract.FederationRequest;
 import dev.chojo.ember.feature.federation.entity.LendingMessage;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
@@ -32,6 +33,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 
+import static dev.chojo.ember.feature.federation.FederationTestContracts.pathIs;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -203,7 +205,8 @@ class LendingServiceTest extends RepositoryTestBase {
         assertTrue(messages.stream().anyMatch(m -> stationB.uid().equals(m.senderStationUid())));
 
         // Verify HTTP client was never called (local partner)
-        verify(httpClient, never()).getList(anyString(), anyString(), any(), anyInt(), anyString(), any());
+        verify(httpClient, never())
+                .getList(anyString(), any(FederationRequest.class), any(), anyInt(), anyString(), any());
     }
 
     @Test
@@ -231,7 +234,7 @@ class LendingServiceTest extends RepositoryTestBase {
                 9999, req.id(), stationC.uid(), memberC.id(), "Remote msg from C", false, Instant.now());
         when(httpClient.getList(
                         eq("https://remote.example.com"),
-                        eq("/remote/lending/messages/" + req.id()),
+                        pathIs("/remote/lending/messages/" + req.id()),
                         any(),
                         eq(stationA.id()),
                         any(),
@@ -251,7 +254,7 @@ class LendingServiceTest extends RepositoryTestBase {
         verify(httpClient)
                 .getList(
                         eq("https://remote.example.com"),
-                        eq("/remote/lending/messages/" + req.id()),
+                        pathIs("/remote/lending/messages/" + req.id()),
                         any(),
                         eq(stationA.id()),
                         any(),
@@ -576,7 +579,7 @@ class LendingServiceTest extends RepositoryTestBase {
                 8002, req.id(), stationR.uid(), memberR.id(), "Remote late", false, now.plusSeconds(60));
         when(httpClient.getList(
                         eq("https://remote-sort.example.com"),
-                        eq("/remote/lending/messages/" + req.id()),
+                        pathIs("/remote/lending/messages/" + req.id()),
                         any(),
                         eq(stationA.id()),
                         any(),

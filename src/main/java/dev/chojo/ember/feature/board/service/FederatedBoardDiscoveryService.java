@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.board.service;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.board.entity.Board;
 import dev.chojo.ember.feature.board.entity.BoardShareMode;
+import dev.chojo.ember.feature.board.route.RemoteBoardRoutes;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
@@ -78,7 +79,7 @@ public class FederatedBoardDiscoveryService {
     public List<DiscoveredBoard> discoverBoards(int stationId) {
         var partners = federationService.findPartners(stationId).stream()
                 .filter(p -> p.status() == FederationPartner.FederationStatus.ACTIVE)
-                .filter(p -> federationService.hasCapability(p.id(), CapabilityType.BOARD_SHARE, Direction.IMPORT))
+                .filter(p -> federationService.hasCapability(p, CapabilityType.BOARD_SHARE, Direction.IMPORT))
                 .toList();
         return fanout.fanOut(partners, this::discoverBoardsDirect, this::discoverBoardsViaHttp);
     }
@@ -93,7 +94,7 @@ public class FederatedBoardDiscoveryService {
     public FederatedBoardDetail proxyGetBoard(int partnerId, String boardKey) {
         var partner = locator.requirePartner(partnerId);
         if (partner.isRemote()) {
-            return gateway.get(partner, "/remote/boards/" + boardKey, FederatedBoardDetail.class);
+            return gateway.get(partner, RemoteBoardRoutes.GET_BOARD.at(boardKey), FederatedBoardDetail.class);
         }
         int boardId = locator.resolveBoardId(boardKey, partner);
         var board = boardService.findById(boardId).orElseThrow(NotFoundResponse::new);
@@ -115,7 +116,7 @@ public class FederatedBoardDiscoveryService {
     public List<MemberCompletion> proxyGetMembers(int partnerId, String boardKey) {
         var partner = locator.requirePartner(partnerId);
         if (partner.isRemote()) {
-            return gateway.getList(partner, "/remote/boards/" + boardKey + "/members", MemberCompletion.class);
+            return gateway.getList(partner, RemoteBoardRoutes.GET_MEMBERS.at(boardKey), MemberCompletion.class);
         }
         int boardId = locator.resolveBoardId(boardKey, partner);
         var board = boardService.findById(boardId).orElseThrow(NotFoundResponse::new);
@@ -176,7 +177,8 @@ public class FederatedBoardDiscoveryService {
     }
 
     private List<DiscoveredBoard> discoverBoardsViaHttp(FederationPartner partner) {
-        var remoteBoards = gateway.getList(partner, "/remote/boards", RemoteDiscoveredBoard.class);
+        var remoteBoards =
+                gateway.getList(partner, RemoteBoardRoutes.LIST_SHARED_BOARDS.at(), RemoteDiscoveredBoard.class);
         return remoteBoards.stream()
                 .map(b -> new DiscoveredBoard(
                         partner.id(),

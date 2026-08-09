@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:7dc81f87d30ac65f2700bd92d5ecf27f5ba883908d793cfe5e3b9e2ca4de0f37",
-  "generatedAt" : "2026-07-08T12:12:14Z",
+  "schemaHash" : "sha256:dbe51cd078379b622796b2b8ac2fab7ca11c9372ca702aa62a57a9b4da78e30d",
+  "generatedAt" : "2026-08-09T11:05:52Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -5722,7 +5722,7 @@
     "federation_partner" : {
       "feature" : "federation",
       "scope" : "STATION",
-      "tableHash" : "sha256:2c70d3b838dd150f1e11e963f424f5d4bb487be92f38cd4fee3fdf18d30011b5",
+      "tableHash" : "sha256:33cec3da7ff559730a0bdf8045f8d7b021221a41392b19242ab4f703aff21271",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -5766,12 +5766,6 @@
         "verified" : true,
         "description" : "Partnership status: PENDING, ACTIVE, REVOKED."
       }, {
-        "name" : "federation_version",
-        "type" : "text",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Protocol version hash for compatibility checking."
-      }, {
         "name" : "created_at",
         "type" : "timestamp",
         "nullable" : false,
@@ -5806,6 +5800,12 @@
         "type" : "text",
         "nullable" : true,
         "verified" : true
+      }, {
+        "name" : "federation_contract",
+        "type" : "jsonb",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Last contract vector the partner presented: core hash plus one hash per feature surface. NULL until the first version exchange; treated as incompatible while unknown."
       } ],
       "foreignKeys" : [ {
         "column" : "station_id",
