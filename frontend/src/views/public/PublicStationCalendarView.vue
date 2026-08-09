@@ -38,7 +38,7 @@ useHead(computed(() => {
     script: [
       {
         type: 'application/ld+json',
-        children: JSON.stringify(oneTimeEvents.slice(0, 20).map(e => ({
+        innerHTML: JSON.stringify(oneTimeEvents.slice(0, 20).map(e => ({
           '@context': 'https://schema.org',
           '@type': 'Event',
           name: e.name,
