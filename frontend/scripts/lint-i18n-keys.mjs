@@ -41,6 +41,11 @@
  *     counts as a reference. Route tables, error-code maps and *Key props pass
  *     keys around as data and hand them to t() somewhere else entirely.
  *   - <i18n-t keypath="..."> is a reference like t() is.
+ *   - The backend cross-checks (enum-backed sections, keys the server sends as
+ *     data) need the Java sources beside this frontend. The frontend Docker
+ *     image copies only `frontend/`, so there they cannot run at all; they and
+ *     the unused-key scan that depends on them stand down with one warning
+ *     rather than reporting every file as missing.
  *   - Enum-backed sections: some i18n sections mirror a backend Java enum and
  *     are only ever referenced through dynamic keys, which the usage scan
  *     cannot resolve. Those sections are declared in ENUM_BACKED_SECTIONS and
@@ -49,7 +54,7 @@
  *     reported as stale.
  */
 
-import {readFileSync} from 'fs'
+import {existsSync, readFileSync} from 'fs'
 import {join} from 'path'
 import {SRC, walk, createReporter} from './lint-utils.mjs'
 
@@ -244,20 +249,34 @@ const BACKEND_KEY_FILES = [
 
 const TOP_LEVEL_NAMESPACES = new Set([...definedKeys].map(key => key.split('.')[0]))
 
-for (const file of BACKEND_KEY_FILES) {
-    let text
-    try {
-        text = readFileSync(join(REPO_ROOT, file), 'utf-8')
-    } catch {
-        error(I18N_FILE, 0, `backend key source not found: ${file}`, CAT_MISSING)
-        continue
-    }
-    for (const m of text.matchAll(/"([a-zA-Z][\w-]*(?:\.[\w-]+)+)"/g)) {
-        const key = m[1]
-        if (!TOP_LEVEL_NAMESPACES.has(key.split('.')[0])) continue
-        usedExact.add(key)
-        if (!definedKeys.has(key)) {
-            error(I18N_FILE, 0, `i18n key sent by ${file} is not defined: ${key}`, CAT_MISSING)
+/**
+ * Whether the backend sources sit next to this frontend at all. The Docker image for the
+ * frontend copies only `frontend/`, so there the answer is no and every cross-check below has
+ * nothing to read. That is a property of the checkout, not a defect in the locale, so those
+ * checks stand down instead of failing. A *missing individual file* inside a full checkout
+ * still errors — that one means a rename nobody followed here.
+ *
+ * The unused-key scan stands down with them: the backend files are one of the two places a key
+ * can be referenced from, so without them every key only the backend sends reads as unused.
+ */
+const backendSourcesPresent = existsSync(join(REPO_ROOT, 'src/main/java'))
+
+if (backendSourcesPresent) {
+    for (const file of BACKEND_KEY_FILES) {
+        let text
+        try {
+            text = readFileSync(join(REPO_ROOT, file), 'utf-8')
+        } catch {
+            error(I18N_FILE, 0, `backend key source not found: ${file}`, CAT_MISSING)
+            continue
+        }
+        for (const m of text.matchAll(/"([a-zA-Z][\w-]*(?:\.[\w-]+)+)"/g)) {
+            const key = m[1]
+            if (!TOP_LEVEL_NAMESPACES.has(key.split('.')[0])) continue
+            usedExact.add(key)
+            if (!definedKeys.has(key)) {
+                error(I18N_FILE, 0, `i18n key sent by ${file} is not defined: ${key}`, CAT_MISSING)
+            }
         }
     }
 }
@@ -281,35 +300,47 @@ function parseJavaEnumConstants(text) {
     return constants
 }
 
-for (const section of ENUM_BACKED_SECTIONS) {
-    let text
-    try {
-        text = readFileSync(join(REPO_ROOT, section.enumFile), 'utf-8')
-    } catch {
-        error(I18N_FILE, 0, `enum file not found: ${section.enumFile}`, CAT_ENUM)
-        continue
-    }
-    const constants = parseJavaEnumConstants(text)
-    for (const constant of constants) {
-        for (const leaf of section.leaves) {
-            const key = `${section.prefix}.${constant}.${leaf}`
-            if (!definedKeys.has(key)) {
-                error(I18N_FILE, 0, `missing translation for enum value ${constant}: ${key}`, CAT_ENUM)
+if (backendSourcesPresent) {
+    for (const section of ENUM_BACKED_SECTIONS) {
+        let text
+        try {
+            text = readFileSync(join(REPO_ROOT, section.enumFile), 'utf-8')
+        } catch {
+            error(I18N_FILE, 0, `enum file not found: ${section.enumFile}`, CAT_ENUM)
+            continue
+        }
+        const constants = parseJavaEnumConstants(text)
+        for (const constant of constants) {
+            for (const leaf of section.leaves) {
+                const key = `${section.prefix}.${constant}.${leaf}`
+                if (!definedKeys.has(key)) {
+                    error(I18N_FILE, 0, `missing translation for enum value ${constant}: ${key}`, CAT_ENUM)
+                }
             }
         }
-    }
-    const stalePattern = new RegExp(`^${section.prefix}\\.([A-Z][A-Z0-9_]*)\\.`)
-    const reported = new Set()
-    for (const key of definedKeys) {
-        const m = key.match(stalePattern)
-        if (m && !constants.has(m[1]) && !reported.has(m[1])) {
-            reported.add(m[1])
-            warn(I18N_FILE, 0, `stale ${section.prefix} entry without matching enum value: ${m[1]}`, CAT_ENUM)
+        const stalePattern = new RegExp(`^${section.prefix}\\.([A-Z][A-Z0-9_]*)\\.`)
+        const reported = new Set()
+        for (const key of definedKeys) {
+            const m = key.match(stalePattern)
+            if (m && !constants.has(m[1]) && !reported.has(m[1])) {
+                reported.add(m[1])
+                warn(I18N_FILE, 0, `stale ${section.prefix} entry without matching enum value: ${m[1]}`, CAT_ENUM)
+            }
         }
     }
 }
 
-if (CHECK_UNUSED) {
+if (!backendSourcesPresent) {
+    warn(
+        I18N_FILE,
+        0,
+        'backend sources are not in this checkout — the cross-checks against the Java enums and payloads, '
+        + 'and the unused-key scan that depends on them, are skipped',
+        CAT_MISSING,
+    )
+}
+
+if (CHECK_UNUSED && backendSourcesPresent) {
     for (const key of definedKeys) {
         if (usedExact.has(key)) continue
         let matched = false
