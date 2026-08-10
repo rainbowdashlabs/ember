@@ -1,5 +1,5 @@
 [versions]
-logback = "1.5.38"
+logback = "1.6.0"
 sadu = "2.3.9"
 jackson = "3.2.1"
 junit = "6.1.2"
@@ -48,7 +48,7 @@ junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter", version.r
 junit-params = { group = "org.junit.jupiter", name = "junit-jupiter-params", version.ref = "junit" }
 junit-platform = { group = "org.junit.platform", name = "junit-platform-launcher", version.ref = "junit" }
 mockito = { group = "org.mockito", name = "mockito-core", version = "5.+" }
-archunit = { group = "com.tngtech.archunit", name = "archunit-junit5", version = "1.4.1" }
+archunit = { group = "com.tngtech.archunit", name = "archunit-junit5", version = "1.4.2" }
 
 # Database testing
 testcontainers-postgres = { group = "org.testcontainers", name = "testcontainers-postgresql", version.ref = "testcontainers" }
@@ -82,15 +82,15 @@ imageio-webp = { group = "com.twelvemonkeys.imageio", name = "imageio-webp", ver
 smbj = { group = "com.hierynomus", name = "smbj", version = "0.14.0" }
 sshd-core = { group = "org.apache.sshd", name = "sshd-core", version = "2.19.0" }
 sshd-sftp = { group = "org.apache.sshd", name = "sshd-sftp", version = "2.19.0" }
-aws-s3 = { group = "software.amazon.awssdk", name = "s3", version = "2.48.3" }
+aws-s3 = { group = "software.amazon.awssdk", name = "s3", version = "2.49.3" }
 
 # HTML sanitization
 jsoup = { group = "org.jsoup", name = "jsoup", version = "1.22.2" }
 
 # AI SDKs
-openai = { group = "com.openai", name = "openai-java", version = "4.43.0" }
-anthropic = { group = "com.anthropic", name = "anthropic-java", version = "2.49.0" }
-google-genai = { group = "com.google.genai", name = "google-genai", version = "1.62.0" }
+openai = { group = "com.openai", name = "openai-java", version = "4.45.0" }
+anthropic = { group = "com.anthropic", name = "anthropic-java", version = "2.52.0" }
+google-genai = { group = "com.google.genai", name = "google-genai", version = "1.63.0" }
 
 # CSV
 commons-csv = { group = "org.apache.commons", name = "commons-csv", version = "1.14.1" }
