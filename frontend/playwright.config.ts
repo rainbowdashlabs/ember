@@ -20,7 +20,13 @@ export default defineConfig({
     outputDir: './e2e/results',
     // Specs are named after their feature, not `*.spec.ts`, so the default pattern would find none.
     testMatch: /.*\.e2e\.ts/,
-    timeout: 45_000,
+    timeout: 60_000,
+    /**
+     * A dev server compiles each route the first time it is asked for, which can take longer than
+     * an assertion is normally willing to wait. Running against a built server removes the wait
+     * entirely; until the suite does that, the first visit to a page must not read as a failure.
+     */
+    expect: {timeout: 15_000},
     retries: process.env.CI ? 2 : 0,
     workers: process.env.CI ? 4 : undefined,
     fullyParallel: true,

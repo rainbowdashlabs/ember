@@ -16,3 +16,13 @@ export function unique(prefix: string): string {
     counter += 1
     return `${prefix}-w${worker}-${counter}-${Date.now().toString(36)}`
 }
+
+/**
+ * A short uppercase key, for the places that ask for one and insist it is unique — a board is
+ * addressed by its key, so two runs picking the same one would collide.
+ */
+export function uniqueKey(): string {
+    const worker = process.env.TEST_WORKER_INDEX ?? '0'
+    counter += 1
+    return `T${worker}${counter}${Date.now().toString(36).slice(-3)}`.toUpperCase()
+}
