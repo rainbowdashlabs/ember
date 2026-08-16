@@ -142,9 +142,14 @@ export async function pageAs(browser: Browser, role: 'manager' | 'member' | 'adm
  * session — logging out is the obvious one — would pull the ground from under every other story
  * running at that moment. Such a story takes an account of its own instead, and logs it in itself.
  */
-export async function pageAsThrowaway(browser: Browser, request: APIRequestContext, taken: string[]): Promise<Page> {
+export async function pageAsThrowaway(
+    browser: Browser,
+    request: APIRequestContext,
+    taken: string[],
+    named?: DemoAccount,
+): Promise<Page> {
     const accounts = await demoAccounts(request)
-    const account = accounts.find(candidate =>
+    const account = named ?? accounts.find(candidate =>
         candidate.userType === 'MEMBER' && candidate.stationId && !taken.includes(candidate.email))
     if (!account) throw new Error('No spare member account to log out with')
 
@@ -161,10 +166,25 @@ export async function pageAsThrowaway(browser: Browser, request: APIRequestConte
     return context.newPage()
 }
 
+/**
+ * A manager of some other station, for the stories about two stations meeting. Federation is only
+ * itself when both sides are real: one station offering something and another seeing it.
+ */
+export async function otherStationManager(request: APIRequestContext, notStationId?: string): Promise<DemoAccount> {
+    const accounts = await demoAccounts(request)
+    const match = accounts.find(account => !!account.email
+        && !!account.stationId
+        && account.stationId !== notStationId
+        && (account.permissions.includes('STATION_ADMINISTRATOR') || account.permissions.includes('STATION_MANAGER')))
+    if (!match) throw new Error('No second station has a manager to act as')
+    return match
+}
+
 interface Fixtures {
     managerPage: Page
     memberPage: Page
     adminPage: Page
+    partnerManagerPage: Page
 }
 
 export const test = base.extend<Fixtures>({
@@ -182,6 +202,14 @@ export const test = base.extend<Fixtures>({
 
     adminPage: async ({browser}, use) => {
         const page = await pageAs(browser, 'admin')
+        await use(page)
+        await page.context().close()
+    },
+
+    partnerManagerPage: async ({browser, request}, use) => {
+        const {manager} = await stationPeers(request)
+        const other = await otherStationManager(request, manager.stationId)
+        const page = await pageAsThrowaway(browser, request, [], other)
         await use(page)
         await page.context().close()
     },
