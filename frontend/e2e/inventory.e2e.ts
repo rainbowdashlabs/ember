@@ -32,7 +32,7 @@ test.describe('Inventory', () => {
      * pickers rather than raw scanners, so the story types what a scanner would send: the member's
      * name and the item's code.
      */
-    test('an item is assigned to a member', async ({managerPage: page, request}) => {
+    test('an item is assigned to a member and handed back', async ({managerPage: page, request}) => {
         const {member} = await stationPeers(request)
 
         await page.goto('/station/inventory/assign')
@@ -40,10 +40,27 @@ test.describe('Inventory', () => {
         await page.getByPlaceholder('- Bitte wählen -').fill(member.lastName)
         await page.getByText(`${member.firstName} ${member.lastName}`).first().click()
 
-        await page.getByPlaceholder('Item suchen oder Code scannen…').fill('H-0')
-        await page.getByText(/H-0\d\d/).first().click()
+        const picker = page.getByPlaceholder('Item suchen oder Code scannen…')
+        await picker.fill('H-0')
 
-        await expect(page.getByText(/zugewiesen|Bei /).first()).toBeVisible()
+        // The options of the picker are buttons, which is what separates them from the text a
+        // search leaves behind in the field.
+        const option = page.getByRole('button').filter({hasText: /H-0\d\d/}).first()
+        const code = (await option.innerText()).match(/H-0\d\d/)?.[0] ?? ''
+        await option.click()
+
+        await expect(page.getByText(/zugewiesen/).first()).toBeVisible()
+
+        // The counter is reopened before handing back, which is also what the picker needs: it
+        // still believes the item is free until the page asks again.
+        await page.reload()
+        await page.getByPlaceholder('- Bitte wählen -').fill(member.lastName)
+        await page.getByText(`${member.firstName} ${member.lastName}`).first().click()
+
+        await page.getByPlaceholder('Item suchen oder Code scannen…').fill(code)
+        await page.getByRole('button').filter({hasText: code}).first().click()
+
+        await expect(page.getByText(/zurückgenommen/).first()).toBeVisible()
     })
 
     /** Assigning starts by naming a person or scanning a code, and offers both. */
