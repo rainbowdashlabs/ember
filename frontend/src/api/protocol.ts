@@ -72,6 +72,18 @@ export interface ProtocolDetailResponse {
     items: TestProtocolItem[]
 }
 
+/**
+ * Reads a protocol served by a federation partner. The partner is addressed by its station UUID
+ * because a protocol id is only unique within the station that owns it.
+ */
+export async function getFederatedProtocol(
+    stationUid: string,
+    protocolId: number,
+): Promise<ProtocolDetailResponse> {
+    const res = await client.get<ProtocolDetailResponse>(`/federated/${stationUid}/protocols/${protocolId}`)
+    return res.data
+}
+
 export interface RunMemberWithProgress {
     member: TestProtocolRunMember
     sectionsDone: number
@@ -88,7 +100,7 @@ export interface SharedProtocolEntry {
     name: string
     description: string | null
     stationName: string
-    sourceStationId: string
+    stationUid: string | null
 }
 
 export interface ProtocolListResponse {

@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.events.service.BatchEventService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventExportService;
 import dev.chojo.ember.feature.events.service.EventOccurrenceService;
+import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventReminderService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
@@ -78,6 +79,7 @@ public class EventRoutes implements Routes {
     private final BatchEventService batchEventService;
     private final StationMemberService stationMemberService;
     private final EventExportService eventExportService;
+    private final EventRegistrationFieldService registrationFieldService;
 
     @Inject
     public EventRoutes(
@@ -87,7 +89,8 @@ public class EventRoutes implements Routes {
             EventReminderService reminderService,
             BatchEventService batchEventService,
             StationMemberService stationMemberService,
-            EventExportService eventExportService) {
+            EventExportService eventExportService,
+            EventRegistrationFieldService registrationFieldService) {
         this.crudService = crudService;
         this.occurrenceService = occurrenceService;
         this.restrictionService = restrictionService;
@@ -95,6 +98,7 @@ public class EventRoutes implements Routes {
         this.batchEventService = batchEventService;
         this.stationMemberService = stationMemberService;
         this.eventExportService = eventExportService;
+        this.registrationFieldService = registrationFieldService;
     }
 
     @Override
@@ -269,6 +273,9 @@ public class EventRoutes implements Routes {
         restrictionService.setRestrictions(event.id(), restriction);
         if (req.restriction() != null) {
             restrictionService.updateRestrictionMode(event.id(), restriction.mode());
+        }
+        if (req.templateId() != null) {
+            registrationFieldService.copyTemplateFields(req.templateId(), event.id());
         }
 
         ctx.status(HttpStatus.CREATED).json(event);

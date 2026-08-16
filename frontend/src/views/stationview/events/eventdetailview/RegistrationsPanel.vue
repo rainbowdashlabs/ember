@@ -17,7 +17,8 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import RegistrationStatsTable from './RegistrationStatsTable.vue'
-import {RegistrationStatus, type EventRegistrationEntry, type MemberRegistrationStats, type StationEvent} from '@/api/events'
+import RegistrationFieldAnswers from './RegistrationFieldAnswers.vue'
+import {EventFieldTypes, RegistrationStatus, type EventRegistrationEntry, type EventRegistrationField, type MemberRegistrationStats, type StationEvent} from '@/api/events'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 import {formatDate} from '@/util/format'
@@ -31,7 +32,29 @@ const props = defineProps<{
   nonPendingRegistrations: StatusGroup[]
   registrationStats: MemberRegistrationStats[]
   unregisteredMembers: { id: number; name: string }[]
+  registrationFields?: EventRegistrationField[]
 }>()
+
+const fields = computed(() => props.registrationFields ?? [])
+
+/**
+ * A number question shown in the list gets its column total, which is the number a station plans
+ * from. Only numbers are summed; adding anything else together means nothing.
+ */
+const overviewSums = computed(() => {
+  const sums: { label: string; total: number }[] = []
+  for (const field of fields.value) {
+    if (!field.overview || field.fieldType !== EventFieldTypes.NUMBER) continue
+    let total = 0
+    for (const registration of props.registrations) {
+      const raw = registration.fields?.find(v => v.fieldId === field.id)?.value
+      const parsed = Number(raw)
+      if (raw != null && raw !== '' && !Number.isNaN(parsed)) total += parsed
+    }
+    sums.push({label: field.name, total})
+  }
+  return sums
+})
 
 const manualRegisterMemberId = defineModel<string>('manualRegisterMemberId', {default: ''})
 
@@ -69,6 +92,12 @@ function statusLabel(status: string): string {
   <NeutralContainer v-if="registrations.length > 0" class="space-y-4">
     <SubHeader>{{ t('eventDetail.registrations') }}</SubHeader>
 
+    <div v-if="overviewSums.length > 0" class="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+      <span v-for="sum in overviewSums" :key="sum.label" class="text-(--text-muted)">
+        {{ sum.label }}: <span class="text-(--text) font-medium">{{ sum.total }}</span>
+      </span>
+    </div>
+
     <div v-if="registrations.length > 0" class="flex flex-wrap gap-2">
       <SuccessBadge v-if="registrationSummary.accepted > 0">
         {{ registrationSummary.accepted }} {{ t('eventsUpcoming.accepted') }}
@@ -105,6 +134,7 @@ function statusLabel(status: string): string {
             </div>
             <InfoBadge>{{ statusLabel('PENDING') }}</InfoBadge>
           </div>
+          <RegistrationFieldAnswers :fields="fields" :values="reg.fields" overview-only class="mt-1"/>
         </NeutralContainer>
       </template>
     </div>
@@ -128,6 +158,7 @@ function statusLabel(status: string): string {
             </ErrorButton>
           </div>
         </div>
+        <RegistrationFieldAnswers :fields="fields" :values="reg.fields" overview-only class="mt-1"/>
       </NeutralContainer>
     </div>
 

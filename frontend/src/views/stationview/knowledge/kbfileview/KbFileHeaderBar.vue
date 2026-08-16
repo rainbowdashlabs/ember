@@ -29,6 +29,7 @@ defineEmits<{
     openVersions: []
     openPresentation: []
     downloadOriginal: []
+    downloadPdf: []
 }>()
 
 const {t} = useI18n()
@@ -44,12 +45,20 @@ const {t} = useI18n()
         <PageHeader class="flex-1 !mb-0">{{ file.name }}</PageHeader>
 
         <IconButton
-            v-if="isKbPublic"
+            v-if="isKbPublic && !isFederated"
             :icon="['fas', shareCopied ? 'check' : 'share-nodes']"
             :label="t('kb.shareLink')"
             :class="shareCopied ? '!text-green-500' : '!text-[var(--text-muted)]'"
             @click="$emit('copyShareLink')"
         />
+
+        <SecondaryButton
+            v-if="file.fileType === KbFileType.MARKDOWN || file.fileType === KbFileType.TEXT"
+            @click="$emit('downloadPdf')"
+        >
+            <font-awesome-icon :icon="['fas', 'file-pdf']"/>
+            {{ t('kb.downloadPdf') }}
+        </SecondaryButton>
 
         <PrimaryButton v-if="isFederated" @click="$emit('copyToStation')">
             <font-awesome-icon :icon="['fas', 'copy']"/>

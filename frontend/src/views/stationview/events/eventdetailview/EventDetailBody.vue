@@ -48,18 +48,10 @@ const {t} = useI18n()
 
 const activeTab = ref<'info' | 'registrations'>('info')
 const showCancelModal = ref(false)
-const registrationsTab = ref<InstanceType<typeof EventRegistrationsTab> | null>(null)
-
-async function loadRegistrations() {
-  await registrationsTab.value?.loadRegistrations()
-}
-
 function onCancelled() {
   showCancelModal.value = false
   emit('cancelled')
 }
-
-defineExpose({loadRegistrations})
 </script>
 
 <template>
@@ -113,7 +105,6 @@ defineExpose({loadRegistrations})
 
     <EventRegistrationsTab
         v-show="activeTab === 'registrations' && event.requiresRegistration"
-        ref="registrationsTab"
         :event="event"
         :event-id="eventId"
         :current-member-id="currentMemberId"

@@ -11,6 +11,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import UpcomingBody from './upcomingview/UpcomingBody.vue'
+import RegistrationFieldsModal from './eventshared/RegistrationFieldsModal.vue'
 import {isRecurringEvent, RegistrationStatus, type StationEvent} from '@/api/events'
 import {useSession} from '@/composables/useSession'
 import {useUpcomingEvents} from '@/composables/useUpcomingEvents'
@@ -29,6 +30,7 @@ const {
   selectedCategoryId, searchQuery, showNeedsAction,
   loadingMore, hasMore, registering, filteredUpcoming, multiDayEndDate,
   loading, error,
+  fieldPrompt, confirmFieldPrompt, cancelFieldPrompt,
 } = upcoming
 
 const VIEW_MODE_STORAGE_KEY = 'eventsUpcoming.viewMode'
@@ -182,5 +184,12 @@ watch(loaded, (isLoaded) => {
           @load-more="upcoming.loadMore"
       />
     </div>
+
+    <RegistrationFieldsModal
+        :model-value="fieldPrompt !== null"
+        :fields="fieldPrompt?.fields ?? []"
+        @update:model-value="v => { if (!v) cancelFieldPrompt() }"
+        @confirm="confirmFieldPrompt"
+    />
   </ViewContent>
 </template>

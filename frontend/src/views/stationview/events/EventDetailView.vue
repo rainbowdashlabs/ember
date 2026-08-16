@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, nextTick, ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -40,7 +40,6 @@ const absentMembers = ref<AbsentMember[]>([])
 const managedMembers = ref<StationMember[]>([])
 const allMembers = ref<StationMember[]>([])
 const eligibleMembers = ref<Record<number, number[]>>({})
-const body = ref<InstanceType<typeof EventDetailBody> | null>(null)
 
 function nextOccurrence(dayOfWeek: number): string {
   const now = new Date()
@@ -156,8 +155,6 @@ const {loading, error, reload} = useAsyncLoader(async () => {
   if ((canManageEvents() || canManageAttendance()) && isRecurringEvent(ev.eventType) && ev.dayOfWeek) {
     await loadAbsences()
   }
-  await nextTick()
-  await body.value?.loadRegistrations()
 })
 
 async function loadAbsences() {
@@ -186,7 +183,6 @@ function onFieldUpdated(field: EventField) {
     <Alert v-if="error" variant="error">{{ error }}</Alert>
     <EventDetailBody
         v-if="!loading && event"
-        ref="body"
         :event="event"
         :event-id="eventId"
         :fields="fields"

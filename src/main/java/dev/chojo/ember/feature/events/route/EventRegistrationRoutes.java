@@ -13,11 +13,15 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
+import dev.chojo.ember.feature.events.entity.EventFieldType;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
 import dev.chojo.ember.feature.events.entity.MemberRegistrationStats;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository.FieldEntry;
 import dev.chojo.ember.feature.events.service.EventCrudService;
+import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -44,6 +48,9 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
@@ -64,6 +71,7 @@ public class EventRegistrationRoutes implements Routes {
     private final AccountRepository accountRepository;
     private final AttendanceService attendanceService;
     private final MemberIdentityFactory memberIdentityFactory;
+    private final EventRegistrationFieldService registrationFieldService;
 
     @Inject
     public EventRegistrationRoutes(
@@ -74,7 +82,8 @@ public class EventRegistrationRoutes implements Routes {
             StationMemberRepository stationMemberRepository,
             AccountRepository accountRepository,
             AttendanceService attendanceService,
-            MemberIdentityFactory memberIdentityFactory) {
+            MemberIdentityFactory memberIdentityFactory,
+            EventRegistrationFieldService registrationFieldService) {
         this.crudService = crudService;
         this.registrationService = registrationService;
         this.restrictionService = restrictionService;
@@ -83,6 +92,7 @@ public class EventRegistrationRoutes implements Routes {
         this.accountRepository = accountRepository;
         this.attendanceService = attendanceService;
         this.memberIdentityFactory = memberIdentityFactory;
+        this.registrationFieldService = registrationFieldService;
     }
 
     @Override
@@ -103,6 +113,15 @@ public class EventRegistrationRoutes implements Routes {
                 prefix + "/events/{eventId}/registration-stats",
                 this::getRegistrationStats,
                 StationPermission.EVENT_REGISTRATION);
+        routes.get(
+                prefix + "/events/{eventId}/registration-fields", this::listRegistrationFields, StationPermission.USER);
+        routes.put(
+                prefix + "/events/{eventId}/registration-fields",
+                this::setRegistrationFields,
+                StationPermission.EVENT_EDIT);
+        routes.put(
+                prefix + "/events/registrations/{id}/fields", this::updateRegistrationFields, StationPermission.USER);
+
         routes.get(prefix + "/events/{eventId}/registrations", this::listRegistrations, StationPermission.USER);
         routes.post(prefix + "/events/{eventId}/register", this::register, StationPermission.USER);
         routes.post(prefix + "/events/{eventId}/decline", this::decline, StationPermission.USER);
@@ -140,6 +159,14 @@ public class EventRegistrationRoutes implements Routes {
      * Maps a registration to its response, resolving the member's display name, identity, and creator.
      */
     private RegistrationResponse toRegistrationResponse(EventRegistration r) {
+        return toRegistrationResponse(
+                r,
+                registrationFieldService.findValues(r.id()).stream()
+                        .map(v -> new FieldValueEntry(v.fieldId(), v.value()))
+                        .toList());
+    }
+
+    private RegistrationResponse toRegistrationResponse(EventRegistration r, List<FieldValueEntry> fields) {
         var display = resolveMemberDisplay(r.memberId());
         String createdByName = resolveCreatedByName(r.createdBy());
         return new RegistrationResponse(
@@ -151,7 +178,24 @@ public class EventRegistrationRoutes implements Routes {
                 r.eventDate(),
                 r.status(),
                 r.createdAt(),
-                createdByName);
+                createdByName,
+                fields);
+    }
+
+    /**
+     * Maps a whole list of registrations, reading every answer in one query rather than one per
+     * row.
+     */
+    private List<RegistrationResponse> toRegistrationResponses(List<EventRegistration> registrations) {
+        var answers = registrationFieldService.findValuesByRegistration(
+                registrations.stream().map(EventRegistration::id).toList());
+        return registrations.stream()
+                .map(r -> toRegistrationResponse(
+                        r,
+                        answers.getOrDefault(r.id(), List.of()).stream()
+                                .map(v -> new FieldValueEntry(v.fieldId(), v.value()))
+                                .toList()))
+                .toList();
     }
 
     /**
@@ -196,7 +240,7 @@ public class EventRegistrationRoutes implements Routes {
                 registrations.addAll(registrationService.findByMember(managed.id()));
             }
         }
-        ctx.json(registrations.stream().map(this::toRegistrationResponse).toList());
+        ctx.json(toRegistrationResponses(registrations));
     }
 
     @OpenApi(
@@ -208,7 +252,7 @@ public class EventRegistrationRoutes implements Routes {
     private void listPendingRegistrations(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var regs = registrationService.findPendingByStation(session.stationId());
-        ctx.json(regs.stream().map(this::toRegistrationResponse).toList());
+        ctx.json(toRegistrationResponses(regs));
     }
 
     @OpenApi(
@@ -267,6 +311,88 @@ public class EventRegistrationRoutes implements Routes {
                 Math.max(0, fairnessScore));
     }
 
+    @OpenApi(
+            path = "/api/v1/events/{eventId}/registration-fields",
+            methods = HttpMethod.GET,
+            summary = "List the questions an event asks of everyone registering",
+            tags = {"Events"},
+            pathParams = @OpenApiParam(name = "eventId", type = Integer.class, required = true),
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = RegistrationFieldResponse[].class)))
+    private void listRegistrationFields(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int eventId = pathInt(ctx, "eventId");
+        requireOwnedEvent(crudService, eventId, session);
+        ctx.json(registrationFieldService.findByEvent(eventId).stream()
+                .map(f -> new RegistrationFieldResponse(f.id(), f.name(), f.fieldType(), f.config(), f.overview()))
+                .toList());
+    }
+
+    @OpenApi(
+            path = "/api/v1/events/{eventId}/registration-fields",
+            methods = HttpMethod.PUT,
+            summary = "Replace the questions an event asks of everyone registering",
+            tags = {"Events"},
+            pathParams = @OpenApiParam(name = "eventId", type = Integer.class, required = true),
+            requestBody =
+                    @OpenApiRequestBody(content = @OpenApiContent(from = RegistrationFieldDefinitionsRequest.class)),
+            responses = @OpenApiResponse(status = "200"))
+    private void setRegistrationFields(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int eventId = pathInt(ctx, "eventId");
+        requireOwnedEvent(crudService, eventId, session);
+        var req = ctx.bodyAsClass(RegistrationFieldDefinitionsRequest.class);
+        var fields = req.fields() == null ? List.<RegistrationFieldDefinition>of() : req.fields();
+        registrationFieldService.replaceFields(
+                eventId,
+                fields.stream()
+                        .map(f -> new FieldEntry(
+                                f.name(),
+                                f.fieldType(),
+                                f.config() != null ? f.config() : EventRegistrationFieldConfig.empty(),
+                                f.overview()))
+                        .toList());
+        ctx.json(new MessageResponse("Registration fields updated"));
+    }
+
+    @OpenApi(
+            path = "/api/v1/events/registrations/{id}/fields",
+            methods = HttpMethod.PUT,
+            summary = "Change the answers of a registration",
+            tags = {"Events"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RegistrationFieldsRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = RegistrationResponse.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void updateRegistrationFields(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        int registrationId = pathInt(ctx, "id");
+        var registration = registrationService.findById(registrationId).orElseThrow(NotFoundResponse::new);
+        requireOwnedEvent(crudService, registration.eventId(), session);
+        requireAnswerAuthor(session, registration);
+
+        var req = ctx.bodyAsClass(RegistrationFieldsRequest.class);
+        registrationFieldService.replaceAnswers(registration.eventId(), registrationId, answersOf(req.fields()));
+        ctx.json(toRegistrationResponse(registration));
+    }
+
+    /**
+     * Answers belong to the member who registered. They may change them, as may whoever manages
+     * that member and anyone allowed to decide registrations.
+     */
+    private void requireAnswerAuthor(UserSession session, EventRegistration registration) {
+        if (session.member() == null) throw new BadRequestResponse("Not a station member");
+        if (registration.memberId() == session.member().id()) return;
+        if (session.hasPermission(StationPermission.EVENT_REGISTRATION)) return;
+        boolean manages = stationMemberService.findManaged(session.member().id()).stream()
+                .anyMatch(m -> m.id() == registration.memberId());
+        if (!manages) throw new ForbiddenResponse("You do not manage this member");
+    }
+
     private void listRegistrations(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
@@ -275,7 +401,7 @@ public class EventRegistrationRoutes implements Routes {
         var regs = dateStr != null
                 ? registrationService.findByEventAndDate(eventId, LocalDate.parse(dateStr))
                 : registrationService.findByEvent(eventId);
-        ctx.json(regs.stream().map(this::toRegistrationResponse).toList());
+        ctx.json(toRegistrationResponses(regs));
     }
 
     @OpenApi(
@@ -312,10 +438,26 @@ public class EventRegistrationRoutes implements Routes {
             throw new BadRequestResponse("Member is not eligible for this event");
         }
 
+        var answers = registrationFieldService.resolveAnswers(eventId, answersOf(req.fields()));
+
         boolean autoAccept = !event.requiresConfirmation();
         Integer createdBy = memberId != session.member().id() ? session.member().id() : null;
-        ctx.status(HttpStatus.CREATED)
-                .json(registrationService.register(eventId, memberId, date, autoAccept, createdBy));
+        var registration = registrationService.register(eventId, memberId, date, autoAccept, createdBy);
+        registrationFieldService.persistAnswers(registration.id(), answers);
+        ctx.status(HttpStatus.CREATED).json(toRegistrationResponse(registration));
+    }
+
+    /**
+     * Reads the submitted answers into a map keyed by question, keeping the last entry when a
+     * question is sent twice.
+     */
+    private static Map<Integer, String> answersOf(List<FieldValueEntry> fields) {
+        if (fields == null) return Map.of();
+        var answers = new LinkedHashMap<Integer, String>();
+        for (var field : fields) {
+            answers.put(field.fieldId(), field.value());
+        }
+        return answers;
     }
 
     @OpenApi(
@@ -467,10 +609,32 @@ public class EventRegistrationRoutes implements Routes {
             LocalDate eventDate,
             RegistrationStatus status,
             Instant createdAt,
-            String createdByName) {}
+            String createdByName,
+            List<FieldValueEntry> fields) {}
 
     @OpenApiName("EventRegisterRequest")
-    public record RegisterRequest(String eventDate, Integer memberId) {}
+    public record RegisterRequest(String eventDate, Integer memberId, List<FieldValueEntry> fields) {}
+
+    /**
+     * One answer to one registration question. Deliberately the same shape as the attendance and
+     * batch field entries, so every custom field payload in the API reads alike.
+     */
+    @OpenApiName("EventRegistrationFieldValue")
+    public record FieldValueEntry(int fieldId, String value) {}
+
+    @OpenApiName("EventRegistrationFieldsRequest")
+    public record RegistrationFieldsRequest(List<FieldValueEntry> fields) {}
+
+    @OpenApiName("EventRegistrationFieldDefinition")
+    public record RegistrationFieldResponse(
+            int id, String name, EventFieldType fieldType, EventRegistrationFieldConfig config, boolean overview) {}
+
+    @OpenApiName("EventRegistrationFieldDefinitionsRequest")
+    public record RegistrationFieldDefinitionsRequest(List<RegistrationFieldDefinition> fields) {}
+
+    @OpenApiName("EventRegistrationFieldDefinitionEntry")
+    public record RegistrationFieldDefinition(
+            String name, EventFieldType fieldType, EventRegistrationFieldConfig config, boolean overview) {}
 
     public record StatusUpdateRequest(RegistrationStatus status) {}
 

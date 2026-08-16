@@ -49,7 +49,7 @@ export function useKbBrowse(navigation: ReturnType<typeof useKbNavigation>) {
                     sharedFiles.value = shared.map(s => ({
                         file: {id: s.remoteId, name: s.title, description: s.description},
                         stationName: s.stationName,
-                        sourceStationId: s.stationId,
+                        sourceStationUid: s.stationUid,
                     }))
                 } catch { sharedFiles.value = [] }
             } else {

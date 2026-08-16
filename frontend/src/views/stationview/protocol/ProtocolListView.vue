@@ -51,7 +51,7 @@ const newPassThreshold = ref<number | undefined>(undefined)
 const partnerStations = computed(() => {
   const map = new Map<string, string>()
   for (const s of sharedProtocols.value) {
-    map.set(s.sourceStationId, s.stationName)
+    if (s.stationUid) map.set(s.stationUid, s.stationName)
   }
   return [...map.entries()].map(([id, name]) => ({ id, name }))
 })
@@ -74,7 +74,7 @@ const filteredShared = computed(() => {
     )
   }
   if (filterStationId.value != null) {
-    result = result.filter(s => s.sourceStationId === filterStationId.value)
+    result = result.filter(s => s.stationUid === filterStationId.value)
   }
   return result
 })
@@ -115,6 +115,11 @@ async function handleCreate() {
     newPassThreshold.value = undefined
     router.push({ name: 'protocol-detail', params: { id: created.id } })
   } catch { error.value = t('common.error') }
+}
+
+function navigateToSharedProtocol(shared: SharedProtocolEntry) {
+  if (!shared.stationUid) return
+  router.push({ name: 'federated-protocol', params: { stationUid: shared.stationUid, protocolId: shared.id } })
 }
 
 async function copySharedProtocol(protocolId: number) {
@@ -189,9 +194,10 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
 
         <NeutralContainer
           v-for="s in filteredShared"
-          :key="'shared-' + s.id + '-' + s.sourceStationId"
-          class="flex items-center gap-2 cursor-pointer hover:border-[var(--primary)] transition-colors group"
-          @click="router.push({ name: 'protocol-detail', params: { id: s.id } })"
+          :key="'shared-' + s.id + '-' + s.stationUid"
+          class="flex items-center gap-2 hover:border-[var(--primary)] transition-colors group"
+          :class="s.stationUid ? 'cursor-pointer' : ''"
+          @click="navigateToSharedProtocol(s)"
         >
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2">

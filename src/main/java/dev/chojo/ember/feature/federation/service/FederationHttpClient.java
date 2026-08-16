@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.federation.service;
 
 import dev.chojo.ember.api.FederationHeaders;
+import dev.chojo.ember.api.ForeignStationIdModule;
 import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
 import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import dev.chojo.ember.feature.federation.contract.FederationRequest;
@@ -49,7 +50,8 @@ import java.util.UUID;
  * {@code FAIL_ON_UNKNOWN_PROPERTIES} so a federation peer running a newer protocol
  * version can add fields to a response without breaking older peers. The main API
  * mapper in {@code ApiServer.jacksonMapper()} keeps the strict default for
- * inbound client payloads.
+ * inbound client payloads. It also carries {@link ForeignStationIdModule}, which reads the
+ * station ids a partner publishes as UUIDs without trying to resolve them locally.
  */
 @Singleton
 public class FederationHttpClient {
@@ -84,6 +86,7 @@ public class FederationHttpClient {
         this.mapper = JsonMapper.builder()
                 .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
                 .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
+                .addModule(new ForeignStationIdModule())
                 .build();
     }
 

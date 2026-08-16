@@ -110,7 +110,7 @@ useHead(computed(() => {
             <Spinner v-if="loading"/>
 
             <template v-else-if="file">
-                <KbFileHeader :file="file" @back="goBack"/>
+                <KbFileHeader :file="file" :station-uid="stationUid" @back="goBack"/>
                 <KbFileRenderer :file="file"
                                 :content-url="contentUrl"
                                 :youtube-embed-url="youtubeEmbedUrl"

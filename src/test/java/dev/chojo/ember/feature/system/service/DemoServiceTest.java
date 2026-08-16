@@ -22,8 +22,10 @@ import dev.chojo.ember.feature.checklist.repository.ChecklistRepository;
 import dev.chojo.ember.feature.checklist.service.ChecklistService;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import dev.chojo.ember.feature.events.service.EventFederationService;
+import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventTemplateService;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
@@ -47,6 +49,7 @@ import dev.chojo.ember.feature.knowledgebase.service.KbCommentService;
 import dev.chojo.ember.feature.knowledgebase.service.KbContentService;
 import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
 import dev.chojo.ember.feature.knowledgebase.service.KbLinkMetadataService;
+import dev.chojo.ember.feature.knowledgebase.service.KbPdfExportService;
 import dev.chojo.ember.feature.knowledgebase.service.KbPresentationService;
 import dev.chojo.ember.feature.knowledgebase.service.KbSearchService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
@@ -175,7 +178,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 eventFederationRepo,
                 memberNameResolver,
                 federationFanout,
-                federationEntityResolver);
+                federationEntityResolver,
+                mock(KbPdfExportService.class));
         var quizQuestionService = new QuizQuestionService(quizCatalogRepo);
         var quizService = new QuizService(
                 new QuizCatalogService(quizCatalogRepo),
@@ -274,7 +278,9 @@ class DemoServiceTest extends RepositoryTestBase {
                 eventFieldRepo,
                 attendanceRepo,
                 eventServices.crud(),
-                eventTemplateService);
+                eventTemplateService,
+                eventServices.restriction(),
+                new EventRegistrationFieldService(new EventRegistrationFieldRepository()));
         var attendanceSeeder = new DemoAttendanceSeeder(attendanceRepo);
         var containerSvc = new InventoryContainerService(containerRepo, containerKindRepo, inventoryRepo);
         var fieldDefSvc = new InventoryFieldDefinitionService(fieldDefinitionRepo);

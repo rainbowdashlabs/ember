@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref, watch} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -19,11 +19,13 @@ import KbSearchResults from './knowledgebaseview/KbSearchResults.vue'
 import {useKbBrowse} from './knowledgebaseview/useKbBrowse'
 import {useKbFilters} from './knowledgebaseview/useKbFilters'
 import {useKbNavigation} from './knowledgebaseview/useKbNavigation'
+import {useKbItems} from './knowledgebaseview/useKbItems'
 import {useKbSearch} from './knowledgebaseview/useKbSearch'
 import {useKbShareLink} from './knowledgebaseview/useKbShareLink'
 import {useSession} from '@/composables/useSession'
 import {useConfirmAction} from '@/composables/useConfirmAction'
 import {knowledgeBase} from '@/api'
+import {downloadAuthed} from '@/util/downloadAuthed'
 import type {KbFolder, KbFile} from '@/api/knowledgeBase'
 
 const {t} = useI18n()
@@ -36,7 +38,10 @@ const browse = useKbBrowse(navigation)
 const filters = useKbFilters(browse)
 const search = useKbSearch(filters)
 
-const {folderParam, isFavouritesView, currentFolderId, navigateToFolder, navigateToFile, navigateToFavourites} = navigation
+const {
+    folderParam, isFavouritesView, currentFolderId,
+    navigateToFolder, navigateToFile, navigateToFederatedFile, navigateToFavourites,
+} = navigation
 const {currentFolder, breadcrumbs, favourites, favouriteIds, loading, error, loadData, toggleFavourite, copySharedFile} = browse
 const {showFederated, filterStationId, filterTag, allKbTags, partnerStations, filteredFolders, filteredFiles, filteredSharedFiles, loadTags} = filters
 const {searchQuery, searchResults, searching, isSearching, filteredSearchResults, onSearchInput} = search
@@ -64,6 +69,42 @@ const {
     onSuccess: () => loadData(),
     error,
 })
+
+async function exportFilePdf(file: KbFile) {
+    try {
+        await downloadAuthed(knowledgeBase.pdfExportUrl(file.id), `${file.name}.pdf`)
+    } catch {
+        error.value = t('common.error')
+    }
+}
+
+const {items, toSearchItems} = useKbItems(
+    {
+        folders: filteredFolders,
+        files: filteredFiles,
+        sharedFiles: filteredSharedFiles,
+        favourites,
+        favouriteIds,
+        currentFolder,
+        isFavouritesView,
+        canManage: computed(() => canEditKnowledge()),
+    },
+    {
+        openFolder: navigateToFolder,
+        openFile: navigateToFile,
+        openFederatedFile: navigateToFederatedFile,
+        openFavourites: navigateToFavourites,
+        editFolder: folder => editModalsRef.value?.openFolder(folder),
+        deleteFolder: confirmDeleteFolder,
+        editFile: file => editModalsRef.value?.openFile(file),
+        deleteFile: confirmDeleteFile,
+        exportFilePdf,
+        copySharedFile,
+        removeFavourite: toggleFavourite,
+    },
+)
+
+const searchItems = computed(() => toSearchItems(filteredSearchResults.value))
 
 watch(folderParam, () => {
     loadData()
@@ -113,24 +154,17 @@ watch(loaded, (isLoaded) => {
 
         <KbSearchResults
             v-if="isSearching"
-            :results="filteredSearchResults"
+            :items="searchItems"
             :searching="searching"
             :total-count="searchResults.length"
-            @navigate-file="navigateToFile"
-            @copy-shared-file="copySharedFile"
         />
 
         <KbBrowseSection
             v-else
             :loading="loading"
             :current-folder="currentFolder"
-            :is-favourites-view="isFavouritesView"
-            :favourites="favourites"
             :view-mode="viewMode"
-            :filtered-folders="filteredFolders"
-            :filtered-files="filteredFiles"
-            :filtered-shared-files="filteredSharedFiles"
-            :favourite-ids="favouriteIds"
+            :items="items"
             :can-manage="canEditKnowledge()"
             @create-folder="createModalsRef?.openCreateFolder()"
             @create-markdown="createModalsRef?.openCreateFile()"
@@ -138,15 +172,6 @@ watch(loaded, (isLoaded) => {
             @youtube="createModalsRef?.openYoutube()"
             @link="createModalsRef?.openLink()"
             @import-document="createModalsRef?.openImportDocument()"
-            @navigate-folder="navigateToFolder"
-            @navigate-file="navigateToFile"
-            @edit-folder="folder => editModalsRef?.openFolder(folder)"
-            @delete-folder="confirmDeleteFolder"
-            @edit-file="file => editModalsRef?.openFile(file)"
-            @delete-file="confirmDeleteFile"
-            @copy-shared-file="copySharedFile"
-            @toggle-favourite="toggleFavourite"
-            @navigate-to-favourites="navigateToFavourites"
         />
 
         <KbCreateModals

@@ -38,7 +38,7 @@ const { loading, error, reload: loadData } = useAsyncLoader(async () => {
     sharedCatalogs.value = []
   } else {
     catalogs.value = response.catalogs ?? []
-    sharedCatalogs.value = (response.sharedCatalogs ?? []).filter(s => s.catalog != null)
+    sharedCatalogs.value = response.sharedCatalogs ?? []
   }
 }, { autoLoad: false })
 
@@ -50,7 +50,7 @@ const filterStationId = ref<string | null>(null)
 const partnerStations = computed(() => {
   const map = new Map<string, string>()
   for (const s of sharedCatalogs.value) {
-    map.set(s.sourceStationId, s.stationName)
+    if (s.stationUid) map.set(s.stationUid, s.stationName)
   }
   return [...map.entries()].map(([id, name]) => ({ id, name }))
 })
@@ -67,14 +67,14 @@ const filteredSharedCatalogs = computed(() => {
   if (!showFederated.value) return []
   let result = sharedCatalogs.value
   if (filterStationId.value != null) {
-    result = result.filter(s => s.sourceStationId === filterStationId.value)
+    result = result.filter(s => s.stationUid === filterStationId.value)
   }
   if (searchQuery.value.trim()) {
     const lower = searchQuery.value.toLowerCase()
     result = result.filter(
       s =>
-        s.catalog.name.toLowerCase().includes(lower) ||
-        (s.catalog.description && s.catalog.description.toLowerCase().includes(lower)),
+        s.name.toLowerCase().includes(lower) ||
+        (s.description && s.description.toLowerCase().includes(lower)),
     )
   }
   return result
@@ -167,6 +167,11 @@ function navigateToCatalog(catalog: QuizCatalog) {
   router.push({ name: 'quiz-catalog-detail', params: { id: catalog.id } })
 }
 
+function navigateToSharedCatalog(shared: SharedCatalogEntry) {
+  if (!shared.stationUid) return
+  router.push({ name: 'federated-quiz-catalog', params: { stationUid: shared.stationUid, catalogId: shared.id } })
+}
+
 watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
 </script>
 
@@ -195,6 +200,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
           :shared-catalogs="filteredSharedCatalogs"
           :is-mobile="isMobile"
           @navigate="navigateToCatalog"
+          @navigate-shared="navigateToSharedCatalog"
           @export-catalog="exportCatalog"
           @confirm-delete="confirmDelete"
           @copy-shared="copySharedCatalog"

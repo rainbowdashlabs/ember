@@ -1,5 +1,30 @@
 # Changelog
 
+## v26.11.8
+
+### New Features
+
+- **Ask questions when someone registers for an event.** An event can ask everyone signing up for extra details — shirt size, number of guests, what they are bringing — as text, number, yes/no, date, choice or member. Each question can be mandatory and can start from a default value.
+- **Answers stand next to the registration.** The answers marked for the list appear beside the member's name in the registration list, and number questions get their total above it. Event templates carry their questions into every event created from them.
+
+### Improvements
+
+- **Files shared by partner stations open.** A shared file in the knowledge base opens like one of your own, both from the file list and from a search result, instead of only offering a copy. Text and Markdown files show their content and take comments; other formats still have to be copied into your station first.
+- **Question catalogues and test sheets shared by partner stations open.** A shared question catalogue shows its categories and question count, a shared test sheet its sections and points. Both can still be copied into your own station from the page.
+- **Knowledge base files save as PDF.** Markdown and text files can be downloaded as a PDF carrying the station name and logo — from the file, from the file list, from a file a partner station shares, and from a page on the public wiki. Headings, lists, tables, quotes and code blocks are kept; images are replaced by their description.
+- **Tile and list view of the knowledge base offer the same actions.** Removing a favourite is available in both views, and the buttons on every entry name what they do.
+
+### Changes
+
+- **One menu for the actions on a knowledge base entry.** Editing, downloading and deleting an entry sit in a single menu instead of a row of icons. An entry offering only one action keeps that action as a plain button.
+- **Shared knowledge base needs matching versions.** Partner stations still on the previous version pause knowledge-base sharing until both sides have updated. Every other federated feature keeps working in the meantime.
+
+### Fixes
+
+- **The registration list of an event loads.** Opening an event and switching to its registrations shows who has signed up.
+- **Question catalogues shared by partner stations appear again.** The catalogue list shows what partner stations share instead of leaving the shared section empty.
+- **Filtering by partner station works across search and lists.** Picking a partner station in the knowledge base, catalogue or test sheet filters matches the entries from that station.
+
 ## v26.11.7
 
 ### New Features

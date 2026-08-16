@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.knowledgebase.service.KbAuthorNameService;
 import dev.chojo.ember.feature.knowledgebase.service.KbContentService;
 import dev.chojo.ember.feature.knowledgebase.service.KbIconService;
 import dev.chojo.ember.feature.knowledgebase.service.KbImageService;
+import dev.chojo.ember.feature.knowledgebase.service.KbPdfExportService;
 import dev.chojo.ember.feature.knowledgebase.service.KbPresentationService;
 import dev.chojo.ember.feature.knowledgebase.service.KbSearchService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
@@ -68,6 +69,7 @@ public class KnowledgeBaseRoutes implements Routes {
     private final KnowledgeBaseFederationService federationService;
     private final KbIconService iconService;
     private final KbImageService imageService;
+    private final KbPdfExportService pdfExportService;
 
     @Inject
     public KnowledgeBaseRoutes(
@@ -79,7 +81,8 @@ public class KnowledgeBaseRoutes implements Routes {
             KbAuthorNameService authorNameService,
             KnowledgeBaseFederationService federationService,
             KbIconService iconService,
-            KbImageService imageService) {
+            KbImageService imageService,
+            KbPdfExportService pdfExportService) {
         this.service = service;
         this.contentService = contentService;
         this.searchService = searchService;
@@ -89,6 +92,7 @@ public class KnowledgeBaseRoutes implements Routes {
         this.federationService = federationService;
         this.iconService = iconService;
         this.imageService = imageService;
+        this.pdfExportService = pdfExportService;
     }
 
     private static String detectPandocFormat(String filename, String mimeType) {
@@ -149,6 +153,8 @@ public class KnowledgeBaseRoutes implements Routes {
         routes.get(prefix + "/kb/files/{id}/content", this::getFileContent, StationPermission.USER);
         routes.get(prefix + "/kb/files/{id}/html", this::getMarkdownHtml, StationPermission.USER);
         routes.put(prefix + "/kb/files/{id}/content", this::updateMarkdownContent, StationPermission.KNOWLEDGE_EDIT);
+
+        routes.get(prefix + "/kb/files/{id}/pdf", this::getPdfExport, StationPermission.USER);
 
         routes.get(prefix + "/kb/files/{id}/original", this::getOriginalFile, StationPermission.USER);
         routes.put(prefix + "/kb/files/{id}/original", this::reuploadOriginal, StationPermission.KNOWLEDGE_EDIT);
@@ -413,6 +419,30 @@ public class KnowledgeBaseRoutes implements Routes {
         ctx.status(204);
     }
 
+    private void getPdfExport(Context ctx) {
+        int id = pathInt(ctx, "id");
+        var file = requireOwnedFile(ctx, service, id);
+        if (!KbPdfExportService.isExportable(file.fileType())) {
+            throw new BadRequestResponse("Only markdown and text files can be rendered as PDF");
+        }
+        var session = UserSession.from(ctx);
+        try {
+            byte[] pdf =
+                    pdfExportService.render(file, session.account().fullName().trim());
+            ctx.contentType("application/pdf");
+            ctx.header(
+                    "Content-Disposition",
+                    SafeContentDisposition.build(SafeContentDisposition.Disposition.ATTACHMENT, file.name() + ".pdf"));
+            ctx.result(pdf);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new InternalServerErrorResponse("Failed to render PDF");
+        } catch (Exception e) {
+            log.warn("Failed to render text file {} as PDF", id, e);
+            throw new InternalServerErrorResponse("Failed to render PDF");
+        }
+    }
+
     private void getOriginalFile(Context ctx) {
         int id = pathInt(ctx, "id");
         var file = requireOwnedFile(ctx, service, id);
@@ -662,7 +692,7 @@ public class KnowledgeBaseRoutes implements Routes {
             int id, int version, boolean isFull, int createdBy, String createdByName, Instant createdAt) {}
 
     public record SearchResultResponse(
-            KbFile file, String snippet, String folderPath, String stationName, String sourceStationId) {}
+            KbFile file, String snippet, String folderPath, String stationName, String sourceStationUid) {}
 
     public record ImageUploadResponse(String imageId) {}
 }

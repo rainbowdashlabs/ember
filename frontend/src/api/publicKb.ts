@@ -52,6 +52,14 @@ export function fileContentUrl(stationUid: string, fileId: number): string {
     return `/api/v1/public/kb/${stationUid}/files/${fileId}/content`
 }
 
+/**
+ * Returns the public URL of the PDF rendering of a page. Public pages need no authentication, so
+ * this is a plain link rather than an authenticated download.
+ */
+export function pdfExportUrl(stationUid: string, fileId: number): string {
+    return `/api/v1/public/kb/${stationUid}/files/${fileId}/pdf`
+}
+
 export async function search(stationUid: string, query: string): Promise<PublicSearchResult[]> {
     const res = await publicClient.get<PublicSearchResult[]>(`/${stationUid}/search`, {params: {q: query}})
     return res.data

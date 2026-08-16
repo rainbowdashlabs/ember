@@ -16,6 +16,7 @@ defineProps<{
 
 const emit = defineEmits<{
   navigate: [catalog: QuizCatalog]
+  navigateShared: [shared: SharedCatalogEntry]
   exportCatalog: [catalog: QuizCatalog]
   confirmDelete: [catalog: QuizCatalog]
   copyShared: [catalogId: number]
@@ -35,10 +36,10 @@ const emit = defineEmits<{
     />
     <SharedCatalogRow
       v-for="shared in sharedCatalogs"
-      :key="'shared-' + shared.catalog.id"
+      :key="'shared-' + shared.stationUid + '-' + shared.id"
       :shared="shared"
       :is-mobile="isMobile"
-      @navigate="(c) => emit('navigate', c)"
+      @navigate="(s) => emit('navigateShared', s)"
       @copy="(id) => emit('copyShared', id)"
     />
   </div>

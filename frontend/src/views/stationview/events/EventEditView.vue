@@ -13,6 +13,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {events} from '@/api'
+import type {EventRegistrationFieldDefinition} from '@/api/events'
 import {StationPermission} from '@/api/types'
 import EventEditBody from './eventeditview/EventEditBody.vue'
 import {useEventForm} from './eventeditview/useEventForm'
@@ -39,6 +40,7 @@ const federationShare = useEventFederationShare(canFederate)
 
 const loading = ref(true)
 const error = ref('')
+const registrationFields = ref<EventRegistrationFieldDefinition[]>([])
 const {message: templateAppliedMessage, flash: flashTemplateApplied} = useFlashMessage(3000)
 
 async function applyEventTemplate(templateId: string | undefined) {
@@ -47,6 +49,20 @@ async function applyEventTemplate(templateId: string | undefined) {
     form.applyTemplate(await events.getTemplate(Number(templateId)))
     flashTemplateApplied(t('eventTemplates.applied'))
   } catch (e) { reportCaughtError(e, 'applyEventTemplate'); error.value = t('common.error') }
+}
+
+/**
+ * Loads the questions the event already asks, dropping their ids: the editor works on definitions
+ * and the whole set is replaced on save.
+ */
+async function loadRegistrationFields(id: number) {
+  const loadedFields = await events.listRegistrationFields(id).catch(() => [])
+  registrationFields.value = loadedFields.map(f => ({
+    name: f.name,
+    fieldType: f.fieldType,
+    config: f.config ?? {},
+    overview: f.overview,
+  }))
 }
 
 async function loadData() {
@@ -59,6 +75,7 @@ async function loadData() {
         form.loadEvent(eventId.value!),
         fieldDefaults.load(eventId.value!),
         federationShare.load(eventId.value!),
+        loadRegistrationFields(eventId.value!),
       ])
     }
   } catch (e) {
@@ -84,6 +101,7 @@ const {running: saving, error: saveError, run: submit} = useAsyncAction(async ()
   await fieldDefaults.save(savedEventId, isEdit.value)
   await events.setEventReminders(savedEventId, form.state.reminders)
   await events.setEventFields(savedEventId, {fields: form.namedFields()})
+  await events.setRegistrationFields(savedEventId, registrationFields.value.filter(f => f.name.trim() !== ''))
   await federationShare.save(savedEventId)
 
   leaveEditor()
@@ -151,6 +169,7 @@ const bodyHandlers = {
 
       <EventEditBody
           v-if="!loading"
+          v-model:registration-fields="registrationFields"
           v-bind="bodyProps"
           v-on="bodyHandlers"
       />

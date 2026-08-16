@@ -89,6 +89,17 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.kbFileView.versionsText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.kbFileView.pdfExportTitle')">
+      <p>{{ t('helpCenter.kbFileView.pdfExportText') }}</p>
+      <p>{{ t('helpCenter.kbFileView.pdfExportFormatting') }}</p>
+      <p>{{ t('helpCenter.kbFileView.pdfExportWhere') }}</p>
+      <NeutralContainer>
+        <SecondaryButton compact disabled>
+          <font-awesome-icon :icon="['fas', 'file-pdf']" class="mr-1"/> {{ t('kb.downloadPdf') }}
+        </SecondaryButton>
+      </NeutralContainer>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.kbFileView.presentationsTitle')">
       <p>{{ t('helpCenter.kbFileView.presentationsText') }}</p>
       <p>{{ t('helpCenter.kbFileView.presentationsFormats') }}</p>

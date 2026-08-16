@@ -33,7 +33,7 @@ export function useKbSearch(filters: ReturnType<typeof useKbFilters>) {
         if (!filters.showFederated.value) {
             results = results.filter(r => !r.stationName)
         } else if (filters.filterStationId.value != null) {
-            results = results.filter(r => !r.stationName || r.sourceStationId === filters.filterStationId.value)
+            results = results.filter(r => !r.stationName || r.sourceStationUid === filters.filterStationId.value)
         }
         if (filters.filterTag.value) {
             results = results.filter(r => r.stationName || filters.fileMatchesTagFilter(r.file.id))

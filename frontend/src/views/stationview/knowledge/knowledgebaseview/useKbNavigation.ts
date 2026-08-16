@@ -37,6 +37,14 @@ export function useKbNavigation() {
         router.push({name: 'kb-file', params: {id: file.id}})
     }
 
+    /**
+     * Opens a file held by a federation partner. A file id is only unique within the station that
+     * owns it, so the partner's station UUID is part of the address.
+     */
+    function navigateToFederatedFile(stationUid: string, fileId: number) {
+        router.push({name: 'federated-kb-file', params: {stationUid, fileId}})
+    }
+
     function navigateToFavourites() {
         router.push({name: 'kb-browse', query: {folderId: 'favourites'}})
     }
@@ -47,6 +55,7 @@ export function useKbNavigation() {
         currentFolderId,
         navigateToFolder,
         navigateToFile,
+        navigateToFederatedFile,
         navigateToFavourites,
     }
 }

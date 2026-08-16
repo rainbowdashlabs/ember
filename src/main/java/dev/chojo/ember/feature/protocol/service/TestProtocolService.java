@@ -384,7 +384,7 @@ public class TestProtocolService {
                             item.name(),
                             item.description(),
                             FederationDisplayNames.partnerName(stationRepository, partner, "Unknown"),
-                            item.sourceStationId());
+                            partner != null ? partner.partnerStationId().toString() : null);
                 })
                 .toList();
     }
@@ -528,8 +528,11 @@ public class TestProtocolService {
     /**
      * A shared protocol as shown to users, carrying the owning partner station's display name.
      */
-    public record SharedProtocolView(
-            int id, String name, String description, String stationName, int sourceStationId) {}
+    /**
+     * A protocol shared by a partner. The station UUID addresses the serving station on the
+     * federated read routes and is null when the partnership behind it can no longer be resolved.
+     */
+    public record SharedProtocolView(int id, String name, String description, String stationName, String stationUid) {}
 
     public record RemoteProtocol(int id, String name, String description) {}
 }

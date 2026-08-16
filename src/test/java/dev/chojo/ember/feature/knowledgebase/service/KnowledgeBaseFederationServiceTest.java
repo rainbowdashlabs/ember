@@ -105,7 +105,8 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 mock(EventFederationRepository.class),
                 memberNameResolver,
                 new FederationFanout(),
-                new FederationEntityResolver(federationRepo, stationRepo, httpClient));
+                new FederationEntityResolver(federationRepo, stationRepo, httpClient),
+                mock(KbPdfExportService.class));
 
         station = stationRepo.create("KbFedStation");
         stationB = stationRepo.create("KbFedStationB");
@@ -202,7 +203,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         assertEquals("NamedFedFile", item.title());
         assertEquals("desc", item.description());
         assertEquals(stationB.name(), item.stationName());
-        assertEquals(stationB.id(), item.stationId());
+        assertEquals(stationB.uid().toString(), item.stationUid());
         assertEquals(requestingPartner.id(), item.partnerId());
 
         federationRepo.deleteKbShare(share.id(), stationB.id());
@@ -310,10 +311,9 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(23)
     void getFederatedKbFileRemote() {
-        var remoteFile = new KbFile(
+        var remoteFile = new RemoteKnowledgeBaseRoutes.RemoteKbFile(
                 77,
-                1,
-                null,
+                stationC.uid(),
                 "RemoteDetail",
                 "desc",
                 KbFileType.MARKDOWN,
@@ -321,22 +321,15 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 0,
                 null,
                 null,
-                null,
-                0,
-                1,
                 Instant.parse("2026-01-01T00:00:00Z"),
                 Instant.parse("2026-01-01T00:00:00Z"),
-                null,
-                null,
-                null,
-                false,
                 null);
         when(httpClient.get(eq(REMOTE_HOST), pathIs("/remote/kb/files/77"), any(), eq(station.id()), any(), any()))
                 .thenReturn(remoteFile);
 
-        assertEquals(
-                "RemoteDetail",
-                service.getFederatedKbFile(station.id(), stationC.uid(), 77).name());
+        var resolved = service.getFederatedKbFile(station.id(), stationC.uid(), 77);
+        assertEquals("RemoteDetail", resolved.name());
+        assertEquals(stationC.uid(), resolved.stationUid());
     }
 
     @Test
@@ -767,9 +760,10 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         assertEquals("Station", result.stationName());
         assertEquals("uid-123", result.stationUid());
 
-        var item = new KnowledgeBaseFederationService.FederatedKbItem(4, "Title", "Desc", "Station", 5, 6);
+        var item = new KnowledgeBaseFederationService.FederatedKbItem(4, "Title", "Desc", "Station", "uid-456", 6);
         assertEquals(4, item.remoteId());
         assertEquals("Title", item.title());
+        assertEquals("uid-456", item.stationUid());
 
         var served = new KnowledgeBaseFederationService.RemoteKbFileSummary(7, "Name", "Desc", "MARKDOWN", "now");
         assertEquals(7, served.id());
@@ -778,5 +772,9 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         var match = new KnowledgeBaseFederationService.RemoteKbSearchResultItem(8, "Name", "Desc", "Snippet");
         assertEquals(8, match.id());
         assertEquals("Snippet", match.snippet());
+
+        var rendered = new KnowledgeBaseFederationService.RenderedPdf("Leitfaden.pdf", new byte[] {1, 2});
+        assertEquals("Leitfaden.pdf", rendered.fileName());
+        assertEquals(2, rendered.data().length);
     }
 }
