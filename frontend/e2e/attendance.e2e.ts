@@ -18,4 +18,16 @@ test.describe('Attendance', () => {
 
         await expect(page.getByTestId('app-shell')).toBeVisible()
     })
+
+    test('the attendance report is reachable', async ({managerPage: page}) => {
+        await page.goto('/station/attendance/report')
+
+        await expect(page.getByTestId('app-shell')).toBeVisible()
+    })
+
+    test('a member does not record attendance', async ({memberPage: page}) => {
+        await page.goto('/station/attendance/new')
+
+        await expect(page.getByRole('button', {name: /Speichern|Starten/})).toHaveCount(0)
+    })
 })

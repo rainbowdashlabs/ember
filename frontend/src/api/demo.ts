@@ -18,3 +18,39 @@ export async function getDemoStatus(): Promise<DemoStatus> {
     const res = await client.get<DemoStatus>('/demo/status')
     return res.data
 }
+
+/**
+ * A demo account offered for one-click login, as the instance describes it.
+ */
+export interface DemoAccount {
+    email: string
+    firstName: string
+    lastName: string
+    userType: string
+    permissions: string[]
+    groups: string[]
+    tags: string[]
+    profileComplete: boolean
+    instanceAdministrator?: boolean
+}
+
+/** A station and the demo accounts that belong to it. */
+export interface DemoStationGroup {
+    stationId: string
+    stationName: string
+    accounts: DemoAccount[]
+}
+
+/**
+ * The accounts, in whichever shape the instance answers with: grouped by station, a bare list of
+ * groups, or a flat list from an older instance.
+ */
+export type DemoAccountsPayload =
+    | {noStationAccounts: DemoAccount[]; stationGroups: DemoStationGroup[]}
+    | DemoStationGroup[]
+    | DemoAccount[]
+
+export async function getDemoAccounts(): Promise<DemoAccountsPayload> {
+    const res = await client.get<DemoAccountsPayload>('/demo/accounts')
+    return res.data
+}
