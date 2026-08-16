@@ -12,6 +12,33 @@ import {unique} from './fixtures/unique'
  * the listing reports, and the create menu. One story covers all three from the outside.
  */
 test.describe('Knowledge base', () => {
+    /**
+     * A page of the wiki is often wanted on paper, and the download is what a reader actually
+     * receives — so the story waits for the file rather than for the button to look pressed.
+     */
+    test('a file is downloaded as a PDF', async ({managerPage: page}) => {
+        const folder = unique('Ordner')
+        const file = unique('Datei')
+
+        await page.goto('/station/knowledge')
+        await page.getByRole('button', {name: 'Neu'}).click()
+        await page.getByText('Neuer Ordner').last().click()
+        await page.getByPlaceholder('Ordnername').fill(folder)
+        await page.getByRole('button', {name: 'Neuer Ordner'}).last().click()
+        await page.getByText(folder).click()
+
+        await page.getByRole('button', {name: 'Neu'}).click()
+        await page.getByText('Markdown-Datei').last().click()
+        await page.getByPlaceholder('Dateiname').fill(file)
+        await page.getByRole('button', {name: 'Neue Datei'}).click()
+        await page.waitForURL(/\/station\/knowledge\/file\/\d+/)
+
+        const download = page.waitForEvent('download')
+        await page.getByRole('button', {name: 'Als PDF'}).click()
+
+        expect((await download).suggestedFilename()).toMatch(/\.pdf$/)
+    })
+
     /** Creating a Markdown file opens it, because that is where its content is written. */
     test('a folder is created and holds a file', async ({managerPage: page}) => {
         const folder = unique('Ordner')

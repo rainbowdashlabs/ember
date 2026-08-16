@@ -13,6 +13,26 @@ import {unique} from './fixtures/unique'
  * the label rather than of the permission.
  */
 test.describe('Permissions', () => {
+    /** A group is only useful once somebody is in it, and the members tab is where they go in. */
+    test('a member is put into a group', async ({managerPage: page}) => {
+        const group = unique('Gruppe')
+
+        await page.goto('/station/members/groups')
+        await page.getByRole('button', {name: 'Neue Gruppe'}).click()
+        await page.getByRole('textbox').first().fill(group)
+        await page.getByRole('button', {name: /Speichern|Erstellen/}).last().click()
+        await page.getByText(group).first().click()
+
+        const candidate = page.getByTestId('group-candidate').first()
+        await expect(candidate).toBeVisible()
+        const name = (await candidate.innerText()).split('\n')[0]
+        await candidate.click()
+
+        await page.reload()
+        await page.getByText(group).first().click()
+        await expect(page.getByText(name).first()).toBeVisible()
+    })
+
     test('a group is created', async ({managerPage: page}) => {
         const group = unique('Gruppe')
 
