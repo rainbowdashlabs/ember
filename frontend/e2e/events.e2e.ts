@@ -28,13 +28,15 @@ test.describe('Events', () => {
     })
 
     /**
-     * A member reaches the page, and it is not the organiser's planner: the seeded member sees no
-     * entries there at all, which is what the registration stories are still waiting on.
+     * A member sees the station's events. They did not until the page stopped asking for the
+     * attendance templates alongside them: that call is refused for anyone who does not record
+     * attendance, and it took the whole page down with it.
      */
-    test('a member reaches the events page', async ({memberPage: page}) => {
+    test('a member sees the events of their station', async ({memberPage: page}) => {
         await page.goto('/station/events')
 
         await expect(page.getByTestId('app-shell')).toBeVisible()
+        await expect(page.getByTestId('event-entry').first()).toBeVisible()
     })
 
     /**
@@ -49,13 +51,8 @@ test.describe('Events', () => {
         await expect(page.getByText(/Meine Anmeldung|Anmeldungen/).first()).toBeVisible()
     })
 
-    /**
-     * EVT-2 and EVT-6 in one walk. Held back on the seed rather than on the interface: the events
-     * the seeded member sees in their planner are the ones that take no registration, so there is
-     * nothing for them to sign up to. It turns green once the seeder gives that station an event
-     * that asks its members to register.
-     */
-    test.fixme('EVT-2 a member registers for an event and withdraws again', async ({memberPage: page}) => {
+    /** EVT-2 and EVT-6 in one walk: a member registers for an event and takes it back again. */
+    test('EVT-2 a member registers for an event and withdraws again', async ({memberPage: page}) => {
         await openEventWithRegistration(page)
         await page.getByRole('button', {name: 'Anmeldungen'}).click()
 

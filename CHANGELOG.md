@@ -8,8 +8,15 @@
 - **Ask questions when someone registers for an event.** An event can ask everyone signing up for extra details — shirt size, number of guests, what they are bringing — as text, number, yes/no, date, choice or member. Each question can be mandatory and can start from a default value.
 - **Answers stand next to the registration.** The answers marked for the list appear beside the member's name in the registration list, and number questions get their total above it. Event templates carry their questions into every event created from them.
 
+- **Placeholders for details that repeat across the legal documents.** A name in double curly braces stands in for a value — the operator's name, address or email address — and is filled in once under Settings → Legal. Ember finds every placeholder written into any document by itself and applies the same value across all document types and languages.
+- **The privacy notice lists what stays in your browser.** Privacy policy and consent text carry a section naming every value the application keeps in your browser, what it is for and how long it stays — grouped into what login needs, what a single feature needs and what only remembers a display preference. The section writes itself from the application, so it stays correct as the software changes.
+
 ### Improvements
 
+- **Terms of service now cover what the product actually does.** The shipped terms describe public pages, sharing with partner stations, AI-assisted question generation, feeds and exports, the obligations of a station admitted to an instance, and how a station's use ends. They are laid out in six parts that can be reordered or switched off individually.
+- **The shipped imprint asks to be filled in rather than edited.** It carries placeholders for the operator's name, address, phone number, email address and the person responsible for content, so an instance is ready once those values are entered. A placeholder left empty stays visible in the text instead of leaving a blank line. New operator setting: `api.placeholderFile`.
+- **Legal documents can start from the shipped templates.** Under Settings → Legal, a section of the document Ember ships can be loaded into the editor — one at a time or all at once. A section of the same name is replaced, everything else stays as it is, and nothing is written until you save.
+- **The section on browser storage cannot fall out of date.** It is generated rather than written, so it can only be shown, hidden or moved. Both privacy policy and consent text pick it up, and a change to it prompts for consent again like any other change.
 - **The knowledge base only offers what you may actually do.** Editing, deleting and creating appear where your permission allows them, an entry you may only read is marked as read only, and a file you may only read names the folder that decided it. Existing stations notice nothing until they set their first permission.
 - **Answers to registration questions are complete for the organisers.** Whoever may edit the event sees every answer including the notes, plus totals per question: numbers are added up and choices counted per option. A question can also be marked as belonging to the organisers, in which case it is neither asked of members nor visible to them.
 - **Public pages arrive complete.** The station directory and the imprint, privacy and terms pages carry their content in the page the server sends, so search engines and link previews see it. Visitors reach the same pages as before, a moment sooner.
@@ -25,6 +32,8 @@
 
 ### Fixes
 
+- **A new instance starts with legal documents in place.** Privacy policy, terms of service, consent text and imprint are laid down on first start in German and English. A language that already holds a document keeps exactly what is there.
+- **Members see the events of their station.** Opening the events page shows the station's events for everyone, not only for those who also record attendance.
 - **The registration list of an event loads.** Opening an event and switching to its registrations shows who has signed up.
 - **Question catalogues shared by partner stations appear again.** The catalogue list shows what partner stations share instead of leaving the shared section empty.
 - **Filtering by partner station works across search and lists.** Picking a partner station in the knowledge base, catalogue or test sheet filters matches the entries from that station.
