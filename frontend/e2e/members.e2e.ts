@@ -4,12 +4,37 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {test, expect} from './fixtures/auth'
+import {unique} from './fixtures/unique'
 
 /**
- * The creation wizard walks five steps and writes an account. It is written once a run can be
- * relied on to clear up after itself, so that the seeded station does not fill with test members.
+ * The creation wizard walks several steps before it writes anything, and each one has to be
+ * carried past on its own — which is the point of the story: a member created through it appears
+ * in the list afterwards.
  */
 test.describe('Members', () => {
+    test('a member is created through the wizard', async ({managerPage: page}) => {
+        const surname = unique('Story')
+
+        await page.goto('/station/members/create')
+        await expect(page.getByTestId('app-shell')).toBeVisible()
+
+        await page.getByRole('button', {name: 'Weiter'}).first().click()
+
+        await page.getByPlaceholder('Vorname').fill('Testperson')
+        await page.getByPlaceholder('Nachname').fill(surname)
+        await page.getByPlaceholder('E-Mail-Adresse').fill(`${surname.toLowerCase()}@example.test`)
+        await page.getByRole('button', {name: 'Weiter'}).first().click()
+
+        for (let step = 0; step < 4; step += 1) {
+            const next = page.getByRole('button', {name: /Weiter|Konto erstellen|Erstellen/}).first()
+            if (!await next.isVisible().catch(() => false)) break
+            await next.click()
+        }
+
+        await page.goto('/station/members/list')
+        await expect(page.getByText(surname).first()).toBeVisible()
+    })
+
     test('the member list shows the station and filters by name', async ({managerPage: page}) => {
         await page.goto('/station/members/list')
 
