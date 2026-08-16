@@ -40,11 +40,20 @@ export async function getPublicEvent(stationUid: string, eventId: number): Promi
     return res.data
 }
 
+/**
+ * The calendar feed of a station, as a whole address a calendar application can be handed.
+ *
+ * The origin is only known in a browser. During a server render there is none, so the address is
+ * given relative: reading it there would throw and take the whole page down with it.
+ */
 export function getIcalFeedUrl(stationUid: string): string {
-    return `${window.location.origin}/api/v1/public/events/${stationUid}/feed/ical`
+    const path = `/api/v1/public/events/${stationUid}/feed/ical`
+    return import.meta.client ? `${window.location.origin}${path}` : path
 }
 
+/** The same feed for a calendar application, which subscribes over its own scheme. */
 export function getIcalSubscribeUrl(stationUid: string): string {
-    const httpUrl = `${window.location.origin}/api/v1/public/events/${stationUid}/feed/ical`
-    return httpUrl.replace(/^https?:/, 'webcal:')
+    if (!import.meta.client) return ''
+    return `${window.location.origin}/api/v1/public/events/${stationUid}/feed/ical`
+        .replace(/^https?:/, 'webcal:')
 }
