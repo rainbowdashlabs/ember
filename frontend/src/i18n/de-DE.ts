@@ -5742,7 +5742,7 @@ export default {
     },
     adminDataTracking: {
         devOnlyNotice: 'Nur im Dev-Modus verfügbar',
-        devOnlyDisabled: 'Diese Ansicht ist im aktuellen Build deaktiviert. Starte den Frontend-Dev-Server, um sie zu öffnen.',
+        devOnlyDisabled: 'Diese Ansicht steht nur zur Verfügung, wenn der Server im Dev-Modus läuft.',
         totalTables: 'Tabellen gesamt',
         columnsVerified: 'Spalten verifiziert',
         needsReview: 'Zu prüfen',

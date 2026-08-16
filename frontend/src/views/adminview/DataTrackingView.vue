@@ -11,7 +11,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import {dataTracking} from '@/api'
+import {dataTracking, demo} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import type {
   DataTracking,
@@ -45,7 +45,12 @@ const batchContext = ref<'stationTransfer' | 'gdprExport' | 'gdprDeletion'>('sta
 const batchStatus = ref<TrackingStatusName>('UNVERIFIED')
 const batchError = ref('')
 
-const isDev = import.meta.env.DEV
+/**
+ * Whether the backend is a dev instance, which is what decides this page rather than how the
+ * frontend happened to be built: everything on it comes from routes that only a dev instance
+ * registers, and a production build talking to one can show them perfectly well.
+ */
+const isDev = ref(false)
 
 interface Row {
   name: string
@@ -211,7 +216,10 @@ const {running: batchSaving, run: applyBatch} = useAsyncAction(async () => {
   }
 })
 
-onMounted(loadData)
+onMounted(async () => {
+  isDev.value = await demo.getDemoStatus().then(status => status.dev).catch(() => false)
+  if (isDev.value) await loadData()
+})
 </script>
 
 <template>
