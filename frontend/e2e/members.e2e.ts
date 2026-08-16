@@ -57,6 +57,38 @@ test.describe('Members', () => {
         await expect(page.getByRole('listitem').first()).toBeVisible()
     })
 
+    /**
+     * Somebody who joined and left again without ever taking anything out has nothing standing in
+     * the way, so the same button confirms rather than warns — and they leave the active list.
+     */
+    test('a member with nothing outstanding is marked former', async ({managerPage: page}) => {
+        const surname = unique('Abschied')
+
+        await page.goto('/station/members/create')
+        await page.getByRole('button', {name: 'Weiter'}).first().click()
+        await page.getByPlaceholder('Vorname').fill('Testperson')
+        await page.getByPlaceholder('Nachname').fill(surname)
+        await page.getByPlaceholder('E-Mail-Adresse').fill(`${surname.toLowerCase()}@example.test`)
+        await page.getByRole('button', {name: 'Weiter'}).first().click()
+        for (let step = 0; step < 4; step += 1) {
+            const next = page.getByRole('button', {name: /Weiter|Konto erstellen|Erstellen/}).first()
+            if (!await next.isVisible().catch(() => false)) break
+            await next.click()
+        }
+
+        await page.goto('/station/members/list')
+        await page.getByPlaceholder(/Suche/).first().fill(surname)
+        await page.getByTestId('member-row').first().getByRole('button', {name: 'Details'}).click()
+        await page.waitForURL(/\/station\/members\/detail\/\d+/)
+
+        await page.getByRole('button', {name: 'Als ehemalig markieren'}).first().click()
+        await expect(page.getByText('Mitglied als ehemalig markieren')).toBeVisible()
+        await page.getByRole('button', {name: 'Als ehemalig markieren'}).nth(1).click()
+
+        await page.goto('/station/members/former')
+        await expect(page.getByText(surname).first()).toBeVisible()
+    })
+
     test('the member list shows the station and filters by name', async ({managerPage: page}) => {
         await page.goto('/station/members/list')
 
