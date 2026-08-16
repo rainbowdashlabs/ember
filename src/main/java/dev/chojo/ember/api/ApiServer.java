@@ -322,8 +322,13 @@ public class ApiServer {
                     rule.allowHost(origin);
                 }
                 if (demoConfig.dev()) {
+                    // The frontends a dev instance is asked from: the dev server, the second one
+                    // the cross-instance transfer harness runs, and the end-to-end suite's own.
+                    // An origin missing here is refused with 400 on every write, which reads as
+                    // the request being malformed rather than as the port being unknown.
                     rule.allowHost("http://localhost:3000");
                     rule.allowHost("http://localhost:3001");
+                    rule.allowHost("http://localhost:3010");
                 }
             }));
 
@@ -911,9 +916,15 @@ public class ApiServer {
      * {@code Retry-After} header when a client exceeds its budget. Server-to-server
      * federation traffic under {@code /remote/} is exempt — it is authenticated by
      * request signature and replay-protected already.
+     *
+     * <p>A dev instance is exempt as a whole. Everything on it arrives from one address — the
+     * browser of whoever is working, or a test suite running several of them at once — so the
+     * limit measures nothing there except how busy the developer is, and it answers
+     * {@code 429} to pages that are simply loading their data.
      */
     private void enforceGlobalRateLimit(@NotNull Context ctx) {
         if (ctx.method() == HandlerType.OPTIONS) return;
+        if (demoConfig.dev()) return;
         if (ctx.path().startsWith(API_PREFIX + "/remote/")) return;
 
         String clientIp;

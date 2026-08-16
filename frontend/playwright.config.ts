@@ -14,6 +14,8 @@ import {defineConfig, devices} from '@playwright/test'
  * context with JavaScript switched off is the only way to assert that they really are rather than
  * being repaired by hydration.
  */
+const backendUrl = process.env.NUXT_BACKEND_URL || 'http://localhost:8899'
+
 export default defineConfig({
     testDir: './e2e',
     globalSetup: './e2e/global-setup.ts',
@@ -29,17 +31,15 @@ export default defineConfig({
     expect: {timeout: 15_000},
     retries: process.env.CI ? 2 : 0,
     /**
-     * Two against a dev server, four against a built one. A dev server compiles each route the
-     * first time it is asked for and serves it from a single process; four workers asking at once
-     * push it past what the assertions are willing to wait for, and the failures land on whichever
-     * story happened to be in flight. Point the suite at a built server and the ceiling lifts.
+     * Four against the built server it normally uses, two against a dev server, which compiles
+     * each route on demand from a single process and falls behind under more.
      */
-    workers: process.env.E2E_BUILT_SERVER ? 4 : 2,
+    workers: process.env.E2E_DEV_SERVER ? 2 : 4,
     fullyParallel: true,
     reporter: process.env.CI ? [['html', {outputFolder: 'e2e/report'}], ['list']] : 'list',
 
     use: {
-        baseURL: process.env.E2E_BASE_URL || 'http://localhost:3000',
+        baseURL: process.env.E2E_BASE_URL || 'http://localhost:3010',
         trace: 'on-first-retry',
         screenshot: 'only-on-failure',
         video: 'on-first-retry',
@@ -57,37 +57,41 @@ export default defineConfig({
     ],
 
     /**
-     * Database and backend come from the dev stack, which publishes the backend on 8888; the Nuxt
-     * server runs from this checkout so the suite tests the sources in front of it rather than a
-     * container built from an older commit. The dev stack's own frontend service stays down, which
-     * is what keeps port 3000 free for it.
+     * A stack of its own, on ports nobody works on: the database and backend come from the `e2e`
+     * compose profile and answer on 8899, and the Nuxt server runs from this checkout on 3010.
+     *
+     * That separation is what lets the suite reset the database before every run. Pointed at the
+     * dev stack it would delete whatever a developer had just set up.
+     *
+     * The frontend is the built server rather than a second dev server, for two reasons: Nuxt
+     * allows only one dev server per project, so a suite that wanted its own would fight whoever
+     * is working; and a dev server compiles each route the first time it is asked for, which the
+     * suite outgrew. Set E2E_DEV_SERVER to use one anyway while writing a single story.
      */
     webServer: process.env.E2E_NO_SERVER
         ? undefined
         : [
             {
-                command: 'docker compose -f ../docker/compose.dev.yaml --profile full up -d postgres ember',
-                url: 'http://localhost:8888/api/v1/public/config',
+                command: 'docker compose -f ../docker/compose.dev.yaml --profile e2e up -d',
+                url: 'http://localhost:8899/api/v1/public/config',
                 reuseExistingServer: true,
                 timeout: 300_000,
             },
-            process.env.E2E_BUILT_SERVER
+            !process.env.E2E_DEV_SERVER
                 ? {
-                    command: 'node .output/server/index.mjs',
-                    url: 'http://localhost:3000',
+                    // Named in the command rather than handed over as an environment, which does
+                    // not always reach the process: without the address the server falls back to
+                    // its default backend and every proxied call answers 500.
+                    command: `NUXT_BACKEND_URL=${backendUrl} NITRO_PORT=3010 node .output/server/index.mjs`,
+                    url: 'http://localhost:3010',
                     reuseExistingServer: !process.env.CI,
                     timeout: 120_000,
-                    env: {
-                        NUXT_BACKEND_URL: process.env.NUXT_BACKEND_URL || 'http://localhost:8888',
-                        NITRO_PORT: '3000',
-                    },
                 }
                 : {
-                    command: 'npm run dev',
-                    url: 'http://localhost:3000',
+                    command: `NUXT_BACKEND_URL=${backendUrl} npm run dev -- --port 3010`,
+                    url: 'http://localhost:3010',
                     reuseExistingServer: !process.env.CI,
                     timeout: 120_000,
-                    env: {NUXT_BACKEND_URL: process.env.NUXT_BACKEND_URL || 'http://localhost:8888'},
                 },
         ],
 })

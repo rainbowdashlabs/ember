@@ -49,14 +49,13 @@ Frontend tests
   fe-test1 <pattern>    One test file or name pattern, e.g. `fe-test1 MemberName`
   fe-test-watch         vitest in watch mode
   fe-coverage           Tests with coverage and the threshold gate
-  fe-e2e [project]      End-to-end tests, default project chromium. Starts the dev stack and the
-                        Nuxt server itself; set E2E_NO_SERVER=1 when they already run
+  fe-e2e [project]      End-to-end tests, default project chromium. Starts the e2e stack (its own
+                        database and backend on 8899) and serves the last build on 3010; set
+                        E2E_NO_SERVER=1 when they already run
   fe-e2e1 <file> [args] One end-to-end spec, e.g. `fe-e2e1 account`
   fe-e2e-ssr            The JavaScript-disabled project, which is what proves the public routes
                         really are server-rendered
-  fe-e2e-built [proj]   Build the frontend, then run the stories against the built server. Slower
-                        to start and far steadier than the dev server, which compiles each route
-                        on demand and buckles under parallel workers
+  fe-e2e-built [proj]   Rebuild the frontend first, then run the stories
   fe-e2e-list           List every end-to-end story without running anything or starting a server
   fe-e2e-report         Open the last end-to-end report
   fe-e2e-install        Download the Playwright browser binaries (once per machine)
@@ -126,8 +125,11 @@ case "$cmd" in
     fe-test-watch) fe; NODE_OPTIONS="$NODE_HEAP" run npx vitest "$@" ;;
     fe-coverage)   fe; NODE_OPTIONS="$NODE_HEAP" run npx vitest run --coverage "$@" ;;
     fe-e2e)
+        # The suite serves the last build; build once when there is none yet.
         project="${1:-chromium}"; shift || true
-        fe; run npx playwright test --project "$project" "$@"
+        fe
+        [ -f .output/server/index.mjs ] || NODE_OPTIONS="$NODE_HEAP" run npx nuxi build
+        run npx playwright test --project "$project" "$@"
         ;;
     fe-e2e1)
         [ $# -ge 1 ] || { echo "fe-e2e1 needs a spec name, e.g. account" >&2; exit 2; }
@@ -136,11 +138,10 @@ case "$cmd" in
         ;;
     fe-e2e-ssr)      fe; run npx playwright test --project ssr-no-js "$@" ;;
     fe-e2e-built)
-        # Against a built server rather than the dev one: no per-route compilation, so the suite
-        # can use every worker instead of waiting on a single process that is still bundling.
+        # Rebuilds first, for when the sources moved since the last build.
         project="${1:-chromium}"; shift || true
         fe; NODE_OPTIONS="$NODE_HEAP" run npx nuxi build
-        fe; E2E_BUILT_SERVER=1 run npx playwright test --project "$project" "$@"
+        fe; run npx playwright test --project "$project" "$@"
         ;;
     fe-e2e-list)     fe; E2E_NO_SERVER=1 run npx playwright test --list "$@" ;;
     fe-e2e-report)   fe; run npx playwright show-report e2e/report "$@" ;;

@@ -28,6 +28,58 @@ services:
       timeout: 3s
       retries: 10
 
+  # The end-to-end stack. Its own database, its own backend, its own ports and its own volumes,
+  # so a test run can throw the data away whenever it likes without touching what someone is
+  # working in. The suite resets this database before every run; doing that to the dev stack
+  # would delete the state a developer had just set up by hand.
+  postgres-e2e:
+    image: postgres:18-alpine
+    container_name: ember_e2e_db
+    environment:
+      POSTGRES_DB: ember
+      POSTGRES_USER: ember
+      POSTGRES_PASSWORD: ember
+    ports:
+      - "5434:5432"
+    volumes:
+      - ember-e2e-data:/var/lib/postgresql
+    profiles:
+      - e2e
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ember"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  ember-e2e:
+    container_name: ember_e2e
+    build:
+      context: ..
+      dockerfile: docker/backend.dev.Dockerfile
+    ports:
+      - "8899:8080"
+    environment:
+      DB_HOST: postgres-e2e
+      DB_PORT: "5432"
+      DB_USER: ember
+      DB_PASSWORD: ember
+      DB_DATABASE: ember
+      DB_SCHEMA: ember_schema
+      DEMO_DEV: "true"
+      API_BASEURL: http://localhost:3010
+    volumes:
+      - ..:/home/gradle/project
+      - ember-e2e-gradle-cache:/home/gradle/.gradle
+      - ember-e2e-gradle-build:/home/gradle/project/build
+      - ember-e2e-project-gradle:/home/gradle/project/.gradle
+      - ./config:/home/gradle/project/config
+      - ember-e2e-app-data:/home/gradle/project/data
+    depends_on:
+      postgres-e2e:
+        condition: service_healthy
+    profiles:
+      - e2e
+
   # S3-compatible object storage for testing the S3 backend variant.
   # Reach the S3 API from the host at http://localhost:9000 and the admin console at
   # http://localhost:9001 (default login: emberadmin / emberadmin). On first boot
@@ -276,6 +328,11 @@ services:
       - transfer
 
 volumes:
+  ember-e2e-data:
+  ember-e2e-app-data:
+  ember-e2e-gradle-cache:
+  ember-e2e-gradle-build:
+  ember-e2e-project-gradle:
   ember-dev-data:
   ember-dev-rustfs:
   ember-dev-sftp:
