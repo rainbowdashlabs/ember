@@ -11,9 +11,12 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
+import RegistrationFieldAnswers from './RegistrationFieldAnswers.vue'
+import type {EventRegistrationField} from '@/api/events'
 import type {EventRegistrationEntry, MemberRegistrationStats} from '@/api/events'
 
 const props = defineProps<{
+  fields?: EventRegistrationField[]
   registrations: EventRegistrationEntry[]
   stats: MemberRegistrationStats[]
   showActions?: boolean
@@ -55,7 +58,10 @@ function getStats(memberId: number): MemberRegistrationStats | undefined {
       </thead>
       <tbody>
       <tr v-for="reg in sortedRegistrations" :key="reg.id" class="border-b border-(--border) last:border-0">
-        <td class="p-2"><MemberName :identity="reg.memberIdentity ?? null"/></td>
+        <td class="p-2">
+          <MemberName :identity="reg.memberIdentity ?? null"/>
+          <RegistrationFieldAnswers :fields="fields ?? []" :values="reg.fields" class="mt-1"/>
+        </td>
         <template v-if="getStats(reg.memberId)">
           <td class="p-2 text-center font-bold" :class="getStats(reg.memberId)!.priority === 'HIGH' ? 'text-success' : getStats(reg.memberId)!.priority === 'MEDIUM' ? 'text-info' : ''">
             {{ getStats(reg.memberId)!.fairnessScore }}

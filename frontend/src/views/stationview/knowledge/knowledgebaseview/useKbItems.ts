@@ -6,7 +6,16 @@
 import {computed, type ComputedRef, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {knowledgeBase} from '@/api'
-import {KbFileType, type KbFile, type KbFolder, type SearchResult, type SharedFileEntry} from '@/api/knowledgeBase'
+import {
+    KbAccessLevel,
+    KbFileType,
+    levelCovers,
+    type KbAccessLevelName,
+    type KbFile,
+    type KbFolder,
+    type SearchResult,
+    type SharedFileEntry,
+} from '@/api/knowledgeBase'
 import {fileIcon} from '@/util/kbFileIcon'
 import {isPdfExportable} from '@/util/kbFileExport'
 
@@ -49,6 +58,8 @@ export interface KbItem {
     stationName?: string
     restricted: boolean
     favourite: boolean
+    /** Set when a grant holds the reader below what their station permission would allow. */
+    levelLabel?: string
     /** A short line the grid shows under the title, used by the favourites folder. */
     countLabel?: string
     /** Rich text the search results show under the title. */
@@ -81,6 +92,10 @@ interface KbItemSources {
     currentFolder: Ref<KbFolder | null>
     isFavouritesView: Ref<boolean>
     canManage: Ref<boolean>
+    /** What the reader may do with each folder, as the browse listing reported it. */
+    folderLevels: Ref<Record<number, KbAccessLevelName>>
+    /** What the reader may do with each file, as the browse listing reported it. */
+    fileLevels: Ref<Record<number, KbAccessLevelName>>
 }
 
 /**
@@ -111,6 +126,18 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
         }
     }
 
+    /**
+     * The badge naming the level an entry leaves the reader with. Only someone whose station
+     * permission would let them edit gets it: for everyone else read-only is the normal state and
+     * saying so on every entry says nothing, while for an editor it is the reason the edit action
+     * is missing.
+     */
+    function levelLabel(level: KbAccessLevelName | undefined): string | undefined {
+        if (!sources.canManage.value) return undefined
+        if (levelCovers(level, KbAccessLevel.WRITE)) return undefined
+        return t('kb.accessLevels.read')
+    }
+
     function pdfAction(file: KbFile, onHover: boolean): KbItemAction[] {
         if (!isPdfExportable(file.fileType)) return []
         return [{
@@ -136,27 +163,28 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
             })
             return actions
         }
-        if (sources.canManage.value) {
-            actions.push(
-                {
-                    key: 'edit',
-                    icon: ['fas', 'pen'],
-                    label: t('kb.editFile'),
-                    onHover: true,
-                    class: 'text-info-accent hover:bg-info/15 dark:text-info',
-                    iconClass: 'text-info-accent dark:text-info',
-                    run: () => handlers.editFile(file),
-                },
-                {
-                    key: 'delete',
-                    icon: ['fas', 'trash'],
-                    label: t('kb.deleteFile'),
-                    onHover: true,
-                    class: 'text-error hover:bg-error/15',
-                    iconClass: 'text-error',
-                    run: () => handlers.deleteFile(file),
-                },
-            )
+        const level = sources.fileLevels.value[file.id]
+        if (sources.canManage.value && levelCovers(level, KbAccessLevel.WRITE)) {
+            actions.push({
+                key: 'edit',
+                icon: ['fas', 'pen'],
+                label: t('kb.editFile'),
+                onHover: true,
+                class: 'text-info-accent hover:bg-info/15 dark:text-info',
+                iconClass: 'text-info-accent dark:text-info',
+                run: () => handlers.editFile(file),
+            })
+        }
+        if (sources.canManage.value && levelCovers(level, KbAccessLevel.MANAGE)) {
+            actions.push({
+                key: 'delete',
+                icon: ['fas', 'trash'],
+                label: t('kb.deleteFile'),
+                onHover: true,
+                class: 'text-error hover:bg-error/15',
+                iconClass: 'text-error',
+                run: () => handlers.deleteFile(file),
+            })
         }
         return actions
     }
@@ -172,6 +200,9 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
             updatedAt: file.updatedAt,
             restricted: file.restricted === true,
             favourite: sources.favouriteIds.value.has(file.id),
+            levelLabel: sources.isFavouritesView.value
+                ? undefined
+                : levelLabel(sources.fileLevels.value[file.id]),
             open: () => handlers.openFile(file),
             actions: fileActions(file),
         }
@@ -202,6 +233,39 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
         }
     }
 
+    /**
+     * Editing needs write, deleting needs manage — the same levels the server enforces, so the
+     * listing offers exactly the actions that will be accepted.
+     */
+    function folderActions(folder: KbFolder): KbItemAction[] {
+        if (!sources.canManage.value) return []
+        const level = sources.folderLevels.value[folder.id]
+        const actions: KbItemAction[] = []
+        if (levelCovers(level, KbAccessLevel.WRITE)) {
+            actions.push({
+                key: 'edit',
+                icon: ['fas', 'pen'],
+                label: t('kb.editFolder'),
+                onHover: true,
+                class: 'text-info-accent hover:bg-info/15 dark:text-info',
+                iconClass: 'text-info-accent dark:text-info',
+                run: () => handlers.editFolder(folder),
+            })
+        }
+        if (levelCovers(level, KbAccessLevel.MANAGE)) {
+            actions.push({
+                key: 'delete',
+                icon: ['fas', 'trash'],
+                label: t('kb.deleteFolder'),
+                onHover: true,
+                class: 'text-error hover:bg-error/15',
+                iconClass: 'text-error',
+                run: () => handlers.deleteFolder(folder),
+            })
+        }
+        return actions
+    }
+
     function toFolderItem(folder: KbFolder): KbItem {
         return {
             key: 'folder-' + folder.id,
@@ -214,27 +278,9 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
             updatedAt: folder.updatedAt,
             restricted: folder.restricted === true,
             favourite: false,
+            levelLabel: levelLabel(sources.folderLevels.value[folder.id]),
             open: () => handlers.openFolder(folder.id),
-            actions: sources.canManage.value
-                ? [
-                    {
-                        key: 'edit',
-                        icon: ['fas', 'pen'],
-                        label: t('kb.editFolder'),
-                        onHover: true,
-                        class: 'text-info-accent hover:bg-info/15 dark:text-info',
-                        run: () => handlers.editFolder(folder),
-                    },
-                    {
-                        key: 'delete',
-                        icon: ['fas', 'trash'],
-                        label: t('kb.deleteFolder'),
-                        onHover: true,
-                        class: 'text-error hover:bg-error/15',
-                        run: () => handlers.deleteFolder(folder),
-                    },
-                ]
-                : [],
+            actions: folderActions(folder),
         }
     }
 
@@ -268,13 +314,13 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
 
     /**
      * Maps search hits onto the same shape. A hit from a partner station carries its snippet and
-     * a copy action; a local hit behaves exactly like the file it points at.
+     * a copy action; a local hit offers the export and nothing else, because a hit is reached
+     * without walking the folders whose levels decide what may be done to it.
      */
     function toSearchItems(results: SearchResult[]): KbItem[] {
         return results.map((result) => {
             const stationUid = result.sourceStationUid
             if (!stationUid) {
-                // A hit stays a plain result: only the export is offered, never edit or delete.
                 return {
                     ...toFileItem(result.file),
                     key: 'search-local-' + result.file.id,

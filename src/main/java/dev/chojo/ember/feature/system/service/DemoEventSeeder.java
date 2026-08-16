@@ -786,15 +786,21 @@ public class DemoEventSeeder implements DemoSeeder {
                                         null,
                                         null,
                                         null,
-                                        null),
+                                        null,
+                                        false),
                                 true),
                         new FieldEntry(
                                 "Begleitpersonen",
                                 EventFieldType.NUMBER,
-                                new EventRegistrationFieldConfig(false, "0", null, 0, 5, null, null, null),
+                                new EventRegistrationFieldConfig(false, "0", null, 0, 5, null, null, null, false),
                                 true),
                         new FieldEntry(
-                                "Anmerkungen", EventFieldType.TEXTAREA, EventRegistrationFieldConfig.empty(), false)));
+                                "Anmerkungen", EventFieldType.TEXTAREA, EventRegistrationFieldConfig.empty(), false),
+                        new FieldEntry(
+                                "Startnummer",
+                                EventFieldType.STRING,
+                                new EventRegistrationFieldConfig(false, null, null, null, null, null, null, null, true),
+                                true)));
 
         var fields = registrationFieldService.findByEvent(marathon.id());
         int sizeFieldId = fieldId(fields, "Shirtgröße");

@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:ebaf82334e9c43664018a13454bf78bb55c99bc47dc80db299d9b20724204b6f",
-  "generatedAt" : "2026-08-16T10:59:53Z",
+  "schemaHash" : "sha256:4fc1ac5a7bb8358922fe81ef12b3ad159da603c6e9c1df918af6488f69c00604",
+  "generatedAt" : "2026-08-16T12:06:10Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -7718,10 +7718,10 @@
       },
       "description" : "Size options for inventories that have sizes enabled."
     },
-    "kb_access_restriction" : {
+    "kb_access_grant" : {
       "feature" : "knowledgebase",
       "scope" : "STATION",
-      "tableHash" : "sha256:4123021f84248c6d3d2f5c8c56a3bbf1e13acf16a4382a95e90851cc779502f6",
+      "tableHash" : "sha256:69d1a527f2edf96746cb8a864ea77826034dd44d518da6c6bbf608dcbe9e0d5b",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -7763,6 +7763,12 @@
         "type" : "text",
         "nullable" : true,
         "verified" : true
+      }, {
+        "name" : "level",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "NONE, READ, WRITE or MANAGE, or NULL for an audience row that says nothing about the level and leaves it to the station permission the member holds. NULL is what every row migrated from the previous restriction table carries, so the upgrade changes nothing."
       } ],
       "foreignKeys" : [ {
         "column" : "file_id",
@@ -7801,7 +7807,7 @@
         "status" : "IGNORED",
         "reason" : "KB structure data, not per-member"
       },
-      "description" : "Access restrictions for KB folders and files (role, group, tag, or member)."
+      "description" : "Who may reach a knowledge-base folder or file, and what they may do with it. A row names an audience; its level, when set, also decides whether that audience may only read, may write, or may manage."
     },
     "kb_comment" : {
       "feature" : "knowledgebase",

@@ -48,9 +48,11 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
@@ -158,12 +160,22 @@ public class EventRegistrationRoutes implements Routes {
     /**
      * Maps a registration to its response, resolving the member's display name, identity, and creator.
      */
-    private RegistrationResponse toRegistrationResponse(EventRegistration r) {
+    private RegistrationResponse toRegistrationResponse(Context ctx, EventRegistration r) {
+        var hidden = registrationFieldService.hiddenFieldIds(r.eventId(), manages(ctx));
         return toRegistrationResponse(
                 r,
                 registrationFieldService.findValues(r.id()).stream()
+                        .filter(v -> !hidden.contains(v.fieldId()))
                         .map(v -> new FieldValueEntry(v.fieldId(), v.value()))
                         .toList());
+    }
+
+    /**
+     * Whether the caller runs the event. Manager-only answers are filtered here rather than hidden
+     * in the interface, so a direct call cannot read them either.
+     */
+    private static boolean manages(Context ctx) {
+        return UserSession.from(ctx).hasPermission(StationPermission.EVENT_EDIT);
     }
 
     private RegistrationResponse toRegistrationResponse(EventRegistration r, List<FieldValueEntry> fields) {
@@ -186,15 +198,22 @@ public class EventRegistrationRoutes implements Routes {
      * Maps a whole list of registrations, reading every answer in one query rather than one per
      * row.
      */
-    private List<RegistrationResponse> toRegistrationResponses(List<EventRegistration> registrations) {
+    private List<RegistrationResponse> toRegistrationResponses(Context ctx, List<EventRegistration> registrations) {
         var answers = registrationFieldService.findValuesByRegistration(
                 registrations.stream().map(EventRegistration::id).toList());
+        boolean manages = manages(ctx);
+        var hiddenByEvent = new HashMap<Integer, Set<Integer>>();
         return registrations.stream()
-                .map(r -> toRegistrationResponse(
-                        r,
-                        answers.getOrDefault(r.id(), List.of()).stream()
-                                .map(v -> new FieldValueEntry(v.fieldId(), v.value()))
-                                .toList()))
+                .map(r -> {
+                    var hidden = hiddenByEvent.computeIfAbsent(
+                            r.eventId(), eventId -> registrationFieldService.hiddenFieldIds(eventId, manages));
+                    return toRegistrationResponse(
+                            r,
+                            answers.getOrDefault(r.id(), List.of()).stream()
+                                    .filter(v -> !hidden.contains(v.fieldId()))
+                                    .map(v -> new FieldValueEntry(v.fieldId(), v.value()))
+                                    .toList());
+                })
                 .toList();
     }
 
@@ -240,7 +259,7 @@ public class EventRegistrationRoutes implements Routes {
                 registrations.addAll(registrationService.findByMember(managed.id()));
             }
         }
-        ctx.json(toRegistrationResponses(registrations));
+        ctx.json(toRegistrationResponses(ctx, registrations));
     }
 
     @OpenApi(
@@ -252,7 +271,7 @@ public class EventRegistrationRoutes implements Routes {
     private void listPendingRegistrations(Context ctx) {
         UserSession session = UserSession.from(ctx);
         var regs = registrationService.findPendingByStation(session.stationId());
-        ctx.json(toRegistrationResponses(regs));
+        ctx.json(toRegistrationResponses(ctx, regs));
     }
 
     @OpenApi(
@@ -325,9 +344,13 @@ public class EventRegistrationRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
         requireOwnedEvent(crudService, eventId, session);
-        ctx.json(registrationFieldService.findByEvent(eventId).stream()
-                .map(f -> new RegistrationFieldResponse(f.id(), f.name(), f.fieldType(), f.config(), f.overview()))
-                .toList());
+        ctx.json(
+                registrationFieldService
+                        .findVisibleByEvent(eventId, session.hasPermission(StationPermission.EVENT_EDIT))
+                        .stream()
+                        .map(f -> new RegistrationFieldResponse(
+                                f.id(), f.name(), f.fieldType(), f.config(), f.overview()))
+                        .toList());
     }
 
     @OpenApi(
@@ -376,8 +399,9 @@ public class EventRegistrationRoutes implements Routes {
         requireAnswerAuthor(session, registration);
 
         var req = ctx.bodyAsClass(RegistrationFieldsRequest.class);
-        registrationFieldService.replaceAnswers(registration.eventId(), registrationId, answersOf(req.fields()));
-        ctx.json(toRegistrationResponse(registration));
+        registrationFieldService.replaceAnswers(
+                registration.eventId(), registrationId, answersOf(req.fields()), manages(ctx));
+        ctx.json(toRegistrationResponse(ctx, registration));
     }
 
     /**
@@ -401,7 +425,7 @@ public class EventRegistrationRoutes implements Routes {
         var regs = dateStr != null
                 ? registrationService.findByEventAndDate(eventId, LocalDate.parse(dateStr))
                 : registrationService.findByEvent(eventId);
-        ctx.json(toRegistrationResponses(regs));
+        ctx.json(toRegistrationResponses(ctx, regs));
     }
 
     @OpenApi(
@@ -438,13 +462,14 @@ public class EventRegistrationRoutes implements Routes {
             throw new BadRequestResponse("Member is not eligible for this event");
         }
 
-        var answers = registrationFieldService.resolveAnswers(eventId, answersOf(req.fields()));
+        var answers = registrationFieldService.resolveAnswers(
+                eventId, answersOf(req.fields()), session.hasPermission(StationPermission.EVENT_EDIT));
 
         boolean autoAccept = !event.requiresConfirmation();
         Integer createdBy = memberId != session.member().id() ? session.member().id() : null;
         var registration = registrationService.register(eventId, memberId, date, autoAccept, createdBy);
         registrationFieldService.persistAnswers(registration.id(), answers);
-        ctx.status(HttpStatus.CREATED).json(toRegistrationResponse(registration));
+        ctx.status(HttpStatus.CREATED).json(toRegistrationResponse(ctx, registration));
     }
 
     /**

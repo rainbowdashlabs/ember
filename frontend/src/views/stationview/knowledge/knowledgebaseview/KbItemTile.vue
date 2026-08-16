@@ -44,6 +44,12 @@ defineProps<{
             </div>
 
             <StationBadge v-if="item.stationName" :station-name="item.stationName"/>
+            <span
+                v-if="item.levelLabel"
+                class="text-[10px] text-[var(--text-muted)] border border-[var(--border)] rounded-full px-2 py-0.5"
+            >
+                {{ item.levelLabel }}
+            </span>
 
             <span v-if="item.countLabel" class="text-[10px] text-[var(--text-muted)]">{{ item.countLabel }}</span>
             <span v-if="item.description" class="text-xs text-[var(--text-muted)] truncate w-full">

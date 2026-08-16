@@ -29,6 +29,9 @@ import static org.slf4j.LoggerFactory.getLogger;
  * @param groupId      referenced member group for {@code *_OF_GROUP} questions
  * @param userType     referenced user type for {@code *_OF_TYPE} questions
  * @param tagId        referenced user tag for {@code *_OF_TAG} questions
+ * @param managersOnly whether the question belongs to whoever runs the event: it is neither asked
+ *                     of nor answered by the member registering, and its answers never leave the
+ *                     server for anyone without the event edit right
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record EventRegistrationFieldConfig(
@@ -39,11 +42,12 @@ public record EventRegistrationFieldConfig(
         Integer max,
         Integer groupId,
         StationUserType userType,
-        Integer tagId) {
+        Integer tagId,
+        boolean managersOnly) {
     private static final Logger log = getLogger(EventRegistrationFieldConfig.class);
     private static final ObjectMapper MAPPER = Json.EMPTY_TOLERANT_CONFIG_MAPPER;
     private static final EventRegistrationFieldConfig EMPTY =
-            new EventRegistrationFieldConfig(false, null, null, null, null, null, null, null);
+            new EventRegistrationFieldConfig(false, null, null, null, null, null, null, null, false);
 
     public static EventRegistrationFieldConfig empty() {
         return EMPTY;

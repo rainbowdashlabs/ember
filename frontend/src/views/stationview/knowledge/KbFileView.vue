@@ -26,7 +26,14 @@ import KbEditFileModal from '@/views/stationview/knowledge/knowledgebaseview/KbE
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {knowledgeBase} from '@/api'
-import {KbFileType, type KbFile, type MarkdownHtmlResponse} from '@/api/knowledgeBase'
+import {
+    KbAccessLevel,
+    KbFileType,
+    levelCovers,
+    type KbAccessLevelName,
+    type KbFile,
+    type MarkdownHtmlResponse,
+} from '@/api/knowledgeBase'
 import {useKbFileMetadata} from '@/views/stationview/knowledge/kbfileview/useKbFileMetadata'
 import {getItem} from '@/api/storage'
 import {downloadAuthed} from '@/util/downloadAuthed'
@@ -87,7 +94,27 @@ const federatedContentUnavailable = computed(() => isFederated.value
     && file.value?.fileType !== KbFileType.YOUTUBE
     && file.value?.fileType !== KbFileType.LINK)
 
-const canEditDescription = computed(() => canEditKnowledge() && !isFederated.value)
+/**
+ * What this reader may do here. A folder can hold the level below the station-wide right, so the
+ * page has to ask the file rather than the session.
+ */
+const accessLevel = ref<KbAccessLevelName | undefined>(undefined)
+const accessLevelSource = ref<string | null>(null)
+
+const mayEdit = computed(() =>
+    canEditKnowledge() && !isFederated.value && levelCovers(accessLevel.value, KbAccessLevel.WRITE))
+
+/**
+ * Why editing is unavailable, when a folder is the reason. Silent absence reads as a bug, so the
+ * page names the folder that holds the file read-only.
+ */
+const readOnlyReason = computed(() => {
+    if (isFederated.value || mayEdit.value || !canEditKnowledge()) return ''
+    if (!accessLevelSource.value) return t('kb.readOnlyHere')
+    return t('kb.readOnlyFrom', {folder: accessLevelSource.value})
+})
+
+const canEditDescription = computed(() => mayEdit.value)
 
 async function copyToStation() {
     if (!file.value) return
@@ -121,6 +148,8 @@ const {loading, error, reload: loadData} = useAsyncLoader(async () => {
     const fileRes = await knowledgeBase.getFile(props.fileId)
     file.value = fileRes.file
     lastEditedByName.value = fileRes.lastEditedByName
+    accessLevel.value = fileRes.accessLevel
+    accessLevelSource.value = fileRes.accessLevelSource ?? null
 
     const [tags, stationTags, related] = await Promise.all([
         knowledgeBase.getFileTags(file.value.id),
@@ -153,6 +182,8 @@ async function loadFederatedFile(stationUid: string) {
     relatedFiles.value = []
     markdownData.value = null
     textContent.value = ''
+    accessLevel.value = undefined
+    accessLevelSource.value = null
 
     if (!isTextual.value) return
 
@@ -241,7 +272,7 @@ watch(() => [props.fileId, props.stationUid], () => {
                 :is-federated="isFederated"
                 :is-kb-public="isKbPublic()"
                 :share-copied="shareCopied"
-                :can-edit="canEditKnowledge()"
+                :can-edit="mayEdit"
                 :editing="editing"
                 @back="goBack"
                 @copy-share-link="copyShareLink"
@@ -275,6 +306,11 @@ watch(() => [props.fileId, props.stationUid], () => {
                 />
             </MutedText>
 
+            <p v-if="readOnlyReason" class="text-xs text-[var(--text-muted)] mb-3 flex items-center gap-1">
+                <font-awesome-icon :icon="['fas', 'lock']" class="h-3 w-3"/>
+                {{ readOnlyReason }}
+            </p>
+
             <!-- Last edit info -->
             <p v-if="file.updatedAt" class="text-xs text-[var(--text-muted)] mb-3">
                 {{ t('kb.lastEditedAt') }}: {{ formatDateTime(file.updatedAt) }}
@@ -286,7 +322,7 @@ watch(() => [props.fileId, props.stationUid], () => {
                 v-if="!isFederated"
                 :tags="fileTags"
                 :all-tags="allStationTags"
-                :can-manage="canEditKnowledge()"
+                :can-manage="mayEdit"
                 @add-tag="addTag"
                 @remove-tag="removeTag"
             />
@@ -296,7 +332,7 @@ watch(() => [props.fileId, props.stationUid], () => {
                 v-if="!isFederated"
                 :related-files="relatedFiles"
                 :file-id="file.id"
-                :can-manage="canEditKnowledge()"
+                :can-manage="mayEdit"
                 @add-related="addRelatedFile"
                 @remove-related="removeRelatedFile"
             />
@@ -320,7 +356,7 @@ watch(() => [props.fileId, props.stationUid], () => {
                 :text-content="textContent"
                 :rendered-html="renderedHtml"
                 :youtube-embed-url="youtubeEmbedUrl"
-                :can-edit="canEditKnowledge()"
+                :can-edit="mayEdit"
                 v-model:edit-content="editContent"
                 @content-input="onContentInput"
                 @reupload="handleReuploadFile"

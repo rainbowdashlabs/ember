@@ -9,6 +9,7 @@ import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.knowledgebase.entity.KbAccessLevel;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
@@ -42,10 +43,12 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
+import static dev.chojo.ember.feature.knowledgebase.route.KbRouteAccess.requireLevel;
 import static dev.chojo.ember.feature.knowledgebase.route.KbRouteAccess.requireOwnedFile;
 import static dev.chojo.ember.feature.knowledgebase.route.KbRouteAccess.requireOwnedFolder;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -184,10 +187,20 @@ public class KnowledgeBaseRoutes implements Routes {
         ctx.json(service.findFolders(session.stationId(), optionalFolderId(ctx, "parentId")));
     }
 
+    /**
+     * Creating something inside a folder is a write to that folder, so a member whose grant there
+     * is read-only cannot drop a file into it by naming it in the request.
+     */
+    private void requireWriteInFolder(Context ctx, Integer folderId) {
+        if (folderId == null) return;
+        requireLevel(ctx, accessService, folderId, null, KbAccessLevel.WRITE);
+    }
+
     private void createFolder(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(FolderRequest.class);
         if (req.name() == null || req.name().isBlank()) throw new BadRequestResponse("name is required");
+        requireWriteInFolder(ctx, req.parentId());
         ctx.json(service.createFolder(
                 session.stationId(),
                 req.parentId(),
@@ -198,12 +211,15 @@ public class KnowledgeBaseRoutes implements Routes {
 
     private void getFolder(Context ctx) {
         int id = pathInt(ctx, "id");
-        ctx.json(requireOwnedFolder(ctx, service, id));
+        var folder = requireOwnedFolder(ctx, service, id);
+        requireLevel(ctx, accessService, id, null, KbAccessLevel.READ);
+        ctx.json(folder);
     }
 
     private void updateFolder(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFolder(ctx, service, id);
+        requireLevel(ctx, accessService, id, null, KbAccessLevel.WRITE);
         var req = ctx.bodyAsClass(FolderRequest.class);
         if (!service.updateFolder(
                 id,
@@ -221,6 +237,7 @@ public class KnowledgeBaseRoutes implements Routes {
     private void deleteFolder(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFolder(ctx, service, id);
+        requireLevel(ctx, accessService, id, null, KbAccessLevel.MANAGE);
         if (!service.deleteFolder(id)) throw new NotFoundResponse();
         ctx.status(204);
     }
@@ -235,12 +252,16 @@ public class KnowledgeBaseRoutes implements Routes {
     private void getFile(Context ctx) {
         int id = pathInt(ctx, "id");
         var file = requireOwnedFile(ctx, service, id);
-        ctx.json(new FileResponse(file, authorNameService.resolveMemberName(file.createdBy())));
+        requireLevel(ctx, accessService, null, id, KbAccessLevel.READ);
+        var level = accessService.explainLevel(KbRouteAccess.accessOf(ctx, accessService), null, id);
+        ctx.json(new FileResponse(
+                file, authorNameService.resolveMemberName(file.createdBy()), level.level(), level.source()));
     }
 
     private void updateFile(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFile(ctx, service, id);
+        requireLevel(ctx, accessService, null, id, KbAccessLevel.WRITE);
         var req = ctx.bodyAsClass(FileUpdateRequest.class);
         if (!service.updateFile(
                 id,
@@ -258,6 +279,7 @@ public class KnowledgeBaseRoutes implements Routes {
     private void deleteFile(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFile(ctx, service, id);
+        requireLevel(ctx, accessService, null, id, KbAccessLevel.MANAGE);
         if (!service.deleteFile(id)) throw new NotFoundResponse();
         ctx.status(204);
     }
@@ -265,6 +287,7 @@ public class KnowledgeBaseRoutes implements Routes {
     private void createMarkdownFile(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(MarkdownFileRequest.class);
+        requireWriteInFolder(ctx, req.folderId());
         if (req.name() == null || req.name().isBlank()) throw new BadRequestResponse("name is required");
         ctx.json(service.createMarkdownFile(
                 session.stationId(),
@@ -278,6 +301,7 @@ public class KnowledgeBaseRoutes implements Routes {
     private void createYoutubeFile(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(YoutubeFileRequest.class);
+        requireWriteInFolder(ctx, req.folderId());
         if (req.name() == null || req.name().isBlank()) throw new BadRequestResponse("name is required");
         if (req.youtubeUrl() == null || req.youtubeUrl().isBlank())
             throw new BadRequestResponse("youtubeUrl is required");
@@ -293,6 +317,7 @@ public class KnowledgeBaseRoutes implements Routes {
     private void createLinkFile(Context ctx) {
         var session = UserSession.from(ctx);
         var req = ctx.bodyAsClass(LinkFileRequest.class);
+        requireWriteInFolder(ctx, req.folderId());
         if (req.linkUrl() == null || req.linkUrl().isBlank()) throw new BadRequestResponse("linkUrl is required");
         ctx.json(service.createLinkFile(
                 session.stationId(),
@@ -312,6 +337,7 @@ public class KnowledgeBaseRoutes implements Routes {
         Integer folderId = null;
         String folderIdStr = ctx.formParam("folderId");
         if (folderIdStr != null && !folderIdStr.isBlank()) folderId = Integer.parseInt(folderIdStr);
+        requireWriteInFolder(ctx, folderId);
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
             ctx.json(service.createUploadedFile(
@@ -342,6 +368,7 @@ public class KnowledgeBaseRoutes implements Routes {
         Integer folderId = null;
         String folderIdStr = ctx.formParam("folderId");
         if (folderIdStr != null && !folderIdStr.isBlank()) folderId = Integer.parseInt(folderIdStr);
+        requireWriteInFolder(ctx, folderId);
 
         String format = detectPandocFormat(file.filename(), file.contentType());
         if (format == null) {
@@ -367,6 +394,7 @@ public class KnowledgeBaseRoutes implements Routes {
     private void getFileContent(Context ctx) {
         int id = pathInt(ctx, "id");
         var file = requireOwnedFile(ctx, service, id);
+        requireLevel(ctx, accessService, null, id, KbAccessLevel.READ);
 
         switch (file.fileType()) {
             case MARKDOWN, TEXT -> {
@@ -403,6 +431,7 @@ public class KnowledgeBaseRoutes implements Routes {
     private void getMarkdownHtml(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFile(ctx, service, id);
+        requireLevel(ctx, accessService, null, id, KbAccessLevel.READ);
         var text = contentService.getMarkdownContent(id);
         if (text.isEmpty()) throw new NotFoundResponse();
         String html = contentService.renderMarkdown(text.get());
@@ -413,6 +442,7 @@ public class KnowledgeBaseRoutes implements Routes {
         int id = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
         requireOwnedFile(ctx, service, id);
+        requireLevel(ctx, accessService, null, id, KbAccessLevel.WRITE);
         var req = ctx.bodyAsClass(ContentUpdateRequest.class);
         contentService.updateMarkdownContent(
                 id, req.content() != null ? req.content() : "", session.member().id());
@@ -422,6 +452,7 @@ public class KnowledgeBaseRoutes implements Routes {
     private void getPdfExport(Context ctx) {
         int id = pathInt(ctx, "id");
         var file = requireOwnedFile(ctx, service, id);
+        requireLevel(ctx, accessService, null, id, KbAccessLevel.READ);
         if (!KbPdfExportService.isExportable(file.fileType())) {
             throw new BadRequestResponse("Only markdown and text files can be rendered as PDF");
         }
@@ -446,6 +477,7 @@ public class KnowledgeBaseRoutes implements Routes {
     private void getOriginalFile(Context ctx) {
         int id = pathInt(ctx, "id");
         var file = requireOwnedFile(ctx, service, id);
+        requireLevel(ctx, accessService, null, id, KbAccessLevel.READ);
         if (file.fileType() != KbFileType.PRESENTATION) {
             throw new BadRequestResponse("Only presentation files have an original");
         }
@@ -461,6 +493,7 @@ public class KnowledgeBaseRoutes implements Routes {
     private void reuploadOriginal(Context ctx) {
         int id = pathInt(ctx, "id");
         var file = requireOwnedFile(ctx, service, id);
+        requireLevel(ctx, accessService, null, id, KbAccessLevel.WRITE);
         if (file.fileType() != KbFileType.PRESENTATION) {
             throw new BadRequestResponse("Only presentation files support re-upload");
         }
@@ -478,6 +511,7 @@ public class KnowledgeBaseRoutes implements Routes {
     private void listVersions(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFile(ctx, service, id);
+        requireLevel(ctx, accessService, null, id, KbAccessLevel.READ);
         ctx.json(contentService.findVersions(id).stream()
                 .map(v -> new VersionResponse(
                         v.id(),
@@ -493,6 +527,7 @@ public class KnowledgeBaseRoutes implements Routes {
         int fileId = pathInt(ctx, "id");
         int version = pathInt(ctx, "version");
         requireOwnedFile(ctx, service, fileId);
+        requireLevel(ctx, accessService, null, fileId, KbAccessLevel.READ);
         contentService.findVersion(fileId, version).ifPresentOrElse(ctx::json, () -> {
             throw new NotFoundResponse();
         });
@@ -503,6 +538,7 @@ public class KnowledgeBaseRoutes implements Routes {
         int version = pathInt(ctx, "version");
         var session = UserSession.from(ctx);
         requireOwnedFile(ctx, service, fileId);
+        requireLevel(ctx, accessService, null, fileId, KbAccessLevel.WRITE);
         contentService.revertToVersion(fileId, version, session.member().id());
         ctx.status(204);
     }
@@ -510,12 +546,14 @@ public class KnowledgeBaseRoutes implements Routes {
     private void getRelatedFiles(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFile(ctx, service, id);
+        requireLevel(ctx, accessService, null, id, KbAccessLevel.READ);
         ctx.json(service.findRelatedFiles(id));
     }
 
     private void setRelatedFiles(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFile(ctx, service, id);
+        requireLevel(ctx, accessService, null, id, KbAccessLevel.WRITE);
         var req = ctx.bodyAsClass(RelatedFilesRequest.class);
         service.setRelatedFiles(id, req.fileIds() != null ? req.fileIds() : List.of());
         ctx.json(service.findRelatedFiles(id));
@@ -573,9 +611,8 @@ public class KnowledgeBaseRoutes implements Routes {
         var files = service.findFiles(session.stationId(), folderId);
         KbFolder currentFolder = folderId != null ? service.findFolder(folderId).orElse(null) : null;
 
+        var access = KbRouteAccess.accessOf(ctx, accessService);
         if (!session.hasPermission(StationPermission.KNOWLEDGE_MANAGER)) {
-            var access = accessService.memberAccess(
-                    session.member().id(), session.member().userType());
             folders = folders.stream()
                     .filter(folder -> accessService.canAccess(access, folder.id(), null))
                     .toList();
@@ -584,8 +621,23 @@ public class KnowledgeBaseRoutes implements Routes {
                     .toList();
         }
 
+        var levels = accessService.childLevels(
+                access,
+                folderId,
+                folders.stream()
+                        .map(folder -> new KbAccessService.ChildNode(folder.id(), folder.restrictionMode()))
+                        .toList(),
+                files.stream()
+                        .map(file -> new KbAccessService.ChildNode(file.id(), file.restrictionMode()))
+                        .toList());
+
         ctx.json(new BrowseResponse(
-                currentFolder, folders, files.stream().map(KbFileSummary::of).toList()));
+                currentFolder,
+                folders,
+                files.stream().map(KbFileSummary::of).toList(),
+                accessService.effectiveLevel(access, folderId, null),
+                levels.folders(),
+                levels.files()));
     }
 
     private void getFolderIcon(Context ctx) {
@@ -607,6 +659,7 @@ public class KnowledgeBaseRoutes implements Routes {
         int id = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
         var folder = requireOwnedFolder(ctx, service, id);
+        requireLevel(ctx, accessService, id, null, KbAccessLevel.WRITE);
         var file = ctx.uploadedFile("icon");
         if (file == null) throw new BadRequestResponse("No file uploaded");
         if (!ALLOWED_IMAGE_TYPES.contains(file.contentType())) {
@@ -630,6 +683,7 @@ public class KnowledgeBaseRoutes implements Routes {
         int fileId = pathInt(ctx, "id");
         var session = UserSession.from(ctx);
         requireOwnedFile(ctx, service, fileId);
+        requireLevel(ctx, accessService, null, fileId, KbAccessLevel.WRITE);
         var file = ctx.uploadedFile("image");
         if (file == null) throw new BadRequestResponse("No image uploaded");
         if (!ALLOWED_IMAGE_TYPES.contains(file.contentType())) {
@@ -684,9 +738,26 @@ public class KnowledgeBaseRoutes implements Routes {
 
     public record MarkdownHtmlResponse(String html, String markdown) {}
 
-    public record BrowseResponse(KbFolder currentFolder, List<KbFolder> folders, List<KbFileSummary> files) {}
+    /**
+     * A folder's contents together with what the caller may do with each entry, so a listing can
+     * offer exactly the actions that will be accepted rather than the ones the station permission
+     * suggests. {@code currentLevel} is what the caller may do in the folder itself, which decides
+     * whether anything may be created in it.
+     */
+    public record BrowseResponse(
+            KbFolder currentFolder,
+            List<KbFolder> folders,
+            List<KbFileSummary> files,
+            KbAccessLevel currentLevel,
+            Map<Integer, KbAccessLevel> folderLevels,
+            Map<Integer, KbAccessLevel> fileLevels) {}
 
-    public record FileResponse(KbFile file, String lastEditedByName) {}
+    /**
+     * A file with what the reader may do with it and, when a folder decided that, which one — so
+     * the page can say why an action is missing instead of just not showing it.
+     */
+    public record FileResponse(
+            KbFile file, String lastEditedByName, KbAccessLevel accessLevel, String accessLevelSource) {}
 
     public record VersionResponse(
             int id, int version, boolean isFull, int createdBy, String createdByName, Instant createdAt) {}

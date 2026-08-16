@@ -356,6 +356,8 @@ export interface EventRegistrationFieldConfig {
     groupId?: number | null
     userType?: string | null
     tagId?: number | null
+    /** Belongs to whoever runs the event: never asked of a member, never sent to one. */
+    managersOnly?: boolean
 }
 
 /**

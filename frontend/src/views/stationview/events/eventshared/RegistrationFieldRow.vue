@@ -83,6 +83,13 @@ function numberOrNull(value: unknown): number | null {
         <FieldLabel class="mb-1">{{ t('events.registrationFields.overview') }}</FieldLabel>
         <ToggleInput :model-value="field.overview" @update:model-value="v => update({overview: v})"/>
       </div>
+      <div>
+        <FieldLabel class="mb-1">{{ t('events.registrationFields.managersOnly') }}</FieldLabel>
+        <ToggleInput
+            :model-value="field.config.managersOnly ?? false"
+            @update:model-value="v => updateConfig({managersOnly: v})"
+        />
+      </div>
       <div class="flex-1 min-w-40">
         <FieldLabel class="mb-1">{{ t('events.registrationFields.defaultValue') }}</FieldLabel>
         <TextInput

@@ -4,11 +4,14 @@
 
 ### New Features
 
+- **Read and write permissions for the knowledge base.** A folder or file can now say what its audience may do with it, not only who sees it: read only, read and edit, or full access including deleting and publishing. A group can be given reading rights on a directory without being able to change anything in it.
 - **Ask questions when someone registers for an event.** An event can ask everyone signing up for extra details — shirt size, number of guests, what they are bringing — as text, number, yes/no, date, choice or member. Each question can be mandatory and can start from a default value.
 - **Answers stand next to the registration.** The answers marked for the list appear beside the member's name in the registration list, and number questions get their total above it. Event templates carry their questions into every event created from them.
 
 ### Improvements
 
+- **The knowledge base only offers what you may actually do.** Editing, deleting and creating appear where your permission allows them, an entry you may only read is marked as read only, and a file you may only read names the folder that decided it. Existing stations notice nothing until they set their first permission.
+- **Answers to registration questions are complete for the organisers.** Whoever may edit the event sees every answer including the notes, plus totals per question: numbers are added up and choices counted per option. A question can also be marked as belonging to the organisers, in which case it is neither asked of members nor visible to them.
 - **Files shared by partner stations open.** A shared file in the knowledge base opens like one of your own, both from the file list and from a search result, instead of only offering a copy. Text and Markdown files show their content and take comments; other formats still have to be copied into your station first.
 - **Question catalogues and test sheets shared by partner stations open.** A shared question catalogue shows its categories and question count, a shared test sheet its sections and points. Both can still be copied into your own station from the page.
 - **Knowledge base files save as PDF.** Markdown and text files can be downloaded as a PDF carrying the station name and logo — from the file, from the file list, from a file a partner station shares, and from a page on the public wiki. Headings, lists, tables, quotes and code blocks are kept; images are replaced by their description.

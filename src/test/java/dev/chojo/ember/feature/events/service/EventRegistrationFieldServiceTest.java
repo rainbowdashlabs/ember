@@ -95,12 +95,12 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
                                 "Shirtgröße",
                                 EventFieldType.ENUM,
                                 new EventRegistrationFieldConfig(
-                                        true, "M", List.of("S", "M", "L"), null, null, null, null, null),
+                                        true, "M", List.of("S", "M", "L"), null, null, null, null, null, false),
                                 true),
                         new FieldEntry(
                                 "Begleitpersonen",
                                 EventFieldType.NUMBER,
-                                new EventRegistrationFieldConfig(false, "0", null, 0, 5, null, null, null),
+                                new EventRegistrationFieldConfig(false, "0", null, 0, 5, null, null, null, false),
                                 true)));
     }
 
@@ -165,7 +165,7 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
                 List.of(new FieldEntry(
                         "Startnummer",
                         EventFieldType.STRING,
-                        new EventRegistrationFieldConfig(true, null, null, null, null, null, null, null),
+                        new EventRegistrationFieldConfig(true, null, null, null, null, null, null, null, false),
                         true)));
         assertThrows(BadRequestResponse.class, () -> service.resolveAnswers(event.id(), Map.of()));
         seedFields();
@@ -238,7 +238,7 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
         service.persistAnswers(registration.id(), service.resolveAnswers(event.id(), Map.of(size, "L", guests, "3")));
         assertEquals(2, service.findValues(registration.id()).size());
 
-        service.replaceAnswers(event.id(), registration.id(), Map.of(size, "S"));
+        service.replaceAnswers(event.id(), registration.id(), Map.of(size, "S"), true);
 
         var values = service.findValues(registration.id());
         assertEquals(
@@ -264,6 +264,37 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
     @Order(86)
     void readingAnswersOfNoRegistrationsAsksNothing() {
         assertTrue(service.findValuesByRegistration(List.of()).isEmpty());
+    }
+
+    @Test
+    @Order(87)
+    void aManagerOnlyQuestionIsNeitherShownToNorRequiredOfAMember() {
+        service.replaceFields(
+                event.id(),
+                List.of(
+                        new FieldEntry(
+                                "Shirtgröße",
+                                EventFieldType.ENUM,
+                                new EventRegistrationFieldConfig(
+                                        true, "M", List.of("S", "M", "L"), null, null, null, null, null, false),
+                                true),
+                        new FieldEntry(
+                                "Startnummer",
+                                EventFieldType.STRING,
+                                new EventRegistrationFieldConfig(true, null, null, null, null, null, null, null, true),
+                                true)));
+
+        assertEquals(1, service.findVisibleByEvent(event.id(), false).size());
+        assertEquals(2, service.findVisibleByEvent(event.id(), true).size());
+
+        var forMember = service.resolveAnswers(event.id(), Map.of(), false);
+        assertEquals(1, forMember.size(), "a question a member never saw must not be required of them");
+
+        int startNumber = fieldId("Startnummer");
+        assertEquals(Set.of(startNumber), service.hiddenFieldIds(event.id(), false));
+        assertTrue(service.hiddenFieldIds(event.id(), true).isEmpty());
+
+        seedFields();
     }
 
     @Test
@@ -293,7 +324,7 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
                 List.of(new FieldEntry(
                         "Verpflegung",
                         EventFieldType.STRING,
-                        new EventRegistrationFieldConfig(true, null, null, null, null, null, null, null),
+                        new EventRegistrationFieldConfig(true, null, null, null, null, null, null, null, false),
                         true)));
 
         assertEquals(
@@ -313,7 +344,7 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
                         "Shirtgröße",
                         EventFieldType.ENUM,
                         new EventRegistrationFieldConfig(
-                                true, "M", List.of("S", "M", "L"), null, null, null, null, null),
+                                true, "M", List.of("S", "M", "L"), null, null, null, null, null, false),
                         true)));
 
         var created = crudService.create(

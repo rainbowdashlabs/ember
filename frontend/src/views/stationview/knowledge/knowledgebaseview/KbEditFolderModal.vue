@@ -40,6 +40,7 @@ const {
     editName,
     editDescription,
     restriction,
+    grantLevels,
     tags,
     publicVisibility,
     allGroups,
@@ -76,6 +77,7 @@ async function handleSave() {
                 :all-groups="allGroups"
                 :all-tags="allTags"
                 v-model="restriction"
+                v-model:levels="grantLevels"
             />
             <KbPublicVisibilityField v-if="isKbPublic()" v-model="publicVisibility"/>
             <KbTagsEditor v-model="tags"/>

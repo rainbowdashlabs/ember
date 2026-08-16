@@ -18,6 +18,7 @@ import jakarta.inject.Singleton;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -99,9 +100,47 @@ public class EventRegistrationFieldService {
      * @throws BadRequestResponse when a question is unanswered, unknown, or answered out of range
      */
     public Map<Integer, String> resolveAnswers(int eventId, Map<Integer, String> answers) {
-        var fields = repository.findByEvent(eventId);
+        return resolveAnswers(eventId, answers, true);
+    }
+
+    /**
+     * Resolves answers for a caller who may not be allowed to see every question.
+     *
+     * <p>A manager-only question is skipped entirely for such a caller: they were never shown it,
+     * so it must not be required of them, and an answer they somehow sent is not theirs to give.
+     *
+     * @param manages whether the caller holds the event edit right
+     */
+    public Map<Integer, String> resolveAnswers(int eventId, Map<Integer, String> answers, boolean manages) {
+        var fields = repository.findByEvent(eventId).stream()
+                .filter(field -> manages || !field.config().managersOnly())
+                .toList();
         if (fields.isEmpty()) return Map.of();
         return validate(fields, answers);
+    }
+
+    /**
+     * The questions a caller may see. A manager-only question is invisible to everyone without the
+     * event edit right, which is what stops it leaking through the registration form.
+     *
+     * @param manages whether the caller holds the event edit right
+     */
+    public List<EventRegistrationField> findVisibleByEvent(int eventId, boolean manages) {
+        return repository.findByEvent(eventId).stream()
+                .filter(field -> manages || !field.config().managersOnly())
+                .toList();
+    }
+
+    /**
+     * The ids of the questions a caller may not see, so their answers can be stripped from a
+     * response.
+     */
+    public Set<Integer> hiddenFieldIds(int eventId, boolean manages) {
+        if (manages) return Set.of();
+        return repository.findByEvent(eventId).stream()
+                .filter(field -> field.config().managersOnly())
+                .map(EventRegistrationField::id)
+                .collect(Collectors.toSet());
     }
 
     /**
@@ -120,14 +159,23 @@ public class EventRegistrationFieldService {
     /**
      * Replaces the answers of an existing registration, dropping any that the new set leaves out.
      *
+     * <p>Only the questions the caller can see take part. A manager-only answer is not theirs to
+     * give and not theirs to erase, so it survives an edit by the member who registered.
+     *
      * @param eventId        the event the registration belongs to
      * @param registrationId the registration being updated
      * @param answers        the answers keyed by question id, as submitted
+     * @param manages        whether the caller may see the questions reserved for organisers
      * @throws BadRequestResponse when a question is unanswered, unknown, or answered out of range
      */
-    public void replaceAnswers(int eventId, int registrationId, Map<Integer, String> answers) {
-        var resolved = resolveAnswers(eventId, answers);
-        repository.deleteValues(registrationId);
+    public void replaceAnswers(int eventId, int registrationId, Map<Integer, String> answers, boolean manages) {
+        var resolved = resolveAnswers(eventId, answers, manages);
+        var hidden = hiddenFieldIds(eventId, manages);
+
+        for (var value : repository.findValues(registrationId)) {
+            if (hidden.contains(value.fieldId())) continue;
+            repository.deleteValue(registrationId, value.fieldId());
+        }
         persistAnswers(registrationId, resolved);
     }
 

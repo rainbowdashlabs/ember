@@ -8,7 +8,8 @@ package dev.chojo.ember.feature.knowledgebase.route;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
-import dev.chojo.ember.feature.knowledgebase.entity.KbAccessRestriction;
+import dev.chojo.ember.feature.knowledgebase.entity.KbAccessGrant;
+import dev.chojo.ember.feature.knowledgebase.entity.KbAccessLevel;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
@@ -22,6 +23,7 @@ import java.util.Objects;
 import java.util.function.Function;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
+import static dev.chojo.ember.feature.knowledgebase.route.KbRouteAccess.requireLevel;
 import static dev.chojo.ember.feature.knowledgebase.route.KbRouteAccess.requireOwnedFile;
 import static dev.chojo.ember.feature.knowledgebase.route.KbRouteAccess.requireOwnedFolder;
 
@@ -44,17 +46,37 @@ public class KnowledgeBaseAccessRoutes implements Routes {
     /**
      * Maps each restriction through {@code extractor} and returns the non-null results.
      */
-    private static <R> List<R> nonNullValues(
-            List<KbAccessRestriction> restrictions, Function<KbAccessRestriction, R> extractor) {
+    private static <R> List<R> nonNullValues(List<KbAccessGrant> restrictions, Function<KbAccessGrant, R> extractor) {
         return restrictions.stream().map(extractor).filter(Objects::nonNull).toList();
     }
 
-    private static RestrictionResponse toRestrictionResponse(List<KbAccessRestriction> restrictions) {
+    private static RestrictionResponse toRestrictionResponse(List<KbAccessGrant> restrictions) {
         return new RestrictionResponse(
-                nonNullValues(restrictions, KbAccessRestriction::userType),
-                nonNullValues(restrictions, KbAccessRestriction::groupId),
-                nonNullValues(restrictions, KbAccessRestriction::tagId),
-                nonNullValues(restrictions, KbAccessRestriction::memberId));
+                nonNullValues(restrictions, KbAccessGrant::userType),
+                nonNullValues(restrictions, KbAccessGrant::groupId),
+                nonNullValues(restrictions, KbAccessGrant::tagId),
+                nonNullValues(restrictions, KbAccessGrant::memberId),
+                restrictions.stream()
+                        .map(g -> new GrantRequest(g.userType(), g.groupId(), g.tagId(), g.memberId(), g.level()))
+                        .toList());
+    }
+
+    /**
+     * Writes the audience of a folder or file, taking the levelled grants when the editor sent them
+     * and the plain audience lists otherwise.
+     */
+    private void applyRestrictions(Integer folderId, Integer fileId, RestrictionRequest req) {
+        if (req.grants() != null) {
+            accessService.setGrants(
+                    folderId,
+                    fileId,
+                    req.grants().stream()
+                            .map(g -> new KbAccessService.GrantEntry(
+                                    g.userType(), g.groupId(), g.tagId(), g.memberId(), g.level()))
+                            .toList());
+            return;
+        }
+        accessService.setRestrictions(folderId, fileId, toSelection(req));
     }
 
     private static RestrictionSelection toSelection(RestrictionRequest req) {
@@ -114,7 +136,8 @@ public class KnowledgeBaseAccessRoutes implements Routes {
     private void setFolderRestrictions(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFolder(ctx, service, id);
-        accessService.setRestrictions(id, null, toSelection(ctx.bodyAsClass(RestrictionRequest.class)));
+        requireLevel(ctx, accessService, id, null, KbAccessLevel.MANAGE);
+        applyRestrictions(id, null, ctx.bodyAsClass(RestrictionRequest.class));
         ctx.json(toRestrictionResponse(accessService.findRestrictions(id, null)));
     }
 
@@ -127,7 +150,8 @@ public class KnowledgeBaseAccessRoutes implements Routes {
     private void setFileRestrictions(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFile(ctx, service, id);
-        accessService.setRestrictions(null, id, toSelection(ctx.bodyAsClass(RestrictionRequest.class)));
+        requireLevel(ctx, accessService, null, id, KbAccessLevel.MANAGE);
+        applyRestrictions(null, id, ctx.bodyAsClass(RestrictionRequest.class));
         ctx.json(toRestrictionResponse(accessService.findRestrictions(null, id)));
     }
 
@@ -141,6 +165,7 @@ public class KnowledgeBaseAccessRoutes implements Routes {
     private void setFilePublicVisibility(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFile(ctx, service, id);
+        requireLevel(ctx, accessService, null, id, KbAccessLevel.MANAGE);
         var req = ctx.bodyAsClass(PublicVisibilityRequest.class);
         if (req.visible() == null) {
             accessService.removePublicVisibility(null, id);
@@ -160,6 +185,7 @@ public class KnowledgeBaseAccessRoutes implements Routes {
     private void setFolderPublicVisibility(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedFolder(ctx, service, id);
+        requireLevel(ctx, accessService, id, null, KbAccessLevel.MANAGE);
         var req = ctx.bodyAsClass(PublicVisibilityRequest.class);
         if (req.visible() == null) {
             accessService.removePublicVisibility(id, null);
@@ -169,11 +195,26 @@ public class KnowledgeBaseAccessRoutes implements Routes {
         ctx.json(new PublicVisibilityResponse(req.visible()));
     }
 
+    /**
+     * The audience of a folder or file. {@code grants} carries the same audience with a level per
+     * entry and wins when present; the flat lists remain for callers that only set an audience.
+     */
     public record RestrictionRequest(
-            List<String> userTypes, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {}
+            List<String> userTypes,
+            List<Integer> groupIds,
+            List<Integer> tagIds,
+            List<Integer> memberIds,
+            List<GrantRequest> grants) {}
+
+    public record GrantRequest(
+            StationUserType userType, Integer groupId, Integer tagId, Integer memberId, KbAccessLevel level) {}
 
     public record RestrictionResponse(
-            List<StationUserType> userTypes, List<Integer> groupIds, List<Integer> tagIds, List<Integer> memberIds) {}
+            List<StationUserType> userTypes,
+            List<Integer> groupIds,
+            List<Integer> tagIds,
+            List<Integer> memberIds,
+            List<GrantRequest> grants) {}
 
     public record PublicVisibilityRequest(Boolean visible) {}
 

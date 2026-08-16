@@ -35,25 +35,48 @@ const props = defineProps<{
   registrationFields?: EventRegistrationField[]
 }>()
 
+const {t} = useI18n()
+const {hasPermission} = useSession()
+
 const fields = computed(() => props.registrationFields ?? [])
 
+/** Whoever runs the event sees every answer and the totals; everyone else sees the list columns. */
+const runsEvent = computed(() => hasPermission(StationPermission.EVENT_EDIT))
+
+function answersOf(fieldId: number): string[] {
+  return props.registrations
+      .map(registration => registration.fields?.find(value => value.fieldId === fieldId)?.value)
+      .filter((value): value is string => value != null && value !== '')
+}
+
 /**
- * A number question shown in the list gets its column total, which is the number a station plans
- * from. Only numbers are summed; adding anything else together means nothing.
+ * Totals for the questions that have a countable answer, which is what a station plans from: a
+ * number question is summed, a choice question is counted per option. Free text has no total worth
+ * showing, so it gets none.
  */
-const overviewSums = computed(() => {
-  const sums: { label: string; total: number }[] = []
+const summaries = computed(() => {
+  if (!runsEvent.value) return []
+  const result: { label: string; text: string }[] = []
   for (const field of fields.value) {
-    if (!field.overview || field.fieldType !== EventFieldTypes.NUMBER) continue
-    let total = 0
-    for (const registration of props.registrations) {
-      const raw = registration.fields?.find(v => v.fieldId === field.id)?.value
-      const parsed = Number(raw)
-      if (raw != null && raw !== '' && !Number.isNaN(parsed)) total += parsed
+    if (field.fieldType === EventFieldTypes.NUMBER) {
+      const total = answersOf(field.id)
+          .map(Number)
+          .filter(value => !Number.isNaN(value))
+          .reduce((sum, value) => sum + value, 0)
+      result.push({label: field.name, text: String(total)})
+      continue
     }
-    sums.push({label: field.name, total})
+    if (field.fieldType === EventFieldTypes.ENUM) {
+      const answers = answersOf(field.id)
+      const counts = (field.config?.options ?? [])
+          .map(option => ({option, count: answers.filter(answer => answer === option).length}))
+          .filter(entry => entry.count > 0)
+      if (counts.length > 0) {
+        result.push({label: field.name, text: counts.map(e => `${e.option} ${e.count}`).join(', ')})
+      }
+    }
   }
-  return sums
+  return result
 })
 
 const manualRegisterMemberId = defineModel<string>('manualRegisterMemberId', {default: ''})
@@ -63,9 +86,6 @@ const emit = defineEmits<{
   deny: [registrationId: number]
   manualRegister: []
 }>()
-
-const {t} = useI18n()
-const {hasPermission} = useSession()
 
 const registrationSummary = computed(() => {
   let accepted = 0, pending = 0, denied = 0, declined = 0
@@ -92,9 +112,9 @@ function statusLabel(status: string): string {
   <NeutralContainer v-if="registrations.length > 0" class="space-y-4">
     <SubHeader>{{ t('eventDetail.registrations') }}</SubHeader>
 
-    <div v-if="overviewSums.length > 0" class="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-      <span v-for="sum in overviewSums" :key="sum.label" class="text-(--text-muted)">
-        {{ sum.label }}: <span class="text-(--text) font-medium">{{ sum.total }}</span>
+    <div v-if="summaries.length > 0" class="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+      <span v-for="summary in summaries" :key="summary.label" class="text-(--text-muted)">
+        {{ summary.label }}: <span class="text-(--text) font-medium">{{ summary.text }}</span>
       </span>
     </div>
 
@@ -118,6 +138,7 @@ function statusLabel(status: string): string {
       <!-- Manager view: table with stats and action buttons -->
       <RegistrationStatsTable
           v-if="hasPermission(StationPermission.EVENT_REGISTRATION)"
+          :fields="runsEvent ? fields : []"
           :registrations="pendingRegistrations"
           :stats="registrationStats"
           :show-actions="event.requiresConfirmation"
@@ -134,7 +155,7 @@ function statusLabel(status: string): string {
             </div>
             <InfoBadge>{{ statusLabel('PENDING') }}</InfoBadge>
           </div>
-          <RegistrationFieldAnswers :fields="fields" :values="reg.fields" overview-only class="mt-1"/>
+          <RegistrationFieldAnswers :fields="fields" :values="reg.fields" :overview-only="!runsEvent" class="mt-1"/>
         </NeutralContainer>
       </template>
     </div>
@@ -158,7 +179,7 @@ function statusLabel(status: string): string {
             </ErrorButton>
           </div>
         </div>
-        <RegistrationFieldAnswers :fields="fields" :values="reg.fields" overview-only class="mt-1"/>
+        <RegistrationFieldAnswers :fields="fields" :values="reg.fields" :overview-only="!runsEvent" class="mt-1"/>
       </NeutralContainer>
     </div>
 

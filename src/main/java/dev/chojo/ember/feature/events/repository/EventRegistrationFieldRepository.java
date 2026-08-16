@@ -170,9 +170,11 @@ public class EventRegistrationFieldRepository {
                 .insert();
     }
 
-    public void deleteValues(int registrationId) {
-        query("DELETE FROM event_registration_field_value WHERE registration_id = :registration_id;")
-                .single(call().bind("registration_id", registrationId))
+    public void deleteValue(int registrationId, int fieldId) {
+        query("""
+                DELETE FROM event_registration_field_value
+                WHERE registration_id = :registration_id AND field_id = :field_id;""")
+                .single(call().bind("registration_id", registrationId).bind("field_id", fieldId))
                 .delete();
     }
 

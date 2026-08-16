@@ -26,7 +26,7 @@ import {useSession} from '@/composables/useSession'
 import {useConfirmAction} from '@/composables/useConfirmAction'
 import {knowledgeBase} from '@/api'
 import {downloadAuthed} from '@/util/downloadAuthed'
-import type {KbFolder, KbFile} from '@/api/knowledgeBase'
+import {KbAccessLevel, levelCovers, type KbFolder, type KbFile} from '@/api/knowledgeBase'
 
 const {t} = useI18n()
 const {canEditKnowledge, loaded, isKbPublic} = useSession()
@@ -42,10 +42,19 @@ const {
     folderParam, isFavouritesView, currentFolderId,
     navigateToFolder, navigateToFile, navigateToFederatedFile, navigateToFavourites,
 } = navigation
-const {currentFolder, breadcrumbs, favourites, favouriteIds, loading, error, loadData, toggleFavourite, copySharedFile} = browse
+const {
+    currentFolder, breadcrumbs, favourites, favouriteIds, currentLevel, folderLevels, fileLevels,
+    loading, error, loadData, toggleFavourite, copySharedFile,
+} = browse
 const {showFederated, filterStationId, filterTag, allKbTags, partnerStations, filteredFolders, filteredFiles, filteredSharedFiles, loadTags} = filters
 const {searchQuery, searchResults, searching, isSearching, filteredSearchResults, onSearchInput} = search
 const {shareCopied, copyShareLink} = useKbShareLink(currentFolder)
+
+/**
+ * Whether anything may be created in the folder currently open. The server refuses a creation in a
+ * folder the reader may only read, so the menu that offers it has to follow the same rule.
+ */
+const canCreateHere = computed(() => canEditKnowledge() && levelCovers(currentLevel.value, KbAccessLevel.WRITE))
 
 const createModalsRef = ref<InstanceType<typeof KbCreateModals> | null>(null)
 const editModalsRef = ref<InstanceType<typeof KbEditModals> | null>(null)
@@ -88,6 +97,8 @@ const {items, toSearchItems} = useKbItems(
         currentFolder,
         isFavouritesView,
         canManage: computed(() => canEditKnowledge()),
+        folderLevels,
+        fileLevels,
     },
     {
         openFolder: navigateToFolder,
@@ -165,7 +176,7 @@ watch(loaded, (isLoaded) => {
             :current-folder="currentFolder"
             :view-mode="viewMode"
             :items="items"
-            :can-manage="canEditKnowledge()"
+            :can-manage="canCreateHere"
             @create-folder="createModalsRef?.openCreateFolder()"
             @create-markdown="createModalsRef?.openCreateFile()"
             @upload="createModalsRef?.openUpload()"

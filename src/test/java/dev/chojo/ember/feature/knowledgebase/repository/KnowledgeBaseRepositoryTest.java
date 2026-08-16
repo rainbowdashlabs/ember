@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.knowledgebase.repository;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.knowledgebase.entity.KbAccessLevel;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -319,7 +320,8 @@ class KnowledgeBaseRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(86)
     void accessRestrictions() {
-        var restriction = knowledgeBaseRepo.addRestriction(folderId, null, StationUserType.MEMBER, null, null, null);
+        var restriction =
+                knowledgeBaseRepo.addRestriction(folderId, null, StationUserType.MEMBER, null, null, null, null);
         assertNotNull(restriction);
 
         var restrictions = knowledgeBaseRepo.findRestrictions(folderId, null);
@@ -334,7 +336,7 @@ class KnowledgeBaseRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(87)
     void fileAccessRestrictions() {
-        knowledgeBaseRepo.addRestriction(null, fileId, null, null, null, member.id());
+        knowledgeBaseRepo.addRestriction(null, fileId, null, null, null, member.id(), KbAccessLevel.READ);
         assertFalse(knowledgeBaseRepo.findRestrictions(null, fileId).isEmpty());
         assertTrue(knowledgeBaseRepo.hasRestrictions(null, fileId));
         knowledgeBaseRepo.clearRestrictions(null, fileId);

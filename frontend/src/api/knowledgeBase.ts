@@ -79,6 +79,21 @@ export interface BrowseResponse {
     files: KbFile[]
     sharedFiles: SharedFileEntry[]
     favourites: KbFile[]
+    /** What the reader may do in the folder being browsed, which decides what may be created in it. */
+    currentLevel?: KbAccessLevelName
+    /** What the reader may do with each folder, keyed by folder id. */
+    folderLevels?: Record<number, KbAccessLevelName>
+    /** What the reader may do with each file, keyed by file id. */
+    fileLevels?: Record<number, KbAccessLevelName>
+}
+
+/**
+ * Tells whether a level is enough for an action, using the same order the server checks.
+ */
+export function levelCovers(level: KbAccessLevelName | undefined, required: KbAccessLevelName): boolean {
+    const order = [KbAccessLevel.NONE, KbAccessLevel.READ, KbAccessLevel.WRITE, KbAccessLevel.MANAGE]
+    if (!level) return true
+    return order.indexOf(level) >= order.indexOf(required)
 }
 
 export interface MarkdownHtmlResponse {
@@ -111,6 +126,10 @@ export interface FileResponse {
     file: KbFile
     lastEditedByName: string | null
     isFavourite: boolean
+    /** What the reader may do with this file. */
+    accessLevel?: KbAccessLevelName
+    /** The folder whose permission decided that, when one did. */
+    accessLevelSource?: string | null
 }
 
 interface FolderCreateRequest {
@@ -295,11 +314,36 @@ export async function revertToVersion(fileId: number, version: number): Promise<
 
 // -- Access Restrictions --
 
+/**
+ * What a member may do with a folder or file, from nothing to everything.
+ */
+export const KbAccessLevel = {
+    NONE: 'NONE',
+    READ: 'READ',
+    WRITE: 'WRITE',
+    MANAGE: 'MANAGE',
+} as const
+
+export type KbAccessLevelName = (typeof KbAccessLevel)[keyof typeof KbAccessLevel]
+
+/**
+ * One audience and what it may do. A null level names an audience and leaves the level to the
+ * station permission the member holds, which is what every entry carried before levels existed.
+ */
+export interface KbGrant {
+    userType?: string | null
+    groupId?: number | null
+    tagId?: number | null
+    memberId?: number | null
+    level?: KbAccessLevelName | null
+}
+
 export interface KbRestrictions {
     userTypes: string[]
     groupIds: number[]
     tagIds: number[]
     memberIds: number[]
+    grants?: KbGrant[]
 }
 
 export async function getFolderRestrictions(folderId: number): Promise<KbRestrictions> {
