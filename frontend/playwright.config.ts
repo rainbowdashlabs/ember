@@ -16,6 +16,7 @@ import {defineConfig, devices} from '@playwright/test'
  */
 export default defineConfig({
     testDir: './e2e',
+    globalSetup: './e2e/global-setup.ts',
     outputDir: './e2e/results',
     // Specs are named after their feature, not `*.spec.ts`, so the default pattern would find none.
     testMatch: /.*\.e2e\.ts/,

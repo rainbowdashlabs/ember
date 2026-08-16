@@ -50,13 +50,17 @@ export async function demoAccounts(request: APIRequestContext): Promise<DemoAcco
 }
 
 /**
- * The first demo account holding every one of the given permissions, so a story asks for the rights
- * it needs rather than for a name it hopes still exists.
+ * The first demo account holding any of the given permissions, so a story asks for the rights it
+ * needs rather than for a name it hopes still exists.
+ *
+ * Any rather than all, because the endpoint reports what was granted directly and not what those
+ * grants imply: the station administrator right carries every management right with it and appears
+ * on its own.
  */
 export async function accountWith(request: APIRequestContext, ...permissions: string[]): Promise<DemoAccount> {
     const accounts = await demoAccounts(request)
-    const match = accounts.find(account => permissions.every(permission => account.permissions.includes(permission)))
-    if (!match) throw new Error(`No demo account holds ${permissions.join(', ')}`)
+    const match = accounts.find(account => permissions.some(permission => account.permissions.includes(permission)))
+    if (!match) throw new Error(`No demo account holds any of ${permissions.join(', ')}`)
     return match
 }
 
@@ -74,23 +78,40 @@ export async function accountWithout(
 }
 
 /**
- * Opens a page already logged in as the given account.
+ * A station that has both someone who runs it and an ordinary member, with both accounts.
  *
- * Both the token and the chosen station are planted, which is what the application itself stores
- * after a login: a session alone leaves the station area redirecting to the station picker, so a
- * fixture that plants only the token lands every story on the wrong page.
+ * The two-actor stories are only meaningful inside one station: a manager granting a permission in
+ * one station and a member watching from another proves nothing, and picking each role
+ * independently is exactly how that happens — the seeder has several stations and not all of them
+ * have members.
  */
-export async function pageAs(browser: Browser, request: APIRequestContext, account: DemoAccount): Promise<Page> {
-    const login = await request.post('/api/v1/demo/login', {data: {email: account.email}})
-    if (!login.ok()) throw new Error(`Demo login for ${account.email} answered ${login.status()}`)
-    const {token} = await login.json()
+export async function stationPeers(request: APIRequestContext): Promise<{manager: DemoAccount; member: DemoAccount}> {
+    const accounts = await demoAccounts(request)
+    for (const manager of accounts.filter(account => account.permissions.includes('STATION_ADMINISTRATOR')
+        || account.permissions.includes('STATION_MANAGER'))) {
+        const member = accounts.find(account =>
+            account.stationId === manager.stationId
+            && account.userType === 'MEMBER'
+            && !account.permissions.includes('STATION_MANAGER'))
+        if (member && manager.stationId) return {manager, member}
+    }
+    throw new Error('No seeded station has both a manager and an ordinary member')
+}
 
-    const context = await browser.newContext()
-    await context.addInitScript(([sessionToken, stationId]) => {
-        window.localStorage.setItem('session_token', sessionToken)
-        if (stationId) window.localStorage.setItem('station_id', stationId)
-        window.localStorage.setItem('storage_consent', 'accepted')
-    }, [token, account.stationId ?? ''])
+/** Where the global setup leaves the session it logged in for a role. */
+export function storageStatePath(role: string): string {
+    return `e2e/.auth/${role}.json`
+}
+
+/**
+ * Opens a page already carrying the role's session.
+ *
+ * The state holds both the token and the chosen station, which is what the application itself
+ * stores after a login: a session alone leaves the station area redirecting to the station picker,
+ * so a fixture that plants only the token lands every story on the wrong page.
+ */
+export async function pageAs(browser: Browser, role: 'manager' | 'member'): Promise<Page> {
+    const context = await browser.newContext({storageState: storageStatePath(role)})
     return context.newPage()
 }
 
@@ -100,16 +121,14 @@ interface Fixtures {
 }
 
 export const test = base.extend<Fixtures>({
-    managerPage: async ({browser, request}, use) => {
-        const account = await accountWith(request, 'STATION_MANAGER')
-        const page = await pageAs(browser, request, account)
+    managerPage: async ({browser}, use) => {
+        const page = await pageAs(browser, 'manager')
         await use(page)
         await page.context().close()
     },
 
-    memberPage: async ({browser, request}, use) => {
-        const account = await accountWithout(request, 'MEMBER', 'STATION_MANAGER', 'MEMBER_EDIT')
-        const page = await pageAs(browser, request, account)
+    memberPage: async ({browser}, use) => {
+        const page = await pageAs(browser, 'member')
         await use(page)
         await page.context().close()
     },
