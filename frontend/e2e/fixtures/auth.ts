@@ -170,13 +170,20 @@ export async function pageAsThrowaway(
  * A manager of some other station, for the stories about two stations meeting. Federation is only
  * itself when both sides are real: one station offering something and another seeing it.
  */
-export async function otherStationManager(request: APIRequestContext, notStationId?: string): Promise<DemoAccount> {
+export async function otherStationManager(
+    request: APIRequestContext,
+    notStationId?: string,
+    notEmail?: string,
+): Promise<DemoAccount> {
     const accounts = await demoAccounts(request)
+    // A different station is not enough: one person can run two of them, and acting as the same
+    // account under a second station proves nothing about two stations meeting.
     const match = accounts.find(account => !!account.email
         && !!account.stationId
         && account.stationId !== notStationId
+        && account.email !== notEmail
         && (account.permissions.includes('STATION_ADMINISTRATOR') || account.permissions.includes('STATION_MANAGER')))
-    if (!match) throw new Error('No second station has a manager to act as')
+    if (!match) throw new Error('No second station has a manager of its own to act as')
     return match
 }
 
@@ -208,7 +215,7 @@ export const test = base.extend<Fixtures>({
 
     partnerManagerPage: async ({browser, request}, use) => {
         const {manager} = await stationPeers(request)
-        const other = await otherStationManager(request, manager.stationId)
+        const other = await otherStationManager(request, manager.stationId, manager.email)
         const page = await pageAsThrowaway(browser, request, [], other)
         await use(page)
         await page.context().close()

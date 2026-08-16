@@ -56,7 +56,9 @@ async function saveSession(baseURL: string, email: string, stationId: string | u
 async function resetData(baseURL: string) {
     const context = await request.newContext({baseURL})
     try {
-        const response = await context.post('/api/v1/dev/reset')
+        // Seeding a station from nothing takes the better part of a minute and grows with the
+        // seed, so this waits far longer than a request normally would.
+        const response = await context.post('/api/v1/dev/reset', {timeout: 180_000})
         if (!response.ok() && response.status() !== 404) {
             throw new Error(`The dev reset answered ${response.status()}`)
         }
