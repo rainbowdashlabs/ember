@@ -125,7 +125,9 @@ case "$cmd" in
     fe-test-watch) fe; NODE_OPTIONS="$NODE_HEAP" run npx vitest "$@" ;;
     fe-coverage)   fe; NODE_OPTIONS="$NODE_HEAP" run npx vitest run --coverage "$@" ;;
     fe-e2e)
-        # The suite serves the last build; build once when there is none yet.
+        # The suite serves the last build; build once when there is none yet. After changing
+        # anything under src/, use fe-e2e-built — this command would otherwise run the stories
+        # against the build before the change and report on code nobody is looking at.
         project="${1:-chromium}"; shift || true
         fe
         [ -f .output/server/index.mjs ] || NODE_OPTIONS="$NODE_HEAP" run npx nuxi build

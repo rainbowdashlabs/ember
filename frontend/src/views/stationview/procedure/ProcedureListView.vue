@@ -162,6 +162,7 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
         <NeutralContainer
           v-for="p in filteredItems"
           :key="p.id"
+          data-testid="procedure-entry"
           class="flex items-center gap-3 cursor-pointer hover:border-[var(--primary)] transition-colors group"
           @click="router.push({ name: 'procedure-detail', params: { id: p.id } })"
         >

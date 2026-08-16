@@ -16,6 +16,28 @@ import {unique} from './fixtures/unique'
  * deleted.
  */
 test.describe('Procedures', () => {
+    /**
+     * Editing a procedure went to an address the backend did not answer on, so the save reported
+     * nothing and changed nothing. The story walks the same path a person does: open one, change
+     * its name, and find the new name after a reload.
+     */
+    test('a procedure is renamed', async ({managerPage: page}) => {
+        const renamed = unique('Ablauf')
+
+        await page.goto('/station/procedures')
+
+        // The list navigates by click handler, so its rows carry an identifier to aim at.
+        await page.getByTestId('procedure-entry').first().click()
+        await page.waitForURL(/\/station\/procedures\/\d+/)
+        await page.goto(`${page.url()}/edit`)
+
+        await page.getByRole('textbox').first().fill(renamed)
+        await page.getByRole('button', {name: 'Speichern'}).first().click()
+
+        await page.reload()
+        await expect(page.getByRole('textbox').first()).toHaveValue(renamed)
+    })
+
     test.fixme('a procedure is created', async ({managerPage: page}) => {
         const procedure = unique('Ablauf')
 

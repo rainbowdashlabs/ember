@@ -13,6 +13,7 @@
 
 ### Improvements
 
+- **A profile field can be marked as the date of birth.** The new field type behaves like a date field and can serve as the source of a calculated age. A station has one of them: once a field carries it, the type is offered again only after that field is deleted or changed to something else.
 - **Terms of service now cover what the product actually does.** The shipped terms describe public pages, sharing with partner stations, AI-assisted question generation, feeds and exports, the obligations of a station admitted to an instance, and how a station's use ends. They are laid out in six parts that can be reordered or switched off individually.
 - **The shipped imprint asks to be filled in rather than edited.** It carries placeholders for the operator's name, address, phone number, email address and the person responsible for content, so an instance is ready once those values are entered. A placeholder left empty stays visible in the text instead of leaving a blank line. New operator setting: `api.placeholderFile`.
 - **Legal documents can start from the shipped templates.** Under Settings → Legal, a section of the document Ember ships can be loaded into the editor — one at a time or all at once. A section of the same name is replaced, everything else stays as it is, and nothing is written until you save.
@@ -32,6 +33,7 @@
 
 ### Fixes
 
+- **Editing a procedure saves.** Changing the name, description, due date or visibility of a procedure keeps the change.
 - **Choosing a station leads somewhere.** Picking a station opens the page that was asked for instead of returning to the station picker.
 - **The sidebar control for narrowing the menu stays on desktop.** It no longer appears on phones, where there is nothing to narrow.
 - **Applications for a new station can be decided again.** The list shows the applications waiting for a decision, each with its accepting and rejecting buttons and its actual state.

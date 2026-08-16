@@ -20,6 +20,22 @@ test.describe('Quiz', () => {
         await expect(page.getByText(catalogue).first()).toBeVisible()
     })
 
+    /** A catalogue opens on its categories, which is where its questions live. */
+    test('a created catalogue opens', async ({managerPage: page}) => {
+        const catalogue = unique('Katalog')
+
+        await page.goto('/station/quiz/catalogs')
+        await page.getByRole('button', {name: 'Neuer Katalog'}).click()
+        await page.getByRole('textbox').first().fill(catalogue)
+        await page.getByRole('button', {name: /Speichern|Erstellen|Anlegen/}).last().click()
+        await expect(page.getByText(catalogue).first()).toBeVisible()
+
+        await page.getByText(catalogue).first().click()
+
+        await page.waitForURL(/\/station\/quiz\/catalogs\/\d+/)
+        await expect(page.getByTestId('app-shell')).toBeVisible()
+    })
+
     test('the test sheets are reachable', async ({managerPage: page}) => {
         await page.goto('/station/quiz/tests')
 

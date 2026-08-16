@@ -27,6 +27,14 @@ test.describe('Inventory', () => {
         await expect(page.getByRole('button', {name: 'Neuer Behälter'})).toBeVisible()
     })
 
+    /** Assigning starts by naming a person or scanning a code, and offers both. */
+    test('the assignment page asks who is receiving something', async ({managerPage: page}) => {
+        await page.goto('/station/inventory/assign')
+
+        await expect(page.getByRole('heading', {name: 'Mitglied'})).toBeVisible()
+        await expect(page.getByRole('heading', {name: 'Scannen'})).toBeVisible()
+    })
+
     test('the equipment checks are reachable', async ({managerPage: page}) => {
         await page.goto('/station/inventory/checks')
 
