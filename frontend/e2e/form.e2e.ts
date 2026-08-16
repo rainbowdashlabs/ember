@@ -4,14 +4,19 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {test, expect} from './fixtures/auth'
+import {unique} from './fixtures/unique'
 
-/** The reach FRM-1 to FRM-3 build on. */
 test.describe('Forms', () => {
-    test('the form list is reachable', async ({managerPage: page}) => {
-        await page.goto('/station/forms')
+    test('a form is created', async ({managerPage: page}) => {
+        const form = unique('Formular')
 
-        await expect(page.getByTestId('app-shell')).toBeVisible()
-        expect(page.url()).toContain('/station/forms')
+        await page.goto('/station/forms')
+        await page.getByRole('button', {name: 'Formular erstellen'}).click()
+
+        await page.getByRole('textbox').first().fill(form)
+        await page.getByRole('button', {name: /Speichern|Erstellen|Weiter/}).last().click()
+
+        await expect(page.getByText(form).first()).toBeVisible()
     })
 
     test('a member reaches the forms they may fill', async ({memberPage: page}) => {
