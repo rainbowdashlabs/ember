@@ -36,6 +36,25 @@ test.describe('Quiz', () => {
         await expect(page.getByTestId('app-shell')).toBeVisible()
     })
 
+    /** A catalogue holds its questions in categories, so a fresh one starts by getting one. */
+    test('a category is added to a catalogue', async ({managerPage: page}) => {
+        const catalogue = unique('Katalog')
+        const category = unique('Kategorie')
+
+        await page.goto('/station/quiz/catalogs')
+        await page.getByRole('button', {name: 'Neuer Katalog'}).click()
+        await page.getByRole('textbox').first().fill(catalogue)
+        await page.getByRole('button', {name: /Speichern|Erstellen|Anlegen/}).last().click()
+        await page.getByText(catalogue).first().click()
+        await page.waitForURL(/\/station\/quiz\/catalogs\/\d+/)
+
+        await page.getByRole('button', {name: 'Neue Kategorie'}).click()
+        await page.getByPlaceholder('Kategoriename').fill(category)
+        await page.getByRole('button', {name: /Speichern|Erstellen|Anlegen|Neue Kategorie/}).last().click()
+
+        await expect(page.getByText(category).first()).toBeVisible()
+    })
+
     test('the test sheets are reachable', async ({managerPage: page}) => {
         await page.goto('/station/quiz/tests')
 
