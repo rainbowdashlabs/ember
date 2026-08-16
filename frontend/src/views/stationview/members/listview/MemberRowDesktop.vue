@@ -56,6 +56,7 @@ const pendingTitle = computed(() => {
         'bg-primary/5': exportMode && selected,
         'cursor-pointer hover:bg-bg-light-accent/30 dark:hover:bg-bg-dark-accent/30 transition-colors': true,
       }"
+      data-testid="member-row"
       @click="emit('click')"
   >
     <td v-if="exportMode" class="px-2 py-2.5" @click.stop>
