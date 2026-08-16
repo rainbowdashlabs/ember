@@ -44,6 +44,39 @@ test.describe('Protocols', () => {
         await expect(page.getByText(run).first()).toBeVisible()
     })
 
+    /**
+     * A run with nobody in it examines nobody, so the story puts a whole member type into it and
+     * then opens the grading of the first person listed.
+     */
+    test('a member of a run is opened for grading', async ({managerPage: page}) => {
+        const sheet = unique('Bogen');
+        const run = unique('Lauf')
+
+        await page.goto('/station/protocols')
+        await page.getByRole('button', {name: 'Neuer Prüfungsbogen'}).click()
+        await page.getByRole('textbox').first().fill(sheet)
+        await page.getByRole('button', {name: 'Neuer Prüfungsbogen'}).last().click()
+        await expect(page.getByText(sheet).first()).toBeVisible()
+
+        await page.goto('/station/protocols/runs')
+        await page.getByRole('button', {name: 'Neuer Prüfungslauf'}).click()
+        await page.getByRole('combobox').first().selectOption({label: sheet})
+        await page.getByPlaceholder('Name des Laufs').fill(run)
+
+        await page.getByRole('button', {name: 'Mitgliedstyp'}).click()
+        await page.getByRole('button', {name: 'Mitglied', exact: true}).click()
+        await page.keyboard.press('Escape')
+
+        await page.getByRole('button', {name: 'Neuer Prüfungslauf'}).last().click()
+        await expect(page.getByText(run).first()).toBeVisible()
+
+        await page.getByText(run).first().click()
+        await page.waitForURL(/\/station\/protocols\/runs\/\d+/)
+
+        await page.getByRole('button', {name: 'Prüfen'}).first().click()
+        await page.waitForURL(/\/grade\/\d+/)
+    })
+
     test('the protocol list offers a new test sheet to whoever runs them', async ({managerPage: page}) => {
         await page.goto('/station/protocols')
 
