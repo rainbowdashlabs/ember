@@ -1,5 +1,5 @@
 [versions]
-logback = "1.6.0"
+logback = "1.6.1"
 sadu = "2.3.9"
 jackson = "3.2.1"
 junit = "6.1.2"
@@ -8,7 +8,7 @@ testcontainers = "2.0.5"
 commonmark = "0.29.0"
 
 [plugins]
-spotless = { id = "com.diffplug.spotless", version = "8.8.0" }
+spotless = { id = "com.diffplug.spotless", version = "8.9.0" }
 idea = { id = "org.jetbrains.gradle.plugin.idea-ext", version = "1.4.1" }
 pitest = { id = "info.solidsoft.pitest", version = "1.19.0" }
 
@@ -67,7 +67,7 @@ zxing-javase = { group = "com.google.zxing", name = "javase", version = "3.5.4" 
 webauthn-server = { group = "com.yubico", name = "webauthn-server-core", version = "2.9.0" }
 
 # Annotations
-jspecify = { group = "org.jspecify", name = "jspecify", version = "1.0.0" }
+jspecify = { group = "org.jspecify", name = "jspecify", version = "1.0.1" }
 caffeine = { group = "com.github.ben-manes.caffeine", name = "caffeine", version = "3.2.4" }
 
 # mailing
@@ -82,15 +82,15 @@ imageio-webp = { group = "com.twelvemonkeys.imageio", name = "imageio-webp", ver
 smbj = { group = "com.hierynomus", name = "smbj", version = "0.14.0" }
 sshd-core = { group = "org.apache.sshd", name = "sshd-core", version = "2.19.0" }
 sshd-sftp = { group = "org.apache.sshd", name = "sshd-sftp", version = "2.19.0" }
-aws-s3 = { group = "software.amazon.awssdk", name = "s3", version = "2.49.3" }
+aws-s3 = { group = "software.amazon.awssdk", name = "s3", version = "2.50.2" }
 
 # HTML sanitization
-jsoup = { group = "org.jsoup", name = "jsoup", version = "1.22.2" }
+jsoup = { group = "org.jsoup", name = "jsoup", version = "1.23.1" }
 
 # AI SDKs
-openai = { group = "com.openai", name = "openai-java", version = "4.45.0" }
+openai = { group = "com.openai", name = "openai-java", version = "4.49.0" }
 anthropic = { group = "com.anthropic", name = "anthropic-java", version = "2.52.0" }
-google-genai = { group = "com.google.genai", name = "google-genai", version = "1.63.0" }
+google-genai = { group = "com.google.genai", name = "google-genai", version = "1.64.0" }
 
 # CSV
 commons-csv = { group = "org.apache.commons", name = "commons-csv", version = "1.14.1" }
