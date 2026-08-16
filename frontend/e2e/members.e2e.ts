@@ -6,11 +6,8 @@
 import {test, expect} from './fixtures/auth'
 
 /**
- * MEM-6 of the story list, and the search half of MEM-1.
- *
- * The creation wizard itself (MEM-1) walks five steps and writes an account; it is written once the
- * seeder can be relied on to clean up after it, so that a suite run does not leave a station full of
- * test members behind.
+ * The creation wizard walks five steps and writes an account. It is written once a run can be
+ * relied on to clear up after itself, so that the seeded station does not fill with test members.
  */
 test.describe('Members', () => {
     test('the member list shows the station and filters by name', async ({managerPage: page}) => {
@@ -31,7 +28,7 @@ test.describe('Members', () => {
      * A permission is not a hidden button: the page has to be unreachable for someone without it,
      * which is what stops a guessed URL from working.
      */
-    test('MEM-6 a member without the right cannot open the member list', async ({memberPage: page}) => {
+    test('a member without the right cannot open the member list', async ({memberPage: page}) => {
         await page.goto('/station/members/list')
 
         await expect(page.getByRole('table')).toHaveCount(0)

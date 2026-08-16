@@ -53,6 +53,9 @@ Frontend tests
   fe-e2e1 <file> [args] One end-to-end spec, e.g. `fe-e2e1 account`
   fe-e2e-ssr            The JavaScript-disabled project, which is what proves the public routes
                         really are server-rendered
+  fe-e2e-built [proj]   Build the frontend, then run the stories against the built server. Slower
+                        to start and far steadier than the dev server, which compiles each route
+                        on demand and buckles under parallel workers
   fe-e2e-list           List every end-to-end story without running anything or starting a server
   fe-e2e-report         Open the last end-to-end report
   fe-e2e-install        Download the Playwright browser binaries (once per machine)
@@ -126,6 +129,13 @@ case "$cmd" in
         fe; run npx playwright test "$spec" --project chromium "$@"
         ;;
     fe-e2e-ssr)      fe; run npx playwright test --project ssr-no-js "$@" ;;
+    fe-e2e-built)
+        # Against a built server rather than the dev one: no per-route compilation, so the suite
+        # can use every worker instead of waiting on a single process that is still bundling.
+        project="${1:-chromium}"; shift || true
+        fe; NODE_OPTIONS="$NODE_HEAP" run npx nuxi build
+        fe; E2E_BUILT_SERVER=1 run npx playwright test --project "$project" "$@"
+        ;;
     fe-e2e-list)     fe; E2E_NO_SERVER=1 run npx playwright test --list "$@" ;;
     fe-e2e-report)   fe; run npx playwright show-report e2e/report "$@" ;;
     fe-e2e-install)

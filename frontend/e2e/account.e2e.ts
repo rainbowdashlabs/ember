@@ -3,25 +3,23 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect, accountWithout} from './fixtures/auth'
+import {test, expect, accountWithout, pageAsThrowaway, stationPeers} from './fixtures/auth'
 
 /**
- * ACC-1 to ACC-3 of the story list. ACC-1 is the one story that walks the login UI itself; every
- * other story in the suite takes its session from the fixture instead.
+ * Logging in is the one story that walks the login screen itself; every other story in the suite
+ * takes its session from the fixture instead.
+ *
+ * Logging out ends a session, and the stored sessions are shared by the whole suite — so that story
+ * takes an account nobody else is using. Ending someone else's session mid-run makes every member story in
+ * flight fail at once, and looks exactly like flakiness.
  */
-/**
- * Serial on purpose. These stories log in and out of the same seeded account, and a logout revokes
- * a session another one is holding — the interference is between the stories, not in the app. Every
- * other feature's stories touch their own rows and stay fully parallel.
- */
-test.describe.configure({mode: 'serial'})
 
 test.describe('Account & session', () => {
     /**
      * The consent gate comes first on a fresh browser and the one-click accounts only appear behind
      * it, which is the order a real first visit meets them too.
      */
-    test('ACC-1 logging in reaches the station', async ({page, request}) => {
+    test('logging in reaches the station', async ({page, request}) => {
         const account = await accountWithout(request, 'MEMBER', 'STATION_ADMINISTRATOR')
 
         await page.goto('/login')
@@ -33,7 +31,7 @@ test.describe('Account & session', () => {
         await expect(page.getByTestId('app-shell')).toBeVisible()
     })
 
-    test('ACC-2 an unauthenticated visitor is sent to the login', async ({page}) => {
+    test('an unauthenticated visitor is sent to the login', async ({page}) => {
         await page.goto('/login')
         await page.evaluate(() => window.localStorage.clear())
 
@@ -42,7 +40,10 @@ test.describe('Account & session', () => {
         await expect(page).toHaveURL(/\/login/)
     })
 
-    test('ACC-3 logging out ends the session', async ({memberPage: page}) => {
+    test('logging out ends the session', async ({browser, request}) => {
+        const {member} = await stationPeers(request)
+        const page = await pageAsThrowaway(browser, request, [member.email])
+
         await page.goto('/station/dashboard/overview')
         await expect(page.getByTestId('app-shell')).toBeVisible()
 

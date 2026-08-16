@@ -7,11 +7,11 @@ import {test, expect} from './fixtures/auth'
 import {unique} from './fixtures/unique'
 
 /**
- * CHK-1 of the story list. A checklist without a single column has nothing to tick, and the dialog
- * refuses to save one — so the story fills a column too.
+ * A checklist without a single column has nothing to tick, and the dialog refuses to save one, so
+ * the story fills a column too.
  */
 test.describe('Checklists', () => {
-    test('CHK-1 a checklist is created', async ({managerPage: page}) => {
+    test('a checklist is created', async ({managerPage: page}) => {
         const checklist = unique('Checkliste')
 
         await page.goto('/station/checklist')

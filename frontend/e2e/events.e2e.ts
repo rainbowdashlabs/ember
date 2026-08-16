@@ -6,7 +6,7 @@
 import {test, expect, type Page} from './fixtures/auth'
 
 /**
- * EVT-2, EVT-4 and EVT-6 of the story list, plus the permission the rest of them rest on.
+ * Registering for an event, withdrawing again, and the organiser's view of who has signed up.
  *
  * The planner navigates by click handler rather than by link, so its entries carry a test id — that
  * is the only way a story can pick one out without asserting on the shape of a calendar grid. The
@@ -44,15 +44,15 @@ test.describe('Events', () => {
      * that shipped: the tab stayed empty because the list was asked for while the page was still
      * loading, and nothing asked again afterwards.
      */
-    test('EVT-4 an event shows who has registered', async ({managerPage: page}) => {
+    test('an event shows who has registered', async ({managerPage: page}) => {
         await openEventWithRegistration(page)
 
         await page.getByRole('button', {name: 'Anmeldungen'}).click()
         await expect(page.getByText(/Meine Anmeldung|Anmeldungen/).first()).toBeVisible()
     })
 
-    /** EVT-2 and EVT-6 in one walk: a member registers for an event and takes it back again. */
-    test('EVT-2 a member registers for an event and withdraws again', async ({memberPage: page}) => {
+    /** Registering and withdrawing in one walk, which is how a member uses this in practice. */
+    test('a member registers for an event and withdraws again', async ({memberPage: page}) => {
         await openEventWithRegistration(page)
         await page.getByRole('button', {name: 'Anmeldungen'}).click()
 

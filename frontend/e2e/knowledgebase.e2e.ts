@@ -7,15 +7,13 @@ import {test, expect} from './fixtures/auth'
 import {unique} from './fixtures/unique'
 
 /**
- * KB-1 and KB-3 of the story list.
- *
- * KB-3 is the one worth having: a permission set on a folder by one person has to change what a
- * different person sees, and the rule is enforced in three places — the route guard, the levels the
- * listing reports, and the create menu. One story covers all three from the outside.
+ * The permission story is the one worth having: what one person sets on a folder has to change what
+ * a different person sees, and the rule is enforced in three places — the route guard, the levels
+ * the listing reports, and the create menu. One story covers all three from the outside.
  */
 test.describe('Knowledge base', () => {
     /** Creating a Markdown file opens it, because that is where its content is written. */
-    test('KB-1 a folder is created and holds a file', async ({managerPage: page}) => {
+    test('a folder is created and holds a file', async ({managerPage: page}) => {
         const folder = unique('Ordner')
         const file = unique('Datei')
 
@@ -45,7 +43,7 @@ test.describe('Knowledge base', () => {
      * search and the entries, and no create menu — the same rule the server enforces, so nothing
      * is offered that would be refused.
      */
-    test('KB-3 a member sees the knowledge base without the actions of an editor', async ({memberPage: page}) => {
+    test('a member sees the knowledge base without the actions of an editor', async ({memberPage: page}) => {
         await page.goto('/station/knowledge')
 
         await expect(page.getByPlaceholder('Suchen...')).toBeVisible()

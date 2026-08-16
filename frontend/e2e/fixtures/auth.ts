@@ -23,6 +23,8 @@ export interface DemoAccount {
     lastName: string
     userType: string
     permissions: string[]
+    /** Whether the account administers the instance. Station permissions say nothing about that. */
+    instanceAdministrator?: boolean
     /** The station the account belongs to, carried over from the group it was listed under. */
     stationId?: string
 }
@@ -98,6 +100,19 @@ export async function stationPeers(request: APIRequestContext): Promise<{manager
     throw new Error('No seeded station has both a manager and an ordinary member')
 }
 
+/**
+ * The account that administers the instance.
+ *
+ * Asked for by what it may do rather than by name: the admin area is gated on the instance user
+ * type, which no station permission implies, and the seeder is free to rename the account.
+ */
+export async function instanceAdmin(request: APIRequestContext): Promise<DemoAccount> {
+    const accounts = await demoAccounts(request)
+    const match = accounts.find(account => account.instanceAdministrator)
+    if (!match) throw new Error('No demo account administers the instance')
+    return match
+}
+
 /** Where the global setup leaves the session it logged in for a role. */
 export function storageStatePath(role: string): string {
     return `e2e/.auth/${role}.json`
@@ -110,14 +125,41 @@ export function storageStatePath(role: string): string {
  * stores after a login: a session alone leaves the station area redirecting to the station picker,
  * so a fixture that plants only the token lands every story on the wrong page.
  */
-export async function pageAs(browser: Browser, role: 'manager' | 'member'): Promise<Page> {
+export async function pageAs(browser: Browser, role: 'manager' | 'member' | 'admin'): Promise<Page> {
     const context = await browser.newContext({storageState: storageStatePath(role)})
+    return context.newPage()
+}
+
+/**
+ * A page logged in as an account nobody else is using.
+ *
+ * The stored sessions are shared by every story that asks for a role, so a story that ends a
+ * session — logging out is the obvious one — would pull the ground from under every other story
+ * running at that moment. Such a story takes an account of its own instead, and logs it in itself.
+ */
+export async function pageAsThrowaway(browser: Browser, request: APIRequestContext, taken: string[]): Promise<Page> {
+    const accounts = await demoAccounts(request)
+    const account = accounts.find(candidate =>
+        candidate.userType === 'MEMBER' && candidate.stationId && !taken.includes(candidate.email))
+    if (!account) throw new Error('No spare member account to log out with')
+
+    const login = await request.post('/api/v1/demo/login', {data: {email: account.email}})
+    if (!login.ok()) throw new Error(`Demo login for ${account.email} answered ${login.status()}`)
+    const {token} = await login.json()
+
+    const context = await browser.newContext()
+    await context.addInitScript(([sessionToken, stationId]) => {
+        window.localStorage.setItem('session_token', sessionToken)
+        if (stationId) window.localStorage.setItem('station_id', stationId)
+        window.localStorage.setItem('storage_consent', 'accepted')
+    }, [token, account.stationId ?? ''])
     return context.newPage()
 }
 
 interface Fixtures {
     managerPage: Page
     memberPage: Page
+    adminPage: Page
 }
 
 export const test = base.extend<Fixtures>({
@@ -129,6 +171,12 @@ export const test = base.extend<Fixtures>({
 
     memberPage: async ({browser}, use) => {
         const page = await pageAs(browser, 'member')
+        await use(page)
+        await page.context().close()
+    },
+
+    adminPage: async ({browser}, use) => {
+        const page = await pageAs(browser, 'admin')
         await use(page)
         await page.context().close()
     },

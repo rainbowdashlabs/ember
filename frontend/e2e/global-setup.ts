@@ -6,7 +6,7 @@
 import {request, type FullConfig} from '@playwright/test'
 import {mkdir, writeFile} from 'node:fs/promises'
 import {dirname} from 'node:path'
-import {stationPeers, storageStatePath} from './fixtures/auth'
+import {instanceAdmin, stationPeers, storageStatePath} from './fixtures/auth'
 
 /**
  * Logs each role in once for the whole run and stores the result on disk.
@@ -67,8 +67,10 @@ export default async function globalSetup(config: FullConfig) {
     if (!process.env.E2E_KEEP_DATA) await resetData(baseURL)
 
     const context = await request.newContext({baseURL})
-    const {manager, member} = await stationPeers(context).finally(() => context.dispose())
+    const {manager, member} = await stationPeers(context)
+    const admin = await instanceAdmin(context).finally(() => context.dispose())
 
     await saveSession(baseURL, manager.email, manager.stationId, 'manager')
     await saveSession(baseURL, member.email, member.stationId, 'member')
+    await saveSession(baseURL, admin.email, admin.stationId, 'admin')
 }

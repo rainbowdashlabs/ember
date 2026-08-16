@@ -28,7 +28,13 @@ export default defineConfig({
      */
     expect: {timeout: 15_000},
     retries: process.env.CI ? 2 : 0,
-    workers: process.env.CI ? 4 : undefined,
+    /**
+     * Two against a dev server, four against a built one. A dev server compiles each route the
+     * first time it is asked for and serves it from a single process; four workers asking at once
+     * push it past what the assertions are willing to wait for, and the failures land on whichever
+     * story happened to be in flight. Point the suite at a built server and the ceiling lifts.
+     */
+    workers: process.env.E2E_BUILT_SERVER ? 4 : 2,
     fullyParallel: true,
     reporter: process.env.CI ? [['html', {outputFolder: 'e2e/report'}], ['list']] : 'list',
 
@@ -65,12 +71,23 @@ export default defineConfig({
                 reuseExistingServer: true,
                 timeout: 300_000,
             },
-            {
-                command: 'npm run dev',
-                url: 'http://localhost:3000',
-                reuseExistingServer: !process.env.CI,
-                timeout: 120_000,
-                env: {NUXT_BACKEND_URL: process.env.NUXT_BACKEND_URL || 'http://localhost:8888'},
-            },
+            process.env.E2E_BUILT_SERVER
+                ? {
+                    command: 'node .output/server/index.mjs',
+                    url: 'http://localhost:3000',
+                    reuseExistingServer: !process.env.CI,
+                    timeout: 120_000,
+                    env: {
+                        NUXT_BACKEND_URL: process.env.NUXT_BACKEND_URL || 'http://localhost:8888',
+                        NITRO_PORT: '3000',
+                    },
+                }
+                : {
+                    command: 'npm run dev',
+                    url: 'http://localhost:3000',
+                    reuseExistingServer: !process.env.CI,
+                    timeout: 120_000,
+                    env: {NUXT_BACKEND_URL: process.env.NUXT_BACKEND_URL || 'http://localhost:8888'},
+                },
         ],
 })
