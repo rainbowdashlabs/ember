@@ -21,7 +21,7 @@ test.describe('Federation', () => {
      * forty-five seconds, so the wait is not the problem. Something about a second station's
      * session arriving while the rest of the suite is working stops that page loading at all.
      */
-    test.fixme('two stations each carry the other as a partner', async ({managerPage, partnerManagerPage}) => {
+    test('two stations each carry the other as a partner', async ({managerPage, partnerManagerPage}) => {
 
         await managerPage.goto('/station/federate')
         await expect(managerPage.getByTestId('app-shell')).toBeVisible()

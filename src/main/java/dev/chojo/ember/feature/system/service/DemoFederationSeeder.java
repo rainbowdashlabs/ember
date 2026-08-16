@@ -173,6 +173,9 @@ public class DemoFederationSeeder implements DemoSeeder {
         // Create a second station
         var partnerStation = stationRepository.create("JF Partnerwache", DemoUids.station("jf-partnerwache"));
         stationRepository.updatePublicSlug(partnerStation.id(), "jf-partnerwache");
+        // A station that has not finished the setup assistant sends its manager straight back into
+        // it, so a seeded partner nobody ever set up is a station nobody can look around.
+        stationRepository.markSetupComplete(partnerStation.id());
         log.info("Demo: Created partner station '{}' (id={})", partnerStation.name(), partnerStation.id());
         stationRepository.updateDiscoverySettings(
                 partnerStation.id(),
@@ -637,6 +640,7 @@ public class DemoFederationSeeder implements DemoSeeder {
         // === Third station (not federated) ===
         var thirdStation = stationRepository.create("JF Nachbarstadt", DemoUids.station("jf-nachbarstadt"));
         stationRepository.updatePublicSlug(thirdStation.id(), "jf-nachbarstadt");
+        stationRepository.markSetupComplete(thirdStation.id());
         log.info("Demo: Created third station '{}' (id={})", thirdStation.name(), thirdStation.id());
         stationRepository.updateDiscoverySettings(
                 thirdStation.id(), DiscoveryVisibility.PUBLIC, "Nachbarstadt sucht Partner für Übungsaustausch", true);
