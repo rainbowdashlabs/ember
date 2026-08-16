@@ -25,7 +25,7 @@ const {t} = useI18n()
 </script>
 
 <template>
-  <NeutralContainer clickable @click="emit('open', props.inv)">
+  <NeutralContainer data-testid="inventory-card" clickable @click="emit('open', props.inv)">
     <div class="flex items-center justify-between">
       <div>
         <span class="font-medium">{{ props.inv.name }}</span>

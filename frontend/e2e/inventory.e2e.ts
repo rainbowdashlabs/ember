@@ -20,6 +20,26 @@ test.describe('Inventory', () => {
         await expect(page.getByTestId('app-shell')).toBeVisible()
     })
 
+    /**
+     * An inventory is a table of items, and finding one in it is what the table is for. The story
+     * narrows the table by typing and expects fewer rows than it started with.
+     */
+    test('the items of an inventory can be narrowed down', async ({managerPage: page}) => {
+        await page.goto('/station/inventory/manage')
+        await page.getByTestId('inventory-card').first().click()
+        await page.waitForURL(/\/station\/inventory\/detail\/\d+/)
+
+        const rows = page.getByRole('row')
+        await expect(rows.first()).toBeVisible()
+        const before = await rows.count()
+
+        await page.getByPlaceholder('Gegenstände durchsuchen...').fill('zzz-kein-treffer')
+
+        await expect(async () => {
+            expect(await rows.count()).toBeLessThan(before)
+        }).toPass()
+    })
+
     test('the storage containers are reachable', async ({managerPage: page}) => {
         await page.goto('/station/inventory/storage')
 
