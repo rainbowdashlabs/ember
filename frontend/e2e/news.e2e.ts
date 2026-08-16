@@ -25,6 +25,38 @@ test.describe('News', () => {
         await expect(page.getByText(article).first()).toBeVisible()
     })
 
+    /**
+     * The article and the public blog are two sides of one act: a station writes something and the
+     * world can read it. The story crosses from the station into the public pages, where nobody is
+     * logged in at all.
+     */
+    test('an article marked for the blog appears publicly', async ({managerPage: page}) => {
+        const article = unique('Blogbeitrag')
+
+        await page.goto('/station/news')
+        await page.getByRole('button', {name: 'Neuigkeit erstellen'}).click()
+        await page.waitForURL(/\/station\/news\/create/)
+
+        await page.getByPlaceholder('Titel der Neuigkeit').fill(article)
+        const body = page.locator('[contenteditable="true"]').first()
+        await body.click()
+        await page.keyboard.type('Für alle sichtbar.')
+        await page.getByRole('button', {name: /Speichern|Veröffentlichen|Erstellen/}).last().click()
+
+        await page.goto('/station/news')
+        await page.getByText(article).first().click()
+        await page.waitForURL(/\/station\/news\/\d+/)
+
+        const editUrl = `${page.url()}/edit`
+        await page.goto(editUrl)
+        // The control is a switch beside the label, not the label itself.
+        await page.getByRole('switch').first().click()
+        await page.getByRole('button', {name: /Speichern/}).last().click()
+
+        await page.goto('/public/station/jugendfeuerwehr-musterstadt/blog')
+        await expect(page.getByText(article).first()).toBeVisible()
+    })
+
     test('a member reads the news of their station', async ({memberPage: page}) => {
         await page.goto('/station/news')
 
