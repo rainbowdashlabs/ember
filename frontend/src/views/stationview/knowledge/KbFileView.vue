@@ -288,10 +288,14 @@ watch(() => [props.fileId, props.stationUid], () => {
             <!-- Description -->
             <div v-if="editingDescription" class="flex items-center gap-2 mb-4">
                 <TextAreaInput v-model="editDescriptionValue" class="flex-1 !text-sm" :placeholder="t('kb.description')"/>
-                <PrimaryButton @click="saveDescription">
+                <PrimaryButton :aria-label="t('common.save')" :title="t('common.save')" @click="saveDescription">
                     <font-awesome-icon :icon="['fas', 'check']"/>
                 </PrimaryButton>
-                <SecondaryButton @click="editingDescription = false">
+                <SecondaryButton
+                    :aria-label="t('common.cancel')"
+                    :title="t('common.cancel')"
+                    @click="editingDescription = false"
+                >
                     <font-awesome-icon :icon="['fas', 'xmark']"/>
                 </SecondaryButton>
             </div>
