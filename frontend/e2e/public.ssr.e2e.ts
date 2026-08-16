@@ -54,6 +54,18 @@ test.describe('Public pages without JavaScript', () => {
      * lays one down in each language on its first start. A page that arrives with its frame and no
      * document would pass a weaker assertion while telling a visitor nothing.
      */
+    /**
+     * Every public page of a station hangs inside one shell, and the shell used to load itself in
+     * the browser — so a crawler and a link preview met an empty frame where the station's blog and
+     * wiki should be.
+     */
+    test('a public station carries its name and its pages', async ({page}) => {
+        for (const path of ['', '/blog', '/knowledge']) {
+            await visit(page, `/public/station/jugendfeuerwehr-musterstadt${path}`)
+            await expect(page.getByText('Jugendfeuerwehr Musterstadt').first()).toBeVisible()
+        }
+    })
+
     test('the legal pages are server-rendered', async ({page}) => {
         for (const [path, heading] of [
             ['/imprint', 'Impressum'],
