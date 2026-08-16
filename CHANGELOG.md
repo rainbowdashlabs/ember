@@ -36,6 +36,8 @@
 
 ### Fixes
 
+- **Members find the forms they are meant to fill in.** The forms page lists what the station has opened to them instead of showing nothing at all.
+
 - **Editing a procedure saves.** Changing the name, description, due date or visibility of a procedure keeps the change.
 - **Choosing a station leads somewhere.** Picking a station opens the page that was asked for instead of returning to the station picker.
 - **The sidebar control for narrowing the menu stays on desktop.** It no longer appears on phones, where there is nothing to narrow.

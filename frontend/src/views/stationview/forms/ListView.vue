@@ -20,7 +20,7 @@ import ManagedFormsSection from './listview/ManagedFormsSection.vue'
 import AvailableFormsSection from './listview/AvailableFormsSection.vue'
 import ConfirmActionModal from './listview/ConfirmActionModal.vue'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   /** When set, filters the list to forms of this purpose and pre-selects the same purpose for newly created forms. */
   purpose?: FormPurposeName
   /** Whether to show the "available forms to fill" section below the management list. Defaults to true for INTERNAL forms. */
@@ -34,7 +34,15 @@ const props = defineProps<{
    * hold POLL_VIEW_RESULTS still land on a route that calls the PAGE_EDIT-gated analytics API.
    */
   analyticsRouteName?: string
-}>()
+}>(), {
+  /**
+   * Vue gives an absent boolean prop the value {@code false} rather than leaving it undefined, so
+   * a fallback written as `?? true` never applies and the section is simply off wherever nobody
+   * asked for it. The default has to be stated here: without it, the forms page showed a member
+   * nothing at all and never even asked the server what they may fill in.
+   */
+  showAvailableSection: true,
+})
 
 const { t } = useI18n()
 const router = useRouter()
@@ -50,7 +58,7 @@ const pageTitle = computed(() => t(`pages.${String(route.name)}.title`))
 const pageSubtitle = computed(() => t(`pages.${String(route.name)}.subtitle`))
 const canViewResults = computed(() => hasPermission(StationPermission.POLL_VIEW_RESULTS))
 const canCreatePolls = computed(() => hasPermission(StationPermission.POLL_CREATE))
-const showAvailable = computed(() => props.showAvailableSection ?? true)
+const showAvailable = computed(() => props.showAvailableSection)
 
 const managedForms = ref<Form[]>([])
 const availableForms = ref<FormListEntry[]>([])
