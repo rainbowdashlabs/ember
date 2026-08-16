@@ -8,8 +8,8 @@ import {unique} from './fixtures/unique'
 
 /**
  * Creating a procedure opens a page of its own rather than a dialog, because a procedure is a list
- * of steps, and it will not save without at least one. Adding a step opens a dialog of its own,
- * whose submit repeats the label of the button that opened it — so the story takes the second.
+ * of steps. Adding one appends an empty row that is written in place, so the story writes into the
+ * row rather than answering a dialog about it.
  */
 test.describe('Procedures', () => {
     /**
@@ -43,9 +43,8 @@ test.describe('Procedures', () => {
 
         await page.getByRole('textbox').first().fill(procedure)
 
-        await page.getByRole('button', {name: 'Schritt hinzufügen'}).first().click()
+        await page.getByRole('button', {name: 'Schritt hinzufügen'}).click()
         await page.getByPlaceholder('Titel').first().fill('Erster Schritt')
-        await page.getByRole('button', {name: 'Schritt hinzufügen'}).last().click()
 
         // The button that saves a new procedure carries the same words as the one that opened the
         // page for it, so the story takes the one on the page it is standing on.
