@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect} from './fixtures/auth'
+import {test, expect, stationPeers} from './fixtures/auth'
 
 test.describe('Inventory', () => {
     test('the inventory list shows the inventories of the station', async ({managerPage: page}) => {
@@ -25,6 +25,25 @@ test.describe('Inventory', () => {
 
         await expect(page.getByTestId('app-shell')).toBeVisible()
         await expect(page.getByRole('button', {name: 'Neuer Behälter'})).toBeVisible()
+    })
+
+    /**
+     * Equipment meeting a person is the point of the whole feature. Both halves are searchable
+     * pickers rather than raw scanners, so the story types what a scanner would send: the member's
+     * name and the item's code.
+     */
+    test('an item is assigned to a member', async ({managerPage: page, request}) => {
+        const {member} = await stationPeers(request)
+
+        await page.goto('/station/inventory/assign')
+
+        await page.getByPlaceholder('- Bitte wählen -').fill(member.lastName)
+        await page.getByText(`${member.firstName} ${member.lastName}`).first().click()
+
+        await page.getByPlaceholder('Item suchen oder Code scannen…').fill('H-0')
+        await page.getByText(/H-0\d\d/).first().click()
+
+        await expect(page.getByText(/zugewiesen|Bei /).first()).toBeVisible()
     })
 
     /** Assigning starts by naming a person or scanning a code, and offers both. */

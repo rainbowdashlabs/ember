@@ -86,14 +86,19 @@ export async function accountWithout(
  * one station and a member watching from another proves nothing, and picking each role
  * independently is exactly how that happens — the seeder has several stations and not all of them
  * have members.
+ *
+ * Both must carry an address to log in with: a station holds members who never sign in themselves,
+ * and one of those cannot be a role the suite acts as.
  */
 export async function stationPeers(request: APIRequestContext): Promise<{manager: DemoAccount; member: DemoAccount}> {
     const accounts = await demoAccounts(request)
-    for (const manager of accounts.filter(account => account.permissions.includes('STATION_ADMINISTRATOR')
-        || account.permissions.includes('STATION_MANAGER'))) {
+    const managers = accounts.filter(account => !!account.email
+        && (account.permissions.includes('STATION_ADMINISTRATOR') || account.permissions.includes('STATION_MANAGER')))
+    for (const manager of managers) {
         const member = accounts.find(account =>
             account.stationId === manager.stationId
             && account.userType === 'MEMBER'
+            && !!account.email
             && !account.permissions.includes('STATION_MANAGER'))
         if (member && manager.stationId) return {manager, member}
     }
