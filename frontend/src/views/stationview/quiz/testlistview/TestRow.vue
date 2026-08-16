@@ -39,7 +39,7 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <NeutralContainer class="cursor-pointer" @click="emit('navigate', test)">
+  <NeutralContainer data-testid="test-entry" class="cursor-pointer" @click="emit('navigate', test)">
     <div v-if="isMobile" class="space-y-2">
       <div class="flex items-center justify-between">
         <span class="font-medium">{{ test.title }}</span>

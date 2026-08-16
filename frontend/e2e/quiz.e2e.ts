@@ -62,6 +62,23 @@ test.describe('Quiz', () => {
         expect(page.url()).toContain('/station/quiz/tests')
     })
 
+    /**
+     * The point of a test sheet is somebody sitting it. The seeded station carries an active one,
+     * and a member is offered it directly in the list — the row navigates by click handler, so it
+     * carries an identifier for the story to aim at.
+     */
+    test('a member is offered an active test and can begin it', async ({memberPage: page}) => {
+        await page.goto('/station/quiz/tests')
+
+        const row = page.getByTestId('test-entry').first()
+        await expect(row).toBeVisible()
+
+        await row.getByRole('button', {name: 'Test schreiben'}).click()
+
+        await page.waitForURL(/\/station\/quiz\/tests\/\d+\/take/)
+        await expect(page.getByRole('button', {name: 'Test abgeben'})).toBeVisible()
+    })
+
     /** Training asks questions without recording an attempt, so it is open to everyone. */
     test('a member reaches the training', async ({memberPage: page}) => {
         await page.goto('/station/quiz/training')
