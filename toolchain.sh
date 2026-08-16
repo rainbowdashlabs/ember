@@ -42,6 +42,7 @@ Frontend
   fe-lint <name> [args] One linter, e.g. `fe-lint style` runs scripts/lint-style.mjs. Trailing
                         arguments reach the script, e.g. `fe-lint component-size --error=30`
   fe-dev                Dev server
+  fe-preview [port]     Serve the last build (default port 3000), the steady target for the stories
 
 Frontend tests
   fe-test [args]        Unit, component and SSR tests (vitest run)
@@ -110,6 +111,11 @@ case "$cmd" in
         fe; run node "scripts/lint-$linter.mjs" "$@"
         ;;
     fe-dev)        fe; run npm run dev -- "$@" ;;
+    fe-preview)
+        # Serves the last build. Unlike the dev server this compiles nothing on demand, which is
+        # what makes it a steady target for the end-to-end suite.
+        fe; NITRO_PORT="${1:-3000}" run node .output/server/index.mjs
+        ;;
 
     fe-test)       fe; NODE_OPTIONS="$NODE_HEAP" run npx vitest run "$@" ;;
     fe-test1)

@@ -4,12 +4,20 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {test, expect} from './fixtures/auth'
+import {unique} from './fixtures/unique'
 
+/** The dialog's submit carries the same label as the button that opens it, so the story takes the
+ * last of the two rather than the first. */
 test.describe('Lost and found', () => {
-    test('the lost and found takes a report', async ({managerPage: page}) => {
-        await page.goto('/station/lost-and-found')
+    test('a found item is reported and appears in the list', async ({managerPage: page}) => {
+        const item = unique('Fundstueck')
 
-        await expect(page.getByTestId('app-shell')).toBeVisible()
-        await expect(page.getByRole('button', {name: 'Fundgegenstand melden'})).toBeVisible()
+        await page.goto('/station/lost-and-found')
+        await page.getByRole('button', {name: 'Fundgegenstand melden'}).click()
+
+        await page.getByRole('textbox').first().fill(item)
+        await page.getByRole('button', {name: 'Fundgegenstand melden'}).last().click()
+
+        await expect(page.getByText(item).first()).toBeVisible()
     })
 })
