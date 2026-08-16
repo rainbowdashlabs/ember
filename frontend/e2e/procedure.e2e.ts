@@ -8,12 +8,8 @@ import {unique} from './fixtures/unique'
 
 /**
  * Creating a procedure opens a page of its own rather than a dialog, because a procedure is a list
- * of steps, and it will not save without at least one.
- *
- * The story is held back on the step editor: the button that adds a step is in the page and cannot
- * be clicked — something sits over it — so the procedure never becomes saveable. Whether that also
- * stops a person with a mouse is worth finding out, and is the reason this is recorded rather than
- * deleted.
+ * of steps, and it will not save without at least one. Adding a step opens a dialog of its own,
+ * whose submit repeats the label of the button that opened it — so the story takes the second.
  */
 test.describe('Procedures', () => {
     /**
@@ -38,7 +34,7 @@ test.describe('Procedures', () => {
         await expect(page.getByRole('textbox').first()).toHaveValue(renamed)
     })
 
-    test.fixme('a procedure is created', async ({managerPage: page}) => {
+    test('a procedure is created', async ({managerPage: page}) => {
         const procedure = unique('Ablauf')
 
         await page.goto('/station/procedures')
@@ -47,10 +43,13 @@ test.describe('Procedures', () => {
 
         await page.getByRole('textbox').first().fill(procedure)
 
-        await page.getByRole('button', {name: 'Schritt hinzufügen'}).click()
+        await page.getByRole('button', {name: 'Schritt hinzufügen'}).first().click()
         await page.getByPlaceholder('Titel').first().fill('Erster Schritt')
+        await page.getByRole('button', {name: 'Schritt hinzufügen'}).last().click()
 
-        await page.getByRole('button', {name: 'Speichern'}).click()
+        // The button that saves a new procedure carries the same words as the one that opened the
+        // page for it, so the story takes the one on the page it is standing on.
+        await page.getByRole('button', {name: 'Neuer Ablauf'}).last().click()
 
         await page.goto('/station/procedures')
         await expect(page.getByText(procedure).first()).toBeVisible()
