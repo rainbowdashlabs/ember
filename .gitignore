@@ -240,3 +240,8 @@ frontend/.nuxt
 dev-errors
 .concept
 logs
+frontend/coverage
+frontend/e2e/results
+frontend/e2e/report
+frontend/test-results
+frontend/playwright-report

@@ -3,7 +3,12 @@ export default defineNuxtConfig({
 
   srcDir: 'src/',
 
+  modules: ['@nuxt/test-utils/module'],
+
   runtimeConfig: {
+    // Where the server itself reaches the backend. A server render cannot use the browser's
+    // relative `/api/v1`, because on the server there is no origin to resolve it against.
+    backendUrl: process.env.NUXT_BACKEND_URL || 'http://localhost:8080',
     public: {
       googleSiteVerification: process.env.NUXT_PUBLIC_GOOGLE_SITE_VERIFICATION || '',
     },

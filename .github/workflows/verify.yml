@@ -179,6 +179,72 @@ jobs:
         working-directory: frontend
         run: NODE_OPTIONS="--max-old-space-size=8192" npm run build
 
+  verify-test-frontend:
+    runs-on: ubuntu-latest
+    name: Verify Frontend Tests
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Run unit and component tests
+        working-directory: frontend
+        run: NODE_OPTIONS="--max-old-space-size=8192" npx vitest run --coverage
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/
+
+  verify-test-frontend-e2e:
+    runs-on: ubuntu-latest
+    name: Verify Frontend End-to-End
+    needs: [ verify-build-frontend ]
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - name: Start the backend
+        run: docker compose -f docker/compose.dev.yaml --profile full up -d postgres ember
+      - name: Wait for the backend
+        run: |
+          for i in $(seq 1 90); do
+            curl -sf http://localhost:8888/api/v1/public/config && exit 0
+            sleep 2
+          done
+          echo "The backend did not answer in time" >&2
+          docker compose -f docker/compose.dev.yaml logs ember | tail -50 >&2
+          exit 1
+      - name: Run the end-to-end stories
+        working-directory: frontend
+        run: npx playwright test --project chromium --project ssr-no-js
+      - name: Upload the report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: frontend/e2e/report/
+      - name: Stop the backend
+        if: always()
+        run: docker compose -f docker/compose.dev.yaml down -v
+
   verify-formatting-backend:
     runs-on: ubuntu-latest
     name: Verify Backend Formatting
