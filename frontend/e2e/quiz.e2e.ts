@@ -66,8 +66,11 @@ test.describe('Quiz', () => {
      * The point of a test sheet is somebody sitting it. The seeded station carries an active one,
      * and a member is offered it directly in the list — the row navigates by click handler, so it
      * carries an identifier for the story to aim at.
+     *
+     * The paper is handed in unanswered on purpose: what the story holds is that a member can sit
+     * a test and give it back, not that they know the answers.
      */
-    test('a member is offered an active test and can begin it', async ({memberPage: page}) => {
+    test('a member sits an active test and hands it in', async ({memberPage: page}) => {
         await page.goto('/station/quiz/tests')
 
         const row = page.getByTestId('test-entry').first()
@@ -76,7 +79,12 @@ test.describe('Quiz', () => {
         await row.getByRole('button', {name: 'Test schreiben'}).click()
 
         await page.waitForURL(/\/station\/quiz\/tests\/\d+\/take/)
-        await expect(page.getByRole('button', {name: 'Test abgeben'})).toBeVisible()
+
+        // Handing in asks once more, with the same words on the confirming button.
+        await page.getByRole('button', {name: 'Test abgeben'}).first().click()
+        await page.getByRole('button', {name: 'Test abgeben'}).last().click()
+
+        await expect(page.getByText('Abgegeben').first()).toBeVisible()
     })
 
     /** Training asks questions without recording an attempt, so it is open to everyone. */
