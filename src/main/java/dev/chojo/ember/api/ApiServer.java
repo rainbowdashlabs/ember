@@ -458,6 +458,7 @@ public class ApiServer {
 
             if (demoConfig.dev()) {
                 config.routes.post(API_PREFIX + "/dev/errors", this::handleDevErrorReport);
+                config.routes.post(API_PREFIX + "/dev/reset", this::handleDevReset);
             }
 
             for (Routes route : routes) {
@@ -547,6 +548,20 @@ public class ApiServer {
                 report.message() != null ? report.message() : "",
                 report.stack() != null ? report.stack() : "",
                 report.context() != null ? report.context() : "");
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /**
+     * Throws the data away and seeds it again, so a test run starts from the state the seeder
+     * describes rather than from whatever the run before it left behind.
+     *
+     * <p>Registered only while the backend runs with {@code demo.dev}, alongside the password-free
+     * login that serves the same purpose. It is destructive by design and has no place anywhere a
+     * real station's data lives.
+     */
+    private void handleDevReset(@NotNull Context ctx) {
+        log.info("Dev reset requested, discarding all data and seeding again");
+        demoService.resetAndSeed();
         ctx.status(HttpStatus.NO_CONTENT);
     }
 

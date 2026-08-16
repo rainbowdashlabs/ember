@@ -41,8 +41,30 @@ async function saveSession(baseURL: string, email: string, stationId: string | u
     }
 }
 
+/**
+ * Throws away whatever the run before this one left behind.
+ *
+ * The stories create boards, tickets, checklists and groups, and nothing takes them away again.
+ * Without this the seeded station fills up run by run until a story that counts rows, or one that
+ * picks "the first entry", starts answering about someone else's leftovers. Skipped when the
+ * endpoint is absent, which is every instance that is not a dev one.
+ */
+async function resetData(baseURL: string) {
+    const context = await request.newContext({baseURL})
+    try {
+        const response = await context.post('/api/v1/dev/reset')
+        if (!response.ok() && response.status() !== 404) {
+            throw new Error(`The dev reset answered ${response.status()}`)
+        }
+    } finally {
+        await context.dispose()
+    }
+}
+
 export default async function globalSetup(config: FullConfig) {
     const baseURL = config.projects[0]?.use?.baseURL ?? 'http://localhost:3000'
+
+    if (!process.env.E2E_KEEP_DATA) await resetData(baseURL)
 
     const context = await request.newContext({baseURL})
     const {manager, member} = await stationPeers(context).finally(() => context.dispose())
