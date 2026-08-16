@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect} from './fixtures/auth'
+import {test, expect, stationPeers} from './fixtures/auth'
 import {unique} from './fixtures/unique'
 
 /**
@@ -33,6 +33,28 @@ test.describe('Members', () => {
 
         await page.goto('/station/members/list')
         await expect(page.getByText(surname).first()).toBeVisible()
+    })
+
+    /**
+     * Somebody the station still has something with cannot simply be written off — equipment in
+     * their hands, profiles in their care. The page refuses and says what stands in the way, and
+     * the reason being given is the part worth holding.
+     */
+    test('a member with something outstanding cannot be marked former', async ({managerPage: page, request}) => {
+        const {member} = await stationPeers(request)
+
+        await page.goto('/station/members/list')
+        await page.getByPlaceholder(/Suche/).first().fill(member.lastName)
+        await page.getByTestId('member-row').first().getByRole('button', {name: 'Details'}).click()
+        await page.waitForURL(/\/station\/members\/detail\/\d+/)
+
+        await page.getByRole('button', {name: 'Als ehemalig markieren'}).click()
+
+        await expect(page.getByText('Mitglied als ehemalig markieren')).toBeVisible()
+        await expect(page.getByText('Dieses Mitglied kann derzeit nicht als ehemalig markiert werden:')).toBeVisible()
+        // What stands in the way differs from person to person — equipment they hold, profiles they
+        // look after — so the story holds the page to naming something rather than to one reason.
+        await expect(page.getByRole('listitem').first()).toBeVisible()
     })
 
     test('the member list shows the station and filters by name', async ({managerPage: page}) => {
