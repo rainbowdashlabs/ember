@@ -27,9 +27,6 @@ export default defineNuxtConfig({
     '/station/**': {ssr: false},
     '/admin/**': {ssr: false},
     '/style': {ssr: false},
-    '/sitemap.xml': {proxy: `${process.env.NUXT_BACKEND_URL || 'http://localhost:8080'}/sitemap.xml`},
-    '/sitemap-station-**': {proxy: `${process.env.NUXT_BACKEND_URL || 'http://localhost:8080'}/sitemap-station-**`},
-    '/api/**': {proxy: `${process.env.NUXT_BACKEND_URL || 'http://localhost:8080'}/api/**`},
   },
 
   nitro: {
