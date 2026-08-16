@@ -58,6 +58,12 @@ data/
 !frontend/src/**/data/
 !frontend/src/**/data/**
 
+# The bundled legal documents ship with the application and are not runtime data.
+# Without this the broad data/ rule keeps them out of the repository entirely, and a
+# fresh checkout starts with no privacy policy, terms of service, consent text or imprint.
+!templates/data/
+!templates/data/**
+
 # Created by https://www.toptal.com/developers/gitignore/api/python
 # Edit at https://www.toptal.com/developers/gitignore?templates=python
 

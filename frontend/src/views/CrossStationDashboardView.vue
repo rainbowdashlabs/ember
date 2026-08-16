@@ -35,15 +35,20 @@ onMounted(async () => {
   loading.value = false
 })
 
+/** A path on this instance, and not this page again — a target pointing back here loops the picker. */
+function usableRedirect(target: string | null): boolean {
+  return !!target && target.startsWith('/') && !target.startsWith('//') && !target.startsWith('/cross-station')
+}
+
 function resolveRedirect(): string | null {
   // Prefer the route query (Vue Router state) but fall back to the raw window URL
   // — during SSR hydration the route can briefly lag behind the browser bar, and
   // we never want to drop a deep link silently.
   const fromRoute = typeof route.query.redirect === 'string' ? route.query.redirect : null
-  if (fromRoute && fromRoute.startsWith('/') && !fromRoute.startsWith('//')) return fromRoute
+  if (usableRedirect(fromRoute)) return fromRoute
   if (typeof window !== 'undefined') {
     const fromUrl = new URLSearchParams(window.location.search).get('redirect')
-    if (fromUrl && fromUrl.startsWith('/') && !fromUrl.startsWith('//')) return fromUrl
+    if (usableRedirect(fromUrl)) return fromUrl
   }
   return null
 }

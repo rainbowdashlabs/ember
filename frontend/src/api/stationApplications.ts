@@ -5,6 +5,18 @@
  */
 import client from './client'
 
+/** Where an application stands. Mirrors the backend enum, which sends these names verbatim. */
+export const ApplicationStatus = {
+    /** Submitted, but the applicant has not followed the confirmation link yet. */
+    UNVERIFIED: 'UNVERIFIED',
+    /** Confirmed and waiting for an operator to decide. */
+    PENDING: 'PENDING',
+    ACCEPTED: 'ACCEPTED',
+    DENIED: 'DENIED',
+} as const
+
+export type ApplicationStatusName = (typeof ApplicationStatus)[keyof typeof ApplicationStatus]
+
 export interface StationApplication {
     id: number
     firstName: string
@@ -12,7 +24,7 @@ export interface StationApplication {
     email: string
     stationName: string
     introduction: string
-    status: string
+    status: ApplicationStatusName
     denyReason?: string | null
     createdAt: string
     resolvedAt?: string | null

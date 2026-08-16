@@ -4,19 +4,18 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref, onMounted, watch, computed} from 'vue'
+import {computed, ref, onMounted, watch, useTemplateRef} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import TypeTabsBar from './adminlegalview/TypeTabsBar.vue'
 import LocaleTabsBar from './adminlegalview/LocaleTabsBar.vue'
-import FileListPanel from './adminlegalview/FileListPanel.vue'
+import LegalFileEditor from './adminlegalview/LegalFileEditor.vue'
+import LegalPlaceholderPanel from './adminlegalview/LegalPlaceholderPanel.vue'
 import SingleFieldModal from '@/components/feedback/SingleFieldModal.vue'
-import DeleteFileModal from './adminlegalview/DeleteFileModal.vue'
 import {adminSettings} from '@/api'
-import type {LegalFile} from '@/api/adminSettings'
+import type {DocumentPlaceholder} from '@/api/adminSettings'
 
 const {t} = useI18n()
 
@@ -28,21 +27,18 @@ const activeLegalTab = ref<LegalType>('privacy')
 const activeLocale = ref('de')
 const locales = ref<string[]>([])
 
-const files = ref<LegalFile[]>([])
-const loading = ref(false)
-const showPreview = ref(false)
-
 const showAddLocaleModal = ref(false)
 const newLocaleCode = ref('')
-const showAddFileModal = ref(false)
-const newFileName = ref('')
-const showDeleteFileModal = ref(false)
-const fileToDeleteIndex = ref(-1)
 
-const fileToDeleteName = computed(() => {
-  if (fileToDeleteIndex.value < 0) return ''
-  const file = files.value[fileToDeleteIndex.value]
-  return file?.displayName || file?.filename || ''
+const editor = useTemplateRef<InstanceType<typeof LegalFileEditor>>('editor')
+const placeholderPanel = useTemplateRef<InstanceType<typeof LegalPlaceholderPanel>>('placeholderPanel')
+
+const placeholders = ref<DocumentPlaceholder[]>([])
+
+const placeholderValues = computed(() => {
+  const values: Record<string, string> = {}
+  for (const entry of placeholders.value) values[entry.name] = entry.value
+  return values
 })
 
 async function loadLocales(type: LegalType) {
@@ -57,31 +53,6 @@ async function loadLocales(type: LegalType) {
   }
 }
 
-async function loadFiles(type: LegalType, locale: string) {
-  loading.value = true
-  error.value = ''
-  showPreview.value = false
-  try {
-    const result = await adminSettings.getLegalFiles(type, locale)
-    files.value = Array.isArray(result) ? result : []
-  } catch {
-    files.value = []
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-}
-
-async function saveAll() {
-  error.value = ''
-  try {
-    files.value = await adminSettings.saveLegalFiles(activeLegalTab.value, activeLocale.value, files.value)
-  } catch (e) {
-    error.value = t('common.error')
-    throw e
-  }
-}
-
 async function addLocale() {
   const code = newLocaleCode.value.trim().toLowerCase()
   if (!code || locales.value.includes(code)) return
@@ -93,45 +64,17 @@ async function addLocale() {
     }])
     await loadLocales(activeLegalTab.value)
     activeLocale.value = code
-    await loadFiles(activeLegalTab.value, code)
+    await editor.value?.reload()
   } catch {
     error.value = t('common.error')
   }
 }
 
-function addFile() {
-  let name = newFileName.value.trim()
-  if (!name) return
-  name = name.replace(/\.md$/, '')
-  showAddFileModal.value = false
-  newFileName.value = ''
-  files.value = [...files.value, {filename: '', displayName: name, content: '', enabled: true}]
-}
-
-function confirmDeleteFile(index: number) {
-  fileToDeleteIndex.value = index
-  showDeleteFileModal.value = true
-}
-
-function deleteFile() {
-  if (fileToDeleteIndex.value < 0) return
-  files.value = files.value.filter((_, i) => i !== fileToDeleteIndex.value)
-  showDeleteFileModal.value = false
-  fileToDeleteIndex.value = -1
-}
-
-watch(activeLegalTab, async (type) => {
-  await loadLocales(type)
-  await loadFiles(type, activeLocale.value)
-})
-
-watch(activeLocale, (locale) => {
-  loadFiles(activeLegalTab.value, locale)
-})
+watch(activeLegalTab, loadLocales)
 
 onMounted(async () => {
   await loadLocales(activeLegalTab.value)
-  await loadFiles(activeLegalTab.value, activeLocale.value)
+  await placeholderPanel.value?.reload()
 })
 </script>
 
@@ -147,16 +90,22 @@ onMounted(async () => {
             :locales="locales"
             @add="showAddLocaleModal = true"
         />
-        <Spinner v-if="loading" size="md"/>
-        <FileListPanel
-            v-if="!loading"
-            v-model:files="files"
-            v-model:show-preview="showPreview"
-            :save-action="saveAll"
-            @add-file="showAddFileModal = true"
-            @delete-file="confirmDeleteFile"
+        <LegalFileEditor
+            ref="editor"
+            :type="activeLegalTab"
+            :locale="activeLocale"
+            :placeholder-values="placeholderValues"
+            @error="error = $event"
+            @saved="placeholderPanel?.reload()"
         />
       </NeutralContainer>
+
+      <LegalPlaceholderPanel
+          ref="placeholderPanel"
+          v-model:placeholders="placeholders"
+          @error="error = $event"
+          @saved="editor?.reload()"
+      />
 
       <SingleFieldModal
           v-model:show="showAddLocaleModal"
@@ -165,19 +114,6 @@ onMounted(async () => {
           :placeholder="t('adminSettings.legal.localeCodePlaceholder')"
           :confirm-label="t('adminSettings.legal.addLocale')"
           @confirm="addLocale"
-      />
-      <SingleFieldModal
-          v-model:show="showAddFileModal"
-          v-model:value="newFileName"
-          :title="t('adminSettings.legal.addFileTitle')"
-          :placeholder="t('adminSettings.legal.fileNamePlaceholder')"
-          :confirm-label="t('adminSettings.legal.addFile')"
-          @confirm="addFile"
-      />
-      <DeleteFileModal
-          v-model:show="showDeleteFileModal"
-          :display-name="fileToDeleteName"
-          @confirm="deleteFile"
       />
     </div>
   </ViewContent>

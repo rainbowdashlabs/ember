@@ -235,6 +235,14 @@ export interface LegalFile {
     displayName: string
     content: string
     enabled: boolean
+    /** Rendered by the application rather than written by hand — content is read-only. */
+    generated?: boolean
+}
+
+/** One section of the documents Ember ships, offered for loading into the editor. */
+export interface LegalTemplate {
+    displayName: string
+    content: string
 }
 
 export async function getLegalFiles(type: string, locale: string): Promise<LegalFile[]> {
@@ -244,5 +252,34 @@ export async function getLegalFiles(type: string, locale: string): Promise<Legal
 
 export async function saveLegalFiles(type: string, locale: string, files: LegalFile[]): Promise<LegalFile[]> {
     const res = await client.put<LegalFile[]>(`/admin/legal/${type}/${locale}/files`, files)
+    return res.data
+}
+
+export async function getLegalTemplates(type: string, locale: string): Promise<LegalTemplate[]> {
+    const res = await client.get<LegalTemplate[]>(`/admin/legal/${type}/${locale}/templates`)
+    return res.data
+}
+
+/** One section a placeholder appears in. */
+export interface PlaceholderUsage {
+    type: string
+    locale: string
+    section: string
+}
+
+/** A `{{ name }}` token found in the legal documents, with the value configured for it. */
+export interface DocumentPlaceholder {
+    name: string
+    value: string
+    usages: PlaceholderUsage[]
+}
+
+export async function getLegalPlaceholders(): Promise<DocumentPlaceholder[]> {
+    const res = await client.get<DocumentPlaceholder[]>('/admin/legal/placeholders')
+    return res.data
+}
+
+export async function saveLegalPlaceholders(values: Record<string, string>): Promise<DocumentPlaceholder[]> {
+    const res = await client.put<DocumentPlaceholder[]>('/admin/legal/placeholders', {values})
     return res.data
 }

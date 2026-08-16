@@ -38,6 +38,7 @@ function onPrideToggle(value: boolean) {
         <div class="text-sm text-(--text-muted)">{{ t('adminSettings.stationRegistrationHint') }}</div>
       </div>
       <ToggleInput :model-value="registrationEnabled"
+                   :aria-label="t('adminSettings.stationRegistration')"
                    @update:model-value="(v: boolean) => emit('toggle-registration', v)"/>
     </div>
 
@@ -46,7 +47,8 @@ function onPrideToggle(value: boolean) {
         <div class="font-medium">{{ t('adminSettings.forcePrideFlag') }}</div>
         <div class="text-sm text-(--text-muted)">{{ t('adminSettings.forcePrideFlagHint') }}</div>
       </div>
-      <ToggleInput :model-value="forcePrideFlag" @update:model-value="onPrideToggle"/>
+      <ToggleInput :model-value="forcePrideFlag" :aria-label="t('adminSettings.forcePrideFlag')"
+                   @update:model-value="onPrideToggle"/>
     </div>
   </NeutralContainer>
 </template>

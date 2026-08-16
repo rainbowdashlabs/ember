@@ -23,6 +23,7 @@ const lintScripts = [
   'lint-component-size.mjs',
   'lint-duplication.mjs',
   'lint-page-titles.mjs',
+  'lint-browser-storage.mjs',
   'lint-standalone.mjs',
 ]
 

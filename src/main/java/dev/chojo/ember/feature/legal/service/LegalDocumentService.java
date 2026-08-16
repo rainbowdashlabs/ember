@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * Manages versioned legal documents (privacy policy, terms of service, consent text).
@@ -52,16 +53,49 @@ import java.util.List;
 public class LegalDocumentService {
     private static final Logger log = LoggerFactory.getLogger(LegalDocumentService.class);
     private static final String DEFAULT_LOCALE = "de";
+    private static final String DEFAULT_PLACEHOLDER_FILE = "data/documents/placeholders.json";
+    private static final Pattern ORDER_PREFIX = Pattern.compile("^_?(\\d+)-");
 
     private final Parser parser;
     private final HtmlRenderer renderer;
+    private final BrowserStorageService browserStorage;
+    private final PlaceholderService placeholders;
 
     public LegalDocumentService() {
+        this(null);
+    }
+
+    /**
+     * @param placeholderFile where the placeholder values are stored; falls back to
+     *                        {@value #DEFAULT_PLACEHOLDER_FILE} when null or blank
+     */
+    public LegalDocumentService(String placeholderFile) {
         List<Extension> extensions =
                 List.of(TablesExtension.create(), HeadingAnchorExtension.create(), AutolinkExtension.create());
         this.parser = Parser.builder().extensions(extensions).build();
         this.renderer =
                 HtmlRenderer.builder().extensions(extensions).sanitizeUrls(true).build();
+        this.browserStorage = new BrowserStorageService();
+        this.placeholders = new PlaceholderService(Path.of(
+                placeholderFile == null || placeholderFile.isBlank() ? DEFAULT_PLACEHOLDER_FILE : placeholderFile));
+    }
+
+    /**
+     * Returns the service rendering the generated browser storage disclosure.
+     *
+     * @return the browser storage service backing generated sections
+     */
+    public BrowserStorageService browserStorage() {
+        return browserStorage;
+    }
+
+    /**
+     * Returns the service resolving the placeholders used across the documents.
+     *
+     * @return the placeholder service backing substitution
+     */
+    public PlaceholderService placeholders() {
+        return placeholders;
     }
 
     /**
@@ -132,6 +166,51 @@ public class LegalDocumentService {
         writeVersionFile(versionFile, currentHash);
 
         return previousHash != null; // Only report as "changed" if there was a previous version
+    }
+
+    /**
+     * Ensures every locale of a document directory carries the generated browser storage section.
+     * Existing installations gain the section behind their hand-written ones; where it is already
+     * present, its position and its enabled state are left untouched.
+     *
+     * @param baseDir the base directory containing locale subdirectories with markdown files
+     */
+    public void ensureGeneratedSection(Path baseDir) {
+        if (!Files.isDirectory(baseDir)) return;
+        try (DirectoryStream<Path> locales = Files.newDirectoryStream(baseDir, Files::isDirectory)) {
+            for (Path localeDir : locales) {
+                if (localeDir.getFileName().toString().equals("history")) continue;
+                ensureGeneratedSectionInLocale(localeDir);
+            }
+        } catch (IOException e) {
+            log.error("Failed to ensure generated section in {}", baseDir, e);
+        }
+    }
+
+    private void ensureGeneratedSectionInLocale(Path localeDir) {
+        int highestPrefix = 0;
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(localeDir, "*.md")) {
+            for (Path entry : stream) {
+                String name = entry.getFileName().toString();
+                if (BrowserStorageService.isGeneratedSection(name)) return;
+                var matcher = ORDER_PREFIX.matcher(name);
+                if (matcher.find()) {
+                    highestPrefix = Math.max(highestPrefix, Integer.parseInt(matcher.group(1)));
+                }
+            }
+        } catch (IOException e) {
+            log.error("Failed to inspect legal section files in {}", localeDir, e);
+            return;
+        }
+
+        Path file =
+                localeDir.resolve(String.format("%02d-%s.md", highestPrefix + 1, BrowserStorageService.SECTION_NAME));
+        try {
+            Files.writeString(file, "", StandardCharsets.UTF_8);
+            log.info("Added generated browser storage section: {}", file);
+        } catch (IOException e) {
+            log.error("Failed to create generated section {}", file, e);
+        }
     }
 
     /**
@@ -258,7 +337,7 @@ public class LegalDocumentService {
         if (!Files.isDirectory(localeDir)) {
             return "";
         }
-        return readMarkdownFiles(localeDir);
+        return readMarkdownFiles(localeDir, locale);
     }
 
     /**
@@ -268,10 +347,10 @@ public class LegalDocumentService {
         if (!Files.isDirectory(baseDir)) {
             return "";
         }
-        return readMarkdownFiles(baseDir);
+        return readMarkdownFiles(baseDir, DEFAULT_LOCALE);
     }
 
-    private String readMarkdownFiles(Path dir) {
+    private String readMarkdownFiles(Path dir, String locale) {
         List<Path> files = new ArrayList<>();
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir, "*.md")) {
             for (Path entry : stream) {
@@ -292,7 +371,12 @@ public class LegalDocumentService {
                 if (!sb.isEmpty()) {
                     sb.append("\n\n");
                 }
-                sb.append(Files.readString(file, StandardCharsets.UTF_8));
+                String name = file.getFileName().toString();
+                if (BrowserStorageService.isGeneratedSection(name)) {
+                    sb.append(browserStorage.toMarkdown(locale));
+                } else {
+                    sb.append(placeholders.apply(Files.readString(file, StandardCharsets.UTF_8)));
+                }
             } catch (IOException e) {
                 log.error("Failed to read markdown file: {}", file, e);
             }

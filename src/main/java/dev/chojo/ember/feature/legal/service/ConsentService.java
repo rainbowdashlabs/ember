@@ -46,7 +46,7 @@ public class ConsentService {
     public ConsentService(AccountRepository accountRepository, Api apiConfig, Network network) {
         this.accountRepository = accountRepository;
         this.network = network;
-        this.documentService = new LegalDocumentService();
+        this.documentService = new LegalDocumentService(apiConfig.placeholderFile());
         this.privacyPolicyDir = Path.of(apiConfig.privacyPolicyDir());
         this.consentDir = Path.of(apiConfig.consentDir());
         this.tosDir = Path.of(apiConfig.tosDir());
@@ -84,6 +84,9 @@ public class ConsentService {
      * detects version changes, archives old content.
      */
     public void initialize() {
+        documentService.ensureGeneratedSection(privacyPolicyDir);
+        documentService.ensureGeneratedSection(consentDir);
+
         boolean privacyChanged = documentService.initialize(privacyPolicyDir);
         boolean tosChanged = documentService.initialize(tosDir);
         boolean consentChanged = documentService.initialize(consentDir);

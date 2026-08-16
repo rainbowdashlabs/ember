@@ -18,13 +18,16 @@ import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.conf.file.elements.Theming;
 import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.legal.entity.DocumentPlaceholder;
 import dev.chojo.ember.feature.legal.entity.LegalDocumentType;
+import dev.chojo.ember.feature.legal.service.BrowserStorageService;
 import dev.chojo.ember.feature.legal.service.LegalDocumentService;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.media.service.LogoFragmentService;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
+import dev.chojo.ember.feature.system.service.DataInitializer;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -54,6 +57,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.regex.Pattern;
 
 @Singleton
@@ -99,7 +103,7 @@ public class AdminSettingsRoutes implements Routes {
         this.conf = conf;
         this.emailService = emailService;
         this.accountRepository = accountRepository;
-        this.documentService = new LegalDocumentService();
+        this.documentService = new LegalDocumentService(conf.main().api().placeholderFile());
         initializeLogoFragments();
     }
 
@@ -230,6 +234,9 @@ public class AdminSettingsRoutes implements Routes {
                 this::clearMailingConfig,
                 InstancePermission.ADMINISTRATOR,
                 StepUpCategory.INSTANCE_CONFIG);
+        routes.get(prefix + "/admin/legal/placeholders", this::getLegalPlaceholders, InstancePermission.ADMINISTRATOR);
+        routes.put(
+                prefix + "/admin/legal/placeholders", this::updateLegalPlaceholders, InstancePermission.ADMINISTRATOR);
         routes.get(prefix + "/admin/legal/{type}", this::getLegalDocument, InstancePermission.ADMINISTRATOR);
         routes.get(prefix + "/admin/legal/{type}/locales", this::getLegalLocales, InstancePermission.ADMINISTRATOR);
         routes.get(
@@ -238,6 +245,10 @@ public class AdminSettingsRoutes implements Routes {
                 InstancePermission.ADMINISTRATOR);
         routes.get(
                 prefix + "/admin/legal/{type}/{locale}/files", this::getLegalFiles, InstancePermission.ADMINISTRATOR);
+        routes.get(
+                prefix + "/admin/legal/{type}/{locale}/templates",
+                this::getLegalTemplates,
+                InstancePermission.ADMINISTRATOR);
         routes.put(
                 prefix + "/admin/legal/{type}/{locale}/files",
                 this::saveLegalFiles,
@@ -822,10 +833,10 @@ public class AdminSettingsRoutes implements Routes {
         LegalDocumentType type = parseLegalType(ctx);
         Path dir = legalDir(type);
         String locale = safeLocale(ctx, dir);
-        ctx.json(readLegalFiles(resolveLocaleDir(dir, locale)));
+        ctx.json(readLegalFiles(resolveLocaleDir(dir, locale), locale));
     }
 
-    private List<LegalFileEntry> readLegalFiles(Path localeDir) {
+    private List<LegalFileEntry> readLegalFiles(Path localeDir, String locale) {
         List<LegalFileEntry> files = new ArrayList<>();
         if (!Files.isDirectory(localeDir)) return files;
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(localeDir, "*.md")) {
@@ -835,15 +846,61 @@ public class AdminSettingsRoutes implements Routes {
             for (Path file : sorted) {
                 String rawName = file.getFileName().toString();
                 boolean enabled = !rawName.startsWith("_");
-                String content = Files.readString(file, StandardCharsets.UTF_8);
+                boolean generated = BrowserStorageService.isGeneratedSection(rawName);
+                String content = generated
+                        ? documentService.browserStorage().toMarkdown(locale)
+                        : Files.readString(file, StandardCharsets.UTF_8);
                 // Strip the leading _ and numeric prefix for display: _01-name.md or 01-name.md -> name
                 String displayName = rawName.replaceFirst("^_?\\d+-", "").replaceFirst("\\.md$", "");
-                files.add(new LegalFileEntry(rawName, displayName, content, enabled));
+                files.add(new LegalFileEntry(rawName, displayName, content, enabled, generated));
             }
         } catch (IOException e) {
             log.error("Failed to list legal files in {}", localeDir, e);
         }
         return files;
+    }
+
+    private void getLegalPlaceholders(Context ctx) {
+        ctx.json(collectPlaceholders());
+    }
+
+    private void updateLegalPlaceholders(Context ctx) {
+        var request = ctx.bodyAsClass(PlaceholderValues.class);
+        documentService.placeholders().save(request.values() == null ? Map.of() : request.values());
+        for (LegalDocumentType type : LegalDocumentType.values()) {
+            documentService.initialize(legalDir(type));
+        }
+        ctx.json(collectPlaceholders());
+    }
+
+    /**
+     * Gathers every placeholder written into any legal document, merged across types and locales,
+     * and pairs it with the value configured for it. A value whose placeholder has since been
+     * removed from every document is listed too, without usages, so it can still be cleared.
+     */
+    private List<DocumentPlaceholder> collectPlaceholders() {
+        var placeholders = documentService.placeholders();
+        Map<String, List<DocumentPlaceholder.Usage>> usages = new TreeMap<>();
+        for (LegalDocumentType type : LegalDocumentType.values()) {
+            placeholders.scan(legalDir(type), type.slug()).forEach((name, found) -> usages.computeIfAbsent(
+                            name, _ -> new ArrayList<>())
+                    .addAll(found));
+        }
+
+        Map<String, String> values = placeholders.values();
+        List<DocumentPlaceholder> result = new ArrayList<>();
+        usages.forEach(
+                (name, found) -> result.add(new DocumentPlaceholder(name, values.getOrDefault(name, ""), found)));
+        values.forEach((name, value) -> {
+            if (!usages.containsKey(name)) result.add(new DocumentPlaceholder(name, value, List.of()));
+        });
+        return result;
+    }
+
+    private void getLegalTemplates(Context ctx) {
+        LegalDocumentType type = parseLegalType(ctx);
+        String locale = safeLocale(ctx, legalDir(type));
+        ctx.json(DataInitializer.documentTemplates(type.slug(), locale));
     }
 
     private void saveLegalFiles(Context ctx) {
@@ -861,18 +918,22 @@ public class AdminSettingsRoutes implements Routes {
                 }
             }
             // Write files in order with numeric prefix
-            List<LegalFileEntry> result = new ArrayList<>();
             for (int i = 0; i < request.length; i++) {
                 var entry = request[i];
                 String prefix = String.format("%02d", i + 1);
-                String safeName = entry.displayName().replaceAll("[^a-zA-Z0-9_-]", "-");
+                boolean generated = entry.generated() || BrowserStorageService.SECTION_NAME.equals(entry.displayName());
+                String safeName = generated
+                        ? BrowserStorageService.SECTION_NAME
+                        : entry.displayName().replaceAll("[^a-zA-Z0-9_-]", "-");
                 String filename = (entry.enabled() ? "" : "_") + prefix + "-" + safeName + ".md";
-                Path file = localeDir.resolve(filename);
-                Files.writeString(file, entry.content(), StandardCharsets.UTF_8);
-                result.add(new LegalFileEntry(filename, entry.displayName(), entry.content(), entry.enabled()));
+                Files.writeString(
+                        localeDir.resolve(filename), generated ? "" : entry.content(), StandardCharsets.UTF_8);
+            }
+            if (type == LegalDocumentType.PRIVACY || type == LegalDocumentType.CONSENT) {
+                documentService.ensureGeneratedSection(dir);
             }
             documentService.initialize(dir);
-            ctx.json(result);
+            ctx.json(readLegalFiles(localeDir, locale));
         } catch (IOException e) {
             log.error("Failed to save legal files for {}/{}", type, locale, e);
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
@@ -975,7 +1036,20 @@ public class AdminSettingsRoutes implements Routes {
 
     public record LegalDocumentRequest(String content) {}
 
-    public record LegalFileEntry(String filename, String displayName, String content, boolean enabled) {}
+    /**
+     * One section of a legal document. A {@code generated} section is rendered by the
+     * application rather than written by an administrator: its content is read-only and
+     * only its position and its enabled state can be changed.
+     */
+    public record LegalFileEntry(
+            String filename, String displayName, String content, boolean enabled, boolean generated) {}
+
+    /**
+     * The values an administrator gives the placeholders used across the legal documents.
+     *
+     * @param values placeholder name to replacement; an entry left empty clears the value
+     */
+    public record PlaceholderValues(Map<String, String> values) {}
 
     public record PublicThemeResponse(
             String defaultTheme, String defaultFeel, boolean lockFeel, boolean forcePrideFlag) {}

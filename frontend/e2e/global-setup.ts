@@ -15,6 +15,9 @@ import {instanceAdmin, stationPeers, storageStatePath} from './fixtures/auth'
  * same person at the same moment — and the seeded station has exactly one manager. A dev instance
  * issues a deterministic token, so the second login collides on the session it just wrote and
  * answers 500. Doing it once, before any worker starts, removes the race rather than retrying it.
+ *
+ * The stored state marks the introductory tour as seen: its bar is fixed to the bottom of the
+ * window and swallows clicks meant for anything anchored there.
  */
 async function saveSession(baseURL: string, email: string, stationId: string | undefined, role: string) {
     const context = await request.newContext({baseURL})
@@ -32,6 +35,7 @@ async function saveSession(baseURL: string, email: string, stationId: string | u
                 localStorage: [
                     {name: 'session_token', value: token},
                     {name: 'storage_consent', value: 'accepted'},
+                    {name: 'onboarding_tour_completed', value: 'true'},
                     ...(stationId ? [{name: 'station_id', value: stationId}] : []),
                 ],
             }],
@@ -62,7 +66,12 @@ async function resetData(baseURL: string) {
 }
 
 export default async function globalSetup(config: FullConfig) {
-    const baseURL = config.projects[0]?.use?.baseURL ?? 'http://localhost:3000'
+    // The projects carry only their device overrides, so the base address has to come from the
+    // same place the tests take it from. Reading it off the project alone sent the setup at the
+    // default port whatever the run was actually pointed at.
+    const baseURL = process.env.E2E_BASE_URL
+        ?? config.projects[0]?.use?.baseURL
+        ?? 'http://localhost:3000'
 
     if (!process.env.E2E_KEEP_DATA) await resetData(baseURL)
 

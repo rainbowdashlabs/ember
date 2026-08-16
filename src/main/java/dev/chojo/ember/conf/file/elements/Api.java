@@ -69,6 +69,14 @@ public class Api {
     private String imprintDir = "data/documents/imprint";
 
     /**
+     * Where the values for the {@code {{ name }}} placeholders used across the legal documents
+     * are stored. One file for every document type, because the same placeholder is meant to
+     * mean the same thing in the privacy policy and in the imprint.
+     */
+    @Overwrite(env = @Env)
+    private String placeholderFile = "data/documents/placeholders.json";
+
+    /**
      * Whether to gzip text-shaped responses (JSON, HTML, CSS, XML/RSS/Atom, SVG, plain text,
      * ICS feeds, …) before sending them to the client. The largest single egress win after
      * image variants, universally supported, ~70% reduction on JSON. Switch off only for
@@ -146,6 +154,10 @@ public class Api {
 
     public String imprintDir() {
         return imprintDir;
+    }
+
+    public String placeholderFile() {
+        return placeholderFile;
     }
 
     public boolean httpGzipEnabled() {

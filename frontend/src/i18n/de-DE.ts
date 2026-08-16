@@ -3473,6 +3473,27 @@ export default {
             noFiles: 'Keine Dateien vorhanden. Erstelle eine neue Datei.',
             moveUp: 'Nach oben',
             moveDown: 'Nach unten',
+            generatedName: 'Speicherung im Browser (automatisch)',
+            generatedHint: 'Dieser Abschnitt wird aus der Anwendung erzeugt und bleibt dadurch aktuell. '
+                + 'Du bestimmst nur, ob und an welcher Stelle er erscheint.',
+            loadTemplate: 'Vorlage laden',
+            loadTemplateTitle: 'Mitgelieferte Vorlage laden',
+            loadTemplateHint: 'Wähle die Abschnitte, die aus Embers Vorlage übernommen werden sollen. '
+                + 'Ein Abschnitt mit gleichem Namen wird überschrieben, alle anderen bleiben unberührt. '
+                + 'Die Änderung greift erst beim Speichern.',
+            selectAllTemplates: 'Alle auswählen',
+            noTemplates: 'Für diese Sprache liefert Ember keine Vorlage mit.',
+            placeholderTitle: 'Platzhalter',
+            placeholderHint: 'Ein Name in doppelten geschweiften Klammern wird beim Anzeigen durch seinen Wert '
+                + 'ersetzt. Ember erkennt jeden Platzhalter selbst und setzt ihn in allen Dokumenten und allen '
+                + 'Sprachen gleich ein. Ein Platzhalter ohne Wert bleibt im Text stehen, damit er nicht unbemerkt '
+                + 'verschwindet.',
+            placeholderShow: 'Anzeigen',
+            placeholderHide: 'Einklappen',
+            placeholderNone: 'In den Dokumenten steht bisher kein Platzhalter.',
+            placeholderUnused: 'In keinem Dokument mehr verwendet',
+            placeholderMissing: '{count} ohne Wert',
+            placeholderValuePlaceholder: 'Wert eingeben',
         },
     },
     adminSecurity: {

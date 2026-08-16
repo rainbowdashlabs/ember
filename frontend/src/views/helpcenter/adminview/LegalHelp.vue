@@ -26,6 +26,18 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.adminLegal.howToText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.adminLegal.templatesTitle')">
+      <p>{{ t('helpCenter.adminLegal.templatesText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.adminLegal.placeholdersTitle')">
+      <p>{{ t('helpCenter.adminLegal.placeholdersText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.adminLegal.generatedTitle')">
+      <p>{{ t('helpCenter.adminLegal.generatedText') }}</p>
+    </HelpSection>
+
     <!-- Dummy: Legal document editor -->
     <HelpSection :title="t('helpCenter.adminLegal.exampleTitle')">
       <NeutralContainer class="space-y-4">

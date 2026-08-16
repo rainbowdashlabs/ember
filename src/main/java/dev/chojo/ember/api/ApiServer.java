@@ -593,7 +593,8 @@ public class ApiServer {
                             permissionNames,
                             groupNames,
                             tagNames,
-                            complete));
+                            complete,
+                            account.instanceUserType() == InstanceUserType.ADMINISTRATOR));
                 });
             }
             if (!accounts.isEmpty()) {
@@ -606,9 +607,8 @@ public class ApiServer {
             if (!stationMemberRepository.findAllByAccountId(account.id()).isEmpty()) {
                 continue;
             }
-            StationUserType bucket = account.instanceUserType() == InstanceUserType.ADMINISTRATOR
-                    ? StationUserType.MANAGER
-                    : StationUserType.MEMBER;
+            boolean administrator = account.instanceUserType() == InstanceUserType.ADMINISTRATOR;
+            StationUserType bucket = administrator ? StationUserType.MANAGER : StationUserType.MEMBER;
             noStationAccounts.add(new DemoAccount(
                     account.email(),
                     account.firstName(),
@@ -617,7 +617,8 @@ public class ApiServer {
                     List.of(),
                     List.of(),
                     List.of(),
-                    true));
+                    true,
+                    administrator));
         }
 
         ctx.json(new DemoAccountsResponse(noStationAccounts, stationGroups));
@@ -1053,6 +1054,13 @@ public class ApiServer {
      * @param tags            the tag names assigned to this member
      * @param profileComplete whether the member's profile is fully filled in
      */
+    /**
+     * One account the demo instance offers for signing in.
+     *
+     * @param instanceAdministrator whether the account administers the instance itself. Station
+     *                              permissions say nothing about that, so a caller looking for
+     *                              someone who may reach the admin area has no other way to tell.
+     */
     public record DemoAccount(
             String email,
             String firstName,
@@ -1061,7 +1069,8 @@ public class ApiServer {
             List<String> permissions,
             List<String> groups,
             List<String> tags,
-            boolean profileComplete) {}
+            boolean profileComplete,
+            boolean instanceAdministrator) {}
 
     public record PublicConfigResponse(String demoUrl, boolean demo, String version) {}
 

@@ -42,7 +42,7 @@ const recentRequests = computed<RequestHistoryEntry[]>(() => {
 </script>
 
 <template>
-  <NeutralContainer class="space-y-2">
+  <NeutralContainer class="space-y-2" data-testid="problem-report">
     <div class="flex items-start justify-between gap-3 cursor-pointer" @click="emit('toggle', report.id)">
       <div class="flex-1">
         <div class="flex items-center gap-2 mb-1">

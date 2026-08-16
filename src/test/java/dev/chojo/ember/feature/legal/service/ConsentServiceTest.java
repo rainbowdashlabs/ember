@@ -60,6 +60,8 @@ class ConsentServiceTest extends RepositoryTestBase {
         when(apiConfig.tosDir()).thenReturn(tosDir.toString());
         when(apiConfig.consentDir()).thenReturn(consentDir.toString());
         when(apiConfig.imprintDir()).thenReturn(imprintDir.toString());
+        when(apiConfig.placeholderFile())
+                .thenReturn(tempDir.resolve("placeholders.json").toString());
 
         service = new ConsentService(accountRepo, apiConfig, new Network());
         service.initialize();

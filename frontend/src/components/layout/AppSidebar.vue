@@ -73,11 +73,12 @@ const logoSizeClass = computed(() => collapsed.value ? 'h-8 w-8 lg:h-10 lg:w-10 
     </nav>
   </aside>
 
-  <SidebarCollapseToggle
-      v-if="collapsible"
-      :collapsed="collapsed"
-      :class="collapsed ? 'lg:left-16' : 'lg:left-64'"
-      class="hidden lg:inline-flex fixed top-7 z-50 -translate-x-1/4 -translate-y-1/2 transition-[left] duration-300 ease-in-out"
-      @click="toggle"
-  />
+  <div v-if="collapsible" class="hidden lg:block">
+    <SidebarCollapseToggle
+        :collapsed="collapsed"
+        :class="collapsed ? 'lg:left-16' : 'lg:left-64'"
+        class="fixed top-7 z-50 -translate-x-1/4 -translate-y-1/2 transition-[left] duration-300 ease-in-out"
+        @click="toggle"
+    />
+  </div>
 </template>

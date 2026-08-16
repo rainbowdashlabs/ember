@@ -32,6 +32,9 @@
 
 ### Fixes
 
+- **Choosing a station leads somewhere.** Picking a station opens the page that was asked for instead of returning to the station picker.
+- **The sidebar control for narrowing the menu stays on desktop.** It no longer appears on phones, where there is nothing to narrow.
+- **Applications for a new station can be decided again.** The list shows the applications waiting for a decision, each with its accepting and rejecting buttons and its actual state.
 - **A new instance starts with legal documents in place.** Privacy policy, terms of service, consent text and imprint are laid down on first start in German and English. A language that already holds a document keeps exactly what is there.
 - **Members see the events of their station.** Opening the events page shows the station's events for everyone, not only for those who also record attendance.
 - **The registration list of an event loads.** Opening an event and switching to its registrations shows who has signed up.

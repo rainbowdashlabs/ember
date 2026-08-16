@@ -134,6 +134,7 @@ api:
   consentDir: "data/documents/consent"
   tosDir: "data/documents/tos"
   imprintDir: "data/documents/imprint"
+  placeholderFile: "data/documents/placeholders.json"
 
 auth:
   sessionMinutes: 30
@@ -237,6 +238,19 @@ data/
 ```
 
 Files prefixed with `_` are disabled and excluded from rendering. The numeric prefix (`01-`, `02-`, ...) determines the order.
+
+### Placeholders
+
+Any section may contain `{{ name }}` tokens. Ember scans every document type and locale for them, lists the ones it
+finds under Settings → Legal, and substitutes the values entered there when a document is rendered. The same name
+means the same value everywhere, so `{{ betreiber.name }}` in the imprint and in the privacy policy resolve alike.
+A token with no value configured is left standing in the text rather than blanked, so a missing value is visible.
+
+Values are stored in `placeholderFile` (default `data/documents/placeholders.json`) and count towards the document
+version: changing one re-versions every document that uses it and prompts users to consent again.
+
+The bundled imprint ships with placeholders for the operator's name, address, phone number, email address and the
+person responsible for content.
 
 ### Version Tracking
 

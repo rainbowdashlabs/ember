@@ -58,7 +58,8 @@ function toggle(id: number) {
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
           <label class="flex items-center gap-2 text-sm">
-            <ToggleInput v-model="includeAcknowledged" @update:model-value="loadData"/>
+            <ToggleInput v-model="includeAcknowledged" :aria-label="t('problemReport.showAcknowledged')"
+                         @update:model-value="loadData"/>
             {{ t('problemReport.showAcknowledged') }}
           </label>
           <SecondaryButton v-if="reports.some(r => !r.acknowledged)" :icon="['fas', 'check-double']" @click="ackAll">
