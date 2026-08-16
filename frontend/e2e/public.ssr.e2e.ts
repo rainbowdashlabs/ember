@@ -50,15 +50,18 @@ test.describe('Public pages without JavaScript', () => {
     })
 
     /**
-     * Waiting on data, not on rendering: the pages fetch during the server render like every other
-     * public route, but a fresh instance carries no imprint, privacy policy or terms, so the server
-     * correctly delivers the "not available" fallback and there is no document to assert. The story
-     * turns green once the seeder ships legal texts.
+     * The text itself, not just a heading: these pages exist to carry a document, and an instance
+     * lays one down in each language on its first start. A page that arrives with its frame and no
+     * document would pass a weaker assertion while telling a visitor nothing.
      */
-    test.fixme('the legal pages are server-rendered', async ({page}) => {
-        for (const path of ['/imprint', '/privacy', '/terms']) {
+    test('the legal pages are server-rendered', async ({page}) => {
+        for (const [path, heading] of [
+            ['/imprint', 'Impressum'],
+            ['/privacy', 'Datenschutzerklärung'],
+            ['/terms', 'Nutzungsbedingungen'],
+        ]) {
             await visit(page, path)
-            await expect(page.getByRole('heading').first()).toBeVisible()
+            await expect(page.getByRole('heading', {name: heading}).first()).toBeVisible()
         }
     })
 })
