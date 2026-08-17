@@ -63,11 +63,19 @@ public class DataInitializer {
         "documents/privacy/de/03-browser-storage.md",
         "documents/privacy/de/04-sicherheit.md",
         "documents/privacy/de/_05-mailversand.md",
+        "documents/privacy/de/_05-mailversand-brevo.md",
+        "documents/privacy/de/_05-mailversand-sweego.md",
+        "documents/privacy/de/_05-mailversand-sendgrid.md",
+        "documents/privacy/de/_05-mailversand-rapidmail.md",
         "documents/privacy/en/01-general.md",
         "documents/privacy/en/02-rights.md",
         "documents/privacy/en/03-browser-storage.md",
         "documents/privacy/en/04-security.md",
         "documents/privacy/en/_05-mail-delivery.md",
+        "documents/privacy/en/_05-mail-delivery-brevo.md",
+        "documents/privacy/en/_05-mail-delivery-sweego.md",
+        "documents/privacy/en/_05-mail-delivery-sendgrid.md",
+        "documents/privacy/en/_05-mail-delivery-rapidmail.md",
         "documents/tos/de/01-grundlagen.md",
         "documents/tos/de/02-konto.md",
         "documents/tos/de/03-nutzungsregeln.md",
@@ -86,8 +94,8 @@ public class DataInitializer {
 
     /**
      * Returns the sections of the bundled legal document template for the given type and locale,
-     * in the order they are laid out. Sections carrying no content of their own — the generated
-     * ones — are left out, so the result is what an administrator can actually load into the editor.
+     * in the order they are laid out. Sections carrying no content of their own - the generated
+     * ones - are left out, so the result is what an administrator can actually load into the editor.
      *
      * @param typeSlug the document type as used in the data directory ({@code privacy}, {@code tos}, …)
      * @param locale   the desired locale (e.g. "de", "en")

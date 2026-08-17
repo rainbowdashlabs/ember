@@ -264,13 +264,12 @@ public class AccountRepository {
     }
 
     /**
-     * Resolves the language code to use for system mails sent to {@code accountId}. Picks the
-     * language of the station the account was created from (falling back to {@code "en"} for
-     * self-signup, admin bootstrap, or any account without a known origin). The returned value
-     * is the short ISO 639 code (e.g. {@code "de"}, {@code "en"}), suitable for mail template
-     * lookup.
+     * The language of the station {@code accountId} was created from, as a short ISO 639 code
+     * (e.g. {@code "de"}). Empty for an account with no known origin - somebody who signed up on
+     * their own, the administrator laid down at first start. What to write to those instead is a
+     * policy question and is answered by {@code MailLocaleService}, not here.
      */
-    public String findMailLocale(int accountId) {
+    public Optional<String> findStationLanguage(int accountId) {
         return query("""
                 SELECT s.locale
                 FROM account a
@@ -281,8 +280,7 @@ public class AccountRepository {
                 .first()
                 .map(Locale::forLanguageTag)
                 .map(Locale::getLanguage)
-                .filter(s -> !s.isBlank())
-                .orElse("en");
+                .filter(s -> !s.isBlank());
     }
 
     /**
@@ -688,7 +686,7 @@ public class AccountRepository {
     /**
      * Deletes every recovery / verification token for an account. Used on a successful
      * password rotation so that any other pending password-reset, email-verification,
-     * email-change or station-delete tokens for the same account stop working — they
+     * email-change or station-delete tokens for the same account stop working - they
      * would otherwise let an attacker who already obtained the credential keep
      * performing destructive actions through alternate token-consuming endpoints.
      *
@@ -784,8 +782,8 @@ public class AccountRepository {
      * <p>Only the dev and demo quick login needs this: it hands out the account's address as a
      * stable token so a session survives a restart, which means signing the same account in twice
      * writes the same token twice. Deleting first and inserting after loses that race when two
-     * requests arrive together — the second insert is refused for a token the first has just
-     * written — and a refused login reads as the account being broken. Production tokens are random
+     * requests arrive together - the second insert is refused for a token the first has just
+     * written - and a refused login reads as the account being broken. Production tokens are random
      * and keep the plain insert, where a collision must be heard rather than absorbed.
      *
      * @param token the session token, hashed before it is stored as everywhere else

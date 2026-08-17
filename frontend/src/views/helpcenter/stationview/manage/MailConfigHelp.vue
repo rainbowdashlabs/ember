@@ -30,6 +30,11 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.mailConfig.whatIsText2') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.mailConfig.fallbackTitle')">
+      <p>{{ t('helpCenter.mailConfig.fallbackText') }}</p>
+      <p>{{ t('helpCenter.mailConfig.fallbackText2') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.mailConfig.providersTitle')">
       <p>{{ t('helpCenter.mailConfig.providersText') }}</p>
       <p>{{ t('helpCenter.mailConfig.providerNone') }}</p>

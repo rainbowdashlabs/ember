@@ -37,7 +37,26 @@ public interface MailProvider {
      * @param htmlBody the HTML email body
      * @return the outcome of the send attempt
      */
-    SendResult send(String to, String subject, String htmlBody);
+    default SendResult send(String to, String subject, String htmlBody) {
+        return send(to, subject, htmlBody, null);
+    }
+
+    /**
+     * Sends an HTML email, tagging it so the provider's later delivery events can be traced back to
+     * it.
+     *
+     * <p>A relay answers our send the moment it accepts the message; whether it arrives is reported
+     * afterwards, out of band. The token travels with the message and comes back in those reports,
+     * which is the only thing tying the two together. A provider that has no way to carry it simply
+     * ignores it.
+     *
+     * @param to            the recipient email address
+     * @param subject       the email subject
+     * @param htmlBody      the HTML email body
+     * @param correlationId our own identifier for this message, or null to send it untagged
+     * @return the outcome of the send attempt
+     */
+    SendResult send(String to, String subject, String htmlBody, String correlationId);
 
     /**
      * Outcome of a connection test.

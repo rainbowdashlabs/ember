@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:4fc1ac5a7bb8358922fe81ef12b3ad159da603c6e9c1df918af6488f69c00604",
-  "generatedAt" : "2026-08-16T12:06:10Z",
+  "schemaHash" : "sha256:77e5ef32a56e2cc64e682af19fcfc8ee6dbcba946d883b5d8000625163f70631",
+  "generatedAt" : "2026-08-17T23:44:07Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -3059,7 +3059,7 @@
     "email_queue" : {
       "feature" : "mail",
       "scope" : "INSTANCE",
-      "tableHash" : "sha256:c704988fcd8cef04a28efffc15597ce094ea9b808ad9f7d3a37ae548d32e6db7",
+      "tableHash" : "sha256:63b8a9ebf64f1e4f57cc1428bdb227635d2cd87d44e8662d483aa275943e476d",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -3102,6 +3102,42 @@
         "nullable" : false,
         "verified" : true,
         "description" : "Delivery status: PENDING, SENT, FAILED."
+      }, {
+        "name" : "delivery_status",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "What the provider reported after accepting the message: UNKNOWN, DELIVERED, SOFT_BOUNCE, HARD_BOUNCE, BLOCKED, SPAM, DEFERRED or ERROR."
+      }, {
+        "name" : "delivery_detail",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The reason the provider gave for the delivery outcome, as received."
+      }, {
+        "name" : "delivery_updated_at",
+        "type" : "timestamp",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "When the last delivery event for this email arrived."
+      }, {
+        "name" : "provider_message_id",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The message id the provider assigned, learned from its delivery events."
+      }, {
+        "name" : "attempts",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "How many times the provider currently in turn has tried this mail."
+      }, {
+        "name" : "provider_position",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Which provider of the chain is currently in turn, counted from zero."
       } ],
       "foreignKeys" : [ {
         "column" : "station_id",
@@ -12617,6 +12653,116 @@
       },
       "description" : "Email provider configuration per station."
     },
+    "station_mail_provider" : {
+      "feature" : "mail",
+      "scope" : "STATION",
+      "tableHash" : "sha256:33dc832ca12bb45767abf74e7d733efd746fec64b48992a267187da790389c2d",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The station this provider belongs to."
+      }, {
+        "name" : "position",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Where in the order this provider is tried; the station configuration itself is 0."
+      }, {
+        "name" : "provider",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Which provider is used: SMTP, RAPIDMAIL, TWILIO, SWEEGO or BREVO."
+      }, {
+        "name" : "smtp_host",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Server hostname for a plain SMTP provider."
+      }, {
+        "name" : "smtp_port",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Server port for a plain SMTP provider."
+      }, {
+        "name" : "smtp_ssl",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Whether the connection uses direct SSL rather than STARTTLS."
+      }, {
+        "name" : "smtp_user",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Login name presented to the relay."
+      }, {
+        "name" : "smtp_password",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Password presented to the relay."
+      }, {
+        "name" : "api_key",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Key presented to a relay that authenticates with one."
+      }, {
+        "name" : "sender_address",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Address the mail is sent from."
+      }, {
+        "name" : "sender_name",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Display name the mail is sent under."
+      }, {
+        "name" : "attempts",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "How many attempts this provider gets before the next one takes over."
+      }, {
+        "name" : "created_at",
+        "type" : "timestamp",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the provider was added."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED",
+        "ignoredColumns" : [ "id", "station_id" ],
+        "rationale" : "The providers a station falls back to; without them a moved station loses every route but its first."
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Station configuration, not personal data"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Station configuration, not personal data"
+      },
+      "description" : "Further mail providers a station falls back to, after the one in its own mail configuration."
+    },
     "station_member" : {
       "feature" : "station",
       "scope" : "STATION",
@@ -12908,6 +13054,56 @@
         "reason" : "Permission catalog, seeded by migrations"
       }
     },
+    "station_provider_secret" : {
+      "feature" : "mail",
+      "scope" : "STATION",
+      "tableHash" : "sha256:e61e77238b854836008416da5c953c37a78e7089cdad6a081784830ef40266f4",
+      "columns" : [ {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The station the secret belongs to."
+      }, {
+        "name" : "provider",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Which provider issued it: SMTP, RAPIDMAIL, TWILIO, SWEEGO or BREVO."
+      }, {
+        "name" : "secret",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The secret as the provider issued it."
+      }, {
+        "name" : "updated_at",
+        "type" : "timestamp",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the secret was last set."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED",
+        "ignoredColumns" : [ "station_id" ],
+        "rationale" : "The signing secret a provider issued to this station; without it a moved station stops checking that provider reports are genuine."
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Station configuration, not personal data"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Station configuration, not personal data"
+      },
+      "description" : "Signing secrets a mail provider issued to a station, used to verify its delivery reports."
+    },
     "station_storage_config" : {
       "feature" : "storage",
       "scope" : "STATION",
@@ -13124,6 +13320,49 @@
         "status" : "IGNORED",
         "reason" : "Permission catalog, seeded by migrations"
       }
+    },
+    "station_webhook_key" : {
+      "feature" : "webhook",
+      "scope" : "STATION",
+      "tableHash" : "sha256:e30125f9aeed97989e2d02119c7b5f9a7285abb2876ffe47dfc0d25eb9d9b0f8",
+      "columns" : [ {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The station the key belongs to."
+      }, {
+        "name" : "key",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The secret presented in the webhook address."
+      }, {
+        "name" : "created_at",
+        "type" : "timestamp",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the key was generated."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "A key names an address on this instance; a moved station is given a fresh one rather than carrying the old one to a new host."
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Station configuration, not personal data"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Station configuration, not personal data"
+      },
+      "description" : "Per-station key that authorises webhook reports from external tools for that station."
     },
     "storage_backend_audit" : {
       "feature" : "storage",

@@ -36,6 +36,25 @@ const steps = computed(() => {
   return out
 })
 
+/**
+ * How this provider is told to report back. A provider Ember cannot receive reports from has no
+ * steps, and the section says so rather than staying silent about it.
+ */
+const webhookSteps = computed(() => {
+  const out: string[] = []
+  for (let i = 1; i <= 5; i++) {
+    const key = `helpCenter.mailVendor.${vendorKey.value}.webhookStep${i}`
+    if (!te(key)) break
+    out.push(t(key))
+  }
+  return out
+})
+
+const webhookLink = computed(() => {
+  const key = `helpCenter.mailVendor.${vendorKey.value}.webhookLink`
+  return te(key) ? t(key) : ''
+})
+
 const demoUser = ref('user@example.com')
 const demoSecret = ref('')
 </script>
@@ -61,6 +80,18 @@ const demoSecret = ref('')
             :provider="vendorKey"
         />
       </NeutralContainer>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.mailVendor.webhookTitle')">
+      <p>{{ t('helpCenter.mailVendor.webhookIntro') }}</p>
+      <ol v-if="webhookSteps.length" class="list-decimal ml-5 space-y-1">
+        <li v-for="(step, i) in webhookSteps" :key="i">{{ step }}</li>
+      </ol>
+      <p v-else>{{ t('helpCenter.mailVendor.webhookUnsupported') }}</p>
+      <p v-if="webhookLink">
+        <a :href="webhookLink" target="_blank" rel="noopener"
+           class="text-(--primary) underline">{{ webhookLink }}</a>
+      </p>
     </HelpSection>
 
     <HelpTip>{{ t('helpCenter.mailVendor.senderTip') }}</HelpTip>

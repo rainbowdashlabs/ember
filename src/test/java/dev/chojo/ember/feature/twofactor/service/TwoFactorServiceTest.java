@@ -8,6 +8,8 @@ package dev.chojo.ember.feature.twofactor.service;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
 import dev.chojo.ember.feature.mail.service.EmailService;
+import dev.chojo.ember.feature.mail.service.MailLocaleService;
+import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -39,7 +41,13 @@ class TwoFactorServiceTest extends RepositoryTestBase {
         var auditService = new TwoFactorAuditService(twoFactorRepo);
         var emailService = mock(EmailService.class);
         service = new TwoFactorService(
-                twoFactorRepo, totpService, backupCodeService, auditService, accountRepo, emailService);
+                twoFactorRepo,
+                totpService,
+                backupCodeService,
+                auditService,
+                accountRepo,
+                new MailLocaleService(accountRepo, new ApplicationSettingRepository()),
+                emailService);
     }
 
     private int newAccount() {

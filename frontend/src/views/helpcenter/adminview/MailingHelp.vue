@@ -42,6 +42,11 @@ const {t} = useI18n()
       </p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.adminMailing.webhookTitle')">
+      <p>{{ t('helpCenter.adminMailing.webhookText') }}</p>
+      <p>{{ t('helpCenter.adminMailing.webhookKeyText') }}</p>
+    </HelpSection>
+
     <!-- Dummy: Mailing config form -->
     <HelpSection :title="t('helpCenter.adminMailing.exampleTitle')">
       <NeutralContainer class="space-y-4">

@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.mail.service;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Mailing;
+import dev.chojo.ember.feature.mail.entity.MailChainEntry;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
 import dev.chojo.ember.feature.mail.service.mail.MailProvider;
 import dev.chojo.ember.feature.mail.service.mail.SmtpMailProvider;
@@ -23,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Executors;
@@ -39,6 +41,28 @@ import java.util.concurrent.TimeUnit;
 public class EmailService {
     private static final Logger log = LoggerFactory.getLogger(EmailService.class);
 
+    /**
+     * The header Brevo passes through from a sent message to every delivery event it reports about
+     * it. Brevo assigns its own message id on the relay and never tells us what it was, so this is
+     * the only thing that ties an event back to the mail it belongs to.
+     */
+    private static final String BREVO_CORRELATION_HEADER = "X-Mailin-custom";
+
+    /**
+     * SendGrid carries arbitrary values through to its events as well, but expects them inside a
+     * small JSON document rather than as a plain header value. What comes back is a field named
+     * after the key, which is why the route reads {@code ember_id}.
+     */
+    private static final String SENDGRID_CORRELATION_HEADER = "X-SMTPAPI";
+
+    private static final String SENDGRID_CORRELATION_FORMAT = "{\"unique_args\":{\"ember_id\":\"%s\"}}";
+
+    /**
+     * Sweego returns the headers of a message inside every event it reports about it, and names
+     * this one as the slot a sender may put its own value in.
+     */
+    private static final String SWEEGO_CORRELATION_HEADER = "X-Custom-Header";
+
     private final Mailing mailing;
     private final Api api;
     private final Demo demoConfig;
@@ -46,6 +70,7 @@ public class EmailService {
     private final StationMailConfigRepository mailConfigRepository;
     private final MailTemplateRenderer templateRenderer;
     private final StationReadOnlyGuard readOnlyGuard;
+    private final MailChainService chainService;
 
     @Inject
     public EmailService(
@@ -55,7 +80,9 @@ public class EmailService {
             EmailQueueRepository queueRepository,
             StationMailConfigRepository mailConfigRepository,
             MailTemplateRenderer templateRenderer,
-            StationReadOnlyGuard readOnlyGuard) {
+            StationReadOnlyGuard readOnlyGuard,
+            MailChainService chainService) {
+        this.chainService = chainService;
         this.mailing = mailing;
         this.api = api;
         this.demoConfig = demoConfig;
@@ -137,10 +164,42 @@ public class EmailService {
             case RAPIDMAIL ->
                 new SmtpMailProvider("smtp.rapidmail.de", 587, false, user, apiKey, senderAddress, senderName);
             case TWILIO ->
-                new SmtpMailProvider("smtp.sendgrid.net", 587, false, "apikey", apiKey, senderAddress, senderName);
-            case SWEEGO -> new SmtpMailProvider("smtp.sweego.io", 587, false, user, apiKey, senderAddress, senderName);
+                new SmtpMailProvider(
+                        "smtp.sendgrid.net",
+                        587,
+                        false,
+                        "apikey",
+                        apiKey,
+                        senderAddress,
+                        senderName,
+                        SENDGRID_CORRELATION_HEADER,
+                        SENDGRID_CORRELATION_FORMAT);
+            // Sweego gives every account its own relay host and port, so both come from the
+            // configuration rather than from a constant that would be right for nobody.
+            case SWEEGO ->
+                new SmtpMailProvider(
+                        smtpHost,
+                        smtpPort,
+                        smtpSsl,
+                        user,
+                        apiKey,
+                        senderAddress,
+                        senderName,
+                        SWEEGO_CORRELATION_HEADER,
+                        null);
+            // Brevo carries this header through to its delivery events, which is what lets one
+            // of those events be traced back to the mail it belongs to.
             case BREVO ->
-                new SmtpMailProvider("smtp-relay.brevo.com", 587, false, user, apiKey, senderAddress, senderName);
+                new SmtpMailProvider(
+                        "smtp-relay.brevo.com",
+                        587,
+                        false,
+                        user,
+                        apiKey,
+                        senderAddress,
+                        senderName,
+                        BREVO_CORRELATION_HEADER,
+                        null);
             case NONE -> null;
         };
     }
@@ -230,14 +289,14 @@ public class EmailService {
      * Routes a per-station notification email through the station's own outbound mailbox.
      *
      * <p><strong>Use only for high-volume aggregate notifications</strong> (event reminders,
-     * digests, attendance summaries) — anything where missing one is acceptable and where the
+     * digests, attendance summaries) - anything where missing one is acceptable and where the
      * station's daily/monthly send caps should apply. Per-station relays may be unconfigured or
      * temporarily over their cap, in which case nothing is delivered.
      *
      * <p><strong>Do not use for mandatory transactional mail</strong> (account verification,
      * password reset, invites, application status, waitlist confirmations, security notices).
      * Route those through {@link #enqueueGlobal} via one of the {@code send*} helpers so the
-     * instance-wide mail relay carries them — guaranteeing delivery even when the station has not
+     * instance-wide mail relay carries them - guaranteeing delivery even when the station has not
      * configured its own outbound relay.
      */
     public void queueStationEmail(int stationId, String to, String subject, String htmlBody) {
@@ -659,6 +718,62 @@ public class EmailService {
 
     // -- Template & helpers --
 
+    /**
+     * The provider whose turn it is for this mail, built from the chain it belongs to.
+     *
+     * @return the provider, or empty when the chain holds nothing or has been used up
+     */
+    private Optional<MailProvider> providerInTurn(List<MailChainEntry> chain, EmailQueueRepository.QueuedEmail email) {
+        return chainService
+                .at(chain, email.providerPosition())
+                .map(entry -> buildProvider(
+                        entry.provider(),
+                        entry.smtpHost(),
+                        entry.smtpPort(),
+                        entry.smtpSsl(),
+                        entry.smtpUser(),
+                        entry.smtpPassword(),
+                        entry.apiKey(),
+                        entry.senderAddress(),
+                        entry.senderName()));
+    }
+
+    /**
+     * Counts a used-up attempt and, when the provider in turn has had all of its, hands the mail to
+     * the next one.
+     *
+     * <p>This is what makes a relay that has stopped working survivable: the mail does not sit in
+     * the queue being refused by the same route forever, it moves on to another.
+     */
+    private void countAttemptAndMaybeAdvance(EmailQueueRepository.QueuedEmail email) {
+        var chain = email.stationId() == null ? chainService.forInstance() : chainService.forStation(email.stationId());
+        int allowed = chainService
+                .at(chain, email.providerPosition())
+                .map(MailChainEntry::attempts)
+                .orElse(1);
+        queueRepository.countAttempt(email.id());
+        if (email.attempts() + 1 < allowed) {
+            log.warn(
+                    "Email {} to {} failed on provider {}; {} attempt(s) left before the next one",
+                    email.id(),
+                    email.recipient(),
+                    email.providerPosition(),
+                    allowed - email.attempts() - 1);
+            return;
+        }
+        if (email.providerPosition() + 1 >= chain.size()) {
+            log.warn("Email {} to {} has exhausted every provider", email.id(), email.recipient());
+            return;
+        }
+        queueRepository.advanceProvider(email.id());
+        log.warn(
+                "Email {} to {} moves from provider {} to {}",
+                email.id(),
+                email.recipient(),
+                email.providerPosition(),
+                email.providerPosition() + 1);
+    }
+
     private void processQueue() {
         try {
             boolean globalConfigured = currentGlobalProvider() != null;
@@ -688,19 +803,20 @@ public class EmailService {
                         failed++;
                         continue;
                     }
-                    var stationProvider = resolveStationProvider(email.stationId());
-                    if (stationProvider.isEmpty()) {
+                    var inTurn = providerInTurn(chainService.forStation(email.stationId()), email);
+                    if (inTurn.isEmpty()) {
                         log.warn(
-                                "Email {} failed: station {} has no mail provider configured",
+                                "Email {} failed: station {} has no provider left to try",
                                 email.id(),
                                 email.stationId());
                         queueRepository.markFailed(email.id());
                         failed++;
                         continue;
                     }
-                    provider = stationProvider.get();
+                    provider = inTurn.get();
                 } else {
-                    MailProvider current = currentGlobalProvider();
+                    var inTurn = providerInTurn(chainService.forInstance(), email);
+                    MailProvider current = inTurn.orElse(null);
                     if (current == null) {
                         log.debug(
                                 "Email {} deferred: global mail provider not configured; keeping it queued",
@@ -719,7 +835,8 @@ public class EmailService {
                     provider = current;
                 }
 
-                var result = provider.send(email.recipient(), email.subject(), email.body());
+                var result =
+                        provider.send(email.recipient(), email.subject(), email.body(), String.valueOf(email.id()));
                 switch (result) {
                     case SENT -> {
                         queueRepository.markSent(email.id());
@@ -731,10 +848,7 @@ public class EmailService {
                         sent++;
                     }
                     case TRANSIENT_FAILURE -> {
-                        log.warn(
-                                "Email {} delivery to {} failed transiently; requeueing for retry",
-                                email.id(),
-                                email.recipient());
+                        countAttemptAndMaybeAdvance(email);
                         queueRepository.requeue(email.id());
                         requeued++;
                     }
@@ -775,7 +889,7 @@ public class EmailService {
     }
 
     private static Map<String, String> waitlistPlaceholders(String stationName) {
-        String suffix = stationName != null && !stationName.isEmpty() ? " — " + stationName : "";
+        String suffix = stationName != null && !stationName.isEmpty() ? " - " + stationName : "";
         return Map.of("stationName", stationName != null ? stationName : "", "stationSuffix", suffix);
     }
 }

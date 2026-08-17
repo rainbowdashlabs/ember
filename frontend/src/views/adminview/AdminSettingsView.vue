@@ -25,6 +25,8 @@ const forcePrideFlag = ref(false)
 const instanceDefaultTheme = ref('ember')
 const instanceDefaultFeel = ref('ROUNDED')
 const instanceLockFeel = ref(false)
+const defaultMailLocale = ref('en')
+const availableMailLocales = ref<string[]>([])
 
 const {loading, error} = useAsyncLoader(async () => {
   const settings = await adminSettings.getSettings()
@@ -33,6 +35,8 @@ const {loading, error} = useAsyncLoader(async () => {
   instanceDefaultTheme.value = settings.instanceDefaultTheme ?? 'ember'
   instanceDefaultFeel.value = settings.instanceDefaultFeel ?? 'ROUNDED'
   instanceLockFeel.value = settings.instanceLockFeel ?? false
+  defaultMailLocale.value = settings.defaultMailLocale ?? 'en'
+  availableMailLocales.value = settings.availableMailLocales ?? []
 })
 
 function buildSettings() {
@@ -42,6 +46,19 @@ function buildSettings() {
     instanceDefaultFeel: instanceDefaultFeel.value,
     instanceLockFeel: instanceLockFeel.value,
     forcePrideFlag: forcePrideFlag.value,
+    defaultMailLocale: defaultMailLocale.value,
+  }
+}
+
+async function saveMailLocale() {
+  error.value = ''
+  try {
+    const result = await adminSettings.updateSettings(buildSettings())
+    defaultMailLocale.value = result.defaultMailLocale ?? 'en'
+    flash(t('adminSettings.saved'))
+  } catch (e) {
+    error.value = t('common.error')
+    throw e
   }
 }
 
@@ -86,8 +103,11 @@ async function saveInstanceTheme() {
       <template v-if="!loading">
         <GeneralPanel
             v-model:forcePrideFlag="forcePrideFlag"
+            v-model:defaultMailLocale="defaultMailLocale"
             :registration-enabled="registrationEnabled"
+            :available-mail-locales="availableMailLocales"
             @save-pride="saveInstanceTheme"
+            @save-mail-locale="saveMailLocale"
             @toggle-registration="toggleRegistration"
         />
         <ThemePanel

@@ -13,6 +13,7 @@ import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.HibpSettings;
+import dev.chojo.ember.conf.file.elements.MailFallback;
 import dev.chojo.ember.conf.file.elements.MailSettings;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.conf.file.elements.Theming;
@@ -23,12 +24,16 @@ import dev.chojo.ember.feature.legal.entity.LegalDocumentType;
 import dev.chojo.ember.feature.legal.service.BrowserStorageService;
 import dev.chojo.ember.feature.legal.service.LegalDocumentService;
 import dev.chojo.ember.feature.legal.service.LegalImportService;
+import dev.chojo.ember.feature.mail.route.MailFallbackPayload;
 import dev.chojo.ember.feature.mail.service.EmailService;
+import dev.chojo.ember.feature.mail.service.MailLocaleService;
+import dev.chojo.ember.feature.mail.service.MailTemplateRenderer;
 import dev.chojo.ember.feature.media.service.LogoFragmentService;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import dev.chojo.ember.feature.system.service.DataInitializer;
+import dev.chojo.ember.feature.webhook.service.WebhookKeyService;
 import dev.chojo.ember.util.PandocConverter;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -45,6 +50,7 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
@@ -53,6 +59,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
@@ -91,6 +98,8 @@ public class AdminSettingsRoutes implements Routes {
     private final Conf conf;
     private final EmailService emailService;
     private final AccountRepository accountRepository;
+    private final MailLocaleService mailLocaleService;
+    private final WebhookKeyService webhookKeyService;
     private final LegalDocumentService documentService;
 
     @Inject
@@ -99,12 +108,16 @@ public class AdminSettingsRoutes implements Routes {
             LogoFragmentService logoFragmentService,
             Conf conf,
             EmailService emailService,
-            AccountRepository accountRepository) {
+            AccountRepository accountRepository,
+            MailLocaleService mailLocaleService,
+            WebhookKeyService webhookKeyService) {
         this.settingRepository = settingRepository;
         this.logoFragmentService = logoFragmentService;
         this.conf = conf;
         this.emailService = emailService;
         this.accountRepository = accountRepository;
+        this.mailLocaleService = mailLocaleService;
+        this.webhookKeyService = webhookKeyService;
         this.documentService = new LegalDocumentService(conf.main().api().placeholderFile());
         initializeLogoFragments();
     }
@@ -225,6 +238,18 @@ public class AdminSettingsRoutes implements Routes {
                 InstancePermission.ADMINISTRATOR,
                 StepUpCategory.INSTANCE_CONFIG);
         routes.get(prefix + "/admin/config/mailing", this::getMailingConfig, InstancePermission.ADMINISTRATOR);
+        routes.get(
+                prefix + "/admin/config/mailing/fallbacks", this::getMailFallbacks, InstancePermission.ADMINISTRATOR);
+        routes.put(
+                prefix + "/admin/config/mailing/fallbacks",
+                this::updateMailFallbacks,
+                InstancePermission.ADMINISTRATOR,
+                StepUpCategory.INSTANCE_CONFIG);
+        routes.post(
+                prefix + "/admin/config/mailing/webhook-key",
+                this::regenerateWebhookKey,
+                InstancePermission.ADMINISTRATOR,
+                StepUpCategory.INSTANCE_CONFIG);
         routes.post(prefix + "/admin/config/mailing/test-mail", this::sendTestMail, InstancePermission.ADMINISTRATOR);
         routes.put(
                 prefix + "/admin/config/mailing",
@@ -369,7 +394,21 @@ public class AdminSettingsRoutes implements Routes {
                 theming.defaultTheme(),
                 theming.defaultFeel().name(),
                 theming.lockFeel(),
-                forcePride));
+                forcePride,
+                settingRepository.defaultMailLocale(),
+                availableMailLocales()));
+    }
+
+    /**
+     * The languages this instance can actually write a mail in - one per directory of mail
+     * templates. Offering anything else would let an administrator pick a language that silently
+     * falls back to English on the first mail sent.
+     */
+    private static List<String> availableMailLocales() {
+        File[] directories =
+                Path.of(MailTemplateRenderer.TEMPLATE_ROOT).toFile().listFiles(File::isDirectory);
+        if (directories == null) return List.of("en");
+        return Arrays.stream(directories).map(File::getName).sorted().toList();
     }
 
     @OpenApi(
@@ -383,6 +422,12 @@ public class AdminSettingsRoutes implements Routes {
         var request = ctx.bodyAsClass(ApplicationSettings.class);
         settingRepository.setBoolean(STATION_REGISTRATION_ENABLED, request.stationRegistrationEnabled());
         settingRepository.setBoolean(FORCE_PRIDE_FLAG, request.forcePrideFlag());
+        if (request.defaultMailLocale() != null && !request.defaultMailLocale().isBlank()) {
+            if (!availableMailLocales().contains(request.defaultMailLocale())) {
+                throw new BadRequestResponse("No mail templates exist for " + request.defaultMailLocale());
+            }
+            settingRepository.set(ApplicationSettingRepository.DEFAULT_MAIL_LOCALE, request.defaultMailLocale());
+        }
         try {
             var theming = conf.main().theming();
             if (request.instanceDefaultTheme() != null) {
@@ -402,7 +447,9 @@ public class AdminSettingsRoutes implements Routes {
                 theming.defaultTheme(),
                 theming.defaultFeel().name(),
                 theming.lockFeel(),
-                request.forcePrideFlag()));
+                request.forcePrideFlag(),
+                settingRepository.defaultMailLocale(),
+                availableMailLocales()));
     }
 
     // -- Security config: HIBP --
@@ -672,7 +719,7 @@ public class AdminSettingsRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         var account = session.account();
         emailService.sendTestEmail(
-                account.email(), account.firstName(), accountRepository.findMailLocale(account.id()), null);
+                account.email(), account.firstName(), mailLocaleService.forAccount(account.id()), null);
         ctx.json(new MessageResponse("Test email queued"));
     }
 
@@ -690,8 +737,94 @@ public class AdminSettingsRoutes implements Routes {
                 smtp.port(),
                 smtp.ssl(),
                 mailing.dailySendLimit(),
-                mailing.notificationDigestIntervalMinutes()));
+                mailing.notificationDigestIntervalMinutes(),
+                webhookKeyService.webhookUrl(conf.main().api().baseUrl(), null, "mail/brevo")));
     }
+
+    /**
+     * The providers the instance falls back to, after the one configured on the mailing page.
+     */
+    private void getMailFallbacks(Context ctx) {
+        var mailing = conf.main().mailing();
+        ctx.json(new MailFallbackChain(
+                Math.max(1, mailing.attempts()),
+                mailing.fallbacks().stream()
+                        .map(fallback -> new MailFallbackPayload(
+                                        fallback.provider(),
+                                        fallback.host(),
+                                        fallback.port(),
+                                        fallback.ssl(),
+                                        fallback.user(),
+                                        fallback.password(),
+                                        fallback.apiKey(),
+                                        fallback.senderAddress(),
+                                        fallback.senderName(),
+                                        fallback.attempts())
+                                .masked())
+                        .toList()));
+    }
+
+    /**
+     * Replaces the order the instance falls back through.
+     *
+     * <p>Written as a whole rather than entry by entry, because the order is the point: a
+     * half-applied chain would send mail through a route nobody asked for.
+     */
+    private void updateMailFallbacks(Context ctx) {
+        var request = ctx.bodyAsClass(MailFallbackChain.class);
+        var mailing = conf.main().mailing();
+        var stored = mailing.fallbacks();
+        List<MailFallback> next = new ArrayList<>();
+        var entries = request.fallbacks() == null ? List.<MailFallbackPayload>of() : request.fallbacks();
+        for (int i = 0; i < entries.size(); i++) {
+            var entry = entries.get(i);
+            if (entry.provider() == null || entry.provider() == MailProviderType.NONE) continue;
+            var previous = i < stored.size() ? stored.get(i) : null;
+            next.add(new MailFallback(
+                    entry.provider(),
+                    entry.smtpHost(),
+                    entry.smtpPort(),
+                    entry.smtpSsl(),
+                    entry.smtpUser(),
+                    MailFallbackPayload.keepOrReplace(
+                            entry.smtpPassword(), previous == null ? "" : previous.password()),
+                    MailFallbackPayload.keepOrReplace(entry.apiKey(), previous == null ? "" : previous.apiKey()),
+                    entry.senderAddress(),
+                    entry.senderName(),
+                    Math.max(1, entry.attempts())));
+        }
+        try {
+            setField(Mailing.class, mailing, "attempts", Math.max(1, request.attempts()));
+            setField(Mailing.class, mailing, "fallbacks", next);
+            conf.save();
+        } catch (Exception e) {
+            log.error("Failed to update the mail fallback chain", e);
+            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
+            return;
+        }
+        getMailFallbacks(ctx);
+    }
+
+    /**
+     * @param attempts  how many attempts the first provider gets before the chain moves on
+     * @param fallbacks the providers after it, in the order they are tried
+     */
+    public record MailFallbackChain(int attempts, List<MailFallbackPayload> fallbacks) {}
+
+    /**
+     * Replaces the instance webhook key, which takes the old address out of service at once. An
+     * operator does this when the address has been seen by somebody it should not have been.
+     */
+    private void regenerateWebhookKey(Context ctx) {
+        webhookKeyService.regenerate(null);
+        ctx.json(new WebhookUrlResponse(
+                webhookKeyService.webhookUrl(conf.main().api().baseUrl(), null, "mail/brevo")));
+    }
+
+    /**
+     * @param deliveryWebhookUrl the freshly minted address
+     */
+    public record WebhookUrlResponse(String deliveryWebhookUrl) {}
 
     // -- Legal documents --
 
@@ -750,7 +883,8 @@ public class AdminSettingsRoutes implements Routes {
                     smtp.port(),
                     smtp.ssl(),
                     mailing.dailySendLimit(),
-                    mailing.notificationDigestIntervalMinutes()));
+                    mailing.notificationDigestIntervalMinutes(),
+                    webhookKeyService.webhookUrl(conf.main().api().baseUrl(), null, "mail/brevo")));
         } catch (Exception e) {
             log.error("Failed to update mailing config", e);
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
@@ -1030,12 +1164,20 @@ public class AdminSettingsRoutes implements Routes {
     @OpenApiName("StationRegistrationStatus")
     public record RegistrationStatus(boolean enabled) {}
 
+    /**
+     * @param defaultMailLocale    the language system mails use for accounts with no station to
+     *                             take one from
+     * @param availableMailLocales the languages this instance holds mail templates for; read-only,
+     *                             so the client can offer exactly what will work
+     */
     public record ApplicationSettings(
             boolean stationRegistrationEnabled,
             String instanceDefaultTheme,
             String instanceDefaultFeel,
             boolean instanceLockFeel,
-            boolean forcePrideFlag) {}
+            boolean forcePrideFlag,
+            String defaultMailLocale,
+            List<String> availableMailLocales) {}
 
     public record TokensConfigResponse(
             int tokenBytes,
@@ -1075,6 +1217,11 @@ public class AdminSettingsRoutes implements Routes {
     public record WebAuthnConfigRequest(
             String rpId, String rpName, String attestation, int timeoutSeconds, boolean requireResidentKey) {}
 
+    /**
+     * @param deliveryWebhookUrl the address a mail provider reports delivery events to. It carries
+     *                           the instance webhook key, so it is a secret in itself and is only
+     *                           ever handed to an administrator.
+     */
     public record MailingConfigResponse(
             MailProviderType provider,
             String senderAddress,
@@ -1086,7 +1233,8 @@ public class AdminSettingsRoutes implements Routes {
             int smtpPort,
             boolean smtpSsl,
             int dailySendLimit,
-            int notificationDigestIntervalMinutes) {}
+            int notificationDigestIntervalMinutes,
+            String deliveryWebhookUrl) {}
 
     public record MailingConfigRequest(
             MailProviderType provider,

@@ -10,8 +10,10 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.mail.service.EmailService;
+import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ForbiddenResponse;
@@ -47,7 +49,12 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
         var memberService = new StationMemberService(
                 stationMemberRepo, stationRepo, accountRepo, mock(AuthService.class), mock(MemberLookupService.class));
         service = new ManagedAccessService(
-                stationMemberRepo, accountRepo, memberService, mock(AuthService.class), mock(EmailService.class));
+                stationMemberRepo,
+                accountRepo,
+                new MailLocaleService(accountRepo, new ApplicationSettingRepository()),
+                memberService,
+                mock(AuthService.class),
+                mock(EmailService.class));
 
         station = stationRepo.create("Managed Access Station");
         guardianAccount = accountRepo.create("guardian@test.com", "Petra", "Sommer");

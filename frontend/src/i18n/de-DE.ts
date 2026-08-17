@@ -11,6 +11,11 @@ export default {
             userHint: 'Die E-Mail-Adresse, die Brevo auf der Seite „SMTP & API“ als Login anzeigt - in der Regel die E-Mail-Adresse deines Brevo-Kontos.',
             secretLabel: 'SMTP-Schlüssel',
             secretHint: 'Ein SMTP-Schlüssel beginnt mit „xsmtpsib-“. Der reguläre API-Schlüssel („xkeysib-“) funktioniert für den Versand nicht.',
+            webhookStep1: 'Öffne in Brevo „Transactional → Email → Settings → Webhook“.',
+            webhookStep2: 'Klicke auf „Add a new webhook“ und füge die Adresse von oben ein.',
+            webhookStep3: 'Wähle mindestens „delivered“, „softBounce“, „hardBounce“, „blocked“, '
+                + '„spam“ und „deferred“ und speichere.',
+            webhookLink: 'https://help.brevo.com/hc/de/articles/360007666479',
         },
         RAPIDMAIL: {
             intro: 'RapidMail erstellt SMTP-Zugangsdaten pro Projekt. Du findest sie unter Transaktionsmails → Projekte verwalten → Bearbeiten.',
@@ -25,12 +30,71 @@ export default {
             userHint: 'Der generierte SMTP-Login aus dem Sweego-Dashboard.',
             secretLabel: 'SMTP-Passwort',
             secretHint: 'Das generierte SMTP-Passwort aus dem Sweego-Dashboard.',
+            webhookStep1: 'Öffne im Sweego-Dashboard „Webhooks“ und lege einen neuen an.',
+            webhookStep2: 'Füge die Adresse von oben ein und wähle den Kanal „email“.',
+            webhookStep3: 'Wähle mindestens „delivered“, „soft-bounce“, „hard_bounce“ und '
+                + '„complaint“ und speichere.',
+            webhookStep4: 'Sweego signiert seine Meldungen. Hinterlege das dort angezeigte '
+                + 'Webhook-Secret in der Konfiguration, dann prüft Ember jede Meldung darauf.',
+            hostHint: 'Sweego gibt jedem Konto einen eigenen Relay-Server, zum Beispiel '
+                + '„prod-mta-05.swg-srv.net“. Host und Port stehen unter „Credentials → SMTP“; der '
+                + 'Port ist dort oft 2525.',
+            credentialsLink: 'https://app.sweego.io/credentials/smtp',
+            webhookAppLink: 'https://app.sweego.io/webhooks',
+            webhookLink: 'https://learn.sweego.io/docs/webhooks/setup',
         },
         TWILIO: {
             intro: 'Twilio SendGrid nutzt einen API-Schlüssel für den SMTP-Versand. Als Benutzername wird automatisch „apikey“ verwendet.',
             secretLabel: 'API-Schlüssel',
             secretHint: 'Erstelle den Schlüssel in SendGrid unter Settings → API Keys; er beginnt mit „SG.“.',
+            webhookStep1: 'Öffne in SendGrid „Settings → Mail Settings → Event Webhook“.',
+            webhookStep2: 'Schalte den Event Webhook ein und füge die Adresse von oben als '
+                + '„HTTP Post URL“ ein.',
+            webhookStep3: 'Wähle „Delivered“, „Bounced“, „Blocked“, „Deferred“ und „Spam Reports“ '
+                + 'und speichere.',
+            webhookLink: 'https://www.twilio.com/docs/sendgrid/for-developers/tracking-events/event',
         },
+    },
+    mailFreeTier: {
+        title: 'Kostenlos versendbar',
+        hint: 'Was die Anbieter ohne Bezahlung zulassen. Die Zahlen stammen von den Anbietern '
+            + 'selbst und ändern sich gelegentlich; ein Klick führt zur jeweiligen Preisseite.',
+        perDay: '{count} Mails/Tag',
+        ownServer: 'Was dein Server hergibt',
+        trialOnly: 'Nur 60 Tage testweise, danach kostenpflichtig',
+        paidOnly: 'Kein kostenloses Kontingent',
+        checked: 'Stand {date}',
+        noTerms: 'Keine fremden Bedingungen',
+    },
+    mailWebhook: {
+        title: 'Rückmeldungen zur Zustellung',
+        intro: 'Dein Anbieter bestätigt beim Versand nur, dass er die Mail übernommen hat. Ob sie '
+            + 'ankommt, entscheidet sich danach zwischen ihm und dem Empfängerserver. Trage diese '
+            + 'Adresse bei deinem Anbieter ein, damit Ember es erfährt.',
+        purpose: 'Danach siehst du zu jeder Mail, ob sie zugestellt, abgewiesen oder blockiert '
+            + 'wurde. Und wird nicht deine Nachricht, sondern der Absendeserver abgelehnt, wechselt '
+            + 'Ember selbsttätig auf den nächsten Anbieter deiner Kette.',
+        stepsTitle: 'Bei {provider} einrichten',
+        unsupported: 'Für {provider} kann Ember noch keine Rückmeldungen entgegennehmen. Der '
+            + 'Versand und der Wechsel auf den nächsten Anbieter bei einem fehlgeschlagenen '
+            + 'Versand funktionieren; eine Mail, die angenommen und erst danach abgewiesen wird, '
+            + 'bleibt aber unsichtbar.',
+        noProvider: 'Richte zuerst einen Anbieter ein.',
+        docs: 'Dokumentation des Anbieters',
+        openSettings: 'Direkt zu den Webhook-Einstellungen',
+        copy: 'Adresse kopieren',
+        copied: 'Adresse kopiert.',
+        copyFailed: 'Kopieren nicht möglich. Markiere die Adresse und kopiere sie von Hand.',
+        replace: 'Neuen Schlüssel erzeugen',
+        replaceHint: 'Ein neuer Schlüssel macht die alte Adresse sofort ungültig. Trage die neue '
+            + 'danach bei deinem Anbieter ein, sonst kommen keine Rückmeldungen mehr an.',
+        unavailable: 'Noch keine Adresse verfügbar.',
+        signingSecret: 'Signatur-Secret des Anbieters',
+        signingSecretSaved: 'Signatur-Secret gespeichert.',
+        signingSecretStored: 'Hinterlegt, zum Ändern neu eingeben',
+        signingSecretHint: 'Trägst du das Secret von {provider} hier ein, wird jede Meldung darauf '
+            + 'geprüft und nicht nur anhand der Adresse angenommen. Leer lassen schaltet die Prüfung '
+            + 'wieder ab.',
     },
     transferImport: {
         completed: 'Import abgeschlossen.',
@@ -2972,6 +3036,7 @@ export default {
         mailProviderUrl: 'Datenschutz-URL des Anbieters',
         mailSenderAddress: 'Absender-Adresse',
         mailSenderName: 'Absender-Name',
+        mailServerTitle: 'Serveradresse',
         mailSmtpHost: 'SMTP-Host',
         mailSmtpPort: 'SMTP-Port',
         mailSmtpUser: 'SMTP-Benutzer',
@@ -3440,6 +3505,34 @@ export default {
         home: 'Startseite',
         login: 'Anmelden',
     },
+    mailFallbacks: {
+        title: 'Ausweichanbieter',
+        hint: 'Scheitert der Versand über den oben eingerichteten Anbieter, übernimmt der nächste '
+            + 'aus dieser Liste. Jeder bekommt eine eigene Anzahl Versuche. Lehnt die Gegenstelle '
+            + 'nicht die Nachricht, sondern den Absendeserver ab - etwa weil er auf einer Sperrliste '
+            + 'steht -, wird sofort der nächste Anbieter genommen, weil ein weiterer Versuch über '
+            + 'denselben Weg genauso abgelehnt würde.',
+        empty: 'Noch kein Ausweichanbieter eingetragen. Scheitert der Versand, bleibt die Mail liegen.',
+        position: '{position}. Anbieter',
+        provider: 'Anbieter',
+        ownServer: 'Eigener Server',
+        serverTitle: 'Serveradresse',
+        attempts: 'Versuche',
+        attemptsHint: 'So oft wird dieser Anbieter versucht, bevor der nächste übernimmt.',
+        primaryAttempts: 'Versuche des ersten Anbieters',
+        primaryAttemptsHint: 'So oft wird der oben eingerichtete Anbieter versucht, bevor der erste '
+            + 'Ausweichanbieter übernimmt.',
+        host: 'Server',
+        port: 'Port',
+        ssl: 'SSL statt STARTTLS',
+        user: 'Benutzername',
+        password: 'Passwort',
+        apiKey: 'API-Schlüssel',
+        senderAddress: 'Absender-Adresse',
+        senderName: 'Absender-Name',
+        add: 'Anbieter hinzufügen',
+        saved: 'Ausweichanbieter gespeichert.',
+    },
     adminSettings: {
         title: 'Einstellungen',
         stationRegistration: 'Wachenregistrierung',
@@ -3447,6 +3540,15 @@ export default {
         saved: 'Einstellungen gespeichert.',
         forcePrideFlag: 'Pride-Flagge erzwingen',
         forcePrideFlagHint: 'Zeigt die Regenbogen-Flagge im Logo ganzjährig an. Im Juni und Juli wird sie automatisch angezeigt.',
+        mailLocale: 'Sprache für System-E-Mails',
+        mailLocaleHint: 'Gilt für Konten, die zu keiner Wache gehören - Selbstregistrierung und das '
+            + 'beim ersten Start angelegte Administratorkonto. Konten, die aus einer Wache heraus '
+            + 'angelegt wurden, bekommen weiterhin die Sprache dieser Wache. Zur Auswahl steht, '
+            + 'wofür diese Instanz E-Mail-Vorlagen mitbringt.',
+        mailLocaleNames: {
+            de: 'Deutsch',
+            en: 'Englisch',
+        },
         theme: {
             title: 'Instanz-Erscheinungsbild',
             hint: 'Standard-Farbschema und -Stil für alle Nutzer der Instanz. Wird von Wach- und Benutzer-Einstellungen überschrieben.',
@@ -3489,6 +3591,21 @@ export default {
             saveFailed: 'Speichern fehlgeschlagen: {error}',
             testMail: 'Test-Mail an mich senden',
             testMailSent: 'Test-Mail wurde versendet. Prüfe dein Postfach.',
+            webhook: {
+                title: 'Rückmeldungen zur Zustellung',
+                hint: 'Trage diese Adresse bei deinem Mailanbieter als Webhook ein. Erst dann '
+                    + 'erfährt Ember, ob eine Mail wirklich angekommen ist - ohne sie endet das '
+                    + 'Wissen bei der Übergabe an den Anbieter, und eine später abgewiesene Mail '
+                    + 'gilt weiter als versendet. Bei Brevo steht das unter Transactional → '
+                    + 'Settings → Webhooks. Den Schlüssel darin erzeugt Ember selbst.',
+                copy: 'Adresse kopieren',
+                copied: 'Adresse kopiert.',
+                copyFailed: 'Kopieren nicht möglich. Markiere die Adresse und kopiere sie von Hand.',
+                replace: 'Neuen Schlüssel erzeugen',
+                replaceHint: 'Ein neuer Schlüssel macht die alte Adresse sofort ungültig. Trage die '
+                    + 'neue danach bei deinem Anbieter ein, sonst kommen keine Rückmeldungen mehr an.',
+                unavailable: 'Noch keine Adresse verfügbar.',
+            },
         },
         legal: {
             title: 'Rechtliche Dokumente',
@@ -3536,7 +3653,7 @@ export default {
             importFound: '{sections} Abschnitte, {references} Verweise umgesetzt',
             importUnmatched: 'Nicht zugeordnete Nummern',
             importUnmatchedHint: 'Diese Stellen sehen aus wie Verweise, zeigen aber auf keinen Abschnitt '
-                + 'dieses Dokuments. Sie bleiben unverändert stehen — sieh sie dir an, bevor du speicherst.',
+                + 'dieses Dokuments. Sie bleiben unverändert stehen - sieh sie dir an, bevor du speicherst.',
             placeholderTitle: 'Platzhalter',
             placeholderHint: 'Ein Name in doppelten geschweiften Klammern wird beim Anzeigen durch seinen Wert '
                 + 'ersetzt. Ember erkennt jeden Platzhalter selbst und setzt ihn in allen Dokumenten und allen '
@@ -5480,7 +5597,7 @@ export default {
         incompatibleHint: 'Der Partner nutzt eine inkompatible Föderationsversion. Die Föderation ist pausiert, bis beide Wachen dieselbe Version verwenden.',
         partiallyCompatible: 'Teilweise kompatibel',
         partiallyCompatibleHint: 'Einzelne Funktionen nutzen eine inkompatible Version und sind pausiert. Details in der Partnerverwaltung.',
-        featureIncompatible: 'Version inkompatibel — pausiert',
+        featureIncompatible: 'Version inkompatibel - pausiert',
         featureIncompatibleHint: 'Diese Funktion nutzt beim Partner eine andere Vertragsversion und ist pausiert, bis beide Wachen dieselbe Version verwenden. Die Schalter kannst du weiterhin ändern; sie greifen wieder, sobald die Versionen übereinstimmen.',
         pairRequests: 'Föderationsanfragen',
         acceptRequest: 'Annehmen',
@@ -5675,7 +5792,7 @@ export default {
         folderIcon: 'Ordner-Bild',
         lastEditedAt: 'Zuletzt bearbeitet',
         readOnlyHere: 'Diese Datei ist für dich schreibgeschützt.',
-        readOnlyFrom: 'Schreibgeschützt — festgelegt im Ordner „{folder}".',
+        readOnlyFrom: 'Schreibgeschützt - festgelegt im Ordner „{folder}".',
         accessLevel: 'Berechtigung',
         accessLevelHint: 'Legt für jede ausgewählte Zielgruppe einzeln fest, was sie hier tun darf. „Wie bisher" lässt die stationsweite Berechtigung entscheiden.',
         accessLevels: {

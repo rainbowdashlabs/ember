@@ -15,6 +15,8 @@ import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
 import dev.chojo.ember.feature.account.entity.TokenType;
 import dev.chojo.ember.feature.mail.service.EmailService;
+import dev.chojo.ember.feature.mail.service.MailLocaleService;
+import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import dev.chojo.ember.feature.twofactor.service.TrustedDeviceService;
@@ -59,6 +61,7 @@ class AuthServiceTest extends RepositoryTestBase {
                 twoFactorRepoLocal, TokenHasher.forTesting("test-pepper"), new TwoFactorSettings());
         service = new AuthService(
                 accountRepo,
+                new MailLocaleService(accountRepo, new ApplicationSettingRepository()),
                 registrationCodeRepo,
                 stationMemberRepo,
                 memberGroupRepo,
@@ -655,7 +658,7 @@ class AuthServiceTest extends RepositoryTestBase {
     @Test
     @Order(49)
     void loginNoCredential() {
-        // Account exists but has no credential — should fail
+        // Account exists but has no credential - should fail
         var account2 = accountRepo.create("nocred@test.com", "NoCred", "User");
         accountRepo.setEmailVerified(account2.id());
         var result = service.login("nocred@test.com", "anypass", "agent", "DE");

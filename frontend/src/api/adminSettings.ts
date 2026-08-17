@@ -11,6 +11,10 @@ export interface ApplicationSettings {
     instanceDefaultFeel: string
     instanceLockFeel: boolean
     forcePrideFlag: boolean
+    /** The language system mails use for accounts that carry no station of their own. */
+    defaultMailLocale?: string
+    /** The languages this instance holds mail templates for. Read-only; the server decides. */
+    availableMailLocales?: string[]
 }
 
 export interface RegistrationStatus {
@@ -86,6 +90,20 @@ export interface MailingConfig {
     smtpSsl: boolean
     dailySendLimit: number
     notificationDigestIntervalMinutes: number
+    /**
+     * The address a mail provider reports delivery events to. It carries the instance webhook key,
+     * so it is a secret in its own right - the server sends it, never the client.
+     */
+    deliveryWebhookUrl?: string
+}
+
+/**
+ * Replaces the instance webhook key. The old address stops working at once, so whatever was
+ * pointed at it has to be pointed at the new one.
+ */
+export async function regenerateWebhookKey(): Promise<string> {
+    const res = await client.post<{deliveryWebhookUrl: string}>('/admin/config/mailing/webhook-key')
+    return res.data.deliveryWebhookUrl
 }
 
 export interface LegalDocument {
@@ -235,7 +253,7 @@ export interface LegalFile {
     displayName: string
     content: string
     enabled: boolean
-    /** Rendered by the application rather than written by hand — content is read-only. */
+    /** Rendered by the application rather than written by hand - content is read-only. */
     generated?: boolean
 }
 
@@ -269,7 +287,7 @@ export interface LegalImport {
 
 /**
  * Turns a document written elsewhere into sections: the numbering leaves the headings and the
- * cross-references are rewritten onto anchors. Nothing is stored — the result comes back for the
+ * cross-references are rewritten onto anchors. Nothing is stored - the result comes back for the
  * editor to review and save.
  */
 export async function importLegalDocument(type: string, locale: string, file: File): Promise<LegalImport> {

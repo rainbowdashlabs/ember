@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.mail.service.EmailService;
+import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import io.javalin.http.BadRequestResponse;
@@ -29,7 +30,7 @@ import java.util.regex.Pattern;
  * at, and whether that account may sign in at all.
  *
  * <p>Everything here is deliberately narrow. A guardian speaks for a child, so they may give the
- * child an address and switch its access on and off — but only for the members they manage, only
+ * child an address and switch its access on and off - but only for the members they manage, only
  * for the member types a guardian can be assigned to, and only for this one permission. Nothing
  * else about the account is theirs to change.
  */
@@ -47,6 +48,7 @@ public class ManagedAccessService {
 
     private final StationMemberRepository memberRepository;
     private final AccountRepository accountRepository;
+    private final MailLocaleService mailLocaleService;
     private final StationMemberService memberService;
     private final AuthService authService;
     private final EmailService emailService;
@@ -55,11 +57,13 @@ public class ManagedAccessService {
     public ManagedAccessService(
             StationMemberRepository memberRepository,
             AccountRepository accountRepository,
+            MailLocaleService mailLocaleService,
             StationMemberService memberService,
             AuthService authService,
             EmailService emailService) {
         this.memberRepository = memberRepository;
         this.accountRepository = accountRepository;
+        this.mailLocaleService = mailLocaleService;
         this.memberService = memberService;
         this.authService = authService;
         this.emailService = emailService;
@@ -121,7 +125,7 @@ public class ManagedAccessService {
         accountRepository.updateEmail(account.id(), normalised);
         accountRepository.deleteSessionsByAccount(account.id());
         if (isReal(previous)) {
-            String mailLocale = accountRepository.findMailLocale(account.id());
+            String mailLocale = mailLocaleService.forAccount(account.id());
             emailService.sendEmailChangedNotice(previous, account.firstName(), previous, normalised, mailLocale);
             emailService.sendEmailChangedNotice(normalised, account.firstName(), previous, normalised, mailLocale);
         }

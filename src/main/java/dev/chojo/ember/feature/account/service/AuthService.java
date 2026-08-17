@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.account.entity.RegistrationResult;
 import dev.chojo.ember.feature.account.entity.TokenType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.mail.service.EmailService;
+import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.members.entity.RegistrationCode;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.RegistrationCodeRepository;
@@ -49,6 +50,7 @@ public class AuthService {
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private final AccountRepository accountRepository;
+    private final MailLocaleService mailLocaleService;
     private final RegistrationCodeRepository registrationCodeRepository;
     private final StationMemberRepository stationMemberRepository;
     private final MemberGroupRepository memberGroupRepository;
@@ -72,6 +74,7 @@ public class AuthService {
     @Inject
     public AuthService(
             AccountRepository accountRepository,
+            MailLocaleService mailLocaleService,
             RegistrationCodeRepository registrationCodeRepository,
             StationMemberRepository stationMemberRepository,
             MemberGroupRepository memberGroupRepository,
@@ -84,6 +87,7 @@ public class AuthService {
             TwoFactorRepository twoFactorRepository,
             TrustedDeviceService trustedDeviceService) {
         this.accountRepository = accountRepository;
+        this.mailLocaleService = mailLocaleService;
         this.registrationCodeRepository = registrationCodeRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberGroupRepository = memberGroupRepository;
@@ -131,7 +135,7 @@ public class AuthService {
             emailService.sendDuplicateRegistrationNotice(
                     existing.get().email(),
                     existing.get().firstName(),
-                    accountRepository.findMailLocale(existing.get().id()));
+                    mailLocaleService.forAccount(existing.get().id()));
             return RegistrationResult.maskedSuccess(email, firstName, lastName);
         }
 
@@ -163,7 +167,7 @@ public class AuthService {
                 token,
                 TokenType.VERIFY_EMAIL,
                 Instant.now().plus(authConfig.verifyTokenHours(), ChronoUnit.HOURS));
-        emailService.sendVerificationEmail(email, firstName, token, accountRepository.findMailLocale(accountId));
+        emailService.sendVerificationEmail(email, firstName, token, mailLocaleService.forAccount(accountId));
 
         log.info("Account registered via self-registration: account {} ({})", accountId, email);
         return RegistrationResult.success(accountRepository.findById(accountId).orElseThrow());
@@ -185,7 +189,7 @@ public class AuthService {
                 token,
                 TokenType.SET_PASSWORD,
                 Instant.now().plus(authConfig.passwordTokenHours(), ChronoUnit.HOURS));
-        emailService.sendPasswordSetupEmail(email, firstName, token, accountRepository.findMailLocale(accountId));
+        emailService.sendPasswordSetupEmail(email, firstName, token, mailLocaleService.forAccount(accountId));
     }
 
     /**
@@ -311,7 +315,7 @@ public class AuthService {
                 TokenType.RESET_PASSWORD,
                 Instant.now().plus(authConfig.resetTokenHours(), ChronoUnit.HOURS));
         emailService.sendPasswordResetEmail(
-                account.email(), account.firstName(), token, accountRepository.findMailLocale(account.id()));
+                account.email(), account.firstName(), token, mailLocaleService.forAccount(account.id()));
         log.info("Password reset requested for account {} ({})", account.id(), email);
     }
 
@@ -348,7 +352,7 @@ public class AuthService {
                 TokenType.RESET_PASSWORD,
                 Instant.now().plus(authConfig.passwordTokenHours(), ChronoUnit.HOURS));
         emailService.sendPasswordResetEmail(
-                account.email(), account.firstName(), token, accountRepository.findMailLocale(account.id()));
+                account.email(), account.firstName(), token, mailLocaleService.forAccount(account.id()));
         return true;
     }
 
@@ -374,7 +378,7 @@ public class AuthService {
                 TokenType.VERIFY_EMAIL,
                 Instant.now().plus(authConfig.verifyTokenHours(), ChronoUnit.HOURS));
         emailService.sendVerificationEmail(
-                account.email(), account.firstName(), token, accountRepository.findMailLocale(account.id()));
+                account.email(), account.firstName(), token, mailLocaleService.forAccount(account.id()));
         return true;
     }
 
@@ -397,7 +401,7 @@ public class AuthService {
      * Logs in a demo / dev account by email only. Used by the one-click quick-login UI so the
      * dev or demo operator can keep clicking a seeded user even after their password has been
      * rotated. Bypasses password verification, the {@code force_password_change} branch, and
-     * the 2FA challenge — none of those make sense for a click-to-impersonate flow whose only
+     * the 2FA challenge - none of those make sense for a click-to-impersonate flow whose only
      * caller is the dev/demo login page.
      *
      * <p>Refuses (with a failure result, never a partial session) when neither
@@ -449,15 +453,15 @@ public class AuthService {
             accountRepository.updateCredential(account.id(), passwordHasher.hash(password));
         }
 
-        // Async HIBP breach check — gated by staleness window inside the worker, fail-open.
+        // Async HIBP breach check - gated by staleness window inside the worker, fail-open.
         if (!demo.enabled() && !demo.dev()) {
             breachCheckWorker.enqueueCheck(account.id(), password);
         }
 
-        // Force password change — issue a one-time token instead of a session
+        // Force password change - issue a one-time token instead of a session
         if (credOpt.get().forcePasswordChange()) {
             log.info(
-                    "Login for account {} ({}) requires password change — issuing password-change token",
+                    "Login for account {} ({}) requires password change - issuing password-change token",
                     account.id(),
                     email);
             String token = generateToken();
@@ -471,7 +475,7 @@ public class AuthService {
                     token, Instant.now().plus(authConfig.sessionMinutes(), ChronoUnit.MINUTES));
         }
 
-        // Two-factor authentication — issue a pre-auth token if enrolled
+        // Two-factor authentication - issue a pre-auth token if enrolled
         if (twoFactorEnrolled(account.id())) {
             // Trusted-device cookie bypass: the cookie was issued after a previous successful
             // 2FA verification, so we trust it for as long as it's not expired or revoked. The
@@ -622,7 +626,7 @@ public class AuthService {
         accountRepository.createToken(accountId, releaseToken, TokenType.EMAIL_CHANGE_RELEASE, metadata, expiresAt);
         accountRepository.createToken(accountId, claimToken, TokenType.EMAIL_CHANGE_CLAIM, metadata, expiresAt);
 
-        String mailLocale = accountRepository.findMailLocale(accountId);
+        String mailLocale = mailLocaleService.forAccount(accountId);
         emailService.sendEmailChangeReleaseRequest(
                 account.email(), account.firstName(), newEmail, releaseToken, mailLocale);
         emailService.sendEmailChangeClaimRequest(
@@ -682,7 +686,7 @@ public class AuthService {
         String oldEmail = account.email();
         accountRepository.updateEmail(account.id(), newEmail);
         invalidateAfterPasswordRotation(account.id(), null);
-        String mailLocale = accountRepository.findMailLocale(account.id());
+        String mailLocale = mailLocaleService.forAccount(account.id());
         emailService.sendEmailChangedNotice(oldEmail, account.firstName(), oldEmail, newEmail, mailLocale);
         emailService.sendEmailChangedNotice(newEmail, account.firstName(), oldEmail, newEmail, mailLocale);
         log.info("Email changed for account {}: {} -> {}", account.id(), oldEmail, newEmail);
@@ -708,7 +712,7 @@ public class AuthService {
         accountRepository
                 .findById(accountId)
                 .ifPresent(account -> emailService.sendStationDeletionConfirmation(
-                        account.email(), account.firstName(), token, accountRepository.findMailLocale(account.id())));
+                        account.email(), account.firstName(), token, mailLocaleService.forAccount(account.id())));
         log.info("Station deletion requested by account {} for station {}", accountId, stationId);
     }
 
@@ -805,7 +809,7 @@ public class AuthService {
     private void notifyPasswordChanged(Account account) {
         try {
             emailService.sendPasswordChangedNotice(
-                    account.email(), account.firstName(), accountRepository.findMailLocale(account.id()));
+                    account.email(), account.firstName(), mailLocaleService.forAccount(account.id()));
         } catch (Exception e) {
             log.warn("Failed to enqueue password-changed notice for account {}", account.id(), e);
         }

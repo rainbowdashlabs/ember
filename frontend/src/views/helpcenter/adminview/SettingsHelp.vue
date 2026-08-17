@@ -21,6 +21,10 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.adminSettings.registrationText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.adminSettings.mailLocaleTitle')">
+      <p>{{ t('helpCenter.adminSettings.mailLocaleText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.adminSettings.themeTitle')">
       <p>{{ t('helpCenter.adminSettings.themeText') }}</p>
     </HelpSection>

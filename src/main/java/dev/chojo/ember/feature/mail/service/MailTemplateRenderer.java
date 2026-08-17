@@ -27,7 +27,7 @@ import java.util.Map;
  */
 @Singleton
 public class MailTemplateRenderer {
-    private static final String TEMPLATE_ROOT = "templates/mail";
+    public static final String TEMPLATE_ROOT = "templates/mail";
     private static final String FALLBACK_LOCALE = "en";
     private static final Localizer LOCALIZER = new Localizer();
 

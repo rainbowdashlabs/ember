@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.twofactor.service;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.mail.service.EmailService;
+import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.twofactor.entity.BackupCode;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorFactor;
@@ -30,6 +31,7 @@ public class TwoFactorService {
     private final BackupCodeService backupCodeService;
     private final TwoFactorAuditService auditService;
     private final AccountRepository accountRepository;
+    private final MailLocaleService mailLocaleService;
     private final EmailService emailService;
 
     @Inject
@@ -39,12 +41,14 @@ public class TwoFactorService {
             BackupCodeService backupCodeService,
             TwoFactorAuditService auditService,
             AccountRepository accountRepository,
+            MailLocaleService mailLocaleService,
             EmailService emailService) {
         this.repository = repository;
         this.totpService = totpService;
         this.backupCodeService = backupCodeService;
         this.auditService = auditService;
         this.accountRepository = accountRepository;
+        this.mailLocaleService = mailLocaleService;
         this.emailService = emailService;
     }
 
@@ -59,7 +63,7 @@ public class TwoFactorService {
      * audit row attributed to {@code actorAccountId}.
      *
      * <p>Returns {@code false} when the target account does not exist; callers should treat
-     * that as a 404. Reset never fails partially — the audit row is the source of truth even
+     * that as a 404. Reset never fails partially - the audit row is the source of truth even
      * if the email enqueue throws.
      */
     public boolean resetAccount2FA(int targetAccountId, Integer actorAccountId, String userAgent, String country) {
@@ -84,7 +88,7 @@ public class TwoFactorService {
                     displayName.isBlank() ? account.email() : displayName,
                     actorLabel,
                     Instant.now(),
-                    accountRepository.findMailLocale(account.id()));
+                    mailLocaleService.forAccount(account.id()));
         } catch (Exception e) {
             log.warn("Failed to send 2FA reset notification to account {}", targetAccountId, e);
         }
