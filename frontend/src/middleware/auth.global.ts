@@ -5,9 +5,30 @@
  */
 import {getItem} from '~/api/storage'
 import {useConsentGuard} from '~/composables/useConsentGuard'
+import {useSession} from '~/composables/useSession'
 import {useStations} from '~/composables/useStations'
 
-export default defineNuxtRouteMiddleware((to) => {
+/**
+ * How long a session may sit untouched before the requirements of the active station are
+ * checked again.
+ */
+const IDLE_LIMIT_MS = 3600000
+
+/**
+ * Order matters here. The active station is resolved first, so a link arriving with
+ * {@code ?station=} hands its station over before anything else can redirect and drop the
+ * parameter. The idle check runs afterwards and only once a station is known — the requirements
+ * page is station-scoped, and sending someone there without one lands them back at the station
+ * picker. For the same reason the activity stamp is written only when the navigation is let
+ * through: a stamp written ahead of a redirect would consume the idle window without the
+ * requirements ever being seen.
+ *
+ * The administration area is closed to anyone who is not an instance administrator. The server
+ * refuses every administration endpoint on its own — this only stops the panel from opening and
+ * then failing on each call. It is deliberately closed rather than open when the session cannot be
+ * established: a panel that cannot be shown to work is not shown.
+ */
+export default defineNuxtRouteMiddleware(async (to) => {
     if (!import.meta.client) return
 
     if (to.meta.public === true) return
@@ -31,11 +52,10 @@ export default defineNuxtRouteMiddleware((to) => {
         return navigateTo('/reconsent')
     }
 
-    const lastActivity = localStorage.getItem('ember_last_activity')
-    const now = Date.now()
-    localStorage.setItem('ember_last_activity', String(now))
-    if (lastActivity && now - Number(lastActivity) > 3600000 && to.path !== '/station/requirements') {
-        return navigateTo({path: '/station/requirements', query: {redirect: to.fullPath}})
+    if (to.path === '/admin' || to.path.startsWith('/admin/')) {
+        const {loaded, load, isAdmin} = useSession()
+        if (!loaded.value) await load()
+        if (!isAdmin()) return navigateTo('/station/dashboard/overview')
     }
 
     if (to.path === '/station' || to.path.startsWith('/station/')) {
@@ -46,4 +66,13 @@ export default defineNuxtRouteMiddleware((to) => {
             return navigateTo({path: '/cross-station', query: {redirect: to.fullPath}})
         }
     }
+
+    if (!getItem('station_id')) return
+
+    const lastActivity = localStorage.getItem('ember_last_activity')
+    const now = Date.now()
+    if (lastActivity && now - Number(lastActivity) > IDLE_LIMIT_MS && to.path !== '/station/requirements') {
+        return navigateTo({path: '/station/requirements', query: {redirect: to.fullPath}})
+    }
+    localStorage.setItem('ember_last_activity', String(now))
 })

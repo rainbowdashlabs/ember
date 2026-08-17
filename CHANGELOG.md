@@ -44,7 +44,9 @@
 - **Members find the forms they are meant to fill in.** The forms page lists what the station has opened to them instead of showing nothing at all.
 
 - **Editing a procedure saves.** Changing the name, description, due date or visibility of a procedure keeps the change.
-- **Choosing a station leads somewhere.** Picking a station opens the page that was asked for instead of returning to the station picker.
+- **Choosing a station leads somewhere.** Picking a station opens the page that was asked for instead of returning to the station picker, also after a long break and when the link carries a station of its own.
+- **Outstanding tasks appear after a long break.** Coming back to a station shows the forms and tests still to be completed instead of passing them by.
+- **The administration area stays shut without the rights for it.** Opening an administration page without instance administration rights leads back to the station instead of showing a panel where nothing works.
 - **The sidebar control for narrowing the menu stays on desktop.** It no longer appears on phones, where there is nothing to narrow.
 - **Applications for a new station can be decided again.** The list shows the applications waiting for a decision, each with its accepting and rejecting buttons and its actual state.
 - **A new instance starts with legal documents in place.** Privacy policy, terms of service, consent text and imprint are laid down on first start in German and English. A language that already holds a document keeps exactly what is there.

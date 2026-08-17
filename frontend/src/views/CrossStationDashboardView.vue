@@ -10,6 +10,7 @@ import {useRoute} from 'vue-router'
 import {getCrossStationDashboard, type CrossStationDashboard, type CrossStationNotification} from '@/api/session'
 import {useStations} from '@/composables/useStations'
 import {formatRelative} from '@/util/format'
+import {usableRedirect} from '@/util/redirect'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
@@ -34,11 +35,6 @@ onMounted(async () => {
   } catch { /* ignore */ }
   loading.value = false
 })
-
-/** A path on this instance, and not this page again — a target pointing back here loops the picker. */
-function usableRedirect(target: string | null): boolean {
-  return !!target && target.startsWith('/') && !target.startsWith('//') && !target.startsWith('/cross-station')
-}
 
 function resolveRedirect(): string | null {
   // Prefer the route query (Vue Router state) but fall back to the raw window URL
