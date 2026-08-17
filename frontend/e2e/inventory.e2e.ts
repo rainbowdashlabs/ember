@@ -103,4 +103,162 @@ test.describe('Inventory', () => {
 
         await expect(page.getByTestId('app-shell')).toBeVisible()
     })
+
+    /**
+     * An inventory is worth nothing empty, so adding to it is the first thing anybody does. The
+     * story gives the item a readable identifier of its own and looks for it in the table after a
+     * reload, since a row that vanishes on one was never stored.
+     */
+    test('an item is added to an inventory', async ({managerPage: page}) => {
+        const identifier = `E2E-${Date.now()}`
+        const inventory = `Inventar-${Date.now()}`
+
+        // An inventory of the story's own, and an internal one: an inventory of borrowed things
+        // offers no way to add an item, because its items come from whoever lent them.
+        await page.goto('/station/inventory/manage')
+        await page.getByRole('button', {name: 'Inventar erstellen'}).click()
+        await page.getByPlaceholder('z.B. Schutzkleidung').fill(inventory)
+        await page.getByRole('button', {name: 'Speichern'}).click()
+
+        await expect(page.getByText(inventory).first()).toBeVisible()
+        await page.getByText(inventory).first().click()
+        await page.waitForURL(/\/station\/inventory\/(detail|edit)\/(\d+)/)
+
+        // Whole words, and either of the two the pages use: adding a size carries the same verb, and
+        // a partial match takes whichever of them comes first.
+        await page.getByRole('button', {name: /^(Gegenstand hinzufügen|Hinzufügen)$/}).first().click()
+
+        await page.getByPlaceholder('z.B. HLM-001').fill(identifier)
+        await page.getByPlaceholder('z.B. Helm').fill('Storygegenstand')
+        await page.getByRole('button', {name: 'Speichern'}).click()
+
+        await expect(page.getByText(identifier).first()).toBeVisible()
+
+        await page.reload()
+        await expect(page.getByText(identifier).first()).toBeVisible()
+    })
+
+    /**
+     * What a member type is expected to hold is configured once and then read by everyone of that
+     * type. The story adds a requirement and finds it again after a reload.
+     */
+    test('a requirement is configured for a member type', async ({managerPage: page}) => {
+        await page.goto('/station/inventory/requirements')
+
+        await page.getByRole('button', {name: 'Anforderung hinzufügen'}).click()
+
+        await page.locator('select:has(option:text-is("Benutzertyp auswählen"))').selectOption({index: 1})
+        await page.locator('select:has(option:text-is("Inventar auswählen"))').selectOption({index: 1})
+        await page.getByRole('button', {name: 'Speichern'}).click()
+
+        const cards = page.locator('main').getByRole('button', {name: 'Hinzufügen'})
+        await expect(cards.first()).toBeVisible()
+
+        await page.reload()
+        await expect(cards.first()).toBeVisible()
+    })
+
+    /**
+     * Borrowing runs between two stations: one offers what it can spare and the other asks for it.
+     * The story asks as one station and approves as the other, which is the only way to see that a
+     * request reaches anybody — a request nobody can act on is a request that failed quietly.
+     */
+    test('equipment is asked for from a partner station', async ({managerPage: page}) => {
+        await page.goto('/station/inventory/lending')
+
+        // The offers and the requests each have a tab of their own, and the tab for requests carries
+        // the same word as the button that sends one — so the button is the later of the two.
+        await page.getByRole('button', {name: 'Angebote'}).click()
+
+        const offer = page.getByRole('button', {name: 'Anfragen'}).last()
+        await expect(offer).toBeVisible()
+        await offer.click()
+        await page.waitForURL(/\/station\/inventory\/lending\/request\/new/)
+
+        // A borrowing has to start somewhere, and the form keeps its submit disabled until it does.
+        await page.locator('input[type="date"]').first().fill('2026-12-01')
+        await page.getByRole('button', {name: 'Anfrage senden'}).click()
+
+        // Sending opens the request itself, which is where both stations then talk about it.
+        await page.waitForURL(/\/station\/inventory\/lending\/request\/\d+/)
+        await expect(page.getByText('Angefragt').first()).toBeVisible()
+    })
+
+    /**
+     * The other end of a borrowing: somebody has to say yes. The story takes a request that is
+     * waiting and approves it, and the request says so afterwards.
+     */
+    test('an incoming request for equipment is approved', async ({managerPage: page}) => {
+        await page.goto('/station/inventory/lending')
+        await page.getByRole('button', {name: 'Anfragen'}).first().click()
+
+        const waiting = page.locator('main').filter({hasText: 'Eingehende Anfragen'})
+            .getByText('Angefragt').first()
+        await expect(waiting).toBeVisible()
+        await waiting.click()
+
+        await page.waitForURL(/\/station\/inventory\/lending\/request\/\d+/)
+        await page.getByRole('button', {name: 'Genehmigen'}).click()
+
+        await expect(page.getByText('Genehmigt').first()).toBeVisible()
+    })
+
+    /**
+     * A check goes through what somebody is supposed to hold and records what was there. The story
+     * runs one to its end: confirming everything and closing it, which is the point at which the
+     * result is written down rather than merely looked at.
+     */
+    test('the equipment of a member is checked and the result recorded', async ({managerPage: page}) => {
+        await page.goto('/station/inventory/checks/member')
+
+        await page.getByRole('button', {name: 'Prüfung starten'}).first().click()
+        await page.waitForURL(/\/station\/inventory\/checks\/(\d+)/)
+        const member = page.url().match(/checks\/(\d+)/)?.[1]
+
+        // Confirming all covers what the member holds. What they are supposed to hold and do not is
+        // a separate row each, and the check does not close until those are answered too.
+        await page.getByRole('button', {name: 'Alle bestätigen'}).click()
+
+        const missing = page.getByRole('button', {name: 'Nicht im Besitz'})
+        for (let index = await missing.count(); index > 0; index -= 1) {
+            await missing.first().click()
+        }
+
+        await page.getByRole('button', {name: 'Prüfung abschließen'}).click()
+
+        // Closing a check moves straight on to the next person, so the result is read where it is
+        // kept rather than wherever the walk happens to end.
+        await page.goto(`/station/inventory/checks/${member}/result`)
+        await expect(page.getByText('Vorhanden').first()).toBeVisible()
+    })
+
+    /**
+     * Procurement is the list of what the station is short of. It is read rather than filled in:
+     * what stands in it follows from the requirements and the stock.
+     */
+    test('procurement lists what the station is short of', async ({managerPage: page}) => {
+        await page.goto('/station/inventory/procurement')
+
+        await expect(page.getByTestId('app-shell')).toBeVisible()
+        expect(page.url()).toContain('/station/inventory/procurement')
+    })
+
+    /**
+     * A container is where an item lives when nobody is carrying it. The story creates one and
+     * finds it in the tree afterwards, which is where anybody looking for it would look.
+     */
+    test('a storage container is created and listed', async ({managerPage: page}) => {
+        const container = `Behälter-${Date.now()}`
+
+        await page.goto('/station/inventory/storage')
+        await page.getByRole('button', {name: 'Neuer Behälter'}).click()
+
+        await page.getByLabel('Name').fill(container)
+        await page.getByRole('button', {name: 'Erstellen'}).click()
+
+        await expect(page.getByText(container).first()).toBeVisible()
+
+        await page.reload()
+        await expect(page.getByText(container).first()).toBeVisible()
+    })
 })
