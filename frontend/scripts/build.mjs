@@ -24,6 +24,7 @@ const lintScripts = [
   'lint-duplication.mjs',
   'lint-page-titles.mjs',
   'lint-browser-storage.mjs',
+  'lint-em-dash.mjs',
   'lint-standalone.mjs',
 ]
 
