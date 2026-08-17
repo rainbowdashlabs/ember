@@ -266,6 +266,28 @@ export default {
         privacyPolicyTitle: 'Datenschutzerklärung',
         tos: 'Nutzungsbedingungen lesen',
         tosTitle: 'Nutzungsbedingungen',
+        settingsTitle: 'Speicherung im Browser',
+        settingsHint: 'Du entscheidest, was diese Anwendung auf deinem Gerät ablegen darf. '
+            + 'Nimmst du eine Gruppe zurück, werden ihre Werte sofort gelöscht.',
+        listLink: 'Alle gespeicherten Werte ansehen',
+        scope: {
+            always: 'Immer aktiv',
+            REQUIRED: {
+                title: 'Technisch erforderlich',
+                hint: 'Anmeldung, Sitzung und die Einwilligung selbst. Ohne diese Werte kannst du dich '
+                    + 'nicht anmelden.',
+            },
+            FUNCTIONAL: {
+                title: 'Für einzelne Funktionen',
+                hint: 'Entsteht erst, wenn du die jeweilige Funktion nutzt, etwa die Zugangsdaten für '
+                    + 'die KI-Unterstützung. Ohne sie bleibt der Rest bedienbar.',
+            },
+            COMFORT: {
+                title: 'Einstellungen der Ansicht',
+                hint: 'Merkt sich Farbschema, eingeklappte Seitenleiste und Ansichtsoptionen. Ohne sie '
+                    + 'startet die Anwendung jedes Mal mit ihren Vorgaben.',
+            },
+        },
     },
     reconsent: {
         title: 'Aktualisierte Bedingungen',

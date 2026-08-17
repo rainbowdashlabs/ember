@@ -10,8 +10,8 @@
       "en": "This application sets **no cookies** and embeds no analytics services. It keeps the following values in your browser's local storage. They stay on your device, are not evaluated for advertising or analytics, and are not passed to third parties."
     },
     "closing": {
-      "de": "Sie können alle gespeicherten Werte jederzeit über die Einstellungen Ihres Browsers löschen. Bei der Abmeldung entfernt die Anwendung die Werte, die zur Sitzung gehören. Lehnen Sie die Speicherung ab, ist eine Anmeldung nicht möglich; ohne die genannten Werte lässt sich keine Sitzung führen.\n\nDiese Aufstellung wird unmittelbar aus der Anwendung erzeugt und bleibt dadurch mit dem tatsächlichen Verhalten der Software in Übereinstimmung.",
-      "en": "You can delete every stored value at any time in your browser settings. On sign-out the application removes the values belonging to the session. If you decline storage, signing in is not possible, because a session cannot be maintained without the values listed above.\n\nThis list is generated directly from the application and therefore stays in step with what the software actually does."
+      "de": "Die technisch erforderlichen Werte gehören zur Anmeldung: lehnen Sie die Speicherung ab, ist eine Anmeldung nicht möglich. Über die beiden übrigen Gruppen entscheiden Sie einzeln, sowohl bei der Einwilligung als auch später unter „Konto → Daten & Konto\". Nehmen Sie eine Gruppe zurück, löscht die Anwendung deren Werte sofort. Bei der Abmeldung entfernt sie die Werte, die zur Sitzung gehören; alles Übrige können Sie jederzeit über die Einstellungen Ihres Browsers löschen.\n\nDiese Aufstellung wird unmittelbar aus der Anwendung erzeugt und bleibt dadurch mit dem tatsächlichen Verhalten der Software in Übereinstimmung.",
+      "en": "The technically required values belong to signing in: if you decline storage, signing in is not possible. The other two groups are yours to decide on separately, both when consenting and later under Account → Data & account. Withdrawing a group deletes its values at once. On sign-out the application removes the values belonging to the session; everything else you can delete at any time in your browser settings.\n\nThis list is generated directly from the application and therefore stays in step with what the software actually does."
     },
     "necessity": {
       "REQUIRED": {
@@ -64,6 +64,15 @@
       "purpose": {
         "de": "Hält fest, ob Sie der Speicherung im Browser zugestimmt oder widersprochen haben. Ohne diesen Wert wird die Frage bei jedem Aufruf erneut gestellt.",
         "en": "Records whether you allowed or declined storage in the browser. Without it the question is asked again on every visit."
+      }
+    },
+    {
+      "key": "storage_scopes",
+      "necessity": "REQUIRED",
+      "retention": "UNTIL_CLEARED",
+      "purpose": {
+        "de": "Hält fest, welche der wählbaren Gruppen Sie zugelassen haben. Ohne diesen Wert gilt nur die technisch erforderliche Speicherung.",
+        "en": "Records which of the optional groups you allowed. Without it only technically required storage applies."
       }
     },
     {

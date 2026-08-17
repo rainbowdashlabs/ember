@@ -24,8 +24,11 @@ const {warn, error} = reporter
 const REPO_ROOT = join(SRC, '../..')
 const CATALOG_FILE = join(REPO_ROOT, 'src/main/resources/browser_storage.json')
 const CATALOG_LABEL = 'src/main/resources/browser_storage.json'
+const NECESSITY_FILE = join(SRC, 'api/storage.ts')
+const NECESSITY_LABEL = 'src/api/storage.ts'
 
 const CAT_UNDECLARED = 'undeclared'
+const CAT_NECESSITY = 'necessity'
 const CAT_STALE = 'stale'
 const CAT_DYNAMIC = 'dynamic'
 
@@ -103,6 +106,48 @@ if (!existsSync(CATALOG_FILE)) {
 
 const catalog = JSON.parse(readFileSync(CATALOG_FILE, 'utf-8'))
 const declared = new Set((catalog.entries ?? []).map(entry => entry.key))
+const declaredNecessity = new Map((catalog.entries ?? []).map(entry => [entry.key, entry.necessity]))
+
+/**
+ * Reads the `NECESSITY` map out of the storage wrapper. That map decides at runtime whether a
+ * value may be written, so it has to agree with the catalog the published disclosure comes from.
+ */
+function runtimeNecessity() {
+    const content = readFileSync(NECESSITY_FILE, 'utf-8')
+    const block = content.match(/const NECESSITY: Record<string, StorageNecessityName> = \{([\s\S]*?)\n\}/)
+    if (!block) return null
+    const map = new Map()
+    for (const line of block[1].split('\n')) {
+        const entry = line.match(/^\s*'?([\w.-]+)'?:\s*StorageNecessity\.(\w+),/)
+        if (entry) map.set(entry[1], entry[2])
+    }
+    return map
+}
+
+const runtime = runtimeNecessity()
+if (runtime === null) {
+    error(NECESSITY_LABEL, 0, 'the NECESSITY map could not be read — storage consent cannot be checked',
+        CAT_NECESSITY)
+} else {
+    for (const [key, necessity] of runtime) {
+        const expected = declaredNecessity.get(key)
+        if (expected === undefined) {
+            error(NECESSITY_LABEL, 0,
+                `key '${key}' carries a necessity but is not declared in ${CATALOG_LABEL}`, CAT_NECESSITY)
+        } else if (expected !== necessity) {
+            error(NECESSITY_LABEL, 0,
+                `key '${key}' is ${necessity} here and ${expected} in ${CATALOG_LABEL} — consent would be `
+                + 'asked for one thing and enforced for another', CAT_NECESSITY)
+        }
+    }
+    for (const [key, necessity] of declaredNecessity) {
+        if (!runtime.has(key)) {
+            error(NECESSITY_LABEL, 0,
+                `declared key '${key}' (${necessity}) has no necessity in the storage wrapper — it would `
+                + 'never be written', CAT_NECESSITY)
+        }
+    }
+}
 
 const used = new Map()
 for (const file of [...walk(SRC, '.ts'), ...walk(SRC, '.vue')]) {

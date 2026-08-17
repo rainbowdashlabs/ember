@@ -967,6 +967,13 @@ volumes:
         settings: {
             title: 'Einstellungen',
             subtitle: 'Benachrichtigungen und persönliche Voreinstellungen.',
+            storageTitle: 'Speicherung im Browser',
+            storageText: 'Unter „Konto → Daten & Konto" legst du fest, was diese Anwendung auf deinem Gerät '
+                + 'ablegen darf. Technisch erforderliche Werte gehören zur Anmeldung und lassen sich nicht '
+                + 'abwählen. Die beiden übrigen Gruppen — Werte einzelner Funktionen und Einstellungen der '
+                + 'Ansicht — schaltest du einzeln. Nimmst du eine Gruppe zurück, werden ihre Werte sofort '
+                + 'gelöscht; die Anwendung startet dann wieder mit ihren Vorgaben. Welche Werte in welcher '
+                + 'Gruppe stehen, listet die Datenschutzerklärung vollständig auf.',
             themeTitle: 'Erscheinungsbild',
             themeText: 'Hier kannst du dein Farbschema und den Modus (Hell/Dunkel) anpassen. Wenn die Wache es erlaubt, kannst du ein eigenes Farbschema wählen. Andernfalls siehst du eine Hinweismeldung.',
             emailTitle: 'E-Mail-Benachrichtigungen',

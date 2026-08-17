@@ -38,7 +38,7 @@ const {
 
 const legal = useLoginConsent()
 const {
-  consent, consentHtml, consentLoading,
+  consent, scopes, consentHtml, consentLoading,
   showPrivacyPolicy, privacyPolicyHtml, privacyPolicyLoading,
   showTos, tosHtml, tosLoading,
 } = legal
@@ -148,6 +148,7 @@ function topRoleLabel(account: DemoAccount): string {
 
       <template v-if="!isDemo && !demoLoading">
         <ConsentGate v-if="consent === null"
+                     v-model:scopes="scopes"
                      :consent-loading="consentLoading" :consent-html="consentHtml"
                      @accept="legal.acceptCurrentVersions" @deny="legal.deny"
                      @show-privacy="legal.loadPrivacyPolicy" @show-tos="legal.loadTos"/>

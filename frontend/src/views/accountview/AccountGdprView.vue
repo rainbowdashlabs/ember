@@ -20,6 +20,7 @@ import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {saveBlob} from '@/util/downloadAuthed'
 import GdprSection from '@/views/stationview/profile/settingsview/GdprSection.vue'
+import StorageConsentSection from '@/views/stationview/profile/settingsview/StorageConsentSection.vue'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -67,6 +68,8 @@ onMounted(async () => {
   <ViewContent :title="t('pages.account-gdpr.title')" :subtitle="t('pages.account-gdpr.subtitle')">
     <div class="space-y-6">
       <Alert v-if="error" variant="error">{{ error }}</Alert>
+
+      <StorageConsentSection/>
 
       <GdprSection
         :exporting-gdpr="exportingGdpr"

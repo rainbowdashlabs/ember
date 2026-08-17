@@ -5,7 +5,10 @@
  */
 import { ref } from 'vue'
 import { session } from '@/api'
-import { acceptStorage, denyStorage, getConsent, getStoredLegalVersions, type StorageConsent } from '@/api/storage'
+import {
+  OPTIONAL_NECESSITIES, acceptStorage, denyStorage, getConsent, getGrantedScopes,
+  getStoredLegalVersions, type StorageConsent, type StorageNecessityName,
+} from '@/api/storage'
 import { useConsentGuard } from '@/composables/useConsentGuard'
 
 /**
@@ -17,6 +20,9 @@ import { useConsentGuard } from '@/composables/useConsentGuard'
  */
 export function useLoginConsent() {
   const consent = ref<StorageConsent | null>(getConsent())
+  /** Starts with everything allowed, so declining a group is a deliberate act rather than the default. */
+  const scopes = ref<StorageNecessityName[]>(
+      consent.value === 'accepted' ? getGrantedScopes() : [...OPTIONAL_NECESSITIES])
   const consentHtml = ref('')
   const consentLoading = ref(false)
 
@@ -91,7 +97,7 @@ export function useLoginConsent() {
       consent: consentVersion.value,
       privacy: privacyVersion.value,
       tos: tosVersion.value,
-    })
+    }, scopes.value)
     consent.value = 'accepted'
   }
 
@@ -133,6 +139,7 @@ export function useLoginConsent() {
 
   return {
     consent,
+    scopes,
     consentHtml,
     consentLoading,
     showPrivacyPolicy,

@@ -19,6 +19,10 @@ const {t} = useI18n()
 
 <template>
   <HelpArticle :title="t('helpCenter.settings.title')" :subtitle="t('helpCenter.settings.subtitle')">
+    <HelpSection :title="t('helpCenter.settings.storageTitle')">
+      <p>{{ t('helpCenter.settings.storageText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.settings.themeTitle')">
       <p>{{ t('helpCenter.settings.themeText') }}</p>
     </HelpSection>
