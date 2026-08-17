@@ -60,7 +60,7 @@ public final class LeakyBucket {
     }
 
     /**
-     * Constructor for rates that don't divide evenly into per-minute tokens — e.g. five
+     * Constructor for rates that don't divide evenly into per-minute tokens - e.g. five
      * tokens per hour. The refill interval is the wall-clock gap between two single-token
      * top-ups; an interval of 12 minutes yields five tokens per hour.
      *
@@ -122,7 +122,7 @@ public final class LeakyBucket {
 
     /**
      * Per-key bucket state. {@code tokens} is a fractional count because refill is
-     * continuous, not in whole-unit ticks — keeping it floating point gives a steady
+     * continuous, not in whole-unit ticks - keeping it floating point gives a steady
      * refill curve without losing tiny remainders between calls.
      */
     private static final class Bucket {

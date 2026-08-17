@@ -12,7 +12,7 @@ import {test, expect, demoAccounts, pageAsThrowaway} from './fixtures/auth'
  * Two stations are involved. The seeded main station is past its setup, and a station that is past it
  * is sent away from the assistant rather than shown it again. The seeder also leaves one station
  * deliberately unfinished, with an administrator of its own, and that is the station these stories
- * walk — the only way to see the assistant at all.
+ * walk - the only way to see the assistant at all.
  *
  * They run one after another, and the story that finishes the assistant runs last: finishing it is
  * exactly what takes the assistant away from the others.
@@ -67,7 +67,7 @@ test.describe('Setup assistant', () => {
      * step: a group that only lived in the open page would be gone.
      *
      * Read inside the assistant rather than in member management, because a station still being set
-     * up is sent back into the assistant from everywhere else — which is the point of it.
+     * up is sent back into the assistant from everywhere else - which is the point of it.
      */
     test('a group made in the assistant is kept', async ({browser, request}) => {
         const page = await setupStationPage(browser, request)
@@ -114,7 +114,7 @@ test.describe('Setup assistant', () => {
 
         // Every step either gets started, saves and moves on, or is skipped. What a step insists on
         // is answered; the rest is left as it is, which is what a station in a hurry would do.
-        // Twelve steps, and a couple of them take two presses — the bound is only there so a step
+        // Twelve steps, and a couple of them take two presses - the bound is only there so a step
         // that refuses to move on ends the story rather than the run.
         for (let step = 0; step < 30; step += 1) {
             if (page.url().includes('/station/setup/finish')) break
@@ -136,7 +136,7 @@ test.describe('Setup assistant', () => {
             if (await country.count() > 0) await country.first().selectOption({index: 1})
 
             // The location has a save of its own, and the step reads what was saved rather than
-            // what stands in the fields — so it is pressed before moving on.
+            // what stands in the fields - so it is pressed before moving on.
             const sectionSave = page.getByRole('button', {name: 'Speichern', exact: true})
             if (await sectionSave.count() > 0) await sectionSave.first().click()
 

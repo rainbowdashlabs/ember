@@ -35,8 +35,8 @@ const { t } = useI18n()
             <MutedText class="ml-auto">8P</MutedText>
           </div>
           <div class="ml-6 space-y-0.5 text-xs text-[var(--text-muted)]">
-            <div>5 W-Fragen (5P) — Wo?, Was?, Wie viele?, Wer?, Warten?</div>
-            <div>Notrufnummern (3P) — 112, 110, 116117</div>
+            <div>5 W-Fragen (5P) - Wo?, Was?, Wie viele?, Wer?, Warten?</div>
+            <div>Notrufnummern (3P) - 112, 110, 116117</div>
           </div>
           <div class="flex items-center gap-2">
             <font-awesome-icon :icon="['fas', 'folder']" class="w-3 h-3 text-[var(--primary)]" />

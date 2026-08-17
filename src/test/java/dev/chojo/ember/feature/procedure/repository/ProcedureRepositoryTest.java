@@ -261,7 +261,7 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(31)
     void addAssigneeDuplicate() {
-        // ON CONFLICT DO NOTHING — should not throw
+        // ON CONFLICT DO NOTHING - should not throw
         procedureRepo.addAssignee(procedureId, member.id());
         assertEquals(2, procedureRepo.findAssigneeIds(procedureId).size());
     }

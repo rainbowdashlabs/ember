@@ -114,7 +114,7 @@ class NotificationFeedRendererTest {
             }
             return value;
         });
-        // No deep link by default — renderer must fall back to the dashboard.
+        // No deep link by default - renderer must fall back to the dashboard.
         when(notificationService.resolveNotificationUrl(any(), any(), any())).thenReturn(null);
         renderer = new NotificationFeedRenderer(
                 notificationService,
@@ -134,7 +134,7 @@ class NotificationFeedRendererTest {
 
     @Test
     void entryTitleComesFromResolveFeedTitle() {
-        // Renderer must delegate to the rich title helper, not the bare category — otherwise
+        // Renderer must delegate to the rich title helper, not the bare category - otherwise
         // every News notification reads as just "News" in the reader inbox.
         var n = notification(100, NotificationType.NEW_NEWS, new NotificationParams.NewNews("T", "A", "P"));
         var entry = renderer.render(n, richCtx());
@@ -151,7 +151,7 @@ class NotificationFeedRendererTest {
                 new NotificationParams.EventRegistrationStatus("Probe", RegistrationStatus.ACCEPTED, ""));
         var entry = renderer.render(n, richCtx());
         var html = entry.getContents().getFirst().getValue();
-        // The mock returns "✓ ACCEPTED" — make sure that lands in the body.
+        // The mock returns "✓ ACCEPTED" - make sure that lands in the body.
         assertTrue(html.contains("✓ ACCEPTED"), "Body should embed status from service helper");
     }
 
@@ -433,7 +433,7 @@ class NotificationFeedRendererTest {
                 new NotificationData.NotificationLink("inventory-procurement", Map.of("id", 99)));
         var html = renderer.render(n, richCtx()).getContents().getFirst().getValue();
         assertTrue(html.contains("Type"), "Type row should be present: " + html);
-        // Renderer falls back to enum name when resolveLocalized mock echoes the key — that's
+        // Renderer falls back to enum name when resolveLocalized mock echoes the key - that's
         // INTERNAL in this test setup. In production the bundle has the localised label.
         assertTrue(html.contains("INTERNAL"), "Inventory type should land in body: " + html);
     }

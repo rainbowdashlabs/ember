@@ -68,7 +68,7 @@ public class PageRepository {
      * {@code null}.
      *
      * <p>A null parent means "match {@code IS NULL}" here, not "no filter", so the predicate is
-     * chosen rather than left out — {@link WhereBuilder} drops null-valued predicates, which would
+     * chosen rather than left out - {@link WhereBuilder} drops null-valued predicates, which would
      * make this match a same-slug page at any depth.
      */
     public Optional<StationPage> findBySlugAndParent(int stationId, String slug, Integer parentId) {
@@ -108,8 +108,8 @@ public class PageRepository {
     }
 
     /**
-     * Editor's PAGE_LINK picker. Returns a compact shape — {@code publicUid},
-     * {@code title}, {@code slug}, {@code updatedAt} — for the published pages of the supplied
+     * Editor's PAGE_LINK picker. Returns a compact shape - {@code publicUid},
+     * {@code title}, {@code slug}, {@code updatedAt} - for the published pages of the supplied
      * station, optionally filtered by case-insensitive title substring. Empty {@code search}
      * returns the most recently updated pages so the picker has something on first focus.
      */
@@ -357,7 +357,7 @@ public class PageRepository {
     }
 
     /**
-     * Lightweight picker result row for the page picker. Exposes only the public UUID — never the
+     * Lightweight picker result row for the page picker. Exposes only the public UUID - never the
      * internal integer id.
      */
     public record PickerPage(UUID pageUid, String title, String slug, Instant updatedAt) {}

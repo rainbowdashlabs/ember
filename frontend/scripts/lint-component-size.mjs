@@ -7,7 +7,7 @@
  *
  * Both checks are single-tier: they report an error or they report nothing.
  * The advisory warning tiers were removed once their distributions were
- * measured — the 30-line block warning and the 4-child density warning had no
+ * measured - the 30-line block warning and the 4-child density warning had no
  * outlier tail, so they flagged ordinary Tailwind markup rather than a smell,
  * and several hundred findings nobody acted on hid the checks that do bite.
  *
@@ -16,17 +16,17 @@
  *    wants its own component.
  *
  * 2. Section density: any element on the 2nd or 3rd template level with
- *    --div-error=N (default 6) or more direct "section" children — plain
+ *    --div-error=N (default 6) or more direct "section" children - plain
  *    <div>, semantic HTML containers (<section>, <article>, <header>,
  *    <footer>, <main>, <nav>, <aside>), or Ember container components
- *    (NeutralContainer, PrimaryContainer, …) — is a stack of distinct
+ *    (NeutralContainer, PrimaryContainer, …) - is a stack of distinct
  *    sections that each want their own component.
  *
  * What is exempt from the block-size check:
  *   - files inside src/components/ (those are the targets for extraction)
  *   - the root <template> element
  *   - common outer wrappers: ViewContent, ViewLayout, SidebarLayout, NuxtPage,
- *     NuxtLayout, HelpArticle, Modal — these define the page shell and the
+ *     NuxtLayout, HelpArticle, Modal - these define the page shell and the
  *     entire body lives inside them
  *   - void HTML elements (br, hr, img, input, …)
  *   - self-closing tags
@@ -92,7 +92,7 @@ function reportBlock(file, tag, openLine, span) {
 }
 
 function reportSectionDensity(file, parentTag, openLine, depth, count) {
-    error(file, openLine, `<${parentTag}> at level ${depth} has ${count} direct section children (div / NeutralContainer / section / …) — each section likely wants its own component.`, CAT_DIV)
+    error(file, openLine, `<${parentTag}> at level ${depth} has ${count} direct section children (div / NeutralContainer / section / …) - each section likely wants its own component.`, CAT_DIV)
 }
 
 const vueFiles = walk(SRC, '.vue').filter(f => !isInsideComponents(f))

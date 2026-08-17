@@ -38,7 +38,7 @@ public record FederationContract(String core, Map<String, String> features) {
 
     /**
      * Parses a stored or received contract vector, returning {@code null} for blank or
-     * unparsable input — an unknown vector, which compatibility checks treat as incompatible.
+     * unparsable input - an unknown vector, which compatibility checks treat as incompatible.
      */
     public static FederationContract fromJson(String json) {
         if (json == null || json.isBlank()) return null;

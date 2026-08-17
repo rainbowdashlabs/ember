@@ -46,7 +46,7 @@ public final class FeedFingerprint {
             md.update(String.valueOf(lastModified.toEpochMilli()).getBytes(StandardCharsets.UTF_8));
             byte[] digest = md.digest();
             var sb = new StringBuilder("\"");
-            // First 16 hex chars are plenty — full SHA-256 collision risk is astronomically low,
+            // First 16 hex chars are plenty - full SHA-256 collision risk is astronomically low,
             // and short ETags keep request/response headers compact for chatty pollers.
             for (int i = 0; i < 8; i++) sb.append(String.format("%02x", digest[i]));
             sb.append("\"");

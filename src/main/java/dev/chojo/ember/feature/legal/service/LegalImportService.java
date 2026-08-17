@@ -15,7 +15,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Takes a document written elsewhere — by a lawyer, in a word processor — and turns it into the
+ * Takes a document written elsewhere - by a lawyer, in a word processor - and turns it into the
  * form Ember maintains: sections as files, headings without numbers, and cross-references that
  * point at anchors rather than at numbers.
  *
@@ -58,7 +58,7 @@ public final class LegalImportService {
             "^(?:(?:§+|Art\\.?|Artikel|Section|Clause|Ziffer|Nr\\.?)\\s*)?(\\d+(?:\\.\\d+)*)[.)]?\\s+(.*)$");
 
     /**
-     * A reference in the running text. The keyword is required here — a bare number in a sentence
+     * A reference in the running text. The keyword is required here - a bare number in a sentence
      * is a number, not a cross-reference.
      */
     private static final Pattern TEXT_REFERENCE = Pattern.compile(

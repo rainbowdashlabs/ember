@@ -19,7 +19,7 @@ import java.util.regex.Pattern;
  * Numbers the headings of a legal document and resolves the references that point at them.
  *
  * <p>A number written into the text goes stale the moment a section moves. Here the author writes
- * the heading without one — {@code ## Nutzungsregeln} — and refers to it by its anchor:
+ * the heading without one - {@code ## Nutzungsregeln} - and refers to it by its anchor:
  * {@code {{ ref:nutzungsregeln }}} for the bare number, {@code {{ ref!nutzungsregeln }}} for the
  * number with the title behind it. Numbers are assigned while rendering, so reordering the sections
  * is enough to renumber the document and every reference in it.

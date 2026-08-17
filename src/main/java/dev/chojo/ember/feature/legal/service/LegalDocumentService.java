@@ -229,8 +229,8 @@ public class LegalDocumentService {
     /**
      * Retrieves and renders a legal document.
      *
-     * <p>A legal page must never come back blank: if the directory holds nothing — because it was
-     * pointed somewhere else, emptied by hand, or never laid down — the bundled template for the
+     * <p>A legal page must never come back blank: if the directory holds nothing - because it was
+     * pointed somewhere else, emptied by hand, or never laid down - the bundled template for the
      * type takes over. What is served is then what Ember ships rather than nothing at all.
      *
      * @param baseDir  the base directory containing the markdown files
@@ -254,7 +254,7 @@ public class LegalDocumentService {
             }
             if (!markdown.isEmpty()) {
                 log.warn(
-                        "No legal document in {} for locale {} — serving the bundled {} template instead",
+                        "No legal document in {} for locale {} - serving the bundled {} template instead",
                         baseDir,
                         locale,
                         typeSlug);

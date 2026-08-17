@@ -23,7 +23,7 @@ import java.util.Optional;
  * sustained refill rate.
  *
  * <p>State is in-memory; a restart resets every bucket. Clustered deployments
- * would need a shared backing store — the same follow-up tracked for the auth
+ * would need a shared backing store - the same follow-up tracked for the auth
  * limiter and the federation replay cache.
  */
 @Singleton

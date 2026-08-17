@@ -193,8 +193,8 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * A text upload keeps its bytes as the searchable body, so the words in the file — not just its
-     * name — are what a later search matches.
+     * A text upload keeps its bytes as the searchable body, so the words in the file - not just its
+     * name - are what a later search matches.
      */
     @Test
     @Order(40)

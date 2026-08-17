@@ -26,8 +26,8 @@ export interface ItemLabelOptions {
 /**
  * Exporting the member/inventory matrix as CSV or PDF.
  *
- * Entering export mode preselects everyone currently visible, so the common case — "export what I
- * am looking at" — needs no selection at all. The CSV is built in the browser from the same
+ * Entering export mode preselects everyone currently visible, so the common case - "export what I
+ * am looking at" - needs no selection at all. The CSV is built in the browser from the same
  * labels the table shows; the PDF is rendered by the server, which is why it takes the display
  * options rather than the finished text.
  *

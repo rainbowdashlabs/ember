@@ -6,7 +6,7 @@
 /**
  * Whether a redirect target carried in a query parameter may be followed.
  *
- * A usable target is a path on this instance — never another host, and never one of the two pages
+ * A usable target is a path on this instance - never another host, and never one of the two pages
  * that exist to send a visitor onwards. A target pointing back at the station picker or at the
  * requirements interstitial loops: the page redirects to the target, the target redirects back.
  *

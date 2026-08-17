@@ -8,7 +8,7 @@ import {test, expect, type Page} from './fixtures/auth'
 /**
  * Registering for an event, withdrawing again, and the organiser's view of who has signed up.
  *
- * The planner navigates by click handler rather than by link, so its entries carry a test id — that
+ * The planner navigates by click handler rather than by link, so its entries carry a test id - that
  * is the only way a story can pick one out without asserting on the shape of a calendar grid. The
  * entry also says whether its event takes registrations, because an event that does not has no
  * registration tab and would make these stories wait for something that is correctly absent.
@@ -76,7 +76,7 @@ test.describe('Events', () => {
     })
 
     /**
-     * An event can ask the people signing up for things — shirt size, who is coming along. The
+     * An event can ask the people signing up for things - shirt size, who is coming along. The
      * story adds such a question to an event of its own and then signs up as a member, who is asked
      * it and whose answer stands next to their name for the organiser afterwards.
      */

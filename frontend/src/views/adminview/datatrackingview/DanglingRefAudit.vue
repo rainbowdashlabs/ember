@@ -33,7 +33,7 @@ const {t} = useI18n()
     <ul class="font-mono text-xs space-y-0.5">
       <li v-for="d in refs" :key="`${d.table}.${d.column}`">
         <span class="font-semibold">{{ d.table }}.{{ d.column }}</span>
-        <span class="text-(--text-muted)"> — {{ d.hint }}</span>
+        <span class="text-(--text-muted)"> - {{ d.hint }}</span>
       </li>
     </ul>
   </ErrorContainer>

@@ -25,7 +25,7 @@ const dummyLabels = [
     <NeutralContainer class="space-y-4">
         <div class="flex items-center gap-3">
             <IconButton :icon="['fas', 'chevron-left']" label="Back" />
-            <SectionHeader>PLAN — {{ t('boards.archived') }}</SectionHeader>
+            <SectionHeader>PLAN - {{ t('boards.archived') }}</SectionHeader>
         </div>
 
         <div class="flex flex-wrap gap-1 items-center">

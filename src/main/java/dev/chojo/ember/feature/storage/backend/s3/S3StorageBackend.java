@@ -46,7 +46,7 @@ import java.util.UUID;
  * S3-backed {@link StorageBackend}. Uses AWS SDK v2 against any S3-compatible endpoint
  * (AWS S3, MinIO, Backblaze B2, Wasabi, Cloudflare R2, Hetzner Object Storage, …).
  *
- * <p>Unlike the filesystem backends, S3 carries metadata natively on the object — no sidecar
+ * <p>Unlike the filesystem backends, S3 carries metadata natively on the object - no sidecar
  * file. Content type lands on the object header; SHA-256, optional filename and content
  * encoding ride in {@code x-amz-meta-*} user metadata. {@link #updateMetadata} reissues a
  * {@code CopyObject} with {@code MetadataDirective=REPLACE} so the SHA-256 sealed after the

@@ -18,7 +18,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * A station page and its content tree.
  *
  * <p>{@code ogImageHash} is the content hash of the file referenced by {@code ogImageId}. It is not
- * a column on the page — the row mapper leaves it null and the service fills it in, the same way
+ * a column on the page - the row mapper leaves it null and the service fills it in, the same way
  * {@code rows} is loaded separately. Clients need it because page files are served by hash, not by
  * id, so an id alone cannot be turned into an image URL.
  */

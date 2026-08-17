@@ -87,7 +87,7 @@ class TwoFactorPolicyServiceTest extends RepositoryTestBase {
 
     @Test
     void mandateDerivationFromPolicyAndElevatedPermission() {
-        // Set up: station with 3 members — plain member, station admin (elevated permission),
+        // Set up: station with 3 members - plain member, station admin (elevated permission),
         // and a member matched by a station-scoped policy on MEMBER.
         var station = stationRepo.create("policy-mand-" + UUID.randomUUID());
 

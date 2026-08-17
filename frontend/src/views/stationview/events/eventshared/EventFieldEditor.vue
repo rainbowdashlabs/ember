@@ -170,7 +170,7 @@ watch(entry, val => { modelValue.value = val }, {deep: true})
         <FieldLabel>{{ t('eventFields.attendanceLink') }}</FieldLabel>
         <SelectInput :model-value="String(attendanceFieldId ?? '')"
                      @update:model-value="attendanceFieldId = $event ? Number($event) : null">
-          <option value="">—</option>
+          <option value="">-</option>
           <option v-for="af in matchingAttendanceFields" :key="af.id" :value="String(af.id)">{{ af.name }}</option>
         </SelectInput>
       </div>

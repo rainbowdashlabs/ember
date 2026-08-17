@@ -17,7 +17,7 @@ package dev.chojo.ember.feature.storage.entity;
 public record Variant(String name) {
 
     /**
-     * Sentinel returned by the absence of a variant — store/read without a trailing segment.
+     * Sentinel returned by the absence of a variant - store/read without a trailing segment.
      */
     public static final Variant ORIGINAL = new Variant("original");
 

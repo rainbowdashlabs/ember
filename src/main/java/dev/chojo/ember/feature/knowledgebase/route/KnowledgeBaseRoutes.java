@@ -753,7 +753,7 @@ public class KnowledgeBaseRoutes implements Routes {
             Map<Integer, KbAccessLevel> fileLevels) {}
 
     /**
-     * A file with what the reader may do with it and, when a folder decided that, which one — so
+     * A file with what the reader may do with it and, when a folder decided that, which one - so
      * the page can say why an action is missing instead of just not showing it.
      */
     public record FileResponse(

@@ -115,7 +115,7 @@ function applyDarkMode(mode: DarkModeValue) {
  * Applies the theme available from local storage (user theme, falling back to the cached
  * instance theme) and refreshes the instance theme from the server. When nothing is stored
  * locally, no inline styles are written so the server-rendered theme style stays visible
- * until the instance theme arrives — avoiding a stock-theme flash on first paint.
+ * until the instance theme arrives - avoiding a stock-theme flash on first paint.
  */
 function storedDarkMode(hasSession: boolean): DarkModeValue | null {
     const saved = (hasSession ? getItem('dark_mode') : null) as DarkModeValue | null
@@ -187,7 +187,7 @@ async function fetchPublicTheme() {
             applyFeel(feel)
         }
     } catch {
-        /* ignore — server may not be reachable */
+        /* ignore - server may not be reachable */
     }
 }
 
@@ -372,7 +372,7 @@ function resetToInstanceDefaults() {
 
 /**
  * Applies the theme the server reports for the signed-in session whenever that session
- * changes — sign-in, session refresh and station switch all go through it. Wired once
+ * changes - sign-in, session refresh and station switch all go through it. Wired once
  * during app bootstrap, so reading the session carries no hidden theme side effect.
  */
 export function syncThemeWithSession() {

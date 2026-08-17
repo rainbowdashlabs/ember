@@ -49,7 +49,7 @@ const registrationEnabled = ref(true)
 
 onMounted(async () => {
   if (getItem('session_token')) {
-    // Honor any pending deep link the router guard parked on /login — the user is already
+    // Honor any pending deep link the router guard parked on /login - the user is already
     // authed and we don't want a fresh tab refresh to lose their target.
     const redirectPath = route.query.redirect as string | undefined
     navigateTo(redirectPath?.startsWith('/') ? redirectPath : '/station/dashboard/overview')

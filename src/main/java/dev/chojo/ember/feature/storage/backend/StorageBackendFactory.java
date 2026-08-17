@@ -29,7 +29,7 @@ import java.util.Optional;
 /**
  * Constructs the configured instance-default {@link StorageBackend} from {@link Storage}
  * config and exposes it as the single source of truth used by the resolver. The instance
- * default is built lazily on first call and reused for the lifetime of the process — the same
+ * default is built lazily on first call and reused for the lifetime of the process - the same
  * {@link StorageBackend} instance carries its own connection pool / SSH session / SDK client
  * so re-creating it would discard those.
  */
@@ -131,7 +131,7 @@ public class StorageBackendFactory {
      * Drops the cached instance-default backend so the next call rebuilds against the current
      * {@link Storage#backend()} state. Called by the instance-wide migration after it has
      * flipped the YAML so subsequent {@link StorageBackendResolver} reads pick up the new
-     * target. The previously-cached backend instance is intentionally NOT closed here — the
+     * target. The previously-cached backend instance is intentionally NOT closed here - the
      * caller (the instance migration service) keeps a reference to delete source bytes after
      * the flip and closes it itself when done.
      */

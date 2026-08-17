@@ -30,7 +30,7 @@ import java.util.List;
  * existing memberships untouched. Synthetic addresses ending in {@code .local} (members without
  * login) never attach to existing accounts and never receive mail.
  *
- * <p>Guardian relations are wired at creation time — both accounts exist immediately, so the
+ * <p>Guardian relations are wired at creation time - both accounts exist immediately, so the
  * manager link between guardian and member is set as part of the same request.
  */
 @Singleton
@@ -59,7 +59,7 @@ public class StationMemberInviteService {
     /**
      * Provisions a single member: resolves or creates the account, creates the station membership
      * if absent, and sends the password-setup email when the account still needs one. The user
-     * type and group are only applied to memberships created by this call — existing members keep
+     * type and group are only applied to memberships created by this call - existing members keep
      * their configuration.
      *
      * @throws ProvisionException if the email belongs to an existing account and attaching is not
@@ -115,7 +115,7 @@ public class StationMemberInviteService {
     /**
      * Provisions a batch of invite entries, expanding nested guardian sub-lists. Guardians are
      * provisioned as {@link StationUserType#GUARDIAN} and linked as manager of the member they
-     * belong to. Entries are processed independently — a failing entry does not affect the rest;
+     * belong to. Entries are processed independently - a failing entry does not affect the rest;
      * failed entries are reported in the result.
      */
     public BatchResult createBatch(int stationId, List<InviteRequest> requests) {
@@ -173,7 +173,7 @@ public class StationMemberInviteService {
     public record GuardianRequest(String email, String firstName, String lastName) {}
 
     /**
-     * A member that exists after provisioning — freshly created or attached from an existing
+     * A member that exists after provisioning - freshly created or attached from an existing
      * account/membership.
      */
     public record ProvisionedMember(
@@ -197,7 +197,7 @@ public class StationMemberInviteService {
     public record BatchResult(List<ProvisionedMember> provisioned, List<FailedInvite> failed) {}
 
     /**
-     * Thrown when a member cannot be provisioned — mapped by the routes layer onto the
+     * Thrown when a member cannot be provisioned - mapped by the routes layer onto the
      * appropriate HTTP response.
      */
     public static class ProvisionException extends RuntimeException {

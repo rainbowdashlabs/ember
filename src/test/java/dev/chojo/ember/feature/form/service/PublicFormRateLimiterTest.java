@@ -49,7 +49,7 @@ class PublicFormRateLimiterTest {
 
     @Test
     void noArgConstructorUsesSystemClock() {
-        // Just exercise the default constructor — verifies it wires up without throwing.
+        // Just exercise the default constructor - verifies it wires up without throwing.
         var limiter = new PublicFormRateLimiter();
         assertFalse(limiter.tryAcquire(1, HASH_A).isPresent());
     }
@@ -82,7 +82,7 @@ class PublicFormRateLimiterTest {
         for (int i = 0; i < PublicFormRateLimiter.BURST_CAPACITY; i++) {
             limiter.tryAcquire(1, HASH_A);
         }
-        // Same form, different hash — fresh bucket.
+        // Same form, different hash - fresh bucket.
         assertFalse(limiter.tryAcquire(1, HASH_B).isPresent());
     }
 
@@ -93,7 +93,7 @@ class PublicFormRateLimiterTest {
         for (int i = 0; i < PublicFormRateLimiter.BURST_CAPACITY; i++) {
             limiter.tryAcquire(1, HASH_A);
         }
-        // Different form, same hash — fresh bucket.
+        // Different form, same hash - fresh bucket.
         assertFalse(limiter.tryAcquire(2, HASH_A).isPresent());
     }
 
@@ -109,7 +109,7 @@ class PublicFormRateLimiterTest {
         // After one refill interval (60 / REFILL_PER_HOUR minutes), one slot should be back.
         clock.advance(Duration.ofMinutes(60 / PublicFormRateLimiter.REFILL_PER_HOUR));
         assertFalse(limiter.tryAcquire(1, HASH_A).isPresent());
-        // And only one — a second request immediately afterwards is again rate-limited.
+        // And only one - a second request immediately afterwards is again rate-limited.
         assertTrue(limiter.tryAcquire(1, HASH_A).isPresent());
     }
 

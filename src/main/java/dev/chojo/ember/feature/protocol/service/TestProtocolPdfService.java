@@ -200,7 +200,7 @@ public class TestProtocolPdfService {
         }
         sb.append("  #text(size: 11pt, weight: \"bold\")[")
                 .append(esc(protocolName))
-                .append(" — Auswertung]\n");
+                .append(" - Auswertung]\n");
         sb.append("  #v(0.2em)\n  #text(size: 8pt)[Datum: ").append(testDate).append("]\n]\n#v(0.3em)\n\n");
 
         // Table
@@ -314,7 +314,7 @@ public class TestProtocolPdfService {
                     .append(esc(section.name()))
                     .append("]],\n");
             sb.append("  [#text(size: 8pt)[Prüfer: ")
-                    .append(esc(testers.isEmpty() ? "—" : testers))
+                    .append(esc(testers.isEmpty() ? "-" : testers))
                     .append("]],\n");
             sb.append("  align(right)[#text(weight: \"bold\")[")
                     .append(fmt(totalScore))

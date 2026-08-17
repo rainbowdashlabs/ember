@@ -487,7 +487,7 @@ public class NotificationService {
         if (template == null) template = templates.get(typeKey);
         if (template == null) return resolveCategory(locale, n.type());
 
-        // Truncate values defensively — a 5KB description shouldn't fill the inbox row.
+        // Truncate values defensively - a 5KB description shouldn't fill the inbox row.
         for (var entry : params.entrySet()) {
             entry.setValue(truncateSnippet(entry.getValue(), TITLE_FRAGMENT_MAX));
         }
@@ -499,7 +499,7 @@ public class NotificationService {
         // Strip any leftover {placeholder} from missing params, then collapse whitespace.
         result = result.replaceAll("\\{[^}]+\\}", "").replaceAll("\\s+", " ").trim();
         // Trim dangling separators left over after a missing param was stripped.
-        result = result.replaceAll("[\\s\\-—:,]+$", "").trim();
+        result = result.replaceAll("[\\s\\--:,]+$", "").trim();
         if (result.isBlank()) return resolveCategory(locale, n.type());
         return result;
     }
@@ -531,7 +531,7 @@ public class NotificationService {
             if (params.isEmpty()) return localeKey;
             var sb = new StringBuilder();
             for (var entry : params.entrySet()) {
-                if (!sb.isEmpty()) sb.append(" — ");
+                if (!sb.isEmpty()) sb.append(" - ");
                 sb.append(entry.getValue());
             }
             return sb.toString();
@@ -739,7 +739,7 @@ public class NotificationService {
                             emailedIds.add(n.id());
                         }
                     } else {
-                        // User doesn't want emails or can't receive — still mark so we don't retry
+                        // User doesn't want emails or can't receive - still mark so we don't retry
                         for (var n : notifications) {
                             emailedIds.add(n.id());
                         }

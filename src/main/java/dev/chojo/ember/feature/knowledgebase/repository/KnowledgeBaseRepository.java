@@ -69,7 +69,7 @@ public class KnowledgeBaseRepository {
      * Folders directly under {@code parentId}, or the root folders when it is {@code null}.
      *
      * <p>A null parent means "match {@code IS NULL}" here, not "no filter", so the predicate is
-     * chosen rather than left out — {@link WhereBuilder} drops null-valued predicates, which would
+     * chosen rather than left out - {@link WhereBuilder} drops null-valued predicates, which would
      * widen this to every folder in the station.
      */
     public List<KbFolder> findFolders(int stationId, Integer parentId) {
@@ -519,7 +519,7 @@ public class KnowledgeBaseRepository {
                 RETURNING %s;""", call().bind("station_id", stationId).bind("name", name.toLowerCase()), KbTag.map(), TAG_COLUMNS);
     }
 
-    // Not yet exposed via routes — tag management UI not implemented
+    // Not yet exposed via routes - tag management UI not implemented
     public boolean deleteTag(int id) {
         return SqlSupport.deleteById("kb_tag", id);
     }
@@ -658,7 +658,7 @@ public class KnowledgeBaseRepository {
                 .insert();
     }
 
-    // Not yet exposed via routes — favourites UI not implemented
+    // Not yet exposed via routes - favourites UI not implemented
     public boolean removeFavourite(int memberId, int fileId) {
         return query("DELETE FROM kb_favourite WHERE member_id = :member_id AND file_id = :file_id;")
                 .single(call().bind("member_id", memberId).bind("file_id", fileId))

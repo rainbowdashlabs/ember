@@ -527,7 +527,7 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        // No restrictions set — member should be eligible
+        // No restrictions set - member should be eligible
         assertTrue(eventRestrictionService.isMemberEligible(
                 event.id(), member.id(), EnumSet.noneOf(StationPermission.class)));
     }
@@ -557,11 +557,11 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        // No defaults set — should be empty
+        // No defaults set - should be empty
         var found = fieldDefaultService.findByEvent(event.id());
         assertTrue(found.isEmpty());
 
-        // Set empty defaults — should remain empty
+        // Set empty defaults - should remain empty
         fieldDefaultService.setForEvent(event.id(), List.of());
         assertTrue(fieldDefaultService.findByEvent(event.id()).isEmpty());
     }
@@ -589,7 +589,7 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        // No defaults set — resolve returns empty map
+        // No defaults set - resolve returns empty map
         var resolved = fieldDefaultService.resolve(event.id());
         assertTrue(resolved.isEmpty());
     }
@@ -1013,7 +1013,7 @@ class EventServicesTest extends RepositoryTestBase {
         var reg = registrationService.register(event.id(), member.id(), LocalDate.of(2027, 5, 1), true, null);
         assertEquals(RegistrationStatus.ACCEPTED, reg.status());
 
-        // Withdraw the ACCEPTED registration — should publish event
+        // Withdraw the ACCEPTED registration - should publish event
         assertTrue(registrationService.withdraw(reg.id()));
         assertTrue(registrationService.findById(reg.id()).isEmpty());
     }
@@ -1053,7 +1053,7 @@ class EventServicesTest extends RepositoryTestBase {
         LocalDate date = LocalDate.of(2027, 6, 1);
         registrationService.register(event.id(), member.id(), date, true, null);
 
-        // Now decline — should publish event because prior was ACCEPTED
+        // Now decline - should publish event because prior was ACCEPTED
         var result = registrationService.decline(event.id(), member.id(), date, null);
         assertNotNull(result);
         assertEquals(RegistrationStatus.DECLINED, result.status());
@@ -1529,7 +1529,7 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        // All null lists — should default to empty
+        // All null lists - should default to empty
         eventRestrictionService.setRestrictions(event.id(), new RestrictionSelection(null, null, null, null, null));
         var restrictions = eventRestrictionService.findRestrictions(event.id());
         assertNotNull(restrictions);
@@ -1577,7 +1577,7 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        // Use separate field IDs — no duplicates
+        // Use separate field IDs - no duplicates
         fieldDefaultService.setForEvent(
                 event.id(),
                 List.of(
@@ -1593,7 +1593,7 @@ class EventServicesTest extends RepositoryTestBase {
     @Test
     @Order(99)
     void resolveFieldDefaultsWithUnknownSource() {
-        // Using an unknown source type — should be skipped (returns null, not added to result)
+        // Using an unknown source type - should be skipped (returns null, not added to result)
         var template = attendanceRepo.createTemplate(station.id(), "EventDefaultTemplate2");
         attendanceRepo.createTemplateField(
                 template.id(), "TestField2", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 0);

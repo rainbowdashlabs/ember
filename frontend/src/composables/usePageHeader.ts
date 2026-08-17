@@ -24,7 +24,7 @@ export function usePageHeader() {
 /**
  * Binds the shared page header to a single owning component instance. Writing claims
  * ownership; releasing clears the header only while the caller still owns it. During a
- * route change the incoming page can write its header before the outgoing page unmounts —
+ * route change the incoming page can write its header before the outgoing page unmounts -
  * without the ownership check, the outgoing page's cleanup would wipe the values the new
  * page just set, leaving every page after the first navigation without title and subtitle.
  */

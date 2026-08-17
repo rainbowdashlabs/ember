@@ -14,7 +14,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
  * carried credentials and route future uploads to the same remote backend ({@link S3},
  * {@link Smb}, {@link Sftp}).
  *
- * <p>Credentials travel in plaintext on the wire — the source's {@code CredentialCipher}
+ * <p>Credentials travel in plaintext on the wire - the source's {@code CredentialCipher}
  * decrypts on the request thread and Jackson serializes the result straight into the response.
  * The endpoint is one-shot per transfer token to keep the credential exposure window minimal.
  */

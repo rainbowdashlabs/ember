@@ -56,7 +56,7 @@ public class EventsBatchCreatedHandler implements DomainEventHandler<EventsBatch
             preview.append(", …");
         }
 
-        // Earliest start time across the batch — surfaces "starting 15 Sep" in the title so
+        // Earliest start time across the batch - surfaces "starting 15 Sep" in the title so
         // members see when the first occurrence falls without expanding.
         LocalDate firstEventDate = events.stream()
                 .map(StationEvent::startTime)

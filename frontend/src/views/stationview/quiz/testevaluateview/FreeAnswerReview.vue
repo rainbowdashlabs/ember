@@ -55,7 +55,7 @@ const showSampleAnswers = computed(() =>
     <div v-if="showSampleAnswers">
       <label class="text-xs font-semibold text-success block mb-1">{{ t('quiz.evaluate.sampleAnswers') }}</label>
       <p class="text-sm px-3 py-2 rounded border border-success/30 bg-success/10">
-        {{ sampleAnswers || '—' }}
+        {{ sampleAnswers || '-' }}
       </p>
     </div>
     <div v-if="props.answer" class="flex items-center gap-2">

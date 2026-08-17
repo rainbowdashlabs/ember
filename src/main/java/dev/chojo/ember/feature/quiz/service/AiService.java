@@ -155,7 +155,7 @@ public class AiService {
             session.addAssistantMessage(text);
             var parsed = parseAndValidate(text, quizQuestionType);
             if (!parsed.isEmpty()) {
-                // Next turn: just ask for another one — AI has full context
+                // Next turn: just ask for another one - AI has full context
                 session.addUserMessage("Erstelle eine weitere einzigartige Frage. Wiederhole keine der bisherigen.");
             }
             return parsed;
@@ -286,7 +286,7 @@ public class AiService {
     }
 
     private String chatGeminiSession(ChatSession session) {
-        // Gemini doesn't have native multi-turn via this SDK — concatenate context
+        // Gemini doesn't have native multi-turn via this SDK - concatenate context
         var fullMessage = new StringBuilder();
         for (var msg : session.messages()) {
             fullMessage

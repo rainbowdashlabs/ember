@@ -486,7 +486,7 @@ public class DemoEventSeeder implements DemoSeeder {
         var oeOpen = crudService.create(
                 stationId,
                 "Blaulichtmeile Bürgerfest",
-                "Öffentlichkeitsarbeit — Anmeldung offen",
+                "Öffentlichkeitsarbeit - Anmeldung offen",
                 StationEvent.EventType.ONE_TIME,
                 null,
                 openStart,
@@ -735,7 +735,7 @@ public class DemoEventSeeder implements DemoSeeder {
      * Seeds the charity marathon: an event open to the team and to members alike, which asks
      * everyone registering for their shirt size and how many guests they bring.
      *
-     * <p>It is the demo of registration questions, so the answers are seeded too — a registration
+     * <p>It is the demo of registration questions, so the answers are seeded too - a registration
      * list with empty answers would not show what the feature does.
      */
     private void seedMarathon(

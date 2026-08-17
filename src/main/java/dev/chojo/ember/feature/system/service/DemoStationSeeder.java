@@ -62,7 +62,7 @@ public class DemoStationSeeder implements DemoSeeder {
         stationRepository.updateDiscoverySettings(
                 station.id(),
                 DiscoveryVisibility.PUBLIC,
-                "Jugendfeuerwehr Musterstadt — Übungen, Wettbewerbe und mehr",
+                "Jugendfeuerwehr Musterstadt - Übungen, Wettbewerbe und mehr",
                 true);
         try {
             var logoBytes = Files.readAllBytes(Path.of("templates", "graphics", "logo.png"));

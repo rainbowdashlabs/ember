@@ -18,7 +18,7 @@ export function sidebar(page: Page): Locator {
  * One entry of the sidebar, named by the words on it.
  *
  * Matched to the whole entry and not to a part of it, because "Inventar" would otherwise also find
- * "Mein Inventar" — and with the count an entry may carry allowed for, since a group showing how
+ * "Mein Inventar" - and with the count an entry may carry allowed for, since a group showing how
  * many things wait in it reads as "Mitglieder 6" to anything asking for its name.
  *
  * Which element an entry is belongs to the sidebar's design rather than to what a story is about: a

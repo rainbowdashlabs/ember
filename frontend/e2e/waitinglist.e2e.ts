@@ -21,7 +21,7 @@ test.describe('Waiting lists', () => {
 
     /**
      * The public list is how somebody who is not in the station yet gets in touch. The story fills
-     * it in as a stranger — no session at all — and is told what happens next, which is the address
+     * it in as a stranger - no session at all - and is told what happens next, which is the address
      * being confirmed by mail.
      *
      * It takes the list that asks for nothing beyond a name and an address. The other two insist on
@@ -36,8 +36,8 @@ test.describe('Waiting lists', () => {
         await page.getByText('Warteliste auswählen').waitFor()
         await page.getByText('Schnupperstunde').first().click()
 
-        // The applicant's own three fields carry labels rather than placeholders — only the fields
-        // for whoever looks after them are placeheld — so they are taken in the order they are asked.
+        // The applicant's own three fields carry labels rather than placeholders - only the fields
+        // for whoever looks after them are placeheld - so they are taken in the order they are asked.
         const fields = page.getByRole('textbox')
         await fields.nth(0).fill('Neu')
         await fields.nth(1).fill(surname)
@@ -64,7 +64,7 @@ test.describe('Waiting lists', () => {
         await page.waitForURL(/\/station\/members\/waiting-lists\/(\d+)/)
         const id = page.url().match(/waiting-lists\/(\d+)/)?.[1]
 
-        // Two blocks of the same fields: the person first, then whoever looks after them — required
+        // Two blocks of the same fields: the person first, then whoever looks after them - required
         // when an entry is written down by hand, unlike on the public form, where whoever fills it
         // in is the one being asked.
         await page.goto(`/station/members/waiting-lists/${id}/entries/new`)

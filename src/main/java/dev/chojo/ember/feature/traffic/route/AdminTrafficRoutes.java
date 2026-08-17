@@ -23,7 +23,7 @@ import java.util.List;
  * Instance-admin traffic monitoring routes. Returns pre-aggregated hourly rows from
  * {@code station_traffic_hourly}. Permission: {@link InstancePermission#ADMINISTRATOR}.
  *
- * <p>The endpoint deliberately exposes the underlying bucket shape directly — the frontend
+ * <p>The endpoint deliberately exposes the underlying bucket shape directly - the frontend
  * does its own grouping / stacking depending on the chart it wants to render. Phase 2 will
  * add a station-scoped sibling.
  */

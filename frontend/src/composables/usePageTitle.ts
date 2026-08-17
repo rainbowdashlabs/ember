@@ -9,7 +9,7 @@ import {usePageHeader} from '@/composables/usePageHeader'
  * Mirrors the shared page header state into the browser tab title. The header
  * itself is populated by whichever {@code ViewContent} instance is currently
  * mounted (via its {@code title} prop). Registered once as a reactive head
- * binding — repeated {@code useHead} calls from a watcher would stack head
+ * binding - repeated {@code useHead} calls from a watcher would stack head
  * entries and keep the previous title alive when the header becomes empty.
  */
 export function usePageTitle() {

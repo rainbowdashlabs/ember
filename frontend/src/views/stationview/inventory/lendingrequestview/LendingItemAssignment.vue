@@ -78,7 +78,7 @@ function onAssignmentScan(value: string) {
               @toggle="emit('toggleItem', item.itemId)">
             <font-awesome-icon :icon="['fas', selectedItemIds.has(item.itemId) ? 'square-check' : 'square']" class="mr-1"/>
             <span>{{ item.internalId }}</span>
-            <span class="mx-1">—</span>
+            <span class="mx-1">-</span>
             <span>{{ item.itemName }}</span>
             <span v-if="item.sizeName" class="text-[var(--text-muted)] ml-1">({{ item.sizeName }})</span>
           </SelectionToggleButton>

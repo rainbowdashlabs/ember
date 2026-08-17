@@ -28,7 +28,7 @@ async function createBoard(page: Page): Promise<string> {
     return key
 }
 
-/** A ticket on that board, left open on its own page — which is where creating one lands. */
+/** A ticket on that board, left open on its own page - which is where creating one lands. */
 async function createTicket(page: Page, key: string): Promise<string> {
     const ticket = unique('Ticket')
 

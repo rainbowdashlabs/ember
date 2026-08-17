@@ -497,7 +497,7 @@ class FederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(101)
     void pairingCodePartsIsStationInviteWithNullToken() {
-        // PairingCodeParts with null token — isStationInvite should be false
+        // PairingCodeParts with null token - isStationInvite should be false
         var parts = new FederationService.PairingCodeParts(stationA.uid(), "localhost", null);
         assertFalse(parts.isStationInvite());
     }

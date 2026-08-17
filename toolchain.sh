@@ -8,7 +8,7 @@
 # Every command also runs inside the project's nix environment via `direnv exec`, so the JDK,
 # node and the external binaries the backend shells out to (cwebp, typst, pandoc, libreoffice,
 # qpdf) are the versions shell.nix pins, and the *_BIN variables it exports are set. Without
-# that, a caller whose shell has not entered the directory silently gets whatever is on PATH —
+# that, a caller whose shell has not entered the directory silently gets whatever is on PATH -
 # which is how WebP variant generation ends up skipped in one run and exercised in the next.
 #
 # Usage: ./toolchain.sh <command> [args...]
@@ -42,7 +42,7 @@ Frontend
   fe-lint <name> [args] One linter, e.g. `fe-lint style` runs scripts/lint-style.mjs. Trailing
                         arguments reach the script, e.g. `fe-lint component-size --error=30`
   fe-dev                Dev server
-  fe-install            npm install — reconciles node_modules and the lock file with package.json,
+  fe-install            npm install - reconciles node_modules and the lock file with package.json,
                         which is how a conflict in the generated lock file is resolved
   fe-preview [port]     Serve the last build (default port 3000), the steady target for the stories
 
@@ -79,7 +79,7 @@ Backend
 
 Docker
   docker-frontend       Build the frontend image, as CI's docker job does. Worth running when a
-                        linter learns to read something outside frontend/ — the image copies
+                        linter learns to read something outside frontend/ - the image copies
                         only that directory, so the repository root is not there
   docker-backend        Build the backend image
 
@@ -134,7 +134,7 @@ case "$cmd" in
     fe-coverage)   fe; NODE_OPTIONS="$NODE_HEAP" run npx vitest run --coverage "$@" ;;
     fe-e2e)
         # The suite serves the last build; build once when there is none yet. After changing
-        # anything under src/, use fe-e2e-built — this command would otherwise run the stories
+        # anything under src/, use fe-e2e-built - this command would otherwise run the stories
         # against the build before the change and report on code nobody is looking at.
         project="${1:-chromium}"; shift || true
         fe

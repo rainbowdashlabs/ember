@@ -661,7 +661,7 @@ public class StationMemberRoutes implements Routes {
     }
 
     /**
-     * Picker result shape — avatar is inlined as a {@code data:} URL so the frontend can render
+     * Picker result shape - avatar is inlined as a {@code data:} URL so the frontend can render
      * it without a separate authenticated request. {@code displayTag} carries the member's
      * highest-priority visible tag (and color); {@code null} when none is set.
      */

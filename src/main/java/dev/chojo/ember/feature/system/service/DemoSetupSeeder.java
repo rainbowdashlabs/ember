@@ -66,7 +66,7 @@ public class DemoSetupSeeder implements DemoSeeder {
         stationRepository.setOwner(freshStation.id(), freshAdminMember.id());
 
         log.info(
-                "Demo: Created un-setup demo station — login: setup-admin@ember.local / {} (will land on /station/setup)",
+                "Demo: Created un-setup demo station - login: setup-admin@ember.local / {} (will land on /station/setup)",
                 PASSWORD);
     }
 }

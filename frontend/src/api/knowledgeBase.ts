@@ -448,7 +448,7 @@ export async function uploadKbImage(fileId: number, image: File): Promise<ImageU
 /**
  * Returns the API path (relative to the shared axios client's baseURL) for
  * an inline KB image. The value is stored verbatim inside markdown content
- * — see {@code KbMarkdownView} and {@code ImageNodeView} which fetch it
+ * - see {@code KbMarkdownView} and {@code ImageNodeView} which fetch it
  * through the authenticated client at render time.
  */
 export function kbImageUrl(imageId: string, size = 1024): string {

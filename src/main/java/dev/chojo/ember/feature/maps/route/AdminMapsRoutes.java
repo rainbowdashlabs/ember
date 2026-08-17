@@ -93,7 +93,7 @@ public class AdminMapsRoutes implements Routes {
 
     /**
      * Combined admin-facing config payload. Carries the API key so the admin can edit it;
-     * never use this DTO for public-facing reads — see {@link PublicMapsRoutes.PublicMapsConfig}.
+     * never use this DTO for public-facing reads - see {@link PublicMapsRoutes.PublicMapsConfig}.
      */
     public record AdminMapsConfig(MapsTilesConfig tiles, MapsGeocodingConfig geocoding, int tileCacheMaxMb) {
         /**

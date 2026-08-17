@@ -27,7 +27,7 @@ function form(id: number, title: string, description: string, status: Form['stat
 }
 
 export const FORMS: Form[] = [
-    form(1, 'Zeltlager 2026 — Rückmeldung', 'Wie hat euch das letzte Lager gefallen?', 'OPEN', 23),
+    form(1, 'Zeltlager 2026 - Rückmeldung', 'Wie hat euch das letzte Lager gefallen?', 'OPEN', 23),
     form(2, 'Terminwunsch Grillfest', 'Wann passt es euch am besten?', 'OPEN', 14, {restricted: true}),
     form(3, 'Ausbildungsbedarf', 'Was möchtet ihr in diesem Jahr lernen?', 'DRAFT', 0),
 ]

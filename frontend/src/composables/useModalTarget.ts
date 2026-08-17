@@ -13,7 +13,7 @@ import {ref, type Ref} from 'vue'
  * accompanied them across many view components.
  *
  * `reset` runs every time the modal is opened (after the new target has been
- * assigned) and again on close — use it to clear input fields bound to the
+ * assigned) and again on close - use it to clear input fields bound to the
  * modal so reopens always start from a clean slate.
  */
 export function useModalTarget<T>(reset?: () => void) {

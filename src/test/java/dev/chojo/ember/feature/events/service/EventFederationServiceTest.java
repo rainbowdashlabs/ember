@@ -381,7 +381,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(33)
     void getFederatedEventNotShared() {
-        // Ensure event is not shared — must reject access.
+        // Ensure event is not shared - must reject access.
         // Partner may or may not exist due to cross-test interference;
         // either way the call must reject access.
         service.removeShare(eventId);

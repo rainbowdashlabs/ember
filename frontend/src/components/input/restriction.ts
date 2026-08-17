@@ -17,7 +17,7 @@ export function emptyRestriction(): RestrictionSelection {
 }
 
 /**
- * Presents three separate selections — user types, groups and tags — as the single
+ * Presents three separate selections - user types, groups and tags - as the single
  * {@link RestrictionSelection} the shared restriction editor speaks, and writes edits back to
  * them.
  *

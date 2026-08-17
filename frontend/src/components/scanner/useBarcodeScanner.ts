@@ -40,7 +40,7 @@ interface BarcodeDetectorInstance {
 
 /**
  * Module-level state so a `NotFoundError` on one mount disables the scan button for the
- * rest of the session without touching localStorage — a desktop with a webcam plugged in
+ * rest of the session without touching localStorage - a desktop with a webcam plugged in
  * between reloads still re-detects on the next page load.
  */
 const noCameraAvailable = ref(false)

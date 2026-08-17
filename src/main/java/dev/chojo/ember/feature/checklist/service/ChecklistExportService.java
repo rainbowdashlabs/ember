@@ -71,7 +71,7 @@ public class ChecklistExportService {
         sb.append(csvField("Member")).append(',').append(csvField("Updated at"));
         for (var column : columns) {
             sb.append(',').append(csvField(column.label()));
-            sb.append(',').append(csvField(column.label() + " — Note"));
+            sb.append(',').append(csvField(column.label() + " - Note"));
         }
         sb.append('\n');
 

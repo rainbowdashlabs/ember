@@ -230,7 +230,7 @@ public class LendingService {
         if (partner != null && partner.isRemote()) {
             remoteMessages = fetchRemoteMessagesViaHttp(partner, requestId, localStationId);
         } else {
-            // Local partner — directly query their messages from shared DB
+            // Local partner - directly query their messages from shared DB
             remoteMessages = repository.findLocalMessages(requestId, partnerStationUid);
         }
 

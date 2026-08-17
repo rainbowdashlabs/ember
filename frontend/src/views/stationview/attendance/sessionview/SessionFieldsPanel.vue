@@ -96,7 +96,7 @@ function getMemberOptions(field: AttendanceTemplateField): { value: string; labe
                 :model-value="getFieldValue(field.id)"
                 @update:model-value="emit('fieldMemberIds', field.id, $event ? [String($event)] : [])"
             >
-              <option value="">—</option>
+              <option value="">-</option>
               <option v-for="opt in getMemberOptions(field)" :key="opt.value" :value="opt.value">
                 {{ opt.label }}
               </option>
@@ -115,9 +115,9 @@ function getMemberOptions(field: AttendanceTemplateField): { value: string; labe
         <!-- Read-only display -->
         <template v-else>
           <span v-if="isMemberField(field.fieldType ?? '')" class="text-sm">
-            {{ getFieldMemberIds(field.id).map(id => getMemberOptions(field).find(o => o.value === id)?.label ?? id).join(', ') || '—' }}
+            {{ getFieldMemberIds(field.id).map(id => getMemberOptions(field).find(o => o.value === id)?.label ?? id).join(', ') || '-' }}
           </span>
-          <span v-else class="text-sm">{{ getFieldValue(field.id) || '—' }}</span>
+          <span v-else class="text-sm">{{ getFieldValue(field.id) || '-' }}</span>
         </template>
       </div>
     </div>

@@ -19,7 +19,7 @@ const route = useRoute()
 const pageTitle = computed(() => {
   const name = (route.name as string)?.replace('help-', '') ?? ''
   const key = `pages.${name}.title`
-  return te(key) ? `${t(key)} — ${t('helpCenter.link')}` : t('helpCenter.adminHelp')
+  return te(key) ? `${t(key)} - ${t('helpCenter.link')}` : t('helpCenter.adminHelp')
 })
 
 const {set: setPageHeader} = claimPageHeader()

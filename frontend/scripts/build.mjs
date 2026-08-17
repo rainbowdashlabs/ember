@@ -7,7 +7,7 @@ import { resolve } from 'node:path'
  * production build. Each stage is cheaper than the one after it, so a failure surfaces
  * as early as possible.
  *
- * Linters distinguish errors from warnings — only errors set a non-zero exit code, so the
+ * Linters distinguish errors from warnings - only errors set a non-zero exit code, so the
  * warning backlog prints without blocking. Use `npm run lint:audit` to survey warnings
  * without gating.
  */

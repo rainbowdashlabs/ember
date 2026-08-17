@@ -16,7 +16,7 @@ const props = defineProps<{
 useHead(computed(() => ({
   meta: [
     {name: 'description', content: props.subtitle || `Hilfe-Center: ${props.title}`},
-    {property: 'og:title', content: `${props.title} — Hilfe-Center — Ember`},
+    {property: 'og:title', content: `${props.title} - Hilfe-Center - Ember`},
     {property: 'og:description', content: props.subtitle || `Hilfe-Center: ${props.title}`},
     {property: 'og:type', content: 'article'},
   ],

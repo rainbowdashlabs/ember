@@ -31,8 +31,8 @@ const {t} = useI18n()
       </thead>
       <tbody>
         <tr v-for="h in props.entries" :key="h.id" class="border-b border-(--border) last:border-0">
-          <td class="p-2">{{ h.memberName || '—' }}</td>
-          <td class="p-2 text-(--text-muted)">{{ h.givenOut ? formatDate(h.givenOut) : '—' }}</td>
+          <td class="p-2">{{ h.memberName || '-' }}</td>
+          <td class="p-2 text-(--text-muted)">{{ h.givenOut ? formatDate(h.givenOut) : '-' }}</td>
           <td class="p-2 text-(--text-muted)">{{ h.returned ? formatDate(h.returned) : t('itemDetail.current') }}</td>
         </tr>
       </tbody>

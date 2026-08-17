@@ -197,10 +197,10 @@ class PageServiceTest extends RepositoryTestBase {
     @Test
     @Order(12)
     void landingPageValidation() {
-        // Page does not exist (raw IllegalArgumentException — masked to generic 400 by the route handler)
+        // Page does not exist (raw IllegalArgumentException - masked to generic 400 by the route handler)
         assertThrows(IllegalArgumentException.class, () -> service.setLandingPage(station.id(), 99999));
 
-        // Page not published — user-facing BadRequestResponse so the message is preserved
+        // Page not published - user-facing BadRequestResponse so the message is preserved
         service.setPublished(pageId, false);
         assertThrows(BadRequestResponse.class, () -> service.setLandingPage(station.id(), pageId));
         service.setPublished(pageId, true);
@@ -238,7 +238,7 @@ class PageServiceTest extends RepositoryTestBase {
         service.setPublished(childPageId, true);
         var grandchild = service.create(station.id(), "Grandchild", childPageId, member.id());
 
-        // Depth 3 would be exceeded — user-facing BadRequestResponse
+        // Depth 3 would be exceeded - user-facing BadRequestResponse
         assertThrows(
                 BadRequestResponse.class,
                 () -> service.create(station.id(), "GreatGrandchild", grandchild.id(), member.id()));

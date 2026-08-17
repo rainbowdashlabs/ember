@@ -34,7 +34,7 @@ public final class ScoreEvaluator {
         dummyVars.put("wartezeit_quartale", "1");
         dummyVars.put("wartezeit_jahre", "1");
         try {
-            // Preprocess age([field]) calls — replace with dummy number
+            // Preprocess age([field]) calls - replace with dummy number
             String processed = formula.replaceAll("age\\(\\[[^]]+]\\)", "1");
             String substituted = substituteVariables(processed, dummyVars);
             var tokens = tokenize(substituted);
@@ -247,7 +247,7 @@ public final class ScoreEvaluator {
             }
             if (t instanceof TStr(String value)) {
                 advance();
-                // Strings evaluate to a hash for comparison — two equal strings produce the same value
+                // Strings evaluate to a hash for comparison - two equal strings produce the same value
                 return value.hashCode();
             }
             if (matchOp("(")) {

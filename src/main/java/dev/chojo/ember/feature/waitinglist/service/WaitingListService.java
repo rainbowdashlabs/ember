@@ -639,7 +639,7 @@ public class WaitingListService {
         variables.put("wartezeit_quartale", String.valueOf(waitingDays / 91));
         variables.put("wartezeit_jahre", String.valueOf(waitingDays / 365));
 
-        // Preprocess age([fieldname]) function calls — replace with computed age value
+        // Preprocess age([fieldname]) function calls - replace with computed age value
         String processedFormula = formula;
         var agePattern = Pattern.compile("age\\(\\[([^]]+)]\\)");
         var matcher = agePattern.matcher(processedFormula);

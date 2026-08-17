@@ -9,7 +9,7 @@ import {test as base, type APIRequestContext, type Browser, type Page} from '@pl
  * A logged-in page per role, each in its own browser context.
  *
  * Separate contexts rather than separate tests: the permission stories need a manager and a member
- * live at the same time — grant on one, observe on the other — and a shared context would share the
+ * live at the same time - grant on one, observe on the other - and a shared context would share the
  * session token, which is exactly what those stories must not do.
  *
  * The session is obtained through the demo login endpoint rather than by clicking through the
@@ -84,7 +84,7 @@ export async function accountWithout(
  *
  * The two-actor stories are only meaningful inside one station: a manager granting a permission in
  * one station and a member watching from another proves nothing, and picking each role
- * independently is exactly how that happens — the seeder has several stations and not all of them
+ * independently is exactly how that happens - the seeder has several stations and not all of them
  * have members.
  *
  * Both must carry an address to log in with: a station holds members who never sign in themselves,
@@ -128,12 +128,12 @@ export function storageStatePath(role: string): string {
  *
  * The application sends them from what it keeps in the browser; a request made straight from the
  * page carries neither, and the server answers it as if nobody had signed in. A story that reads an
- * endpoint rather than a screen — because what it is about is the endpoint refusing — asks for these
+ * endpoint rather than a screen - because what it is about is the endpoint refusing - asks for these
  * first.
  */
 export async function apiHeaders(page: Page): Promise<Record<string, string>> {
     // What the page keeps is planted as the application starts, and a page that has not been
-    // anywhere yet has no storage to read at all — asking one refuses outright.
+    // anywhere yet has no storage to read at all - asking one refuses outright.
     if (page.url() === 'about:blank') await page.goto('/station/dashboard/overview')
 
     const session = await page.evaluate(() => ({
@@ -163,7 +163,7 @@ export async function pageAs(browser: Browser, role: 'manager' | 'member' | 'adm
  * A page logged in as an account nobody else is using.
  *
  * The stored sessions are shared by every story that asks for a role, so a story that ends a
- * session — logging out is the obvious one — would pull the ground from under every other story
+ * session - logging out is the obvious one - would pull the ground from under every other story
  * running at that moment. Such a story takes an account of its own instead, and logs it in itself.
  */
 export async function pageAsThrowaway(

@@ -19,7 +19,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * Represents a news article published within a station.
  *
  * @param id              unique identifier of the news entry
- * @param publicUid       stable opaque public identifier (UUID) — survives station transfer and is what
+ * @param publicUid       stable opaque public identifier (UUID) - survives station transfer and is what
  *                        public page cells / external deep-links reference
  * @param stationId       the station this news belongs to
  * @param title           headline of the news article

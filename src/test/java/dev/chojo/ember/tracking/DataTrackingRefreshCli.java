@@ -55,9 +55,9 @@ public final class DataTrackingRefreshCli {
             summary.log(log);
 
             if (summary.totalChanges() > 0) {
-                log.info("Done — review changes with: git diff {}", TARGET_PATH);
+                log.info("Done - review changes with: git diff {}", TARGET_PATH);
             } else {
-                log.info("Done — no changes detected.");
+                log.info("Done - no changes detected.");
             }
         }
     }

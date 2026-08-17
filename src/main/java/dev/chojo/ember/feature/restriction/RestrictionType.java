@@ -11,7 +11,7 @@ import dev.chojo.ember.api.auth.StationPermission;
  * Defines the restriction table, foreign key column, entity table, entity ID column,
  * and management permission for each entity type that supports restrictions.
  * <p>
- * The management permission is checked in Java (not SQL) —
+ * The management permission is checked in Java (not SQL) -
  * a member with this permission bypasses restrictions entirely.
  */
 public enum RestrictionType {

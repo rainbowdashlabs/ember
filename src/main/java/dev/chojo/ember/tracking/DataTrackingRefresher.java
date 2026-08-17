@@ -61,7 +61,7 @@ public final class DataTrackingRefresher {
                     existing.tables() == null ? null : existing.tables().get(name);
 
             if (oldEntry == null) {
-                // New table — all UNVERIFIED, all columns unverified.
+                // New table - all UNVERIFIED, all columns unverified.
                 // Descriptions from PG flow through here unchanged; they don't affect verification.
                 var columns = rawTable.columns.stream()
                         .map(c -> new ColumnEntry(c.name(), c.type(), c.nullable(), false, c.description()))
@@ -86,7 +86,7 @@ public final class DataTrackingRefresher {
                 continue;
             }
 
-            // Existing table — merge columns
+            // Existing table - merge columns
             var oldByName = oldEntry.columns() == null
                     ? Map.<String, ColumnEntry>of()
                     : oldEntry.columns().stream()
@@ -96,18 +96,18 @@ public final class DataTrackingRefresher {
             for (var rawCol : rawTable.columns) {
                 ColumnEntry existingCol = oldByName.get(rawCol.name());
                 if (existingCol == null) {
-                    // New column — unverified
+                    // New column - unverified
                     mergedColumns.add(new ColumnEntry(
                             rawCol.name(), rawCol.type(), rawCol.nullable(), false, rawCol.description()));
                     summary.columnsAdded.add(name + "." + rawCol.name());
                 } else if (!existingCol.type().equals(rawCol.type()) || existingCol.nullable() != rawCol.nullable()) {
-                    // Type or nullability changed — re-verify. Refresh the description too.
+                    // Type or nullability changed - re-verify. Refresh the description too.
                     mergedColumns.add(new ColumnEntry(
                             rawCol.name(), rawCol.type(), rawCol.nullable(), false, rawCol.description()));
                     summary.columnsChanged.add(
                             name + "." + rawCol.name() + " (" + existingCol.type() + " → " + rawCol.type() + ")");
                 } else {
-                    // Unchanged column metadata — preserve the verified flag but refresh the description
+                    // Unchanged column metadata - preserve the verified flag but refresh the description
                     // from the live schema, since descriptions don't participate in verification.
                     mergedColumns.add(new ColumnEntry(
                             existingCol.name(),
@@ -127,7 +127,7 @@ public final class DataTrackingRefresher {
                 }
             }
 
-            // Build merged entry — preserve all context statuses; refresh the table description from
+            // Build merged entry - preserve all context statuses; refresh the table description from
             // the live schema since descriptions don't affect verification.
             var merged = new TableEntry(
                     oldEntry.feature(),
@@ -155,7 +155,7 @@ public final class DataTrackingRefresher {
             }
         }
 
-        // Preserve fileStores as-is — fileStores aren't auto-discoverable
+        // Preserve fileStores as-is - fileStores aren't auto-discoverable
         Map<String, FileStoreEntry> fileStores =
                 existing.fileStores() == null ? new LinkedHashMap<>() : new LinkedHashMap<>(existing.fileStores());
 

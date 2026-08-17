@@ -14,7 +14,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 /**
  * Represents a response to a form. Member-attached responses set {@code memberId}; anonymous
  * public submissions instead populate {@code submitterHash} and leave both member fields as
- * {@code null} / {@code 0}. CONTACT-form submissions additionally track an acknowledgement —
+ * {@code null} / {@code 0}. CONTACT-form submissions additionally track an acknowledgement -
  * {@code acknowledgedAt} / {@code acknowledgedBy} are set the first time a member with
  * {@code PAGE_FORMS_VIEW} marks the submission as handled.
  *

@@ -52,8 +52,8 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.protocolEvaluation.tableText') }}</p>
       <NeutralContainer>
         <MutedText tag="p" size="sm" class="mb-3">
-          Jugendflamme Stufe 1 — 12.04.2025
-          — {{ t('protocol.threshold') }}: 25P
+          Jugendflamme Stufe 1 - 12.04.2025
+          - {{ t('protocol.threshold') }}: 25P
         </MutedText>
         <ComparisonTable />
       </NeutralContainer>

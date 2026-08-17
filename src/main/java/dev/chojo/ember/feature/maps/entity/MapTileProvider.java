@@ -54,7 +54,7 @@ public enum MapTileProvider {
 
     /**
      * Whether this provider can't function without an operator-supplied API key.
-     * {@link #CUSTOM} returns {@code false} — the operator may build a URL template that
+     * {@link #CUSTOM} returns {@code false} - the operator may build a URL template that
      * doesn't reference {@code {k}}.
      */
     public boolean requiresApiKey() {

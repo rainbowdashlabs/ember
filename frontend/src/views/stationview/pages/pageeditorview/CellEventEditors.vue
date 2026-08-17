@@ -71,7 +71,7 @@ async function onFeaturedEventPick(eventUid: string) {
 </script>
 
 <template>
-    <!-- FEATURED_EVENT — pick one public event; title/date/location/CTA all come live from it. -->
+    <!-- FEATURED_EVENT - pick one public event; title/date/location/CTA all come live from it. -->
     <template v-if="kind === 'FEATURED_EVENT'">
         <FieldLabel hint class="mb-1">{{ TS('chooseFeaturedEvent') }}</FieldLabel>
         <EventSearchPicker
@@ -88,7 +88,7 @@ async function onFeaturedEventPick(eventUid: string) {
         />
     </template>
 
-    <!-- UPCOMING_EVENTS — live list filtered by category. -->
+    <!-- UPCOMING_EVENTS - live list filtered by category. -->
     <template v-else-if="kind === 'UPCOMING_EVENTS'">
         <FieldLabel hint class="mb-1">{{ TS('listTitle') }}</FieldLabel>
         <TextInput :model-value="(config.title as string) ?? ''" @update:model-value="patch({title: $event})"/>
@@ -123,7 +123,7 @@ async function onFeaturedEventPick(eventUid: string) {
            class="text-xs text-(--text-muted) mt-1">{{ TS('eventCategoriesAll') }}</p>
     </template>
 
-    <!-- PAST_EVENT_RECAP — pick a past event; title/date/image come live, recap text is editor-supplied. -->
+    <!-- PAST_EVENT_RECAP - pick a past event; title/date/image come live, recap text is editor-supplied. -->
     <template v-else-if="kind === 'PAST_EVENT_RECAP'">
         <FieldLabel hint class="mb-1">{{ TS('choosePastEvent') }}</FieldLabel>
         <EventSearchPicker

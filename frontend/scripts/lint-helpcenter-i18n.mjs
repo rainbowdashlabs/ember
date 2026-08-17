@@ -24,7 +24,7 @@ const offenders = []
 for (const file of files) {
     const content = readFileSync(file, 'utf-8')
     if (/\buseI18n\s*\(/.test(content)) continue
-    // Delegate pages — a thin wrapper whose template renders another *Help component — inherit
+    // Delegate pages - a thin wrapper whose template renders another *Help component - inherit
     // translation through that delegate. The actual t() lives in the shared component.
     if (/<([A-Z][A-Za-z0-9]*Help)\b[^>]*\/?>/.test(content)) continue
     offenders.push(rel(file))

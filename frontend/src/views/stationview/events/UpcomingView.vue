@@ -52,7 +52,7 @@ const dayNames = ['', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag',
 const pad2 = (n: number) => String(n).padStart(2, '0')
 
 /**
- * Today's events are filtered in the browser — unlike the upcoming list, they are a short fixed
+ * Today's events are filtered in the browser - unlike the upcoming list, they are a short fixed
  * set the server already returned in full.
  */
 function matchesTextSearch(ev: StationEvent): boolean {
@@ -106,7 +106,7 @@ function getRegistrationSummary(eventId: number, date: string) {
 /**
  * Build the deep link for an event card. Recurring events must carry the occurrence date so the
  * detail view lands on the correct instance (a weekly drill on the 12th vs the 19th). One-time
- * events skip the date — they only have a single occurrence.
+ * events skip the date - they only have a single occurrence.
  */
 function eventDetailRoute(ev: StationEvent, date: string): RouteLocationRaw {
   if (isRecurringEvent(ev.eventType)) {

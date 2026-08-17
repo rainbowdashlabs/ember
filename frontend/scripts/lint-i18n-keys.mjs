@@ -17,7 +17,7 @@
  *
  * Heuristics:
  *   - Dynamic keys (template literals, string concatenation, computed keys)
- *     are skipped — there's no static analysis that resolves them
+ *     are skipped - there's no static analysis that resolves them
  *     reliably without an AST. Both ends of the check therefore err on
  *     the side of false negatives over false positives.
  *   - Keys that are themselves dynamic prefixes (e.g. `pages.${name}.title`)
@@ -35,7 +35,7 @@
  *     combination that spells a defined key counts as a reference. Only
  *     combinations that are actually defined register, so a prefix and a tail
  *     that never meet in the locale rescue nothing.
- *   - tm() resolves a whole message subtree — every leaf below the key it is
+ *   - tm() resolves a whole message subtree - every leaf below the key it is
  *     given counts as referenced.
  *   - A plain string literal that is character-for-character a defined key
  *     counts as a reference. Route tables, error-code maps and *Key props pass
@@ -254,7 +254,7 @@ const TOP_LEVEL_NAMESPACES = new Set([...definedKeys].map(key => key.split('.')[
  * frontend copies only `frontend/`, so there the answer is no and every cross-check below has
  * nothing to read. That is a property of the checkout, not a defect in the locale, so those
  * checks stand down instead of failing. A *missing individual file* inside a full checkout
- * still errors — that one means a rename nobody followed here.
+ * still errors - that one means a rename nobody followed here.
  *
  * The unused-key scan stands down with them: the backend files are one of the two places a key
  * can be referenced from, so without them every key only the backend sends reads as unused.
@@ -334,7 +334,7 @@ if (!backendSourcesPresent) {
     warn(
         I18N_FILE,
         0,
-        'backend sources are not in this checkout — the cross-checks against the Java enums and payloads, '
+        'backend sources are not in this checkout - the cross-checks against the Java enums and payloads, '
         + 'and the unused-key scan that depends on them, are skipped',
         CAT_MISSING,
     )

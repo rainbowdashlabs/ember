@@ -9,7 +9,7 @@ import java.util.Optional;
 
 /**
  * Connection settings for {@link SftpStorageBackend}. {@code password} and {@code privateKey}
- * are mutually exclusive — exactly one must be set; both empty or both populated is rejected
+ * are mutually exclusive - exactly one must be set; both empty or both populated is rejected
  * by the backend constructor.
  *
  * <p>{@code knownHostsFingerprint} is the server's expected SSH host key fingerprint (e.g.
@@ -48,7 +48,7 @@ public record SftpBackendConfig(
     }
 
     /**
-     * Whether the config skips host-key verification — only valid in dev.
+     * Whether the config skips host-key verification - only valid in dev.
      */
     public boolean trustsAnyHost() {
         return knownHostsFingerprint == null || knownHostsFingerprint.isBlank();

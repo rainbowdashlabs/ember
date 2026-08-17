@@ -6,7 +6,7 @@
 import {type Ref, unref} from 'vue'
 
 /**
- * Source of the current configuration object — either the raw `props.config`
+ * Source of the current configuration object - either the raw `props.config`
  * value (when used inline as `useConfigPatch(() => props.config, emit)`) or a
  * Vue ref/computed wrapping it. Both shapes are unwrapped per call so the
  * helper always emits a merge against the freshest snapshot.
@@ -15,7 +15,7 @@ export type ConfigSource<T extends Record<string, unknown>> = T | Ref<T> | (() =
 
 /**
  * Emitter shape produced by `defineEmits<{'update:config': [value: T], ...}>()`.
- * Only the `update:config` overload is required — components that emit
+ * Only the `update:config` overload is required - components that emit
  * additional events keep their own typed emitter and remain assignable
  * because intersection function types narrow to either individual overload.
  */

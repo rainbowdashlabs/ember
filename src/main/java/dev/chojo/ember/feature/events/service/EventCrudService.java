@@ -63,7 +63,7 @@ public class EventCrudService {
     }
 
     /**
-     * Bulk-resolves the public UUIDs for a set of event ids — see
+     * Bulk-resolves the public UUIDs for a set of event ids - see
      * {@link EventRepository#findPublicUidsByIds}.
      */
     public Map<Integer, UUID> findPublicUidsByIds(int stationId, Collection<Integer> ids) {
@@ -71,7 +71,7 @@ public class EventCrudService {
     }
 
     /**
-     * Resolves a single station event by its public UUID — used by cell renderers.
+     * Resolves a single station event by its public UUID - used by cell renderers.
      */
     public Optional<StationEvent> findByPublicUid(int stationId, UUID publicUid) {
         return eventRepository.findByPublicUid(stationId, publicUid);

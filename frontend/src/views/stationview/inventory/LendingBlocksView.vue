@@ -75,7 +75,7 @@ const groupedBlocks = computed<GroupedBlock[]>(() => {
       // Full block (all inventories)
       group.isFullBlock = true
     } else if (block.itemId) {
-      // Specific item — add to its inventory group
+      // Specific item - add to its inventory group
       let inv = group.inventories.find(i => i.inventoryId === block.inventoryId)
       if (!inv) {
         inv = {inventoryId: block.inventoryId, inventoryName: getInventoryName(block.inventoryId), allItems: false, items: []}

@@ -95,7 +95,7 @@ public class BrowserStorageService {
             for (var entry : group.getValue()) {
                 out.append("- **`")
                         .append(entry.key())
-                        .append("`** — ")
+                        .append("`** - ")
                         .append(entry.purpose().get(locale))
                         .append(" *(")
                         .append(text.retention().get(entry.retention()).get(locale))

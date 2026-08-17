@@ -53,14 +53,14 @@ public class DemoLostAndFoundSeeder implements DemoSeeder {
         if (betreuer.isEmpty()) return null;
         int finder = betreuer.getFirst().id();
 
-        // An unclaimed item — produces a LOST_AND_FOUND_NEW notification for every member.
+        // An unclaimed item - produces a LOST_AND_FOUND_NEW notification for every member.
         var jacket = service.create(
                 stationId,
                 "Blaue Jacke Größe M, im Geräteraum gefunden",
                 LocalDate.now().minusDays(2),
                 finder);
 
-        // A second item that's been claimed — produces both LOST_AND_FOUND_NEW (on create) and
+        // A second item that's been claimed - produces both LOST_AND_FOUND_NEW (on create) and
         // LOST_AND_FOUND_CLAIMED (on claim, sent to LOST_AND_FOUND_MANAGER members).
         var helmet =
                 service.create(stationId, "Roter Helm Größe S", LocalDate.now().minusDays(5), finder);

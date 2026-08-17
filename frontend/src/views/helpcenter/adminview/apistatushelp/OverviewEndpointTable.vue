@@ -50,9 +50,9 @@ const {t} = useI18n()
             <span class="font-semibold mr-1 text-blue-600">POST</span>/api/v1/mail/send
           </td>
           <Td dense align="right" class="tabular-nums">3</Td>
-          <Td dense align="right" class="tabular-nums">—</Td>
-          <Td dense muted align="right" class="tabular-nums">—</Td>
-          <Td dense muted align="right" class="tabular-nums">—</Td>
+          <Td dense align="right" class="tabular-nums">-</Td>
+          <Td dense muted align="right" class="tabular-nums">-</Td>
+          <Td dense muted align="right" class="tabular-nums">-</Td>
           <td class="py-2 text-right tabular-nums text-red-500 font-semibold">100.0%</td>
         </tr>
       </tbody>

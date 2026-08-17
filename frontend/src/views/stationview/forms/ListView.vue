@@ -50,8 +50,8 @@ const route = useRoute()
 const { hasPermission, loaded } = useSession()
 
 /**
- * Three routes render this view — the general forms list and the page-editor's contact-form and
- * poll surfaces — so the header title has to follow the route rather than being fixed to the
+ * Three routes render this view - the general forms list and the page-editor's contact-form and
+ * poll surfaces - so the header title has to follow the route rather than being fixed to the
  * general one. Each route owns a {@code pages.<route-name>} entry.
  */
 const pageTitle = computed(() => t(`pages.${String(route.name)}.title`))

@@ -20,7 +20,7 @@ import java.util.Set;
  * Simple synchronous event bus for domain events.
  * <p>
  * Handlers are registered via Guice multibinding and auto-subscribed on construction.
- * Events are dispatched synchronously — handlers run in the caller's thread.
+ * Events are dispatched synchronously - handlers run in the caller's thread.
  * Handler exceptions are logged and do not propagate to the publisher.
  */
 @Singleton

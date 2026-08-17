@@ -58,7 +58,7 @@ function onCancelled() {
   <div class="space-y-6">
     <Alert v-if="event.cancelled" variant="error">
       <span class="font-bold">{{ t('events.cancelled') }}</span>
-      <span v-if="event.cancelReason"> — {{ event.cancelReason }}</span>
+      <span v-if="event.cancelReason"> - {{ event.cancelReason }}</span>
       <span v-if="event.cancelledAt" class="text-xs opacity-75 ml-2">{{ formatDateTime(event.cancelledAt) }}</span>
     </Alert>
 

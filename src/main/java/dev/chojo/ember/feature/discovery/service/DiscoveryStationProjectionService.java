@@ -23,10 +23,10 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 /**
  * Projects local stations into the {@link DiscoveryStationCard} format used by the public
  * stations endpoint. Only {@link DiscoveryVisibility#PUBLIC PUBLIC} stations leak out via
- * this projection — the {@code INSTANCE} and {@code NONE} scopes are filtered server-side.
+ * this projection - the {@code INSTANCE} and {@code NONE} scopes are filtered server-side.
  *
  * <p>Country, region, city and tags are placeholders until the station schema grows columns
- * for those — once the admin UI exposes them they can be wired in here without a wire-format
+ * for those - once the admin UI exposes them they can be wired in here without a wire-format
  * change.
  */
 @Singleton

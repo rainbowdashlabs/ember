@@ -47,7 +47,7 @@ public class EventThresholdChecker {
             var events = eventRepository.findAutoCancel();
             for (var event : events) {
                 if (!readOnlyGuard.isWritable(event.stationId())) continue;
-                log.info("Auto-cancelling event {} (id={}) — threshold not met", event.name(), event.id());
+                log.info("Auto-cancelling event {} (id={}) - threshold not met", event.name(), event.id());
                 crudService.cancelEvent(
                         event.stationId(),
                         event.id(),

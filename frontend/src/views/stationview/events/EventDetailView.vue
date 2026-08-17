@@ -62,8 +62,8 @@ const nextOccurrenceDate = computed(() => {
 
 /**
  * The single date this view is bound to. Priority:
- *   1. {@link focusedDate} from the URL path — explicit user / notification deep link.
- *   2. {@link nextOccurrenceDate} for a recurring event without a path date — sensible default.
+ *   1. {@link focusedDate} from the URL path - explicit user / notification deep link.
+ *   2. {@link nextOccurrenceDate} for a recurring event without a path date - sensible default.
  *   3. The event's {@code startTime} date for one-time events.
  *
  * Every downstream lookup (absences, registrations, start/end formatting) reads from this so the

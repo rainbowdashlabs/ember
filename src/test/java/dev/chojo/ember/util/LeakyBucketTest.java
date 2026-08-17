@@ -47,7 +47,7 @@ class LeakyBucketTest {
         assertTrue(bucket.tryAcquire("k").isPresent());
 
         clock.advanceSeconds(10);
-        // Capacity cap is honoured — only 2 tokens are available, not 10.
+        // Capacity cap is honoured - only 2 tokens are available, not 10.
         assertTrue(bucket.tryAcquire("k").isEmpty());
         assertTrue(bucket.tryAcquire("k").isEmpty());
         assertTrue(bucket.tryAcquire("k").isPresent(), "Cannot exceed capacity even after a long idle");

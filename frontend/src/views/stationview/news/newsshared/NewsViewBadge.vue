@@ -26,7 +26,7 @@ async function fetchCount() {
   try {
     count.value = await newsApi.getNewsViewCount(props.newsId)
   } catch {
-    // Best-effort — fall back to whatever we last had.
+    // Best-effort - fall back to whatever we last had.
   }
 }
 

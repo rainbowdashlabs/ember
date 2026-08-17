@@ -81,13 +81,13 @@ public class NewsService {
      * paragraph break) so the feed renderer can re-flow it as multi-line HTML. Markdown
      * tables are converted to {@code "col · col · col"} lines so they read as structured
      * key/value pairs instead of dumping raw {@code |} characters. The renderer applies its
-     * own length cap on top — we just hand it readable plain text. Returns {@code null}
+     * own length cap on top - we just hand it readable plain text. Returns {@code null}
      * when the input is blank.
      */
     static String previewOf(String markdown) {
         if (markdown == null || markdown.isBlank()) return null;
         String stripped = markdown
-                // Fenced code blocks add nothing useful in plain text — drop them entirely.
+                // Fenced code blocks add nothing useful in plain text - drop them entirely.
                 .replaceAll("(?s)```.*?```", "")
                 // `[label](url)` → keep the label.
                 .replaceAll("\\[([^\\]]+)]\\([^)]+\\)", "$1")
@@ -105,7 +105,7 @@ public class NewsService {
                 .replaceAll("(?m)^\\s*>\\s+", "")
                 // Inline emphasis / inline-code markers.
                 .replaceAll("[*_`]+", "")
-                // Bullet / numbered list markers at line start — keep a bullet glyph so the
+                // Bullet / numbered list markers at line start - keep a bullet glyph so the
                 // structure survives the strip.
                 .replaceAll("(?m)^\\s*[-+]\\s+", "• ")
                 .replaceAll("(?m)^\\s*\\d+\\.\\s+", "")
@@ -250,7 +250,7 @@ public class NewsService {
     }
 
     /**
-     * Records that a member fully saw a news entry in their viewport. Idempotent —
+     * Records that a member fully saw a news entry in their viewport. Idempotent -
      * repeated views by the same member are silently ignored.
      */
     public void recordView(int newsId, int memberId) {

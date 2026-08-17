@@ -672,7 +672,7 @@ public class DemoMemberSeeder implements DemoSeeder {
 
     /**
      * Result of member seeding, containing all created member groups and lists needed by other seeders.
-     * The {@code head} is the station's primary manager — used by downstream seeders as the
+     * The {@code head} is the station's primary manager - used by downstream seeders as the
      * creator / owner of station-scoped content (news, events, KB, pages, …).
      */
     public record SeedResult(

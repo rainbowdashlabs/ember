@@ -49,7 +49,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Acceptance tests for the per-station backend migration. Two on-disk roots stand in for the
- * instance default and a station override — both LOCAL — which exercises the byte copy, the
+ * instance default and a station override - both LOCAL - which exercises the byte copy, the
  * SHA-256 skip on retry, the sample-verify, the override-row flip and the lock semantics
  * without needing a real remote target.
  */
@@ -264,7 +264,7 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * An unknown station id fails loudly and — importantly — releases the lock it took, so a
+     * An unknown station id fails loudly and - importantly - releases the lock it took, so a
      * retry after the caller fixes the id is not blocked forever.
      */
     @Test

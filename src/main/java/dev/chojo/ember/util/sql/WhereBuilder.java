@@ -15,12 +15,12 @@ import java.util.stream.Collectors;
 /**
  * Assembles the optional part of a {@code WHERE} clause. Every predicate is registered
  * together with the parameters it references, so a fragment can never be added without its
- * binds — the failure mode of the hand-rolled variant, where a ternary-produced fragment and
+ * binds - the failure mode of the hand-rolled variant, where a ternary-produced fragment and
  * a separate {@code if (value != null) call = call.bind(...)} drift apart and the statement
  * fails at runtime with a missing parameter.
  *
  * <p>Fragments must be trusted compile-time constants; they are placed into a {@code %s} slot
- * of the statement. Values never reach the statement text — they always travel as named binds
+ * of the statement. Values never reach the statement text - they always travel as named binds
  * applied through {@link #apply(Call)}. Predicates whose value is {@code null} are dropped
  * entirely, so an absent filter widens the result instead of matching {@code IS NULL}.
  *

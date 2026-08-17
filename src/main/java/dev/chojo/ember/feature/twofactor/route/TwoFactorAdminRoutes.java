@@ -255,7 +255,7 @@ public class TwoFactorAdminRoutes implements Routes {
         int stationId = actor.stationIdOpt()
                 .orElseThrow(() -> new ForbiddenResponse("A station must be selected to reset 2FA on a member"));
 
-        // The target must be a member of the caller's station and must not be an instance admin —
+        // The target must be a member of the caller's station and must not be an instance admin -
         // station admins can only act on people they actually manage.
         var membership = stationMemberRepository.findByStationAndAccount(stationId, targetId);
         if (membership.isEmpty()) {

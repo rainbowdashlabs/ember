@@ -19,8 +19,8 @@ import jakarta.inject.Singleton;
 import java.util.UUID;
 
 /**
- * Resolves the identifiers a federated board request is expressed in — partner record, board key
- * and ticket number — into the local database ids of the owning station, and caches the display
+ * Resolves the identifiers a federated board request is expressed in - partner record, board key
+ * and ticket number - into the local database ids of the owning station, and caches the display
  * names partners send along with their requests.
  */
 @Singleton

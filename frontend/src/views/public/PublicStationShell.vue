@@ -109,7 +109,7 @@ useHead(computed(() => {
     title: s.name,
     meta: [
       {name: 'description', content: desc},
-      {property: 'og:title', content: `${s.name} — Ember`},
+      {property: 'og:title', content: `${s.name} - Ember`},
       {property: 'og:description', content: desc},
       {property: 'og:type', content: 'website'},
       ...(stationLogo ? [
@@ -117,7 +117,7 @@ useHead(computed(() => {
         {name: 'twitter:image', content: stationLogo},
       ] : []),
       {name: 'twitter:card', content: stationLogo ? 'summary_large_image' : 'summary'},
-      {name: 'twitter:title', content: `${s.name} — Ember`},
+      {name: 'twitter:title', content: `${s.name} - Ember`},
       {name: 'twitter:description', content: desc},
     ],
     script: [

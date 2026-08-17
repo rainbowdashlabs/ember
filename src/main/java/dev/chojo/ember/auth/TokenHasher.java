@@ -25,7 +25,7 @@ import javax.crypto.spec.SecretKeySpec;
  * <p>Stored tokens are hashed with {@code HMAC-SHA-256} using a server-side
  * pepper loaded from {@link Auth#tokenPepper()}. A database-only compromise
  * (SQL injection, backup leak, replica misconfiguration) does not yield usable
- * tokens — the attacker also needs the application secret.
+ * tokens - the attacker also needs the application secret.
  *
  * <p>The raw token format is unchanged on the wire. Only the database write
  * path is hashed; lookups by raw token go through {@link #hash(String)} before

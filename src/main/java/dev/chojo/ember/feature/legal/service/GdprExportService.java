@@ -43,7 +43,7 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  * <p>The bulk of the export is generated from {@code data_tracking.json}: every TRACKED
  * {@code gdprExport} entry whose {@code identityColumns} match the requested identity becomes a
  * query produced by {@link GenericGdprExporter}. The resulting JSON is keyed by DB table name.
- * The previous hand-coded queries with descriptive section names have been replaced — the source
+ * The previous hand-coded queries with descriptive section names have been replaced - the source
  * of truth for what gets exported is now {@code data_tracking.json}.
  */
 @Singleton
@@ -71,7 +71,7 @@ public class GdprExportService {
         try {
             t = DataTrackingLoader.loadFromClasspath();
         } catch (IOException e) {
-            log.warn("Could not load data_tracking.json — GDPR export will be empty", e);
+            log.warn("Could not load data_tracking.json - GDPR export will be empty", e);
             t = DataTrackingLoader.empty();
         }
         this.engine = new GenericGdprExporter(t);
@@ -161,7 +161,7 @@ public class GdprExportService {
     /**
      * Returns the member's data as {@code memberId}, {@code stationId}, {@code former}, plus a
      * {@code memberTables} map (rows where {@code MEMBER_ID} matches) and a {@code memberUidTables}
-     * map (rows where {@code MEMBER_UID} matches — used by federation-aware columns like
+     * map (rows where {@code MEMBER_UID} matches - used by federation-aware columns like
      * {@code news.author_member_uid}). Empty maps when no TRACKED row references the member.
      */
     private Map<String, Object> exportMemberData(StationMember member) {
@@ -175,7 +175,7 @@ public class GdprExportService {
         // Tables matching by integer member_id (most of the per-member data).
         data.put("memberTables", engine.exportByIdentity(IdentityType.MEMBER_ID, mid));
 
-        // Tables matching by member UUID — federation-aware columns like news.author_member_uid or
+        // Tables matching by member UUID - federation-aware columns like news.author_member_uid or
         // board_ticket.creator_member_uid carry the UUID instead of the int id.
         UUID memberUid = memberLookupService.resolveUid(mid);
         data.put(

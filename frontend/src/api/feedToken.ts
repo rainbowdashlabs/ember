@@ -50,9 +50,9 @@ export async function getFeedStatus(): Promise<FeedStatusResponse> {
 
 /**
  * Verbosity preset that maps to the backend's `?verbose` / `?images` query parameters:
- * - `rich` — full body, embedded imagery, MediaRSS thumbnails (default)
- * - `compact` — headline + deep link only, still keeps imagery for readers that surface it
- * - `minimal` — headline + link only, no inline images or MediaRSS modules
+ * - `rich` - full body, embedded imagery, MediaRSS thumbnails (default)
+ * - `compact` - headline + deep link only, still keeps imagery for readers that surface it
+ * - `minimal` - headline + link only, no inline images or MediaRSS modules
  *
  * The backend treats missing params as "rich", so we only emit the params that override
  * the default.

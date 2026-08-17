@@ -25,7 +25,7 @@ const props = defineProps<{
 const {t} = useI18n()
 
 function sizeLabel(sizeId?: number | null): string {
-  if (sizeId == null) return '—'
+  if (sizeId == null) return '-'
   return props.sizes.find(s => s.id === sizeId)?.label ?? String(sizeId)
 }
 </script>

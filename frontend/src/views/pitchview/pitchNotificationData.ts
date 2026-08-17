@@ -39,7 +39,7 @@ export const NOTIFICATION_FEEDS = [
         icon: ['fas', 'calendar-days'] as [string, string],
         title: 'iCal-Kalender',
         helpRouteName: 'help-profile-ical-feed',
-        hint: 'Abonniere deine Termine direkt im Kalender — neue und geänderte Termine erscheinen ohne Zutun.',
+        hint: 'Abonniere deine Termine direkt im Kalender - neue und geänderte Termine erscheinen ohne Zutun.',
         url: 'https://musterstadt.example/api/v1/feed/ical/8f3c…a91/rich',
         recommended: true,
         recommendedLabel: 'Empfohlen',
@@ -48,7 +48,7 @@ export const NOTIFICATION_FEEDS = [
         icon: ['fas', 'rss'] as [string, string],
         title: 'Atom-Feed',
         helpRouteName: 'help-profile-rss-feed',
-        hint: 'Dein persönlicher Benachrichtigungsstrom für jeden Reader — mit Autor, Kategorien und Vorschaubildern.',
+        hint: 'Dein persönlicher Benachrichtigungsstrom für jeden Reader - mit Autor, Kategorien und Vorschaubildern.',
         url: 'https://musterstadt.example/api/v1/feed/atom/8f3c…a91/compact',
     },
 ]

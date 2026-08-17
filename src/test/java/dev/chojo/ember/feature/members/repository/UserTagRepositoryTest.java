@@ -92,7 +92,7 @@ class UserTagRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(11)
     void addMemberIdempotent() {
-        // ON CONFLICT DO NOTHING — should not throw
+        // ON CONFLICT DO NOTHING - should not throw
         userTagRepo.addMember(tagId, member.id());
         assertEquals(1, userTagRepo.findTagsForMember(member.id()).size());
     }

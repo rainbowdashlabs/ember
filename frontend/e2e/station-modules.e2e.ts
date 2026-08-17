@@ -13,7 +13,7 @@ import {sidebar, sidebarEntry} from './fixtures/sidebar'
  * to stop offering it, or the reader is sent to a page that refuses them.
  *
  * Two things make these stories safe to run beside the rest of the suite. They act on a *second*
- * station — the seeded partner — because a station missing its inventory for a second is a station
+ * station - the seeded partner - because a station missing its inventory for a second is a station
  * every other story would trip over. And they run one after another within this file: the setting
  * is one list of disabled modules, so two stories toggling at once would each overwrite what the
  * other just wrote.

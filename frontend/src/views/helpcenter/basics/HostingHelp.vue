@@ -58,12 +58,12 @@ const requirements = [
     <HelpSection :title="t('helpCenter.basics.hosting.dataDir')">
       <p>{{ t('helpCenter.basics.hosting.dataDirText') }}</p>
       <BulletList>
-        <li><code>data/documents/</code> — {{ t('helpCenter.basics.hosting.dataLegal') }}</li>
-        <li><code>data/station/&lt;id&gt;/</code> — {{ t('helpCenter.basics.hosting.dataStation') }}</li>
-        <li><code>data/account/&lt;id&gt;/</code> — {{ t('helpCenter.basics.hosting.dataAccount') }}</li>
-        <li><code>data/inst/</code> — {{ t('helpCenter.basics.hosting.dataInst') }}</li>
-        <li><code>data/discovery/</code> — {{ t('helpCenter.basics.hosting.dataDiscovery') }}</li>
-        <li><code>data/maps/</code> — {{ t('helpCenter.basics.hosting.dataMaps') }}</li>
+        <li><code>data/documents/</code> - {{ t('helpCenter.basics.hosting.dataLegal') }}</li>
+        <li><code>data/station/&lt;id&gt;/</code> - {{ t('helpCenter.basics.hosting.dataStation') }}</li>
+        <li><code>data/account/&lt;id&gt;/</code> - {{ t('helpCenter.basics.hosting.dataAccount') }}</li>
+        <li><code>data/inst/</code> - {{ t('helpCenter.basics.hosting.dataInst') }}</li>
+        <li><code>data/discovery/</code> - {{ t('helpCenter.basics.hosting.dataDiscovery') }}</li>
+        <li><code>data/maps/</code> - {{ t('helpCenter.basics.hosting.dataMaps') }}</li>
       </BulletList>
       <p class="mt-2 text-sm">{{ t('helpCenter.basics.hosting.dataDirText2') }}</p>
       <p class="mt-2 text-sm">{{ t('helpCenter.basics.hosting.dataDirText3') }}</p>

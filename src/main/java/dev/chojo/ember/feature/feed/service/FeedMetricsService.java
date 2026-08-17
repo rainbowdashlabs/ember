@@ -58,7 +58,7 @@ public class FeedMetricsService {
     }
 
     /**
-     * Asynchronously records a finished feed render. Safe to call from the request thread —
+     * Asynchronously records a finished feed render. Safe to call from the request thread -
      * the actual DB work happens off-thread.
      */
     public void recordRender(String type, int status, long durationMs, int entryCount, String userAgent) {

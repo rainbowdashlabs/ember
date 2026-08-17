@@ -27,7 +27,7 @@ test.describe('Attendance', () => {
         await page.waitForURL(/\/station\/attendance\/session\/\d+/)
 
         // Whoever is already present has that button switched off, so the story marks someone who
-        // is not — and afterwards their button is the one switched off.
+        // is not - and afterwards their button is the one switched off.
         const unmarked = page.locator('button[aria-label="Anwesend"]:not([disabled])').first()
         await expect(unmarked).toBeVisible()
         await unmarked.click()
@@ -50,7 +50,7 @@ test.describe('Attendance', () => {
     })
 
     /**
-     * Sessions are not closed by hand — an evening simply ends, and what makes it findable
+     * Sessions are not closed by hand - an evening simply ends, and what makes it findable
      * afterwards is the past list. The story opens one and looks for it there.
      */
     test('a session that was opened is found again among the past ones', async ({managerPage: page}) => {

@@ -44,7 +44,7 @@ test.describe('Members', () => {
     })
 
     /**
-     * Somebody the station still has something with cannot simply be written off — equipment in
+     * Somebody the station still has something with cannot simply be written off - equipment in
      * their hands, profiles in their care. The page refuses and says what stands in the way, and
      * the reason being given is the part worth holding.
      *
@@ -79,8 +79,8 @@ test.describe('Members', () => {
             const refused = await warning.waitFor({state: 'visible', timeout: 5_000}).then(() => true, () => false)
             if (!refused) continue
 
-            // What stands in the way differs from person to person — equipment they hold, profiles
-            // they look after — so the story holds the page to naming something rather than to one
+            // What stands in the way differs from person to person - equipment they hold, profiles
+            // they look after - so the story holds the page to naming something rather than to one
             // reason.
             await expect(page.getByRole('listitem').first()).toBeVisible()
             return
@@ -91,7 +91,7 @@ test.describe('Members', () => {
 
     /**
      * Somebody who joined and left again without ever taking anything out has nothing standing in
-     * the way, so the same button confirms rather than warns — and they leave the active list.
+     * the way, so the same button confirms rather than warns - and they leave the active list.
      */
     test('a member with nothing outstanding is marked former', async ({managerPage: page}) => {
         const surname = unique('Abschied')
@@ -137,7 +137,7 @@ test.describe('Members', () => {
 
     /**
      * A member's own details are the point of the member list. The story creates somebody, changes
-     * their name and looks at the change from the detail page — where whoever needs it reads it,
+     * their name and looks at the change from the detail page - where whoever needs it reads it,
      * rather than in the form that wrote it.
      */
     test('the details of a member are edited', async ({managerPage: page}) => {
@@ -249,7 +249,7 @@ test.describe('Members', () => {
 
     /**
      * A station that has to hand a list of its members to somebody else exports one. The story
-     * walks the whole picking — export mode, a member, the columns — and takes the file, because a
+     * walks the whole picking - export mode, a member, the columns - and takes the file, because a
      * file with nothing in it looks like a success until it is opened.
      */
     test('the member list exports a file', async ({managerPage: page}) => {

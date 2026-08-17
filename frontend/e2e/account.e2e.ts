@@ -9,7 +9,7 @@ import {test, expect, accountWithout, pageAsThrowaway, stationPeers} from './fix
  * Logging in is the one story that walks the login screen itself; every other story in the suite
  * takes its session from the fixture instead.
  *
- * Logging out ends a session, and the stored sessions are shared by the whole suite — so that story
+ * Logging out ends a session, and the stored sessions are shared by the whole suite - so that story
  * takes an account nobody else is using. Ending someone else's session mid-run makes every member story in
  * flight fail at once, and looks exactly like flakiness.
  */

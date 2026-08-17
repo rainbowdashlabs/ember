@@ -167,7 +167,7 @@ class AccountRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(12)
     void anyAdministratorExistsCallable() {
-        // After resetting to USER — the method should still be callable.
+        // After resetting to USER - the method should still be callable.
         // Other test class accounts may still have ADMINISTRATOR, so just verify it runs.
         var result = accountRepo.anyAdministratorExists();
     }

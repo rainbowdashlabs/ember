@@ -285,7 +285,7 @@ class QuizTestRepositoryTest extends RepositoryTestBase {
     @Order(61)
     void findByStationForMember() {
         var tests = quizTestRepo.findByStationForMember(station.id(), member.id());
-        // Member is station member, manager bypass applies — expect the test to be visible
+        // Member is station member, manager bypass applies - expect the test to be visible
         assertNotNull(tests);
     }
 
@@ -309,7 +309,7 @@ class QuizTestRepositoryTest extends RepositoryTestBase {
     @Order(63)
     void upsertAnswer() {
         var attempt = quizTestRepo.findAttempt(testId, member.id()).orElseThrow();
-        // upsertAnswer inserts with ON CONFLICT on id — first call inserts
+        // upsertAnswer inserts with ON CONFLICT on id - first call inserts
         var answer = new QuizAnswerValue.TrueFalse(false);
         assertDoesNotThrow(() -> quizTestRepo.upsertAnswer(attempt.id(), questionId, null, answer, 0));
         var answers = quizTestRepo.findAnswers(attempt.id());

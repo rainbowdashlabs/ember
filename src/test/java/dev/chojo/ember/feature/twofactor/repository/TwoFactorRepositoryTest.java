@@ -165,7 +165,7 @@ class TwoFactorRepositoryTest extends RepositoryTestBase {
         assertEquals(TwoFactorPolicy.Scope.INSTANCE, instance.scope());
         assertTrue(instance.required());
 
-        // Upsert again — should keep the same row but flip required to false
+        // Upsert again - should keep the same row but flip required to false
         var updated = twoFactorRepo.upsertPolicy(
                 TwoFactorPolicy.Scope.INSTANCE, null, StationUserType.MEMBER, false, (short) 3, null);
         assertEquals(instance.id(), updated.id());

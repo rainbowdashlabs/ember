@@ -114,7 +114,7 @@ test.describe('Quiz', () => {
 
     /**
      * A catalogue is often already written down somewhere else, so it can arrive as a file. The
-     * story walks the whole wizard — file, columns, preview, import — because each step can refuse
+     * story walks the whole wizard - file, columns, preview, import - because each step can refuse
      * on its own, and then looks for the imported question in the catalogue itself.
      */
     test('questions are imported from a file', async ({managerPage: page}) => {
@@ -154,7 +154,7 @@ test.describe('Quiz', () => {
 
     /**
      * The point of a test sheet is somebody sitting it. The seeded station carries an active one,
-     * and a member is offered it directly in the list — the row navigates by click handler, so it
+     * and a member is offered it directly in the list - the row navigates by click handler, so it
      * carries an identifier for the story to aim at.
      *
      * The paper is handed in unanswered on purpose: what the story holds is that a member can sit

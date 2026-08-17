@@ -9,7 +9,7 @@ import {parseFieldConfig} from './profileFields'
 
 /**
  * Every dynamic field reads its configuration through this, and it is handed whatever the server
- * stored — including nothing at all. Answering with an empty configuration rather than throwing is
+ * stored - including nothing at all. Answering with an empty configuration rather than throwing is
  * the behaviour the field renderers rely on.
  */
 describe('parseFieldConfig', () => {

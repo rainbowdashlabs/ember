@@ -8,7 +8,7 @@ import client from './client'
 /**
  * Posts a multipart form to an authenticated endpoint. Builds the FormData from the given
  * fields, skipping undefined and null values, and lets the browser set the multipart
- * boundary header itself — never set Content-Type manually for FormData requests.
+ * boundary header itself - never set Content-Type manually for FormData requests.
  *
  * The header is cleared per request because the client carries `application/json` as its default:
  * a form sent under that content type is turned into a JSON object before it leaves the browser,

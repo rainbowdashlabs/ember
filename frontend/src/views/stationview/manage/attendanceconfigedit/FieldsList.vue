@@ -72,7 +72,7 @@ function groupName(groupId: number): string {
               <span v-if="parseConfig(field.config).required" class="ml-1 text-xs text-error">*</span>
               <MutedText size="sm" class="ml-2">({{ fieldTypeLabel(field.fieldType ?? '') }})</MutedText>
               <MutedText class="ml-1" v-if="parseConfig(field.config).groupId">
-                — {{ groupName(parseConfig(field.config).groupId!) }}
+                - {{ groupName(parseConfig(field.config).groupId!) }}
               </MutedText>
               <span v-if="parseConfig(field.config).autoAttend" class="ml-2 text-xs text-primary">
                 <font-awesome-icon :icon="['fas', 'user-plus']" class="mr-0.5"/>auto

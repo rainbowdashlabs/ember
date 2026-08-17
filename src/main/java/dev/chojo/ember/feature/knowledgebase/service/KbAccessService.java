@@ -292,7 +292,7 @@ public class KbAccessService {
 
     /**
      * The name of the deepest folder along the path whose grants name the member with a level. The
-     * file's own grants are not a "source" worth naming — the reader is already looking at it.
+     * file's own grants are not a "source" worth naming - the reader is already looking at it.
      */
     private String levelSource(MemberAccess access, Integer folderId, Integer fileId) {
         Integer startFolder = folderId;

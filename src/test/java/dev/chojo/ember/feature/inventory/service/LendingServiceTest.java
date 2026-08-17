@@ -328,7 +328,7 @@ class LendingServiceTest extends RepositoryTestBase {
     void findRequestsByStation() {
         var requests = service.findRequestsByStation(stationA.id());
         assertNotNull(requests);
-        // stationA is the owning station — the requests should include our main requestId
+        // stationA is the owning station - the requests should include our main requestId
         assertTrue(requests.stream().anyMatch(r -> r.id() == requestId));
     }
 
@@ -387,7 +387,7 @@ class LendingServiceTest extends RepositoryTestBase {
                 stationB.id(), stationA.id(), LocalDate.now(), LocalDate.now().plusDays(5), memberB.id());
         service.addRequestItem(req.id(), inventoryIdA, itemIdA, 3);
 
-        // Create another request — this triggers buildItemSummary with items in the DB
+        // Create another request - this triggers buildItemSummary with items in the DB
         var req2 = service.createRequest(
                 stationB.id(), stationA.id(), LocalDate.now(), LocalDate.now().plusDays(5), memberB.id());
         // Add item to req2 before checking (buildItemSummary is called during createRequest,
@@ -435,7 +435,7 @@ class LendingServiceTest extends RepositoryTestBase {
                 stationC.id(), stationD.id(), LocalDate.now(), LocalDate.now().plusDays(2), memberC.id());
         service.sendMessage(req.id(), stationC.id(), memberC.id(), "C", "msg from C");
 
-        // getMessages from stationD perspective — partner is remote, but stationD has no private key
+        // getMessages from stationD perspective - partner is remote, but stationD has no private key
         // Should return local messages only (remote fetch returns empty due to no key)
         var messages = service.getMessages(req.id(), stationD.id());
         assertNotNull(messages);
@@ -476,7 +476,7 @@ class LendingServiceTest extends RepositoryTestBase {
         // Create an inventory on stationA with no items
         var emptyInv = inventoryRepo.create(stationA.id(), "EmptyInvForLending", InventoryType.INTERNAL, false);
         var results = service.findAvailableInventory(stationB.id(), "EmptyInvForLending", null, null);
-        // Should NOT appear — no unassigned items means availableCount == 0
+        // Should NOT appear - no unassigned items means availableCount == 0
         assertTrue(results.stream().noneMatch(e -> e.inventoryId() == emptyInv.id()));
         // Cleanup
         inventoryRepo.delete(emptyInv.id());
@@ -540,7 +540,7 @@ class LendingServiceTest extends RepositoryTestBase {
         assertNotNull(aEntry.distanceKm());
         assertTrue(aEntry.distanceKm() > 400 && aEntry.distanceKm() < 600);
 
-        // Drop A's coordinates again — the partner-side null branch must still produce a
+        // Drop A's coordinates again - the partner-side null branch must still produce a
         // result with null distance.
         stationRepo.updateLocation(stationA.id(), null, null, null, null, null, null);
         var partial = service.findAvailableInventory(stationB.id(), "LendSvc", null, null);
@@ -625,7 +625,7 @@ class LendingServiceTest extends RepositoryTestBase {
                 stationA.id(), null, null, LocalDate.now(), LocalDate.now().plusDays(7), "Test");
         var results = service.findAvailableInventory(
                 stationB.id(), null, LocalDate.now(), LocalDate.now().plusDays(7));
-        // stationA should be blocked entirely — its inventory should not appear
+        // stationA should be blocked entirely - its inventory should not appear
         assertTrue(results.stream().noneMatch(e -> e.stationId() == stationA.id()));
         service.deleteBlock(block.id());
     }
@@ -673,7 +673,7 @@ class LendingServiceTest extends RepositoryTestBase {
                 memberNoPk.id());
         lendingRepo.createMessage(req.id(), stationNoPk.uid(), memberNoPk.id(), "local only", false);
 
-        // getMessages should still work — remote messages skipped due to no private key
+        // getMessages should still work - remote messages skipped due to no private key
         var messages = service.getMessages(req.id(), stationNoPk.id());
         assertNotNull(messages);
         assertTrue(messages.stream().anyMatch(m -> m.message().equals("local only")));
@@ -696,7 +696,7 @@ class LendingServiceTest extends RepositoryTestBase {
                 stationE.uid(), stationF.uid(), LocalDate.now(), LocalDate.now().plusDays(2), memberE.id());
         lendingRepo.createMessage(req.id(), stationE.uid(), memberE.id(), "hello", false);
 
-        // getMessages — no federation partner exists, so findPartnerForStation returns null
+        // getMessages - no federation partner exists, so findPartnerForStation returns null
         var messages = service.getMessages(req.id(), stationE.id());
         assertNotNull(messages);
         assertFalse(messages.isEmpty());

@@ -77,7 +77,7 @@ function addDays(iso: string, days: number): string {
  * events span which columns, and which month is in view.
  *
  * Occurrences are unrolled in the browser from the full event list rather than requested per
- * month — one-time events match their start date, recurring patterns are derived from
+ * month - one-time events match their start date, recurring patterns are derived from
  * {@code dayOfWeek} and the date's position in the month or year, and event breaks blank out
  * their range.
  */

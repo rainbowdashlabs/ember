@@ -25,7 +25,7 @@ import java.util.concurrent.Executors;
  * thread so the login response is not delayed.
  * <p>
  * The check is skipped when the credential's {@code last_breach_check_at} is
- * within the configured staleness window — re-checking the same password every
+ * within the configured staleness window - re-checking the same password every
  * login would be wasteful. The window is reset to {@code NULL} whenever the
  * password is rotated, so a freshly-set password is always checked on its first
  * successful login.
@@ -62,7 +62,7 @@ public class BreachCheckWorker {
 
     /**
      * Schedules a breach check for the given account and plaintext. Fire-and-forget
-     * — the call returns immediately and the lookup runs asynchronously. A no-op
+     * - the call returns immediately and the lookup runs asynchronously. A no-op
      * when HIBP is disabled by configuration.
      */
     public void enqueueCheck(int accountId, String plaintext) {

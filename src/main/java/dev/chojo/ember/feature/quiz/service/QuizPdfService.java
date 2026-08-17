@@ -110,7 +110,7 @@ public class QuizPdfService {
         sb.append("#set document(title: \"").append(escape(title)).append("\")\n");
         sb.append("#set page(paper: \"a4\", margin: (top: 2.5cm, bottom: 2cm, left: 2cm, right: 2cm),\n");
         sb.append("  header: align(right)[").append(escape(title));
-        if (showAnswers) sb.append(" — Lösungen");
+        if (showAnswers) sb.append(" - Lösungen");
         sb.append("],\n");
         sb.append("  footer: context align(center)[#counter(page).display()])\n");
         sb.append("#set text(font: \"Liberation Sans\", size: 11pt)\n");
@@ -118,7 +118,7 @@ public class QuizPdfService {
 
         // Title
         sb.append("= ").append(escape(title));
-        if (showAnswers) sb.append(" — Lösungen");
+        if (showAnswers) sb.append(" - Lösungen");
         sb.append("\n\n");
 
         if (!showAnswers) {
@@ -374,7 +374,7 @@ public class QuizPdfService {
                 sb.append(" → ").append(escape(right.get(i))).append("\n");
             }
         } else {
-            // Shuffle right side for paper — layout two columns with space for drawing lines
+            // Shuffle right side for paper - layout two columns with space for drawing lines
             List<String> shuffledRight = new ArrayList<>(right);
             Collections.shuffle(shuffledRight);
 

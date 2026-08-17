@@ -25,9 +25,9 @@ import java.util.Optional;
  * policy. Two layers of defence:
  *
  * <ul>
- *   <li>Scheme — only {@code https} is accepted (unless
+ *   <li>Scheme - only {@code https} is accepted (unless
  *       {@link Federation#allowPrivateHosts()} is enabled).</li>
- *   <li>IP address — the URL host is resolved via {@link InetAddress#getAllByName}
+ *   <li>IP address - the URL host is resolved via {@link InetAddress#getAllByName}
  *       on every check, and rejected if any returned address falls inside the
  *       deny-list of loopback, link-local, private, multicast, or otherwise
  *       reserved ranges (both IPv4 and IPv6).</li>
@@ -131,8 +131,8 @@ public class RemoteUrlValidator {
 
     /**
      * Checks a bare host name (no scheme) against the private-range deny-list. Used
-     * for backend endpoints that are not HTTPS URLs — S3 endpoint overrides and
-     * SMB/SFTP hosts — so an operator cannot point them at loopback or internal
+     * for backend endpoints that are not HTTPS URLs - S3 endpoint overrides and
+     * SMB/SFTP hosts - so an operator cannot point them at loopback or internal
      * addresses for a port scan. Honours the same {@code allowPrivateHosts} / demo
      * escape hatches as {@link #isAllowed(String)}.
      */
@@ -144,12 +144,12 @@ public class RemoteUrlValidator {
         try {
             addresses = InetAddress.getAllByName(host.trim());
         } catch (Exception e) {
-            log.warn("Refusing host {} — DNS resolution failed: {}", host, e.getMessage());
+            log.warn("Refusing host {} - DNS resolution failed: {}", host, e.getMessage());
             return false;
         }
         for (InetAddress address : addresses) {
             if (isDenied(address)) {
-                log.warn("Refusing host {} — resolves to denied address {}", host, address);
+                log.warn("Refusing host {} - resolves to denied address {}", host, address);
                 return false;
             }
         }
@@ -180,12 +180,12 @@ public class RemoteUrlValidator {
         try {
             addresses = InetAddress.getAllByName(host);
         } catch (Exception e) {
-            log.warn("Refusing federation URL {} — DNS resolution failed: {}", url, e.getMessage());
+            log.warn("Refusing federation URL {} - DNS resolution failed: {}", url, e.getMessage());
             return false;
         }
         for (InetAddress address : addresses) {
             if (isDenied(address)) {
-                log.warn("Refusing federation URL {} — host resolves to denied address {}", url, address);
+                log.warn("Refusing federation URL {} - host resolves to denied address {}", url, address);
                 return false;
             }
         }

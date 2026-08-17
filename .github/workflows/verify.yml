@@ -84,7 +84,7 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
-      # Tracking tests enforce that data_tracking.json is in sync with the live PG schema —
+      # Tracking tests enforce that data_tracking.json is in sync with the live PG schema -
       # every DB table is tracked, no stale entries, table hashes match the live columns/FKs,
       # no UNVERIFIED statuses remain, RETAIN strategies carry a legal basis, etc. They use a
       # testcontainer to spin up PostgreSQL.
@@ -226,8 +226,8 @@ jobs:
       - name: Build the frontend
         working-directory: frontend
         run: NODE_OPTIONS="--max-old-space-size=8192" npm run build
-      # The suite brings up its own stack — a database and a backend of its own, and the built server
-      # in front of them — because that is what it is configured against. Starting another backend
+      # The suite brings up its own stack - a database and a backend of its own, and the built server
+      # in front of them - because that is what it is configured against. Starting another backend
       # here would only occupy a port nothing asks for.
       - name: Run the end-to-end stories
         working-directory: frontend

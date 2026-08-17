@@ -50,7 +50,7 @@ public class StorageQuotaService {
 
     /**
      * Returns {@code true} when the station has its own remote-backend override. Instance-side
-     * quotas (per-category, per-file, per-image, total) do not apply in that case — the station
+     * quotas (per-category, per-file, per-image, total) do not apply in that case - the station
      * is paying for its own storage and the instance has no business limiting it.
      */
     public boolean hasOwnBackend(int stationId) {

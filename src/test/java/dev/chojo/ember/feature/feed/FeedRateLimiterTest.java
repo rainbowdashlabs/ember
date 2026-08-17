@@ -55,7 +55,7 @@ class FeedRateLimiterTest {
         // One refill interval later (60s / 5 = 12s), exactly one slot has refilled.
         clock.advanceSeconds(12);
         assertTrue(limiter.tryAcquire("t").isEmpty(), "A token should have refilled after one interval");
-        assertTrue(limiter.tryAcquire("t").isPresent(), "But only one — the bucket is empty again");
+        assertTrue(limiter.tryAcquire("t").isPresent(), "But only one - the bucket is empty again");
     }
 
     @Test
@@ -64,7 +64,7 @@ class FeedRateLimiterTest {
         var limiter = new FeedRateLimiter(clock);
         // Drain.
         for (int i = 0; i < FeedRateLimiter.BURST_CAPACITY; i++) limiter.tryAcquire("t");
-        // Wait long enough to refill 100× capacity worth of time — the bucket should still
+        // Wait long enough to refill 100× capacity worth of time - the bucket should still
         // cap at BURST_CAPACITY.
         clock.advanceSeconds(60 * 100);
         for (int i = 0; i < FeedRateLimiter.BURST_CAPACITY; i++) {

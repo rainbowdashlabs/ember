@@ -2,7 +2,7 @@
 
 (1) Die Plattform darf ausschließlich für die Organisation und Verwaltung der jeweiligen Jugendgruppe und für damit unmittelbar zusammenhängende Zwecke genutzt werden.
 
-(2) Nutzer dürfen nur auf Bereiche zugreifen, die ihnen zugewiesen sind, und dürfen Daten, die sie im Rahmen ihrer Tätigkeit zur Kenntnis nehmen — insbesondere Kontaktdaten, Notfallkontakte, Anwesenheiten, Prüfungsergebnisse und Notizen zu anderen Mitgliedern — nur zu diesem Zweck verwenden und nicht außerhalb der Wache offenlegen.
+(2) Nutzer dürfen nur auf Bereiche zugreifen, die ihnen zugewiesen sind, und dürfen Daten, die sie im Rahmen ihrer Tätigkeit zur Kenntnis nehmen - insbesondere Kontaktdaten, Notfallkontakte, Anwesenheiten, Prüfungsergebnisse und Notizen zu anderen Mitgliedern - nur zu diesem Zweck verwenden und nicht außerhalb der Wache offenlegen.
 
 (3) Exporte und Ausdrucke aus der Plattform enthalten regelmäßig personenbezogene Daten. Sie sind entsprechend zu behandeln, sicher aufzubewahren und nach Wegfall des Zwecks zu vernichten.
 
@@ -21,7 +21,7 @@ Untersagt ist insbesondere:
 
 ## § 10 Inhalte und Rechte
 
-(1) Für eingestellte Inhalte ist derjenige verantwortlich, der sie eingestellt hat. Für Inhalte einer Wache — insbesondere die öffentliche Homepage, veröffentlichte Neuigkeiten und öffentlich freigegebene Artikel — ist die Wache verantwortlich.
+(1) Für eingestellte Inhalte ist derjenige verantwortlich, der sie eingestellt hat. Für Inhalte einer Wache - insbesondere die öffentliche Homepage, veröffentlichte Neuigkeiten und öffentlich freigegebene Artikel - ist die Wache verantwortlich.
 
 (2) Wer Inhalte einstellt, sichert zu, über die erforderlichen Rechte zu verfügen.
 

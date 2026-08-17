@@ -65,7 +65,7 @@ useHead(computed(() => {
     title: p.title,
     meta: [
       {name: 'description', content: desc},
-      {property: 'og:title', content: `${p.title} — Ember`},
+      {property: 'og:title', content: `${p.title} - Ember`},
       {property: 'og:description', content: desc},
       {property: 'og:type', content: 'website'},
       ...(ogImage ? [
@@ -73,7 +73,7 @@ useHead(computed(() => {
         {name: 'twitter:image', content: ogImage},
       ] : []),
       {name: 'twitter:card', content: ogImage ? 'summary_large_image' : 'summary'},
-      {name: 'twitter:title', content: `${p.title} — Ember`},
+      {name: 'twitter:title', content: `${p.title} - Ember`},
       {name: 'twitter:description', content: desc},
     ],
   }

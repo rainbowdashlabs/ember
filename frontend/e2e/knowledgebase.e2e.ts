@@ -36,7 +36,7 @@ async function createFileInFolder(page: Page): Promise<{folder: string; file: st
 
 /**
  * The permission story is the one worth having: what one person sets on a folder has to change what
- * a different person sees, and the rule is enforced in three places — the route guard, the levels
+ * a different person sees, and the rule is enforced in three places - the route guard, the levels
  * the listing reports, and the create menu. One story covers all three from the outside.
  */
 test.describe('Knowledge base', () => {
@@ -62,7 +62,7 @@ test.describe('Knowledge base', () => {
 
     /**
      * A page of the wiki is often wanted on paper, and the download is what a reader actually
-     * receives — so the story waits for the file rather than for the button to look pressed.
+     * receives - so the story waits for the file rather than for the button to look pressed.
      */
     test('a file is downloaded as a PDF', async ({managerPage: page}) => {
         await createFileInFolder(page)
@@ -114,7 +114,7 @@ test.describe('Knowledge base', () => {
         // The editor is a rich one: it takes typing into its own body, not a value into a field.
         for (const text of [first, second]) {
             // The pen on the description line carries the same name, and it sits further down the
-            // page — the one that opens the editor is the first.
+            // page - the one that opens the editor is the first.
             await page.getByRole('button', {name: 'Bearbeiten', exact: true}).first().click()
             const body = page.locator('.markdown-editor-content')
             await body.click()
@@ -142,7 +142,7 @@ test.describe('Knowledge base', () => {
 
     /**
      * A station can put a page of its wiki in front of everybody. The story marks a file public and
-     * then reads the public wiki with no session at all — which is the only way to know that the
+     * then reads the public wiki with no session at all - which is the only way to know that the
      * mark means what it says.
      */
     test('a file marked public is readable on the public wiki', async ({managerPage: page, browser}) => {
@@ -166,7 +166,7 @@ test.describe('Knowledge base', () => {
 
     /**
      * The listing offers what the reader may actually do: a member who may only read gets the
-     * search and the entries, and no create menu — the same rule the server enforces, so nothing
+     * search and the entries, and no create menu - the same rule the server enforces, so nothing
      * is offered that would be refused.
      */
     test('a member sees the knowledge base without the actions of an editor', async ({memberPage: page}) => {

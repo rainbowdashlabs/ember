@@ -8,7 +8,7 @@ import {test, expect} from './fixtures/auth'
 import {unique} from './fixtures/unique'
 
 /**
- * A procedure of the story's own with one step in it, left open on its page — which is where
+ * A procedure of the story's own with one step in it, left open on its page - which is where
  * creating one lands. Every story makes its own: the stories run side by side, and one of them
  * ticking a step off the procedure another one is reading would be a story about the other story.
  */

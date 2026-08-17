@@ -25,7 +25,7 @@ const status = computed(() => {
 </script>
 
 <template>
-  <span v-if="usesOwnBackend" class="text-xs text-(--text-muted)">—</span>
+  <span v-if="usesOwnBackend" class="text-xs text-(--text-muted)">-</span>
   <SuccessBadge v-else-if="status === 'ok'">OK</SuccessBadge>
   <InfoBadge v-else-if="status === 'warning'">{{ t('storageMonitoring.warning') }}</InfoBadge>
   <ErrorBadge v-else>{{ t('storageMonitoring.full') }}</ErrorBadge>

@@ -1,4 +1,4 @@
-# Dev image — source is bind-mounted at /build, node_modules lives in a named
+# Dev image - source is bind-mounted at /build, node_modules lives in a named
 # volume so the host's potentially-different OS / arch install does not shadow
 # the in-container one. Runs the Nuxt dev server with HMR; chokidar uses polling
 # because the inotify events from a bind mount are not always reliable across

@@ -69,7 +69,7 @@ public class ForeignStationIdModule extends SimpleModule {
     }
 
     /**
-     * Reads whatever a partner sent for a station id — a UUID string, a number, or null — and
+     * Reads whatever a partner sent for a station id - a UUID string, a number, or null - and
      * answers the neutral local value.
      */
     private static class ForeignStationIdDeserializer extends ValueDeserializer<Integer> {

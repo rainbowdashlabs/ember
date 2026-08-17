@@ -28,7 +28,7 @@ const OVERRIDES: Record<string, string> = {
 }
 
 /**
- * Module overview fallbacks — when a route has no direct help page,
+ * Module overview fallbacks - when a route has no direct help page,
  * fall back to the module overview.
  */
 const MODULE_FALLBACKS: Record<string, string> = {

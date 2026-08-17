@@ -155,7 +155,7 @@ public class TransferRoutes implements Routes {
                 exportService.validateToken(token).orElseThrow(() -> new ForbiddenResponse("Invalid or expired token"));
         String importingFrom = ctx.header("X-Ember-Importing-From");
         log.info(
-                "tables manifest requested for station {} by destination {} — flipping read-only flag",
+                "tables manifest requested for station {} by destination {} - flipping read-only flag",
                 stationId,
                 importingFrom == null || importingFrom.isBlank() ? "<not declared>" : importingFrom);
         if (importingFrom != null && !importingFrom.isBlank()) {
@@ -202,7 +202,7 @@ public class TransferRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Abort an in-flight transfer using a transfer token",
             description =
-                    "Token-authenticated abort: the destination instance calls this endpoint when its import fails so the source can clear the read-only-for-transfer flag immediately instead of waiting for the idle-timeout watchdog. The endpoint is idempotent — a second call after the token has already been invalidated answers 403 like any expired token.",
+                    "Token-authenticated abort: the destination instance calls this endpoint when its import fails so the source can clear the read-only-for-transfer flag immediately instead of waiting for the idle-timeout watchdog. The endpoint is idempotent - a second call after the token has already been invalidated answers 403 like any expired token.",
             tags = {"Transfer"},
             pathParams = @OpenApiParam(name = "token", required = true),
             responses = {@OpenApiResponse(status = "204"), @OpenApiResponse(status = "403")})

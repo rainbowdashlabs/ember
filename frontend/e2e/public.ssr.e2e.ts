@@ -10,12 +10,12 @@ import {expect, test, type Page} from '@playwright/test'
  *
  * Without that, every one of these would pass on hydration alone and say nothing about whether the
  * route rules still server-render. What breaks here is a browser API touched during setup in a
- * component a public page happens to use — invisible in the browser, invisible in a component test,
+ * component a public page happens to use - invisible in the browser, invisible in a component test,
  * and the first thing an anonymous visitor meets.
  *
  * Every story checks the status code before it looks at the page. A server error renders a page
  * with a heading on it too, so an assertion that only asks for a heading passes against a broken
- * server — which is exactly what it is there to catch.
+ * server - which is exactly what it is there to catch.
  */
 async function visit(page: Page, path: string) {
     const response = await page.goto(path)
@@ -31,7 +31,7 @@ test.describe('Public pages without JavaScript', () => {
 
     /**
      * The form itself is deliberately not part of this. It appears once the storage consent has
-     * been resolved, and resolving it is client-side work — so with JavaScript off the page shows
+     * been resolved, and resolving it is client-side work - so with JavaScript off the page shows
      * the consent gate, which is the correct behaviour rather than a defect. What the story holds
      * the route rule to is that the page arrives from the server at all.
      */
@@ -42,7 +42,7 @@ test.describe('Public pages without JavaScript', () => {
 
     /**
      * The entries, not a heading: this page titles itself in a plain element, and what a crawler
-     * has to find here is the stations themselves — each one linking to its public page.
+     * has to find here is the stations themselves - each one linking to its public page.
      */
     test('the station directory is server-rendered', async ({page}) => {
         await visit(page, '/discovery')
@@ -56,7 +56,7 @@ test.describe('Public pages without JavaScript', () => {
      */
     /**
      * Every public page of a station hangs inside one shell, and the shell used to load itself in
-     * the browser — so a crawler and a link preview met an empty frame where the station's blog and
+     * the browser - so a crawler and a link preview met an empty frame where the station's blog and
      * wiki should be.
      */
     test('a public station carries its name and its pages', async ({page}) => {

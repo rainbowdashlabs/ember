@@ -18,7 +18,7 @@ useHead({
   title: 'Datenschutz',
   meta: [
     {name: 'description', content: 'Datenschutzerklärung für die Nutzung von Ember.'},
-    {property: 'og:title', content: 'Datenschutz — Ember'},
+    {property: 'og:title', content: 'Datenschutz - Ember'},
     {property: 'og:type', content: 'website'},
   ],
 })

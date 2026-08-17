@@ -73,15 +73,15 @@ export default defineConfig({
         : [
             {
                 // In the foreground, without -d: a command that returns straight away is taken for a
-                // server that died, and the containers it started in the background go unnoticed —
+                // server that died, and the containers it started in the background go unnoticed -
                 // the stack is still building the backend at that point. Staying attached also means
                 // the stack goes down with the run that brought it up.
                 command: 'docker compose -f ../docker/compose.dev.yaml --profile e2e up',
                 url: 'http://localhost:8899/api/v1/public/config',
                 reuseExistingServer: true,
                 // The backend is built inside its container from the sources beside it. On a machine
-                // that has done it before this is a moment; on a cold one — a fresh runner with no
-                // Gradle cache — it is the whole build, so the wait is generous.
+                // that has done it before this is a moment; on a cold one - a fresh runner with no
+                // Gradle cache - it is the whole build, so the wait is generous.
                 timeout: 900_000,
             },
             !process.env.E2E_DEV_SERVER

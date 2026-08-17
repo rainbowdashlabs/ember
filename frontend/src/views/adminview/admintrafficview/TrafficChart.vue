@@ -19,9 +19,9 @@ use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, LegendComponent
  * Metric the chart visualises.
  *
  * <ul>
- *   <li>{@code ingressBytes} / {@code egressBytes} / {@code requests} — single-metric stacked
+ *   <li>{@code ingressBytes} / {@code egressBytes} / {@code requests} - single-metric stacked
  *       area chart, one stack per auth bucket.</li>
- *   <li>{@code inout} — bidirectional view: ingress is drawn positive, egress is drawn
+ *   <li>{@code inout} - bidirectional view: ingress is drawn positive, egress is drawn
  *       negative, both stacked by auth bucket, so the chart shows a mirrored skyline around
  *       the zero axis.</li>
  * </ul>

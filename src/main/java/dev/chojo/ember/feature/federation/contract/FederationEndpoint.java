@@ -10,7 +10,7 @@ import io.javalin.http.HandlerType;
 /**
  * One declared endpoint of the federation contract. Route classes serving {@code /remote}
  * paths declare their endpoints as constants, list them in a static {@code CONTRACT} and
- * register their Javalin handlers from that list via {@link FederationContractBinder} —
+ * register their Javalin handlers from that list via {@link FederationContractBinder} -
  * an endpoint cannot exist without being part of the versioned contract.
  *
  * @param surface      the contract surface the endpoint belongs to

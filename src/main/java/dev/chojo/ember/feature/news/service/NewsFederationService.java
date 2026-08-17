@@ -379,7 +379,7 @@ public class NewsFederationService {
      * <p>A partner row belongs to the station that requested the partnership, so its
      * {@code stationId} is the <em>commenting</em> station, not the one holding the article.
      * Comment notifications and member lookups have to run against the owner, which is what the
-     * {@code /remote/} handlers do — there the row belongs to the serving station and its
+     * {@code /remote/} handlers do - there the row belongs to the serving station and its
      * {@code stationId} is already the owner. This keeps the same-instance path consistent with that.
      */
     private int owningStationId(UUID partnerStationUid) {

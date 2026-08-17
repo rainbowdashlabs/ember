@@ -79,7 +79,7 @@ class GdprDeletionServiceTest extends RepositoryTestBase {
         service.anonymizeMember(member.id());
 
         // station_member.id is declared DELETE_EXPLICIT in data_tracking.json; the engine now
-        // honours that — the row is gone after anonymisation. CASCADE FKs on the station_member
+        // honours that - the row is gone after anonymisation. CASCADE FKs on the station_member
         // table take care of dependent rows (groups, tags, etc.).
         assertTrue(stationMemberRepo.findById(member.id()).isEmpty());
     }
@@ -106,7 +106,7 @@ class GdprDeletionServiceTest extends RepositoryTestBase {
 
         service.deleteAccount(acc2.id());
 
-        // Account should be gone — engine deletes via DELETE_EXPLICIT on account.id and CASCADE
+        // Account should be gone - engine deletes via DELETE_EXPLICIT on account.id and CASCADE
         // takes out account_credential / account_session / account_external_auth / saved_filter.
         assertTrue(accountRepo.findById(acc2.id()).isEmpty());
         // The membership row is also gone (DELETE_EXPLICIT on station_member.id).

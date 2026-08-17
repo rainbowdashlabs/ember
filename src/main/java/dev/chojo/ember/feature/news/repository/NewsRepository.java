@@ -401,7 +401,7 @@ public class NewsRepository {
     }
 
     /**
-     * Records that a member fully saw a news article. Idempotent — (news_id, member_id)
+     * Records that a member fully saw a news article. Idempotent - (news_id, member_id)
      * is the table's PK so a repeated view from the same member is silently ignored.
      */
     public void recordView(int newsId, int memberId) {

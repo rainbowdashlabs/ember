@@ -17,8 +17,8 @@ import {contrastingTextColorForHex} from '@/util/contrastColor'
 import {formatTime} from '@/util/format'
 
 /**
- * Month-grid calendar of upcoming events. The grid itself — which occurrence falls on which day,
- * how multi-day events are stacked into lanes, and which month is in view — is built by
+ * Month-grid calendar of upcoming events. The grid itself - which occurrence falls on which day,
+ * how multi-day events are stacked into lanes, and which month is in view - is built by
  * {@link useEventCalendarGrid}; this component renders it and colours the chips by category.
  */
 const props = defineProps<{

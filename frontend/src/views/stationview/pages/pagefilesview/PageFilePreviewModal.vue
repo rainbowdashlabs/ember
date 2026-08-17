@@ -55,7 +55,7 @@ const previewKind = computed<'image' | 'video' | 'audio' | 'pdf' | 'other'>(() =
                         class="w-full h-[70vh]"/>
                 <div v-else class="flex flex-col items-center gap-2 p-8 text-(--text-muted)">
                     <font-awesome-icon :icon="['fas', 'file']" class="text-5xl"/>
-                    <p class="text-sm">{{ file.mimeType ?? '—' }}</p>
+                    <p class="text-sm">{{ file.mimeType ?? '-' }}</p>
                 </div>
             </div>
             <div class="flex items-center justify-between text-xs text-(--text-muted)">

@@ -17,14 +17,14 @@ const IDLE_LIMIT_MS = 3600000
 /**
  * Order matters here. The active station is resolved first, so a link arriving with
  * {@code ?station=} hands its station over before anything else can redirect and drop the
- * parameter. The idle check runs afterwards and only once a station is known — the requirements
+ * parameter. The idle check runs afterwards and only once a station is known - the requirements
  * page is station-scoped, and sending someone there without one lands them back at the station
  * picker. For the same reason the activity stamp is written only when the navigation is let
  * through: a stamp written ahead of a redirect would consume the idle window without the
  * requirements ever being seen.
  *
  * The administration area is closed to anyone who is not an instance administrator. The server
- * refuses every administration endpoint on its own — this only stops the panel from opening and
+ * refuses every administration endpoint on its own - this only stops the panel from opening and
  * then failing on each call. It is deliberately closed rather than open when the session cannot be
  * established: a panel that cannot be shown to work is not shown.
  */

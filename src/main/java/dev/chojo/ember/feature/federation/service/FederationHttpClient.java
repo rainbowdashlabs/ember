@@ -44,7 +44,7 @@ import java.util.UUID;
  * reject replays via {@link FederationReplayCache}.
  * <p>
  * All public methods accept and return typed objects. JSON serialization/deserialization
- * is handled internally — callers never deal with raw JSON strings.
+ * is handled internally - callers never deal with raw JSON strings.
  * <p>
  * The embedded {@link JsonMapper} intentionally disables
  * {@code FAIL_ON_UNKNOWN_PROPERTIES} so a federation peer running a newer protocol
@@ -401,7 +401,7 @@ public class FederationHttpClient {
 
     /**
      * A {@code 409} carrying a contract mismatch body means the stored vector of the called
-     * partner is stale — the partner redeployed since the last exchange. Kick off a
+     * partner is stale - the partner redeployed since the last exchange. Kick off a
      * background ping so the vector heals without waiting for the next startup broadcast.
      */
     private void handleContractMismatch(String body, int localStationId, UUID partnerStationUid) {
@@ -412,7 +412,7 @@ public class FederationHttpClient {
                 return;
             }
             log.warn(
-                    "Federation partner station {} rejected the request with {} (theirs {}, ours {}) — refreshing its contract vector",
+                    "Federation partner station {} rejected the request with {} (theirs {}, ours {}) - refreshing its contract vector",
                     partnerStationUid,
                     mismatch.error(),
                     mismatch.local(),

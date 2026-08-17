@@ -202,7 +202,7 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
           <FieldLabel class="mb-1">{{ t('procedures.selectTemplate') }}</FieldLabel>
           <div v-if="templates.length === 0" class="text-sm text-[var(--text-muted)]">{{ t('procedures.noTemplates') }}</div>
           <SelectInput v-else :model-value="newTemplateId != null ? String(newTemplateId) : ''" @update:model-value="(v: string | number | null | undefined) => { newTemplateId = v ? Number(v) : null }">
-            <option value="">—</option>
+            <option value="">-</option>
             <option v-for="tpl in templates" :key="tpl.id" :value="String(tpl.id)">{{ tpl.name }}</option>
           </SelectInput>
         </template>

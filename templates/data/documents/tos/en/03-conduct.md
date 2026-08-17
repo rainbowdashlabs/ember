@@ -2,7 +2,7 @@
 
 (1) The Platform may only be used for organising and managing the respective youth group and for purposes directly connected with that.
 
-(2) Users may only access areas assigned to them, and may use data they learn in the course of their role — in particular contact details, emergency contacts, attendance records, test results and notes on other members — only for that purpose and must not disclose it outside the station.
+(2) Users may only access areas assigned to them, and may use data they learn in the course of their role - in particular contact details, emergency contacts, attendance records, test results and notes on other members - only for that purpose and must not disclose it outside the station.
 
 (3) Exports and printouts from the Platform regularly contain personal data. They must be treated accordingly, kept securely and destroyed once the purpose no longer applies.
 

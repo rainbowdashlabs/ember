@@ -28,7 +28,7 @@ const ROOT = 'STATION_ADMINISTRATOR'
  *
  * A permission granted by an ancestor is shown as enabled but not editable, because selecting it
  * on its own would change nothing. Toggling a parent on therefore removes its explicitly selected
- * children — and remembers them, so toggling the parent back off in the same session restores the
+ * children - and remembers them, so toggling the parent back off in the same session restores the
  * selection the user had rather than silently discarding it.
  *
  * @param selected          the selected grant ids
@@ -72,7 +72,7 @@ export function usePermissionTree(
     }
 
     // STATION_ADMINISTRATOR transitively grants every other permission, so listing its
-    // descendants under the group header is just noise — keep the toggle but render it as a leaf.
+    // descendants under the group header is just noise - keep the toggle but render it as a leaf.
     return filterHidden([{name: ROOT, children: []}, ...admin.children.map(buildNode)])
   })
 

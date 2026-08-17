@@ -27,6 +27,6 @@ const max = computed(() => props.rows.reduce((m, r) => Math.max(m, r.hits), 1))
       </div>
       <div class="w-16 text-right font-mono">{{ n(row.hits) }}</div>
     </div>
-    <MutedText v-if="rows.length === 0" tag="div" size="sm">—</MutedText>
+    <MutedText v-if="rows.length === 0" tag="div" size="sm">-</MutedText>
   </div>
 </template>

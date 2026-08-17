@@ -40,7 +40,7 @@ const { t } = useI18n()
         <NeutralContainer class="cursor-pointer">
           <div class="flex items-center gap-2">
             <div class="flex-1 min-w-0">
-              <div class="font-medium">Jugendflamme Stufe 1 — Fruehjahr 2025</div>
+              <div class="font-medium">Jugendflamme Stufe 1 - Fruehjahr 2025</div>
               <div class="text-sm text-[var(--text-muted)]">Jugendflamme Stufe 1 &mdash; 12.04.2025</div>
             </div>
             <PrimaryBadge>{{ t('protocol.open') }}</PrimaryBadge>
@@ -50,7 +50,7 @@ const { t } = useI18n()
         <NeutralContainer class="cursor-pointer">
           <div class="flex items-center gap-2">
             <div class="flex-1 min-w-0">
-              <div class="font-medium">Jugendflamme Stufe 2 — Herbst 2024</div>
+              <div class="font-medium">Jugendflamme Stufe 2 - Herbst 2024</div>
               <div class="text-sm text-[var(--text-muted)]">Jugendflamme Stufe 2 &mdash; 05.11.2024</div>
             </div>
             <SuccessBadge>{{ t('protocol.closed') }}</SuccessBadge>
@@ -60,7 +60,7 @@ const { t } = useI18n()
         <NeutralContainer class="cursor-pointer">
           <div class="flex items-center gap-2">
             <div class="flex-1 min-w-0">
-              <div class="font-medium">Leistungsspange — Herbst 2024</div>
+              <div class="font-medium">Leistungsspange - Herbst 2024</div>
               <div class="text-sm text-[var(--text-muted)]">Leistungsspange &mdash; 18.10.2024</div>
             </div>
             <SuccessBadge>{{ t('protocol.closed') }}</SuccessBadge>

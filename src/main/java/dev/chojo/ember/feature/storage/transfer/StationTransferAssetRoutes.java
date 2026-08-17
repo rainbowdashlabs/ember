@@ -100,7 +100,7 @@ public class StationTransferAssetRoutes implements Routes {
         String token = ctx.pathParam("token");
         exportService.validateToken(token).orElseThrow(() -> new ForbiddenResponse("Invalid or expired token"));
         int stationId = exportService.claimBackendDescriptor(token).orElseThrow(() -> {
-            log.info("[export] backend descriptor already claimed — responding 429");
+            log.info("[export] backend descriptor already claimed - responding 429");
             ctx.status(HttpStatus.TOO_MANY_REQUESTS);
             return new HttpResponseException(
                     HttpStatus.TOO_MANY_REQUESTS.getCode(),

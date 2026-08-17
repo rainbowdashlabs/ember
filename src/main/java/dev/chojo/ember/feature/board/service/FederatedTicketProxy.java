@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Proxies the ticket lifecycle of a federated board — listing, searching, creating, editing,
+ * Proxies the ticket lifecycle of a federated board - listing, searching, creating, editing,
  * moving and deleting tickets, plus their transition and history trails.
  */
 @Singleton

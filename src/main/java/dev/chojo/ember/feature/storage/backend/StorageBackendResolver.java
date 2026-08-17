@@ -24,7 +24,7 @@ import java.util.Optional;
  * <ol>
  *   <li>{@link StorageCategory#isLocalPinned()} → local backend, no override applies.</li>
  *   <li>{@link StorageScope.Station} with an override row in {@code station_storage_config} →
- *       that backend. The override is per-station, not per-category — it applies across every
+ *       that backend. The override is per-station, not per-category - it applies across every
  *       station-scoped movable category.</li>
  *   <li>Instance default from {@code conf.yml}, built by {@link StorageBackendFactory}.</li>
  * </ol>

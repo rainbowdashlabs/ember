@@ -31,7 +31,7 @@ const SECTIONS = [
     {group: RECRUITS, members: [JONAS, MIRA]},
 ]
 
-/** The times are read back as timestamps, so they are given as one — on the day of the session. */
+/** The times are read back as timestamps, so they are given as one - on the day of the session. */
 function at(time: string): string {
     const date = new Date()
     const [hours, minutes] = time.split(':')

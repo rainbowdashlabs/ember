@@ -7,14 +7,14 @@ import { onBeforeUnmount, onMounted } from 'vue'
 import { useQuickSearch } from '@/composables/useQuickSearch'
 
 /**
- * Binds Ctrl+K — Cmd+K on macOS — to the quick-search palette for as long as the calling shell is
+ * Binds Ctrl+K - Cmd+K on macOS - to the quick-search palette for as long as the calling shell is
  * mounted, so the shortcut follows whichever shell the user is in and cannot outlive it.
  *
  * The shortcut toggles rather than opens, because the browser's own find dialog is not available
  * once the default is suppressed and a user who opened the palette by accident needs the same key
  * to get out.
  *
- * @param scope which palette to open — the station one or the admin one
+ * @param scope which palette to open - the station one or the admin one
  */
 export function useQuickSearchShortcut(scope: 'station' | 'admin') {
   const {open, close, isOpen} = useQuickSearch()

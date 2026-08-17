@@ -61,7 +61,7 @@ public class FederationService {
 
     /**
      * Generates a discovery/pairing code: ember-BASE64(stationUid)-BASE64(host).
-     * Stateless — entering this creates a PENDING request that the target station must accept.
+     * Stateless - entering this creates a PENDING request that the target station must accept.
      */
     public String generatePairingCode(UUID stationUid) {
         String encodedUid = Base64.getUrlEncoder()
@@ -74,7 +74,7 @@ public class FederationService {
 
     /**
      * Generates a station invite code: ember-BASE64(stationUid)-BASE64(host)-TOKEN.
-     * The token proves the station consented — entering this auto-activates the federation.
+     * The token proves the station consented - entering this auto-activates the federation.
      */
     public String generateStationInvite(int stationId, UUID stationUid) {
         String token = generateRandomToken();
@@ -177,7 +177,7 @@ public class FederationService {
         }
 
         int requestingStationId = partner.stationId();
-        // partner.partnerStationId() is now a UUID — resolve back to int for local station lookup
+        // partner.partnerStationId() is now a UUID - resolve back to int for local station lookup
         int targetStationId = stationRepository
                 .findByUid(partner.partnerStationId())
                 .orElseThrow()
@@ -424,12 +424,12 @@ public class FederationService {
         return deleted;
     }
 
-    // Available for remote sync — not yet called from routes
+    // Available for remote sync - not yet called from routes
     public List<FederationMetadataCache> getCachedMetadata(int partnerId, ContentType contentType) {
         return repository.findCachedMetadata(partnerId, contentType);
     }
 
-    // Available for remote sync — not yet called from routes
+    // Available for remote sync - not yet called from routes
     public void refreshMetadataCache(int partnerId, ContentType contentType, List<FederationMetadataCache> entries) {
         for (var entry : entries) {
             repository.upsertMetadataCache(

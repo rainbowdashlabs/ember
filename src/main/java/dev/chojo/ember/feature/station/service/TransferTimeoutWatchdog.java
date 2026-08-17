@@ -20,12 +20,12 @@ import java.util.concurrent.TimeUnit;
  * token-authenticated request via {@link StationExportService#validateToken(String)}; this
  * watchdog scans once a minute for tokens that have not been touched for more than
  * {@link #IDLE_TIMEOUT_MINUTES} minutes, marks them used, and clears the source station's
- * read-only-for-transfer flag — so a destination that crashes or hangs mid-pull cannot
+ * read-only-for-transfer flag - so a destination that crashes or hangs mid-pull cannot
  * leave the source station locked until the 24-hour token expiry.
  *
  * <p>The constructor immediately aborts in-flight transfers and sweeps orphaned accounts,
  * so this class must be instantiated from the bootstrapper after the database configuration
- * is initialised — never bound as an eager singleton, which would construct it during
+ * is initialised - never bound as an eager singleton, which would construct it during
  * injector creation before {@code QueryConfiguration.setDefault()} has run.
  */
 @Singleton
@@ -59,7 +59,7 @@ public class TransferTimeoutWatchdog {
     }
 
     /**
-     * Body of the scheduled sweep — extracted so tests can drive it directly without waiting for
+     * Body of the scheduled sweep - extracted so tests can drive it directly without waiting for
      * the executor's 60-second cadence. Logs and continues on any failure; the safety net is the
      * 24-hour token expiry on the source side.
      */

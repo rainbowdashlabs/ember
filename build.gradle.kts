@@ -349,12 +349,12 @@ tasks {
                     // Unreachable catch: gzip() wraps a ByteArrayOutputStream, which cannot throw
                     // the IOException the GZIP streams declare, so 2 of its 19 lines can never be
                     // executed and it sits at 89.5%. Accepted permanently rather than restructured
-                    // — the catch is required by the checked signature.
+                    // - the catch is required by the checked signature.
                     "*.TextCompressionPolicy*",
-                    // Unified storage façade — heavy I/O against the backend layer,
+                    // Unified storage façade - heavy I/O against the backend layer,
                     // public-surface paths covered by StorageServiceTest
                     "*.StorageService*",
-                    // Image variant pipeline and the thin per-domain wrappers over it —
+                    // Image variant pipeline and the thin per-domain wrappers over it -
                     // exercised end-to-end via route tests, not unit-covered.
                     "*.ImageVariantService*",
                     "*.LostAndFoundImageService*",
@@ -380,7 +380,7 @@ tasks {
                     "*.FederationVersionBroadcaster*",
                     // Maps tile cache (filesystem walks + outbound HTTP, exercised manually)
                     "*.MapTileCacheService*",
-                    // Startup refresh of Cloudflare's published edge ranges — outbound HTTP to
+                    // Startup refresh of Cloudflare's published edge ranges - outbound HTTP to
                     // cloudflare.com with a hard-wired client; the parsing and matching logic it
                     // delegates to lives in ClientIp and is covered there.
                     "*.CloudflareRangesService*",
@@ -394,10 +394,10 @@ tasks {
                     "*.FederationPartnerSeeder*",
                     "*.DiscoveryKeyService*",
                     "*.DiscoveryStationProjectionService*",
-                    // WebAuthn verification — finishRegistration/finishAssertion success paths
+                    // WebAuthn verification - finishRegistration/finishAssertion success paths
                     // need a real authenticator-issued credential signature, not a unit test.
                     "*.WebAuthnService*",
-                    // Static CIDR helper record — class-init only, not worth unit-testing
+                    // Static CIDR helper record - class-init only, not worth unit-testing
                     "*.RemoteUrlValidator.Cidr",
                 )
                 limit {

@@ -49,12 +49,12 @@ import java.util.stream.Stream;
  * <p>Writes are atomic: bytes flow into a sibling {@code <fullKey>.partial.<uuid>} file and
  * are renamed onto {@code <fullKey>} on success. Metadata is persisted next to the bytes as
  * {@code <fullKey>.meta.json}. A POSIX mode supplied via {@link ObjectMetadata#contentType()
- * — sorry —} the per-category {@code posixMode} flag is applied via
+ * - sorry -} the per-category {@code posixMode} flag is applied via
  * {@link Files#setPosixFilePermissions} when the backend declares
  * {@link BackendCapability#POSIX_MODE}.
  *
  * <p>Local is the only backend implementation that can satisfy {@link
- * BackendCapability#ACCESS_TIME_TRACKING} in V1 (via {@code Files.setLastModifiedTime} —
+ * BackendCapability#ACCESS_TIME_TRACKING} in V1 (via {@code Files.setLastModifiedTime} -
  * filesystem atime is unreliable, mtime is what we read and update).
  */
 @Singleton

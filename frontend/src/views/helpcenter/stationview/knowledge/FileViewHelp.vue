@@ -52,7 +52,7 @@ const {t} = useI18n()
       </div>
       <div class="border-t border-[var(--border)] pt-3 text-sm space-y-2">
         <p class="font-semibold text-base">Was ist Erste Hilfe?</p>
-        <p class="text-sm">Erste Hilfe bedeutet, einer verletzten oder erkrankten Person sofort zu helfen — noch bevor der Rettungsdienst eintrifft. Das kann Leben retten.</p>
+        <p class="text-sm">Erste Hilfe bedeutet, einer verletzten oder erkrankten Person sofort zu helfen - noch bevor der Rettungsdienst eintrifft. Das kann Leben retten.</p>
         <BulletList>
           <li>Notruf absetzen (112)</li>
           <li>Stabile Seitenlage bei Bewusstlosigkeit</li>

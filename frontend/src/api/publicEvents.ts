@@ -7,7 +7,7 @@ import client from './client'
 
 export interface PublicEvent {
     id: number
-    /** Stable opaque public identifier — referenced by event cells. */
+    /** Stable opaque public identifier - referenced by event cells. */
     publicUid: string
     name: string
     description?: string

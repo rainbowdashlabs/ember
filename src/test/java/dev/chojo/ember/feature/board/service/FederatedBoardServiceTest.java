@@ -279,7 +279,7 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
         assertTrue(userTypes.isEmpty());
     }
 
-    // Satellite table tests removed — identity is now inline in board_ticket columns
+    // Satellite table tests removed - identity is now inline in board_ticket columns
 
     // -- Bookmarks --
 

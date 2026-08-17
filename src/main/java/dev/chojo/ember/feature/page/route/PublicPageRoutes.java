@@ -69,7 +69,7 @@ public class PublicPageRoutes implements Routes {
     /**
      * Returns partner station metadata. Without query params: all active federation partners.
      * When {@code uids} is supplied (comma-separated UUIDs), returns resolved metadata for each
-     * requested UID — first from the host's federation partners, then falling back to the public
+     * requested UID - first from the host's federation partners, then falling back to the public
      * discovery cache so cells can reference any publicly discoverable station.
      */
     private void listPartners(Context ctx) {
@@ -166,7 +166,7 @@ public class PublicPageRoutes implements Routes {
             UUID uid = UUID.fromString(param);
             return stationRepository.resolveId(uid).orElseThrow(NotFoundResponse::new);
         } catch (IllegalArgumentException e) {
-            // Not a UUID — try as public slug
+            // Not a UUID - try as public slug
             return stationRepository.findBySlug(param).map(Station::id).orElseThrow(NotFoundResponse::new);
         }
     }

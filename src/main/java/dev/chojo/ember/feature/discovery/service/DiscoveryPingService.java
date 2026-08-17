@@ -39,7 +39,7 @@ import java.util.concurrent.TimeUnit;
  * Orchestrates the instance-gossip layer: outbound pings, inbound ping handling, and
  * callback validation.
  *
- * <p>The protocol is intentionally fire-and-forget on the wire — every {@code POST
+ * <p>The protocol is intentionally fire-and-forget on the wire - every {@code POST
  * /discovery/ping} returns {@code 204} immediately, and the actual peer list comes back via a
  * delayed callback.
  *
@@ -168,7 +168,7 @@ public class DiscoveryPingService {
         if (signatureHeader == null
                 || !signingService.verify(
                         rawBody, signatureHeader, message.from().publicKey())) {
-            log.debug("Rejecting ping from {} — bad signature", message.from().baseUrl());
+            log.debug("Rejecting ping from {} - bad signature", message.from().baseUrl());
             reputationService.recordSignatureFailure(message.from().publicKey());
             return;
         }
@@ -176,7 +176,7 @@ public class DiscoveryPingService {
         // Callback target must be a public endpoint (SSRF guard on the attacker-chosen URL).
         if (message.callbackUrl() == null || !urlValidator.isAllowed(message.callbackUrl())) {
             log.debug(
-                    "Rejecting ping from {} — callback URL not permitted",
+                    "Rejecting ping from {} - callback URL not permitted",
                     message.from().baseUrl());
             return;
         }

@@ -10,15 +10,15 @@ import java.util.Optional;
 /**
  * Metadata carried alongside every stored object. Filesystem backends persist this as a
  * JSON sidecar next to the bytes; S3 maps it to native object metadata. Producers never
- * write sidecars directly — {@link StorageBackend} implementations are responsible for
+ * write sidecars directly - {@link StorageBackend} implementations are responsible for
  * round-tripping this record on store / read.
  *
  * @param contentType      MIME type detected at upload (after magic-byte sniffing for
- *                         image categories) — authoritative for download {@code Content-Type}.
+ *                         image categories) - authoritative for download {@code Content-Type}.
  * @param sha256           Hex SHA-256 of the bytes as written. Empty until populated by the
  *                         digesting stream wrapper that drives the upload.
  * @param originalFilename Optional client-supplied filename, used for attachment downloads.
- * @param contentEncoding  Optional {@code Content-Encoding} (e.g. {@code gzip}) — the producer
+ * @param contentEncoding  Optional {@code Content-Encoding} (e.g. {@code gzip}) - the producer
  *                         already compressed the bytes and download responses must advertise it.
  */
 public record ObjectMetadata(

@@ -358,7 +358,7 @@ public class ProcedureRoutes implements Routes {
                     }
                 }
                 if (!procedureService.checkItem(iid, session.member().id())) {
-                    throw new BadRequestResponse("Cannot check item — dependencies not met or already checked");
+                    throw new BadRequestResponse("Cannot check item - dependencies not met or already checked");
                 }
             } else {
                 if (!hasEdit) {

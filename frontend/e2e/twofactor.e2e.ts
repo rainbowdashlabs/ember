@@ -24,7 +24,7 @@ test.describe('Two-factor', () => {
      * somebody is: the seeder switches two-factor on for one team member, so the list has both kinds
      * in it and the count is not zero.
      *
-     * Read on the station's own security page rather than under the operator's two-factor entry —
+     * Read on the station's own security page rather than under the operator's two-factor entry -
      * that one resets a single account and keeps the audit log.
      */
     test('the station sees who has two-factor and who has not', async ({managerPage: page}) => {

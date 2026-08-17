@@ -17,7 +17,7 @@ import java.util.List;
  * the real visitor IP is identified correctly regardless of deployment shape
  * (direct, Traefik, Cloudflare, or Cloudflare → Traefik).
  *
- * <p>The defaults assume the safest deployment — direct on a public socket —
+ * <p>The defaults assume the safest deployment - direct on a public socket -
  * where no forwarded-for headers are trusted. Production deployments override
  * these values to match the actual layout.
  */

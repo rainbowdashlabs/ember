@@ -65,7 +65,7 @@ function decodeDescriptors(descriptors: ServerCredentialDescriptor[] | undefined
 /**
  * The server hands us the JSON form of {@code PublicKeyCredentialCreationOptions} produced
  * by {@code com.yubico.webauthn.data.PublicKeyCredentialCreationOptions#toCredentialsCreateJson()}.
- * Either Yubico variant works — this helper massages the inputs for the WebAuthn DOM API.
+ * Either Yubico variant works - this helper massages the inputs for the WebAuthn DOM API.
  */
 function decodeCreationOptions(json: string): PublicKeyCredentialCreationOptions {
     const source = unwrapPublicKey<ServerCreationOptions>(json)

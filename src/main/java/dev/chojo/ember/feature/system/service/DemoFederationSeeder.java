@@ -167,7 +167,7 @@ public class DemoFederationSeeder implements DemoSeeder {
         stationRepository.updateDiscoverySettings(
                 primaryStationId,
                 DiscoveryVisibility.PUBLIC,
-                "Unsere Jugendfeuerwehr — Ausbildung, Technik und Gemeinschaft",
+                "Unsere Jugendfeuerwehr - Ausbildung, Technik und Gemeinschaft",
                 true);
 
         // Create a second station
@@ -407,7 +407,7 @@ public class DemoFederationSeeder implements DemoSeeder {
         var fedEvent = crudService.create(
                 partnerStation.id(),
                 "Gemeinsame Großübung",
-                "Übergreifende Übung mit beiden Wehren — Einsatzszenarien Brand und THL",
+                "Übergreifende Übung mit beiden Wehren - Einsatzszenarien Brand und THL",
                 StationEvent.EventType.ONE_TIME,
                 null,
                 nextSatStart,
@@ -557,7 +557,7 @@ public class DemoFederationSeeder implements DemoSeeder {
                             null,
                             memberIdentityFactory.local(primaryStationId, createdBy),
                             "Admin",
-                            "Nächste Woche üben wir den Löschangriff — bitte Sportkleidung mitbringen!",
+                            "Nächste Woche üben wir den Löschangriff - bitte Sportkleidung mitbringen!",
                             evUebung.name(),
                             nextOccurrence);
                 });
@@ -575,7 +575,7 @@ public class DemoFederationSeeder implements DemoSeeder {
                 .findFirst()
                 .orElse(null);
         if (reversePartnerForEvents != null) {
-            // fedEvent is a one-off federation demo event — null eventDate (whole-event).
+            // fedEvent is a one-off federation demo event - null eventDate (whole-event).
             var fc1 = eventFederationService.createRemoteComment(
                     reversePartnerForEvents,
                     fedEvent.id(),

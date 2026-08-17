@@ -24,7 +24,7 @@
  *     files that renamed variables, but it also erases most of what a line says,
  *     which is why the window has to be long before a match means anything.
  *   - Template windows are --template-window=N lines (default 12) and keep tag
- *     names, attribute names and directive names intact — only attribute values
+ *     names, attribute names and directive names intact - only attribute values
  *     and interpolations are collapsed. Repeated markup is the thing this
  *     cleanup is actually hunting for, so the fingerprint stays sharp and the
  *     match is about structure rather than about wording.
@@ -58,7 +58,7 @@
  *   --error=N            error for blocks with >= N occurrences (default 4)
  *   --max-line-share=F   reject windows dominated by one line (default 0.4)
  *
- * The check exempts files inside src/components/ — extracting *into* components
+ * The check exempts files inside src/components/ - extracting *into* components
  * is the goal, so reuse showing up in component libraries is fine and expected.
  */
 
@@ -103,9 +103,9 @@ const ELEMENT_OPEN = /<[A-Za-z][\w-]*/
 
 /**
  * Marks lines that sit inside a `defineProps<{ … }>()` or `defineEmits<{ … }>()` macro body.
- * The declaration shapes are part of Vue's compile-time surface area — they exist precisely to give
+ * The declaration shapes are part of Vue's compile-time surface area - they exist precisely to give
  * each component a typed contract, and lifting them into a shared file would defeat that purpose.
- * Standalone `interface` / `type` declarations are intentionally NOT silenced — when two files
+ * Standalone `interface` / `type` declarations are intentionally NOT silenced - when two files
  * declare the same shape there, it's real duplication and should be extracted into a shared type.
  */
 function markMacroBodyLines(lines) {

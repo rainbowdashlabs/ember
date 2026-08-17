@@ -432,7 +432,7 @@ public class NewsRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Record that the current member fully saw a news entry",
             description =
-                    "Idempotent — repeated calls from the same member are silently ignored. The client fires this once the news entry is fully visible in the viewport.",
+                    "Idempotent - repeated calls from the same member are silently ignored. The client fires this once the news entry is fully visible in the viewport.",
             tags = {"News"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = {
@@ -594,7 +594,7 @@ public class NewsRoutes implements Routes {
 
         SyndFeed feed = new SyndFeedImpl();
         feed.setFeedType(feedType);
-        feed.setTitle(station.name() + " — Blog");
+        feed.setTitle(station.name() + " - Blog");
         feed.setDescription(station.name() + " public blog");
         feed.setLink(blogUrl);
         feed.setLanguage(station.locale());
@@ -721,7 +721,7 @@ public class NewsRoutes implements Routes {
 
     /**
      * Lightweight picker result shape for {@code GET /api/v1/news/search}. Exposes the public
-     * UUID — never the internal integer id — so cell configs that reference this entry survive
+     * UUID - never the internal integer id - so cell configs that reference this entry survive
      * station-transfer renumbering.
      */
     public record NewsSearchResult(UUID publicUid, String title, String summary, Instant publishedAt) {}

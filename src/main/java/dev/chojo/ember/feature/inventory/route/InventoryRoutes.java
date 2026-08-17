@@ -83,7 +83,7 @@ public class InventoryRoutes implements Routes {
                 this::memberItems,
                 StationPermission.MEMBER_READ,
                 StationPermission.INVENTORY_READ);
-        // Inventory CRUD — read vs write
+        // Inventory CRUD - read vs write
         routes.get(prefix + "/inventories", this::list, StationPermission.INVENTORY_READ);
         routes.post(prefix + "/inventories", this::create, StationPermission.INVENTORY_CREATE);
         routes.get(prefix + "/inventories/all-items", this::listAllItems, StationPermission.INVENTORY_READ);
@@ -103,7 +103,7 @@ public class InventoryRoutes implements Routes {
                 prefix + "/inventories/{inventoryId}/sizes/{sizeId}",
                 this::deleteSize,
                 StationPermission.INVENTORY_EDIT);
-        // Items — read needs INVENTORY_READ, edit needs INVENTORY_EDIT, create needs INVENTORY_CREATE
+        // Items - read needs INVENTORY_READ, edit needs INVENTORY_EDIT, create needs INVENTORY_CREATE
         routes.get(prefix + "/inventories/{inventoryId}/items", this::listItems, StationPermission.INVENTORY_READ);
         routes.post(
                 prefix + "/inventories/{inventoryId}/items",

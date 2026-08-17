@@ -63,13 +63,13 @@ const { t } = useI18n()
           <div class="space-y-1">
             <FieldLabel>{{ t('helpCenter.quizCatalogImport.colCategory') }}</FieldLabel>
             <SelectInput :model-value="''" disabled>
-              <option value="">—</option>
+              <option value="">-</option>
             </SelectInput>
           </div>
           <div class="space-y-1">
             <FieldLabel>{{ t('helpCenter.quizCatalogImport.colType') }}</FieldLabel>
             <SelectInput :model-value="''" disabled>
-              <option value="">—</option>
+              <option value="">-</option>
             </SelectInput>
           </div>
         </div>

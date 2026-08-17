@@ -27,7 +27,7 @@ const model = defineModel<RestrictionSelection>({required: true})
 
 /**
  * The level each chosen audience entry holds. Empty means the entry only names an audience and
- * leaves what they may do to the station permission each of them holds — which is how every entry
+ * leaves what they may do to the station permission each of them holds - which is how every entry
  * behaved before levels existed.
  */
 const levels = defineModel<GrantLevels>('levels', {required: true})

@@ -16,7 +16,7 @@
 
 (3) Sorgeberechtigte können mit einem eigenen Konto als Verwalter des Kontos ihres Kindes eingerichtet werden. Sie können die Profildaten des Kindes einsehen und bearbeiten, für das Kind Rückmeldungen zu Terminen abgeben und Mitteilungen empfangen. Sie stehen für die Nutzung durch das Kind ein.
 
-(4) Erklärungen, die diese Bedingungen betreffen — insbesondere die Zustimmung zu einer geänderten Fassung — geben Sorgeberechtigte für ihr Kind ab, soweit dieses nicht selbst wirksam handeln kann.
+(4) Erklärungen, die diese Bedingungen betreffen - insbesondere die Zustimmung zu einer geänderten Fassung - geben Sorgeberechtigte für ihr Kind ab, soweit dieses nicht selbst wirksam handeln kann.
 
 ## § 7 Sicherheit des Kontos
 

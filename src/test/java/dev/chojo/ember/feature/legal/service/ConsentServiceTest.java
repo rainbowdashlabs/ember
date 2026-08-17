@@ -218,9 +218,9 @@ class ConsentServiceTest extends RepositoryTestBase {
     @Test
     @Order(24)
     void getPrivacyDiffDifferentVersions() {
-        // fromVersion different from toVersion — should return null or some string
+        // fromVersion different from toVersion - should return null or some string
         var diff = service.getPrivacyDiff("version-a", "version-b");
-        // Just verify no exception — result is null when no history exists
+        // Just verify no exception - result is null when no history exists
         assertTrue(diff == null || diff.isEmpty() || !diff.isEmpty());
     }
 
@@ -257,9 +257,9 @@ class ConsentServiceTest extends RepositoryTestBase {
         when(apiConfig2.imprintDir()).thenReturn(freshImprint.toString());
 
         var service2 = new ConsentService(accountRepo, apiConfig2, new Network());
-        // First init — all documents are new, so changed=true
+        // First init - all documents are new, so changed=true
         assertDoesNotThrow(service2::initialize);
-        // Second init — same content, so changed=false (exercises the else branch)
+        // Second init - same content, so changed=false (exercises the else branch)
         assertDoesNotThrow(service2::initialize);
 
         // Modify one doc and re-init to trigger the log.warn with mixed changed/unchanged

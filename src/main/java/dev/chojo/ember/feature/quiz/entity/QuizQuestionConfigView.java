@@ -53,7 +53,7 @@ public sealed interface QuizQuestionConfigView {
 
     /**
      * @param leftItems  the items to connect from
-     * @param rightItems the items to connect to, in config order — the renderer shuffles
+     * @param rightItems the items to connect to, in config order - the renderer shuffles
      *                   them for display
      */
     record Connect(List<String> leftItems, List<String> rightItems) implements QuizQuestionConfigView {}

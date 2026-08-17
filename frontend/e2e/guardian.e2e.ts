@@ -11,12 +11,12 @@ import {unique} from './fixtures/unique'
  * What a guardian may do for the members in their care, and what they may not do for anybody else.
  *
  * A guardian speaks for a child: they hand it an address and decide whether it signs in at all.
- * That is a narrow permission and the stories here hold it to its edges — the panel does what it
+ * That is a narrow permission and the stories here hold it to its edges - the panel does what it
  * promises, and the endpoints behind it refuse a member the guardian does not manage.
  *
  * The stories that ask an endpoint rather than a screen send the session along themselves: a request
  * made straight from the page carries nothing of what the application keeps in the browser, and the
- * server answers it as if nobody had signed in — which would read as the refusal these stories are
+ * server answers it as if nobody had signed in - which would read as the refusal these stories are
  * looking for.
  */
 async function guardianPage(browser: Parameters<typeof pageAsThrowaway>[0], request: APIRequestContext): Promise<Page> {
@@ -44,7 +44,7 @@ async function managedMembers(page: Page): Promise<ManagedMember[]> {
 }
 
 /**
- * One of them to act on — never the account the rest of the suite is signed in as.
+ * One of them to act on - never the account the rest of the suite is signed in as.
  *
  * Giving somebody a new address ends the sessions they have open, which is right: the address is how
  * they sign in. The seeded guardian happens to look after the very member every other story acts as,
@@ -70,7 +70,7 @@ test.describe('Guardian', () => {
         const address = `${unique('kind').toLowerCase()}@example.test`
 
         // The words above the picker are text rather than a label an input is tied to, so the picker
-        // is the select that offers them as its first, unpickable option — and the child is picked by
+        // is the select that offers them as its first, unpickable option - and the child is picked by
         // name, because which of them the story may write to is not a matter of position.
         const picker = page.locator('select:has(option:text-is("Mitglied auswählen"))')
 

@@ -2,7 +2,7 @@
 
 (1) A station can make parts of its content accessible without login, in particular a public homepage, individual news items, individual articles and folders of the knowledge base, contact and survey forms, and a waiting list for new applicants.
 
-(2) The station decides what to release. It ensures that content made public contains no personal data for which there is no legal basis for publication, and that the necessary consents — in particular for images of members — have been obtained.
+(2) The station decides what to release. It ensures that content made public contains no personal data for which there is no legal basis for publication, and that the necessary consents - in particular for images of members - have been obtained.
 
 (3) Anyone filling in a public form or waiting list provides the requested information voluntarily. Information about a minor may only be provided by the holder of parental responsibility. A waiting list entry may require confirmation through a link sent by email; without confirmation the information is deleted after a set period.
 
@@ -10,7 +10,7 @@
 
 ## Section 13 Data exchange with partner stations
 
-(1) A station can establish partnerships with stations on other Ember instances and release selected content to them — for example events, news, knowledge base articles, question catalogues, test sheets or lending requests. The exchange takes place between the instances involved and is cryptographically signed.
+(1) A station can establish partnerships with stations on other Ember instances and release selected content to them - for example events, news, knowledge base articles, question catalogues, test sheets or lending requests. The exchange takes place between the instances involved and is cryptographically signed.
 
 (2) The station decides whether to establish a partnership and how much to release. Released content leaves the operator's sphere of control. Its further use is the responsibility of the operator of the receiving instance; recalling content already transmitted is not possible in every case.
 
@@ -42,6 +42,6 @@
 
 (1) The Platform sends messages within the application and, where configured, by email. These are exclusively messages triggered by use, for example regarding the account and login, events, tasks and releases. No promotional messages are sent.
 
-(2) Users can control the scope of notifications in their settings. Messages required for operating the account — in particular on security, access and changed legal documents — cannot be unsubscribed from.
+(2) Users can control the scope of notifications in their settings. Messages required for operating the account - in particular on security, access and changed legal documents - cannot be unsubscribed from.
 
 (3) Delivery may be delayed or limited by sending limits of the operator or of the mail service used. There is no entitlement to delivery of any individual message.

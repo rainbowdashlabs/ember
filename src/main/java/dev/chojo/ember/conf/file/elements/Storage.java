@@ -46,7 +46,7 @@ public class Storage {
     /**
      * Extends presentation recompression to the full ZIP-based Office family:
      * {@code .docx} / {@code .xlsx} / {@code .odt} / {@code .ods}. Same maximum-
-     * deflate rewrite — typically 10–25% smaller, fully lossless, completely transparent to
+     * deflate rewrite - typically 10–25% smaller, fully lossless, completely transparent to
      * downstream readers.
      */
     @Overwrite(env = @Env)
@@ -77,7 +77,7 @@ public class Storage {
      * Whether to pre-generate width-keyed image variants on upload. Variants
      * cut public-page egress by an order of magnitude on image-heavy pages because the client
      * downloads a 1024 px WebP instead of a 4 MB original. Disable only on very constrained
-     * deployments where the ~1 s upload-time CPU cost is unwelcome — variants remain absent
+     * deployments where the ~1 s upload-time CPU cost is unwelcome - variants remain absent
      * and the original is served for every request.
      */
     @Overwrite(env = @Env)
@@ -193,7 +193,7 @@ public class Storage {
 
     /**
      * Parses {@link #imageVariantsWidths()} into a sorted, deduplicated list of positive
-     * integers. Invalid tokens are silently skipped — the config is operator-supplied and the
+     * integers. Invalid tokens are silently skipped - the config is operator-supplied and the
      * application should never crash because of an extra comma.
      */
     public List<Integer> imageVariantsWidthList() {

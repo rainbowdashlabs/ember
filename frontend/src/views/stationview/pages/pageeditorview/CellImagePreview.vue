@@ -84,7 +84,7 @@ const hasCrop = computed(() => {
     return T + R + B + L > 0
 })
 
-/** Aspect ratio of the *visible* (cropped) region — drives the container's height. */
+/** Aspect ratio of the *visible* (cropped) region - drives the container's height. */
 const visibleAspect = computed(() => {
     if (!naturalWidth.value || !naturalHeight.value) return null
     const {T, R, B, L} = cropPercents.value
@@ -121,7 +121,7 @@ const containerStyle = computed(() => {
 })
 
 /** Frame style: border + radius + clipping. Radius is computed as px from the rendered
- *  dimensions so a 50% value produces a circle on a square and a stadium on a rectangle —
+ *  dimensions so a 50% value produces a circle on a square and a stadium on a rectangle -
  *  never an ellipse. */
 const frameStyle = computed(() => {
     const c = cfg.value

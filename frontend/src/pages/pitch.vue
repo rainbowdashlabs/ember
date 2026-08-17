@@ -11,7 +11,7 @@ import PitchDeckView from '~/views/PitchDeckView.vue'
 /**
  * The positions sit on the route itself rather than in a `pages/pitch/` directory: a page nested
  * in a directory makes the router the component tests mount come up without an instance, and every
- * component test then fails during setup. Aliases are no way around it either — an alias may not
+ * component test then fails during setup. Aliases are no way around it either - an alias may not
  * introduce a parameter the original record lacks.
  */
 definePageMeta({

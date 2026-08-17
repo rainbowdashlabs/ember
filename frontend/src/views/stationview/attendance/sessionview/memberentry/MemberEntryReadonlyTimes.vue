@@ -15,7 +15,7 @@ defineProps<{
 <template>
   <div class="flex items-center gap-2 text-xs text-(--text-muted)">
     <span v-if="entry.status === 'PRESENT' && (entry.checkIn || entry.checkOut)">
-      {{ formatTime(entry.checkIn) || '—' }} – {{ formatTime(entry.checkOut) || '—' }}
+      {{ formatTime(entry.checkIn) || '-' }} – {{ formatTime(entry.checkOut) || '-' }}
     </span>
   </div>
 </template>

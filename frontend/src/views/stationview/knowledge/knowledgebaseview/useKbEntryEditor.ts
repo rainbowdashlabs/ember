@@ -48,7 +48,7 @@ export interface KbEntryTarget {
  *
  * Everything is loaded when the dialog opens rather than kept in sync, so the dialog always shows
  * what is currently stored even if the entry changed underneath the list. A failed load leaves the
- * defaults in place instead of reporting an error — a missing restriction reads as "no
+ * defaults in place instead of reporting an error - a missing restriction reads as "no
  * restriction", which is what an entry without one has.
  *
  * @param show   whether the dialog is open; opening triggers the load
@@ -138,8 +138,8 @@ export function useKbEntryEditor(
   }
 
   /**
-   * Saves every part of the dialog at once. {@code extra} carries writes only one kind has — the
-   * folder icon — so they succeed or fail together with the rest.
+   * Saves every part of the dialog at once. {@code extra} carries writes only one kind has - the
+   * folder icon - so they succeed or fail together with the rest.
    */
   async function save(extra: (id: number) => Promise<unknown>[] = () => []): Promise<boolean> {
     const target = entry()

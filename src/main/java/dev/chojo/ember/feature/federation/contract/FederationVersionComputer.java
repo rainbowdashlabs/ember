@@ -35,7 +35,7 @@ import java.util.TreeMap;
  * Each surface hashes the sorted union of its endpoint signatures (method, path, request
  * and response types), the signatures of every record and enum transitively reachable from
  * those payload types within the project namespace, and the surface's manual revision tags.
- * Any change to what travels over a surface rolls that surface's hash — and only that one.
+ * Any change to what travels over a surface rolls that surface's hash - and only that one.
  */
 public final class FederationVersionComputer {
 

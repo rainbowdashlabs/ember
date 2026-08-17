@@ -12,13 +12,13 @@
 
 ## § 2 Begriffe
 
-- **Plattform** — diese Installation der Software Ember einschließlich aller über sie erreichbaren Funktionen.
-- **Betreiber** — die im Impressum genannte natürliche oder juristische Person, die die Plattform betreibt.
-- **Wache** — eine auf der Plattform eingerichtete Organisationseinheit, in der Regel eine Jugendfeuerwehr oder eine vergleichbare Jugendgruppe. Eine Plattform kann mehrere Wachen beherbergen, deren Daten voneinander getrennt sind.
-- **Nutzer** — jede Person mit einem Konto auf der Plattform, insbesondere Mitglieder, Betreuende, Sorgeberechtigte, Verwaltung und Administration.
-- **Wachen-Verwaltung** — Nutzer, denen innerhalb einer Wache Verwaltungsrechte eingeräumt sind.
-- **Inhalte** — alle Daten, Texte, Bilder, Dateien und sonstigen Angaben, die Nutzer oder Wachen auf der Plattform einstellen oder erzeugen.
-- **Partnerwache** — eine Wache auf einer anderen Ember-Instanz, mit der eine Wache dieser Plattform eine Partnerschaft eingerichtet hat.
+- **Plattform** - diese Installation der Software Ember einschließlich aller über sie erreichbaren Funktionen.
+- **Betreiber** - die im Impressum genannte natürliche oder juristische Person, die die Plattform betreibt.
+- **Wache** - eine auf der Plattform eingerichtete Organisationseinheit, in der Regel eine Jugendfeuerwehr oder eine vergleichbare Jugendgruppe. Eine Plattform kann mehrere Wachen beherbergen, deren Daten voneinander getrennt sind.
+- **Nutzer** - jede Person mit einem Konto auf der Plattform, insbesondere Mitglieder, Betreuende, Sorgeberechtigte, Verwaltung und Administration.
+- **Wachen-Verwaltung** - Nutzer, denen innerhalb einer Wache Verwaltungsrechte eingeräumt sind.
+- **Inhalte** - alle Daten, Texte, Bilder, Dateien und sonstigen Angaben, die Nutzer oder Wachen auf der Plattform einstellen oder erzeugen.
+- **Partnerwache** - eine Wache auf einer anderen Ember-Instanz, mit der eine Wache dieser Plattform eine Partnerschaft eingerichtet hat.
 
 ## § 3 Gegenstand und Leistungsumfang
 

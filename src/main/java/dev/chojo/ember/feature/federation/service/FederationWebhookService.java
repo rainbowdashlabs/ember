@@ -67,7 +67,7 @@ public class FederationWebhookService {
     /**
      * Fires a webhook event to all active partners of the given station that have a webhook URL.
      */
-    // Available for federation event delivery — not yet triggered from change listeners
+    // Available for federation event delivery - not yet triggered from change listeners
     public void fireEvent(int stationId, WebhookEvent event, Object payload) {
         var partners = federationService.findPartners(stationId);
         for (var partner : partners) {
@@ -97,7 +97,7 @@ public class FederationWebhookService {
      */
     private void deliverWebhook(FederationPartner partner, String webhookUrl, WebhookEvent event, Object payload) {
         if (!urlValidator.isAllowed(webhookUrl)) {
-            log.warn("Skipping webhook delivery for partner {} — URL rejected by RemoteUrlValidator", partner.id());
+            log.warn("Skipping webhook delivery for partner {} - URL rejected by RemoteUrlValidator", partner.id());
             return;
         }
         try {

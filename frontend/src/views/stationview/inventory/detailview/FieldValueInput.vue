@@ -51,7 +51,7 @@ const enumConfig = computed(() => props.field.config as EnumFieldConfig)
   </template>
   <template v-else-if="field.fieldType === FieldType.ENUM">
     <SelectInput v-model="value">
-      <option :value="null">—</option>
+      <option :value="null">-</option>
       <option v-for="opt in enumConfig.options" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
     </SelectInput>
   </template>

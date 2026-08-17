@@ -30,7 +30,7 @@ const { t } = useI18n()
         <DateInput v-if="editing && canEdit" v-model="dueDate" @change="editing = false; emit('save')" @blur="editing = false" />
         <div v-else class="rounded-theme px-2 py-1 text-sm" :class="canEdit ? 'cursor-pointer hover:bg-(--bg-accent)' : ''" @click.stop="canEdit && (emit('open'), editing = true)">
             <span v-if="dueDate">{{ formatDate(dueDate) }}</span>
-            <span v-else class="text-(--text-muted) italic">—</span>
+            <span v-else class="text-(--text-muted) italic">-</span>
         </div>
     </div>
 </template>

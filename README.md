@@ -1,6 +1,6 @@
 # Ember
 
-Ember is an all-in-one platform for managing youth groups (Jugendfeuerwehren). It handles attendance, events, inventory, members, forms, news, knowledge base, quizzes, test protocols, boards, federation, waiting lists, and more — all in a single self-hosted application.
+Ember is an all-in-one platform for managing youth groups (Jugendfeuerwehren). It handles attendance, events, inventory, members, forms, news, knowledge base, quizzes, test protocols, boards, federation, waiting lists, and more - all in a single self-hosted application.
 
 ## Quick Start (Docker)
 
@@ -192,7 +192,7 @@ mailing:
   password: "your-smtp-password"
 ```
 
-Without email configuration, Ember still works — users just can't self-register or reset passwords. Admins can invite users and force password changes instead.
+Without email configuration, Ember still works - users just can't self-register or reset passwords. Admins can invite users and force password changes instead.
 
 ## Legal Documents (Privacy Policy, ToS, Consent)
 
@@ -208,7 +208,7 @@ Legal documents are managed through the admin interface at `/admin/settings/lega
 4. Sections can be **reordered** (up/down arrows), **enabled/disabled** (toggle), and **deleted**
 5. Disabled sections are preserved on disk but excluded from the rendered document shown to users
 6. Use the preview button to see the combined rendered result
-7. Save — Ember automatically versions the document and prompts users to re-consent
+7. Save - Ember automatically versions the document and prompts users to re-consent
 
 ### File Structure
 
@@ -261,7 +261,7 @@ Ember automatically tracks changes to legal documents:
 - **Users are automatically prompted to re-consent** when any document changes
 - All consent records are stored in the database with timestamps, IP addresses, and document versions for GDPR compliance
 
-The `version.txt` and `history/` directory are auto-managed — do not edit them manually.
+The `version.txt` and `history/` directory are auto-managed - do not edit them manually.
 
 ## Permissions
 
@@ -271,7 +271,7 @@ Ember uses a hierarchical permission system. Permissions are assigned per member
 
 | Permission               | Description                                   | Key Children                                                                |
 |--------------------------|-----------------------------------------------|-----------------------------------------------------------------------------|
-| `STATION_ADMINISTRATOR`  | Full station access — grants all permissions  | All manager permissions below                                               |
+| `STATION_ADMINISTRATOR`  | Full station access - grants all permissions  | All manager permissions below                                               |
 | `LOGIN`                  | Can log in to the station                     | `USER`                                                                      |
 
 ### Feature Managers
@@ -298,7 +298,7 @@ Each feature area has a manager permission that grants all sub-permissions withi
 
 | Permission        | Description                                             |
 |-------------------|---------------------------------------------------------|
-| `MEMBER_GUARDIAN` | Parent/guardian — can manage linked children's profiles |
+| `MEMBER_GUARDIAN` | Parent/guardian - can manage linked children's profiles |
 
 Permissions can also be assigned to entire user types (Trial, Member, Guardian, Team, Manager) station-wide via the user type permissions management page.
 
@@ -346,4 +346,4 @@ docker compose -f docker/compose.dev.yaml up --build
 
 ## License
 
-AGPL-3.0-only — see [LICENSE](LICENSE) for details.
+AGPL-3.0-only - see [LICENSE](LICENSE) for details.

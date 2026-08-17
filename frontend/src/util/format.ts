@@ -30,7 +30,7 @@ export function formatDate(iso?: string | null): string {
 }
 
 /**
- * Formats an ISO timestamp as a long German date — `27. Juli 2026` — for editorial
+ * Formats an ISO timestamp as a long German date - `27. Juli 2026` - for editorial
  * surfaces such as blog posts and release notes. Returns an empty string when the
  * input is missing.
  */
@@ -54,8 +54,8 @@ export function formatDateTime(iso?: string | null): string {
 }
 
 /**
- * Formats an ISO timestamp as a German relative time — "gerade eben", "vor 5 Min.",
- * "vor 3 Std.", "vor 2 Tagen" — falling back to the absolute date after 30 days.
+ * Formats an ISO timestamp as a German relative time - "gerade eben", "vor 5 Min.",
+ * "vor 3 Std.", "vor 2 Tagen" - falling back to the absolute date after 30 days.
  * Returns an empty string when the input is missing.
  */
 export function formatRelative(iso?: string | null): string {

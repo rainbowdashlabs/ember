@@ -88,7 +88,7 @@ public class AvatarRoutes implements Routes {
 
     /**
      * Serves an avatar with appropriate content type and cache headers, given the account UUID
-     * the avatar is stored under. An empty UUID means the caller may not see it — answered with
+     * the avatar is stored under. An empty UUID means the caller may not see it - answered with
      * 404 so a missing target and a missing permission look the same.
      */
     private void serveAvatar(Context ctx, Optional<UUID> accountUid) {

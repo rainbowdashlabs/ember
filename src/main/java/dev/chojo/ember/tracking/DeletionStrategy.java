@@ -13,7 +13,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * @param column     column name this strategy applies to
  * @param strategy   deletion behaviour
  * @param reason     human-readable explanation
- * @param legalBasis legal justification — required when {@code strategy = RETAIN}
+ * @param legalBasis legal justification - required when {@code strategy = RETAIN}
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record DeletionStrategy(String column, Strategy strategy, String reason, String legalBasis) {

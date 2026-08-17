@@ -12,8 +12,8 @@ const MEMBER_TABLE = 'station_member'
  * Finds member references that deleting a member would leave behind.
  *
  * A table declared as holding member data is expected to reach the member through a foreign key,
- * so removing the member cascades. Where that key is missing — or points somewhere else, or the
- * declared column does not exist at all — the reference survives the deletion, which is a data
+ * so removing the member cascades. Where that key is missing - or points somewhere else, or the
+ * declared column does not exist at all - the reference survives the deletion, which is a data
  * protection problem rather than a cosmetic one.
  *
  * The member table itself is skipped: its own key is the member, not a reference to one.

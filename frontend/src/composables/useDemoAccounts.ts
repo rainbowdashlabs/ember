@@ -32,7 +32,7 @@ export interface StationTab {
  * role so the list is navigable.
  *
  * An instance that is neither demo nor dev exposes nothing here, and a failure to reach the
- * status endpoint is treated the same way — the login page must still render for a normal
+ * status endpoint is treated the same way - the login page must still render for a normal
  * instance where these endpoints do not exist.
  */
 export function useDemoAccounts() {

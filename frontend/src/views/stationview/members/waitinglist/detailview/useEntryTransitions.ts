@@ -22,7 +22,7 @@ export interface PendingTransition {
 /**
  * Moving a waiting-list entry to its next state.
  *
- * Every move is confirmed before it runs — each one is visible to the applicant, and joining in
+ * Every move is confirmed before it runs - each one is visible to the applicant, and joining in
  * particular creates a member. Joining therefore also hands over to the member editor when the
  * acting user may edit members, so the new member can be completed straight away.
  *

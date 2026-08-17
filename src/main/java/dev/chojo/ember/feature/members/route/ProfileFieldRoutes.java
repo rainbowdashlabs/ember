@@ -99,7 +99,7 @@ public class ProfileFieldRoutes implements Routes {
         routes.put(prefix + "/profile-fields/{id}", this::update, StationPermission.MEMBER_FIELDS);
         routes.delete(prefix + "/profile-fields/{id}", this::delete, StationPermission.MEMBER_FIELDS);
 
-        // Field values per member — MEMBER or TEAM can read/write own, MEMBER_MANAGER for any
+        // Field values per member - MEMBER or TEAM can read/write own, MEMBER_MANAGER for any
         routes.get(prefix + "/station-members/{memberId}/fields", this::getApplicableFields, StationPermission.USER);
         routes.get(prefix + "/station-members/{memberId}/profile", this::getValues, StationPermission.USER);
         routes.put(prefix + "/station-members/{memberId}/profile", this::setValues, StationPermission.USER);

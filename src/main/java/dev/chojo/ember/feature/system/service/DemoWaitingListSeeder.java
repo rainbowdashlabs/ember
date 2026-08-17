@@ -121,7 +121,7 @@ public class DemoWaitingListSeeder implements DemoSeeder {
         waitingListRepository.createInvite(kinderList.id(), "demo-kinder-invite", 10, null);
 
         // --- Schnupperstunde: a list that asks for nothing beyond a name and an address ---
-        // Both other lists insist on answers of their own — a date of birth, an experience level —
+        // Both other lists insist on answers of their own - a date of birth, an experience level -
         // which is right for them and makes them useless for showing what the bare registration
         // looks like, in the demo as much as in the end-to-end suite.
         waitingListRepository.create(

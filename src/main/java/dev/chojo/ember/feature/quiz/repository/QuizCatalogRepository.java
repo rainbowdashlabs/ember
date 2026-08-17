@@ -77,7 +77,7 @@ public class QuizCatalogRepository {
     }
 
     /**
-     * Flips the {@code public_render} flag — opts the catalog into (or out of) being eligible
+     * Flips the {@code public_render} flag - opts the catalog into (or out of) being eligible
      * for the public QUIZ_TEASER random endpoint.
      */
     public boolean setPublicRender(int id, boolean publicRender) {

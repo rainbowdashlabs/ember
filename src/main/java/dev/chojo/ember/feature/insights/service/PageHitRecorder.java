@@ -81,7 +81,7 @@ public class PageHitRecorder {
     }
 
     /**
-     * Schedules the flush and prune tasks. Idempotent — call once at boot from
+     * Schedules the flush and prune tasks. Idempotent - call once at boot from
      * {@code ApiServer}.
      */
     public void start() {
@@ -95,9 +95,9 @@ public class PageHitRecorder {
     }
 
     /**
-     * Adds one hit to the appropriate bucket. Non-blocking — safe to call from the
+     * Adds one hit to the appropriate bucket. Non-blocking - safe to call from the
      * after-handler. {@code country} is normalised to upper-case ASCII; {@code null} or
-     * blank values fall back to {@code XX}. {@code refererDomain} is taken verbatim — the
+     * blank values fall back to {@code XX}. {@code refererDomain} is taken verbatim - the
      * caller is expected to have reduced it via {@code RefererDomainExtractor}.
      */
     public void record(int pageId, String country, String refererDomain, boolean isBot) {
@@ -132,7 +132,7 @@ public class PageHitRecorder {
                 repository.upsert(new PageHitBucket(key.hour, key.pageId, key.country, referer, key.isBot, hits));
                 buckets.remove(key, entry.getValue());
             } catch (Exception e) {
-                log.warn("Failed to flush page-hit bucket {} — will retry on next tick", key, e);
+                log.warn("Failed to flush page-hit bucket {} - will retry on next tick", key, e);
             }
         }
     }

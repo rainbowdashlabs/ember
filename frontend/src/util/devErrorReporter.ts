@@ -11,7 +11,7 @@ function reportError(source: string, message: string, stack: string, context: st
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ source, message, stack, context }),
-    }).catch(() => { /* ignore — dev endpoint may not be available */ })
+    }).catch(() => { /* ignore - dev endpoint may not be available */ })
 }
 
 /**

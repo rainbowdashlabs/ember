@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * On startup (and on demand), walks active federation partners and inserts them into the
  * peer registry as {@link PeerSource#BOOTSTRAP} seeds. Each partner's discovery public key
- * is learned by probing its {@code /public/discovery/info} endpoint — discovery and
+ * is learned by probing its {@code /public/discovery/info} endpoint - discovery and
  * federation use independent keys.
  *
  * <p>Triggered as an eager singleton with a startup delay so QueryConfiguration and Javalin
@@ -55,7 +55,7 @@ public class FederationPartnerSeeder {
     }
 
     /**
-     * One-shot seeding pass. Idempotent — already-known peers stay where they are.
+     * One-shot seeding pass. Idempotent - already-known peers stay where they are.
      *
      * @return number of new peers inserted
      */

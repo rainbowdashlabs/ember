@@ -40,7 +40,7 @@ for (const file of localeFiles) {
         const quote = stringMatch[1]
         const value = stringMatch[2]
 
-        // Skip template literals that use {'@'} escaping — those are fine
+        // Skip template literals that use {'@'} escaping - those are fine
         // Check for bare @ not inside {'...'} escape blocks
         checkUnescapedChar(value, '@', filePath, lineNum, quote)
         checkUnescapedChar(value, '|', filePath, lineNum, quote)
@@ -57,13 +57,13 @@ function checkUnescapedChar(value, char, file, line, quote) {
     // Remove all {'...'} escape blocks first
     const stripped = value.replace(/\{'\\.?'}/g, '').replace(/\{'[^']*'}/g, '')
 
-    // Also remove interpolation blocks like {name} — those are valid
+    // Also remove interpolation blocks like {name} - those are valid
     const withoutInterpolation = stripped.replace(/\{[a-zA-Z_][a-zA-Z0-9_]*}/g, '')
 
     if (withoutInterpolation.includes(char)) {
         const col = value.indexOf(char) + 1
         reporter.error(file, line,
-            `Unescaped '${char}' in locale string — use {'${char}'} to escape it (column ${col})`,
+            `Unescaped '${char}' in locale string - use {'${char}'} to escape it (column ${col})`,
             'Locale syntax')
     }
 }

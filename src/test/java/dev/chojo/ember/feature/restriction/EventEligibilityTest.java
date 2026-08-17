@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Tests the {@link RestrictionSet#matches} logic directly.
- * No database needed — pure unit tests for AND/OR restriction evaluation.
+ * No database needed - pure unit tests for AND/OR restriction evaluation.
  */
 class EventEligibilityTest {
 

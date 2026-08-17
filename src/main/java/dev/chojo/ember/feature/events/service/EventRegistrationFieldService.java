@@ -90,7 +90,7 @@ public class EventRegistrationFieldService {
      * registration behind.
      *
      * <p>A question with no answer falls back to its configured default. A required question with
-     * neither is refused; every other rule — the options of a choice, the range of a number — is
+     * neither is refused; every other rule - the options of a choice, the range of a number - is
      * checked the same way for a member answering their own registration and for a manager filling
      * one in on their behalf.
      *

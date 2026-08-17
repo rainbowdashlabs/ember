@@ -59,10 +59,10 @@ public class DemoNewsSeeder implements DemoSeeder {
 
                         Wir haben viele neue Funktionen für euch:
 
-                        - **Terminübersicht** — Alle Übungen, Veranstaltungen und Wettbewerbe auf einen Blick
-                        - **Anwesenheitsverwaltung** — Schnelles Ein- und Auschecken bei Übungen
-                        - **Inventarverwaltung** — Eure Ausrüstung immer im Blick
-                        - **Wiki** — Lernmaterial und Protokolle
+                        - **Terminübersicht** - Alle Übungen, Veranstaltungen und Wettbewerbe auf einen Blick
+                        - **Anwesenheitsverwaltung** - Schnelles Ein- und Auschecken bei Übungen
+                        - **Inventarverwaltung** - Eure Ausrüstung immer im Blick
+                        - **Wiki** - Lernmaterial und Protokolle
 
                         ## Erste Schritte
 
@@ -74,7 +74,7 @@ public class DemoNewsSeeder implements DemoSeeder {
 
                         Wir freuen uns auf eine tolle Zeit! \uD83D\uDE92
                         """,
-                "<p>Herzlich willkommen auf unserer neuen Plattform! Hier findet ihr alle wichtigen Informationen rund um unsere <strong>Jugendfeuerwehr</strong>.</p><h2>Was ist neu?</h2><p>Wir haben viele neue Funktionen für euch:</p><ul><li><strong>Terminübersicht</strong> — Alle Übungen, Veranstaltungen und Wettbewerbe auf einen Blick</li><li><strong>Anwesenheitsverwaltung</strong> — Schnelles Ein- und Auschecken bei Übungen</li><li><strong>Inventarverwaltung</strong> — Eure Ausrüstung immer im Blick</li><li><strong>Wiki</strong> — Lernmaterial und Protokolle</li></ul><h2>Erste Schritte</h2><ol><li>Prüft euer <strong>Profil</strong> und ergänzt fehlende Daten</li><li>Schaut euch die <strong>kommenden Termine</strong> an</li><li>Meldet euch für den nächsten <strong>Wettbewerb</strong> an</ol><blockquote><p><strong>Tipp:</strong> Bei Fragen könnt ihr jederzeit die Betreuer ansprechen oder die Hilfe-Seite nutzen.</p></blockquote><p>Wir freuen uns auf eine tolle Zeit! \uD83D\uDE92</p>",
+                "<p>Herzlich willkommen auf unserer neuen Plattform! Hier findet ihr alle wichtigen Informationen rund um unsere <strong>Jugendfeuerwehr</strong>.</p><h2>Was ist neu?</h2><p>Wir haben viele neue Funktionen für euch:</p><ul><li><strong>Terminübersicht</strong> - Alle Übungen, Veranstaltungen und Wettbewerbe auf einen Blick</li><li><strong>Anwesenheitsverwaltung</strong> - Schnelles Ein- und Auschecken bei Übungen</li><li><strong>Inventarverwaltung</strong> - Eure Ausrüstung immer im Blick</li><li><strong>Wiki</strong> - Lernmaterial und Protokolle</li></ul><h2>Erste Schritte</h2><ol><li>Prüft euer <strong>Profil</strong> und ergänzt fehlende Daten</li><li>Schaut euch die <strong>kommenden Termine</strong> an</li><li>Meldet euch für den nächsten <strong>Wettbewerb</strong> an</ol><blockquote><p><strong>Tipp:</strong> Bei Fragen könnt ihr jederzeit die Betreuer ansprechen oder die Hilfe-Seite nutzen.</p></blockquote><p>Wir freuen uns auf eine tolle Zeit! \uD83D\uDE92</p>",
                 stationMemberRepository.resolveIdentity(adminMemberId),
                 List.of(),
                 List.of(),
@@ -199,13 +199,13 @@ public class DemoNewsSeeder implements DemoSeeder {
 
                         ### Trotzdem aktiv bleiben?
 
-                        - Das **Wissenscenter** bleibt verfügbar — nutzt die Zeit zum Lernen
+                        - Das **Wissenscenter** bleibt verfügbar - nutzt die Zeit zum Lernen
                         - Prüft eure **Ausrüstung** und meldet Mängel vorab
                         - Die **Anmeldung** für den Herbst-Wettbewerb öffnet in den Ferien
 
                         Wir wünschen allen **schöne und erholsame Ferien**! ☀️
                         """,
-                "<p>Während der <strong>Sommerferien</strong> finden keine regulären Übungen statt.</p><h2>Zeitraum</h2><p>Der Übungsbetrieb <strong>pausiert</strong> während der gesamten Schulferien. Wir starten wieder am <strong>ersten Montag nach den Ferien</strong>.</p><h3>Trotzdem aktiv bleiben?</h3><ul><li>Das <strong>Wissenscenter</strong> bleibt verfügbar — nutzt die Zeit zum Lernen</li><li>Prüft eure <strong>Ausrüstung</strong> und meldet Mängel vorab</li><li>Die <strong>Anmeldung</strong> für den Herbst-Wettbewerb öffnet in den Ferien</li></ul><p>Wir wünschen allen <strong>schöne und erholsame Ferien</strong>! ☀️</p>",
+                "<p>Während der <strong>Sommerferien</strong> finden keine regulären Übungen statt.</p><h2>Zeitraum</h2><p>Der Übungsbetrieb <strong>pausiert</strong> während der gesamten Schulferien. Wir starten wieder am <strong>ersten Montag nach den Ferien</strong>.</p><h3>Trotzdem aktiv bleiben?</h3><ul><li>Das <strong>Wissenscenter</strong> bleibt verfügbar - nutzt die Zeit zum Lernen</li><li>Prüft eure <strong>Ausrüstung</strong> und meldet Mängel vorab</li><li>Die <strong>Anmeldung</strong> für den Herbst-Wettbewerb öffnet in den Ferien</li></ul><p>Wir wünschen allen <strong>schöne und erholsame Ferien</strong>! ☀️</p>",
                 stationMemberRepository.resolveIdentity(adminMemberId),
                 List.of(),
                 List.of(),

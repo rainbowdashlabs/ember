@@ -12,7 +12,7 @@ import deDE from '@/i18n/de-DE'
  *
  * The i18n plugin is real rather than stubbed: the app has one locale, so a test asserting a label
  * asserts the label a user reads. The stubs are the two globals that would otherwise drag half the
- * app into a mount — the icon library and the router behind every link.
+ * app into a mount - the icon library and the router behind every link.
  */
 const i18n = createI18n({
     legacy: false,

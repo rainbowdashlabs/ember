@@ -159,9 +159,9 @@ export const MODULE_TRACKS: PitchTrack[] = [
                                 [{text: 'Anna Müller', strong: true}, {text: 'anwesend', badge: 'success'},
                                     {text: '18:02'}, {text: '19:45'}],
                                 [{text: 'Ben Krüger', strong: true}, {text: 'entschuldigt', badge: 'info'},
-                                    {text: '—', muted: true}, {text: '—', muted: true}],
+                                    {text: '-', muted: true}, {text: '-', muted: true}],
                                 [{text: 'Clara Weiß', strong: true}, {text: 'unentschuldigt', badge: 'error'},
-                                    {text: '—', muted: true}, {text: '—', muted: true}],
+                                    {text: '-', muted: true}, {text: '-', muted: true}],
                             ],
                         },
                         footer: 'Absagen aus der Anmeldung stehen hier schon als entschuldigt.',
@@ -200,7 +200,7 @@ export const MODULE_TRACKS: PitchTrack[] = [
                             note: {text: 'unvollständig', tone: 'error'}}, {text: 'Mitglied', badge: 'secondary'},
                             {text: 'Gruppe 1'}, {text: 'Fahrdienst', badge: 'info'}, {text: '164'}],
                         [{text: 'Clara Weiß', avatar: true, strong: true}, {text: 'Probe', badge: 'info'},
-                            {text: '—', muted: true}, {text: 'Neu dabei', badge: 'info'}, {text: '140'}],
+                            {text: '-', muted: true}, {text: 'Neu dabei', badge: 'info'}, {text: '140'}],
                     ],
                 },
                 footer: 'Welche Profilfelder als Spalte erscheinen, wählt ihr euch zusammen.',
@@ -272,7 +272,7 @@ export const MODULE_TRACKS: PitchTrack[] = [
                                 [{text: 'Kleidergröße', strong: true}, {text: 'Auswahl'},
                                     {text: 'nein'}, {text: 'in Übersicht', badge: 'secondary'}],
                                 [{text: 'Alter', strong: true}, {text: 'berechnet'},
-                                    {text: '—', muted: true}, {text: 'aus Geburtsdatum', badge: 'success'}],
+                                    {text: '-', muted: true}, {text: 'aus Geburtsdatum', badge: 'success'}],
                             ],
                         },
                         footer: 'Den Feldtyp Geburtsdatum gibt es genau einmal je Wache, daran hängt das berechnete Alter.',
@@ -747,7 +747,7 @@ export const MODULE_TRACKS: PitchTrack[] = [
                                 [{text: 'Ein C-Schlauch ist ___ m lang.', strong: true},
                                     {text: '15'}, {text: '0 / 1'}, {text: 'falsch', badge: 'error'}],
                                 [{text: 'Beschreibe den Ablauf.', strong: true},
-                                    {text: 'Erst absichern, dann …'}, {text: '— / 5'},
+                                    {text: 'Erst absichern, dann …'}, {text: '- / 5'},
                                     {text: 'zu bewerten', badge: 'info'}],
                             ],
                         },
@@ -828,7 +828,7 @@ export const MODULE_TRACKS: PitchTrack[] = [
                     },
                     {
                         name: 'Grundausbildung Abschluss', plain: true, station: 'Talbach',
-                        description: 'Von der Partnerwache geteilt — mit einem Klick übernehmen',
+                        description: 'Von der Partnerwache geteilt - mit einem Klick übernehmen',
                     },
                 ],
                 footer: 'Ein Bogen wird einmal gebaut und für jeden Jahrgang neu gestartet.',
@@ -847,18 +847,18 @@ export const MODULE_TRACKS: PitchTrack[] = [
                         actions: ['Neuer Prüfungslauf'],
                         rows: [
                             {
-                                name: 'Jugendflamme 1 — Frühjahr', plain: true,
-                                description: 'Jugendflamme Stufe 1 — 18.04.2026',
+                                name: 'Jugendflamme 1 - Frühjahr', plain: true,
+                                description: 'Jugendflamme Stufe 1 - 18.04.2026',
                                 badges: [{text: 'Offen', tone: 'primary'}],
                             },
                             {
-                                name: 'Jugendflamme 1 — Herbst', plain: true,
-                                description: 'Jugendflamme Stufe 1 — 27.09.2025',
+                                name: 'Jugendflamme 1 - Herbst', plain: true,
+                                description: 'Jugendflamme Stufe 1 - 27.09.2025',
                                 badges: [{text: 'Abgeschlossen', tone: 'success'}],
                             },
                             {
                                 name: 'Grundausbildung 2025', plain: true,
-                                description: 'Grundausbildung Abschluss — 14.06.2025',
+                                description: 'Grundausbildung Abschluss - 14.06.2025',
                                 badges: [{text: 'Abgeschlossen', tone: 'success'}],
                             },
                         ],
@@ -866,7 +866,7 @@ export const MODULE_TRACKS: PitchTrack[] = [
                             + 'oder namentlich.',
                     },
                     {
-                        title: 'Prüfung', subtitle: 'Jugendflamme 1 — Frühjahr · 18.04.2026',
+                        title: 'Prüfung', subtitle: 'Jugendflamme 1 - Frühjahr · 18.04.2026',
                         actions: ['Prüfung abschließen', 'Auswertung'],
                         badges: [{text: 'Offen', tone: 'primary'}],
                         filters: {toggle: 'Nur unvollständige'},
@@ -930,7 +930,7 @@ export const MODULE_TRACKS: PitchTrack[] = [
                     + 'nicht am Nachrechnen.',
                 screens: [
                     {
-                        title: 'Auswertung', subtitle: 'Jugendflamme Stufe 1 — 18.04.2026 — Grenze: 24P',
+                        title: 'Auswertung', subtitle: 'Jugendflamme Stufe 1 - 18.04.2026 - Grenze: 24P',
                         actions: ['Tabelle als PDF', 'Alles als ZIP'],
                         evaluation: PROTOCOL_EVALUATION,
                         footer: 'Das PDF eines Prüflings kommt aus seiner Spalte, der ganze Lauf als ZIP.',
@@ -1105,8 +1105,8 @@ export const MODULE_TRACKS: PitchTrack[] = [
                             actions: true,
                             rows: [
                                 [{text: 'Anna Müller', avatar: true}, {text: '12.03.2026'}, {text: 'C. Weiß'},
-                                    {text: '—', muted: true}],
-                                [{text: 'Ben Krüger', avatar: true}, {text: '—', muted: true}, {text: '—', muted: true},
+                                    {text: '-', muted: true}],
+                                [{text: 'Ben Krüger', avatar: true}, {text: '-', muted: true}, {text: '-', muted: true},
                                     {text: 'Noch nie geprüft', badge: 'secondary'}],
                                 [{text: 'Jonas Behr', avatar: true}, {text: '02.02.2026'}, {text: 'C. Weiß'},
                                     {text: 'Wird geprüft von C. Weiß', badge: 'error'}],
@@ -1175,17 +1175,17 @@ export const MODULE_TRACKS: PitchTrack[] = [
                             {
                                 name: 'Einsatzkleidung', plain: true, badges: [{text: '164', tone: 'secondary'},
                                     {text: 'Offen', tone: 'error'}],
-                                description: 'Anna Müller — 14.06.2026',
+                                description: 'Anna Müller - 14.06.2026',
                             },
                             {
                                 name: 'Stiefel', plain: true, badges: [{text: '38', tone: 'secondary'},
                                     {text: 'Offen', tone: 'error'}],
-                                description: 'Aus der Prüfung von Anna Müller — 18.06.2026',
+                                description: 'Aus der Prüfung von Anna Müller - 18.06.2026',
                             },
                             {
                                 name: 'Handschuhe', plain: true, badges: [{text: 'S', tone: 'secondary'},
                                     {text: 'Erledigt', tone: 'success'}],
-                                description: 'Jonas Behr — 02.05.2026',
+                                description: 'Jonas Behr - 02.05.2026',
                             },
                         ],
                         footer: 'Die Liste ist die Einkaufsliste. Abgehakt wird, was angekommen ist.',
@@ -1268,7 +1268,7 @@ export const MODULE_TRACKS: PitchTrack[] = [
                 rows: [
                     {
                         prefix: 'ZL', name: 'Zeltlager 2026', plain: true,
-                        description: 'Alles zur Freizeit im Juli — Material, Anmeldung, Fahrt',
+                        description: 'Alles zur Freizeit im Juli - Material, Anmeldung, Fahrt',
                         trailing: '24 Tickets',
                     },
                     {
@@ -1299,16 +1299,16 @@ export const MODULE_TRACKS: PitchTrack[] = [
                         footer: 'Die Punkte zählen die Tage in der Spalte: grün frisch, orange zäh, rot liegengeblieben.',
                     },
                     {
-                        title: 'Zeltlager 2026 — Backlog', subtitle: 'Was noch nicht auf dem Board liegt',
+                        title: 'Zeltlager 2026 - Backlog', subtitle: 'Was noch nicht auf dem Board liegt',
                         table: {
                             columns: ['ID', 'Titel', 'Priorität', 'Zugewiesen', 'Fällig am'],
                             rows: [
                                 [{text: 'ZL-52', strong: true}, {text: 'Nachtwache einteilen'}, {text: 'Mittel'},
-                                    {text: '—', muted: true}, {text: '—', muted: true}],
+                                    {text: '-', muted: true}, {text: '-', muted: true}],
                                 [{text: 'ZL-49', strong: true}, {text: 'Spieleabend vorbereiten'}, {text: 'Niedrig'},
                                     {text: 'Anna Müller', avatar: true}, {text: '05.07.2026'}],
                                 [{text: 'ZL-47', strong: true}, {text: 'Anhänger-Führerschein klären'},
-                                    {text: 'Hoch'}, {text: '—', muted: true}, {text: '—', muted: true}],
+                                    {text: 'Hoch'}, {text: '-', muted: true}, {text: '-', muted: true}],
                             ],
                         },
                         footer: 'Erledigtes wandert nach einer eingestellten Frist ins Archiv. Der Blick bleibt frei.',
@@ -1531,7 +1531,7 @@ export const MODULE_TRACKS: PitchTrack[] = [
                     + 'Alle drei Antworten stehen beim Schreiben nebeneinander.',
                 screens: [
                     {
-                        title: 'Neuigkeit bearbeiten', subtitle: 'Zeltlager 2026 — Anmeldung offen',
+                        title: 'Neuigkeit bearbeiten', subtitle: 'Zeltlager 2026 - Anmeldung offen',
                         newsSettings: NEWS_SETTINGS,
                         footer: 'Ohne Auswahl liest die Neuigkeit jedes Mitglied: Einschränken ist die Ausnahme.',
                     },
@@ -1595,7 +1595,7 @@ export const MODULE_TRACKS: PitchTrack[] = [
                     + 'eigene Eingabe mit, auf dem Handy genauso bedienbar wie am Rechner.',
                 screens: [
                     {
-                        title: 'Formular ausfüllen', subtitle: 'Zeltlager 2026 — Rückmeldung',
+                        title: 'Formular ausfüllen', subtitle: 'Zeltlager 2026 - Rückmeldung',
                         form: FORM_FILL,
                         actions: ['Absenden'],
                         footer: 'Ein Stern markiert Pflichtfragen; Optionen lassen sich auf Wunsch mischen.',
@@ -1615,7 +1615,7 @@ export const MODULE_TRACKS: PitchTrack[] = [
                     + 'wer noch nicht geantwortet hat.',
                 screens: [
                     {
-                        title: 'Auswertung', subtitle: 'Zeltlager 2026 — Rückmeldung · 23 Antworten',
+                        title: 'Auswertung', subtitle: 'Zeltlager 2026 - Rückmeldung · 23 Antworten',
                         tabs: ['Diagramme', 'Einzelantworten'],
                         actions: ['Exportieren'],
                         formAnalytics: FORM_ANALYTICS_DATA,

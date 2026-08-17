@@ -30,7 +30,7 @@ import java.util.Base64;
  * back to a raw IP; rotating it invalidates every existing dedup/rate-limit anchor.
  *
  * <p>The raw IP is consumed by {@link #hash(InetAddress, int)} and immediately released
- * to the JVM heap — callers must not log or persist it elsewhere.
+ * to the JVM heap - callers must not log or persist it elsewhere.
  */
 @Singleton
 public class SubmitterHashService {
@@ -41,7 +41,7 @@ public class SubmitterHashService {
     public static final String SALT_KEY = "form_response.submitter_hash_salt";
 
     /**
-     * Salt size — 32 bytes / 256 bits, matching SHA-256's output width.
+     * Salt size - 32 bytes / 256 bits, matching SHA-256's output width.
      */
     private static final int SALT_BYTES = 32;
 

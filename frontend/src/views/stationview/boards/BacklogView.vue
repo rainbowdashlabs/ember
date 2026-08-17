@@ -52,7 +52,7 @@ const {loading, error} = useAsyncLoader(async () => {
         <template v-else-if="board">
             <div class="flex items-center gap-3 mb-6">
                 <IconButton :icon="['fas', 'chevron-left']" label="Back" @click="router.push(`/station/boards/${board.shortKey}`)" />
-                <SectionHeader>{{ board.name }} — {{ t('boards.backlogTitle') }}</SectionHeader>
+                <SectionHeader>{{ board.name }} - {{ t('boards.backlogTitle') }}</SectionHeader>
             </div>
 
             <EmptyState v-if="tickets.length === 0">{{ t('boards.noTickets') }}</EmptyState>

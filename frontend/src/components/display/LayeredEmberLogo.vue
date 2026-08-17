@@ -54,7 +54,7 @@ const directionVariants: Record<string, { open: string; half: string; blink: str
   right: { open: 'fire_eyes_right', half: 'fire_eyes_right_half', blink: 'fire_blink_right' },
 }
 
-// All layers rendered in DOM always — visibility toggled via v-show
+// All layers rendered in DOM always - visibility toggled via v-show
 const displayedLayers = ref(new Set<string>())
 let blinkTimeout: ReturnType<typeof setTimeout> | null = null
 let gazeTimeout: ReturnType<typeof setTimeout> | null = null

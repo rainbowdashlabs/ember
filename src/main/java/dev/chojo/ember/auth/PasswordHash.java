@@ -22,7 +22,7 @@ public record PasswordHash(String algorithm, String hash) {
 
     /**
      * Parses an encoded password hash string in the format {@code {algorithm:hash}}
-     * (or the legacy {@code {algorithm:hash:salt}} — the trailing salt segment is
+     * (or the legacy {@code {algorithm:hash:salt}} - the trailing salt segment is
      * ignored, since BCrypt's hash output already contains its own salt).
      *
      * @param encoded the encoded hash string

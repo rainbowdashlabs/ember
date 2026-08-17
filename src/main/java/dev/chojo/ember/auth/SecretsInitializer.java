@@ -25,7 +25,7 @@ import java.util.Base64;
  * construction; if their backing config field is blank the application either
  * refuses to boot (production) or substitutes a deterministic dev placeholder
  * (demo / dev). Running this initializer first means a fresh production install
- * never trips the boot guard — the first start generates a strong secret,
+ * never trips the boot guard - the first start generates a strong secret,
  * persists it to disk, and subsequent boots reuse it. The remote-storage
  * credential key is covered the same way so self-service remote backends work
  * without manual key setup.
@@ -52,14 +52,14 @@ public final class SecretsInitializer {
         boolean dirty = false;
         if (auth.tokenPepper() == null || auth.tokenPepper().isBlank()) {
             setField(Auth.class, auth, "tokenPepper", generateUrlSafeBase64(48));
-            log.warn("auth.tokenPepper was empty — generated a fresh value and persisted it to config.yaml.");
+            log.warn("auth.tokenPepper was empty - generated a fresh value and persisted it to config.yaml.");
             dirty = true;
         }
         TwoFactorSettings twoFactor = auth.twoFactor();
         if (twoFactor.secretKey() == null || twoFactor.secretKey().isBlank()) {
             setField(TwoFactorSettings.class, twoFactor, "secretKey", generateBase64(32));
             log.warn(
-                    "auth.twoFactor.secretKey was empty — generated a fresh 32-byte value and persisted it to config.yaml.");
+                    "auth.twoFactor.secretKey was empty - generated a fresh 32-byte value and persisted it to config.yaml.");
             dirty = true;
         }
         Storage storage = conf.main().storage();
@@ -67,7 +67,7 @@ public final class SecretsInitializer {
                 || storage.credentialEncryptionKey().isBlank()) {
             setField(Storage.class, storage, "credentialEncryptionKey", generateBase64(32));
             log.warn(
-                    "storage.credentialEncryptionKey was empty — generated a fresh 32-byte value and persisted it to config.yaml.");
+                    "storage.credentialEncryptionKey was empty - generated a fresh 32-byte value and persisted it to config.yaml.");
             dirty = true;
         }
         if (dirty) {

@@ -19,7 +19,7 @@ import java.nio.charset.StandardCharsets;
  * stripped from both forms before the header value is composed).
  *
  * <p>Disposition selection (inline vs attachment) is the caller's
- * responsibility — see {@link SafeInlineMime#isInlineSafe(String)}.
+ * responsibility - see {@link SafeInlineMime#isInlineSafe(String)}.
  */
 public final class SafeContentDisposition {
 

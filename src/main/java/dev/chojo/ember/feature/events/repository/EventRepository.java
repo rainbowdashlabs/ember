@@ -45,7 +45,7 @@ public class EventRepository {
 
     /**
      * Retrieves all events for a station, ordered by event type and name.
-     * No restriction filtering — used internally and for managers.
+     * No restriction filtering - used internally and for managers.
      *
      * @param stationId the station ID
      * @return the list of station events
@@ -98,8 +98,8 @@ public class EventRepository {
     }
 
     /**
-     * Editor's event picker. Returns a compact public shape — UUID, name, start
-     * time, category name — for the supplied station's events. {@code mode} filters by start time
+     * Editor's event picker. Returns a compact public shape - UUID, name, start
+     * time, category name - for the supplied station's events. {@code mode} filters by start time
      * (FUTURE/PAST/ALL). {@code search} is a case-insensitive substring match on the event name.
      * Only events that resolve as public are returned (per-event {@code public = TRUE} or
      * inherited from a public category).
@@ -524,7 +524,7 @@ public class EventRepository {
     }
 
     /**
-     * Lightweight picker result row. Exposes only the public UUID — never the internal id.
+     * Lightweight picker result row. Exposes only the public UUID - never the internal id.
      */
     public record PickerEvent(UUID eventUid, String name, Instant startTime, String categoryName) {}
 

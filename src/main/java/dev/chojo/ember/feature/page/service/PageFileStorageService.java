@@ -100,7 +100,7 @@ public class PageFileStorageService {
     }
 
     /**
-     * Persists the original bytes for a (station, hash) pair. Idempotent — calling twice with
+     * Persists the original bytes for a (station, hash) pair. Idempotent - calling twice with
      * the same hash is a semantic no-op because the bytes are identical by definition.
      */
     public void store(int stationId, String contentHash, byte[] data, String contentType) throws IOException {
@@ -123,7 +123,7 @@ public class PageFileStorageService {
      *
      * <p>{@code baseName} is the file name without extension (e.g. {@code "orig"},
      * {@code "w512"}). {@code extension} pins a specific format ({@code "webp"},
-     * {@code "jpg"}, …) — pass {@code null} to accept any extension, which is the right
+     * {@code "jpg"}, …) - pass {@code null} to accept any extension, which is the right
      * choice when reading the original whose on-disk format is whatever the user uploaded.
      */
     public Optional<FileData> readVariant(int stationId, String contentHash, String baseName, String extension) {
@@ -166,7 +166,7 @@ public class PageFileStorageService {
     }
 
     /**
-     * Deletes everything under the (station, hash) directory — original and all variants.
+     * Deletes everything under the (station, hash) directory - original and all variants.
      * Caller is responsible for ensuring no other DB rows reference the same hash within the
      * same station.
      */

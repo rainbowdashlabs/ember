@@ -77,7 +77,7 @@ onBeforeUnmount(() => document.removeEventListener('click', handleClickOutside))
                 <UserAvatar :identity="selectedMember" :name="selectedMember.name" size="sm" />
                 <span class="flex-1">{{ selectedMember.name }}</span>
             </template>
-            <span v-else class="flex-1 text-(--text-muted)">{{ placeholder ?? '—' }}</span>
+            <span v-else class="flex-1 text-(--text-muted)">{{ placeholder ?? '-' }}</span>
             <font-awesome-icon :icon="['fas', 'chevron-down']" class="text-xs text-(--text-muted)" />
         </button>
         <div v-if="open" class="absolute z-20 mt-1 w-full rounded-theme border border-[var(--border)] bg-[var(--bg)] shadow-lg overflow-hidden max-h-60 overflow-y-auto">

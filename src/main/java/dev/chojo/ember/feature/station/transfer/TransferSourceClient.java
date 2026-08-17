@@ -62,7 +62,7 @@ public final class TransferSourceClient {
      * production runs benefit from ALPN-negotiated multiplexing, but falls back to HTTP/1.1
      * over plain HTTP because the JDK client's HTTP/2 default sends an {@code Upgrade: h2c}
      * header that Node-based servers (e.g. a Nuxt dev server in front of the source) hold
-     * open without responding — see the dev compose transfer profile.
+     * open without responding - see the dev compose transfer profile.
      */
     private static HttpClient buildHttpClient(String baseUrl) {
         HttpClient.Version version = baseUrl != null && baseUrl.startsWith("https://")
@@ -115,7 +115,7 @@ public final class TransferSourceClient {
         } catch (Exception e) {
             throw new RuntimeException(
                     "Failed to verify schema hash with remote at " + baseUrl + ": "
-                            + e.getClass().getSimpleName() + (e.getMessage() == null ? "" : " — " + e.getMessage()),
+                            + e.getClass().getSimpleName() + (e.getMessage() == null ? "" : " - " + e.getMessage()),
                     e);
         }
     }
@@ -205,7 +205,7 @@ public final class TransferSourceClient {
         try {
             var response = send(uri, HttpResponse.BodyHandlers.ofByteArray());
             if (response.statusCode() == 404) {
-                log.info("stream file: category {} key '{}' — source 404, skipping", category, key);
+                log.info("stream file: category {} key '{}' - source 404, skipping", category, key);
                 return Optional.empty();
             }
             if (response.statusCode() != 200) {
@@ -271,7 +271,7 @@ public final class TransferSourceClient {
     /**
      * Best-effort POST to the source's completion endpoint so the source can flip the remote host
      * on every partnership that pointed at the departed station. Any failure is logged and
-     * swallowed — partnerships on the source fall back to manual reconfiguration.
+     * swallowed - partnerships on the source fall back to manual reconfiguration.
      */
     public void notifyComplete() {
         postSignal("complete", "completion");

@@ -139,7 +139,7 @@ class CommentServiceTest extends RepositoryTestBase {
     @Order(5)
     void createReplyToOwnCommentDoesNotNotify() {
         reset(eventBus);
-        // Reply to own comment — should NOT publish CommentCreated
+        // Reply to own comment - should NOT publish CommentCreated
         var selfReply = service.create(
                 station.id(), eventId, commentId, identity1, "Alice", "Replying to myself", "Test Event", null);
         assertNotNull(selfReply);
@@ -244,7 +244,7 @@ class CommentServiceTest extends RepositoryTestBase {
     void createWithMultipleMentions() {
         reset(eventBus);
 
-        // Multiple mentions in one comment — both different from author
+        // Multiple mentions in one comment - both different from author
         String content = "Hey @[" + member2.id() + ":Bob] and @[" + member2.id() + ":Bob] again";
         var comment = service.create(station.id(), eventId, null, identity1, "Alice", content, "Test Event", null);
         assertNotNull(comment);
@@ -263,7 +263,7 @@ class CommentServiceTest extends RepositoryTestBase {
         var comment =
                 service.create(station.id(), eventId, null, identity1, "Alice", "No mentions here", "Test Event", null);
         assertNotNull(comment);
-        // No mentions — eventBus should not be called
+        // No mentions - eventBus should not be called
         verify(eventBus, never()).publish(any());
         service.delete(comment.id());
     }
@@ -287,7 +287,7 @@ class CommentServiceTest extends RepositoryTestBase {
         var child = service.create(
                 station.id(), eventId, parent.id(), identity2, "Bob", "Child comment", "Test Event", null);
 
-        // Delete parent — should soft-delete since it has children
+        // Delete parent - should soft-delete since it has children
         assertTrue(service.delete(parent.id()));
         var deleted = service.findById(parent.id());
         assertTrue(deleted.isPresent());

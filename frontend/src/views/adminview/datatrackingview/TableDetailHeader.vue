@@ -29,9 +29,9 @@ const {t} = useI18n()
         {{ entry.description }}
       </p>
       <div class="flex items-center gap-2 mt-1 text-xs text-(--text-muted) flex-wrap">
-        <span>{{ entry.feature ?? '—' }}</span>
+        <span>{{ entry.feature ?? '-' }}</span>
         <span>·</span>
-        <span>{{ entry.scope ?? '—' }}</span>
+        <span>{{ entry.scope ?? '-' }}</span>
         <span>·</span>
         <span class="font-mono">{{ entry.tableHash.slice(0, 20) }}…</span>
       </div>

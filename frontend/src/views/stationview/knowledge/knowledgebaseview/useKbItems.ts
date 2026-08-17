@@ -40,7 +40,7 @@ export interface KbItemAction {
  * favourites folder, a folder, a file of this station, or a file a partner station shares.
  *
  * The browse grid, the browse list and the search results all render this one shape. They differ
- * in how they lay it out and nothing else — which is what stops a variant from quietly losing the
+ * in how they lay it out and nothing else - which is what stops a variant from quietly losing the
  * behaviour the others have.
  */
 export interface KbItem {
@@ -234,7 +234,7 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
     }
 
     /**
-     * Editing needs write, deleting needs manage — the same levels the server enforces, so the
+     * Editing needs write, deleting needs manage - the same levels the server enforces, so the
      * listing offers exactly the actions that will be accepted.
      */
     function folderActions(folder: KbFolder): KbItemAction[] {

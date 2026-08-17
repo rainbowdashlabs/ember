@@ -150,7 +150,7 @@ const chartOption = computed(() => {
           <tr v-for="cat in usage.categories" :key="cat.category" class="border-b border-[var(--border)]">
             <td class="p-2 font-medium">{{ categoryLabel(cat.category) }}</td>
             <td class="text-right p-2">{{ formatBytes(cat.totalBytes) }}</td>
-            <td class="text-right p-2">{{ categoryQuota(cat.category) ? formatBytes(categoryQuota(cat.category)) : '—' }}</td>
+            <td class="text-right p-2">{{ categoryQuota(cat.category) ? formatBytes(categoryQuota(cat.category)) : '-' }}</td>
             <td class="text-right p-2">{{ cat.fileCount }}</td>
             <td class="p-2">
               <div v-if="categoryQuota(cat.category)" class="bg-[var(--bg-muted)] rounded-full h-2 overflow-hidden">

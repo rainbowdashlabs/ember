@@ -19,7 +19,7 @@ function published(days: number): string {
 
 export const NEWS_ITEMS: PitchNews[] = [
     {
-        kind: 'local', id: 1, title: 'Zeltlager 2026 — Anmeldung offen', publicBlog: true,
+        kind: 'local', id: 1, title: 'Zeltlager 2026 - Anmeldung offen', publicBlog: true,
         author: {stationUid: 'wache', memberUid: 'm-clara', name: 'Clara Weiß'},
         publishedAt: published(2), commentCount: 4,
         contentHtml: '<p>Vom 12. bis 14. Juli geht es an den Talsee. Anmeldung läuft über den Termin, '

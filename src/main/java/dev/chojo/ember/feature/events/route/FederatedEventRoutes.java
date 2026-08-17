@@ -36,7 +36,7 @@ import static dev.chojo.ember.api.RouteSupport.pathUuid;
 /**
  * User-facing federated event routes: the aggregated view over every federation partner plus the
  * per-partner event detail, registration and comment proxies. Partners on this instance are served
- * from the database and remote ones over signed HTTP — the service decides, never these handlers.
+ * from the database and remote ones over signed HTTP - the service decides, never these handlers.
  */
 @Singleton
 public class FederatedEventRoutes implements Routes {

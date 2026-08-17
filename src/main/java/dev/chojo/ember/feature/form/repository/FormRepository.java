@@ -429,7 +429,7 @@ public class FormRepository {
     }
 
     /**
-     * Marks a CONTACT-form submission as acknowledged. Idempotent — the first acknowledgement
+     * Marks a CONTACT-form submission as acknowledged. Idempotent - the first acknowledgement
      * wins (later calls leave {@code acknowledged_at} / {@code acknowledged_by} untouched), so a
      * second viewer doesn't overwrite the original handler's identity.
      */

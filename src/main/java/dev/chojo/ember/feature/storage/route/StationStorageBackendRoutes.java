@@ -125,7 +125,7 @@ public class StationStorageBackendRoutes implements Routes {
      * atomically swaps the {@code station_storage_config} row when the migration succeeds. A
      * {@link LocalRequest} target means "drop the override and move bytes back to the instance
      * default". For an empty source the copy phase is a no-op, so this path is also the
-     * green-field setup flow — no separate save endpoint is needed.
+     * green-field setup flow - no separate save endpoint is needed.
      */
     private void apply(Context ctx) {
         Actor actor = actor(ctx);
@@ -184,7 +184,7 @@ public class StationStorageBackendRoutes implements Routes {
     }
 
     /**
-     * Dry-run probe against an unsaved form payload — accepts a {@link BackendOverrideRequest},
+     * Dry-run probe against an unsaved form payload - accepts a {@link BackendOverrideRequest},
      * builds a transient backend, runs {@link StorageBackend#probe()} and returns the result
      * without touching the repository or the audit log. The UI calls this from the
      * "Verbindung testen" button so admins can validate credentials before clicking Save.
@@ -353,7 +353,7 @@ public class StationStorageBackendRoutes implements Routes {
     public sealed interface BackendOverrideRequest {}
 
     /**
-     * Drops the override and migrates bytes back to the instance default. Has no fields —
+     * Drops the override and migrates bytes back to the instance default. Has no fields -
      * the {@code type} discriminator is enough to identify the intent.
      */
     public record LocalRequest() implements BackendOverrideRequest {}

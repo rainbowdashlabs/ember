@@ -424,7 +424,7 @@ class BoardServiceTest extends RepositoryTestBase {
 
     /**
      * A board the caller may not view has to answer exactly as a missing one, so board keys cannot
-     * be probed to learn which boards exist. Edit failures stay 403 — the caller can already see
+     * be probed to learn which boards exist. Edit failures stay 403 - the caller can already see
      * the board, so hiding it would be pointless and the interface needs the distinction.
      */
     @Test

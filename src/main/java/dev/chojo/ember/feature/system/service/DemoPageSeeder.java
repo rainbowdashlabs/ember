@@ -78,7 +78,7 @@ public class DemoPageSeeder implements DemoSeeder {
                                         # Willkommen bei der Jugendfeuerwehr Musterstadt
 
                                         Wir sind eine aktive Jugendfeuerwehr mit rund 40 Mitgliedern im Alter von 10 bis 18 Jahren. \
-                                        Bei uns lernst du alles rund um die Feuerwehr — von Erster Hilfe über Brandbekämpfung bis hin zu Wettbewerben und Zeltlagern.
+                                        Bei uns lernst du alles rund um die Feuerwehr - von Erster Hilfe über Brandbekämpfung bis hin zu Wettbewerben und Zeltlagern.
 
                                         ## Was wir bieten
 
@@ -143,10 +143,10 @@ public class DemoPageSeeder implements DemoSeeder {
                                 # Unser Team
 
                                 ## Jugendfeuerwehrwart
-                                **Max Mustermann** — seit 2015 dabei, leitet die Übungen und organisiert Wettbewerbe.
+                                **Max Mustermann** - seit 2015 dabei, leitet die Übungen und organisiert Wettbewerbe.
 
                                 ## Stellvertretende Jugendfeuerwehrwartin
-                                **Anna Schmidt** — kümmert sich um die Ausbildung und Zeltlager.
+                                **Anna Schmidt** - kümmert sich um die Ausbildung und Zeltlager.
 
                                 ## Betreuer
                                 - Thomas Müller
@@ -199,9 +199,9 @@ public class DemoPageSeeder implements DemoSeeder {
                                         ## So geht's
 
                                         1. Komm freitags um 17:30 Uhr zu einer Schnupperübung
-                                        2. Bring deine Eltern mit — sie können alles fragen
+                                        2. Bring deine Eltern mit - sie können alles fragen
                                         3. Nach 2-3 Schnupperübungen entscheidest du dich
-                                        4. Anmeldeformular ausfüllen — fertig!
+                                        4. Anmeldeformular ausfüllen - fertig!
 
                                         **Wichtig:** Du brauchst keine Vorkenntnisse. Wir bringen dir alles bei!""", CellConfig.EMPTY))),
                         new PageService.RowData(
@@ -247,7 +247,7 @@ public class DemoPageSeeder implements DemoSeeder {
         rows.add(row(sort++, CellContentType.MARKDOWN, """
                 # Komponenten-Schaukasten
 
-                Diese Seite zeigt jede verfügbare Komponente in Aktion — eine pro Zeile, damit du
+                Diese Seite zeigt jede verfügbare Komponente in Aktion - eine pro Zeile, damit du
                 siehst, wie sie gerendert wird.""", CellConfig.EMPTY));
 
         rows.add(row(
@@ -257,7 +257,7 @@ public class DemoPageSeeder implements DemoSeeder {
                 new CellConfig.HeroBannerConfig(
                         null,
                         "Willkommen im Schaukasten",
-                        "Jede Komponente — von Markdown bis Quiz — in einer einzigen Vorschau.",
+                        "Jede Komponente - von Markdown bis Quiz - in einer einzigen Vorschau.",
                         "Mehr erfahren",
                         "#")));
 
@@ -277,7 +277,7 @@ public class DemoPageSeeder implements DemoSeeder {
         rows.add(row(
                 sort++,
                 CellContentType.ACCORDION,
-                "Mehr Details zum Aufnahmeprozess findest du hier — von der ersten Schnupperübung bis zur offiziellen Mitgliedschaft.",
+                "Mehr Details zum Aufnahmeprozess findest du hier - von der ersten Schnupperübung bis zur offiziellen Mitgliedschaft.",
                 new CellConfig.AccordionConfig("Wie werde ich Mitglied?", false)));
         rows.add(row(
                 sort++,
@@ -326,7 +326,7 @@ public class DemoPageSeeder implements DemoSeeder {
                 new CellConfig.FileDownloadConfig(
                         "https://example.com/anmeldeformular.pdf",
                         "Anmeldeformular",
-                        "PDF, 120 KB — bitte ausgefüllt mitbringen.")));
+                        "PDF, 120 KB - bitte ausgefüllt mitbringen.")));
 
         rows.add(row(sort++, CellContentType.MARKDOWN, "## Veranstaltungen", CellConfig.EMPTY));
         rows.add(row(
@@ -450,7 +450,7 @@ public class DemoPageSeeder implements DemoSeeder {
                 CellContentType.TABS,
                 "",
                 new CellConfig.TabsConfig(List.of(
-                        new CellConfig.TabItem("Was wir tun", "Übungen, Wettbewerbe, Ausflüge — und Spaß."),
+                        new CellConfig.TabItem("Was wir tun", "Übungen, Wettbewerbe, Ausflüge - und Spaß."),
                         new CellConfig.TabItem(
                                 "Für Eltern", "Wir sind ehrenamtlich und freuen uns über Unterstützung."),
                         new CellConfig.TabItem("Für Lehrkräfte", "Kooperationen mit Schulen sind möglich.")))));
@@ -459,7 +459,7 @@ public class DemoPageSeeder implements DemoSeeder {
                 CellContentType.BLOG_SIGNUP,
                 "",
                 new CellConfig.BlogSignupConfig(
-                        "Blog abonnieren", "Bleib auf dem Laufenden — alle Blog-Beiträge per RSS oder Atom.")));
+                        "Blog abonnieren", "Bleib auf dem Laufenden - alle Blog-Beiträge per RSS oder Atom.")));
         rows.add(row(sort++, CellContentType.POLL_EMBED, "", new CellConfig.PollEmbedConfig(pollUid.toString(), true)));
         List<Integer> publicCatalogIds = quizCatalogRepository.findPublicByStation(stationId).stream()
                 .map(QuizCatalog::id)
@@ -470,7 +470,7 @@ public class DemoPageSeeder implements DemoSeeder {
                 "",
                 new CellConfig.QuizTeaserConfig(
                         "Quiz: Wie gut kennst du die Knoten?",
-                        "Eine Frage aus unserem öffentlichen Katalog — danach lüften wir die Antwort.",
+                        "Eine Frage aus unserem öffentlichen Katalog - danach lüften wir die Antwort.",
                         publicCatalogIds)));
         rows.add(row(
                 sort++,
@@ -479,7 +479,7 @@ public class DemoPageSeeder implements DemoSeeder {
                 new CellConfig.FormsCtaConfig(
                         contactUid.toString(),
                         "Werde Teil unseres Teams",
-                        "Bewerbung in nur drei Schritten — wir freuen uns auf dich.")));
+                        "Bewerbung in nur drei Schritten - wir freuen uns auf dich.")));
 
         pageService.savePage(
                 page.id(),
@@ -500,7 +500,7 @@ public class DemoPageSeeder implements DemoSeeder {
         var poll = formRepository.create(
                 stationId,
                 "Welche Aktivität wünscht ihr euch?",
-                "Wähle deinen Favoriten — die Mehrheitswahl landet im nächsten Programm.",
+                "Wähle deinen Favoriten - die Mehrheitswahl landet im nächsten Programm.",
                 false,
                 false,
                 false,
@@ -535,7 +535,7 @@ public class DemoPageSeeder implements DemoSeeder {
         var contact = formRepository.create(
                 stationId,
                 "Kontakt aufnehmen",
-                "Schreib uns — wir melden uns innerhalb weniger Tage zurück.",
+                "Schreib uns - wir melden uns innerhalb weniger Tage zurück.",
                 false,
                 false,
                 false,

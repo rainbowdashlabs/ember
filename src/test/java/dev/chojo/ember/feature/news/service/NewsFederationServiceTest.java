@@ -239,7 +239,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         when(httpClient.getList(anyString(), any(FederationRequest.class), any(), anyInt(), any(), any()))
                 .thenReturn(List.of());
 
-        // Browse from stationB's perspective — stationA is a local partner
+        // Browse from stationB's perspective - stationA is a local partner
         var items = service.browseFederatedNews(stationB.id());
         assertNotNull(items);
         // stationB sees stationA as a local partner with shared news

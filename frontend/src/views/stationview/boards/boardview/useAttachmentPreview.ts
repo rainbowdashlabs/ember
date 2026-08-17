@@ -12,7 +12,7 @@ import { downloadAuthed } from '@/util/downloadAuthed'
 /**
  * Previewing a ticket's attachments without leaving the ticket.
  *
- * Attachments sit behind the session, so images cannot be pointed at directly — they are fetched
+ * Attachments sit behind the session, so images cannot be pointed at directly - they are fetched
  * as blobs and cached by attachment id, which serves both the thumbnails and the overlay. Only
  * images, PDFs and CSV files can be shown; anything else is offered as a download.
  *

@@ -376,7 +376,7 @@ class KnowledgeBaseRepositoryTest extends RepositoryTestBase {
     void removeFavourite() {
         assertTrue(knowledgeBaseRepo.removeFavourite(member.id(), fileId));
         assertFalse(knowledgeBaseRepo.isFavourite(member.id(), fileId));
-        // Remove again — should return false
+        // Remove again - should return false
         assertFalse(knowledgeBaseRepo.removeFavourite(member.id(), fileId));
     }
 

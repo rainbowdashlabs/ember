@@ -46,7 +46,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Acceptance tests for the instance-wide backend migration. Two on-disk roots stand in for two
- * different backends — both LOCAL — which is enough to exercise the byte copy, the SHA-256
+ * different backends - both LOCAL - which is enough to exercise the byte copy, the SHA-256
  * skip on retry, the sample-verify, and the lock semantics from §19.A without spinning up a
  * real remote target.
  */
@@ -158,7 +158,7 @@ class InstanceStorageMigrationServiceTest extends RepositoryTestBase {
 
     /**
      * §19.A mutual-exclusion rule: per-station and instance-wide migrations may not overlap.
-     * Verified directly on the lock registry — the migration services share the same lock so
+     * Verified directly on the lock registry - the migration services share the same lock so
      * acquisition failures bubble up as MigrationException on the wrong-flavour caller.
      */
     @Test
@@ -179,7 +179,7 @@ class InstanceStorageMigrationServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * Stations carrying their own backend override are skipped during the instance-wide copy —
+     * Stations carrying their own backend override are skipped during the instance-wide copy -
      * their bytes already live somewhere other than the instance default.
      */
     @Test
@@ -397,7 +397,7 @@ class InstanceStorageMigrationServiceTest extends RepositoryTestBase {
 
     /**
      * Backends that blow up while releasing their connections must not strand the instance in
-     * read-only mode — the flag and the lock are released regardless.
+     * read-only mode - the flag and the lock are released regardless.
      */
     @Test
     void backendsThatFailToCloseStillReleaseTheInstance() {

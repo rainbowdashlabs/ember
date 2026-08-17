@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Source-level conventions for route classes that bytecode analysis cannot express:
  * station-ownership checks must go through the RouteSupport helpers (so the 403/404
  * policy stays centralized), UUID path parameters must be read via pathUuid, and no
- * registration may be shadowed by an earlier one — within a class or across the whole
+ * registration may be shadowed by an earlier one - within a class or across the whole
  * binding order.
  */
 class RouteSourceConventionsTest {
@@ -80,7 +80,7 @@ class RouteSourceConventionsTest {
 
     /**
      * A route class whose {@code CONTRACT} is missing from the catalog aggregation would
-     * still register and enforce, but its endpoints would contribute to no surface hash —
+     * still register and enforce, but its endpoints would contribute to no surface hash -
      * payload changes would silently stop rolling versions, which is the exact failure the
      * contract exists to prevent.
      */
@@ -113,7 +113,7 @@ class RouteSourceConventionsTest {
 
     /**
      * Javalin answers with the first registered handler that matches, so a literal path registered
-     * after a parameter path that also matches it is dead — the parameter route wins and the literal
+     * after a parameter path that also matches it is dead - the parameter route wins and the literal
      * segment is parsed as the parameter value.
      *
      * <p>This is the rule <em>within</em> a class, which is where the failure actually showed up:
@@ -133,14 +133,14 @@ class RouteSourceConventionsTest {
         }
         assertTrue(
                 violations.isEmpty(),
-                () -> "Unreachable route registrations — a literal path is matched by an"
+                () -> "Unreachable route registrations - a literal path is matched by an"
                         + " earlier parameter path in the same class, so the literal never runs:%n%s"
                                 .formatted(String.join(System.lineSeparator(), violations)));
     }
 
     /**
-     * The same rule across class boundaries. Every route class shares one prefix — {@code ApiServer}
-     * registers them all under {@code API_PREFIX} — and the multibinder is consumed in binding order,
+     * The same rule across class boundaries. Every route class shares one prefix - {@code ApiServer}
+     * registers them all under {@code API_PREFIX} - and the multibinder is consumed in binding order,
      * so the registrations of the whole application form a single ordered list and a literal path in
      * a later-bound class is just as dead as one later in the same file.
      *
@@ -166,7 +166,7 @@ class RouteSourceConventionsTest {
                 Registration first = registrations.get(earlier);
                 Registration second = registrations.get(later);
                 if (first.owner.equals(second.owner) || !first.shadows(second)) continue;
-                violations.add("%s:%d %s %s is unreachable — %s (%s:%d) is bound earlier and matches it first"
+                violations.add("%s:%d %s %s is unreachable - %s (%s:%d) is bound earlier and matches it first"
                         .formatted(
                                 second.owner,
                                 second.line,
@@ -179,7 +179,7 @@ class RouteSourceConventionsTest {
         }
         assertTrue(
                 violations.isEmpty(),
-                () -> "Unreachable route registrations — a literal path is matched by a parameter path"
+                () -> "Unreachable route registrations - a literal path is matched by a parameter path"
                         + " in an earlier-bound route class, so the literal never runs:%n%s"
                                 .formatted(String.join(System.lineSeparator(), violations)));
     }
@@ -214,7 +214,7 @@ class RouteSourceConventionsTest {
                 Registration first = registrations.get(earlier);
                 Registration second = registrations.get(later);
                 if (first.shadows(second)) {
-                    violations.add("%s:%d %s %s is unreachable — %s (line %d) matches it first"
+                    violations.add("%s:%d %s %s is unreachable - %s (line %d) matches it first"
                             .formatted(path, second.line, second.verb, second.path, first.path, first.line));
                 }
             }
@@ -260,7 +260,7 @@ class RouteSourceConventionsTest {
 
     /**
      * The registrations a class binds through the federation contract binder. Read from the
-     * compiled {@code CONTRACT} constant rather than re-parsed from source — the binder
+     * compiled {@code CONTRACT} constant rather than re-parsed from source - the binder
      * enforces at startup that handlers are bound exactly in contract order, so the list
      * <em>is</em> the router order, typed and complete.
      */
@@ -317,7 +317,7 @@ class RouteSourceConventionsTest {
 
         /**
          * Whether this registration matches everything the other one does, while being less
-         * specific — meaning the other one can never be reached.
+         * specific - meaning the other one can never be reached.
          */
         boolean shadows(Registration other) {
             if (!verb.equals(other.verb) || path.equals(other.path)) return false;

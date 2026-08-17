@@ -113,7 +113,7 @@ public class TwoFactorRoutes implements Routes {
     /**
      * Best-effort "is this the device the caller is currently signed in on?" check. We don't
      * have direct access to {@code account_session.device_trust_id} from {@link UserSession}
-     * yet — the next session refresh will surface it. For now we always return false; the UI
+     * yet - the next session refresh will surface it. For now we always return false; the UI
      * still shows the list and lets the user revoke each one.
      */
     @SuppressWarnings("unused")
@@ -154,7 +154,7 @@ public class TwoFactorRoutes implements Routes {
                 StationPermission.LOGIN,
                 StepUpCategory.ACCOUNT_SECURITY);
 
-        // WebAuthn enrollment — step-up only applies when the account is already enrolled
+        // WebAuthn enrollment - step-up only applies when the account is already enrolled
         // in something else (the middleware exempts unenrolled accounts so the first
         // factor can be added without a chicken-and-egg).
         routes.post(
@@ -174,11 +174,11 @@ public class TwoFactorRoutes implements Routes {
                 StepUpCategory.ACCOUNT_SECURITY);
         routes.post(prefix + "/account/2fa/factors/{id}/rename", this::renameFactor, StationPermission.LOGIN);
 
-        // WebAuthn assertion at login — public, gated by the pre-auth token issued at password login.
+        // WebAuthn assertion at login - public, gated by the pre-auth token issued at password login.
         routes.post(prefix + "/auth/2fa/webauthn/begin", this::beginWebAuthnLogin);
         routes.post(prefix + "/auth/2fa/webauthn/finish", this::finishWebAuthnLogin);
 
-        // WebAuthn assertion for step-up — authenticated, updates session.two_factor_verified_at.
+        // WebAuthn assertion for step-up - authenticated, updates session.two_factor_verified_at.
         routes.post(prefix + "/auth/2fa/stepup/webauthn/begin", this::beginWebAuthnStepUp, StationPermission.LOGIN);
         routes.post(prefix + "/auth/2fa/stepup/webauthn/finish", this::finishWebAuthnStepUp, StationPermission.LOGIN);
     }
@@ -420,7 +420,7 @@ public class TwoFactorRoutes implements Routes {
         if (factor.isEmpty()) {
             throw new BadRequestResponse("WebAuthn registration failed");
         }
-        // First-factor enrollment also seeds backup codes — the client must surface these once.
+        // First-factor enrollment also seeds backup codes - the client must surface these once.
         List<String> issuedCodes = twoFactorService.issueInitialBackupCodesIfMissing(
                 session.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         var f = factor.get();
@@ -468,7 +468,7 @@ public class TwoFactorRoutes implements Routes {
         if (!webAuthnService.finishAssertion(accountId, request.challengeToken(), request.credentialJson())) {
             throw new UnauthorizedResponse("WebAuthn verification failed");
         }
-        // Pre-auth is single-use — consume only after successful verification so users can retry.
+        // Pre-auth is single-use - consume only after successful verification so users can retry.
         accountRepository.deleteToken(request.preAuthToken());
         auditService.record(
                 accountId,
@@ -540,7 +540,7 @@ public class TwoFactorRoutes implements Routes {
     }
 
     /**
-     * Resolves a TWO_FACTOR_PENDING token to an account id without deleting it — used between
+     * Resolves a TWO_FACTOR_PENDING token to an account id without deleting it - used between
      * begin/finish calls of the WebAuthn login ceremony so a failed assertion can be retried
      * with the same pre-auth token.
      */

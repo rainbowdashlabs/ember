@@ -79,7 +79,7 @@ class StationExportServiceTest extends RepositoryTestBase {
 
         var members = (List<Map<String, Object>>) data.get("station_member");
         assertFalse(members.isEmpty());
-        // account_id is in ignoredColumns — the importer matches via account_email lookup instead.
+        // account_id is in ignoredColumns - the importer matches via account_email lookup instead.
         assertNull(members.getFirst().get("account_id"));
         assertEquals("export-test@example.com", members.getFirst().get("account_email"));
     }

@@ -190,7 +190,7 @@ class MarkdownRenderingTest {
 
     @Test
     void htmlPassthrough() {
-        // Underline and colored spans are HTML — CommonMark should pass them through
+        // Underline and colored spans are HTML - CommonMark should pass them through
         String html = render("<u>underlined</u>");
         assertTrue(html.contains("<u>underlined</u>"), "Expected <u> passthrough, got: " + html);
     }

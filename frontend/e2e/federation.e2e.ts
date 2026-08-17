@@ -13,7 +13,7 @@ import {test, expect} from './fixtures/auth'
 test.describe('Federation', () => {
     /**
      * Both sides of a partnership, live at once. A station names its partners and the partner names
-     * it back — which is the whole of what a partnership is, and cannot be shown from one side.
+     * it back - which is the whole of what a partnership is, and cannot be shown from one side.
      */
     /**
      * Held back until the second station's page is understood. On its own this passes in a second;

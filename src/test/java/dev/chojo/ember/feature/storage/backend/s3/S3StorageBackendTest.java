@@ -33,7 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Contract test for {@link S3StorageBackend} against rustfs — a Rust-based S3-compatible
+ * Contract test for {@link S3StorageBackend} against rustfs - a Rust-based S3-compatible
  * server. Mirrors the same surface every other backend asserts on (store / read / delete /
  * exists / listByPrefix / sumSize / metadata round-trip / probe).
  */

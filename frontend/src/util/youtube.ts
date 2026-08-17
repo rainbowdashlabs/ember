@@ -40,7 +40,7 @@ export function youtubeEmbedUrl(url: string): string | null {
 
 /**
  * Returns the embeddable player URL for a video share link from any provider the editor accepts,
- * falling back to the URL itself when none matches — a self-hosted player usually already is its
+ * falling back to the URL itself when none matches - a self-hosted player usually already is its
  * own embed URL, and refusing it outright would be worse than trying.
  */
 export function videoEmbedUrl(url: string): string {

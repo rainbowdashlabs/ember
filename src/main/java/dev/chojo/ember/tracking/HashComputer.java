@@ -22,7 +22,7 @@ public final class HashComputer {
     private HashComputer() {}
 
     /**
-     * Hash of a single table — columns (sorted by name) + FKs (sorted by column).
+     * Hash of a single table - columns (sorted by name) + FKs (sorted by column).
      */
     public static String tableHash(SchemaReader.RawTable table) {
         var sb = new StringBuilder();

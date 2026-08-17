@@ -46,7 +46,7 @@ public final class TypstCompiler {
     /**
      * Renders a template, additionally writing {@code resources} next to it. A template reads them
      * with {@code read()} or {@code eval(read(...))}, which is how content too structured for
-     * {@code data.json} — a Typst markup fragment, say — reaches the document.
+     * {@code data.json} - a Typst markup fragment, say - reaches the document.
      */
     public static byte[] compileTemplate(
             Map<String, Object> data, String templateName, StationLogo logo, Map<String, String> resources)

@@ -51,7 +51,7 @@ public class StationTrafficRecorder {
     private final ConcurrentHashMap<BucketKey, TrafficAccumulator> buckets = new ConcurrentHashMap<>();
     /**
      * Station ids whose {@code INSERT} into {@code station_traffic_hourly} has been rejected by the
-     * foreign-key check at least once during this JVM run — the row no longer exists in
+     * foreign-key check at least once during this JVM run - the row no longer exists in
      * {@code station} so further attempts to charge that id would just re-trigger the same FK
      * violation. {@link #record} routes hits for these ids straight to the instance-global bucket.
      * The set is intentionally not bounded: a deleted station never reappears with the same internal
@@ -75,7 +75,7 @@ public class StationTrafficRecorder {
     }
 
     /**
-     * Schedules the flush and prune tasks. Idempotent — call once at boot from
+     * Schedules the flush and prune tasks. Idempotent - call once at boot from
      * {@code ApiServer}.
      */
     public void start() {
@@ -90,7 +90,7 @@ public class StationTrafficRecorder {
 
     /**
      * Adds one request's ingress and egress byte counts to the appropriate bucket.
-     * Non-blocking — safe to call from the after-handler.
+     * Non-blocking - safe to call from the after-handler.
      *
      * @param stationId    internal station id, or {@code null} for instance-global traffic
      * @param auth         classification of the request
@@ -146,7 +146,7 @@ public class StationTrafficRecorder {
             } catch (Exception e) {
                 if (isMissingStationFk(e)) {
                     log.warn(
-                            "Dropping traffic bucket {} — referenced station no longer exists; folding delta into the instance-global bucket",
+                            "Dropping traffic bucket {} - referenced station no longer exists; folding delta into the instance-global bucket",
                             key);
                     knownMissingStations.add(key.stationId);
                     buckets.remove(key, acc);
@@ -157,7 +157,7 @@ public class StationTrafficRecorder {
                         log.warn("Failed to fold dropped bucket {} into the global bucket", key, inner);
                     }
                 } else {
-                    log.warn("Failed to flush traffic bucket {} — will retry on next tick", key, e);
+                    log.warn("Failed to flush traffic bucket {} - will retry on next tick", key, e);
                 }
             }
         }

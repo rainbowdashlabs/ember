@@ -108,8 +108,8 @@ public class QuizImportService {
     }
 
     /**
-     * Maps the type spellings the sheets in the field actually use — English and German,
-     * spelled out or abbreviated — onto the question types.
+     * Maps the type spellings the sheets in the field actually use - English and German,
+     * spelled out or abbreviated - onto the question types.
      */
     private QuizQuestionType parseQuestionType(String type) {
         return switch (type.toUpperCase().replace(" ", "_").replace("-", "_")) {

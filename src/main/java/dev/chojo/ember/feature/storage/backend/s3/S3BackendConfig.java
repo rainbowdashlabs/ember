@@ -12,7 +12,7 @@ import java.util.Optional;
  * via {@code endpoint}; MinIO, Backblaze B2, Wasabi, Cloudflare R2 etc. typically need
  * {@code pathStyle=true} (subdomain bucket addressing only works on AWS S3 itself).
  *
- * @param endpoint     full endpoint URL — e.g. {@code https://s3.eu-central-003.backblazeb2.com}
+ * @param endpoint     full endpoint URL - e.g. {@code https://s3.eu-central-003.backblazeb2.com}
  * @param region       AWS-style region identifier
  * @param bucket       bucket name the backend writes to; must already exist
  * @param accessKey    static access key id

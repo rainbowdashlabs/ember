@@ -21,7 +21,7 @@ import java.util.Base64;
  *
  * <p>Discovery uses its own per-instance keypair (see {@link DiscoveryKeyService}), distinct
  * from federation's per-partner RSA keys. The signature is over the request body bytes
- * exactly as transmitted — callers are responsible for serializing once and hashing the same
+ * exactly as transmitted - callers are responsible for serializing once and hashing the same
  * bytes.
  */
 @Singleton

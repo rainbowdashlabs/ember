@@ -31,7 +31,7 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Routes for federation discovery — listing discoverable stations and requesting federation.
+ * Routes for federation discovery - listing discoverable stations and requesting federation.
  */
 @Singleton
 public class DiscoveryRoutes implements Routes {
@@ -49,10 +49,10 @@ public class DiscoveryRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        // Public endpoints — no auth required
+        // Public endpoints - no auth required
         routes.get(prefix + "/public/discovery", this::listDiscoverable);
         routes.post(prefix + "/public/discovery/invite", this::generateInviteForStation);
-        // Authenticated endpoint — requires federation manager role
+        // Authenticated endpoint - requires federation manager role
         routes.post(prefix + "/discovery/request", this::requestFederation, StationPermission.STATION_FEDERATION);
     }
 
@@ -145,7 +145,7 @@ public class DiscoveryRoutes implements Routes {
             throw new BadRequestResponse("Request already pending");
         }
 
-        // Create a pending pair request — the target station must accept
+        // Create a pending pair request - the target station must accept
         federationService.createPairRequest(session.stationId(), targetStation.id());
         ctx.json(new MessageResponse("Federation request sent"));
     }

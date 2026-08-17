@@ -143,7 +143,7 @@ class NotificationServiceTest extends RepositoryTestBase {
         service.notify(member1.id(), NotificationType.PROCUREMENT_REQUESTED, data);
         int before = service.findUnacknowledged(member1.id()).size();
 
-        // Same notification again — should not duplicate
+        // Same notification again - should not duplicate
         service.notifyIfAbsent(member1.id(), NotificationType.PROCUREMENT_REQUESTED, data);
         int after = service.findUnacknowledged(member1.id()).size();
         assertEquals(before, after);
@@ -221,7 +221,7 @@ class NotificationServiceTest extends RepositoryTestBase {
                 new NotificationData.NotificationLink("dashboard-overview"));
         service.notifyMembersWithRole(station.id(), "USER", NotificationType.NEW_NEWS, data);
 
-        // Both members have MEMBER role — both should receive
+        // Both members have MEMBER role - both should receive
         assertTrue(
                 service.findUnacknowledged(member1.id()).stream().anyMatch(n -> n.type() == NotificationType.NEW_NEWS));
         assertTrue(
@@ -291,7 +291,7 @@ class NotificationServiceTest extends RepositoryTestBase {
     @Test
     @Order(40)
     void processDigestNoUnemailed() {
-        // No unemailed notifications — digest should be a no-op
+        // No unemailed notifications - digest should be a no-op
         assertDoesNotThrow(() -> invokeProcessDigest(service));
     }
 
@@ -304,7 +304,7 @@ class NotificationServiceTest extends RepositoryTestBase {
                 new NotificationData.NotificationLink("dashboard-overview"));
         service.notify(member1.id(), NotificationType.NEW_EVENT, data);
 
-        // user settings not set — findByMemberId returns empty → trySendDigest returns false
+        // user settings not set - findByMemberId returns empty → trySendDigest returns false
         // but digest still marks as emailed to avoid retry
         assertDoesNotThrow(() -> invokeProcessDigest(service));
     }
@@ -342,7 +342,7 @@ class NotificationServiceTest extends RepositoryTestBase {
                 new NotificationData.NotificationLink("dashboard-overview"));
         svc.notify(member1.id(), NotificationType.NEWS_COMMENT, data);
 
-        // Run digest — should attempt to send email
+        // Run digest - should attempt to send email
         assertDoesNotThrow(() -> invokeProcessDigest(svc));
 
         // Disable email again to clean up
@@ -418,7 +418,7 @@ class NotificationServiceTest extends RepositoryTestBase {
                 new NotificationParams.LendingStatusChange("Station Y", LendingStatus.APPROVED),
                 new NotificationData.NotificationLink("dashboard-overview"));
         service.notifyMembers(List.of(member1.id()), NotificationType.LENDING_STATUS_CHANGE, data);
-        // member1 has app disabled — no new notification
+        // member1 has app disabled - no new notification
         assertFalse(service.findUnacknowledged(member1.id()).stream()
                 .anyMatch(n -> n.type() == NotificationType.LENDING_STATUS_CHANGE));
     }
@@ -505,7 +505,7 @@ class NotificationServiceTest extends RepositoryTestBase {
     @Test
     @Order(61)
     void resolveNotificationUrlUnknownRoute() {
-        // Notification with a link to an unknown route — should fall back to dashboard
+        // Notification with a link to an unknown route - should fall back to dashboard
         var emailServiceMock = mock(EmailService.class);
         when(emailServiceMock.getBaseUrl()).thenReturn("https://ember.example.com");
         when(emailServiceMock.canStationSend(anyInt())).thenReturn(true);
@@ -540,7 +540,7 @@ class NotificationServiceTest extends RepositoryTestBase {
     @Test
     @Order(62)
     void processDigestHandlesExceptionGracefully() {
-        // Use a service where emailService throws on loadTemplate — digest should not propagate exception
+        // Use a service where emailService throws on loadTemplate - digest should not propagate exception
         var emailServiceMock = mock(EmailService.class);
         when(emailServiceMock.getBaseUrl()).thenReturn("https://ember.example.com");
         when(emailServiceMock.canStationSend(anyInt())).thenReturn(true);
@@ -600,7 +600,7 @@ class NotificationServiceTest extends RepositoryTestBase {
     void resolveCategoryReturnsLocalisedLabelAndFallsBackToEnumName() {
         assertEquals("Neuigkeit", service.resolveCategory("de", NotificationType.NEW_NEWS));
         assertEquals("News", service.resolveCategory("en", NotificationType.NEW_NEWS));
-        // STORAGE_WARNING was added in the i18n completion pass — verify it's now localised.
+        // STORAGE_WARNING was added in the i18n completion pass - verify it's now localised.
         assertEquals("Speicherwarnung", service.resolveCategory("de", NotificationType.STORAGE_WARNING));
         assertEquals("Storage Warning", service.resolveCategory("en", NotificationType.STORAGE_WARNING));
     }
@@ -615,7 +615,7 @@ class NotificationServiceTest extends RepositoryTestBase {
         String msg = service.resolveMessage("de", notif);
         assertTrue(msg.contains("Sprechstunde"));
 
-        // Type without translation: STORAGE_WARNING — should join params.
+        // Type without translation: STORAGE_WARNING - should join params.
         var storageData = NotificationData.of(
                 new NotificationParams.StorageWarning(95, "9.5 GB", "10 GB"),
                 new NotificationData.NotificationLink("dashboard-overview"));
@@ -645,7 +645,7 @@ class NotificationServiceTest extends RepositoryTestBase {
     @Test
     @Order(105)
     void resolveFeedBodyRendersRichTypeSpecificMultiLineBody() {
-        // NEW_EVENT — message + eventDescription
+        // NEW_EVENT - message + eventDescription
         var ne = NotificationData.of(
                 new NotificationParams.NewEvent("Probe", "Wir üben für das Konzert"),
                 new NotificationData.NotificationLink("dashboard-overview"));
@@ -654,7 +654,7 @@ class NotificationServiceTest extends RepositoryTestBase {
         assertTrue(neBody.contains("Probe"));
         assertTrue(neBody.contains("Wir üben"));
 
-        // NEW_EVENTS_BATCH — count + preview as labeled line
+        // NEW_EVENTS_BATCH - count + preview as labeled line
         var batchData = NotificationData.of(
                 new NotificationParams.NewEventsBatch(3, "A, B, C", null),
                 new NotificationData.NotificationLink("dashboard-overview"));
@@ -665,7 +665,7 @@ class NotificationServiceTest extends RepositoryTestBase {
         assertTrue(batchBody.contains("A, B, C"));
         assertTrue(batchBody.contains("Termine"));
 
-        // BOARD_TICKET_UPDATE — change description + ticket key + board labels
+        // BOARD_TICKET_UPDATE - change description + ticket key + board labels
         var btu = NotificationData.of(
                 new NotificationParams.BoardTicketUpdate("Vorstand", "VORSTAND-12", "Status changed"),
                 new NotificationData.NotificationLink("dashboard-overview"));
@@ -675,7 +675,7 @@ class NotificationServiceTest extends RepositoryTestBase {
         assertTrue(btuBody.contains("VORSTAND-12"));
         assertTrue(btuBody.contains("Vorstand"));
 
-        // STORAGE_WARNING — labelled lines for usedPercent/used/quota
+        // STORAGE_WARNING - labelled lines for usedPercent/used/quota
         var sw = NotificationData.of(
                 new NotificationParams.StorageWarning(91, "9.1 GB", "10 GB"),
                 new NotificationData.NotificationLink("dashboard-overview"));
@@ -685,7 +685,7 @@ class NotificationServiceTest extends RepositoryTestBase {
         assertTrue(swBody.contains("9.1 GB"));
         assertTrue(swBody.contains("10 GB"));
 
-        // REGISTRATION_DEADLINE_EXPIRED — labelled pendingCount
+        // REGISTRATION_DEADLINE_EXPIRED - labelled pendingCount
         var rde = NotificationData.of(
                 new NotificationParams.RegistrationDeadlineExpired("Probe", 5),
                 new NotificationData.NotificationLink("dashboard-overview"));
@@ -699,7 +699,7 @@ class NotificationServiceTest extends RepositoryTestBase {
     @Order(106)
     void resolveNotificationUrlHandlesMissingLinkUnknownRouteAndKnownRoute() {
         // resolveNotificationUrl pre-dates the require-link guard. It still handles
-        // legacy/malformed data that lacks a link — verify it short-circuits to null.
+        // legacy/malformed data that lacks a link - verify it short-circuits to null.
         var noLink = new NotificationData(new NotificationParams.MemberAddedToGroup("Alpha", null), null);
         assertNull(service.resolveNotificationUrl("https://ember.example.com", null, noLink));
 
@@ -765,21 +765,21 @@ class NotificationServiceTest extends RepositoryTestBase {
     @Test
     @Order(108)
     void resolveFeedBodyCoversAllRemainingTypes() {
-        // NEW_NEWS — appends preview
+        // NEW_NEWS - appends preview
         var news = NotificationData.of(
                 new NotificationParams.NewNews("Titel", "Autor", "Preview"),
                 new NotificationData.NotificationLink("dashboard-overview"));
         var newsNotif = new Notification(30, member1.id(), NotificationType.NEW_NEWS, news, Instant.now(), null);
         assertTrue(service.resolveFeedBody("de", newsNotif).contains("Preview"));
 
-        // NEWS_COMMENT — appends preview
+        // NEWS_COMMENT - appends preview
         var nc = NotificationData.of(
                 new NotificationParams.NewsComment("Titel", "Autor", "Kommentartext"),
                 new NotificationData.NotificationLink("dashboard-overview"));
         var ncNotif = new Notification(31, member1.id(), NotificationType.NEWS_COMMENT, nc, Instant.now(), null);
         assertTrue(service.resolveFeedBody("de", ncNotif).contains("Kommentartext"));
 
-        // EVENT_REGISTRATION_STATUS — appends event description
+        // EVENT_REGISTRATION_STATUS - appends event description
         var ers = NotificationData.of(
                 new NotificationParams.EventRegistrationStatus("Probe", RegistrationStatus.ACCEPTED, "Konzertprobe"),
                 new NotificationData.NotificationLink("dashboard-overview"));
@@ -787,7 +787,7 @@ class NotificationServiceTest extends RepositoryTestBase {
                 32, member1.id(), NotificationType.EVENT_REGISTRATION_STATUS, ers, Instant.now(), null);
         assertTrue(service.resolveFeedBody("en", ersNotif).contains("Konzertprobe"));
 
-        // EVENT_CANCELLED — labelled reason
+        // EVENT_CANCELLED - labelled reason
         var ec = NotificationData.of(
                 new NotificationParams.EventCancelled("Probe", "Wetter"),
                 new NotificationData.NotificationLink("dashboard-overview"));
@@ -795,7 +795,7 @@ class NotificationServiceTest extends RepositoryTestBase {
         var ecBody = service.resolveFeedBody("en", ecNotif);
         assertTrue(ecBody.contains("Wetter"));
 
-        // EVENT_REMINDER — labelled eventDate + daysBefore
+        // EVENT_REMINDER - labelled eventDate + daysBefore
         var er = NotificationData.of(
                 new NotificationParams.EventReminder("Probe", 3, LocalDate.parse("2026-08-01")),
                 new NotificationData.NotificationLink("dashboard-overview"));
@@ -804,7 +804,7 @@ class NotificationServiceTest extends RepositoryTestBase {
         assertTrue(erBody.contains("2026-08-01"));
         assertTrue(erBody.contains("3"));
 
-        // EXCHANGE_NEW_REQUEST — labelled reason
+        // EXCHANGE_NEW_REQUEST - labelled reason
         var enr = NotificationData.of(
                 new NotificationParams.ExchangeNewRequest("Name", "Inv", "Need it"),
                 new NotificationData.NotificationLink("dashboard-overview"));
@@ -812,7 +812,7 @@ class NotificationServiceTest extends RepositoryTestBase {
                 new Notification(35, member1.id(), NotificationType.EXCHANGE_NEW_REQUEST, enr, Instant.now(), null);
         assertTrue(service.resolveFeedBody("en", enrNotif).contains("Need it"));
 
-        // EXCHANGE_STATUS_CHANGE — labelled reason
+        // EXCHANGE_STATUS_CHANGE - labelled reason
         var esc = NotificationData.of(
                 new NotificationParams.ExchangeStatusChange(ExchangeStatus.DONE, "Inv", "Approved"),
                 new NotificationData.NotificationLink("dashboard-overview"));
@@ -820,14 +820,14 @@ class NotificationServiceTest extends RepositoryTestBase {
                 new Notification(36, member1.id(), NotificationType.EXCHANGE_STATUS_CHANGE, esc, Instant.now(), null);
         assertTrue(service.resolveFeedBody("en", escNotif).contains("Approved"));
 
-        // LOST_AND_FOUND_NEW — appends description
+        // LOST_AND_FOUND_NEW - appends description
         var lf = NotificationData.of(
                 new NotificationParams.LostAndFoundNew("Blue jacket"),
                 new NotificationData.NotificationLink("dashboard-overview"));
         var lfNotif = new Notification(37, member1.id(), NotificationType.LOST_AND_FOUND_NEW, lf, Instant.now(), null);
         assertTrue(service.resolveFeedBody("en", lfNotif).contains("Blue jacket"));
 
-        // LENDING_NEW_REQUEST — labelled itemSummary
+        // LENDING_NEW_REQUEST - labelled itemSummary
         var lnr = NotificationData.of(
                 new NotificationParams.LendingNewRequest("Station", "Drum kit"),
                 new NotificationData.NotificationLink("dashboard-overview"));
@@ -835,7 +835,7 @@ class NotificationServiceTest extends RepositoryTestBase {
                 new Notification(38, member1.id(), NotificationType.LENDING_NEW_REQUEST, lnr, Instant.now(), null);
         assertTrue(service.resolveFeedBody("en", lnrNotif).contains("Drum kit"));
 
-        // PROCEDURE_ITEM_CHECKED — labelled item + by
+        // PROCEDURE_ITEM_CHECKED - labelled item + by
         var pic = NotificationData.of(
                 new NotificationParams.ProcedureItemCheckedParams("Proc", "Item A", "Alice"),
                 new NotificationData.NotificationLink("dashboard-overview"));
@@ -845,7 +845,7 @@ class NotificationServiceTest extends RepositoryTestBase {
         assertTrue(picBody.contains("Item A"));
         assertTrue(picBody.contains("Alice"));
 
-        // Default branch via type without specific feed handling — falls back to resolveDetail
+        // Default branch via type without specific feed handling - falls back to resolveDetail
         var nf = NotificationData.of(
                 new NotificationParams.NewForm("Application"),
                 new NotificationData.NotificationLink("dashboard-overview"));
@@ -858,7 +858,7 @@ class NotificationServiceTest extends RepositoryTestBase {
     @Test
     @Order(108)
     void resolveMessagePicksPluralVariantBasedOnCount() {
-        // newEventsBatch is the canonical pluralised type — the bundle defines .one and .other.
+        // newEventsBatch is the canonical pluralised type - the bundle defines .one and .other.
         var one = notificationWith(
                 NotificationType.NEW_EVENTS_BATCH, new NotificationParams.NewEventsBatch(1, "A", null), 50);
         var many = notificationWith(
@@ -877,7 +877,7 @@ class NotificationServiceTest extends RepositoryTestBase {
     @Test
     @Order(108)
     void resolveMessageFallsBackToSingularKeyWhenNoPluralDefined() {
-        // newEvent has no .one/.other split — the lookup must still hit the bare key.
+        // newEvent has no .one/.other split - the lookup must still hit the bare key.
         var notif =
                 notificationWith(NotificationType.NEW_EVENT, new NotificationParams.NewEvent("Probe", "Konzert"), 52);
         var msg = service.resolveMessage("en", notif);
@@ -903,7 +903,7 @@ class NotificationServiceTest extends RepositoryTestBase {
         assertEquals("hi", NotificationService.truncateSnippet("hi", 100));
         // Null passes through.
         assertNull(NotificationService.truncateSnippet(null, 10));
-        // No space within budget — hard truncate.
+        // No space within budget - hard truncate.
         var hard = NotificationService.truncateSnippet("aaaaaaaaaaaaaaaaaaaa", 5);
         assertEquals("aaaaa…", hard);
     }
@@ -911,7 +911,7 @@ class NotificationServiceTest extends RepositoryTestBase {
     @Test
     @Order(108)
     void resolveFeedTitleEmbedsEntityIdentifierAndRoutesPlurals() {
-        // Static entity title — singular template.
+        // Static entity title - singular template.
         var news = notificationWith(
                 NotificationType.NEW_NEWS, new NotificationParams.NewNews("Q3 schedule", "Alice", "preview"), 200);
         var enTitle = service.resolveFeedTitle("en", news);
@@ -956,7 +956,7 @@ class NotificationServiceTest extends RepositoryTestBase {
     @Order(108)
     void resolveFeedTitleFallsBackToCategoryWhenNoTemplateMatches() {
         // Synthesize a notification with a type but inject a malformed/empty params shape so
-        // every placeholder strips out — the helper must fall back to the bare category rather
+        // every placeholder strips out - the helper must fall back to the bare category rather
         // than render a broken "News: " row.
         var malformed = new Notification(
                 300,

@@ -165,7 +165,7 @@ public class FederationRoutes implements Routes {
     private void createInvite(Context ctx) {
         var session = UserSession.from(ctx);
         var station = stationRepository.findById(session.stationId()).orElseThrow(NotFoundResponse::new);
-        // Station invite — includes token proving consent, auto-activates on accept
+        // Station invite - includes token proving consent, auto-activates on accept
         var code = service.generateStationInvite(station.id(), station.uid());
         ctx.json(new InviteResponse(code));
     }
@@ -206,7 +206,7 @@ public class FederationRoutes implements Routes {
         }
 
         if (parts.get().isStationInvite()) {
-            // Station invite (with token) — validate token and auto-activate
+            // Station invite (with token) - validate token and auto-activate
             if (!service.consumeInviteToken(targetStation.id(), parts.get().token())) {
                 throw new BadRequestResponse("Invalid or already used invite code");
             }
@@ -215,7 +215,7 @@ public class FederationRoutes implements Routes {
                     session.stationId(), targetStation.id(), service.encodePublicKey(keyPair), null, null);
             ctx.status(HttpStatus.CREATED).json(partner);
         } else {
-            // Discovery code (no token) — create pending request
+            // Discovery code (no token) - create pending request
             var pendingRequests = service.findPendingRequests(targetStation.id());
             if (pendingRequests.stream().anyMatch(p -> p.stationId() == session.stationId())) {
                 throw new BadRequestResponse("Request already pending");

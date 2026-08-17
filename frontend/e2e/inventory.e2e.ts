@@ -161,13 +161,13 @@ test.describe('Inventory', () => {
     /**
      * Borrowing runs between two stations: one offers what it can spare and the other asks for it.
      * The story asks as one station and approves as the other, which is the only way to see that a
-     * request reaches anybody — a request nobody can act on is a request that failed quietly.
+     * request reaches anybody - a request nobody can act on is a request that failed quietly.
      */
     test('equipment is asked for from a partner station', async ({managerPage: page}) => {
         await page.goto('/station/inventory/lending')
 
         // The offers and the requests each have a tab of their own, and the tab for requests carries
-        // the same word as the button that sends one — so the button is the later of the two.
+        // the same word as the button that sends one - so the button is the later of the two.
         await page.getByRole('button', {name: 'Angebote'}).click()
 
         const offer = page.getByRole('button', {name: 'Anfragen'}).last()

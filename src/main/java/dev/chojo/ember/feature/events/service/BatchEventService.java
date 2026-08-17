@@ -60,7 +60,7 @@ public class BatchEventService {
             Instant endTime = row.endTime();
             String eventName = row.name() != null ? row.name() : request.name();
 
-            // Use createWithoutEvent to suppress per-row EventCreated fan-out — we emit one
+            // Use createWithoutEvent to suppress per-row EventCreated fan-out - we emit one
             // aggregate EventsBatchCreated below so users get a single notification.
             var event = crudService.createWithoutEvent(
                     stationId,

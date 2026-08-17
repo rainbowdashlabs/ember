@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 
 /**
- * Proxies the board level structure of a federated board — its lanes, labels and fields — to the
+ * Proxies the board level structure of a federated board - its lanes, labels and fields - to the
  * owning station, either through the local database or over HTTP.
  */
 @Singleton

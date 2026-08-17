@@ -10,7 +10,7 @@
 export type CellConfig = Record<string, unknown>
 
 /**
- * Base prop shape every cell editor receives — the config bag the editor mutates via
+ * Base prop shape every cell editor receives - the config bag the editor mutates via
  * `update:config`. Used as `defineProps<CellEditorProps>()` in the simplest cells.
  */
 export type CellEditorProps = {

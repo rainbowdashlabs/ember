@@ -25,7 +25,7 @@ import java.util.List;
  * @param customScope     override for tables that aren't directly scoped by an outgoing FK chain;
  *                        used for tables reached via an incoming FK (e.g. {@code account} through
  *                        {@code station_member.account_id})
- * @param stationTransfer coverage for the station export+import pair — what is exported must also be imported
+ * @param stationTransfer coverage for the station export+import pair - what is exported must also be imported
  * @param gdprExport      coverage status for GDPR export
  * @param gdprDeletion    coverage status for GDPR deletion
  * @param description     {@code COMMENT ON TABLE} text mirrored from the live schema. Intentionally excluded

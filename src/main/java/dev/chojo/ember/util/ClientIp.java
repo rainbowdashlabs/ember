@@ -23,12 +23,12 @@ import java.util.Optional;
  *
  * <p>The same app may be deployed in four shapes:
  * <ul>
- *   <li>Direct on a public interface — no proxy, no header trust.</li>
- *   <li>Behind Traefik (or another reverse proxy) — trust
+ *   <li>Direct on a public interface - no proxy, no header trust.</li>
+ *   <li>Behind Traefik (or another reverse proxy) - trust
  *       {@code X-Forwarded-For} / {@code X-Real-IP} from the configured CIDRs only.</li>
- *   <li>Behind Cloudflare — trust {@code CF-Connecting-IP}, but only when the
+ *   <li>Behind Cloudflare - trust {@code CF-Connecting-IP}, but only when the
  *       immediate hop is in Cloudflare's published edge ranges.</li>
- *   <li>Behind Cloudflare → Traefik — the Cloudflare edge ranges join the
+ *   <li>Behind Cloudflare → Traefik - the Cloudflare edge ranges join the
  *       trusted-hop set and the {@code X-Forwarded-For} chain is walked from
  *       the right. {@code CF-Connecting-IP} is deliberately NOT honoured here:
  *       the immediate hop is Traefik, which forwards that header from direct
@@ -36,14 +36,14 @@ import java.util.Optional;
  * </ul>
  *
  * <p>Headers from untrusted hops are ignored. This is essential because any
- * client that can reach the app socket can claim any value in a header — the
+ * client that can reach the app socket can claim any value in a header - the
  * trust gate is the immediate hop, not the header itself.
  *
  * <p>Resolution order:
  * <ol>
- *   <li>{@code CF-Connecting-IP} — only if {@link Network#cloudflare()} is
+ *   <li>{@code CF-Connecting-IP} - only if {@link Network#cloudflare()} is
  *       {@code true} AND {@link Context#ip()} is a Cloudflare edge address.</li>
- *   <li>{@code X-Forwarded-For} — only if {@link Context#ip()} is a trusted
+ *   <li>{@code X-Forwarded-For} - only if {@link Context#ip()} is a trusted
  *       hop (one of {@link Network#trustedProxies()}, or a Cloudflare edge
  *       when {@link Network#cloudflare()} is {@code true}). The chain is
  *       walked right to left and the first address that is not itself a
@@ -53,7 +53,7 @@ import java.util.Optional;
  *       consulted. An unparseable entry aborts the walk and falls back to
  *       {@link Context#ip()}; a chain consisting solely of trusted hops
  *       resolves to its leftmost entry.</li>
- *   <li>{@code X-Real-IP} — same trust check as step 2, only consulted when
+ *   <li>{@code X-Real-IP} - same trust check as step 2, only consulted when
  *       {@code X-Forwarded-For} is absent.</li>
  *   <li>{@link Context#ip()} as a final fallback. This is the correct value
  *       for a no-proxy deployment.</li>
@@ -62,7 +62,7 @@ import java.util.Optional;
  * <p>The Cloudflare edge ranges are loaded once at class load from
  * {@code resources/cloudflare-ranges.txt} (generated at build time by the
  * {@code fetchCloudflareRanges} Gradle task) and may be refreshed at runtime
- * via {@link #updateCloudflareRanges(String)} — never via a live HTTP call at
+ * via {@link #updateCloudflareRanges(String)} - never via a live HTTP call at
  * request time.
  */
 public final class ClientIp {
@@ -82,7 +82,7 @@ public final class ClientIp {
      * @param network the network / proxy configuration
      * @return the visitor's {@link InetAddress}; never {@code null}
      * @throws IllegalStateException if {@code ctx.ip()} cannot be parsed as an
-     *                               IP address — should never happen with Javalin
+     *                               IP address - should never happen with Javalin
      */
     public static InetAddress resolve(Context ctx, Network network) {
         InetAddress immediateHop = parseOrThrow(ctx.ip());

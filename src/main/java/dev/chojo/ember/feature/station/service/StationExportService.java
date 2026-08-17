@@ -45,7 +45,7 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  *       come from {@link GenericTableExporter}.</li>
  * </ul>
  *
- * <p>This service deliberately contains no per-table SQL or wire-shape branching — that
+ * <p>This service deliberately contains no per-table SQL or wire-shape branching - that
  * knowledge lives entirely in the tracking metadata.
  */
 @Singleton
@@ -70,7 +70,7 @@ public class StationExportService {
         try {
             tracking = DataTrackingLoader.loadFromClasspath();
         } catch (IOException e) {
-            log.warn("Could not load data_tracking.json — export engine will be unusable", e);
+            log.warn("Could not load data_tracking.json - export engine will be unusable", e);
             tracking = DataTrackingLoader.empty();
         }
         this.engine = new GenericTableExporter(tracking);
@@ -102,7 +102,7 @@ public class StationExportService {
      * only the random {@code token} field, and the destination puts only that random value in
      * the outgoing URL path. Keeping the host out of the path avoids dev-server path-matcher
      * quirks around special characters and segment-separator interpretation. The token alone
-     * does NOT mark the station read-only — the source operator may revoke an unused token
+     * does NOT mark the station read-only - the source operator may revoke an unused token
      * without ever having shared it. The read-only flag is flipped the moment the destination
      * actually starts pulling (first {@code /public/transfer/{token}/tables} call), so the
      * operator can generate a token, change their mind, and abort without ever locking the
@@ -134,7 +134,7 @@ public class StationExportService {
     /**
      * Decodes the operator-visible transfer token (base64url-encoded JSON) into its
      * {@link TransferTokenPayload}. Returns {@code Optional.empty()} when the input is not a
-     * valid base64url-encoded JSON object — the caller treats that as an invalid token.
+     * valid base64url-encoded JSON object - the caller treats that as an invalid token.
      */
     public static Optional<TransferTokenPayload> parseToken(String token) {
         if (token == null || token.isBlank()) return Optional.empty();
@@ -184,7 +184,7 @@ public class StationExportService {
     /**
      * Marks every outstanding transfer token for the station as used so the idle-timeout
      * watchdog does not later clear the read-only-for-transfer flag. The read-only flag
-     * itself is intentionally left on — after a successful transfer the source station
+     * itself is intentionally left on - after a successful transfer the source station
      * must stay locked until an operator decides whether to keep, archive, or delete it.
      */
     public void markTransferComplete(int stationId) {
@@ -209,7 +209,7 @@ public class StationExportService {
     /**
      * Treats every in-flight transfer as failed: marks every unused transfer token used and
      * clears the read-only-for-transfer flag on every affected station. Called at startup
-     * because an in-progress transfer cannot survive a source-instance restart — the
+     * because an in-progress transfer cannot survive a source-instance restart - the
      * destination's HTTP client loses its connection state and the source has no way to
      * resume mid-stream. Without this, a crash mid-transfer would leave the station locked
      * read-only until the 24-hour token expiry or until an operator hit the abort endpoint.
@@ -265,7 +265,7 @@ public class StationExportService {
                 stationRepository.clearReadOnlyForTransfer(stationId);
                 cleared++;
                 log.warn(
-                        "Transfer for station {} timed out after {} min of inactivity — token invalidated, read-only flag cleared",
+                        "Transfer for station {} timed out after {} min of inactivity - token invalidated, read-only flag cleared",
                         stationId,
                         idleMinutes);
             }
@@ -277,7 +277,7 @@ public class StationExportService {
      * Records the destination instance URL against the token if it hasn't already been pinned.
      * Called from {@code /public/transfer/{token}/tables} on first pull when the destination
      * sends {@code X-Ember-Importing-From}. Subsequent calls with a different value are
-     * ignored — the first pull wins so the banner stays stable.
+     * ignored - the first pull wins so the banner stays stable.
      */
     public void recordTransferTarget(String token, String targetInstanceUrl) {
         if (targetInstanceUrl == null || targetInstanceUrl.isBlank()) return;

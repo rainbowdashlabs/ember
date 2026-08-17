@@ -48,7 +48,7 @@ import java.util.function.Consumer;
  *
  * <p>Authenticated user-facing discovery (browsing the cached peers' station cards) lives in
  * {@code /api/v1/discovery/stations} and is intentionally permissionless beyond a valid
- * session — discovery surfaces are public by design (the same data is available
+ * session - discovery surfaces are public by design (the same data is available
  * anonymously).
  */
 @Singleton
@@ -181,7 +181,7 @@ public class AdminDiscoveryRoutes implements Routes {
         routes.get(prefix + "/discovery/stations", this::listCachedStations);
 
         // Editor-facing picker for the PARTNER_STATIONS cell. Auth-gated by
-        // PAGE_EDIT so it never escapes the editor surface — public scrapers cannot use it to
+        // PAGE_EDIT so it never escapes the editor surface - public scrapers cannot use it to
         // enumerate the federation network.
         routes.get(prefix + "/federation/stations/search", this::searchStationPicker, StationPermission.PAGE_EDIT);
     }
@@ -398,7 +398,7 @@ public class AdminDiscoveryRoutes implements Routes {
 
     /**
      * Lightweight picker result row. {@code selectable} mirrors whether the cell should let
-     * the editor pick this station — the discovery cache only contains stations that already
+     * the editor pick this station - the discovery cache only contains stations that already
      * opted-in to public discovery, so this is always {@code true} today. The flag is part of
      * the contract so the frontend stays stable when (and if) we later widen the picker to
      * include federation partners that aren't discoverable.

@@ -310,7 +310,7 @@ public class InstanceStorageMigrationService {
     }
 
     /**
-     * Release the lock and read-only flag without flipping the YAML — the previous backend
+     * Release the lock and read-only flag without flipping the YAML - the previous backend
      * stays authoritative. Called by the route handler when the YAML save itself fails after a
      * successful byte copy.
      */

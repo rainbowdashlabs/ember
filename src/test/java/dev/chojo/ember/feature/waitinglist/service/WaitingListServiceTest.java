@@ -598,7 +598,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @Test
     void scoreEvaluationWithInvalidDateField() {
-        // age() function with an invalid date string — should not throw, age = 0
+        // age() function with an invalid date string - should not throw, age = 0
         var dobField = service.createField(
                 listId, "BadDate", WaitingListFieldType.DATE, WaitingListFieldConfig.parse("{}"), 0, false, true);
         var list = service.update(listId, "BadDateScored", "", "age([BadDate])", 180, null, null, 5, false)
@@ -675,7 +675,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         // Retrieve the token from the repository (via the verification table)
         var token = waitingListRepo.findPublicByStation(station.id()).stream()
                 .flatMap(l -> {
-                    // We know a token was created — find it
+                    // We know a token was created - find it
                     return Stream.empty();
                 })
                 .findFirst();
@@ -849,7 +849,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     /**
      * The scheduled confirmation sweep. It reminds entries whose confirmation has gone stale,
-     * warns the ones approaching removal, and withdraws the ones past the grace period — the last
+     * warns the ones approaching removal, and withdraws the ones past the grace period - the last
      * of which takes a place away from an applicant, so it is asserted directly rather than
      * through the absence of a reminder.
      */

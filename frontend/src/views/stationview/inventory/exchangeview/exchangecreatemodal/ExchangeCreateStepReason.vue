@@ -32,7 +32,7 @@ const emit = defineEmits<{
 
 <template>
   <p v-if="selectedItem" class="text-sm">
-    {{ selectedItem.inventoryName }} — {{ selectedItem.name }}
+    {{ selectedItem.inventoryName }} - {{ selectedItem.name }}
     <span class="text-(--text-muted)">{{ selectedItem.sizeName ?? t('common.unisize') }}</span>
     <template v-if="newSizeId">
       &rarr; <span class="font-medium">{{ sizes.find(s => s.id === Number(newSizeId))?.label }}</span>

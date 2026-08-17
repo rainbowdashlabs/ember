@@ -179,7 +179,7 @@ export function scheduleTokenRefresh(expiresAt: string) {
                 }
             }
         } catch {
-            // Refresh failed — session will expire, 401 interceptor will handle redirect
+            // Refresh failed - session will expire, 401 interceptor will handle redirect
         } finally {
             refreshing = false
             releaseQueue()

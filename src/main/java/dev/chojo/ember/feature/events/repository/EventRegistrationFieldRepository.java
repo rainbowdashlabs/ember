@@ -76,7 +76,7 @@ public class EventRegistrationFieldRepository {
      * Replaces an event's questions with a new list, numbering them in the order given.
      *
      * <p>Answers to questions that survive the replacement are lost, because a question is
-     * identified by its row: the delete cascades into the answers. That is the honest outcome —
+     * identified by its row: the delete cascades into the answers. That is the honest outcome -
      * a rewritten question is not the question that was answered.
      */
     public void replaceFields(int eventId, List<FieldEntry> fields) {

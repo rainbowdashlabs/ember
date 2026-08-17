@@ -11,7 +11,7 @@ import {InventoryTypes} from '@/api/inventory'
 
 /**
  * Translation function shape compatible with the {@code t} returned by
- * {@code useI18n()} — callers pass {@code t} directly.
+ * {@code useI18n()} - callers pass {@code t} directly.
  */
 export type InventoryTypeTranslator = (key: string) => string
 

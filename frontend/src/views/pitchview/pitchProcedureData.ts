@@ -35,7 +35,7 @@ export const PROCEDURE_INTAKE: PitchProcedure = {
     items: [
         step(1, 'Aufnahmeantrag unterschrieben', 'Von den Erziehungsberechtigten unterschrieben abgeben',
             {checked: true, checkedAt: checkedAt(9), userAssigned: true}),
-        step(2, 'Einverständnis zu Fotos geklärt', 'Ja oder Nein festhalten — beides ist in Ordnung',
+        step(2, 'Einverständnis zu Fotos geklärt', 'Ja oder Nein festhalten - beides ist in Ordnung',
             {checked: true, checkedAt: checkedAt(9), userAssigned: true}),
         step(3, 'Zugang angelegt', 'Konto anlegen und Einladung verschicken',
             {checked: true, checkedAt: checkedAt(7), isPublic: false}),
@@ -54,7 +54,7 @@ function templateStep(id: number, title: string, description: string,
 const TEMPLATE_ITEMS: ProcedureTemplateItem[] = [
     templateStep(1, 'Aufnahmeantrag unterschrieben', 'Von den Erziehungsberechtigten unterschrieben abgeben',
         {userAssigned: true}),
-    templateStep(2, 'Einverständnis zu Fotos geklärt', 'Ja oder Nein festhalten — beides ist in Ordnung',
+    templateStep(2, 'Einverständnis zu Fotos geklärt', 'Ja oder Nein festhalten - beides ist in Ordnung',
         {userAssigned: true}),
     templateStep(3, 'Zugang angelegt', 'Konto anlegen und Einladung verschicken', {isPublic: false}),
     templateStep(4, 'Kleidung ausgegeben', 'Größen messen und Ausstattung zuweisen'),

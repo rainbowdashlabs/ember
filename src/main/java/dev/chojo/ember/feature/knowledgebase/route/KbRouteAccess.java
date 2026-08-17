@@ -65,7 +65,7 @@ final class KbRouteAccess {
      * Asserts the caller holds at least {@code required} on a folder or file.
      *
      * <p>Answers {@code 404} rather than {@code 403}: the station already made that choice for
-     * cross-station access, and the reasoning carries — a {@code 403} confirms the item exists.
+     * cross-station access, and the reasoning carries - a {@code 403} confirms the item exists.
      *
      * @param folderId the folder, or {@code null} when guarding a file
      * @param fileId   the file, or {@code null} when guarding a folder

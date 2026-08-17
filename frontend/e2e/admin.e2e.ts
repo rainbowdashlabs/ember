@@ -13,7 +13,7 @@ import {unique} from './fixtures/unique'
  * to render.
  *
  * Two of the four groups run serial on purpose. Legal documents and instance settings are
- * instance-wide state — documents on disk, settings in one row — so two workers editing them at
+ * instance-wide state - documents on disk, settings in one row - so two workers editing them at
  * once would each assert on the other's save. The pages that only render are left parallel, which
  * is where most of the wall-clock sits.
  *
@@ -81,7 +81,7 @@ async function stationRegistrationEnabled(adminPage: Page): Promise<boolean> {
  *
  * A fresh context each time, not a reload. The page reads the setting once when it loads and the
  * answer carries no cache headers, so a browser that has already asked keeps its first answer for
- * the life of the context — reloading the same page would test that cache rather than the setting.
+ * the life of the context - reloading the same page would test that cache rather than the setting.
  */
 async function expectApplyPage(browser: Browser, expected: 'open' | 'closed') {
     const context = await browser.newContext()
@@ -135,7 +135,7 @@ test.describe('Legal documents', () => {
 
     /**
      * Every document type has to offer something, in both languages Ember ships. A type that
-     * silently offers nothing is the failure mode this catches — it looks like an empty list rather
+     * silently offers nothing is the failure mode this catches - it looks like an empty list rather
      * than an error, and an operator would read it as "there is no template for this".
      */
     test('every shipped document offers its sections in both languages', async ({adminPage: page}) => {
@@ -187,7 +187,7 @@ test.describe('Legal documents', () => {
 
     /**
      * The generated disclosure is the one section an administrator may not write. It has to be
-     * there, carry the keys the application really uses, and offer no way to edit or delete it —
+     * there, carry the keys the application really uses, and offer no way to edit or delete it -
      * a text that can be edited is a text that can go out of step with the software.
      */
     test('the browser storage section is generated and read-only', async ({adminPage, page}) => {
@@ -218,7 +218,7 @@ test.describe('Legal documents', () => {
 
     /**
      * The shipped imprint is meant to be filled in rather than rewritten. What proves it is a value
-     * entered once reaching the public page — the substitution happens on the server, so the
+     * entered once reaching the public page - the substitution happens on the server, so the
      * editor showing the right thing would prove nothing.
      */
     test('a placeholder from the shipped imprint is filled in and published', async ({adminPage, page}) => {
@@ -283,7 +283,7 @@ test.describe('Instance administration', () => {
 
     /**
      * The whole way through: an anonymous applicant, the confirmation link, and the operator
-     * accepting. The token is taken from the submission response rather than from an inbox — the
+     * accepting. The token is taken from the submission response rather than from an inbox - the
      * instance under test sends no mail, and the story is about the flow, not about the delivery.
      */
     test('a station application is submitted, confirmed and accepted', async ({page, adminPage}) => {
@@ -318,7 +318,7 @@ test.describe('Instance administration', () => {
 
     /**
      * A setting is only worth anything where it is used. Switching station registration off has to
-     * close the public application form, not merely flip a toggle in the admin area — so the
+     * close the public application form, not merely flip a toggle in the admin area - so the
      * assertion is made by an anonymous visitor.
      */
     test('a changed instance setting takes effect where it is used', async ({adminPage, browser}) => {
@@ -334,7 +334,7 @@ test.describe('Instance administration', () => {
 
     /**
      * The configuration, not the check itself. Asserting that a breached password is refused would
-     * mean calling Have I Been Pwned from the test run — a third party, over the network, on every
+     * mean calling Have I Been Pwned from the test run - a third party, over the network, on every
      * run. What is worth holding here is that the switch survives a reload.
      */
     test('compromised-password checking is configured and survives a reload', async ({adminPage: page}) => {
@@ -363,7 +363,7 @@ test.describe('Instance administration', () => {
     /**
      * The page configures how tokens are generated and how long they last, and reports whether the
      * server-side pepper is set. That
-     * badge is the part worth holding — without a pepper, stored tokens are unsalted hashes.
+     * badge is the part worth holding - without a pepper, stored tokens are unsalted hashes.
      */
     test('the token configuration and the pepper state are shown', async ({adminPage: page}) => {
         await page.goto('/admin/settings/security/tokens')
@@ -405,7 +405,7 @@ test.describe('Problem reports', () => {
 })
 
 /**
- * The monitoring pages, the operator dashboard and the data tracking inventory — the pages that
+ * The monitoring pages, the operator dashboard and the data tracking inventory - the pages that
  * only have to render.
  *
  * Each is asserted on its subtitle rather than its title: the title is repeated by the sidebar
@@ -449,7 +449,7 @@ test.describe('Admin pages render', () => {
      * The inventory is a dev-mode view on both sides: the routes behind it are registered only
      * when the backend runs in dev mode, and the page itself renders its "not in this build"
      * notice unless the frontend is served by the dev server. The suite runs against both, which
-     * the Playwright config already requires — if that ever changes, this failing is the point.
+     * the Playwright config already requires - if that ever changes, this failing is the point.
      */
     test('the data tracking inventory lists its tables', async ({adminPage: page}) => {
         await page.goto('/admin/dev/data-tracking')

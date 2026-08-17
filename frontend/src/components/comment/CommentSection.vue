@@ -20,7 +20,7 @@ const props = defineProps<{
   eventId: number
   /**
    * Optional ISO yyyy-MM-dd occurrence date. When provided, the section is scoped to that
-   * single occurrence of a recurring event — list filters to comments stamped with this
+   * single occurrence of a recurring event - list filters to comments stamped with this
    * date, and new comments are created with the same stamp. When omitted, the section
    * shows every comment on the event regardless of date.
    */

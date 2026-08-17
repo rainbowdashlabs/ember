@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p>
  * If these tests fail, the federation contract has changed. Run
  * {@code ./toolchain.sh be-federation-version} to update the stored hashes, then verify
- * the change is intentional — each changed surface hash pauses federation of that feature
+ * the change is intentional - each changed surface hash pauses federation of that feature
  * with instances still running the previous contract.
  */
 class FederationVersionTest {
@@ -74,7 +74,7 @@ class FederationVersionTest {
 
     private static String resource(String name) throws IOException {
         try (var is = FederationVersionTest.class.getResourceAsStream(name)) {
-            assertNotNull(is, name + " resource not found — run ./toolchain.sh be-federation-version");
+            assertNotNull(is, name + " resource not found - run ./toolchain.sh be-federation-version");
             return new String(is.readAllBytes(), StandardCharsets.UTF_8);
         }
     }

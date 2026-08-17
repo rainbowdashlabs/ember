@@ -24,7 +24,7 @@ import java.util.UUID;
 
 /**
  * Public anonymous-internet endpoints backing the QUIZ_TEASER cell. The cell picks one
- * random question from the requested catalogs and reveals the answer on click — same shape
+ * random question from the requested catalogs and reveals the answer on click - same shape
  * as the internal training view.
  */
 @Singleton
@@ -98,14 +98,14 @@ public class PublicQuizRoutes implements Routes {
     }
 
     /**
-     * Public catalog shape — only the bits the editor's catalog picker (auth-gated, but using
+     * Public catalog shape - only the bits the editor's catalog picker (auth-gated, but using
      * this same endpoint via the page-render layer) needs. No question counts, no audit fields.
      */
     public record PublicCatalog(int id, String name, String description) {}
 
     /**
      * Single random question payload. The {@code config} node intentionally carries every field
-     * the question type uses, including the {@code correct} marker on options — the cell reveals
+     * the question type uses, including the {@code correct} marker on options - the cell reveals
      * the answer on click, so the client legitimately needs it.
      */
     public record PublicQuestion(

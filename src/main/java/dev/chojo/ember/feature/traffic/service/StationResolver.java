@@ -21,7 +21,7 @@ import java.util.Optional;
  *   <li>An explicit {@link #ATTR_TRAFFIC_STATION_ID} context attribute set upstream (e.g.
  *       by the feed-token handler that already resolves the token's owning station).</li>
  *   <li>An authenticated {@link UserSession} carrying a station scope.</li>
- *   <li>A {@link FederationSession} — charge the serving station.</li>
+ *   <li>A {@link FederationSession} - charge the serving station.</li>
  * </ol>
  *
  * <p>If none of the above apply, the request is recorded against the instance-global

@@ -40,7 +40,7 @@ test.describe('Pages', () => {
 
     /**
      * A public page can carry a poll, and a stranger can answer it. The story answers as nobody at
-     * all — no session, the way a visitor arrives — and the page thanks them for it, which is what
+     * all - no session, the way a visitor arrives - and the page thanks them for it, which is what
      * says the answer was taken.
      */
     test('a poll on a public page takes an answer from a stranger', async ({page}) => {

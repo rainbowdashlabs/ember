@@ -14,7 +14,7 @@ import java.util.Optional;
  * write alongside every stored object. S3 carries metadata natively on the object header
  * + user-metadata fields and never touches this record.
  *
- * <p>The format is deliberately flat — four optional string fields, no nesting — so a future
+ * <p>The format is deliberately flat - four optional string fields, no nesting - so a future
  * migration tool can move bytes between backends without re-deriving metadata. Missing
  * {@code originalFilename} or {@code contentEncoding} are encoded as empty strings so the JSON
  * shape stays stable regardless of which optionals are populated.

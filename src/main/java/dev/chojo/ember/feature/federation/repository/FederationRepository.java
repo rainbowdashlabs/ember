@@ -352,7 +352,7 @@ public class FederationRepository {
     /**
      * Looks up the federation partner row for a specific (local, remote) station pair. Used by
      * the request authenticator to disambiguate when more than one local station partners with
-     * the same remote station — a situation that arises after a cross-instance transfer turns
+     * the same remote station - a situation that arises after a cross-instance transfer turns
      * several previously-local partnerships of the moved station into cross-instance ones.
      */
     public Optional<FederationPartner> findPartnerByLocalAndRemoteStationUid(

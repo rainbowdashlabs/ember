@@ -9,7 +9,7 @@ import PublicPageRow from '@/views/public/publicpageview/PublicPageRow.vue'
 import type {PitchPages} from './pitchTypes'
 
 /**
- * Either the page tree of the station, or the public page itself — both drawn by the components
+ * Either the page tree of the station, or the public page itself - both drawn by the components
  * the application uses for them.
  */
 defineProps<{

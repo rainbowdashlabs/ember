@@ -52,7 +52,7 @@ class StationRepositoryOrphanSweepTest extends RepositoryTestBase {
         stationRepo.delete(secondStation.id());
         assertFalse(
                 accountRepo.findById(account.id()).isPresent(),
-                "last remaining membership gone — account is now swept");
+                "last remaining membership gone - account is now swept");
     }
 
     @Test

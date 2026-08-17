@@ -164,7 +164,7 @@ class NewsRepositoryTest extends RepositoryTestBase {
     @Order(30)
     void acknowledge() {
         assertDoesNotThrow(() -> newsRepo.acknowledge(newsId, member.id()));
-        // Idempotent — calling again should not throw
+        // Idempotent - calling again should not throw
         assertDoesNotThrow(() -> newsRepo.acknowledge(newsId, member.id()));
     }
 
@@ -254,7 +254,7 @@ class NewsRepositoryTest extends RepositoryTestBase {
         newsRepo.recordView(newsId, member.id());
         assertEquals(1, newsRepo.countViews(newsId));
         assertTrue(newsRepo.hasViewed(newsId, member.id()));
-        // Idempotent — second call adds no row
+        // Idempotent - second call adds no row
         newsRepo.recordView(newsId, member.id());
         assertEquals(1, newsRepo.countViews(newsId));
     }

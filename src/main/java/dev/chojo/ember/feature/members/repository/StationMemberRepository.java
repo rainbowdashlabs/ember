@@ -544,8 +544,8 @@ public class StationMemberRepository {
     }
 
     /**
-     * Lightweight result row for the editor's member-search picker. Exposes the member UUID —
-     * never the internal id — so cell configs survive station transfer. {@code displayTag}
+     * Lightweight result row for the editor's member-search picker. Exposes the member UUID -
+     * never the internal id - so cell configs survive station transfer. {@code displayTag}
      * carries the member's highest-priority visible tag name (and color), or {@code null} when
      * the member has no visible tag.
      */

@@ -11,7 +11,7 @@ const DEFAULT_DELAY_MS = 300
  * A search box backed by a server query, debounced so typing does not send a request per keystroke.
  *
  * Clearing the box empties the results immediately rather than after the delay, so the list never
- * shows results for a query the user has already deleted. A failed search also empties them —
+ * shows results for a query the user has already deleted. A failed search also empties them -
  * showing the previous query's results under a new query would be worse than showing none.
  *
  * @param fetch   runs the search for a non-empty, trimmed query

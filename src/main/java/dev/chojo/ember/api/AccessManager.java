@@ -245,7 +245,7 @@ public class AccessManager {
         }
 
         if (FederationSigningService.hasDuplicateQueryKeys(ctx.queryString())) {
-            log.warn("Rejecting federation request from partner {} — duplicate query parameter keys", p.id());
+            log.warn("Rejecting federation request from partner {} - duplicate query parameter keys", p.id());
             return Optional.empty();
         }
 
@@ -283,7 +283,7 @@ public class AccessManager {
      * <p>
      * Both hashes have to be checked: a release that rolls only one feature surface leaves
      * the core hash equal, so a core-only comparison would never notice and that feature
-     * would stay paused until a restart — while the pause itself stops the outbound calls
+     * would stay paused until a restart - while the pause itself stops the outbound calls
      * whose rejection would otherwise trigger the refresh.
      */
     private boolean presentsUnknownContract(Context ctx, FederationPartner partner) {

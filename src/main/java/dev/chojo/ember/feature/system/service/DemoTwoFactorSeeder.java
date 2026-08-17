@@ -20,8 +20,8 @@ import org.slf4j.LoggerFactory;
  * overview of who is protected has nothing to show, and the security settings of every account offer
  * only the enrolment. One enrolled account gives both a subject.
  *
- * <p>The secret is written the way the enrolment writes it — encrypted, with the configured digits
- * and period — rather than through the enrolment itself, which asks for a code from an authenticator
+ * <p>The secret is written the way the enrolment writes it - encrypted, with the configured digits
+ * and period - rather than through the enrolment itself, which asks for a code from an authenticator
  * nobody is holding here.
  */
 @Singleton

@@ -102,12 +102,12 @@ public class HibpClient {
                     .build();
             var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
-                log.warn("HIBP returned HTTP {} for prefix {} — failing open", response.statusCode(), prefix);
+                log.warn("HIBP returned HTTP {} for prefix {} - failing open", response.statusCode(), prefix);
                 return false;
             }
             return matches(response.body(), suffix);
         } catch (Exception e) {
-            log.warn("HIBP lookup failed — failing open: {}", e.getMessage());
+            log.warn("HIBP lookup failed - failing open: {}", e.getMessage());
             return false;
         }
     }

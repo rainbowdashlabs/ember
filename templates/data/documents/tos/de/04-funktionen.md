@@ -2,7 +2,7 @@
 
 (1) Eine Wache kann Teile ihrer Inhalte ohne Anmeldung zugänglich machen, insbesondere eine öffentliche Homepage, einzelne Neuigkeiten, einzelne Artikel und Ordner der Wissensdatenbank, Kontakt- und Umfrageformulare sowie eine Warteliste für Neuanmeldungen.
 
-(2) Über die Freigabe entscheidet die Wache. Sie stellt sicher, dass öffentlich gestellte Inhalte keine personenbezogenen Daten enthalten, für deren Veröffentlichung keine Rechtsgrundlage besteht, und dass die erforderlichen Einwilligungen — insbesondere für Bilder von Mitgliedern — vorliegen.
+(2) Über die Freigabe entscheidet die Wache. Sie stellt sicher, dass öffentlich gestellte Inhalte keine personenbezogenen Daten enthalten, für deren Veröffentlichung keine Rechtsgrundlage besteht, und dass die erforderlichen Einwilligungen - insbesondere für Bilder von Mitgliedern - vorliegen.
 
 (3) Wer ein öffentliches Formular oder eine Warteliste ausfüllt, gibt die dort abgefragten Angaben freiwillig an. Angaben zu einer minderjährigen Person dürfen nur durch den Träger der elterlichen Verantwortung gemacht werden. Für Einträge in eine Warteliste kann eine Bestätigung über einen zugesandten Link erforderlich sein; ohne Bestätigung werden die Angaben nach Ablauf einer Frist gelöscht.
 
@@ -10,7 +10,7 @@
 
 ## § 13 Datenaustausch mit Partnerwachen
 
-(1) Eine Wache kann Partnerschaften mit Wachen anderer Ember-Instanzen einrichten und ausgewählte Inhalte — etwa Termine, Neuigkeiten, Artikel der Wissensdatenbank, Fragenkataloge, Prüfbögen oder Ausleihanfragen — für diese freigeben. Der Austausch findet zwischen den beteiligten Instanzen statt und ist technisch signiert.
+(1) Eine Wache kann Partnerschaften mit Wachen anderer Ember-Instanzen einrichten und ausgewählte Inhalte - etwa Termine, Neuigkeiten, Artikel der Wissensdatenbank, Fragenkataloge, Prüfbögen oder Ausleihanfragen - für diese freigeben. Der Austausch findet zwischen den beteiligten Instanzen statt und ist technisch signiert.
 
 (2) Über das Einrichten einer Partnerschaft und über den Umfang der Freigabe entscheidet die Wache. Freigegebene Inhalte verlassen den Verantwortungsbereich des Betreibers. Für ihre weitere Verwendung ist der Betreiber der empfangenden Instanz verantwortlich; ein Rückruf bereits übermittelter Inhalte ist technisch nicht in jedem Fall möglich.
 
@@ -42,6 +42,6 @@
 
 (1) Die Plattform versendet Mitteilungen innerhalb der Anwendung und, soweit eingerichtet, per E-Mail. Es handelt sich ausschließlich um Mitteilungen, die durch die Nutzung ausgelöst werden, etwa zu Konto und Anmeldung, zu Terminen, Aufgaben und Freigaben. Werbliche Nachrichten werden nicht versendet.
 
-(2) Nutzer können den Umfang der Benachrichtigungen in ihren Einstellungen bestimmen. Mitteilungen, die für den Betrieb des Kontos erforderlich sind — insbesondere zu Sicherheit, Zugang und geänderten rechtlichen Dokumenten — können nicht abbestellt werden.
+(2) Nutzer können den Umfang der Benachrichtigungen in ihren Einstellungen bestimmen. Mitteilungen, die für den Betrieb des Kontos erforderlich sind - insbesondere zu Sicherheit, Zugang und geänderten rechtlichen Dokumenten - können nicht abbestellt werden.
 
 (3) Der Versand kann durch Zustellgrenzen des Betreibers oder des eingesetzten Versanddienstes verzögert oder begrenzt werden. Ein Anspruch auf Zustellung einer einzelnen Nachricht besteht nicht.

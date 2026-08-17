@@ -29,10 +29,10 @@ import static dev.chojo.ember.feature.station.transfer.WireValues.asUuid;
  * <p>Matching rules:
  * <ul>
  *   <li>A row whose source {@code email} is non-blank and already exists on the destination
- *       reuses that destination account — this is the "same human, different instance" merge
+ *       reuses that destination account - this is the "same human, different instance" merge
  *       case. The destination keeps its own UID.</li>
  *   <li>Every other row (blank email, or non-blank email with no destination match) creates a
- *       fresh destination account. Blank-email rows are intentional in this product — youth
+ *       fresh destination account. Blank-email rows are intentional in this product - youth
  *       too young to have an address still need a member record.</li>
  * </ul>
  *

@@ -38,7 +38,7 @@ import java.util.Set;
  * Ed25519 point). The matching {@code instance_id} fingerprint is derived deterministically
  * from the public key.
  *
- * <p>Keys are <em>never rotated</em> in v1 — if compromised, the
+ * <p>Keys are <em>never rotated</em> in v1 - if compromised, the
  * instance identity is treated as ephemeral and the admin re-creates it manually by deleting
  * the files.
  */
@@ -108,7 +108,7 @@ public class DiscoveryKeyService {
             Files.setPosixFilePermissions(
                     path, Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));
         } catch (Exception ignored) {
-            // Non-POSIX filesystems (Windows in CI). Skip silently — the file is still inside
+            // Non-POSIX filesystems (Windows in CI). Skip silently - the file is still inside
             // data/discovery/ which is expected to be owner-owned by deployment.
         }
     }
@@ -158,7 +158,7 @@ public class DiscoveryKeyService {
     }
 
     /**
-     * Returns the base64-encoded raw 32-byte Ed25519 public key — the canonical wire format.
+     * Returns the base64-encoded raw 32-byte Ed25519 public key - the canonical wire format.
      */
     public String publicKeyBase64() {
         return publicKeyBase64;

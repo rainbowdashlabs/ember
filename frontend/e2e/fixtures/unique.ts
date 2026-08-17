@@ -18,7 +18,7 @@ export function unique(prefix: string): string {
 }
 
 /**
- * A short uppercase key, for the places that ask for one and insist it is unique — a board is
+ * A short uppercase key, for the places that ask for one and insist it is unique - a board is
  * addressed by its key, so two runs picking the same one would collide.
  */
 export function uniqueKey(): string {

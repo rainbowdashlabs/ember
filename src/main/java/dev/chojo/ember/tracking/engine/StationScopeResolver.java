@@ -100,14 +100,14 @@ public final class StationScopeResolver {
             for (ForeignKey fk : entry.foreignKeys()) {
                 String ref = fk.refTable();
                 if (ref == null || visited.contains(ref)) continue;
-                // SET NULL FKs are soft references — joining through them drops rows whose value is
+                // SET NULL FKs are soft references - joining through them drops rows whose value is
                 // null. They don't express an ownership relationship, so the scope chain skips them.
                 if ("SET NULL".equalsIgnoreCase(fk.onDelete())) continue;
                 visited.add(ref);
                 predecessors.put(ref, new Step(current, fk));
 
                 var refEntry = tracking.tables().get(ref);
-                // The station table is itself a terminal — the FK that landed us here already
+                // The station table is itself a terminal - the FK that landed us here already
                 // identifies the owning station. Required for cross-station tables that carry
                 // FKs like {owning,requesting}_station_id straight to station(id) instead of
                 // routing through a station_id-bearing intermediate (e.g. federation_lending_*).

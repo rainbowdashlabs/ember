@@ -72,7 +72,7 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
 
   /**
    * The end date of an event that spans more than its start day, or {@code null} when it does
-   * not. Recurring events never span days — each occurrence is its own entry.
+   * not. Recurring events never span days - each occurrence is its own entry.
    */
   function multiDayEndDate(event: StationEvent, startDateStr: string): string | null {
     if (isRecurringEvent(event.eventType) || !event.endTime) return null

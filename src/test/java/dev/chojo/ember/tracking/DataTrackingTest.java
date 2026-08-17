@@ -195,7 +195,7 @@ class DataTrackingTest extends RepositoryTestBase {
         assertEquals(
                 DataTracking.CURRENT_VERSION,
                 tracking.version(),
-                "data_tracking.json format version mismatch — schema migration may be needed");
+                "data_tracking.json format version mismatch - schema migration may be needed");
     }
 
     @Test

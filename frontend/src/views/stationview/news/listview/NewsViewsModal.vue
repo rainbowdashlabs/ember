@@ -55,7 +55,7 @@ async function load(newsId: number) {
     <div class="space-y-4 max-w-xl">
       <SubHeader>
         {{ t('news.views.title') }}
-        <MutedText v-if="newsTitle" tag="span" size="sm" class="ml-1">— {{ newsTitle }}</MutedText>
+        <MutedText v-if="newsTitle" tag="span" size="sm" class="ml-1">- {{ newsTitle }}</MutedText>
       </SubHeader>
 
       <Spinner v-if="loading" size="md"/>

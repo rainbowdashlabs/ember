@@ -31,7 +31,7 @@ public class Api {
 
     /**
      * Origins permitted by the CORS policy. When empty, falls back to a single
-     * entry containing {@link #baseUrl()} — i.e. the SPA's own origin is the
+     * entry containing {@link #baseUrl()} - i.e. the SPA's own origin is the
      * only one allowed to call the API. Set explicitly to grant additional
      * trusted frontends access.
      */
@@ -96,7 +96,7 @@ public class Api {
 
     /**
      * Minimum response body size, in bytes, before compression kicks in. Smaller responses
-     * cost more CPU than they save in bytes — the default of ~1 KB sits slightly above the
+     * cost more CPU than they save in bytes - the default of ~1 KB sits slightly above the
      * typical MTU. Set to a higher value if many responses fall just over the threshold
      * and the overhead shows up; never set below ~256 B.
      */

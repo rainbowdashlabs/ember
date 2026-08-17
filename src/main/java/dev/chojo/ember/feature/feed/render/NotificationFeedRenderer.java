@@ -56,9 +56,9 @@ import java.util.UUID;
 /**
  * Builds {@link SyndEntry} entries for the personal RSS/Atom notification feeds.
  *
- * <p>Each entry carries two content bodies — a rich, semantic HTML block (rendered by
+ * <p>Each entry carries two content bodies - a rich, semantic HTML block (rendered by
  * Thunderbird, Feedly, NetNewsWire, etc.) and a plain-text fallback for clients that strip
- * HTML — plus per-entry author, categories, and an embedded image when the notification
+ * HTML - plus per-entry author, categories, and an embedded image when the notification
  * surfaces a lost-and-found item.
  */
 @Singleton
@@ -149,7 +149,7 @@ public class NotificationFeedRenderer {
     }
 
     /**
-     * Returns the actor on the notification, if any — used by readers as the entry's author.
+     * Returns the actor on the notification, if any - used by readers as the entry's author.
      */
     private static String resolveAuthor(Notification notification) {
         var params = notification.data().params();
@@ -229,7 +229,7 @@ public class NotificationFeedRenderer {
     /**
      * Adds a long-form snippet (preview, description, change text) with the central truncation
      * cap applied so a 5KB article preview doesn't blow up a feed entry. Truncation is shared
-     * across handlers — see {@link NotificationService#truncateSnippet(String, int)} — so
+     * across handlers - see {@link NotificationService#truncateSnippet(String, int)} - so
      * length policy can be tuned in one place.
      */
     private static void putSnippetIfPresent(Map<String, String> details, String key, String value) {
@@ -289,7 +289,7 @@ public class NotificationFeedRenderer {
                 schemedCategory(notification.type().name(), "urn:ember:notification-type")));
 
         // Atom semantics: <summary> is the short preview shown in the inbox row,
-        // <content> is the rich body shown on expand. Previously we had these reversed —
+        // <content> is the rich body shown on expand. Previously we had these reversed -
         // ROME mapped the rich HTML to <summary> and the multi-line plain text to <content>,
         // which broke readers that strip HTML out of summaries or show only the summary.
         SyndContent summary = new SyndContentImpl();
@@ -637,7 +637,7 @@ public class NotificationFeedRenderer {
     /**
      * Loads the event referenced by a notification's {@code link.routeParams().id} and
      * appends its start/end time and every non-empty custom field value to the details
-     * block. Silently skips when the id is missing or the event has been deleted —
+     * block. Silently skips when the id is missing or the event has been deleted -
      * notification feeds should never fail because of a stale reference.
      */
     private void enrichWithEventContext(Map<String, String> details, Notification notification, RenderContext ctx) {
@@ -669,7 +669,7 @@ public class NotificationFeedRenderer {
                     details.put(label(ctx, "recurrence", "Recurrence"), recurrence);
                 }
             }
-            // Registration controls — surfaced so members can act on the notification body
+            // Registration controls - surfaced so members can act on the notification body
             // alone without round-tripping to the detail view.
             if (event.requiresRegistration() && event.registrationDeadline() != null) {
                 details.put(
@@ -678,7 +678,7 @@ public class NotificationFeedRenderer {
             if (event.registrationLimit() != null) {
                 details.put(label(ctx, "limit", "Limit"), String.valueOf(event.registrationLimit()));
             }
-            // Custom event fields — skip blank values, surface every set value verbatim.
+            // Custom event fields - skip blank values, surface every set value verbatim.
             for (var field : eventFieldService.findByEvent(eventId)) {
                 if (field.value() == null || field.value().isBlank()) continue;
                 details.put(field.name(), field.value().trim());
@@ -767,7 +767,7 @@ public class NotificationFeedRenderer {
      * and surfaces title, assignee, and priority in the body. Skips silently on missing id or
      * stale reference. The link route itself ({@code ticket-detail}) currently can't be
      * resolved to a working deep link (it expects {@code boardKey}/{@code ticketNumber}, not
-     * numeric ids) — that's a separate bug tracked outside this enrichment.
+     * numeric ids) - that's a separate bug tracked outside this enrichment.
      */
     private void enrichWithTicketContext(Map<String, String> details, Notification notification, RenderContext ctx) {
         Integer ticketId = extractLinkParam(notification, "ticketId");
@@ -801,7 +801,7 @@ public class NotificationFeedRenderer {
     /**
      * Counts checked vs total procedure items for the referenced procedure and surfaces it as
      * a single range-merged "Progress: 5 of 12 items" row. Silently skips on missing id or
-     * empty item list — a procedure with no items has no meaningful progress to report.
+     * empty item list - a procedure with no items has no meaningful progress to report.
      */
     private void enrichWithProcedureProgress(
             Map<String, String> details, Notification notification, RenderContext ctx) {
@@ -885,7 +885,7 @@ public class NotificationFeedRenderer {
      * @param feedToken  the feed token, used to construct token-scoped image URLs so readers
      *                   can fetch them without authentication
      * @param verbose    when {@code false} only the headline + deep link are rendered, no
-     *                   detail block — for compact feed presets
+     *                   detail block - for compact feed presets
      * @param images     when {@code false} {@code <img>} tags and MediaRSS thumbnails are
      *                   suppressed (metered connections, screen reader minimisation)
      * @param stationUid UUID of the station that owns this feed, appended to every deep link

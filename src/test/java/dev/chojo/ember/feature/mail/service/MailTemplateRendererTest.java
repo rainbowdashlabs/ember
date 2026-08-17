@@ -96,7 +96,7 @@ class MailTemplateRendererTest {
 
     @Test
     void renderFallsBackToEnglishWhenLocaleMissing() {
-        // en/email-change.html exists but de/ does not — should fall back to en.
+        // en/email-change.html exists but de/ does not - should fall back to en.
         var vars = new HashMap<>(VARS);
         String rendered = renderer.render("email-change.html", "de", vars);
         assertTrue(rendered.contains("Confirm"), "expected English fallback content");

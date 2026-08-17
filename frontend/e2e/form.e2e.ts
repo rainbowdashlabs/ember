@@ -40,7 +40,7 @@ test.describe('Forms', () => {
 
     /**
      * The point of asking is reading the answers. The story opens the evaluation of a form that has
-     * been answered and reads one answer in full — which is a different page from the totals, and
+     * been answered and reads one answer in full - which is a different page from the totals, and
      * the one somebody goes to when they want to know what a particular person wrote.
      */
     test('the answers to a form are read by whoever owns it', async ({managerPage: page}) => {
@@ -68,7 +68,7 @@ test.describe('Forms', () => {
 
         // The evaluation counts what came in and offers the answers one by one. The story holds it
         // to both: a total that counts the answer just given, and the page that shows answers in
-        // full — which is a different page from the totals, and the one somebody opens when they
+        // full - which is a different page from the totals, and the one somebody opens when they
         // want to know what a particular person wrote.
         await expect(page.getByText(/Antworten gesamt: [1-9]/)).toBeVisible()
 

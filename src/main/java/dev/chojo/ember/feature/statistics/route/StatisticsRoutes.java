@@ -170,7 +170,7 @@ public class StatisticsRoutes implements Routes {
                 globalInt("SELECT count(*) FROM station WHERE setup_completed_at IS NOT NULL"));
         data.put("stationsSetupPending", globalInt("SELECT count(*) FROM station WHERE setup_completed_at IS NULL"));
 
-        // Session activity — last 30 days, zero-filled
+        // Session activity - last 30 days, zero-filled
         data.put("sessionsByDay", globalMapList("""
                 SELECT to_char(d.day, 'YYYY-MM-DD') AS day,
                        COALESCE(count(se.id), 0)::INT AS count

@@ -40,7 +40,7 @@ const {t} = useI18n()
     <div class="space-y-3">
       <SubHeader>{{ t('profile.requestExchange') }}</SubHeader>
       <p class="text-sm" v-if="item">
-        {{ item.inventoryName }} — {{ item.name }}
+        {{ item.inventoryName }} - {{ item.name }}
         <SizeBadge>{{ item.sizeName ?? t('common.unisize') }}</SizeBadge>
       </p>
       <div v-if="sizes.length > 0" class="space-y-1">

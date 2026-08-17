@@ -109,7 +109,7 @@ describe('auth route guard', () => {
     })
 
     /**
-     * Without a station there is nothing to hold requirements, so the picker comes first — and the
+     * Without a station there is nothing to hold requirements, so the picker comes first - and the
      * idle window must survive it, or the requirements are silently skipped for the session.
      */
     it('sends a session without a station to the picker and keeps the idle window armed', async () => {

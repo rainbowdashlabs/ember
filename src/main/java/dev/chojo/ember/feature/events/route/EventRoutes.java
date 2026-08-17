@@ -66,8 +66,8 @@ import static dev.chojo.ember.feature.events.route.EventOwnership.requireOwnedEv
  *
  * <p>This class owns {@code GET /events/{id}}, which matches any single-segment value after
  * {@code /events}. Javalin answers a request with the first registered handler that matches, so
- * {@link EventStructureRoutes} — which registers the literal {@code /events/categories},
- * {@code /events/breaks}, {@code /events/field-names} and {@code /events/overview-fields} reads —
+ * {@link EventStructureRoutes} - which registers the literal {@code /events/categories},
+ * {@code /events/breaks}, {@code /events/field-names} and {@code /events/overview-fields} reads -
  * must be bound before this class.
  */
 @Singleton

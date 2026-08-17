@@ -37,13 +37,13 @@ const {t} = useI18n()
     </td>
     <td class="text-right p-2 whitespace-nowrap">
       <span v-if="!station.usesOwnBackend">{{ station.quotaUsedPercent }}% / {{ formatBytes(station.quotaBytes) }}</span>
-      <span v-else class="text-(--text-muted)">—</span>
+      <span v-else class="text-(--text-muted)">-</span>
     </td>
     <td class="text-center p-2">
       <StorageStationStatusBadge :uses-own-backend="station.usesOwnBackend" :quota-used-percent="station.quotaUsedPercent"/>
     </td>
     <td class="p-2 text-sm">
-      <span v-if="station.usesOwnBackend" class="text-(--text-muted)">—</span>
+      <span v-if="station.usesOwnBackend" class="text-(--text-muted)">-</span>
       <span v-else-if="station.presetName">{{ station.presetName }}</span>
       <span v-else class="text-(--text-muted)">{{ t('storageMonitoring.defaultQuota') }}</span>
     </td>

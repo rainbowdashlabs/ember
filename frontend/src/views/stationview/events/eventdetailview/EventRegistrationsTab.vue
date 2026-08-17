@@ -152,7 +152,7 @@ const {running: registering, error: registrationError, run: runRegistration} = u
 )
 
 /**
- * Registering asks the event's questions first. Without questions the button stays a button —
+ * Registering asks the event's questions first. Without questions the button stays a button -
  * an event that asks nothing must not gain a dialog.
  */
 function registerMember(memberId: number) {
@@ -211,7 +211,7 @@ async function manualRegister(values?: RegistrationFieldValue[]) {
 
 /**
  * The tab loads itself. Its parent only renders it once the event is there, so mounting is the
- * first moment the load can succeed — the parent's own call runs while it is still loading and its
+ * first moment the load can succeed - the parent's own call runs while it is still loading and its
  * ref is therefore still null.
  */
 onMounted(loadRegistrations)

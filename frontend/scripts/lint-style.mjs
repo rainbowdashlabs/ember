@@ -55,27 +55,27 @@ for (const file of tsAndVueFiles) {
 
     for (const m of text.matchAll(EMPTY_CATCH)) {
         const line = text.slice(0, m.index ?? 0).split('\n').length
-        warn(file, line, 'Empty catch block — swallow with a comment or a log instead.', CAT_CATCH)
+        warn(file, line, 'Empty catch block - swallow with a comment or a log instead.', CAT_CATCH)
     }
     for (const m of text.matchAll(ANY_TYPE)) {
         const line = text.slice(0, m.index ?? 0).split('\n').length
         const segment = lines[line - 1] ?? ''
         if (segment.trim().startsWith('//') || segment.trim().startsWith('*')) continue
-        warn(file, line, 'Explicit `any` — prefer a precise type.', CAT_ANY)
+        warn(file, line, 'Explicit `any` - prefer a precise type.', CAT_ANY)
     }
     if (!isDebugHelper) {
         for (const m of text.matchAll(CONSOLE_CALL)) {
             const line = text.slice(0, m.index ?? 0).split('\n').length
             const segment = lines[line - 1] ?? ''
             if (segment.trim().startsWith('//')) continue
-            warn(file, line, `Leftover console.${m[1]} — remove or downgrade to a logger.`, CAT_CONSOLE)
+            warn(file, line, `Leftover console.${m[1]} - remove or downgrade to a logger.`, CAT_CONSOLE)
         }
     }
     for (const m of text.matchAll(TODO_MARK)) {
         const line = text.slice(0, m.index ?? 0).split('\n').length
         const segment = lines[line - 1] ?? ''
         if (!/(\/\/|\/\*|\*|<!--)/.test(segment)) continue
-        warn(file, line, `${m[1]} marker — track it or remove it.`, CAT_TODO)
+        warn(file, line, `${m[1]} marker - track it or remove it.`, CAT_TODO)
     }
 }
 
@@ -94,7 +94,7 @@ for (const file of walk(SRC, '.vue')) {
         const elementEnd = findElementEnd(window, window.indexOf('v-for='))
         const elementText = elementEnd === -1 ? window : window.slice(0, elementEnd + 1)
         if (!/(:key|v-bind:key)\s*=/.test(elementText)) {
-            error(file, lineOffset + i + 1, 'v-for missing :key — Vue will mis-update siblings on re-render.', CAT_KEY)
+            error(file, lineOffset + i + 1, 'v-for missing :key - Vue will mis-update siblings on re-render.', CAT_KEY)
         }
     }
 }

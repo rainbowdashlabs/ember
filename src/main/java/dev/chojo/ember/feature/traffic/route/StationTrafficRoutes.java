@@ -22,7 +22,7 @@ import java.time.Instant;
 
 /**
  * Station-scoped traffic monitoring route. Returns hourly traffic rows scoped to the
- * caller's own station — managers see only their own traffic, never another station's.
+ * caller's own station - managers see only their own traffic, never another station's.
  * Permission: {@link StationPermission#STATION_ADMINISTRATOR}.
  *
  * <p>Path follows the existing {@code /station/...} convention (station id derived from

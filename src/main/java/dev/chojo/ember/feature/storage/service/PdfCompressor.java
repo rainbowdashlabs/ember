@@ -18,12 +18,12 @@ import java.util.Comparator;
 
 /**
  * Lossless PDF recompression via {@code qpdf --linearize --object-streams=generate}. Mirrors
- * the {@link PresentationCompressor} contract — {@link #shouldCompress(String, long)} is the
+ * the {@link PresentationCompressor} contract - {@link #shouldCompress(String, long)} is the
  * single gate; {@link #compress(byte[])} returns the smaller of (recompressed, original).
  *
  * <p>qpdf is invoked through {@link ProcessBuilder} with the {@code QPDF_BIN} environment
  * override (default {@code qpdf} on PATH). When the binary is missing or fails, the original
- * bytes are returned unchanged — compression is opportunistic.
+ * bytes are returned unchanged - compression is opportunistic.
  *
  * <p>Typical savings: 5–25% depending on how the producer wrote object streams. Linearization
  * also lets PDF readers stream the first page before the full file lands, which is a UX win
@@ -99,7 +99,7 @@ public class PdfCompressor {
 
     /**
      * Recompresses the supplied PDF bytes. Returns the smaller of (recompressed, original).
-     * Failures are logged at warn and never propagated — the upload itself should never be
+     * Failures are logged at warn and never propagated - the upload itself should never be
      * aborted because qpdf had a bad day.
      */
     public byte[] compress(byte[] data) {

@@ -15,7 +15,7 @@ import java.util.UUID;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 /**
- * One row of the news-view-summary response — a member who either saw or has not yet seen a
+ * One row of the news-view-summary response - a member who either saw or has not yet seen a
  * specific news entry. {@code seenAt} is {@code null} for the unseen group, otherwise the
  * moment the news first became fully visible in the member's viewport.
  *

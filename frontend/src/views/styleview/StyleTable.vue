@@ -39,7 +39,7 @@ const samplePatch = `--- a/notes.md
         <tbody>
           <TRow><Td>Alice</Td><Td>Admin</Td><Td align="right">95</Td></TRow>
           <TRow><Td>Bob</Td><Td muted>Member</Td><Td align="right">72</Td></TRow>
-          <TRow><Td>Charlie</Td><Td muted>Guest</Td><Td align="right" muted>—</Td></TRow>
+          <TRow><Td>Charlie</Td><Td muted>Guest</Td><Td align="right" muted>-</Td></TRow>
         </tbody>
       </table>
     </NeutralContainer>

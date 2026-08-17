@@ -197,7 +197,7 @@ public class DemoService {
 
     /**
      * Runs every seeder band in ascending order, joining after each band so the next one sees a
-     * complete predecessor. The ordering comes from {@link DemoSeeder#order()} — never from the
+     * complete predecessor. The ordering comes from {@link DemoSeeder#order()} - never from the
      * iteration order of the injected set.
      */
     private void seedData() {

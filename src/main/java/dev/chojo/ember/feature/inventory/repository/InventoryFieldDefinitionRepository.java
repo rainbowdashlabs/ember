@@ -81,7 +81,7 @@ public class InventoryFieldDefinitionRepository {
 
     /**
      * Updates a field definition's mutable fields. The {@code field_type} and
-     * {@code key} columns are intentionally not updatable here — changing
+     * {@code key} columns are intentionally not updatable here - changing
      * them goes through delete-and-re-add.
      */
     public boolean update(int id, String label, boolean required, int sortOrder, FieldConfig config) {

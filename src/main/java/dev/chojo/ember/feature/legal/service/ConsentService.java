@@ -93,7 +93,7 @@ public class ConsentService {
 
         if (privacyChanged || tosChanged || consentChanged) {
             log.warn(
-                    "Legal documents changed since last startup — users will be prompted for re-consent. "
+                    "Legal documents changed since last startup - users will be prompted for re-consent. "
                             + "Privacy: {}, ToS: {}, Consent: {}",
                     privacyChanged ? "CHANGED" : "unchanged",
                     tosChanged ? "CHANGED" : "unchanged",

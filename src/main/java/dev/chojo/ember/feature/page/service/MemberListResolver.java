@@ -23,13 +23,13 @@ import java.util.UUID;
  * Package-private function bag for expanding an MEMBER_LIST_SPOTLIGHT (member-list) source descriptor
  * to a list of {@link ResolvedMember} render cards. Lives alongside its only callers
  * ({@code PageService} and {@code PageRoutes}) and intentionally **does not** declare any
- * lifecycle / DI annotations — callers pass their already-injected dependencies in. That keeps
+ * lifecycle / DI annotations - callers pass their already-injected dependencies in. That keeps
  * the architecture honest: this is shared logic, not a separately-managed service that
  * shadows {@code StationMemberService} / {@code MemberIdentityFactory}.
  *
  * <p>The avatar inlining (as base64 {@code data:} URLs) is what allows public visitors to
  * render MEMBER_LIST_SPOTLIGHT cells without hitting the auth-gated {@code /members/.../avatar}
- * endpoint — i.e. the security model of the public pages stays intact.
+ * endpoint - i.e. the security model of the public pages stays intact.
  */
 public final class MemberListResolver {
 

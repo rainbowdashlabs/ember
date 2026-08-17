@@ -34,7 +34,7 @@ import java.util.stream.Stream;
  * cache lifetime (instead of one per viewer), and so a brief upstream outage is invisible
  * to users browsing tiles they recently fetched.
  *
- * <p>The cache is <em>opportunistic</em> — it only stores tiles a real user requested,
+ * <p>The cache is <em>opportunistic</em> - it only stores tiles a real user requested,
  * never pre-fetched grid regions. That matches the OSM Tile Usage Policy carve-out for
  * "long-lived browser caches".
  *

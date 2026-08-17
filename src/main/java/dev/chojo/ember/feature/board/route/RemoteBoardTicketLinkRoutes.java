@@ -168,7 +168,7 @@ public class RemoteBoardTicketLinkRoutes implements Routes {
     /**
      * Label removal is a POST to {@code .../remove} rather than a DELETE on the label path, because it
      * carries the acting member's identity in the request body and that identity is required for the
-     * history entry. A second DELETE registration for the same handler was retired — it could never
+     * history entry. A second DELETE registration for the same handler was retired - it could never
      * have worked, since nothing sent the body it reads.
      */
     @OpenApi(

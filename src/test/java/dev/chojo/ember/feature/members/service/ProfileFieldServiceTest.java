@@ -205,7 +205,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Test
     @Order(21)
     void isProfileCompleteWithMemberRole() {
-        // Member has a MEMBER-scope field with value — should be complete
+        // Member has a MEMBER-scope field with value - should be complete
         // The field has default config (not required), so should be complete
         assertTrue(service.isProfileComplete(member.id(), station.id(), List.of("MEMBER")));
     }
@@ -361,7 +361,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
                 ProfileFieldScope.MEMBER);
         var account3 = accountRepo.create("pfield-readonly@test.com", "Readonly", "Test");
         var member3 = stationMemberRepo.create(station.id(), account3.id());
-        // Should be complete — readonly required fields are skipped
+        // Should be complete - readonly required fields are skipped
         assertTrue(service.isProfileComplete(member3.id(), station.id(), List.of("MEMBER")));
         service.delete(readonlyReqField.id());
         stationMemberRepo.delete(member3.id());

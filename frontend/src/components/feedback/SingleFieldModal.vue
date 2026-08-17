@@ -15,7 +15,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
  * A dialog that asks for exactly one piece of text and confirms it.
  *
  * Confirming is blocked while the field is blank, so the caller never has to check for an empty
- * value. Every label is passed in, because these dialogs read very differently — "add a locale"
+ * value. Every label is passed in, because these dialogs read very differently - "add a locale"
  * and "add a file" want their own wording, not a generic one.
  */
 defineProps<{

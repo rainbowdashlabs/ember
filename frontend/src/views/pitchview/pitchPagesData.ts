@@ -49,7 +49,7 @@ const ROWS: PageRow[] = [
     row(1, [
         cell('HERO_BANNER', '', {
             headline: 'Feuerwehr Musterstadt',
-            subtitle: 'Seit 1897 für die Stadt da — und immer auf der Suche nach Verstärkung.',
+            subtitle: 'Seit 1897 für die Stadt da - und immer auf der Suche nach Verstärkung.',
             ctaText: 'Mitmachen', ctaUrl: '/p/mitmachen',
         }),
     ]),

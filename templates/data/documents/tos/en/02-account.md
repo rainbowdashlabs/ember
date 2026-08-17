@@ -16,7 +16,7 @@
 
 (3) Legal guardians can be set up with their own account as manager of their child's account. They can view and edit the child's profile data, respond to events on the child's behalf and receive notifications. They are answerable for the child's use.
 
-(4) Declarations concerning these terms — in particular agreement to an amended version — are made by the legal guardian on behalf of the child where the child cannot validly act itself.
+(4) Declarations concerning these terms - in particular agreement to an amended version - are made by the legal guardian on behalf of the child where the child cannot validly act itself.
 
 ## Section 7 Account security
 

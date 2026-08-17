@@ -7,7 +7,7 @@ package dev.chojo.ember.feature.storage.backend;
 
 /**
  * Optional features a {@link StorageBackend} may declare. The resolver refuses to bind a
- * category that demands a capability the backend does not advertise — misconfiguration fails
+ * category that demands a capability the backend does not advertise - misconfiguration fails
  * at probe time, not at first read.
  */
 public enum BackendCapability {

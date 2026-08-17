@@ -15,9 +15,9 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
  * Shared SQL for the restriction tables that guard events, quiz tests, forms, news, knowledge base
- * entries, checklists and boards. Every one of those tables has the same shape — a foreign key to
+ * entries, checklists and boards. Every one of those tables has the same shape - a foreign key to
  * the owning entity plus exactly one of {@code user_type}, {@code group_id}, {@code tag_id} or
- * {@code member_id} — so reads, replacements and the visibility predicates only differ in the table
+ * {@code member_id} - so reads, replacements and the visibility predicates only differ in the table
  * and column names.
  *
  * <p>All {@code table}, {@code column} and expression arguments must be trusted compile-time
@@ -50,7 +50,7 @@ public final class RestrictionSql {
     /**
      * Replaces every restriction row of an entity with the given selection, writing one row per
      * selected value. {@link RestrictionSelection#mode()} is ignored here because the mode lives on
-     * the owning entity, and empty lists write nothing — so tables without a {@code member_id}
+     * the owning entity, and empty lists write nothing - so tables without a {@code member_id}
      * column stay usable as long as no members are selected.
      *
      * @param table     the restriction table

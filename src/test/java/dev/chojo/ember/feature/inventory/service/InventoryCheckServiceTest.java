@@ -214,7 +214,7 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
     @Test
     @Order(61)
     void getRequiredItemsEmpty() {
-        // No requirements — should be empty
+        // No requirements - should be empty
         var required = service.getRequiredItems(station.id(), target.id());
         assertTrue(required.isEmpty());
     }
@@ -241,7 +241,7 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
     @Order(71)
     void cancelCheckWrongLockerDoesNothing() {
         service.startCheck(station.id(), target.id(), checker.id());
-        // Try to cancel with wrong locker — should not release
+        // Try to cancel with wrong locker - should not release
         service.cancelCheck(target.id(), target.id());
         var overview = service.getCheckOverview(station.id());
         var locked = overview.stream()
@@ -256,7 +256,7 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
     @Order(72)
     void nextMemberTeamOnly() {
         var next = service.nextMember(station.id(), checker.id(), true);
-        // Result may be empty or present depending on team composition — just verify no exception
+        // Result may be empty or present depending on team composition - just verify no exception
         assertNotNull(next);
     }
 
@@ -265,7 +265,7 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
     void lastCheckDetailWithNullItemId() {
         // Create a check with a null itemId (no specific item assigned)
         service.startCheck(station.id(), target.id(), checker.id());
-        // Use a result with null itemId and non-null inventoryId — tests the else branch in lastCheckDetail
+        // Use a result with null itemId and non-null inventoryId - tests the else branch in lastCheckDetail
         var results = List.of(new CheckItemRequest(null, inventoryId, CheckResult.NOT_IN_POSSESSION, "missing"));
         service.completeCheck(station.id(), target.id(), checker.id(), results);
 
@@ -280,7 +280,7 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
     void cancelCheckWhenNoLockDoesNothing() {
         // Make sure target is not locked
         service.cancelCheck(target.id(), checker.id()); // Ensure unlocked first
-        // Cancel when no lock exists — should not throw
+        // Cancel when no lock exists - should not throw
         assertDoesNotThrow(() -> service.cancelCheck(target.id(), checker.id()));
     }
 

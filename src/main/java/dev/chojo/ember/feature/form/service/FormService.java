@@ -324,7 +324,7 @@ public class FormService {
      * @param config           type-specific configuration as JSON
      * @return the newly created question
      */
-    // Individual CRUD — routes use replaceQuestions() instead, kept for programmatic use
+    // Individual CRUD - routes use replaceQuestions() instead, kept for programmatic use
     public FormQuestion createQuestion(
             int formId,
             int position,
@@ -346,7 +346,7 @@ public class FormService {
      * @param id the question ID
      * @return {@code true} if the question was deleted
      */
-    // Individual CRUD — routes use replaceQuestions() instead, kept for programmatic use
+    // Individual CRUD - routes use replaceQuestions() instead, kept for programmatic use
     public boolean deleteQuestion(int id) {
         boolean deleted = repository.deleteQuestion(id);
         if (deleted) {
@@ -404,7 +404,7 @@ public class FormService {
     }
 
     /**
-     * Marks a CONTACT-form submission as acknowledged by the supplied member. Idempotent — the
+     * Marks a CONTACT-form submission as acknowledged by the supplied member. Idempotent - the
      * first call wins so a later viewer does not overwrite the original handler.
      */
     public void acknowledgeResponse(int responseId, int acknowledgerMemberId) {

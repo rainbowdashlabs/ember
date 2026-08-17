@@ -28,7 +28,7 @@ import javax.crypto.spec.SecretKeySpec;
  * never reused for two encryptions with the same key.
  *
  * <p>{@link #encrypt(byte[])} and {@link #decrypt(EncryptedBlob)} throw
- * {@link CredentialCipherException} on any cipher failure, including a missing key — that
+ * {@link CredentialCipherException} on any cipher failure, including a missing key - that
  * way every caller funnels through one error path instead of catching seven separate JCE
  * exceptions.
  */

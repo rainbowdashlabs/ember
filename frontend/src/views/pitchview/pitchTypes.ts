@@ -47,7 +47,7 @@ export interface PitchCell {
     strong?: boolean
     /** Preceded by the member avatar, as the member lists show names. */
     avatar?: boolean
-    /** A second, smaller badge behind the text — the way the lists flag an incomplete profile. */
+    /** A second, smaller badge behind the text - the way the lists flag an incomplete profile. */
     note?: {text: string; tone: Accent}
 }
 
@@ -419,7 +419,7 @@ interface SlideBase {
     id: string
     accent: Accent
     /**
-     * The slide's ground. Both follow the active theme — `accent` is the slightly lifted surface
+     * The slide's ground. Both follow the active theme - `accent` is the slightly lifted surface
      * used to break up a run of slides, not a dark variant.
      */
     tone?: 'plain' | 'accent'

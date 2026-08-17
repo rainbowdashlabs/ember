@@ -12,7 +12,7 @@ import {instanceAdmin, stationPeers, storageStatePath} from './fixtures/auth'
  * Logs each role in once for the whole run and stores the result on disk.
  *
  * Every worker is its own process, so a per-process cache cannot stop two of them logging in as the
- * same person at the same moment — and the seeded station has exactly one manager. A dev instance
+ * same person at the same moment - and the seeded station has exactly one manager. A dev instance
  * issues a deterministic token, so the second login collides on the session it just wrote and
  * answers 500. Doing it once, before any worker starts, removes the race rather than retrying it.
  *

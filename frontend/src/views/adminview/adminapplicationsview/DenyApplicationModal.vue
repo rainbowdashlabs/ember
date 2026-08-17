@@ -33,7 +33,7 @@ const {t} = useI18n()
     <form class="space-y-4" @submit.prevent="emit('submit')">
       <SectionHeader>{{ t('adminApplications.denyTitle') }}</SectionHeader>
       <p class="text-sm text-(--text-muted)">
-        {{ target?.firstName }} {{ target?.lastName }} — {{ target?.stationName }}
+        {{ target?.firstName }} {{ target?.lastName }} - {{ target?.stationName }}
       </p>
       <div class="space-y-1">
         <FieldLabel>{{ t('adminApplications.denyReasonLabel') }}</FieldLabel>

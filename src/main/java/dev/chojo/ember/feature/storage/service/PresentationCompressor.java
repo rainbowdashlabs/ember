@@ -56,7 +56,7 @@ public class PresentationCompressor {
      * Checks if a file should be compressed based on config, MIME type, and size. Returns
      * {@code true} for presentations when {@link Storage#compressPresentations()} is on, and
      * for office docs when {@link Storage#compressOfficeDocs()} is on. Files below the
-     * configured {@link Storage#compressThresholdBytes()} are left untouched — recompressing
+     * configured {@link Storage#compressThresholdBytes()} are left untouched - recompressing
      * tiny files burns CPU for no net win.
      */
     public boolean shouldCompress(String mimeType, long fileSize) {

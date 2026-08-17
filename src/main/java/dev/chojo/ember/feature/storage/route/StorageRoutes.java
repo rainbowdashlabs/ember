@@ -360,7 +360,7 @@ public class StorageRoutes implements Routes {
     }
 
     /**
-     * Dry-run probe against an unsaved form payload — accepts an {@link InstanceBackendRequest},
+     * Dry-run probe against an unsaved form payload - accepts an {@link InstanceBackendRequest},
      * builds a transient backend from it, runs {@link StorageBackend#probe()} and returns the
      * result without writing to conf.yml or invalidating any cached backend. The UI calls this
      * from the "Verbindung testen" button so an operator can validate credentials before
@@ -390,7 +390,7 @@ public class StorageRoutes implements Routes {
      * instance-wide read-only window while the copy runs, flips {@code conf.yml} and
      * invalidates the cached backend only after the copy + sample-verify succeed, then deletes
      * the source bytes unless {@code keepSource} is set. The previous bare update endpoint that
-     * swapped config without moving bytes is gone — every config change goes through this
+     * swapped config without moving bytes is gone - every config change goes through this
      * primitive so an operator can never end up with bytes on one backend and reads pointed at
      * another. For an empty source the copy phase is a no-op.
      */

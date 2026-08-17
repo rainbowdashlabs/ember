@@ -46,7 +46,7 @@ public class StationReadOnlyGuard {
     /**
      * Returns {@code true} when the station is writable (i.e. not flagged for transfer).
      * Use this when the caller wants to skip work silently rather than raise an exception
-     * (e.g. a scheduled job logging "skipped — station transferring" instead of crashing).
+     * (e.g. a scheduled job logging "skipped - station transferring" instead of crashing).
      */
     public boolean isWritable(int stationId) {
         return !stationRepository.isReadOnlyForTransfer(stationId);

@@ -90,9 +90,9 @@ const dummyPausedExport = ref(false)
 
     <HelpSection :title="t('helpCenter.federation.statusTitle')">
       <BulletList>
-        <li><SuccessBadge>{{ t('federation.active') }}</SuccessBadge> — {{ t('helpCenter.federation.statusActive') }}</li>
-        <li><SecondaryBadge>{{ t('federation.pending') }}</SecondaryBadge> — {{ t('helpCenter.federation.statusPending') }}</li>
-        <li><ErrorBadge>{{ t('federation.suspended') }}</ErrorBadge> — {{ t('helpCenter.federation.statusSuspended') }}</li>
+        <li><SuccessBadge>{{ t('federation.active') }}</SuccessBadge> - {{ t('helpCenter.federation.statusActive') }}</li>
+        <li><SecondaryBadge>{{ t('federation.pending') }}</SecondaryBadge> - {{ t('helpCenter.federation.statusPending') }}</li>
+        <li><ErrorBadge>{{ t('federation.suspended') }}</ErrorBadge> - {{ t('helpCenter.federation.statusSuspended') }}</li>
       </BulletList>
     </HelpSection>
 

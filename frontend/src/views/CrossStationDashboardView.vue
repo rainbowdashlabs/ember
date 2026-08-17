@@ -38,7 +38,7 @@ onMounted(async () => {
 
 function resolveRedirect(): string | null {
   // Prefer the route query (Vue Router state) but fall back to the raw window URL
-  // — during SSR hydration the route can briefly lag behind the browser bar, and
+  // - during SSR hydration the route can briefly lag behind the browser bar, and
   // we never want to drop a deep link silently.
   const fromRoute = typeof route.query.redirect === 'string' ? route.query.redirect : null
   if (usableRedirect(fromRoute)) return fromRoute

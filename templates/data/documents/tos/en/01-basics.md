@@ -12,13 +12,13 @@
 
 ## Section 2 Definitions
 
-- **Platform** — this installation of the Ember software including all functions available through it.
-- **Operator** — the natural or legal person named in the imprint who operates the Platform.
-- **Station** — an organisational unit set up on the Platform, typically a fire brigade youth section or a comparable youth group. One Platform can host several stations whose data is kept separate.
-- **User** — any person holding an account on the Platform, in particular members, supervisors, legal guardians, administration and management.
-- **Station management** — users holding administrative rights within a station.
-- **Content** — all data, text, images, files and other information that users or stations place on or generate within the Platform.
-- **Partner station** — a station on another Ember instance with which a station of this Platform has established a partnership.
+- **Platform** - this installation of the Ember software including all functions available through it.
+- **Operator** - the natural or legal person named in the imprint who operates the Platform.
+- **Station** - an organisational unit set up on the Platform, typically a fire brigade youth section or a comparable youth group. One Platform can host several stations whose data is kept separate.
+- **User** - any person holding an account on the Platform, in particular members, supervisors, legal guardians, administration and management.
+- **Station management** - users holding administrative rights within a station.
+- **Content** - all data, text, images, files and other information that users or stations place on or generate within the Platform.
+- **Partner station** - a station on another Ember instance with which a station of this Platform has established a partnership.
 
 ## Section 3 Subject matter and scope of services
 

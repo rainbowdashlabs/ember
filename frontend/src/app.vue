@@ -8,7 +8,7 @@ const config = useRuntimeConfig()
 const googleVerification = config.public.googleSiteVerification as string
 
 useHead({
-  titleTemplate: (title) => title ? `${title} — Ember` : 'Ember',
+  titleTemplate: (title) => title ? `${title} - Ember` : 'Ember',
   htmlAttrs: {lang: 'de'},
   meta: [
     {name: 'robots', content: 'max-image-preview:large, max-snippet:-1, max-video-preview:-1'},

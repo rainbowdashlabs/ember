@@ -10,7 +10,7 @@ import type {PitchBoard} from './pitchTypes'
 
 /**
  * The board a demonstration shows. It is fed to the application's own board components, so every
- * field here is the field the application really reads — the time dots, for one, are counted from
+ * field here is the field the application really reads - the time dots, for one, are counted from
  * {@link laneEnteredAt} and therefore have to move with the calendar.
  */
 function daysAgo(days: number): string {
@@ -101,7 +101,7 @@ export const TICKET_COMMENTS: Comment[] = [
     },
     {
         id: 2, parentId: 1, author: CLARA, authorName: 'Clara Weiß',
-        content: '@[Ben Krüger] Danke — Nachschub steht schon in der Beschaffung.',
+        content: '@[Ben Krüger] Danke - Nachschub steht schon in der Beschaffung.',
         createdAt: daysAgo(1),
     },
     {

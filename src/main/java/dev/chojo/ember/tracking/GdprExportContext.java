@@ -14,7 +14,7 @@ import java.util.List;
  *
  * @param status          current verification status
  * @param reason          required when {@code status = IGNORED}
- * @param identityColumns required when {@code status = TRACKED} — columns that link rows to a person
+ * @param identityColumns required when {@code status = TRACKED} - columns that link rows to a person
  * @param ignoredColumns  columns excluded from the GDPR export even when the table is TRACKED
  */
 @JsonInclude(JsonInclude.Include.NON_EMPTY)

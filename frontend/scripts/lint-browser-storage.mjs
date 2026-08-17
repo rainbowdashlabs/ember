@@ -96,7 +96,7 @@ if (!existsSync(CATALOG_FILE)) {
     warn(
         CATALOG_LABEL,
         0,
-        'backend sources are not in this checkout — the browser storage disclosure cannot be cross-checked '
+        'backend sources are not in this checkout - the browser storage disclosure cannot be cross-checked '
         + 'against the code, so this check stands down',
         CAT_UNDECLARED,
     )
@@ -126,7 +126,7 @@ function runtimeNecessity() {
 
 const runtime = runtimeNecessity()
 if (runtime === null) {
-    error(NECESSITY_LABEL, 0, 'the NECESSITY map could not be read — storage consent cannot be checked',
+    error(NECESSITY_LABEL, 0, 'the NECESSITY map could not be read - storage consent cannot be checked',
         CAT_NECESSITY)
 } else {
     for (const [key, necessity] of runtime) {
@@ -136,14 +136,14 @@ if (runtime === null) {
                 `key '${key}' carries a necessity but is not declared in ${CATALOG_LABEL}`, CAT_NECESSITY)
         } else if (expected !== necessity) {
             error(NECESSITY_LABEL, 0,
-                `key '${key}' is ${necessity} here and ${expected} in ${CATALOG_LABEL} — consent would be `
+                `key '${key}' is ${necessity} here and ${expected} in ${CATALOG_LABEL} - consent would be `
                 + 'asked for one thing and enforced for another', CAT_NECESSITY)
         }
     }
     for (const [key, necessity] of declaredNecessity) {
         if (!runtime.has(key)) {
             error(NECESSITY_LABEL, 0,
-                `declared key '${key}' (${necessity}) has no necessity in the storage wrapper — it would `
+                `declared key '${key}' (${necessity}) has no necessity in the storage wrapper - it would `
                 + 'never be written', CAT_NECESSITY)
         }
     }
@@ -161,7 +161,7 @@ for (const file of [...walk(SRC, '.ts'), ...walk(SRC, '.vue')]) {
         warn(
             file,
             0,
-            `storage key is not a literal (${identifier}) — it cannot be checked against ${CATALOG_LABEL}`,
+            `storage key is not a literal (${identifier}) - it cannot be checked against ${CATALOG_LABEL}`,
             CAT_DYNAMIC,
         )
     }
@@ -172,7 +172,7 @@ for (const [key, file] of used) {
         error(
             file,
             0,
-            `local storage key '${key}' is not declared in ${CATALOG_LABEL} — the published storage `
+            `local storage key '${key}' is not declared in ${CATALOG_LABEL} - the published storage `
             + 'disclosure would not mention it',
             CAT_UNDECLARED,
         )

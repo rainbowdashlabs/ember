@@ -11,7 +11,7 @@ import {accentText} from './pitchAccents'
 
 /**
  * The module overview: what it does on the left, a screen of it on the right. A screen that lays
- * its content out in a grid asks for `wide` — the application's grids follow the width of the
+ * its content out in a grid asks for `wide` - the application's grids follow the width of the
  * window, so half a slide squeezes them into unreadable columns.
  */
 defineProps<{

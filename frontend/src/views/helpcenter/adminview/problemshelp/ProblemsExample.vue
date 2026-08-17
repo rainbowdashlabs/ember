@@ -24,7 +24,7 @@ java.net.ConnectException: Connection refused`
     <ErrorContainer>
       <ProblemEntry level="ERROR" source="MailService"
                     message="MailSendException: Connection refused to smtp.example.com:587"
-                    timestamp="12.05.2026, 14:32 — 12.05.2026, 16:10"
+                    timestamp="12.05.2026, 14:32 - 12.05.2026, 16:10"
                     :count="3" expanded/>
       <ProblemStacktrace :trace="stacktrace"/>
     </ErrorContainer>

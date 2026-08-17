@@ -6,7 +6,7 @@
 import {computed, nextTick, ref} from 'vue'
 
 /**
- * JSON-clone instead of structuredClone — the inputs are Vue reactive Proxies whose hidden
+ * JSON-clone instead of structuredClone - the inputs are Vue reactive Proxies whose hidden
  * reactivity metadata makes structuredClone throw. The clipboard data is plain JSON (row
  * definitions with primitives/strings/numbers) so JSON round-tripping is safe and strips any
  * reactivity along the way.

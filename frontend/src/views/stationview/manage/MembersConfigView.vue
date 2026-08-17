@@ -52,7 +52,7 @@ const currentFields = computed(() => {
 
 const dateFields = computed(() => currentFields.value.filter(f => DATE_FIELD_TYPES.includes(f.fieldType ?? '')))
 
-/** One per station, not per scope — a member has one date of birth however the tabs are arranged. */
+/** One per station, not per scope - a member has one date of birth however the tabs are arranged. */
 const birthDateField = computed(() =>
     allFields.value.find(f => f.fieldType === FieldTypes.BIRTH_DATE) ?? null)
 

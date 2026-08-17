@@ -110,7 +110,7 @@ public class DemoKnowledgeBaseSeeder implements DemoSeeder {
 
                         Überschriften gibt es in drei Ebenen:
 
-                        ### Ebene 3 — Unterabschnitt
+                        ### Ebene 3 - Unterabschnitt
 
                         Text unter einer H3-Überschrift.
 
@@ -173,10 +173,10 @@ public class DemoKnowledgeBaseSeeder implements DemoSeeder {
 
                         Der Editor unterstützt:
 
-                        1. **Textformatierung** — fett, kursiv, unterstrichen, durchgestrichen, Code, Hervorhebung, Farben
-                        2. **Struktur** — Überschriften (H1–H3), Absätze, Listen, Zitate
-                        3. **Medien** — Tabellen, Links, Bilder, YouTube-Videos
-                        4. **Sonstiges** — Codeblöcke, horizontale Trennlinien
+                        1. **Textformatierung** - fett, kursiv, unterstrichen, durchgestrichen, Code, Hervorhebung, Farben
+                        2. **Struktur** - Überschriften (H1–H3), Absätze, Listen, Zitate
+                        3. **Medien** - Tabellen, Links, Bilder, YouTube-Videos
+                        4. **Sonstiges** - Codeblöcke, horizontale Trennlinien
 
                         > Tipp: Markiere Text im Editor, um die Schnellformatierung zu nutzen!
                         """,
@@ -231,7 +231,7 @@ public class DemoKnowledgeBaseSeeder implements DemoSeeder {
 
                         - Der Notruf 112 ist **kostenlos** und funktioniert in ganz Europa
                         - Auch ohne SIM-Karte kann man den Notruf wählen
-                        - Lege **nie** einfach auf — warte auf Rückfragen der Leitstelle
+                        - Lege **nie** einfach auf - warte auf Rückfragen der Leitstelle
                         - Bleibe **ruhig** und sprich deutlich
                         """, createdBy);
 
@@ -393,9 +393,9 @@ public class DemoKnowledgeBaseSeeder implements DemoSeeder {
 
                         ## Kommandos
 
-                        - „Wasser marsch!" — Pumpe einschalten
-                        - „Wasser halt!" — Pumpe stoppen
-                        - „Zum Abmarsch fertig!" — Geräte verstauen
+                        - „Wasser marsch!" - Pumpe einschalten
+                        - „Wasser halt!" - Pumpe stoppen
+                        - „Zum Abmarsch fertig!" - Geräte verstauen
 
                         ## Tipps
 
