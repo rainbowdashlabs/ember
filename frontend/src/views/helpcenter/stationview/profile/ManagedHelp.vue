@@ -31,6 +31,11 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.managed.step3') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.managed.accessTitle')">
+      <p>{{ t('helpCenter.managed.accessText') }}</p>
+      <p>{{ t('helpCenter.managed.accessLoginText') }}</p>
+    </HelpSection>
+
     <!-- Dummy: Member selector -->
     <NeutralContainer class="space-y-4">
       <SectionHeader>{{ t('profileManaged.title') }}</SectionHeader>

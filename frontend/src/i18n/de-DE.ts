@@ -1490,6 +1490,21 @@ export default {
         selectMemberPlaceholder: 'Mitglied auswählen',
         noManaged: 'Du verwaltest keine Mitglieder.',
         fields: 'Profilfelder',
+        access: {
+            title: 'Zugang',
+            hint: 'Du legst fest, unter welcher E-Mail-Adresse dieses Mitglied erreichbar ist und ob es '
+                + 'sich selbst anmelden darf.',
+            email: 'E-Mail-Adresse',
+            emailPlaceholder: "name{'@'}example.org",
+            emailHint: 'Die Änderung gilt sofort. Bestehende Anmeldungen dieses Mitglieds werden beendet; '
+                + 'war bereits eine Adresse hinterlegt, werden alte und neue Adresse benachrichtigt.',
+            emailSaved: 'Adresse gespeichert.',
+            login: 'Anmeldung erlauben',
+            loginHint: 'Beim Einschalten erhält das Mitglied eine E-Mail, um ein Passwort zu setzen.',
+            loginNeedsEmail: 'Dafür wird zuerst eine E-Mail-Adresse benötigt.',
+            loginOn: 'Anmeldung erlaubt.',
+            loginOff: 'Anmeldung entzogen; offene Sitzungen wurden beendet.',
+        },
     },
     memberEdit: {
         back: 'Zurück',

@@ -22,6 +22,7 @@ import type { ManagedMember } from '@/api/managedMembers'
 import { decodeProfileValues, getFieldValue, setFieldValue } from '@/util/profileFields'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import MutedText from '@/components/typography/MutedText.vue'
+import ManagedAccessPanel from './managedview/ManagedAccessPanel.vue'
 
 const { t } = useI18n()
 
@@ -116,6 +117,8 @@ async function saveProfile() {
             </SelectInput>
           </div>
         </NeutralContainer>
+
+        <ManagedAccessPanel v-if="selectedMemberId" :member-id="Number(selectedMemberId)"/>
 
         <Spinner v-if="loadingProfile" size="md" />
 

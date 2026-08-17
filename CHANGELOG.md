@@ -35,6 +35,7 @@
 - **Question catalogues and test sheets shared by partner stations open.** A shared question catalogue shows its categories and question count, a shared test sheet its sections and points. Both can still be copied into your own station from the page.
 - **Knowledge base files save as PDF.** Markdown and text files can be downloaded as a PDF carrying the station name and logo — from the file, from the file list, from a file a partner station shares, and from a page on the public wiki. Headings, lists, tables, quotes and code blocks are kept; images are replaced by their description.
 - **Tile and list view of the knowledge base offer the same actions.** Removing a favourite is available in both views, and the buttons on every entry name what they do.
+- **Guardians hand out access to the members in their care.** Under Profile → Managed profiles a guardian sets the email address of a member they look after and switches signing in on or off. Allowing it sends the invitation to set a password; refusing it ends the sessions that are open, and a new address does the same.
 
 ### Security
 

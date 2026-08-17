@@ -962,6 +962,13 @@ volumes:
             step1: 'Wähle oben ein Mitglied aus der Liste aus.',
             step2: 'Du siehst dann die Profilfelder dieses Mitglieds.',
             step3: 'Ändere die Felder und klicke auf Speichern.',
+            accessTitle: 'Zugang für das Mitglied',
+            accessText: 'Unter „Zugang" legst du fest, unter welcher E-Mail-Adresse dein Kind erreichbar ist. '
+                + 'Die Änderung gilt sofort, offene Anmeldungen des Mitglieds werden dabei beendet; war schon '
+                + 'eine Adresse hinterlegt, gehen an die alte und die neue Adresse Hinweise raus.',
+            accessLoginText: 'Der Schalter „Anmeldung erlauben" entscheidet, ob dein Kind sich selbst anmelden '
+                + 'darf. Beim Einschalten bekommt es eine E-Mail, um ein Passwort zu setzen; ohne hinterlegte '
+                + 'Adresse bleibt der Schalter gesperrt. Beim Ausschalten enden alle offenen Sitzungen sofort.',
             tip: 'Diese Seite ist nur sichtbar, wenn du als Erziehungsberechtigter zugewiesen bist. Wenn du sie nicht siehst, ist dir kein Mitglied zugeordnet.',
         },
         settings: {

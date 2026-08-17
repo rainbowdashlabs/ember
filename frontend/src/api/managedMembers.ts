@@ -47,3 +47,28 @@ export async function getMemberRequirements(memberId: number): Promise<MyRequire
     const res = await client.get<MyRequirement[]>(`/managed-members/${memberId}/inventory-requirements`)
     return res.data
 }
+
+/** The access a guardian manages for a member in their care. */
+export interface ManagedAccess {
+    /** The address the account is reached at, or null while it carries only a synthetic one. */
+    email: string | null
+    /** Whether the member may sign in. */
+    loginEnabled: boolean
+    /** Whether signing in can be switched on at all, which needs a real address. */
+    canSignIn: boolean
+}
+
+export async function getAccess(memberId: number): Promise<ManagedAccess> {
+    const res = await client.get<ManagedAccess>(`/managed-members/${memberId}/access`)
+    return res.data
+}
+
+export async function setEmail(memberId: number, email: string): Promise<ManagedAccess> {
+    const res = await client.put<ManagedAccess>(`/managed-members/${memberId}/email`, {email})
+    return res.data
+}
+
+export async function setLogin(memberId: number, enabled: boolean): Promise<ManagedAccess> {
+    const res = await client.put<ManagedAccess>(`/managed-members/${memberId}/login`, {enabled})
+    return res.data
+}
