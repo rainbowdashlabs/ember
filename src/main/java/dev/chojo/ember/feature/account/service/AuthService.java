@@ -842,18 +842,22 @@ public class AuthService {
      */
     private LoginResult createSession(
             int accountId, String userAgent, String location, Instant twoFactorVerifiedAt, Integer deviceTrustId) {
-        String token;
-        Instant expiresAt;
         if (demo.dev() || demo.enabled()) {
-            // In dev/demo mode, use the email as a stable session token so sessions survive restarts
-            token = accountRepository.findById(accountId).map(Account::email).orElseGet(this::generateToken);
-            expiresAt = Instant.now().plus(365, ChronoUnit.DAYS);
-            // Delete any existing session with this token to avoid duplicates
-            accountRepository.deleteSession(token);
-        } else {
-            token = generateToken();
-            expiresAt = Instant.now().plus(authConfig.sessionMinutes(), ChronoUnit.MINUTES);
+            // In dev/demo mode, use the email as a stable session token so sessions survive restarts.
+            // Signing the same account in twice therefore writes the same token twice, so the row is
+            // taken over rather than deleted and written again: two logins arriving together used to
+            // race, and the one that lost was answered as a server error.
+            String stableToken =
+                    accountRepository.findById(accountId).map(Account::email).orElseGet(this::generateToken);
+            Instant stableExpiry = Instant.now().plus(365, ChronoUnit.DAYS);
+            accountRepository.createOrReplaceSession(accountId, stableToken, stableExpiry, userAgent, location);
+            accountRepository.markSetupCompleted(accountId);
+            log.info("Session created for account {}", accountId);
+            return LoginResult.success(stableToken, stableExpiry);
         }
+
+        String token = generateToken();
+        Instant expiresAt = Instant.now().plus(authConfig.sessionMinutes(), ChronoUnit.MINUTES);
         accountRepository.createSession(
                 accountId, token, expiresAt, userAgent, location, twoFactorVerifiedAt, deviceTrustId);
         accountRepository.markSetupCompleted(accountId);

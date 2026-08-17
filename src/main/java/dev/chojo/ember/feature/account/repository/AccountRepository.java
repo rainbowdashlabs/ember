@@ -779,6 +779,41 @@ public class AccountRepository {
     }
 
     /**
+     * Creates a session, or takes over the one that already carries this token.
+     *
+     * <p>Only the dev and demo quick login needs this: it hands out the account's address as a
+     * stable token so a session survives a restart, which means signing the same account in twice
+     * writes the same token twice. Deleting first and inserting after loses that race when two
+     * requests arrive together — the second insert is refused for a token the first has just
+     * written — and a refused login reads as the account being broken. Production tokens are random
+     * and keep the plain insert, where a collision must be heard rather than absorbed.
+     *
+     * @param token the session token, hashed before it is stored as everywhere else
+     */
+    public InsertionResult createOrReplaceSession(
+            int accountId, String token, Instant expiresAt, String userAgent, String location) {
+        return query("""
+                INSERT
+                INTO
+                    account_session(account_id, token_hash, expires_at, user_agent, location)
+                VALUES
+                    (:account_id, :token_hash, :expires_at, :user_agent, :location)
+                ON CONFLICT (token_hash) DO UPDATE
+                SET
+                    account_id   = excluded.account_id,
+                    expires_at   = excluded.expires_at,
+                    user_agent   = excluded.user_agent,
+                    location     = excluded.location,
+                    last_used_at = now();""")
+                .single(call().bind("account_id", accountId)
+                        .bind("token_hash", tokenHasher.hash(token))
+                        .bind("expires_at", expiresAt, INSTANT_TIMESTAMP)
+                        .bind("user_agent", userAgent)
+                        .bind("location", location))
+                .insert();
+    }
+
+    /**
      * Updates the last-used timestamp, user agent, and location of a session.
      *
      * @param token     the session token

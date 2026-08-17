@@ -124,6 +124,30 @@ export function storageStatePath(role: string): string {
 }
 
 /**
+ * The headers a story needs to ask the backend something as the person whose page it holds.
+ *
+ * The application sends them from what it keeps in the browser; a request made straight from the
+ * page carries neither, and the server answers it as if nobody had signed in. A story that reads an
+ * endpoint rather than a screen — because what it is about is the endpoint refusing — asks for these
+ * first.
+ */
+export async function apiHeaders(page: Page): Promise<Record<string, string>> {
+    // What the page keeps is planted as the application starts, and a page that has not been
+    // anywhere yet has no storage to read at all — asking one refuses outright.
+    if (page.url() === 'about:blank') await page.goto('/station/dashboard/overview')
+
+    const session = await page.evaluate(() => ({
+        token: window.localStorage.getItem('session_token'),
+        station: window.localStorage.getItem('station_id'),
+    }))
+    if (!session.token) throw new Error('The page holds no session to ask the backend with')
+
+    const headers: Record<string, string> = {Authorization: `Bearer ${session.token}`}
+    if (session.station) headers['X-Station-Id'] = session.station
+    return headers
+}
+
+/**
  * Opens a page already carrying the role's session.
  *
  * The state holds both the token and the chosen station, which is what the application itself
