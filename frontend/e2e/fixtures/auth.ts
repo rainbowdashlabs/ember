@@ -149,8 +149,14 @@ export async function pageAsThrowaway(
     named?: DemoAccount,
 ): Promise<Page> {
     const accounts = await demoAccounts(request)
+    // An address is what the login goes by, and a station holds members who never sign in: somebody
+    // imported from a list of names has no way in, and picking them would fail as a login rather
+    // than as what the story is about.
     const account = named ?? accounts.find(candidate =>
-        candidate.userType === 'MEMBER' && candidate.stationId && !taken.includes(candidate.email))
+        candidate.userType === 'MEMBER'
+        && !!candidate.email
+        && candidate.stationId
+        && !taken.includes(candidate.email))
     if (!account) throw new Error('No spare member account to log out with')
 
     const login = await request.post('/api/v1/demo/login', {data: {email: account.email}})

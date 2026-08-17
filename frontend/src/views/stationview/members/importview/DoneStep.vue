@@ -8,11 +8,17 @@ import { useI18n } from 'vue-i18n'
 import SuccessContainer from '@/components/container/SuccessContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
+import Alert from '@/components/feedback/Alert.vue'
 
+/** What an import reports back: how much of each kind it wrote, and anything it had to point out. */
 export interface ImportResult {
-  imported: number
-  skipped: number
-  errors: string[]
+  membersCreated: number
+  managersCreated: number
+  managersLinked: number
+  groupsAssigned: number
+  profileFieldsSet: number
+  warnings: string[]
 }
 
 defineProps<{
@@ -31,15 +37,31 @@ const { t } = useI18n()
   <SuccessContainer class="space-y-4">
     <div class="flex items-center gap-2">
       <font-awesome-icon :icon="['fas', 'check-circle']" class="text-2xl text-success" />
-      <span class="text-lg font-semibold">{{ t('memberImport.doneTitle') }}</span>
+      <SubHeader>{{ t('memberImport.doneTitle') }}</SubHeader>
     </div>
-    <div class="text-sm space-y-1">
-      <p>{{ t('memberImport.doneImported', { count: result.imported }) }}</p>
-      <p v-if="result.skipped > 0" class="text-(--text-muted)">{{ t('memberImport.doneSkipped', { count: result.skipped }) }}</p>
-      <ul v-if="result.errors.length > 0" class="mt-2 space-y-1">
-        <li v-for="(err, idx) in result.errors" :key="idx" class="text-error text-xs">{{ err }}</li>
-      </ul>
+    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
+      <div>
+        <p class="text-xl font-bold">{{ result.membersCreated }}</p>
+        <p class="text-xs text-(--text-muted)">{{ t('memberImport.membersCreated') }}</p>
+      </div>
+      <div>
+        <p class="text-xl font-bold">{{ result.managersCreated }}</p>
+        <p class="text-xs text-(--text-muted)">{{ t('memberImport.managersCreated') }}</p>
+      </div>
+      <div>
+        <p class="text-xl font-bold">{{ result.managersLinked }}</p>
+        <p class="text-xs text-(--text-muted)">{{ t('memberImport.managersLinked') }}</p>
+      </div>
+      <div>
+        <p class="text-xl font-bold">{{ result.groupsAssigned }}</p>
+        <p class="text-xs text-(--text-muted)">{{ t('memberImport.groupsAssigned') }}</p>
+      </div>
+      <div>
+        <p class="text-xl font-bold">{{ result.profileFieldsSet }}</p>
+        <p class="text-xs text-(--text-muted)">{{ t('memberImport.fieldsSet') }}</p>
+      </div>
     </div>
+    <Alert v-for="warning in result.warnings" :key="warning" variant="info">{{ warning }}</Alert>
     <div class="flex gap-3">
       <PrimaryButton :icon="['fas', 'users']" @click="emit('toList')">
         {{ t('memberImport.doneGoToList') }}

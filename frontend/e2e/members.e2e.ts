@@ -3,33 +3,41 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import {statSync} from 'node:fs'
+import type {Page} from '@playwright/test'
 import {test, expect} from './fixtures/auth'
 import {unique} from './fixtures/unique'
 
 /**
- * The creation wizard walks several steps before it writes anything, and each one has to be
- * carried past on its own — which is the point of the story: a member created through it appears
- * in the list afterwards.
+ * Somebody new, through the wizard a manager uses. It walks several steps before it writes
+ * anything, and each one has to be carried past on its own, so every story that needs a member of
+ * its own goes through here rather than borrowing a seeded one the others are also using.
  */
+async function createMember(page: Page): Promise<string> {
+    const surname = unique('Story')
+
+    await page.goto('/station/members/create')
+    await expect(page.getByTestId('app-shell')).toBeVisible()
+
+    await page.getByRole('button', {name: 'Weiter'}).first().click()
+
+    await page.getByPlaceholder('Vorname').fill('Testperson')
+    await page.getByPlaceholder('Nachname').fill(surname)
+    await page.getByPlaceholder('E-Mail-Adresse').fill(`${surname.toLowerCase()}@example.test`)
+    await page.getByRole('button', {name: 'Weiter'}).first().click()
+
+    for (let step = 0; step < 4; step += 1) {
+        const next = page.getByRole('button', {name: /Weiter|Konto erstellen|Erstellen/}).first()
+        if (!await next.isVisible().catch(() => false)) break
+        await next.click()
+    }
+
+    return surname
+}
+
 test.describe('Members', () => {
     test('a member is created through the wizard', async ({managerPage: page}) => {
-        const surname = unique('Story')
-
-        await page.goto('/station/members/create')
-        await expect(page.getByTestId('app-shell')).toBeVisible()
-
-        await page.getByRole('button', {name: 'Weiter'}).first().click()
-
-        await page.getByPlaceholder('Vorname').fill('Testperson')
-        await page.getByPlaceholder('Nachname').fill(surname)
-        await page.getByPlaceholder('E-Mail-Adresse').fill(`${surname.toLowerCase()}@example.test`)
-        await page.getByRole('button', {name: 'Weiter'}).first().click()
-
-        for (let step = 0; step < 4; step += 1) {
-            const next = page.getByRole('button', {name: /Weiter|Konto erstellen|Erstellen/}).first()
-            if (!await next.isVisible().catch(() => false)) break
-            await next.click()
-        }
+        const surname = await createMember(page)
 
         await page.goto('/station/members/list')
         await expect(page.getByText(surname).first()).toBeVisible()
@@ -125,6 +133,148 @@ test.describe('Members', () => {
         await expect(async () => {
             expect(await rows.count()).toBeLessThan(before)
         }).toPass()
+    })
+
+    /**
+     * A member's own details are the point of the member list. The story creates somebody, changes
+     * their name and looks at the change from the detail page — where whoever needs it reads it,
+     * rather than in the form that wrote it.
+     */
+    test('the details of a member are edited', async ({managerPage: page}) => {
+        const surname = unique('Umbenannt')
+        const created = await createMember(page)
+
+        await page.goto('/station/members/list')
+        await page.getByPlaceholder(/Suche/).first().fill(created)
+        await page.getByTestId('member-row').first().getByRole('button', {name: 'Details'}).click()
+        await page.waitForURL(/\/station\/members\/detail\/(\d+)/)
+        const id = page.url().match(/detail\/(\d+)/)?.[1]
+
+        await page.goto(`/station/members/edit/${id}`)
+        // First name, surname and address, in that order: the labels above them are text rather than
+        // labels an input is tied to.
+        await page.getByRole('textbox').nth(1).fill(surname)
+        await page.getByRole('button', {name: 'Speichern'}).first().click()
+
+        await page.goto(`/station/members/detail/${id}`)
+        await expect(page.getByText(surname).first()).toBeVisible()
+    })
+
+    /**
+     * A tag is how a station marks a handful of people as belonging together without giving them a
+     * group. The story makes one and puts somebody in it.
+     */
+    test('a tag is created and a member carries it', async ({managerPage: page}) => {
+        const tag = unique('Tag')
+
+        await page.goto('/station/members/tags')
+        await page.getByRole('button', {name: 'Tag erstellen'}).click()
+        await page.getByPlaceholder('Tag-Name eingeben').fill(tag)
+        await page.getByRole('button', {name: 'Speichern'}).click()
+
+        await expect(page.getByText(tag).first()).toBeVisible()
+        await page.getByText(tag).first().click()
+
+        const candidate = page.getByTestId('tag-candidate').first()
+        await expect(candidate).toBeVisible()
+        const name = (await candidate.innerText()).split('\n')[0]
+        await candidate.click()
+
+        await page.reload()
+        await page.getByText(tag).first().click()
+        await expect(page.getByText(name).first()).toBeVisible()
+    })
+
+    /**
+     * A station asks its members for things no other station asks for, so it can add a field of its
+     * own. The story adds one and then finds it where it has to appear: in the form that edits a
+     * member.
+     */
+    test('a custom member field is configured and offered on a member', async ({managerPage: page}) => {
+        const field = unique('Feld')
+        const created = await createMember(page)
+
+        await page.goto('/station/members/config')
+        await page.getByRole('button', {name: 'Feld hinzufügen'}).first().click()
+        await page.getByPlaceholder('Name des Feldes').fill(field)
+        await page.getByRole('button', {name: 'Speichern'}).click()
+
+        await expect(page.getByText(field).first()).toBeVisible()
+
+        await page.goto('/station/members/list')
+        await page.getByPlaceholder(/Suche/).first().fill(created)
+        await page.getByTestId('member-row').first().getByRole('button', {name: 'Details'}).click()
+        await page.waitForURL(/\/station\/members\/detail\/(\d+)/)
+        const id = page.url().match(/detail\/(\d+)/)?.[1]
+
+        await page.goto(`/station/members/edit/${id}`)
+        await expect(page.getByText(field).first()).toBeVisible()
+    })
+
+    /**
+     * A station arriving with its members in a spreadsheet imports them. The story walks the whole
+     * wizard and then looks for the imported person in the member list, which is the only place
+     * that says the import did anything.
+     */
+    test('members are imported from a file', async ({managerPage: page}) => {
+        const surname = unique('Importiert')
+
+        await page.goto('/station/members/import')
+
+        await page.setInputFiles('input[type="file"]', {
+            name: 'mitglieder.csv',
+            mimeType: 'text/csv',
+            // Semicolons, because that is the separator the member wizard starts with.
+            buffer: Buffer.from(`Vorname;Nachname\nTestperson;${surname}\n`, 'utf-8'),
+        })
+        await page.getByRole('button', {name: 'Weiter'}).click()
+
+        // Each column of the file is pointed at what it holds; the wizard refuses to go on until at
+        // least the name is answered for.
+        await page.locator('select:has(option:text-is("Vorname"))').first().selectOption({label: 'Vorname'})
+        await page.locator('select:has(option:text-is("Nachname"))').last().selectOption({label: 'Nachname'})
+
+        await page.getByRole('button', {name: 'Vorschau'}).click()
+        await expect(page.getByText(/1 Mitglieder erkannt/)).toBeVisible()
+
+        await page.getByRole('button', {name: 'Importieren'}).click()
+        await expect(page.getByText('Import abgeschlossen')).toBeVisible()
+
+        // Searched for rather than read off the row: the address the import derives from the name
+        // is what makes the person findable, and one match is one imported member.
+        await page.goto('/station/members/list')
+        await page.getByPlaceholder(/Suche/).first().fill(surname)
+        await expect(page.getByTestId('member-row')).toHaveCount(1)
+    })
+
+    /**
+     * A station that has to hand a list of its members to somebody else exports one. The story
+     * walks the whole picking — export mode, a member, the columns — and takes the file, because a
+     * file with nothing in it looks like a success until it is opened.
+     */
+    test('the member list exports a file', async ({managerPage: page}) => {
+        await page.goto('/station/members/list')
+
+        await page.getByRole('button', {name: 'Exportieren'}).click()
+        await page.getByRole('checkbox').nth(1).check()
+        await page.getByRole('button', {name: 'Weiter'}).click()
+
+        const download = page.waitForEvent('download')
+        await page.getByRole('button', {name: 'Exportieren'}).last().click()
+
+        const file = await (await download).path()
+        expect(statSync(file!).size).toBeGreaterThan(0)
+    })
+
+    /**
+     * What a member changes about themselves is not silently taken over: it waits for somebody to
+     * look at it. The story reads that list, which is where a station notices a new address.
+     */
+    test('the changes members made are listed for the manager', async ({managerPage: page}) => {
+        await page.goto('/station/members/changes')
+
+        await expect(page.getByTestId('app-shell')).toBeVisible()
+        await expect(page.getByRole('button', {name: 'Offene Änderungen'})).toBeVisible()
     })
 
     /**
