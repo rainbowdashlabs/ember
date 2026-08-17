@@ -11,10 +11,14 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.members.entity.ProfileFieldChange;
 import dev.chojo.ember.feature.members.entity.ProfileFieldChangeAcknowledgement;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository.MemberChangeSummary;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
+import dev.chojo.ember.feature.members.service.StationMemberService;
 import io.javalin.http.Context;
+import io.javalin.http.ForbiddenResponse;
+import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -27,6 +31,7 @@ import jakarta.inject.Singleton;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -38,10 +43,14 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 public class ProfileFieldChangeRoutes implements Routes {
     private final ProfileFieldService profileFieldService;
     private final MemberIdentityFactory memberIdentityFactory;
+    private final StationMemberService memberService;
 
     @Inject
     public ProfileFieldChangeRoutes(
-            ProfileFieldService profileFieldService, MemberIdentityFactory memberIdentityFactory) {
+            ProfileFieldService profileFieldService,
+            MemberIdentityFactory memberIdentityFactory,
+            StationMemberService memberService) {
+        this.memberService = memberService;
         this.profileFieldService = profileFieldService;
         this.memberIdentityFactory = memberIdentityFactory;
     }
@@ -75,6 +84,32 @@ public class ProfileFieldChangeRoutes implements Routes {
                 StationPermission.MEMBER_GUARDIAN);
     }
 
+    /**
+     * The members whose changes the caller may see.
+     *
+     * <p>Someone charged with reviewing changes sees the whole station. A guardian sees the members
+     * they manage and nobody else: the changes carry the old and the new value of a profile field,
+     * so a station-wide list would hand every parent the addresses and birth dates of everyone.
+     *
+     * @return the members the caller is limited to, or empty when they are not limited at all
+     */
+    private Optional<List<Integer>> visibleMembers(UserSession session) {
+        if (session.hasPermission(StationPermission.MEMBER_CHANGES)) return Optional.empty();
+        return Optional.of(memberService.findManaged(session.member().id()).stream()
+                .map(StationMember::id)
+                .toList());
+    }
+
+    /**
+     * Refuses a caller who is limited to their managed members and asks about someone else.
+     */
+    private void assertVisible(UserSession session, int memberId) {
+        var visible = visibleMembers(session);
+        if (visible.isPresent() && !visible.get().contains(memberId)) {
+            throw new ForbiddenResponse("You may only see the members you manage");
+        }
+    }
+
     @OpenApi(
             path = "/api/v1/profile-changes/all",
             methods = HttpMethod.GET,
@@ -89,7 +124,10 @@ public class ProfileFieldChangeRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         int offset = ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0);
         int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(20);
-        var result = profileFieldService.findChangesByStation(session.stationId(), limit, offset);
+        var visible = visibleMembers(session);
+        var result = visible.isPresent()
+                ? profileFieldService.findChangesByMembers(visible.get(), limit, offset)
+                : profileFieldService.findChangesByStation(session.stationId(), limit, offset);
         var enriched = result.changes().stream()
                 .map(c -> new EnrichedProfileFieldChange(
                         c, memberIdentityFactory.local(session.stationId(), c.memberId())))
@@ -105,8 +143,14 @@ public class ProfileFieldChangeRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberChangeSummary[].class)))
     private void getPendingSummary(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        var summaries = profileFieldService.findUnacknowledgedSummary(
-                session.stationId(), session.member().id());
+        var visible = visibleMembers(session);
+        var summaries =
+                profileFieldService
+                        .findUnacknowledgedSummary(
+                                session.stationId(), session.member().id())
+                        .stream()
+                        .filter(s -> visible.isEmpty() || visible.get().contains(s.memberId()))
+                        .toList();
         var enriched = summaries.stream()
                 .map(s -> new EnrichedMemberChangeSummary(
                         s.memberId(),
@@ -128,6 +172,7 @@ public class ProfileFieldChangeRoutes implements Routes {
     private void getChanges(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
+        assertVisible(session, memberId);
         var identity = memberIdentityFactory.local(session.stationId(), memberId);
         ctx.json(profileFieldService.findChanges(memberId).stream()
                 .map(c -> new EnrichedProfileFieldChange(c, identity))
@@ -148,6 +193,7 @@ public class ProfileFieldChangeRoutes implements Routes {
     private void acknowledge(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int changeId = pathInt(ctx, "changeId");
+        assertVisible(session, profileFieldService.findMemberOfChange(changeId).orElseThrow(NotFoundResponse::new));
         var request = ctx.bodyAsClass(AcknowledgeRequest.class);
         ctx.json(profileFieldService.acknowledge(changeId, session.member().id(), request.comment()));
     }
@@ -166,6 +212,7 @@ public class ProfileFieldChangeRoutes implements Routes {
     private void acknowledgeAll(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
+        assertVisible(session, memberId);
         var request = ctx.bodyAsClass(AcknowledgeRequest.class);
         ctx.json(profileFieldService.acknowledgeAll(memberId, session.member().id(), request.comment()));
     }

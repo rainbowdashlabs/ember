@@ -36,6 +36,10 @@
 - **Knowledge base files save as PDF.** Markdown and text files can be downloaded as a PDF carrying the station name and logo — from the file, from the file list, from a file a partner station shares, and from a page on the public wiki. Headings, lists, tables, quotes and code blocks are kept; images are replaced by their description.
 - **Tile and list view of the knowledge base offer the same actions.** Removing a favourite is available in both views, and the buttons on every entry name what they do.
 
+### Security
+
+- **Guardians only see the profile changes of their own children.** The change list, the pending overview and the acknowledgement of a change are limited to the members a guardian manages; reviewing the whole station stays with the permission meant for it. Nothing changes for anyone holding that permission.
+
 ### Changes
 
 - **One menu for the actions on a knowledge base entry.** Editing, downloading and deleting an entry sit in a single menu instead of a row of icons. An entry offering only one action keeps that action as a plain button.

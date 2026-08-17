@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.members.repository;
 
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.feature.members.entity.ProfileFieldChange;
 import dev.chojo.ember.feature.members.entity.ProfileFieldChangeAcknowledgement;
 import dev.chojo.ember.util.sql.SqlSupport;
@@ -242,6 +243,62 @@ public class ProfileFieldChangeRepository {
      * @param stationId the station identifier
      * @return the total change count
      */
+    /**
+     * Lists the changes of the given members, newest first. Used where the caller may not see the
+     * whole station: a guardian sees the members they manage and nobody else.
+     *
+     * @param memberIds the members whose changes may be seen
+     * @param limit     page size
+     * @param offset    page offset
+     * @return the changes of those members
+     */
+    public List<ProfileFieldChange> findByMembers(List<Integer> memberIds, int limit, int offset) {
+        if (memberIds.isEmpty()) return List.of();
+        return query("""
+                SELECT %s
+                FROM profile_field_change c
+                JOIN station_member sm ON sm.id = c.member_id
+                JOIN station_member sm2 ON sm2.id = c.changed_by
+                JOIN account a ON a.id = sm2.account_id
+                JOIN profile_field pf ON pf.id = c.field_id
+                WHERE c.member_id = ANY(:member_ids)
+                ORDER BY c.changed_at DESC
+                LIMIT :limit OFFSET :offset;""", ENRICHED_CHANGE_COLUMNS)
+                .single(call().bind("member_ids", memberIds, PostgreSqlTypes.INTEGER)
+                        .bind("limit", limit)
+                        .bind("offset", offset))
+                .map(ProfileFieldChange.map())
+                .all();
+    }
+
+    /**
+     * Counts the changes of the given members.
+     *
+     * @param memberIds the members whose changes may be seen
+     * @return the total change count for them
+     */
+    public int countByMembers(List<Integer> memberIds) {
+        if (memberIds.isEmpty()) return 0;
+        return SqlSupport.count("""
+                SELECT count(*) AS cnt
+                FROM profile_field_change
+                WHERE member_id = ANY(:member_ids);""", call().bind("member_ids", memberIds, PostgreSqlTypes.INTEGER));
+    }
+
+    /**
+     * Returns the member a change belongs to, so a caller can be checked against it before the
+     * change is acknowledged.
+     *
+     * @param changeId the change identifier
+     * @return the member the change was recorded for, empty if there is no such change
+     */
+    public Optional<Integer> findMemberOfChange(int changeId) {
+        return query("SELECT member_id FROM profile_field_change WHERE id = :id;")
+                .single(call().bind("id", changeId))
+                .map(row -> row.getInt("member_id"))
+                .first();
+    }
+
     public int countByStation(int stationId) {
         return SqlSupport.count("""
                 SELECT count(*) AS cnt

@@ -284,9 +284,38 @@ public class ProfileFieldService {
                 .toList();
     }
 
+    /**
+     * The changes of the given members, for a caller who may not see the whole station.
+     *
+     * @param memberIds the members the caller is allowed to see
+     * @param limit     page size
+     * @param offset    page offset
+     * @return the page of changes, enriched the same way the station-wide list is
+     */
+    public PagedChanges findChangesByMembers(List<Integer> memberIds, int limit, int offset) {
+        return enrich(
+                changeRepository.findByMembers(memberIds, limit, offset), changeRepository.countByMembers(memberIds));
+    }
+
+    /**
+     * The member a change was recorded for.
+     *
+     * @param changeId the change identifier
+     * @return the member, empty if there is no such change
+     */
+    public Optional<Integer> findMemberOfChange(int changeId) {
+        return changeRepository.findMemberOfChange(changeId);
+    }
+
     public PagedChanges findChangesByStation(int stationId, int limit, int offset) {
-        var changes = changeRepository.findByStation(stationId, limit, offset);
-        int total = changeRepository.countByStation(stationId);
+        return enrich(
+                changeRepository.findByStation(stationId, limit, offset), changeRepository.countByStation(stationId));
+    }
+
+    /**
+     * Fills a page of changes with their acknowledgements and the names of the members they belong to.
+     */
+    private PagedChanges enrich(List<ProfileFieldChange> changes, int total) {
         if (changes.isEmpty()) return new PagedChanges(changes, total);
 
         var allAcks = new ArrayList<ProfileFieldChangeAcknowledgement>();
