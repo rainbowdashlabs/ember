@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import dev.chojo.ember.conf.file.elements.Api;
+import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +29,22 @@ import java.util.Map;
 @Singleton
 public class DataInitializer {
     private static final Logger log = LoggerFactory.getLogger(DataInitializer.class);
+
+    private final Map<String, Path> documentDirs;
+
+    /**
+     * @param apiConfig where the legal documents are read from; the templates are laid down there
+     *                  rather than under {@code data/}, so an instance that points its documents
+     *                  somewhere else still starts with a complete set
+     */
+    @Inject
+    public DataInitializer(Api apiConfig) {
+        this.documentDirs = Map.of(
+                "consent", Path.of(apiConfig.consentDir()),
+                "imprint", Path.of(apiConfig.imprintDir()),
+                "privacy", Path.of(apiConfig.privacyPolicyDir()),
+                "tos", Path.of(apiConfig.tosDir()));
+    }
 
     /**
      * Where the bundled templates sit relative to the working directory.
@@ -88,6 +106,30 @@ public class DataInitializer {
     }
 
     /**
+     * Returns the bundled sections for a document type and locale in the order they are laid out,
+     * generated ones included as empty content and switched-off ones left out. Unlike {@link #documentTemplates(String, String)}
+     * this keeps the placeholders for generated sections, so a caller can render a complete
+     * document from the templates alone.
+     *
+     * @param typeSlug the document type as used in the data directory ({@code privacy}, {@code tos}, …)
+     * @param locale   the desired locale (e.g. "de", "en")
+     * @return the bundled sections, empty if Ember ships none for this combination
+     */
+    public static List<TemplateSection> bundledDocument(String typeSlug, String locale) {
+        String directory = "documents/" + typeSlug + "/" + locale + "/";
+        List<TemplateSection> sections = new ArrayList<>();
+        for (String templateFile : TEMPLATE_FILES) {
+            if (!templateFile.startsWith(directory)) continue;
+            String name = fileName(templateFile);
+            // A section Ember ships switched off is not part of the document until someone enables it.
+            if (name.startsWith("_")) continue;
+            String content = readTemplate(templateFile);
+            sections.add(new TemplateSection(name, content == null ? "" : content));
+        }
+        return sections;
+    }
+
+    /**
      * Opens a bundled template. Templates ship as a directory next to the application rather than
      * inside the jar, so the working directory is the source of truth and the classpath is only a
      * fallback for deployments that do package them.
@@ -133,12 +175,12 @@ public class DataInitializer {
         int copied = 0;
 
         for (var group : groupedTemplates().entrySet()) {
-            Path targetDir = dataDir.resolve(group.getKey());
+            Path targetDir = targetDirectory(group.getKey());
             if (containsDocument(targetDir)) {
                 continue;
             }
             for (String templateFile : group.getValue()) {
-                if (copyTemplate(dataDir, templateFile)) copied++;
+                if (copyTemplate(targetDir, fileName(templateFile), templateFile)) copied++;
             }
             log.info("Initialized legal document templates in {}", targetDir);
         }
@@ -148,8 +190,27 @@ public class DataInitializer {
         ensureDirectory(dataDir.resolve("kb-files"));
 
         if (copied > 0) {
-            log.info("Initialized {} template files in data directory", copied);
+            log.info("Initialized {} template files", copied);
         }
+    }
+
+    /**
+     * Where a bundled group belongs. A legal document goes to the directory its type is configured
+     * with; anything else keeps its place below {@code data/}.
+     *
+     * @param group the directory the template declares, e.g. {@code documents/privacy/de}
+     */
+    private Path targetDirectory(String group) {
+        String[] parts = group.split("/");
+        if (parts.length == 3 && "documents".equals(parts[0])) {
+            Path configured = documentDirs.get(parts[1]);
+            if (configured != null) return configured.resolve(parts[2]);
+        }
+        return Path.of("data").resolve(group);
+    }
+
+    private static String fileName(String templateFile) {
+        return templateFile.substring(templateFile.lastIndexOf('/') + 1);
     }
 
     /**
@@ -178,8 +239,8 @@ public class DataInitializer {
         }
     }
 
-    private boolean copyTemplate(Path dataDir, String templateFile) {
-        Path target = dataDir.resolve(templateFile);
+    private boolean copyTemplate(Path targetDir, String name, String templateFile) {
+        Path target = targetDir.resolve(name);
         try (InputStream in = openTemplate(templateFile)) {
             if (in == null) {
                 log.warn("Template not found: {}", templateFile);

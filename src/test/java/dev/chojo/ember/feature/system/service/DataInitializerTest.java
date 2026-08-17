@@ -37,8 +37,21 @@ class DataInitializerTest {
     }
 
     @Test
+    void theBundledDocumentKeepsItsGeneratedSection() {
+        var sections = DataInitializer.bundledDocument("privacy", "de");
+        assertTrue(
+                sections.stream().anyMatch(section -> section.displayName().equals("03-browser-storage.md")),
+                "the fallback needs the generated section in its place, not dropped");
+        assertEquals("01-general.md", sections.getFirst().displayName());
+        assertTrue(
+                sections.stream().noneMatch(section -> section.displayName().startsWith("_")),
+                "a section Ember ships switched off does not belong in the document");
+    }
+
+    @Test
     void anUnknownDocumentOrLocaleOffersNothing() {
         assertTrue(DataInitializer.documentTemplates("privacy", "xx").isEmpty());
         assertTrue(DataInitializer.documentTemplates("nonsense", "de").isEmpty());
+        assertTrue(DataInitializer.bundledDocument("nonsense", "de").isEmpty());
     }
 }

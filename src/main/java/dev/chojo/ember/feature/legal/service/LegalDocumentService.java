@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.legal.service;
 
+import dev.chojo.ember.feature.system.service.DataInitializer;
 import dev.chojo.ember.util.HtmlSanitizer;
 import dev.chojo.ember.util.TextDiff;
 import org.commonmark.Extension;
@@ -221,6 +222,22 @@ public class LegalDocumentService {
      * @return the rendered document with HTML, raw markdown, and version hash
      */
     public RenderedDocument getDocument(Path baseDir, String locale) {
+        return getDocument(baseDir, locale, typeSlug(baseDir));
+    }
+
+    /**
+     * Retrieves and renders a legal document.
+     *
+     * <p>A legal page must never come back blank: if the directory holds nothing — because it was
+     * pointed somewhere else, emptied by hand, or never laid down — the bundled template for the
+     * type takes over. What is served is then what Ember ships rather than nothing at all.
+     *
+     * @param baseDir  the base directory containing the markdown files
+     * @param locale   the desired locale (e.g. "de", "en")
+     * @param typeSlug the document type the bundled fallback is taken from
+     * @return the rendered document with HTML, raw markdown, and version hash
+     */
+    public RenderedDocument getDocument(Path baseDir, String locale, String typeSlug) {
         String markdown = readMarkdownDirectory(baseDir, locale);
         if (markdown.isEmpty()) {
             markdown = readMarkdownDirectoryFlat(baseDir);
@@ -229,9 +246,49 @@ public class LegalDocumentService {
             // Fall back to default locale
             markdown = readMarkdownDirectory(baseDir, DEFAULT_LOCALE);
         }
+        if (markdown.isEmpty()) {
+            markdown = readBundled(typeSlug, locale);
+            if (markdown.isEmpty() && !DEFAULT_LOCALE.equals(locale)) {
+                markdown = readBundled(typeSlug, DEFAULT_LOCALE);
+            }
+            if (!markdown.isEmpty()) {
+                log.warn(
+                        "No legal document in {} for locale {} — serving the bundled {} template instead",
+                        baseDir,
+                        locale,
+                        typeSlug);
+            }
+        }
         String html = renderMarkdown(markdown);
         String version = hash(markdown);
         return new RenderedDocument(html, markdown, version);
+    }
+
+    /**
+     * Assembles the bundled document of a type the same way a directory of sections is assembled,
+     * so the generated sections carry their generated content here too.
+     */
+    private String readBundled(String typeSlug, String locale) {
+        if (typeSlug == null) return "";
+        var sb = new StringBuilder();
+        for (var section : DataInitializer.bundledDocument(typeSlug, locale)) {
+            String content = BrowserStorageService.isGeneratedSection(section.displayName())
+                    ? browserStorage.toMarkdown(locale)
+                    : placeholders.apply(section.content());
+            if (content.isBlank()) continue;
+            if (!sb.isEmpty()) sb.append("\n\n");
+            sb.append(content);
+        }
+        return sb.toString();
+    }
+
+    /**
+     * The document type a directory stands for, taken from its name. Configuration may move the
+     * directory, but not rename what it holds.
+     */
+    private static String typeSlug(Path baseDir) {
+        Path name = baseDir.getFileName();
+        return name == null ? null : name.toString();
     }
 
     /**
