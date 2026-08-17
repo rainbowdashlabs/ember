@@ -76,6 +76,75 @@ test.describe('Quiz', () => {
         await expect(page.getByText(question).first()).toBeVisible()
     })
 
+    /**
+     * A test sheet is assembled rather than written: it says how many questions to draw from which
+     * catalogue, and the questions are picked when somebody sits it. The story builds one section
+     * over the catalogue it just filled and finds the sheet again in the list afterwards.
+     */
+    test('a test sheet is assembled from a catalogue', async ({managerPage: page}) => {
+        const question = unique('Frage')
+        const sheet = unique('Test')
+        const section = unique('Abschnitt')
+
+        const catalogue = await createCatalogue(page)
+        await openCatalogue(page, catalogue)
+        await page.getByRole('button', {name: 'Neue Frage'}).click()
+        await page.getByPlaceholder('Fragetext').fill(question)
+        await page.getByRole('button', {name: 'Speichern'}).last().click()
+        await expect(page.getByText(question).first()).toBeVisible()
+
+        await page.goto('/station/quiz/tests/create')
+        await page.getByPlaceholder('Name des Tests').fill(sheet)
+
+        await page.getByRole('button', {name: 'Abschnitt hinzufügen'}).click()
+        await page.getByPlaceholder('Titel des Abschnitts').fill(section)
+
+        // A section draws its questions from sources, and a fresh one has none yet. The catalogue
+        // belongs to the select that offers choosing one, which is what tells it apart from the
+        // category select beside it.
+        await page.getByRole('button', {name: 'Quelle hinzufügen'}).click()
+        await page.locator('select:has(option:text-is("Katalog wählen"))').first()
+            .selectOption({label: catalogue})
+
+        await page.getByRole('button', {name: 'Speichern'}).click()
+
+        await page.goto('/station/quiz/tests')
+        await expect(page.getByText(sheet).first()).toBeVisible()
+    })
+
+    /**
+     * A catalogue is often already written down somewhere else, so it can arrive as a file. The
+     * story walks the whole wizard — file, columns, preview, import — because each step can refuse
+     * on its own, and then looks for the imported question in the catalogue itself.
+     */
+    test('questions are imported from a file', async ({managerPage: page}) => {
+        const question = unique('Importfrage')
+
+        const catalogue = await createCatalogue(page)
+        await openCatalogue(page, catalogue)
+        await page.goto(`${page.url()}/import`)
+
+        await page.setInputFiles('input[type="file"]', {
+            name: 'fragen.csv',
+            mimeType: 'text/csv',
+            // Commas, because that is the separator the wizard offers to start with.
+            buffer: Buffer.from(`Frage,Antwort\n${question},Eine Antwort\n`, 'utf-8'),
+        })
+
+        await page.getByRole('button', {name: 'Weiter'}).click()
+
+        await page.locator('select:has(option:text-is("Frage"))').first().selectOption({label: 'Frage'})
+        await page.getByRole('button', {name: 'Vorschau'}).click()
+
+        await page.getByRole('button', {name: 'Importieren'}).click()
+
+        await expect(page.getByText(/1 Fragen importiert/)).toBeVisible()
+
+        await page.goto('/station/quiz/catalogs')
+        await openCatalogue(page, catalogue)
+        await expect(page.getByText(question).first()).toBeVisible()
+    })
+
     test('the test sheets are reachable', async ({managerPage: page}) => {
         await page.goto('/station/quiz/tests')
 

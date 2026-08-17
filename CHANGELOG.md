@@ -51,6 +51,7 @@
 - **Question catalogues shared by partner stations appear again.** The catalogue list shows what partner stations share instead of leaving the shared section empty.
 - **Filtering by partner station works across search and lists.** Picking a partner station in the knowledge base, catalogue or test sheet filters matches the entries from that station.
 - **Switching off quiz or examinations clears the menu.** A station that switches off one of the two no longer keeps its pages in the sidebar.
+- **Chosen files are actually uploaded.** Picking a file — a wiki attachment or original, a folder icon, an avatar, a question or member import — sends the file itself, so the upload completes instead of failing as though no file had been chosen.
 
 ## v26.11.7
 

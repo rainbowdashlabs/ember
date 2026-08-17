@@ -3,52 +3,66 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect} from './fixtures/auth'
+import type {Page} from '@playwright/test'
+import {test, expect, stationPeers} from './fixtures/auth'
 import {unique, uniqueKey} from './fixtures/unique'
 
 /**
- * The ticket story creates its own board rather than reaching for a seeded one: a ticket is
- * addressed through its board, and two stories sharing a board would be two stories writing into
- * the same lanes.
+ * Every story creates its own board rather than reaching for a seeded one: a ticket is addressed
+ * through its board, and two stories sharing a board would be two stories writing into the same
+ * lanes.
  */
+async function createBoard(page: Page): Promise<string> {
+    const board = unique('Board')
+    const key = uniqueKey()
+
+    await page.goto('/station/boards/manage')
+    await page.getByRole('button', {name: 'Board erstellen'}).click()
+
+    const fields = page.getByRole('textbox')
+    await fields.nth(0).fill(board)
+    await fields.nth(1).fill(key)
+    await page.getByRole('button', {name: 'Erstellen'}).last().click()
+
+    await page.waitForURL(new RegExp(`/station/boards/${key}`, 'i'))
+    return key
+}
+
+/** A ticket on that board, left open on its own page — which is where creating one lands. */
+async function createTicket(page: Page, key: string): Promise<string> {
+    const ticket = unique('Ticket')
+
+    await page.goto(`/station/boards/${key}/tickets/new`)
+    await page.getByRole('textbox').first().fill(ticket)
+
+    const description = page.locator('[contenteditable="true"]').first()
+    await description.click()
+    await page.keyboard.type('Von der Story angelegt.')
+
+    await page.getByRole('button', {name: 'Erstellen', exact: true}).click()
+    await expect(page.getByText(ticket).first()).toBeVisible()
+    return ticket
+}
+
 test.describe('Boards', () => {
     test('a board is created and opens', async ({managerPage: page}) => {
-        const board = unique('Board')
-        const key = uniqueKey()
+        await createBoard(page)
 
-        await page.goto('/station/boards/manage')
-        await page.getByRole('button', {name: 'Board erstellen'}).click()
-
-        const fields = page.getByRole('textbox')
-        await fields.nth(0).fill(board)
-        await fields.nth(1).fill(key)
-        await page.getByRole('button', {name: 'Erstellen'}).last().click()
-
-        await page.waitForURL(new RegExp(`/station/boards/${key}`, 'i'))
         await expect(page.getByTestId('app-shell')).toBeVisible()
+    })
+
+    test('a ticket is created on a board', async ({managerPage: page}) => {
+        const key = await createBoard(page)
+
+        await createTicket(page, key)
     })
 
     /** A ticket carries the conversation about it, which is most of what a board is for. */
     test('a ticket takes a comment', async ({managerPage: page}) => {
-        const board = unique('Board')
-        const key = uniqueKey()
-        const ticket = unique('Ticket')
         const comment = unique('Kommentar')
 
-        await page.goto('/station/boards/manage')
-        await page.getByRole('button', {name: 'Board erstellen'}).click()
-        const fields = page.getByRole('textbox')
-        await fields.nth(0).fill(board)
-        await fields.nth(1).fill(key)
-        await page.getByRole('button', {name: 'Erstellen'}).last().click()
-        await page.waitForURL(new RegExp(`/station/boards/${key}`, 'i'))
-
-        await page.goto(`/station/boards/${key}/tickets/new`)
-        await page.getByRole('textbox').first().fill(ticket)
-        const description = page.locator('[contenteditable="true"]').first()
-        await description.click()
-        await page.keyboard.type('Von der Story angelegt.')
-        await page.getByRole('button', {name: 'Erstellen', exact: true}).click()
+        const key = await createBoard(page)
+        await createTicket(page, key)
 
         await page.getByRole('button', {name: /Kommentare/}).click()
         // The comment box is a rich text editor, so its placeholder is text on the page rather
@@ -60,28 +74,101 @@ test.describe('Boards', () => {
         await expect(page.getByText(comment).first()).toBeVisible()
     })
 
-    test('a ticket is created on a board', async ({managerPage: page}) => {
-        const board = unique('Board')
-        const key = uniqueKey()
-        const ticket = unique('Ticket')
+    /**
+     * Work moving along is what a board is. The lane is changed from the ticket rather than by
+     * dragging its card: the same call sits behind both, and a story that drags would be measuring
+     * the mouse.
+     */
+    test('a ticket moves to another lane and stays there', async ({managerPage: page}) => {
+        const key = await createBoard(page)
+        await createTicket(page, key)
 
-        await page.goto('/station/boards/manage')
-        await page.getByRole('button', {name: 'Board erstellen'}).click()
-        const fields = page.getByRole('textbox')
-        await fields.nth(0).fill(board)
-        await fields.nth(1).fill(key)
-        await page.getByRole('button', {name: 'Erstellen'}).last().click()
-        await page.waitForURL(new RegExp(`/station/boards/${key}`, 'i'))
+        await page.getByText('Offen', {exact: true}).first().click()
+        await page.getByText('In Arbeit', {exact: true}).first().click()
 
-        await page.goto(`/station/boards/${key}/tickets/new`)
-        await page.getByRole('textbox').first().fill(ticket)
+        await expect(page.getByText('In Arbeit', {exact: true}).first()).toBeVisible()
 
-        const description = page.locator('[contenteditable="true"]').first()
-        await description.click()
-        await page.keyboard.type('Von der Story angelegt.')
+        await page.reload()
+        await expect(page.getByText('In Arbeit', {exact: true}).first()).toBeVisible()
+        await expect(page.getByText('Offen', {exact: true})).toHaveCount(0)
+    })
 
-        await page.getByRole('button', {name: 'Erstellen', exact: true}).click()
+    /**
+     * A ticket nobody owns is a ticket nobody does. Assigning it is one click on the line that says
+     * so, and the name it then carries is what the board shows on the card.
+     */
+    test('a ticket is assigned to a member', async ({managerPage: page, request}) => {
+        const {member} = await stationPeers(request)
 
+        const key = await createBoard(page)
+        await createTicket(page, key)
+
+        await page.getByText('Nicht zugewiesen').first().click()
+
+        // The picker opens by itself, and its search field is the one thing on the page carrying
+        // the same words as the line that opened it.
+        await page.getByPlaceholder('Nicht zugewiesen').fill(member.lastName)
+        await page.getByRole('button', {name: new RegExp(member.lastName)}).first().click()
+
+        await page.reload()
+        await expect(page.getByText(member.lastName).first()).toBeVisible()
+        await expect(page.getByText('Nicht zugewiesen')).toHaveCount(0)
+    })
+
+    /**
+     * A ticket often needs a list of its own, and the point of ticking one is that the tick is
+     * still there tomorrow.
+     */
+    test('a ticket carries a checklist whose ticks are kept', async ({managerPage: page}) => {
+        const item = unique('Punkt')
+
+        const key = await createBoard(page)
+        await createTicket(page, key)
+
+        await page.getByRole('button', {name: 'Add', exact: true}).first().click()
+        await page.getByText('Checkliste').last().click()
+
+        await page.getByPlaceholder('Punkt hinzufügen').fill(item)
+        await page.getByRole('button', {name: 'Hinzufügen'}).first().click()
+        await expect(page.getByText(item)).toBeVisible()
+
+        await page.getByRole('checkbox').first().click()
+
+        await page.reload()
+        await expect(page.getByRole('checkbox').first()).toBeChecked()
+    })
+
+    /**
+     * The backlog is where work waits that nobody has planned yet. It is switched on per board, and
+     * a ticket put there leaves the lanes and is found on the backlog page.
+     */
+    test('a ticket put in the backlog leaves the board and is found there', async ({managerPage: page}) => {
+        const key = await createBoard(page)
+        const ticket = await createTicket(page, key)
+
+        await page.goto(`/station/boards/${key}/settings`)
+        // The switch belongs to the line that names it, and the settings page has more than one.
+        await page.getByText('Backlog', {exact: true}).locator('xpath=following-sibling::button').click()
+        await expect(page.getByText('Gespeichert')).toBeVisible()
+
+        await page.goto(`/station/boards/${key}`)
+        await page.getByText(ticket).first().click()
+        await page.waitForURL(/\/tickets\/[\w-]+/i)
+
+        await page.getByText('Offen', {exact: true}).first().click()
+        await page.getByText('Backlog', {exact: true}).last().click()
+
+        await page.goto(`/station/boards/${key}/backlog`)
         await expect(page.getByText(ticket).first()).toBeVisible()
+
+        await page.goto(`/station/boards/${key}`)
+        await expect(page.getByText(ticket)).toHaveCount(0)
+    })
+
+    /** Boards are not open to everyone: whoever may not use them is offered none. */
+    test('a member without the right reaches no board', async ({memberPage: page}) => {
+        await page.goto('/station/boards')
+
+        await expect(page.getByRole('button', {name: 'Board erstellen'})).toHaveCount(0)
     })
 })
