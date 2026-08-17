@@ -16,6 +16,7 @@ import AdminPanelButton from '@/components/layout/AdminPanelButton.vue'
 import PrideText from '@/components/display/PrideText.vue'
 import LayeredEmberLogo from '@/components/display/LayeredEmberLogo.vue'
 import {usePride} from '@/composables/usePride'
+import {usePublicConfig} from '@/composables/usePublicConfig'
 import { emberLogo } from '@/composables/useEmberLogo'
 
 const {t} = useI18n()
@@ -24,12 +25,7 @@ const {loaded: stationsLoaded, load: loadStations} = useStations()
 const {prideActive, prideVariant} = usePride()
 const logo = emberLogo()
 
-const {data: publicConfig} = await useAsyncData(
-    'home-public-config',
-    () => $fetch<{demoUrl?: string; demo?: boolean}>('/api/v1/public/config').catch(() => ({} as {demoUrl?: string; demo?: boolean})),
-    {default: () => ({demoUrl: '', demo: false})},
-)
-const isDemo = computed(() => publicConfig.value?.demo ?? false)
+const {isDemo} = await usePublicConfig()
 
 onMounted(() => {
   const token = getItem('session_token')

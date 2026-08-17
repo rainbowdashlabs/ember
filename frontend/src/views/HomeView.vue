@@ -7,6 +7,7 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import {usePublicConfig} from '@/composables/usePublicConfig'
 import HeroSection from '@/views/homeview/HeroSection.vue'
 import LandingCta from '@/views/homeview/LandingCta.vue'
 import MittwochAbend from '@/views/homeview/MittwochAbend.vue'
@@ -24,11 +25,7 @@ import '@fontsource/jetbrains-mono/500.css'
 
 const {t} = useI18n()
 
-const {data: publicConfig} = await useAsyncData(
-    'home-public-config',
-    () => $fetch<{demoUrl?: string; demo?: boolean}>('/api/v1/public/config').catch(() => ({} as {demoUrl?: string; demo?: boolean})),
-    {default: () => ({demoUrl: '', demo: false})},
-)
+const {demoUrl, isDemo} = await usePublicConfig()
 const {data: regStatus} = await useAsyncData(
     'home-registration-status',
     () =>
@@ -38,8 +35,6 @@ const {data: regStatus} = await useAsyncData(
     {default: () => ({enabled: true})},
 )
 
-const demoUrl = computed(() => publicConfig.value?.demoUrl ?? '')
-const isDemo = computed(() => publicConfig.value?.demo ?? false)
 const registrationEnabled = computed(() => regStatus.value?.enabled ?? true)
 
 useHead({
