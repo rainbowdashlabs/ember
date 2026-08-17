@@ -64,6 +64,7 @@ watch(loaded, (isLoaded) => {
               v-for="s in sessions"
               :key="s.id"
               data-testid="attendance-session"
+              :data-session="s.id"
               class="cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all"
               @click="openSession(s.id)"
           >

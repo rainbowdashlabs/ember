@@ -36,11 +36,40 @@ test.describe('Attendance', () => {
         await expect(page.locator('button[aria-label="Anwesend"][disabled]').first()).toBeVisible()
     })
 
-    test('an attendance session can be opened', async ({managerPage: page}) => {
+    /**
+     * An evening starts by opening a session from the template it belongs to, and what it has to
+     * bring with it is the people: a session listing nobody cannot record anybody.
+     */
+    test('a session is opened from a template and lists its members', async ({managerPage: page}) => {
         await page.goto('/station/attendance/new')
 
-        await expect(page.getByTestId('app-shell')).toBeVisible()
-        expect(page.url()).toContain('/station/attendance/new')
+        await page.getByRole('button', {name: 'Erstellen'}).first().click()
+        await page.waitForURL(/\/station\/attendance\/session\/\d+/)
+
+        await expect(page.locator('button[aria-label="Anwesend"]').first()).toBeVisible()
+    })
+
+    /**
+     * Sessions are not closed by hand — an evening simply ends, and what makes it findable
+     * afterwards is the past list. The story opens one and looks for it there.
+     */
+    test('a session that was opened is found again among the past ones', async ({managerPage: page}) => {
+        await page.goto('/station/attendance/new')
+
+        await page.getByRole('button', {name: 'Erstellen'}).first().click()
+        await page.waitForURL(/\/station\/attendance\/session\/\d+/)
+        const sessionUrl = page.url()
+        const id = sessionUrl.match(/\/session\/(\d+)/)?.[1]
+
+        await page.goto('/station/attendance/past')
+
+        // By its own number rather than by position: the stories run side by side and each one
+        // opening a session pushes the others down the list.
+        const entry = page.locator(`[data-testid="attendance-session"][data-session="${id}"]`)
+        await expect(entry).toBeVisible()
+
+        await entry.click()
+        await expect(page).toHaveURL(sessionUrl)
     })
 
     test('past sessions are listed', async ({managerPage: page}) => {
