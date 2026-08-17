@@ -34,6 +34,7 @@ const {t} = useI18n()
 
 <template>
   <NeutralContainer
+      data-testid="page-row"
       class="flex items-center gap-3 my-1"
       :style="{marginLeft: `${props.depth * 1.5}rem`}"
   >

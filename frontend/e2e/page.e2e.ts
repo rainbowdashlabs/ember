@@ -7,7 +7,12 @@ import {test, expect} from './fixtures/auth'
 import {unique} from './fixtures/unique'
 
 test.describe('Pages', () => {
-    test('a page is created', async ({managerPage: page}) => {
+    /**
+     * A page starts as a draft, which is the whole reason the list distinguishes the two: nothing
+     * a manager writes is public until they say so. The story writes one and then says so, and
+     * reloads, because a badge that changes only in the open page has published nothing.
+     */
+    test('a page is created as a draft and published', async ({managerPage: page}) => {
         const title = unique('Seite')
 
         await page.goto('/station/pages')
@@ -16,7 +21,14 @@ test.describe('Pages', () => {
         await page.getByRole('textbox').first().fill(title)
         await page.getByRole('button', {name: /Speichern|Erstellen|Anlegen/}).last().click()
 
-        await expect(page.getByText(title).first()).toBeVisible()
+        const row = page.getByTestId('page-row').filter({hasText: title})
+        await expect(row.getByText('Entwurf')).toBeVisible()
+
+        await row.getByRole('button', {name: 'Veröffentlichen'}).click()
+        await expect(row.getByText('Veröffentlicht', {exact: true})).toBeVisible()
+
+        await page.reload()
+        await expect(row.getByText('Veröffentlicht', {exact: true})).toBeVisible()
     })
 
     test('the public pages of the station are reachable', async ({managerPage: page}) => {
