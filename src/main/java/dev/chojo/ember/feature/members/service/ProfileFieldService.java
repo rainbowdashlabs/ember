@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
+import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -107,6 +108,7 @@ public class ProfileFieldService {
             ProfileFieldConfig config,
             int position,
             ProfileFieldScope scope) {
+        requireSingleBirthDate(stationId, fieldType, 0);
         var field = profileFieldRepository.create(stationId, name, fieldType, config, position, scope);
         log.info(
                 "Profile field created: id={}, station={}, name='{}', type={}, scope={}",
@@ -125,12 +127,37 @@ public class ProfileFieldService {
             ProfileFieldConfig config,
             int position,
             boolean keepOnArchive) {
+        var existing = profileFieldRepository.findById(id);
+        if (existing.isEmpty()) {
+            log.warn("Profile field update affected no rows: id={}", id);
+            return Optional.empty();
+        }
+        requireSingleBirthDate(existing.get().stationId(), fieldType, id);
         if (profileFieldRepository.update(id, name, fieldType, config, position, keepOnArchive)) {
             log.info("Profile field updated: id={}, name='{}', type={}", id, name, fieldType);
             return profileFieldRepository.findById(id);
         }
         log.warn("Profile field update affected no rows: id={}", id);
         return Optional.empty();
+    }
+
+    /**
+     * Rejects a second birth date field in the same station.
+     *
+     * @param stationId  the station the field belongs to
+     * @param fieldType  the type the field is about to carry
+     * @param excludedId the field being updated, so it does not clash with itself; 0 when creating
+     * @throws BadRequestResponse if another field of the station already is the birth date
+     */
+    private void requireSingleBirthDate(int stationId, ProfileFieldType fieldType, int excludedId) {
+        if (fieldType != ProfileFieldType.BIRTH_DATE) return;
+        profileFieldRepository
+                .findByStationAndType(stationId, ProfileFieldType.BIRTH_DATE)
+                .filter(existing -> existing.id() != excludedId)
+                .ifPresent(existing -> {
+                    throw new BadRequestResponse(
+                            "A birth date field already exists in this station: " + existing.name());
+                });
     }
 
     public boolean delete(int id) {

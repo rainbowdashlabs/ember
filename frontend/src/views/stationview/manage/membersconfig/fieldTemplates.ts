@@ -25,7 +25,7 @@ export const fieldTemplates: FieldTemplate[] = [
   },
   {
     name: 'Geburtsdatum', icon: 'calendar-plus', fields: [
-      {name: 'Geburtsdatum', fieldType: 'DATE', config: '{"required":true,"readonly":true}'},
+      {name: 'Geburtsdatum', fieldType: 'BIRTH_DATE', config: '{"required":true,"readonly":true}'},
     ],
   },
   {

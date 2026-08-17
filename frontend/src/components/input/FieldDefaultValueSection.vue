@@ -47,7 +47,7 @@ const defaultNumber = defineModel<number>('defaultNumber', {required: true})
       <template v-if="fieldType === 'BOOLEAN'">
         <ToggleInput v-model="defaultBool"/>
       </template>
-      <template v-else-if="fieldType === 'DATE'">
+      <template v-else-if="fieldType === 'DATE' || fieldType === 'BIRTH_DATE'">
         <ToggleInput v-model="defaultToday"/>
         <p class="text-xs text-(--text-muted)">{{ dateHint }}</p>
       </template>

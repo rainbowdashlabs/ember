@@ -14,5 +14,10 @@ public enum ProfileFieldType {
     DATE,
     BOOLEAN,
     ENUM,
-    AGE
+    AGE,
+    /**
+     * A date field carrying the member's date of birth. A station may declare at most one, which is
+     * what lets anything needing a birthday find it without being told which field holds it.
+     */
+    BIRTH_DATE
 }

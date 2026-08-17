@@ -63,6 +63,7 @@ const tabs = [
       <p>{{ t('helpCenter.membersConfig.typeText') }}</p>
       <p>{{ t('helpCenter.membersConfig.typeNumber') }}</p>
       <p>{{ t('helpCenter.membersConfig.typeDate') }}</p>
+      <p>{{ t('helpCenter.membersConfig.typeBirthDate') }}</p>
       <p>{{ t('helpCenter.membersConfig.typeBoolean') }}</p>
       <p>{{ t('helpCenter.membersConfig.typeEnum') }}</p>
       <p>{{ t('helpCenter.membersConfig.typeAge') }}</p>

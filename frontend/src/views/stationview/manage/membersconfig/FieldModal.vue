@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {ref, watch} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -15,7 +15,7 @@ import FieldDefaultValueSection from '@/components/input/FieldDefaultValueSectio
 import BehaviorToggles from './fieldmodal/BehaviorToggles.vue'
 import PositionField from './fieldmodal/PositionField.vue'
 import ModalActions from './fieldmodal/ModalActions.vue'
-import {FieldTypes, parseFieldConfig, type ProfileField} from '@/api/profileFields'
+import {DATE_FIELD_TYPES, FieldTypes, parseFieldConfig, type ProfileField} from '@/api/profileFields'
 
 const {t} = useI18n()
 
@@ -26,7 +26,17 @@ const props = defineProps<{
   scope: string
   groupId?: string
   dateFields: ProfileField[]
+  /** The field that already is the station's birth date, if any. */
+  birthDateField: ProfileField | null
 }>()
+
+/** The birth date carries a date like any other, so it offers the same configuration. */
+function isDateType(type: string | undefined): boolean {
+  return DATE_FIELD_TYPES.includes(type ?? '')
+}
+
+const birthDateAvailable = computed(() =>
+    !props.birthDateField || props.birthDateField.id === props.field?.id)
 
 const emit = defineEmits<{
   save: [data: { name: string; fieldType: string; config: string; position: number; scope: string; keepOnArchive: boolean }]
@@ -67,7 +77,7 @@ watch(modelValue, (open) => {
     fieldHasDefault.value = cfg.defaultValue !== undefined
     if (f.fieldType === FieldTypes.BOOLEAN) {
       fieldDefaultBool.value = cfg.defaultValue === true
-    } else if (f.fieldType === FieldTypes.DATE) {
+    } else if (isDateType(f.fieldType)) {
       fieldDefaultToday.value = cfg.defaultValue === '__TODAY__'
     } else if (f.fieldType === FieldTypes.NUMBER) {
       fieldDefaultNumber.value = typeof cfg.defaultValue === 'number' ? cfg.defaultValue : 0
@@ -112,7 +122,7 @@ function buildConfig(): string {
   if (fieldHasDefault.value) {
     if (fieldType.value === FieldTypes.BOOLEAN) {
       cfg.defaultValue = fieldDefaultBool.value
-    } else if (fieldType.value === FieldTypes.DATE) {
+    } else if (isDateType(fieldType.value)) {
       cfg.defaultValue = fieldDefaultToday.value ? '__TODAY__' : ''
     } else if (fieldType.value === FieldTypes.NUMBER) {
       cfg.defaultValue = fieldDefaultNumber.value
@@ -144,7 +154,8 @@ function submit() {
   <Modal v-model="modelValue">
     <div class="space-y-4">
       <SubHeader>{{ field ? t('membersConfig.editField') : t('membersConfig.addField') }}</SubHeader>
-      <BasicFields v-model:name="fieldName" v-model:field-type="fieldType" :scope="scope"/>
+      <BasicFields v-model:name="fieldName" v-model:field-type="fieldType" :scope="scope"
+                   :birth-date-available="birthDateAvailable"/>
       <EnumOptionsField v-if="fieldType === 'ENUM'" v-model="fieldEnumOptions"/>
       <AgeFields v-if="fieldType === 'AGE'" v-model:source="fieldAgeSource" v-model:mode="fieldAgeMode"
                  :date-fields="dateFields"/>

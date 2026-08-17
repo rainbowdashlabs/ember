@@ -1255,6 +1255,7 @@ volumes:
             typeText: 'Text — Freies Textfeld.',
             typeNumber: 'Zahl — Nur Zahlen.',
             typeDate: 'Datum — Ein Datumsfeld.',
+            typeBirthDate: 'Geburtsdatum — Ein Datumsfeld, das als Geburtsdatum gilt. Davon kann es pro Wache nur eines geben; der Typ steht erst wieder zur Auswahl, wenn du das bestehende Feld gelöscht oder umgestellt hast.',
             typeBoolean: 'Ja/Nein — Schalter.',
             typeEnum: 'Auswahl — Auswahl aus vorgegebenen Werten.',
             typeAge: 'Alter — Wird automatisch aus einem Datumsfeld berechnet.',
