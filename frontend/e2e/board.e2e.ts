@@ -167,6 +167,24 @@ test.describe('Boards', () => {
         await expect(page.getByText(ticket)).toHaveCount(0)
     })
 
+    /**
+     * Nothing archives a ticket by hand: the archive holds whatever has sat in the last lane longer
+     * than the board's own number of days. So the story reads it on a seeded board, whose tickets
+     * the seeder ages for exactly this, and holds it to listing them under the board's name.
+     */
+    test('the archive of a board lists what has been done for a while', async ({managerPage: page}) => {
+        await page.goto('/station/boards')
+
+        // The list navigates by click handler rather than by link, as the planner does.
+        const board = page.locator('main [class*="cursor-pointer"]').first()
+        await expect(board).toBeVisible()
+        await board.click()
+        await page.waitForURL(/\/station\/boards\/[^/]+$/)
+
+        await page.goto(`${page.url()}/archived`)
+        await expect(page.getByText(/archiviert/).first()).toBeVisible()
+    })
+
     /** Boards are not open to everyone: whoever may not use them is offered none. */
     test('a member without the right reaches no board', async ({memberPage: page}) => {
         await page.goto('/station/boards')
