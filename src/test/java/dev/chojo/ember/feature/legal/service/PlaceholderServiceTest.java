@@ -120,8 +120,15 @@ class PlaceholderServiceTest {
                 .sorted()
                 .toList();
         assertEquals(List.of("de", "en"), locales);
-        assertEquals("impressum", found.get("betreiber.name").getFirst().section());
-        assertEquals("imprint", found.get("betreiber.name").getFirst().type());
+
+        // Sorted rather than taken in the order they were found: which language of a document the
+        // scan reaches first is the file system's business, and it differs between machines.
+        List<String> sections = found.get("betreiber.name").stream()
+                .map(usage -> usage.section())
+                .sorted()
+                .toList();
+        assertEquals(List.of("impressum", "imprint"), sections);
+        assertTrue(found.get("betreiber.name").stream().allMatch(usage -> "imprint".equals(usage.type())));
     }
 
     @Test

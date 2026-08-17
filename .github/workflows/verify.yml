@@ -221,17 +221,14 @@ jobs:
       - name: Install Playwright browsers
         working-directory: frontend
         run: npx playwright install --with-deps chromium
-      - name: Start the backend
-        run: docker compose -f docker/compose.dev.yaml --profile full up -d postgres ember
-      - name: Wait for the backend
-        run: |
-          for i in $(seq 1 90); do
-            curl -sf http://localhost:8888/api/v1/public/config && exit 0
-            sleep 2
-          done
-          echo "The backend did not answer in time" >&2
-          docker compose -f docker/compose.dev.yaml logs ember | tail -50 >&2
-          exit 1
+      # The stories run against the built server rather than a dev server: a dev server compiles
+      # each route the first time it is asked for, which takes longer than an assertion waits.
+      - name: Build the frontend
+        working-directory: frontend
+        run: NODE_OPTIONS="--max-old-space-size=8192" npm run build
+      # The suite brings up its own stack — a database and a backend of its own, and the built server
+      # in front of them — because that is what it is configured against. Starting another backend
+      # here would only occupy a port nothing asks for.
       - name: Run the end-to-end stories
         working-directory: frontend
         run: npx playwright test --project chromium --project ssr-no-js
@@ -241,9 +238,9 @@ jobs:
         with:
           name: playwright-report
           path: frontend/e2e/report/
-      - name: Stop the backend
+      - name: Stop the stack
         if: always()
-        run: docker compose -f docker/compose.dev.yaml down -v
+        run: docker compose -f docker/compose.dev.yaml --profile e2e down -v
 
   verify-formatting-backend:
     runs-on: ubuntu-latest

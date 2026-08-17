@@ -75,7 +75,10 @@ export default defineConfig({
                 command: 'docker compose -f ../docker/compose.dev.yaml --profile e2e up -d',
                 url: 'http://localhost:8899/api/v1/public/config',
                 reuseExistingServer: true,
-                timeout: 300_000,
+                // The backend is built inside its container from the sources beside it. On a machine
+                // that has done it before this is a moment; on a cold one — a fresh runner with no
+                // Gradle cache — it is the whole build, so the wait is generous.
+                timeout: 900_000,
             },
             !process.env.E2E_DEV_SERVER
                 ? {

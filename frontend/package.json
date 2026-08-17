@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "postinstall": "nuxi prepare",
     "dev": "nuxi dev --host 0.0.0.0",
     "lint:structure": "node scripts/lint-component-size.mjs",
     "lint:conventions": "node scripts/lint-conventions.mjs",
