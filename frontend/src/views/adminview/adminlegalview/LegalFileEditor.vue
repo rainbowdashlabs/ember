@@ -145,6 +145,7 @@ defineExpose({reload: load})
         v-model:show="showLoadTemplateModal"
         :type="type"
         :locale="locale"
+        :existing="files.map(file => file.displayName)"
         @load="applyTemplates"
     />
     <ImportDocumentModal

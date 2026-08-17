@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref, watch} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -12,7 +12,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import TemplateChoiceRow from './TemplateChoiceRow.vue'
 import {adminSettings} from '@/api'
 import type {LegalTemplate} from '@/api/adminSettings'
 
@@ -21,7 +21,11 @@ const {t} = useI18n()
 const props = defineProps<{
   type: string
   locale: string
+  /** What the editor already holds, so a section that would be replaced says so beforehand. */
+  existing: string[]
 }>()
+
+const existingNames = computed(() => new Set(props.existing))
 
 const show = defineModel<boolean>('show', {required: true})
 
@@ -79,26 +83,31 @@ watch(show, open => {
       </MutedText>
 
       <div v-else class="space-y-2 max-h-[50vh] overflow-auto">
-        <label
+        <TemplateChoiceRow
             v-for="entry in templates"
             :key="entry.displayName"
-            class="flex items-center gap-3 rounded-lg border border-(--border) p-3"
-        >
-          <ToggleInput :model-value="selected.has(entry.displayName)"
-                       :aria-label="entry.displayName"
-                       @update:model-value="toggle(entry.displayName)"/>
-          <span class="flex-1 min-w-0 truncate font-mono text-sm">{{ entry.displayName }}</span>
-        </label>
+            :template="entry"
+            :selected="selected.has(entry.displayName)"
+            :replaces="existingNames.has(entry.displayName)"
+            @toggle="toggle(entry.displayName)"
+        />
       </div>
 
-      <div class="flex justify-end gap-2">
-        <SecondaryButton v-if="templates.length > 0" @click="selectAll">
-          {{ t('adminSettings.legal.selectAllTemplates') }}
-        </SecondaryButton>
-        <SecondaryButton @click="show = false">{{ t('common.cancel') }}</SecondaryButton>
-        <PrimaryButton :disabled="selected.size === 0" @click="confirm">
-          {{ t('adminSettings.legal.loadTemplate') }}
-        </PrimaryButton>
+      <div class="flex justify-between gap-2 flex-wrap">
+        <div class="flex gap-2">
+          <SecondaryButton v-if="templates.length > 0" @click="selectAll">
+            {{ t('adminSettings.legal.selectAllTemplates') }}
+          </SecondaryButton>
+          <SecondaryButton v-if="selected.size > 0" @click="selected = new Set()">
+            {{ t('adminSettings.legal.selectNoTemplates') }}
+          </SecondaryButton>
+        </div>
+        <div class="flex gap-2">
+          <SecondaryButton @click="show = false">{{ t('common.cancel') }}</SecondaryButton>
+          <PrimaryButton :disabled="selected.size === 0" @click="confirm">
+            {{ t('adminSettings.legal.loadSelected', {count: selected.size}) }}
+          </PrimaryButton>
+        </div>
       </div>
     </div>
   </Modal>

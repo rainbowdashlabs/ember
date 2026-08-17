@@ -3638,6 +3638,10 @@ export default {
                 + 'Ein Abschnitt mit gleichem Namen wird überschrieben, alle anderen bleiben unberührt. '
                 + 'Die Änderung greift erst beim Speichern.',
             selectAllTemplates: 'Alle auswählen',
+            selectNoTemplates: 'Auswahl aufheben',
+            loadSelected: '{count} Abschnitt(e) laden',
+            templateReplaces: 'Ersetzt vorhandenen Abschnitt',
+            templatePreview: 'Inhalt anzeigen',
             noTemplates: 'Für diese Sprache liefert Ember keine Vorlage mit.',
             import: 'Dokument importieren',
             importTitle: 'Dokument importieren',
