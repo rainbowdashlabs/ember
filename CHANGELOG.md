@@ -34,6 +34,7 @@
 ### Changes
 
 - **One menu for the actions on a knowledge base entry.** Editing, downloading and deleting an entry sit in a single menu instead of a row of icons. An entry offering only one action keeps that action as a plain button.
+- **Quiz and examinations are named for what a station uses.** The shared menu entry reads "Quiz & Prüfungen" while both are switched on, and "Quiz" or "Prüfungen" when only one of them is. With both in use, the quiz pages and the examination pages sit in a section each instead of in one list of five.
 - **Shared knowledge base needs matching versions.** Partner stations still on the previous version pause knowledge-base sharing until both sides have updated. Every other federated feature keeps working in the meantime.
 
 ### Fixes
@@ -49,6 +50,7 @@
 - **The registration list of an event loads.** Opening an event and switching to its registrations shows who has signed up.
 - **Question catalogues shared by partner stations appear again.** The catalogue list shows what partner stations share instead of leaving the shared section empty.
 - **Filtering by partner station works across search and lists.** Picking a partner station in the knowledge base, catalogue or test sheet filters matches the entries from that station.
+- **Switching off quiz or examinations clears the menu.** A station that switches off one of the two no longer keeps its pages in the sidebar.
 
 ## v26.11.7
 
