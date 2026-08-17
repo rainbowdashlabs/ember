@@ -42,6 +42,8 @@ Frontend
   fe-lint <name> [args] One linter, e.g. `fe-lint style` runs scripts/lint-style.mjs. Trailing
                         arguments reach the script, e.g. `fe-lint component-size --error=30`
   fe-dev                Dev server
+  fe-install            npm install — reconciles node_modules and the lock file with package.json,
+                        which is how a conflict in the generated lock file is resolved
   fe-preview [port]     Serve the last build (default port 3000), the steady target for the stories
 
 Frontend tests
@@ -110,6 +112,12 @@ case "$cmd" in
         fe; run node "scripts/lint-$linter.mjs" "$@"
         ;;
     fe-dev)        fe; run npm run dev -- "$@" ;;
+    fe-install)
+        # Reconciles node_modules and the lock file with package.json. Wanted after a merge that
+        # touched dependencies: the lock file is generated, so a conflict in it is resolved by
+        # writing it again rather than by editing the two sides together.
+        fe; NODE_OPTIONS="$NODE_HEAP" run npm install "$@"
+        ;;
     fe-preview)
         # Serves the last build. Unlike the dev server this compiles nothing on demand, which is
         # what makes it a steady target for the end-to-end suite.
