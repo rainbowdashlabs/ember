@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {Page} from '@playwright/test'
-import {test, expect, stationPeers} from './fixtures/auth'
+import {test, expect} from './fixtures/auth'
 import {unique, uniqueKey} from './fixtures/unique'
 
 /**
@@ -97,21 +97,23 @@ test.describe('Boards', () => {
      * A ticket nobody owns is a ticket nobody does. Assigning it is one click on the line that says
      * so, and the name it then carries is what the board shows on the card.
      */
-    test('a ticket is assigned to a member', async ({managerPage: page, request}) => {
-        const {member} = await stationPeers(request)
-
+    test('a ticket is assigned to a member', async ({managerPage: page}) => {
         const key = await createBoard(page)
         await createTicket(page, key)
 
         await page.getByText('Nicht zugewiesen').first().click()
 
-        // The picker opens by itself, and its search field is the one thing on the page carrying
-        // the same words as the line that opened it.
-        await page.getByPlaceholder('Nicht zugewiesen').fill(member.lastName)
-        await page.getByRole('button', {name: new RegExp(member.lastName)}).first().click()
+        // Whoever the picker offers first, read off the picker itself: who is in the station changes
+        // as the other stories create people, and the story only needs somebody to hand the ticket
+        // to. The first entry is "nobody", which is what the ticket already says.
+        const candidates = page.locator('.absolute button').filter({hasNotText: 'Nicht zugewiesen'})
+        const candidate = candidates.first()
+        await expect(candidate).toBeVisible()
+        const name = (await candidate.innerText()).trim()
+        await candidate.click()
 
         await page.reload()
-        await expect(page.getByText(member.lastName).first()).toBeVisible()
+        await expect(page.getByText(name).first()).toBeVisible()
         await expect(page.getByText('Nicht zugewiesen')).toHaveCount(0)
     })
 

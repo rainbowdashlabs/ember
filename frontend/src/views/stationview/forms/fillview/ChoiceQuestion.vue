@@ -78,6 +78,7 @@ function selectedIcon(selected: boolean): string {
       <div
           v-for="(opt, oi) in options"
           :key="oi"
+          data-testid="choice-option"
           class="flex items-center gap-2 px-4 py-3 rounded-lg border-2 text-sm font-medium transition-all cursor-pointer"
           :class="answer.selected?.includes(oi)
             ? 'border-primary bg-primary/10 text-primary'

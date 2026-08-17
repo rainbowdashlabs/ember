@@ -141,6 +141,30 @@ test.describe('Knowledge base', () => {
     })
 
     /**
+     * A station can put a page of its wiki in front of everybody. The story marks a file public and
+     * then reads the public wiki with no session at all — which is the only way to know that the
+     * mark means what it says.
+     */
+    test('a file marked public is readable on the public wiki', async ({managerPage: page, browser}) => {
+        const {folder, file} = await createFileInFolder(page)
+
+        // The file is open where creating it landed, and its properties are edited from there.
+        await page.getByRole('button', {name: 'Eigenschaften'}).click()
+        await page.locator('select:has(option:text-is("Öffentlich sichtbar"))')
+            .selectOption({label: 'Öffentlich sichtbar'})
+        await page.getByRole('button', {name: 'Speichern'}).click()
+
+        const stranger = await browser.newContext()
+        const publicPage = await stranger.newPage()
+        await publicPage.goto('/public/station/jugendfeuerwehr-musterstadt/knowledge')
+
+        // The public wiki opens on the folders, as the station's own does.
+        await publicPage.getByText(folder).first().click()
+        await expect(publicPage.getByText(file).first()).toBeVisible()
+        await stranger.close()
+    })
+
+    /**
      * The listing offers what the reader may actually do: a member who may only read gets the
      * search and the entries, and no create menu — the same rule the server enforces, so nothing
      * is offered that would be refused.

@@ -38,6 +38,31 @@ test.describe('Pages', () => {
         expect(page.url()).toContain('/station/pages')
     })
 
+    /**
+     * A public page can carry a poll, and a stranger can answer it. The story answers as nobody at
+     * all — no session, the way a visitor arrives — and the page thanks them for it, which is what
+     * says the answer was taken.
+     */
+    test('a poll on a public page takes an answer from a stranger', async ({page}) => {
+        await page.goto('/public/station/jugendfeuerwehr-musterstadt/page/komponenten-schaukasten')
+
+        // The page asks the server what the station is, and under a full suite that call sometimes
+        // comes back short; it says so and offers another go, which is what a reader would press.
+        const retry = page.getByRole('button', {name: 'Erneut versuchen'})
+        if (await retry.count() > 0) await retry.click()
+
+        // The choices of a poll are rows to click rather than radio buttons, and answering as a
+        // stranger also means agreeing to what is done with the answer.
+        const submit = page.getByRole('button', {name: 'Absenden'}).first()
+        await expect(submit).toBeVisible()
+
+        await page.getByText('Filmabend').first().click()
+        await page.getByRole('checkbox').first().check()
+        await submit.click()
+
+        await expect(page.getByText(/Deine Antwort wurde übermittelt|bereits ausgefüllt/)).toBeVisible()
+    })
+
     test('the files behind the public pages are reachable', async ({managerPage: page}) => {
         await page.goto('/station/pages/files')
 
