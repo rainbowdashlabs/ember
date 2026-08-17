@@ -14,7 +14,7 @@ Wird die Plattform als Demonstrationsinstanz betrieben, sind alle dort hinterleg
 
 ## § 24 Sperrung und Beendigung des Zugangs
 
-(1) Nutzer können ihr Konto jederzeit über die Kontoeinstellungen löschen. Bei der Löschung werden die personenbezogenen Daten des Kontos entfernt oder anonymisiert; nicht personenbezogene Verknüpfungen bleiben erhalten, soweit dies zur Nachvollziehbarkeit der Vereinshistorie erforderlich ist. Einzelheiten regelt die Datenschutzerklärung.
+(1) Nutzer können ihr Konto jederzeit über die Kontoeinstellungen löschen. Bei der Löschung werden die personenbezogenen Daten des Kontos entfernt oder anonymisiert; nicht personenbezogene Verknüpfungen bleiben erhalten, soweit dies zur Nachvollziehbarkeit der Wachenhistorie erforderlich ist. Einzelheiten regelt die Datenschutzerklärung.
 
 (2) Alternativ kann ein Konto beim Ausscheiden aus der Wache archiviert werden. Der Zugang endet damit.
 

@@ -27,6 +27,7 @@ const showPreview = defineModel<boolean>('showPreview', {required: true})
 const emit = defineEmits<{
   addFile: []
   loadTemplate: []
+  importDocument: []
   deleteFile: [index: number]
 }>()
 
@@ -78,6 +79,9 @@ function updateContent(index: number, value: string) {
       <div class="flex items-center gap-2">
         <SecondaryButton :icon="['fas', 'file-import']" @click="emit('loadTemplate')">
           {{ t('adminSettings.legal.loadTemplate') }}
+        </SecondaryButton>
+        <SecondaryButton :icon="['fas', 'upload']" @click="emit('importDocument')">
+          {{ t('adminSettings.legal.import') }}
         </SecondaryButton>
         <SecondaryButton :icon="['fas', 'plus']" @click="emit('addFile')">
           {{ t('adminSettings.legal.addFile') }}

@@ -255,6 +255,36 @@ export async function saveLegalFiles(type: string, locale: string, files: LegalF
     return res.data
 }
 
+/** What an import made of a document written elsewhere. */
+export interface LegalImport {
+    /** The document title, if the source carried one. */
+    title: string | null
+    /** The sections it was cut into, ready for the editor. */
+    files: LegalFile[]
+    /** How many numbers in the text became references. */
+    references: number
+    /** Numbers that look like a reference but point at no section of this document. */
+    unmatched: string[]
+}
+
+/**
+ * Turns a document written elsewhere into sections: the numbering leaves the headings and the
+ * cross-references are rewritten onto anchors. Nothing is stored — the result comes back for the
+ * editor to review and save.
+ */
+export async function importLegalDocument(type: string, locale: string, file: File): Promise<LegalImport> {
+    const form = new FormData()
+    form.append('file', file)
+    const res = await client.post<LegalImport>(`/admin/legal/${type}/${locale}/import`, form)
+    return res.data
+}
+
+/** The same, for a document pasted as text rather than uploaded. */
+export async function importLegalMarkdown(type: string, locale: string, markdown: string): Promise<LegalImport> {
+    const res = await client.post<LegalImport>(`/admin/legal/${type}/${locale}/import`, {markdown})
+    return res.data
+}
+
 export async function getLegalTemplates(type: string, locale: string): Promise<LegalTemplate[]> {
     const res = await client.get<LegalTemplate[]>(`/admin/legal/${type}/${locale}/templates`)
     return res.data

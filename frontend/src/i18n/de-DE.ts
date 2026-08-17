@@ -3507,6 +3507,21 @@ export default {
                 + 'Die Änderung greift erst beim Speichern.',
             selectAllTemplates: 'Alle auswählen',
             noTemplates: 'Für diese Sprache liefert Ember keine Vorlage mit.',
+            import: 'Dokument importieren',
+            importTitle: 'Dokument importieren',
+            importHint: 'Übernimm ein anderswo geschriebenes Dokument. Ember schneidet es in Abschnitte, '
+                + 'nimmt die Nummern aus den Überschriften und setzt Verweise wie „§ 12" auf den jeweiligen '
+                + 'Abschnitt um. Danach nummeriert sich das Dokument selbst. Gespeichert wird erst, wenn du '
+                + 'im Editor speicherst.',
+            importPastePlaceholder: 'Oder den Text hier einfügen…',
+            importPaste: 'Eingefügten Text übernehmen',
+            importApply: 'In den Editor übernehmen',
+            importFailed: 'Das Dokument konnte nicht gelesen werden.',
+            importNoTitle: 'Ohne Titel',
+            importFound: '{sections} Abschnitte, {references} Verweise umgesetzt',
+            importUnmatched: 'Nicht zugeordnete Nummern',
+            importUnmatchedHint: 'Diese Stellen sehen aus wie Verweise, zeigen aber auf keinen Abschnitt '
+                + 'dieses Dokuments. Sie bleiben unverändert stehen — sieh sie dir an, bevor du speicherst.',
             placeholderTitle: 'Platzhalter',
             placeholderHint: 'Ein Name in doppelten geschweiften Klammern wird beim Anzeigen durch seinen Wert '
                 + 'ersetzt. Ember erkennt jeden Platzhalter selbst und setzt ihn in allen Dokumenten und allen '

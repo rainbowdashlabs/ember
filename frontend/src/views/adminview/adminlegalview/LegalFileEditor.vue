@@ -11,6 +11,7 @@ import SingleFieldModal from '@/components/feedback/SingleFieldModal.vue'
 import FileListPanel from './FileListPanel.vue'
 import DeleteFileModal from './DeleteFileModal.vue'
 import LoadTemplateModal from './LoadTemplateModal.vue'
+import ImportDocumentModal from './ImportDocumentModal.vue'
 import {adminSettings} from '@/api'
 import type {LegalFile, LegalTemplate} from '@/api/adminSettings'
 
@@ -35,6 +36,7 @@ const showAddFileModal = ref(false)
 const newFileName = ref('')
 const showDeleteFileModal = ref(false)
 const showLoadTemplateModal = ref(false)
+const showImportModal = ref(false)
 const fileToDeleteIndex = ref(-1)
 
 const fileToDeleteName = computed(() => {
@@ -86,6 +88,14 @@ function applyTemplates(templates: LegalTemplate[]) {
   files.value = next
 }
 
+/**
+ * An imported document replaces what is in the editor: it is a whole document, not a section to
+ * merge in. Nothing is written until the editor is saved.
+ */
+function applyImport(imported: LegalFile[]) {
+  files.value = imported
+}
+
 function confirmDeleteFile(index: number) {
   fileToDeleteIndex.value = index
   showDeleteFileModal.value = true
@@ -114,6 +124,7 @@ defineExpose({reload: load})
         :save-action="saveAll"
         @add-file="showAddFileModal = true"
         @load-template="showLoadTemplateModal = true"
+        @import-document="showImportModal = true"
         @delete-file="confirmDeleteFile"
     />
 
@@ -135,6 +146,12 @@ defineExpose({reload: load})
         :type="type"
         :locale="locale"
         @load="applyTemplates"
+    />
+    <ImportDocumentModal
+        v-model:show="showImportModal"
+        :type="type"
+        :locale="locale"
+        @apply="applyImport"
     />
   </div>
 </template>

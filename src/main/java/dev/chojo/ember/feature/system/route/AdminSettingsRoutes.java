@@ -22,12 +22,14 @@ import dev.chojo.ember.feature.legal.entity.DocumentPlaceholder;
 import dev.chojo.ember.feature.legal.entity.LegalDocumentType;
 import dev.chojo.ember.feature.legal.service.BrowserStorageService;
 import dev.chojo.ember.feature.legal.service.LegalDocumentService;
+import dev.chojo.ember.feature.legal.service.LegalImportService;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.media.service.LogoFragmentService;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import dev.chojo.ember.feature.system.service.DataInitializer;
+import dev.chojo.ember.util.PandocConverter;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -248,6 +250,10 @@ public class AdminSettingsRoutes implements Routes {
         routes.get(
                 prefix + "/admin/legal/{type}/{locale}/templates",
                 this::getLegalTemplates,
+                InstancePermission.ADMINISTRATOR);
+        routes.post(
+                prefix + "/admin/legal/{type}/{locale}/import",
+                this::importLegalDocument,
                 InstancePermission.ADMINISTRATOR);
         routes.put(
                 prefix + "/admin/legal/{type}/{locale}/files",
@@ -903,6 +909,69 @@ public class AdminSettingsRoutes implements Routes {
         ctx.json(DataInitializer.documentTemplates(type.slug(), locale));
     }
 
+    /**
+     * Reads an uploaded document and returns it as markdown, converting a word processor file the
+     * same way the knowledge base does. Returns {@code null} when the request carries no file, so
+     * the caller can fall back to markdown in the body.
+     */
+    private static String uploadedMarkdown(Context ctx) {
+        var file = ctx.uploadedFile("file");
+        if (file == null) return null;
+        try (var content = file.content()) {
+            byte[] data = content.readAllBytes();
+            String format = importFormat(file.filename());
+            if (format == null) return new String(data, StandardCharsets.UTF_8);
+            return PandocConverter.toMarkdown(data, format);
+        } catch (Exception e) {
+            log.warn("Legal document conversion failed", e);
+            throw new BadRequestResponse("Document conversion failed");
+        }
+    }
+
+    /**
+     * The pandoc format of an uploaded file, or {@code null} when it is markdown or plain text
+     * already and needs no conversion.
+     */
+    private static String importFormat(String filename) {
+        String lower = filename == null ? "" : filename.toLowerCase(Locale.ROOT);
+        if (lower.endsWith(".docx") || lower.endsWith(".doc")) return "docx";
+        if (lower.endsWith(".odt")) return "odt";
+        if (lower.endsWith(".rtf")) return "rtf";
+        if (lower.endsWith(".html") || lower.endsWith(".htm")) return "html";
+        if (lower.endsWith(".epub")) return "epub";
+        if (lower.endsWith(".tex") || lower.endsWith(".latex")) return "latex";
+        return null;
+    }
+
+    @OpenApi(
+            path = "/api/v1/admin/legal/{type}/{locale}/import",
+            methods = HttpMethod.POST,
+            summary = "Turn an externally written document into sections",
+            description = "Splits a document into sections, takes the numbering out of its headings and rewrites the "
+                    + "cross-references onto anchors. Nothing is written: the sections come back for the editor to "
+                    + "review and save.",
+            tags = {"Admin"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = LegalImportRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = LegalImportResponse.class)))
+    private void importLegalDocument(Context ctx) {
+        parseLegalType(ctx);
+        String markdown = uploadedMarkdown(ctx);
+        if (markdown == null) {
+            var request = ctx.bodyAsClass(LegalImportRequest.class);
+            markdown = request.markdown();
+        }
+        if (markdown == null || markdown.isBlank()) {
+            throw new BadRequestResponse("markdown is required");
+        }
+        var imported = LegalImportService.normalise(markdown);
+        var files = imported.sections().stream()
+                .map(section ->
+                        new LegalFileEntry(section.fileName(), section.displayName(), section.content(), true, false))
+                .toList();
+        ctx.json(new LegalImportResponse(
+                imported.title(), files, imported.references(), List.copyOf(imported.unmatched())));
+    }
+
     private void saveLegalFiles(Context ctx) {
         LegalDocumentType type = parseLegalType(ctx);
         Path dir = legalDir(type);
@@ -1043,6 +1112,25 @@ public class AdminSettingsRoutes implements Routes {
      */
     public record LegalFileEntry(
             String filename, String displayName, String content, boolean enabled, boolean generated) {}
+
+    /**
+     * A document written elsewhere, as markdown. A word processor file is converted to markdown
+     * before it gets here, the same way the knowledge base takes one.
+     *
+     * @param markdown the document to normalise
+     */
+    public record LegalImportRequest(String markdown) {}
+
+    /**
+     * What an import made of the document.
+     *
+     * @param title      the document title, if it carried one
+     * @param files      the sections, ready to be reviewed and saved
+     * @param references how many numbers became references
+     * @param unmatched  numbers that look like a reference but point at no section of this document
+     */
+    public record LegalImportResponse(
+            String title, List<LegalFileEntry> files, int references, List<String> unmatched) {}
 
     /**
      * The values an administrator gives the placeholders used across the legal documents.

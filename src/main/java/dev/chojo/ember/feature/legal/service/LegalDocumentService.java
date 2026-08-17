@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.legal.service;
 
+import dev.chojo.ember.feature.legal.entity.LegalDocumentType;
 import dev.chojo.ember.feature.system.service.DataInitializer;
 import dev.chojo.ember.util.HtmlSanitizer;
 import dev.chojo.ember.util.TextDiff;
@@ -259,9 +260,35 @@ public class LegalDocumentService {
                         typeSlug);
             }
         }
-        String html = renderMarkdown(markdown);
+        var numbered = LegalNumbering.apply(markdown, styleFor(typeSlug), paragraphSign(locale));
+        String html = renderMarkdown(numbered.markdown());
         String version = hash(markdown);
+        if (!numbered.unresolved().isEmpty()) {
+            log.warn("Legal document {} refers to sections that do not exist: {}", baseDir, numbered.unresolved());
+        }
         return new RenderedDocument(html, markdown, version);
+    }
+
+    /**
+     * How a document type counts its sections.
+     *
+     * <p>Only the terms of service number their sections, and they already do: taking the numbers
+     * out of the headings and assigning them while rendering reproduces them exactly, as long as
+     * the order has not changed. Every other document is left as it reads, and a reference into it
+     * carries the section title instead of a number.
+     */
+    private static LegalNumbering.Style styleFor(String typeSlug) {
+        return LegalDocumentType.TOS.slug().equals(typeSlug)
+                ? LegalNumbering.Style.PARAGRAPH
+                : LegalNumbering.Style.NONE;
+    }
+
+    /**
+     * What a paragraph is called in the given locale. German legal texts use the section sign,
+     * English ones spell the word out.
+     */
+    private static String paragraphSign(String locale) {
+        return "en".equalsIgnoreCase(locale) ? "Section" : "§";
     }
 
     /**
