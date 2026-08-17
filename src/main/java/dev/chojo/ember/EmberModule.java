@@ -208,6 +208,7 @@ import dev.chojo.ember.feature.system.service.DemoSessionSeeder;
 import dev.chojo.ember.feature.system.service.DemoSettingsSeeder;
 import dev.chojo.ember.feature.system.service.DemoSetupSeeder;
 import dev.chojo.ember.feature.system.service.DemoStationSeeder;
+import dev.chojo.ember.feature.system.service.DemoTwoFactorSeeder;
 import dev.chojo.ember.feature.system.service.DemoWaitingListSeeder;
 import dev.chojo.ember.feature.traffic.route.AdminTrafficRoutes;
 import dev.chojo.ember.feature.traffic.route.StationTrafficRoutes;
@@ -393,6 +394,7 @@ public class EmberModule extends AbstractModule {
         demoSeederBinder.addBinding().to(DemoLendingSeeder.class);
         demoSeederBinder.addBinding().to(DemoNotificationSeeder.class);
         demoSeederBinder.addBinding().to(DemoSetupSeeder.class);
+        demoSeederBinder.addBinding().to(DemoTwoFactorSeeder.class);
 
         // Domain event handlers
         Multibinder<DomainEventHandler<?>> eventBinder = Multibinder.newSetBinder(binder(), new TypeLiteral<>() {});

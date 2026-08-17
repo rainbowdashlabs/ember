@@ -11,6 +11,7 @@ import dev.chojo.ember.conf.file.elements.Database;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Federation;
 import dev.chojo.ember.conf.file.elements.Storage;
+import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.account.service.AvatarService;
@@ -87,6 +88,8 @@ import dev.chojo.ember.feature.storage.service.PdfCompressor;
 import dev.chojo.ember.feature.storage.service.PresentationCompressor;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import dev.chojo.ember.feature.storage.service.StorageService;
+import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
+import dev.chojo.ember.feature.twofactor.service.TotpService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -101,6 +104,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class DemoServiceTest extends RepositoryTestBase {
@@ -366,6 +370,12 @@ class DemoServiceTest extends RepositoryTestBase {
         var sessionSeeder = new DemoSessionSeeder(accountRepo);
         var settingsSeeder = new DemoSettingsSeeder(feedTokenService, stationRepo, applicationSettingRepo);
         var setupSeeder = new DemoSetupSeeder(stationRepo, accountRepo, stationMemberRepo);
+        // A demo instance is what lets the TOTP service run without a configured encryption key,
+        // which is the same reason the seeder only ever runs on one.
+        var demoInstance = mock(Demo.class);
+        when(demoInstance.dev()).thenReturn(true);
+        var twoFactorSeeder = new DemoTwoFactorSeeder(
+                new TwoFactorRepository(), new TotpService(new TwoFactorSettings(), demoInstance));
 
         // -- DemoService --
         demoService = new DemoService(
@@ -397,7 +407,8 @@ class DemoServiceTest extends RepositoryTestBase {
                         pageSeeder,
                         lendingSeeder,
                         notificationSeeder,
-                        setupSeeder));
+                        setupSeeder,
+                        twoFactorSeeder));
     }
 
     @Test
