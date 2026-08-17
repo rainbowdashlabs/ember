@@ -76,6 +76,79 @@ test.describe('Events', () => {
     })
 
     /**
+     * An event can ask the people signing up for things — shirt size, who is coming along. The
+     * story adds such a question to an event of its own and then signs up as a member, who is asked
+     * it and whose answer stands next to their name for the organiser afterwards.
+     */
+    test('a registration question is asked and its answer reaches the organiser', async ({managerPage, memberPage}) => {
+        const event = `Termin-${Date.now()}`
+        const question = 'Wer kommt mit?'
+        const answer = `Antwort-${Date.now()}`
+
+        await managerPage.goto('/station/events/new')
+        await managerPage.getByPlaceholder('Name des Termins').fill(event)
+
+        // An event without a time is not an event, and the form keeps its save disabled until it
+        // has one.
+        const times = managerPage.locator('input[type="datetime-local"]')
+        await times.first().fill('2026-12-01T18:00')
+        if (await times.count() > 1) await times.nth(1).fill('2026-12-01T20:00')
+
+        // Registration is off to begin with, and the questions belong to it. The switch sits beside
+        // the words rather than under them.
+        await managerPage.getByText('Anmeldung erforderlich')
+            .locator('xpath=following-sibling::button').click()
+        await managerPage.getByRole('button', {name: 'Frage hinzufügen'}).click()
+        await managerPage.getByPlaceholder('z.B. Begleitpersonen').fill(question)
+
+        await managerPage.getByRole('button', {name: /Speichern|Erstellen/}).last().click()
+
+        // Saving lands back on the planner rather than on the event, so the story opens it from
+        // the list it now stands in.
+        await managerPage.waitForURL(/\/station\/events$/)
+        await managerPage.getByText(event).first().click()
+        await managerPage.waitForURL(/\/station\/events\/(\d+)/)
+        const id = managerPage.url().match(/events\/(\d+)/)?.[1]
+
+        await memberPage.goto(`/station/events/${id}`)
+        await memberPage.getByRole('button', {name: 'Anmeldungen'}).click()
+        await memberPage.getByRole('button', {name: 'Anmelden'}).first().click()
+
+        await expect(memberPage.getByText(question).first()).toBeVisible()
+        await memberPage.getByRole('textbox').first().fill(answer)
+        await memberPage.getByRole('button', {name: /Anmelden|Absenden|Speichern/}).last().click()
+
+        await managerPage.goto(`/station/events/${id}`)
+        await managerPage.getByRole('button', {name: 'Anmeldungen'}).click()
+        await expect(managerPage.getByText(answer).first()).toBeVisible()
+    })
+
+    /**
+     * A season of weekly evenings is entered once rather than fifty times. The story generates the
+     * dates, creates them in one go, and finds one of them in the planner afterwards.
+     */
+    test('a run of events is created in one go', async ({managerPage: page}) => {
+        const name = `Serie-${Date.now()}`
+
+        // Three steps: what the events are called, when they fall, and a last look at the list.
+        await page.goto('/station/events/batch')
+        await page.getByRole('textbox').first().fill(name)
+        await page.getByRole('button', {name: 'Weiter'}).click()
+
+        const dates = page.locator('input[type="date"]')
+        await dates.first().fill('2026-12-01')
+        await dates.nth(1).fill('2026-12-31')
+
+        await page.getByRole('button', {name: 'Termine generieren'}).click()
+        await expect(page.getByText(/\d+ Termine werden erstellt/)).toBeVisible()
+
+        await page.getByRole('button', {name: 'Termine erstellen'}).click()
+
+        await page.goto('/station/events')
+        await expect(page.getByText(name).first()).toBeVisible()
+    })
+
+    /**
      * A category is what a manager reaches for when the list of events stops being readable. The
      * story creates one and reloads: a category that only lives in the open page is no category.
      */
