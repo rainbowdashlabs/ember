@@ -74,4 +74,38 @@ test.describe('Events', () => {
         await expect(page.getByTestId('app-shell')).toBeVisible()
         await expect(page.getByText('Anmeldungen').first()).toBeVisible()
     })
+
+    /**
+     * A category is what a manager reaches for when the list of events stops being readable. The
+     * story creates one and reloads: a category that only lives in the open page is no category.
+     */
+    test('a category is created and survives a reload', async ({managerPage: page}) => {
+        const name = `Kategorie ${Date.now()}`
+
+        await page.goto('/station/events/categories')
+        await page.getByRole('button', {name: 'Kategorie erstellen'}).click()
+        await page.getByPlaceholder('z.B. Übungen').fill(name)
+        await page.getByRole('button', {name: 'Speichern'}).click()
+
+        await expect(page.getByText(name)).toBeVisible()
+
+        await page.reload()
+        await expect(page.getByText(name)).toBeVisible()
+    })
+
+    /**
+     * What a category is for: the events page sorts itself into blocks instead of one long list,
+     * and no block holds everything.
+     */
+    test('the events list is grouped by category', async ({managerPage: page}) => {
+        await page.goto('/station/events')
+
+        const groups = page.getByTestId('event-category-group')
+        await expect(groups.first()).toBeVisible()
+        expect(await groups.count()).toBeGreaterThan(1)
+
+        const total = await page.getByTestId('event-entry').count()
+        const inFirstGroup = await groups.first().getByTestId('event-entry').count()
+        expect(inFirstGroup).toBeLessThan(total)
+    })
 })

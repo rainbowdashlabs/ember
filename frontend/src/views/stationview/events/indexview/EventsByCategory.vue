@@ -121,7 +121,7 @@ function detailRoute(ev: StationEvent) {
 
     <EmptyState compact v-if="!hasEvents">{{ t('events.noEvents') }}</EmptyState>
 
-    <div v-for="group in groups" :key="group.category?.id ?? 'none'" class="space-y-2">
+    <div v-for="group in groups" :key="group.category?.id ?? 'none'" data-testid="event-category-group" class="space-y-2">
       <div v-if="group.category" class="pt-2">
         <SubHeader class="text-sm font-semibold uppercase text-(--text-muted)">{{ group.category.name }}</SubHeader>
       </div>

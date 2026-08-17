@@ -3,25 +3,34 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import {statSync} from 'node:fs'
 import {test, expect} from './fixtures/auth'
 
 test.describe('Attendance', () => {
     /**
-     * Recording who was there is the whole of attendance. The story opens a past session, marks the
-     * first member present and reloads: a mark that does not survive a reload never reached the
-     * server.
+     * Recording who was there is the whole of attendance. The story opens a past session, marks
+     * someone present and reloads: a mark that does not survive a reload never reached the server.
+     *
+     * Which session it lands in is not fixed, so it takes one the list says somebody was away
+     * from: those are the members whose "present" button is still there to be pressed, and a
+     * session nobody was ever entered in offers no buttons at all.
      */
     test('a member is marked present in a session', async ({managerPage: page}) => {
-        await page.goto('/station/attendance/past')
+        const sessions = page.getByTestId('attendance-session')
 
-        await page.getByTestId('attendance-session').first().click()
+        await page.goto('/station/attendance/past')
+        await expect(sessions.first()).toBeVisible()
+
+        const withAbsences = sessions.filter({hasText: /[1-9]\d* Abwesend/}).first()
+        await expect(withAbsences).toBeVisible()
+        await withAbsences.click()
         await page.waitForURL(/\/station\/attendance\/session\/\d+/)
 
         // Whoever is already present has that button switched off, so the story marks someone who
         // is not — and afterwards their button is the one switched off.
-        const present = page.locator('button[aria-label="Anwesend"]:not([disabled])').first()
-        await expect(present).toBeVisible()
-        await present.click()
+        const unmarked = page.locator('button[aria-label="Anwesend"]:not([disabled])').first()
+        await expect(unmarked).toBeVisible()
+        await unmarked.click()
 
         await page.reload()
         await expect(page.locator('button[aria-label="Anwesend"][disabled]').first()).toBeVisible()
@@ -44,6 +53,33 @@ test.describe('Attendance', () => {
         await page.goto('/station/attendance/report')
 
         await expect(page.getByTestId('app-shell')).toBeVisible()
+    })
+
+    /**
+     * A report exists to leave the application. The story picks a year and every member type,
+     * previews it and takes the export: the file that arrives has to carry bytes, because an
+     * empty download looks exactly like a successful one to everyone but the person opening it.
+     */
+    test('the report exports a file for the chosen period', async ({managerPage: page}) => {
+        await page.goto('/station/attendance/report')
+
+        await page.locator('select:has(option:text-is("Jahr"))').first().selectOption('year')
+
+        await page.getByRole('button', {name: 'Typen wählen'}).click()
+        await page.getByRole('button', {name: 'Alle auswählen'}).click()
+        await page.getByText('Filter', {exact: true}).first().click()
+
+        await page.getByRole('button', {name: 'Vorschau'}).click()
+
+        const exportButton = page.getByRole('button', {name: 'PDF exportieren'})
+        await expect(exportButton).toBeVisible()
+
+        const download = page.waitForEvent('download')
+        await exportButton.click()
+
+        const file = await (await download).path()
+        expect(file).toBeTruthy()
+        expect(statSync(file!).size).toBeGreaterThan(0)
     })
 
     test('a member does not record attendance', async ({memberPage: page}) => {

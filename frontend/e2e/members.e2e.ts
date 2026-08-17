@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect, stationPeers} from './fixtures/auth'
+import {test, expect} from './fixtures/auth'
 import {unique} from './fixtures/unique'
 
 /**
@@ -39,22 +39,46 @@ test.describe('Members', () => {
      * Somebody the station still has something with cannot simply be written off — equipment in
      * their hands, profiles in their care. The page refuses and says what stands in the way, and
      * the reason being given is the part worth holding.
+     *
+     * The story looks for such a person rather than naming one: who holds what changes as the rest
+     * of the suite hands equipment out and takes it back, and a story that insists on one member
+     * would be testing the seeder's mood.
      */
-    test('a member with something outstanding cannot be marked former', async ({managerPage: page, request}) => {
-        const {member} = await stationPeers(request)
+    test('a member with something outstanding cannot be marked former', async ({managerPage: page}) => {
+        const warning = page.getByText('Dieses Mitglied kann derzeit nicht als ehemalig markiert werden:')
+
+        const rows = page.getByTestId('member-row')
 
         await page.goto('/station/members/list')
-        await page.getByPlaceholder(/Suche/).first().fill(member.lastName)
-        await page.getByTestId('member-row').first().getByRole('button', {name: 'Details'}).click()
-        await page.waitForURL(/\/station\/members\/detail\/\d+/)
+        await expect(rows.first()).toBeVisible()
 
-        await page.getByRole('button', {name: 'Als ehemalig markieren'}).click()
+        for (let index = 0; index < Math.min(await rows.count(), 6); index += 1) {
+            if (index > 0) {
+                await page.goto('/station/members/list')
+                await expect(rows.first()).toBeVisible()
+            }
 
-        await expect(page.getByText('Mitglied als ehemalig markieren')).toBeVisible()
-        await expect(page.getByText('Dieses Mitglied kann derzeit nicht als ehemalig markiert werden:')).toBeVisible()
-        // What stands in the way differs from person to person — equipment they hold, profiles they
-        // look after — so the story holds the page to naming something rather than to one reason.
-        await expect(page.getByRole('listitem').first()).toBeVisible()
+            await rows.nth(index).getByRole('button', {name: 'Details'}).click()
+            await page.waitForURL(/\/station\/members\/detail\/\d+/)
+
+            const mark = page.getByRole('button', {name: 'Als ehemalig markieren'})
+            const offered = await mark.waitFor({state: 'visible', timeout: 5_000}).then(() => true, () => false)
+            if (!offered) continue
+
+            await mark.click()
+            await expect(page.getByText('Mitglied als ehemalig markieren')).toBeVisible()
+
+            const refused = await warning.waitFor({state: 'visible', timeout: 5_000}).then(() => true, () => false)
+            if (!refused) continue
+
+            // What stands in the way differs from person to person — equipment they hold, profiles
+            // they look after — so the story holds the page to naming something rather than to one
+            // reason.
+            await expect(page.getByRole('listitem').first()).toBeVisible()
+            return
+        }
+
+        throw new Error('No member of the station had anything outstanding to be held back by')
     })
 
     /**
