@@ -13,16 +13,15 @@ const OPENING: PitchTrack[] = [
             kind: 'cover', id: 'cover', accent: 'primary',
             heading: 'Eure Gruppe.',
             headingAccent: 'Ein Werkzeug.',
-            lead: 'Termine, Mitglieder, Anwesenheit, Ausbildung, Newsletter und Webseite — '
+            lead: 'Termine, Mitglieder, Anwesenheit, Ausbildung, Neuigkeiten und Webseite: '
                 + 'kostenlos, quelloffen, selbst gehostet. Allein oder gemeinsam mit den Nachbarwachen.',
-            pills: ['Open Source', 'Selbst gehostet', 'DSGVO-konform', 'Eine Instanz für alle Wachen'],
+            pills: ['Open Source', 'Selbst gehostet', 'Datenauskunft eingebaut', 'Eine Instanz für alle Wachen'],
         },
         details: [
             {
                 kind: 'showcase', id: 'cover-detail', accent: 'primary', tone: 'accent',
                 chip: 'Wie diese Präsentation funktioniert',
-                heading: 'Links und rechts durch die Themen,',
-                headingAccent: 'runter in die Tiefe.',
+                heading: 'Links und rechts durch die Themen, runter in die Tiefe',
                 lead: 'Jede Spalte ist ein Thema. Unter jedem Thema liegt, wie es in der Anwendung wirklich aussieht.',
                 screens: [
                     {
@@ -42,9 +41,8 @@ const OPENING: PitchTrack[] = [
                     },
                 ],
                 points: [
-                    'Jede Folie ist verlinkbar — für Rückfragen per Nachricht',
+                    'Jede Folie ist verlinkbar, für Rückfragen per Nachricht',
                     'Die Präsentation folgt eurem hellen oder dunklen Erscheinungsbild',
-                    'Gebaut aus denselben Bausteinen wie die Anwendung selbst',
                 ],
             },
         ],
@@ -57,16 +55,16 @@ const OPENING: PitchTrack[] = [
             columns: 3,
             cards: [
                 {
-                    icon: '📋', title: 'Tabellen-Chaos', accent: 'error',
+                    icon: 'table-columns', title: 'Tabellen-Chaos', accent: 'error',
                     body: 'Anwesenheitslisten in zehn Tabellen, jede mit eigenem Format. Niemand findet die aktuelle Fassung.',
                 },
                 {
-                    icon: '💬', title: 'Verstreute Kommunikation', accent: 'error',
+                    icon: 'comment', title: 'Verstreute Kommunikation', accent: 'error',
                     body: 'Termine im Messenger, News im sozialen Netz, Aushänge im Gerätehaus. Nichts ist zentral, nichts ist sicher.',
                 },
                 {
-                    icon: '💸', title: 'Teure Software', accent: 'error',
-                    body: 'Kommerzielle Lösungen kosten oft hunderte Euro im Jahr — Geld, das eurer Jugend fehlt.',
+                    icon: 'scale-balanced', title: 'Teure Software', accent: 'error',
+                    body: 'Kommerzielle Lösungen kosten oft hunderte Euro im Jahr: Geld, das eurer Jugend fehlt.',
                 },
             ],
             note: 'Die Arbeit dahinter ist Ehrenamt. Verwaltung sollte das nicht auch noch sein.',
@@ -78,23 +76,22 @@ const OPENING: PitchTrack[] = [
             kind: 'cards', id: 'solution', accent: 'primary', chip: 'Die Lösung',
             heading: 'Eine Plattform.',
             headingAccent: 'Alles drin.',
-            lead: 'Ember bündelt, was eine Gruppe für die digitale Organisation braucht — '
+            lead: 'Ember bündelt, was eine Gruppe für die digitale Organisation braucht, '
                 + 'von der Dienstplanung über die Mitgliederverwaltung bis zur öffentlichen Webseite.',
             columns: 2,
             cards: [
-                {icon: '✓', title: 'Keine Lizenzkosten', body: 'Keine Nutzergebühren, keine Staffelpreise, keine Testphase, die ausläuft.', accent: 'success'},
-                {icon: '✓', title: 'Daten bleiben bei euch', body: 'Auf eurem Server, in eurer Hand — kein zentraler Dienst dazwischen.', accent: 'success'},
-                {icon: '✓', title: 'Quelloffen', body: 'Der Quellcode ist einsehbar. Keine versteckte Logik, keine Abhängigkeit von einem Anbieter.', accent: 'success'},
-                {icon: '✓', title: 'Mehrere Wachen unter einem Dach', body: 'Eine Installation trägt beliebig viele Wachen, streng voneinander getrennt.', accent: 'success'},
+                {icon: 'check', title: 'Keine Lizenzkosten', body: 'Keine Nutzergebühren und keine Staffelpreise. Auch keine Testphase, die ausläuft.', accent: 'success'},
+                {icon: 'check', title: 'Daten bleiben bei euch', body: 'Auf eurem Server, in eurer Hand, kein zentraler Dienst dazwischen.', accent: 'success'},
+                {icon: 'check', title: 'Quelloffen', body: 'Der Quellcode ist einsehbar. Keine versteckte Logik, keine Abhängigkeit von einem Anbieter.', accent: 'success'},
+                {icon: 'check', title: 'Mehrere Wachen unter einem Dach', body: 'Eine Installation trägt beliebig viele Wachen, streng voneinander getrennt.', accent: 'success'},
             ],
         },
         details: [
             {
                 kind: 'showcase', id: 'solution-day', accent: 'primary', tone: 'accent',
                 chip: 'Der Einstieg',
-                heading: 'Nach dem Anmelden:',
-                headingAccent: 'was gerade ansteht.',
-                lead: 'Die Übersicht ist die Startseite jedes Mitglieds — Kacheln für das, was es betrifft, '
+                heading: 'Was nach dem Anmelden dasteht',
+                lead: 'Die Übersicht ist die Startseite jedes Mitglieds: Kacheln für das, was es betrifft, '
                     + 'und nur für die Module, die die Wache nutzt.',
                 screens: [
                     {
@@ -132,7 +129,7 @@ const OPENING: PitchTrack[] = [
                     },
                 ],
                 points: [
-                    'Jede Kachel führt in ihren Bereich — nichts ist eine Sackgasse',
+                    'Jede Kachel führt in ihren Bereich, nichts ist eine Sackgasse',
                     'Sorgeberechtigte sehen die Anmeldungen ihrer Kinder',
                     'Wer sein Profil noch nicht vollständig hat, wird oben daran erinnert',
                 ],
@@ -146,24 +143,24 @@ const OPENING: PitchTrack[] = [
             headingAccent: 'zusammenarbeiten.',
             columns: 4,
             cards: [
-                {icon: '📅', title: 'Termine', body: 'Serien, Anmeldung mit eigenen Fragen, Kalender-Abo.'},
-                {icon: '📊', title: 'Anwesenheit', body: 'Listen je Dienst, Prüfmodus, Bericht als PDF.', accent: 'success'},
-                {icon: '👥', title: 'Mitglieder', body: 'Profile, Rollen, Gruppen, Tags, Sorgeberechtigte.', accent: 'secondary'},
-                {icon: '📰', title: 'Neuigkeiten', body: 'Beiträge mit Kommentaren, Blog und Feeds.', accent: 'error'},
-                {icon: '📖', title: 'Wiki', body: 'Ordner, Seiten, Dateien — mit Rechten je Eintrag.', accent: 'info'},
-                {icon: '❓', title: 'Quiz', body: 'Acht Fragetypen, Training ohne Note, Tests mit Bewertung.', accent: 'success'},
-                {icon: '📋', title: 'Prüfungsbögen', body: 'Abnahmen mit mehreren Prüfern und Auswertung.', accent: 'info'},
-                {icon: '📦', title: 'Inventar', body: 'Ausgabe, Lager, Prüfung, Tausch, Beschaffung, Ausleihe.', accent: 'secondary'},
-                {icon: '🧤', title: 'Fundbüro', body: 'Liegengebliebenes findet zurück.', accent: 'info'},
-                {icon: '📝', title: 'Formulare', body: 'Umfragen mit sechs Fragetypen und Diagrammen.', accent: 'secondary'},
-                {icon: '⏳', title: 'Wartelisten', body: 'Anmeldung von außen, Punkteformel, Probezeit.'},
-                {icon: '🗂️', title: 'Boards', body: 'Kanban mit Tickets, Checklisten und Verlauf.', accent: 'info'},
-                {icon: '✅', title: 'Abläufe', body: 'Vorlagen mit Schritten und Abhängigkeiten.', accent: 'success'},
-                {icon: '🌐', title: 'Öffentliche Seiten', body: 'Die Website aus Bausteinen, ohne zweites System.', accent: 'error'},
-                {icon: '🔔', title: 'Benachrichtigungen', body: 'App, E-Mail und Feed — je Art einzeln.'},
-                {icon: '🔗', title: 'Föderation', body: 'Teilen mit Partnerwachen, Umziehen mit einem Code.', accent: 'primary'},
+                {icon: 'calendar-days', title: 'Termine', body: 'Serien, Anmeldung mit eigenen Fragen, Kalender-Abo.'},
+                {icon: 'clipboard-user', title: 'Anwesenheit', body: 'Listen je Dienst, Prüfmodus, Bericht als PDF.', accent: 'success'},
+                {icon: 'users', title: 'Mitglieder', body: 'Profile, Rollen, Gruppen, Tags, Sorgeberechtigte.', accent: 'secondary'},
+                {icon: 'newspaper', title: 'Neuigkeiten', body: 'Beiträge mit Kommentaren, Blog und Feeds.', accent: 'error'},
+                {icon: 'book-open', title: 'Wiki', body: 'Ordner, Seiten, Dateien, mit Rechten je Eintrag.', accent: 'info'},
+                {icon: 'graduation-cap', title: 'Quiz', body: 'Acht Fragetypen, Training ohne Note, Tests mit Bewertung.', accent: 'success'},
+                {icon: 'clipboard-check', title: 'Prüfungsbögen', body: 'Abnahmen mit mehreren Prüfern und Auswertung.', accent: 'info'},
+                {icon: 'box', title: 'Inventar', body: 'Ausgabe, Lager, Prüfung, Tausch, Beschaffung, Ausleihe.', accent: 'secondary'},
+                {icon: 'box-open', title: 'Fundbüro', body: 'Liegengebliebenes findet zurück.', accent: 'info'},
+                {icon: 'square-poll-vertical', title: 'Formulare', body: 'Umfragen mit sechs Fragetypen und Diagrammen.', accent: 'secondary'},
+                {icon: 'hourglass-half', title: 'Wartelisten', body: 'Anmeldung von außen, Punkteformel, Probezeit.'},
+                {icon: 'table-columns', title: 'Boards', body: 'Kanban mit Tickets, Checklisten und Verlauf.', accent: 'info'},
+                {icon: 'list-check', title: 'Abläufe', body: 'Vorlagen mit Schritten und Abhängigkeiten.', accent: 'success'},
+                {icon: 'file-lines', title: 'Öffentliche Seiten', body: 'Die Website aus Bausteinen, ohne zweites System.', accent: 'error'},
+                {icon: 'bell', title: 'Benachrichtigungen', body: 'App, E-Mail und Feed, je Art einzeln.'},
+                {icon: 'arrow-right-arrow-left', title: 'Föderation', body: 'Teilen mit Partnerwachen, Umziehen mit einem Code.', accent: 'primary'},
             ],
-            note: 'Jede Wache schaltet frei, was sie braucht — abgeschaltete Module tauchen nirgends auf. '
+            note: 'Jede Wache schaltet frei, was sie braucht; abgeschaltete Module tauchen nirgends auf. '
                 + 'Die nächsten Folien gehen sie der Reihe nach durch, mit Pfeil nach unten in die Tiefe.',
         },
         details: [],
@@ -172,33 +169,32 @@ const OPENING: PitchTrack[] = [
 
 /**
  * What sets Ember apart from a folder on a shared drive: stations stay their own, and yet
- * they can work together — and leave again. This stands before the modules on purpose.
+ * they can work together, and leave again. This stands before the modules on purpose.
  */
 const FEDERATION: PitchTrack[] = [
     {
         overview: {
             kind: 'cards', id: 'federation', accent: 'info', tone: 'accent', chip: 'Macht mit',
-            heading: 'Eine Instanz —',
+            heading: 'Eine Instanz',
             headingAccent: 'für uns alle.',
             lead: 'Statt dass jede Wache ihre eigene Installation betreibt: eine gemeinsame Instanz für '
-                + 'Nachbarwachen, Kreis und Dachverband. Geteilte Infrastruktur, geteilte Kosten — '
+                + 'Nachbarwachen, Kreis und Dachverband. Geteilte Infrastruktur, geteilte Kosten, '
                 + 'keine geteilten Daten.',
             columns: 2,
             cards: [
-                {icon: '🏠', title: 'Autonom', body: 'Jede Wache verwaltet sich selbst — eigene Rollen, eigene Farben, eigene Webseite.', accent: 'success'},
-                {icon: '🔗', title: 'Verbunden', body: 'Termine, Neuigkeiten, Wiki und Prüfungsbögen selektiv teilen — oder privat halten.', accent: 'success'},
-                {icon: '📈', title: 'Überblick', body: 'Der Kreis sieht die Zahlen über alle Wachen, ohne in ihre Daten zu greifen.', accent: 'success'},
-                {icon: '🛠️', title: 'Ein Betrieb', body: 'Ein Server, ein Update, ein Ansprechpartner — statt zwanzig Tabelleninseln.', accent: 'success'},
+                {icon: 'house', title: 'Autonom', body: 'Jede Wache verwaltet sich selbst, eigene Rollen, eigene Farben, eigene Webseite.', accent: 'success'},
+                {icon: 'link', title: 'Verbunden', body: 'Termine, Neuigkeiten, Wiki und Prüfungsbögen einzeln teilen oder privat halten.', accent: 'success'},
+                {icon: 'chart-line', title: 'Überblick', body: 'Der Kreis sieht die Zahlen über alle Wachen, ohne in ihre Daten zu greifen.', accent: 'success'},
+                {icon: 'gears', title: 'Ein Betrieb', body: 'Ein Server, ein Update, ein Ansprechpartner, statt zwanzig Tabelleninseln.', accent: 'success'},
             ],
         },
         details: [
             {
                 kind: 'showcase', id: 'federation-detail', accent: 'info',
                 chip: 'So sieht es aus',
-                heading: 'Jede Freigabe',
-                headingAccent: 'einzeln — und in beide Richtungen.',
+                heading: 'Jede Freigabe einzeln, in beide Richtungen',
                 lead: 'Zwei Wachen verbinden sich über einen Code. Danach entscheidet jede für sich, was sie '
-                    + 'empfängt und was sie sendet — je Funktion, nicht pauschal.',
+                    + 'empfängt und was sie sendet, je Funktion, nicht pauschal.',
                 screens: [
                     {
                         title: 'Föderation', subtitle: 'Partnerwachen',
@@ -221,7 +217,7 @@ const FEDERATION: PitchTrack[] = [
                                 actionIcon: 'sliders',
                             },
                         ],
-                        footer: 'Verbunden wird über einen Einladungscode — eine Seite erzeugt ihn, die andere '
+                        footer: 'Verbunden wird über einen Einladungscode, eine Seite erzeugt ihn, die andere '
                             + 'trägt ihn ein.',
                     },
                     {
@@ -229,30 +225,29 @@ const FEDERATION: PitchTrack[] = [
                         badges: [{text: 'Aktiv', tone: 'success'}],
                         federation: {
                             capabilities: [
-                                {label: 'Wissensbasis', receive: true, send: true},
+                                {label: 'Wiki', receive: true, send: true},
                                 {label: 'Quiz-Kataloge', receive: true, send: false},
-                                {label: 'Prüfungsbögen', receive: true, send: true},
-                                {label: 'Termine', receive: true, send: true},
+                                {label: 'Prüfungsprotokolle', receive: true, send: true},
+                                {label: 'Veranstaltungen', receive: true, send: true},
                                 {label: 'Boards', receive: false, send: true},
                                 {label: 'Neuigkeiten', receive: true, send: false},
-                                {label: 'Material verleihen', receive: true, send: true},
+                                {label: 'Inventar-Ausleihe', receive: true, send: true},
                             ],
                         },
-                        footer: 'Aussetzen und beenden geht jederzeit — von jeder Seite aus.',
+                        footer: 'Aussetzen und beenden geht jederzeit, von jeder Seite aus.',
                     },
                 ],
                 points: [
                     'Mitgliederdaten wandern nicht mit; geteilt werden Inhalte, nicht Personen',
-                    'Beide Seiten müssen dieselbe Vertragsversion sprechen — sonst sagt es die Anzeige',
+                    'Beide Seiten müssen dieselbe Vertragsversion sprechen, sonst sagt es die Anzeige',
                     'Auch ohne gemeinsame Instanz: zwei eigene Instanzen genügen',
                 ],
             },
             {
                 kind: 'showcase', id: 'federation-transfer', accent: 'info', tone: 'accent',
                 chip: 'Kein Einbahnstraßen-Vertrag',
-                heading: 'Umziehen',
-                headingAccent: 'mit einem Code.',
-                lead: 'Wer die Instanz wechseln will — vom Verband zum eigenen Server oder umgekehrt — nimmt '
+                heading: 'Umziehen mit einem Code',
+                lead: 'Wer die Instanz wechseln will, vom Verband zum eigenen Server oder umgekehrt, nimmt '
                     + 'seine Wache mit. Ein Code auf der einen Seite, derselbe Code auf der anderen.',
                 screens: [
                     {
@@ -281,8 +276,8 @@ const FEDERATION: PitchTrack[] = [
                 ],
                 points: [
                     'Mitglieder, Termine, Inventar, Wiki und Dateien ziehen zusammen um',
-                    'Kein Export in eine Tabelle, kein Nachtippen, kein Dienstleister dazwischen',
-                    'Wer gehen will, kann gehen — das ist der Unterschied zu einem Vertrag mit Bindung',
+                    'Kein Export in eine Tabelle und kein Nachtippen; auch kein Dienstleister dazwischen',
+                    'Wer gehen will, kann gehen, das ist der Unterschied zu einem Vertrag mit Bindung',
                 ],
             },
         ],
@@ -297,30 +292,29 @@ const CLOSING: PitchTrack[] = [
             headingAccent: 'Euer Code.',
             columns: 3,
             cards: [
-                {icon: '🔓', title: '100 % Open Source', body: 'Quellcode öffentlich einsehbar. Prüfung jederzeit möglich, keine Tracker.', accent: 'success'},
-                {icon: '🏠', title: 'Selbst gehostet', body: 'Läuft auf eurem eigenen Server, im Rathaus oder günstig in der EU-Cloud.', accent: 'secondary'},
-                {icon: '🛡️', title: 'DSGVO ab Werk', body: 'Datenauskunft je Mitglied, feine Rollen, Änderungsprotokolle, Löschroutinen.', accent: 'primary'},
+                {icon: 'code', title: 'Quelloffen', body: 'Quellcode öffentlich einsehbar. Prüfung jederzeit möglich, keine Tracker.', accent: 'success'},
+                {icon: 'server', title: 'Selbst gehostet', body: 'Läuft auf eurem eigenen Server, im Rathaus oder günstig in der EU-Cloud.', accent: 'secondary'},
+                {icon: 'shield-halved', title: 'DSGVO ab Werk', body: 'Datenauskunft je Mitglied, feine Rollen, Änderungsprotokolle, Löschroutinen.', accent: 'primary'},
             ],
             metrics: [
-                {value: '0 €', label: 'Lizenzkosten — für immer', accent: 'success'},
+                {value: '0 €', label: 'Lizenzkosten', accent: 'success'},
                 {value: '∞', label: 'Wachen pro Instanz', accent: 'primary'},
                 {value: 'DE', label: 'Komplett auf Deutsch', accent: 'secondary'},
-                {value: 'EU', label: 'Daten bleiben in der EU', accent: 'error'},
+                {value: 'EU', label: 'Hosting in der EU möglich', accent: 'error'},
             ],
         },
         details: [
             {
                 kind: 'showcase', id: 'trust-security', accent: 'error', tone: 'accent',
                 chip: 'Sicherheit',
-                heading: 'Ernst gemeint,',
-                headingAccent: 'nicht nur behauptet.',
+                heading: 'Was am eigenen Konto einstellbar ist',
                 lead: 'Was eine Verwaltung für Minderjährige können muss, ist eingebaut: jeder sieht seine '
-                    + 'eigenen Anmeldungen, und jeder kommt jederzeit an seine Daten.',
+                    + 'eigenen Anmeldungen, und jeder kommt an seine Daten.',
                 screens: [
                     {
                         title: 'Aktive Sitzungen', subtitle: 'Wo dieses Konto angemeldet ist',
                         trust: TRUST_SESSIONS,
-                        footer: 'Jede fremde Sitzung lässt sich einzeln beenden — oder alle auf einmal.',
+                        footer: 'Jede fremde Sitzung lässt sich einzeln beenden, oder gleich alle.',
                     },
                     {
                         title: 'Daten & Konto', subtitle: 'Auskunft und Löschung',
@@ -331,7 +325,7 @@ const CLOSING: PitchTrack[] = [
                 points: [
                     'Zwei-Faktor per App oder Sicherheitsschlüssel, auf Wunsch für die ganze Wache erzwungen',
                     'Neue Passwörter werden gegen bekannte Datenlecks geprüft',
-                    'Ändert sich ein Rechtstext, wird erneut zugestimmt — mit Protokoll',
+                    'Ändert sich ein Rechtstext, wird erneut zugestimmt, mit Protokoll',
                 ],
             },
         ],
@@ -339,8 +333,7 @@ const CLOSING: PitchTrack[] = [
     {
         overview: {
             kind: 'columns', id: 'audiences', accent: 'primary', tone: 'accent', chip: 'Für das Ehrenamt gebaut',
-            heading: 'Bedienbar,',
-            headingAccent: 'ohne IT-Studium.',
+            heading: 'Bedienbar ohne IT-Studium',
             groups: [
                 {
                     title: 'Für die Leitung',
@@ -384,8 +377,7 @@ const CLOSING: PitchTrack[] = [
             {
                 kind: 'showcase', id: 'audiences-ops', accent: 'secondary',
                 chip: 'Für den Betrieb',
-                heading: 'Was ein Admin',
-                headingAccent: 'wirklich zu tun hat.',
+                heading: 'Was ein Admin wirklich zu tun hat',
                 lead: 'Aufsetzen, laufen lassen, gelegentlich hinsehen.',
                 screens: [
                     {
@@ -402,7 +394,7 @@ const CLOSING: PitchTrack[] = [
                                     {text: '14 %', badge: 'success'}],
                             ],
                         },
-                        footer: 'Ein erschöpftes Kontingent lehnt weitere Uploads ab — angekündigt, nicht überraschend.',
+                        footer: 'Ein erschöpftes Kontingent lehnt weitere Uploads ab. Angekündigt, nicht überraschend.',
                     },
                     {
                         title: 'Überwachung', subtitle: 'API-Status',
@@ -431,11 +423,10 @@ const CLOSING: PitchTrack[] = [
     {
         overview: {
             kind: 'roadmap', id: 'roadmap', accent: 'secondary', chip: 'Wohin die Reise geht',
-            heading: 'Schon da. Und es kommt',
-            headingAccent: 'noch mehr.',
+            heading: 'Was da ist, und was noch kommt',
             columns: [
                 {
-                    label: '✓ Heute live', accent: 'success',
+                    label: 'Heute live', accent: 'success',
                     items: [
                         'Termine, Anmeldungen & Anwesenheit',
                         'Mitglieder, Rollen & Profilfelder',
@@ -449,7 +440,7 @@ const CLOSING: PitchTrack[] = [
                     ],
                 },
                 {
-                    label: '◐ In Arbeit', accent: 'info',
+                    label: 'In Arbeit', accent: 'info',
                     items: [
                         'Geteiltes Wiki erweitern',
                         'Erweiterte Statistiken',
@@ -457,13 +448,13 @@ const CLOSING: PitchTrack[] = [
                     ],
                 },
                 {
-                    label: '○ Nächstes großes Ziel', accent: 'primary',
+                    label: 'Als Nächstes', accent: 'primary',
                     items: [],
-                    note: 'Cluster-Verwaltung — mehrere Wachen unter einem Dach bequem verwalten, '
-                        + 'gedacht für Kreise und Dachverbände mit einer geteilten Instanz.',
+                    note: 'Cluster-Verwaltung: mehrere Wachen unter einem Dach bequem verwalten. '
+                        + 'Gedacht für Kreise und Dachverbände mit einer geteilten Instanz.',
                 },
             ],
-            note: 'Eure Wünsche bestimmen die Reihenfolge — Open Source heißt: ihr redet mit.',
+            note: 'Eure Wünsche bestimmen die Reihenfolge. Open Source heißt: ihr redet mit.',
         },
         details: [],
     },
@@ -472,13 +463,13 @@ const CLOSING: PitchTrack[] = [
             kind: 'cover', id: 'cta', accent: 'primary', tone: 'accent',
             heading: 'Eine Instanz. Alle Wachen.',
             headingAccent: 'Gemeinsam.',
-            lead: 'Wir betreiben Ember bereits. Schließt euch an — Nachbarwachen, Kreis- und '
+            lead: 'Wir betreiben Ember bereits. Schließt euch an: Nachbarwachen, Kreis- und '
                 + 'Dachverband, Verwaltung. Geteilte Infrastruktur, autonome Wachen.',
             pills: [],
             cards: [
-                {icon: '01', title: 'Nachbarwachen', body: 'Eigene Wache anlegen — wir kümmern uns um Server und Updates.', accent: 'primary'},
-                {icon: '02', title: 'Dachverband', body: 'Zahlen über alle Wachen, gemeinsames Wiki, ein Ansprechpartner.', accent: 'error'},
-                {icon: '03', title: 'Verwaltung', body: 'Keine Lizenzkosten, DSGVO-konform, Daten bleiben in der Region.', accent: 'secondary'},
+                {label: '01', title: 'Nachbarwachen', body: 'Eigene Wache anlegen, wir kümmern uns um Server und Updates.', accent: 'primary'},
+                {label: '02', title: 'Dachverband', body: 'Zahlen über alle Wachen, gemeinsames Wiki, ein Ansprechpartner.', accent: 'error'},
+                {label: '03', title: 'Verwaltung', body: 'Keine Lizenzkosten, DSGVO-konform, Daten bleiben in der Region.', accent: 'secondary'},
             ],
         },
         details: [],

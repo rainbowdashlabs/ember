@@ -21,7 +21,8 @@ const iconClasses = computed(() =>
   <NeutralContainer class="h-full space-y-2">
     <span :class="iconClasses"
           class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-base font-extrabold">
-      {{ card.icon }}
+      <font-awesome-icon v-if="card.icon" :icon="['fas', card.icon]"/>
+      <template v-else>{{ card.label }}</template>
     </span>
     <p class="font-semibold">{{ card.title }}</p>
     <p class="text-sm leading-relaxed text-(--text-muted)">{{ card.body }}</p>

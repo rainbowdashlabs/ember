@@ -64,10 +64,9 @@ export const MODULE_TRACKS: PitchTrack[] = [
         details: [
             {
                 kind: 'showcase', id: 'events-registration', accent: 'primary', tone: 'accent',
-                chip: 'Deep Dive · Termine',
-                heading: 'Anmeldung mit',
-                headingAccent: 'eigenen Fragen.',
-                lead: 'Was ihr sonst per Nachricht einsammelt — Größe, Begleitpersonen, Allergien — fragt der Termin '
+                chip: 'Termine im Detail',
+                heading: 'Anmeldung mit eigenen Fragen',
+                lead: 'Größe, Begleitpersonen, Allergien: was ihr sonst per Nachricht einsammelt, fragt der Termin '
                     + 'selbst. Die Auswertung steht darüber, ohne dass jemand nachrechnet.',
                 screens: [
                     {
@@ -104,14 +103,14 @@ export const MODULE_TRACKS: PitchTrack[] = [
                     'Zahlenfragen werden summiert, Auswahlfragen je Option gezählt',
                     'Eine Frage nur für die Organisation sehen die Angemeldeten gar nicht',
                     'Die Antworten stehen unter dem Namen, nicht in einer zweiten Liste',
+                    'Anmeldeschluss und Platzgrenze hängen am Termin, nicht an einer Absprache',
                 ],
             },
             {
                 kind: 'showcase', id: 'events-plan', accent: 'primary', tone: 'accent',
-                chip: 'Deep Dive · Termine',
-                heading: 'Einmal anlegen,',
-                headingAccent: 'das ganze Jahr geplant.',
-                lead: 'Eine Vorlage beschreibt einen Diensttyp. Daraus entstehen die Termine — mit allem, was daran hängt.',
+                chip: 'Termine im Detail',
+                heading: 'Eine Vorlage, ein Jahr Dienstplan',
+                lead: 'Eine Vorlage beschreibt einen Diensttyp. Daraus entstehen die Termine, mit allem, was daran hängt.',
                 screens: [
                     {
                         title: 'Termin anlegen', subtitle: 'Aus Vorlage „Wöchentliche Übung"',
@@ -131,7 +130,7 @@ export const MODULE_TRACKS: PitchTrack[] = [
                                     {text: 'Plätze begrenzt', badge: 'primary'}],
                             ],
                         },
-                        footer: 'Die Vorlage bringt ihre Anmeldefragen mit — jeder Termin daraus fragt dasselbe.',
+                        footer: 'Die Vorlage bringt ihre Anmeldefragen mit, jeder Termin daraus fragt dasselbe.',
                     },
                 ],
                 points: [
@@ -142,9 +141,8 @@ export const MODULE_TRACKS: PitchTrack[] = [
             },
             {
                 kind: 'showcase', id: 'events-handover', accent: 'primary', tone: 'accent',
-                chip: 'Deep Dive · Termine',
-                heading: 'Vom Termin',
-                headingAccent: 'in den Jahresbericht.',
+                chip: 'Termine im Detail',
+                heading: 'Vom Termin in den Jahresbericht',
                 lead: 'Wer zugesagt hat, steht am Abend schon in der Anwesenheitsliste. Von dort läuft es weiter.',
                 screens: [
                     {
@@ -172,7 +170,6 @@ export const MODULE_TRACKS: PitchTrack[] = [
                 points: [
                     'Der Jahresbericht entsteht daraus ohne weiteres Zutun',
                     'Ein Kalender-Abo hält Sorgeberechtigte auf dem Laufenden, ganz ohne Zugang',
-                    'Nichts wird abgetippt, nichts übertragen',
                 ],
             },
         ],
@@ -183,11 +180,11 @@ export const MODULE_TRACKS: PitchTrack[] = [
             heading: 'Mitglieder & Rollen',
             lead: 'Ein Ort für Stammdaten, Zugehörigkeit und alles, was daran hängt.',
             bullets: [
-                'Gruppen tragen Berechtigungen, Tags sind Etiketten — beides ordnet die Mitgliedschaft',
-                'Profilfelder legt ihr selbst fest — je Rolle, Gruppe oder gar nicht',
+                'Gruppen tragen Berechtigungen, Tags sind Etiketten; beides ordnet die Mitgliedschaft',
+                'Profilfelder legt ihr selbst fest: je Rolle, je Gruppe oder gar nicht',
                 'Sorgeberechtigte verwalten das Profil ihres Kindes mit eigenem Zugang',
                 'Änderungen an heiklen Feldern gehen erst nach Bestätigung durch',
-                'Ausgetretene werden archiviert — die Historie der Wache bleibt lesbar',
+                'Ausgetretene werden archiviert; die Historie der Wache bleibt lesbar',
             ],
             screen: {
                 title: 'Mitglieder', subtitle: '34 aktiv · 6 ehemalig',
@@ -212,10 +209,9 @@ export const MODULE_TRACKS: PitchTrack[] = [
         details: [
             {
                 kind: 'showcase', id: 'members-groups', accent: 'secondary', tone: 'accent',
-                chip: 'Deep Dive · Mitglieder',
-                heading: 'Gruppen und Tags —',
-                headingAccent: 'zwei Dinge, ein Unterschied.',
-                lead: 'Beide fassen Mitglieder zusammen. Nur eines davon vergibt Rechte, und genau das '
+                chip: 'Mitglieder im Detail',
+                heading: 'Gruppen und Tags sind nicht dasselbe',
+                lead: 'Beide fassen Mitglieder zusammen. Nur eines davon vergibt Rechte. Genau das '
                     + 'entscheidet, welches ihr nehmt.',
                 screens: [
                     {
@@ -233,7 +229,7 @@ export const MODULE_TRACKS: PitchTrack[] = [
                                     {text: 'Mitglieder, Termine', badge: 'primary'}, {text: 'alles'}],
                             ],
                         },
-                        footer: 'Eine Gruppe kann eigene Profilfelder haben — nur ihre Mitglieder füllen sie aus.',
+                        footer: 'Eine Gruppe kann eigene Profilfelder haben, nur ihre Mitglieder füllen sie aus.',
                     },
                     {
                         title: 'Tags', subtitle: 'Etikett ohne Berechtigung',
@@ -249,21 +245,19 @@ export const MODULE_TRACKS: PitchTrack[] = [
                                     {text: 'intern', badge: 'info'}, {text: 'Listen filtern'}],
                             ],
                         },
-                        footer: 'Eine Gruppe lässt sich in ein Tag umwandeln — die Mitglieder bleiben, die Rechte fallen weg.',
+                        footer: 'Eine Gruppe lässt sich in ein Tag umwandeln, die Mitglieder bleiben, die Rechte fallen weg.',
                     },
                 ],
                 points: [
                     'Gruppe: Zugehörigkeit, Rechte, eigene Felder, Zielgruppe für Termine und Inhalte',
-                    'Tag: Etikett neben dem Namen, zum Filtern und Einschränken — ohne jedes Recht',
-                    'Beide tragen eine Farbe und tauchen überall dort auf, wo eine Zielgruppe gewählt wird',
+                    'Tag: Etikett neben dem Namen, zum Filtern und Einschränken, ohne jedes Recht',
                 ],
             },
             {
                 kind: 'showcase', id: 'members-fields', accent: 'secondary', tone: 'accent',
-                chip: 'Deep Dive · Mitglieder',
-                heading: 'Die Felder bestimmt',
-                headingAccent: 'die Wache.',
-                lead: 'Kein festes Formular: ihr legt an, was ihr braucht — und wer es sehen und ändern darf.',
+                chip: 'Mitglieder im Detail',
+                heading: 'Welche Felder es gibt, entscheidet die Wache',
+                lead: 'Kein festes Formular: ihr legt an, was ihr braucht, und bestimmt, wer es sehen und ändern darf.',
                 screens: [
                     {
                         title: 'Mitglieder-Konfiguration', subtitle: 'Profilfelder',
@@ -281,7 +275,7 @@ export const MODULE_TRACKS: PitchTrack[] = [
                                     {text: '—', muted: true}, {text: 'aus Geburtsdatum', badge: 'success'}],
                             ],
                         },
-                        footer: 'Den Feldtyp Geburtsdatum gibt es genau einmal je Wache — daran hängt das berechnete Alter.',
+                        footer: 'Den Feldtyp Geburtsdatum gibt es genau einmal je Wache, daran hängt das berechnete Alter.',
                     },
                 ],
                 points: [
@@ -292,9 +286,8 @@ export const MODULE_TRACKS: PitchTrack[] = [
             },
             {
                 kind: 'showcase', id: 'members-changes', accent: 'secondary', tone: 'accent',
-                chip: 'Deep Dive · Mitglieder',
-                heading: 'Änderungen laufen',
-                headingAccent: 'nicht unbemerkt durch.',
+                chip: 'Mitglieder im Detail',
+                heading: 'Wer hat was geändert?',
                 lead: 'Ein Mitglied pflegt seine Daten selbst. Was die Wache wissen muss, wird ihr vorgelegt.',
                 screens: [
                     {
@@ -329,7 +322,7 @@ export const MODULE_TRACKS: PitchTrack[] = [
         overview: {
             kind: 'split', id: 'attendance', accent: 'success', chip: 'Dienstbetrieb',
             heading: 'Anwesenheit',
-            lead: 'Eine Liste je Dienst, ein Tipp je Mitglied — und am Jahresende ein Bericht, '
+            lead: 'Eine Liste je Dienst, ein Tipp je Mitglied und am Jahresende ein Bericht, '
                 + 'den niemand abtippen muss.',
             bullets: [
                 'Vorlagen legen fest, welche Gruppen erfasst werden und welche Felder mitlaufen',
@@ -358,15 +351,14 @@ export const MODULE_TRACKS: PitchTrack[] = [
                             {text: '2 Offen', tone: 'secondary'}],
                     },
                 ],
-                footer: 'Jede Liste bleibt offen für Nachträge — auch Tage später.',
+                footer: 'Jede Liste bleibt offen für Nachträge, auch Tage später.',
             },
         },
         details: [
             {
                 kind: 'showcase', id: 'attendance-session', accent: 'success', tone: 'accent',
-                chip: 'Deep Dive · Anwesenheit',
-                heading: 'Aus dem Termin',
-                headingAccent: 'wird die Liste.',
+                chip: 'Anwesenheit im Detail',
+                heading: 'Aus dem Termin wird die Liste',
                 lead: 'Wer heute einen Dienst hat, findet ihn beim Anlegen schon vor. Die Vorlage bringt Gruppen '
                     + 'und Felder mit, die Zusagen aus dem Termin kommen auf Knopfdruck dazu.',
                 screens: [
@@ -383,14 +375,14 @@ export const MODULE_TRACKS: PitchTrack[] = [
                                 fields: [{label: 'Vorlage', value: 'Ausbildung'}],
                             },
                         ],
-                        footer: 'Ohne passenden Termin startet die Liste aus einer Vorlage — Dienstabend, '
+                        footer: 'Ohne passenden Termin startet die Liste aus einer Vorlage: Dienstabend, '
                             + 'Ausbildung, Jugendraum.',
                     },
                     {
                         title: 'Anwesenheit', subtitle: 'Dienstabend · 18.06.2026 · 18:00 – 19:30',
                         actions: ['Synchronisieren', 'Anwesenheit prüfen (2)'],
                         attendance: ATTENDANCE,
-                        footer: 'Über der Liste stehen die Felder der Vorlage — Thema, Ausbilder, Fahrdienst.',
+                        footer: 'Über der Liste stehen die Felder der Vorlage: Thema, Ausbilder, Fahrdienst.',
                     },
                 ],
                 points: [
@@ -401,29 +393,27 @@ export const MODULE_TRACKS: PitchTrack[] = [
             },
             {
                 kind: 'showcase', id: 'attendance-check', accent: 'success',
-                chip: 'Deep Dive · Anwesenheit',
-                heading: 'Prüfen —',
-                headingAccent: 'einer nach dem anderen.',
+                chip: 'Anwesenheit im Detail',
+                heading: 'Prüfen, einer nach dem anderen',
                 lead: 'Am Dienstabend steht man mit dem Handy im Raum. Der Prüfmodus zeigt einen Namen, drei '
-                    + 'große Knöpfe, und springt weiter.',
+                    + 'große Knöpfe, und springt dann weiter.',
                 screens: [
                     {
                         title: 'Anwesenheit', subtitle: 'Dienstabend · offene Einträge',
                         check: ATTENDANCE_CHECK,
-                        footer: 'Am Ende steht „Alle Einträge geprüft!“ — und der Weg zurück in die Liste.',
+                        footer: 'Am Ende steht „Alle Einträge geprüft!“ und der Weg zurück in die Liste.',
                     },
                 ],
                 points: [
                     'Nur offene Einträge landen im Prüfmodus; abgehakte werden nicht noch einmal gefragt',
-                    'Überspringen ist erlaubt — der Eintrag kommt am Ende wieder',
+                    'Überspringen ist erlaubt, der Eintrag kommt am Ende wieder',
                     'Die Knöpfe sind fürs Handy gebaut: eine Hand, ein Daumen, kein Zielen',
                 ],
             },
             {
                 kind: 'showcase', id: 'attendance-report', accent: 'success', tone: 'accent',
-                chip: 'Deep Dive · Anwesenheit',
-                heading: 'Der Bericht',
-                headingAccent: 'steht auf Knopfdruck.',
+                chip: 'Anwesenheit im Detail',
+                heading: 'Der Bericht am Jahresende',
                 lead: 'Zeitraum, Gruppen und Mitgliedstypen wählen, Vorschau ansehen, PDF ziehen. Wiederkehrende '
                     + 'Auswertungen lassen sich als Filtervorlage speichern.',
                 screens: [
@@ -464,7 +454,7 @@ export const MODULE_TRACKS: PitchTrack[] = [
                 ],
                 points: [
                     'Die Rundung entscheidet, ob exakt, auf halbe oder auf volle Stunden gezählt wird',
-                    'Jahr, Monat oder Kalenderwoche — der Bericht folgt dem gewählten Zeitraum',
+                    'Jahr, Monat oder Kalenderwoche, der Bericht folgt dem gewählten Zeitraum',
                     'Das PDF geht so an den Träger, wie es auf dem Schirm steht',
                 ],
             },
@@ -475,15 +465,15 @@ export const MODULE_TRACKS: PitchTrack[] = [
             kind: 'split', id: 'knowledge', accent: 'info', chip: 'Wissen',
             wide: true,
             heading: 'Das Wiki',
-            lead: 'Ordner und Dateien wie auf einem Laufwerk — nur mit Rechten, Versionen und Suche.',
+            lead: 'Ordner und Dateien wie auf einem Laufwerk, nur mit Rechten, Versionen und Suche.',
             bullets: [
                 'Ordner, Markdown-Seiten, Dateien, Präsentationen, Links und Videos nebeneinander',
-                'Präsentationen laufen im Vollbild direkt aus dem Wiki — ohne Zusatzsoftware',
-                'Word-, OpenDocument-, RTF- und HTML-Dokumente werden beim Import zu Markdown',
-                'Jede Änderung wird versioniert — ältere Fassungen lassen sich zurückholen',
+                'Präsentationen laufen im Vollbild direkt aus dem Wiki, ohne Zusatzsoftware',
+                'Word, OpenDocument, RTF, HTML, EPUB und LaTeX werden beim Hochladen zu Markdown',
+                'Jede Änderung wird versioniert; ältere Fassungen lassen sich zurückholen',
                 'Lesen, Bearbeiten oder Vollzugriff je Eintrag, für Rollen, Gruppen und Tags',
                 'Schlagwörter, Favoriten und eine Suche, die auch Partnerwachen erreicht',
-                'Einzelne Ordner öffentlich stellen — dann liest sie jeder ohne Zugang',
+                'Einzelne Ordner öffentlich stellen, dann liest sie jeder ohne Zugang',
             ],
             screen: {
                 title: 'Wiki', subtitle: 'Dateien und Ordner durchsuchen',
@@ -493,16 +483,15 @@ export const MODULE_TRACKS: PitchTrack[] = [
                 toolbar: {create: 'Neu', views: ['Kacheln', 'Liste']},
                 tiles: WIKI_ITEMS,
                 footer: 'Ein Stern markiert Favoriten, ein Schloss eine Zugriffsbeschränkung. '
-                    + '„Nur lesen" steht nur dort, wo jemand sonst bearbeiten dürfte — sonst wäre es überall zu lesen.',
+                    + '„Nur lesen" steht nur dort, wo jemand sonst bearbeiten dürfte, sonst wäre es überall zu lesen.',
             },
         },
         details: [
             {
                 kind: 'showcase', id: 'knowledge-entry', accent: 'info', tone: 'accent',
-                chip: 'Deep Dive · Wiki',
-                heading: 'Eine Seite,',
-                headingAccent: 'die ihre Geschichte kennt.',
-                lead: 'Schreiben im Browser, Vorschau daneben, jede Fassung aufgehoben — und ein Rückweg, '
+                chip: 'Wiki im Detail',
+                heading: 'Jede Seite kennt ihre Geschichte',
+                lead: 'Schreiben im Browser, Vorschau daneben, jede Fassung aufgehoben, dazu ein Rückweg, '
                     + 'wenn jemand zu viel gelöscht hat.',
                 screens: [
                     {
@@ -531,10 +520,9 @@ export const MODULE_TRACKS: PitchTrack[] = [
             },
             {
                 kind: 'showcase', id: 'knowledge-rights', accent: 'info', tone: 'accent',
-                chip: 'Deep Dive · Wiki',
-                heading: 'Rechte, die man',
-                headingAccent: 'am Eintrag sieht.',
-                lead: 'Die Oberfläche bietet nur an, was euer Recht hergibt — und sagt, woher das Recht kommt.',
+                chip: 'Wiki im Detail',
+                heading: 'Rechte sieht man am Eintrag',
+                lead: 'Die Oberfläche bietet nur an, was euer Recht hergibt. Und sie sagt, woher das Recht kommt.',
                 screens: [
                     {
                         title: 'Prüfungsfragen', subtitle: 'Zugriffsbeschränkung',
@@ -567,11 +555,10 @@ export const MODULE_TRACKS: PitchTrack[] = [
             },
             {
                 kind: 'showcase', id: 'knowledge-present', accent: 'info', tone: 'accent',
-                chip: 'Deep Dive · Wiki',
-                heading: 'Präsentationen laufen',
-                headingAccent: 'aus dem Wiki heraus.',
-                lead: 'Die Folien für den Ausbildungsabend liegen im Wiki — und werden von dort im Vollbild '
-                    + 'vorgeführt. Kein Stick, kein Laptop mit passendem Office, kein „wo war die Datei nochmal".',
+                chip: 'Wiki im Detail',
+                heading: 'Präsentieren direkt aus dem Wiki',
+                lead: 'Die Folien für den Ausbildungsabend liegen im Wiki und laufen von dort im Vollbild '
+                    + 'vorgeführt. Ohne Stick, ohne Laptop mit passendem Office.',
                 screens: [
                     {
                         title: 'Grundlagen der Gerätekunde', subtitle: 'Wiki · Präsentation',
@@ -589,20 +576,18 @@ export const MODULE_TRACKS: PitchTrack[] = [
                                     {text: 'kein Versand nötig', badge: 'primary'}],
                             ],
                         },
-                        footer: 'Die Bedienelemente blenden sich aus, sobald die Maus stillsteht — es bleibt die Folie.',
+                        footer: 'Die Bedienelemente blenden sich aus, sobald die Maus stillsteht, es bleibt die Folie.',
                     },
                 ],
                 points: [
                     'Hochgeladene Präsentationen werden auf dem Server umgewandelt und Folie für Folie gezeigt',
-                    'Jeder Ausbilder greift auf dieselbe, aktuelle Fassung zu — samt Versionshistorie',
-                    'Wer sie nur ansehen will, öffnet sie im Wiki wie jede andere Datei',
+                    'Jeder Ausbilder greift auf dieselbe, aktuelle Fassung zu, samt Versionshistorie',
                 ],
             },
             {
                 kind: 'showcase', id: 'knowledge-shared', accent: 'info', tone: 'accent',
-                chip: 'Deep Dive · Wiki',
-                heading: 'Einmal schreiben,',
-                headingAccent: 'im Verbund nutzen.',
+                chip: 'Wiki im Detail',
+                heading: 'Einmal schreiben, im Verbund nutzen',
                 lead: 'Was eine Wache erarbeitet hat, muss die Nachbarwache nicht noch einmal schreiben.',
                 screens: [
                     {
@@ -622,7 +607,7 @@ export const MODULE_TRACKS: PitchTrack[] = [
                                 badges: [{text: 'Kreis Musterland', tone: 'info'}],
                             },
                         ],
-                        footer: 'Eine geteilte Datei öffnet wie eine eigene — Text und Markdown auch mit Kommentaren.',
+                        footer: 'Eine geteilte Datei öffnet wie eine eigene: Text und Markdown auch mit Kommentaren.',
                     },
                 ],
                 points: [
@@ -637,12 +622,12 @@ export const MODULE_TRACKS: PitchTrack[] = [
         overview: {
             kind: 'split', id: 'quiz', accent: 'success', chip: 'Ausbildung',
             heading: 'Quiz',
-            lead: 'Fragen einmal sammeln — dann damit üben lassen oder prüfen.',
+            lead: 'Fragen einmal sammeln, dann damit üben lassen oder prüfen.',
             bullets: [
                 'Kataloge sammeln die Fragen, Tests stellen daraus einen Bogen zusammen',
                 'Acht Fragetypen: Multiple Choice, Wahr/Falsch, Lückentext, Freitext, '
                     + 'Zuordnung, Reihenfolge, Aufzählung, Bild & Text',
-                'Ein Katalog fürs Training freigegeben — jeder übt für sich, ohne Bewertung',
+                'Ein Katalog fürs Training freigegeben: jeder übt für sich, ohne Bewertung',
                 'Fragen per CSV importieren oder von einer KI vorschlagen lassen',
                 'Kataloge mit Partnerwachen teilen und übernehmen',
             ],
@@ -664,16 +649,15 @@ export const MODULE_TRACKS: PitchTrack[] = [
                         badges: [{text: 'Talbach', tone: 'info'}],
                     },
                 ],
-                footer: 'Kataloge lassen sich exportieren und importieren — auch zwischen Wachen.',
+                footer: 'Kataloge lassen sich exportieren und importieren, auch zwischen Wachen.',
             },
         },
         details: [
             {
                 kind: 'showcase', id: 'quiz-types', accent: 'success', tone: 'accent',
-                chip: 'Deep Dive · Quiz',
-                heading: 'Acht Fragetypen,',
-                headingAccent: 'nicht nur Ankreuzen.',
-                lead: 'Jeder Typ bringt seinen eigenen Editor mit — und weiß, wie er sich selbst auswertet.',
+                chip: 'Quiz im Detail',
+                heading: 'Acht Fragetypen, nicht nur Ankreuzen',
+                lead: 'Jeder Typ bringt seinen eigenen Editor mit und weiß, wie er sich selbst auswertet.',
                 screens: [
                     {
                         title: 'Grundlagen', subtitle: 'Katalog · 48 Fragen',
@@ -703,16 +687,15 @@ export const MODULE_TRACKS: PitchTrack[] = [
                     },
                 ],
                 points: [
-                    'Falsche Antworten kann eine KI vorschlagen — freigegeben wird von euch',
+                    'Falsche Antworten kann eine KI vorschlagen, freigegeben wird von euch',
                     'Ganze Kataloge lassen sich als CSV einlesen',
                     'Freitext bewertet ein Mensch, alles andere rechnet die Anwendung',
                 ],
             },
             {
                 kind: 'showcase', id: 'quiz-test', accent: 'success', tone: 'accent',
-                chip: 'Deep Dive · Quiz',
-                heading: 'Vom Katalog',
-                headingAccent: 'zum Test.',
+                chip: 'Quiz im Detail',
+                heading: 'Vom Katalog zum Test',
                 lead: 'Ein Test zieht seine Fragen aus den Katalogen, läuft in einem Zeitfenster und '
                     + 'sammelt die Abgaben ein.',
                 screens: [
@@ -733,7 +716,7 @@ export const MODULE_TRACKS: PitchTrack[] = [
                                 badges: [{text: 'Geschlossen', tone: 'error'}, {text: '22 Teilnehmer', tone: 'secondary'}],
                             },
                         ],
-                        footer: 'Ein Test ist Entwurf, aktiv oder geschlossen — wer abgegeben hat, sieht das an seiner Zeile.',
+                        footer: 'Ein Test ist Entwurf, aktiv oder geschlossen, wer abgegeben hat, sieht das an seiner Zeile.',
                     },
                 ],
                 points: [
@@ -744,10 +727,9 @@ export const MODULE_TRACKS: PitchTrack[] = [
             },
             {
                 kind: 'showcase', id: 'quiz-evaluate', accent: 'success', tone: 'accent',
-                chip: 'Deep Dive · Quiz',
-                heading: 'Bewerten,',
-                headingAccent: 'wo ein Mensch nötig ist.',
-                lead: 'Was sich rechnen lässt, ist schon gerechnet. Übrig bleiben die Freitexte — mit '
+                chip: 'Quiz im Detail',
+                heading: 'Wo ein Mensch bewerten muss',
+                lead: 'Was sich rechnen lässt, ist schon gerechnet. Übrig bleiben die Freitexte, mit '
                     + 'Musterlösung daneben.',
                 screens: [
                     {
@@ -780,9 +762,8 @@ export const MODULE_TRACKS: PitchTrack[] = [
             },
             {
                 kind: 'showcase', id: 'quiz-training', accent: 'success', tone: 'accent',
-                chip: 'Deep Dive · Quiz',
-                heading: 'Training —',
-                headingAccent: 'üben ohne Note.',
+                chip: 'Quiz im Detail',
+                heading: 'Üben ohne Note',
                 lead: 'Wer üben will, sucht sich Kataloge aus und arbeitet sie durch. Es gibt kein Zeitfenster, '
                     + 'keine Abgabe und kein Ergebnis, das irgendwo landet.',
                 screens: [
@@ -801,18 +782,18 @@ export const MODULE_TRACKS: PitchTrack[] = [
                             rows: [
                                 [{text: 'Frage', strong: true}, {text: 'Welche Aussagen treffen zu?'}],
                                 [{text: 'Antwortfeld', strong: true},
-                                    {text: 'passend zum Fragetyp — ankreuzen, sortieren, zuordnen, tippen'}],
+                                    {text: 'passend zum Fragetyp, ankreuzen, sortieren, zuordnen, tippen'}],
                                 [{text: 'Antwort zeigen', strong: true},
                                     {text: 'richtige Lösung, bei Freitext die Beispielantwort'}],
                             ],
                         },
-                        footer: 'Am Ende: „Alle Fragen durchgearbeitet!" — und ein Knopf zum erneuten Starten.',
+                        footer: 'Am Ende: „Alle Fragen durchgearbeitet!" und ein Knopf zum erneuten Starten.',
                     },
                 ],
                 points: [
                     'Die Wache entscheidet je Katalog, ob er fürs Training offensteht',
                     'Auch Zuordnung und Reihenfolge zeigen ihre richtige Lösung',
-                    'Geübt wird ohne Spur — Ergebnisse entstehen nur in einem Test',
+                    'Geübt wird ohne Spur: Ergebnisse entstehen nur in einem Test',
                 ],
             },
         ],
@@ -822,7 +803,7 @@ export const MODULE_TRACKS: PitchTrack[] = [
             kind: 'split', id: 'protocol', accent: 'info', chip: 'Ausbildung',
             heading: 'Prüfungsbögen',
             lead: 'Eine Abnahme läuft am Bogen: Abschnitte, Punkte je Prüfpunkt, mehrere Prüfer '
-                + 'gleichzeitig — und am Ende eine Tabelle über den ganzen Jahrgang.',
+                + 'gleichzeitig, am Ende eine Tabelle über den ganzen Jahrgang.',
             bullets: [
                 'Bögen mit Abschnitten, Unterabschnitten und Punkten je Prüfpunkt',
                 'Bestehensgrenze in Punkten, an der die Auswertung gemessen wird',
@@ -856,9 +837,8 @@ export const MODULE_TRACKS: PitchTrack[] = [
         details: [
             {
                 kind: 'showcase', id: 'protocol-run', accent: 'info', tone: 'accent',
-                chip: 'Deep Dive · Prüfungsbögen',
-                heading: 'Ein Lauf',
-                headingAccent: 'für den ganzen Jahrgang.',
+                chip: 'Prüfungsbögen im Detail',
+                heading: 'Ein Lauf für den ganzen Jahrgang',
                 lead: 'Der Prüfungslauf hält Datum, Prüflinge und Stand zusammen. Wer prüft, sieht auf einen Blick, '
                     + 'wer noch fehlt.',
                 screens: [
@@ -882,7 +862,7 @@ export const MODULE_TRACKS: PitchTrack[] = [
                                 badges: [{text: 'Abgeschlossen', tone: 'success'}],
                             },
                         ],
-                        footer: 'Beim Anlegen wählt man Bogen, Datum und Prüflinge — über Rolle, Gruppe und Tag '
+                        footer: 'Beim Anlegen wählt man Bogen, Datum und Prüflinge, über Rolle, Gruppe und Tag '
                             + 'oder namentlich.',
                     },
                     {
@@ -913,13 +893,13 @@ export const MODULE_TRACKS: PitchTrack[] = [
                     'Zwei Prüfer an zwei Stationen arbeiten im selben Lauf, ohne sich in die Quere zu kommen',
                     'Der Filter „Nur unvollständige“ zeigt, wer noch fehlt',
                     'Ein abgeschlossener Lauf bleibt als Nachweis erhalten',
+                    'Der Bogen selbst bleibt unangetastet; der nächste Jahrgang startet ihn erneut',
                 ],
             },
             {
                 kind: 'showcase', id: 'protocol-grading', accent: 'info',
-                chip: 'Deep Dive · Prüfungsbögen',
-                heading: 'Abnahme —',
-                headingAccent: 'Abschnitt für Abschnitt.',
+                chip: 'Prüfungsbögen im Detail',
+                heading: 'Abnahme, Abschnitt für Abschnitt',
                 lead: 'Der Prüfer hat das Gerät in der Hand und hakt ab, was er sieht. Punkte und Zwischenstand '
                     + 'stehen sofort, ohne Zettel und ohne Nachrechnen.',
                 screens: [
@@ -937,30 +917,29 @@ export const MODULE_TRACKS: PitchTrack[] = [
                     },
                 ],
                 points: [
-                    'Jeder Prüfpunkt trägt seine Punkte — die Summe entsteht beim Abhaken',
+                    'Jeder Prüfpunkt trägt seine Punkte, die Summe entsteht beim Abhaken',
                     'Unterabschnitte gliedern lange Bögen, ohne die Punktzahl zu zerreißen',
                     'Ein geprüfter Abschnitt bekommt den Haken; unterbrechen ist jederzeit erlaubt',
                 ],
             },
             {
                 kind: 'showcase', id: 'protocol-evaluation', accent: 'info', tone: 'accent',
-                chip: 'Deep Dive · Prüfungsbögen',
-                heading: 'Die Auswertung',
-                headingAccent: 'zeigt den ganzen Jahrgang.',
-                lead: 'Abschnitte in den Zeilen, Prüflinge in den Spalten. Wo es hakt, sieht man an der Farbe — '
+                chip: 'Prüfungsbögen im Detail',
+                heading: 'Die Auswertung des Laufs',
+                lead: 'Abschnitte in den Zeilen, Prüflinge in den Spalten. Wo es hakt, sieht man an der Farbe, '
                     + 'nicht am Nachrechnen.',
                 screens: [
                     {
                         title: 'Auswertung', subtitle: 'Jugendflamme Stufe 1 — 18.04.2026 — Grenze: 24P',
                         actions: ['Tabelle als PDF', 'Alles als ZIP'],
                         evaluation: PROTOCOL_EVALUATION,
-                        footer: 'Das PDF eines Prüflings kommt aus seiner Spalte — oder der ganze Lauf als ZIP.',
+                        footer: 'Das PDF eines Prüflings kommt aus seiner Spalte, der ganze Lauf als ZIP.',
                     },
                 ],
                 points: [
                     'Die Farbskala läuft von rot bis grün und macht Lücken im Jahrgang sofort sichtbar',
                     'Die Themenspalte bleibt beim Scrollen stehen, auch bei dreißig Prüflingen',
-                    'Die Bestehensgrenze steht über der Tabelle — zwei liegen darunter, das sieht man ohne Rechnen',
+                    'Die Bestehensgrenze steht über der Tabelle, zwei liegen darunter, das sieht man ohne Rechnen',
                 ],
             },
         ],
@@ -971,10 +950,10 @@ export const MODULE_TRACKS: PitchTrack[] = [
             heading: 'Inventar',
             lead: 'Von der Jacke am Mitglied bis zur Kiste im Regal: was da ist, wo es liegt und wer es hat.',
             bullets: [
-                'Mehrere Inventare nebeneinander — Kleidung mit Größen, Geräte ohne',
+                'Mehrere Inventare nebeneinander: Kleidung mit Größen, Geräte ohne',
                 'Eigene Felder je Inventar: Prüfdatum, Hersteller, interne Nummer',
                 'Ausgabe und Rücknahme per Scan, auch mit der Handykamera',
-                'Ein Lager aus verschachtelten Behältern — Raum, Schrank, Schublade, Kiste',
+                'Ein Lager aus verschachtelten Behältern: Raum, Schrank, Schublade, Kiste',
                 'Prüfungen für Mitglieder und für Behälter, mit Ergebnis und Verlauf',
                 'Tausch, Beschaffung und Verlust laufen als eigene Vorgänge',
                 'Ausleihe zwischen Wachen mit Nachrichtenverlauf und Sperrzeiten',
@@ -1002,9 +981,8 @@ export const MODULE_TRACKS: PitchTrack[] = [
         details: [
             {
                 kind: 'showcase', id: 'inventory-items', accent: 'secondary', tone: 'accent',
-                chip: 'Deep Dive · Inventar',
-                heading: 'Jedes Stück',
-                headingAccent: 'hat seine Geschichte.',
+                chip: 'Inventar im Detail',
+                heading: 'Jedes Stück hat seine Geschichte',
                 lead: 'Ein Inventar zeigt seinen Bestand als Tabelle mit den Feldern, die es selbst definiert hat. '
                     + 'Am Mitglied steht dieselbe Ausstattung als Karten.',
                 screens: [
@@ -1028,7 +1006,7 @@ export const MODULE_TRACKS: PitchTrack[] = [
                     },
                     {
                         title: 'Mitglieder-Inventar', subtitle: 'Zugewiesene Ausrüstung eines Mitglieds',
-                        hint: 'Code eingeben oder scannen — der Gegenstand wird direkt zugewiesen',
+                        hint: 'Code eingeben oder scannen, der Gegenstand wird direkt zugewiesen',
                         section: 'Einsatzkleidung',
                         rows: [
                             {
@@ -1055,11 +1033,10 @@ export const MODULE_TRACKS: PitchTrack[] = [
             },
             {
                 kind: 'showcase', id: 'inventory-storage', accent: 'secondary',
-                chip: 'Deep Dive · Inventar',
-                heading: 'Das Lager',
-                headingAccent: 'ist ein Baum.',
+                chip: 'Inventar im Detail',
+                heading: 'Das Lager ist ein Baum',
                 lead: 'Räume, Schränke, Schubladen und Kisten stecken ineinander. Jeder Gegenstand hat damit einen '
-                    + 'Ort, den man vorlesen kann — und die Suche findet ihn darüber.',
+                    + 'Ort, den man vorlesen kann. Die Suche findet ihn darüber.',
                 screens: [
                     {
                         title: 'Lager', subtitle: 'Räume, Schränke, Schubladen und Kisten',
@@ -1067,11 +1044,11 @@ export const MODULE_TRACKS: PitchTrack[] = [
                         actions: ['Neuer Behälter'],
                         section: 'Behälter',
                         storage: INVENTORY_STORAGE,
-                        footer: 'Die Suche findet Behälter und Gegenstände — und zeigt zum Gegenstand seinen Weg.',
+                        footer: 'Die Suche findet Behälter und Gegenstände und zeigt zu jedem Gegenstand seinen Weg.',
                     },
                     {
                         title: 'Behälter-Prüfung', subtitle: 'Gerätehaus / Schrank 2 / Kiste Schläuche',
-                        hint: 'Code eingeben oder scannen — jeder Treffer wird sofort bestätigt',
+                        hint: 'Code eingeben oder scannen, jeder Treffer wird sofort bestätigt',
                         badges: [{text: 'Bestätigt: 9', tone: 'success'}, {text: 'Offen: 3', tone: 'info'},
                             {text: 'Fehlend: 1', tone: 'error'}, {text: 'Zusätzlich gefunden: 2', tone: 'info'}],
                         summary: [{label: 'Position', value: 'Behälter 3 von 12'}],
@@ -1096,15 +1073,15 @@ export const MODULE_TRACKS: PitchTrack[] = [
                     'Die Prüfung läuft den Baum ab: ein Behälter nach dem anderen, mit Vor und Zurück',
                     'Auf Wunsch werden Unter-Behälter gleich mitgeprüft',
                     'Was gefunden wird, ohne dort eingetragen zu sein, landet unter „Zusätzlich gefunden“',
+                    'Ein Behälter steckt im nächsten, so tief, wie das Lager es hergibt',
                 ],
             },
             {
                 kind: 'showcase', id: 'inventory-requirements', accent: 'secondary', tone: 'accent',
-                chip: 'Deep Dive · Inventar',
-                heading: 'Was jemand',
-                headingAccent: 'haben muss.',
+                chip: 'Inventar im Detail',
+                heading: 'Was jemand haben muss',
                 lead: 'Je Rolle und je Gruppe steht fest, welche Ausstattung dazugehört. Daraus weiß die Prüfung, '
-                    + 'was fehlt — nicht nur, was da ist.',
+                    + 'was fehlt, und nicht nur, was da ist.',
                 screens: [
                     {
                         title: 'Benötigt', subtitle: 'Benötigten Bestand je Rolle und Gruppe festlegen',
@@ -1118,7 +1095,7 @@ export const MODULE_TRACKS: PitchTrack[] = [
                                 [{text: 'Handschuhe', strong: true}, {text: '2'}],
                             ],
                         },
-                        footer: 'Dieselbe Liste gibt es je Gruppe — Atemschutz bekommt mehr als der Rest.',
+                        footer: 'Dieselbe Liste gibt es je Gruppe: Atemschutz bekommt mehr als der Rest.',
                     },
                     {
                         title: 'Inventarprüfung', subtitle: 'Wer wurde wann geprüft',
@@ -1135,21 +1112,19 @@ export const MODULE_TRACKS: PitchTrack[] = [
                                     {text: 'Wird geprüft von C. Weiß', badge: 'error'}],
                             ],
                         },
-                        footer: 'Wer eine Prüfung offen hat, sperrt sie für die anderen — doppelte Arbeit fällt weg.',
+                        footer: 'Wer eine Prüfung offen hat, sperrt sie für die anderen. Doppelte Arbeit fällt weg.',
                     },
                 ],
                 points: [
                     'Die Reihenfolge der Anforderungen bestimmt, wie die Prüfung sie abfragt',
                     'Sortieren nach Name oder nach letzter Prüfung zeigt, wer zu lange nicht dran war',
-                    'Eine begonnene Prüfung lässt sich später fortsetzen',
                 ],
             },
             {
                 kind: 'showcase', id: 'inventory-check', accent: 'secondary',
-                chip: 'Deep Dive · Inventar',
-                heading: 'Die Prüfung',
-                headingAccent: 'am Mitglied.',
-                lead: 'Stück für Stück: vorhanden, verloren, oder gar nicht erst ausgegeben. Für die Kleiderkammer '
+                chip: 'Inventar im Detail',
+                heading: 'Die Prüfung am Mitglied',
+                lead: 'Stück für Stück: vorhanden, verloren oder gar nicht erst ausgegeben. Für die Kleiderkammer '
                     + 'gibt es dieselbe Prüfung als Schnelldurchlauf mit Scanner.',
                 screens: [
                     {
@@ -1161,7 +1136,7 @@ export const MODULE_TRACKS: PitchTrack[] = [
                     {
                         title: 'Inventarprüfung', subtitle: 'Schnellprüfung',
                         rapidCheck: INVENTORY_RAPID,
-                        footer: 'Der Scan bestätigt den passenden Gegenstand und springt weiter — ohne Tippen.',
+                        footer: 'Der Scan bestätigt den passenden Gegenstand und springt weiter, ohne Tippen.',
                     },
                 ],
                 points: [
@@ -1172,11 +1147,10 @@ export const MODULE_TRACKS: PitchTrack[] = [
             },
             {
                 kind: 'showcase', id: 'inventory-flow', accent: 'secondary', tone: 'accent',
-                chip: 'Deep Dive · Inventar',
-                heading: 'Tausch',
-                headingAccent: 'und Beschaffung.',
+                chip: 'Inventar im Detail',
+                heading: 'Tausch und Beschaffung',
                 lead: 'Die Hose ist zu kurz, der Helm ist weg: beides wird ein Vorgang mit Status, Verlauf und '
-                    + 'einem Ende — statt einer Nachricht, die untergeht.',
+                    + 'einem Ende, statt einer Nachricht, die untergeht.',
                 screens: [
                     {
                         title: 'Ausrüstungstausch', subtitle: 'Tausch-Anfragen verwalten',
@@ -1214,7 +1188,7 @@ export const MODULE_TRACKS: PitchTrack[] = [
                                 description: 'Jonas Behr — 02.05.2026',
                             },
                         ],
-                        footer: 'Die Liste ist die Einkaufsliste — abgehakt wird, was angekommen ist.',
+                        footer: 'Die Liste ist die Einkaufsliste. Abgehakt wird, was angekommen ist.',
                     },
                 ],
                 points: [
@@ -1225,9 +1199,8 @@ export const MODULE_TRACKS: PitchTrack[] = [
             },
             {
                 kind: 'showcase', id: 'inventory-lending', accent: 'secondary',
-                chip: 'Deep Dive · Inventar',
-                heading: 'Ausleihe',
-                headingAccent: 'zwischen Wachen.',
+                chip: 'Inventar im Detail',
+                heading: 'Ausleihe zwischen Wachen',
                 lead: 'Was die eine Wache nicht hat, hat oft die andere. Eine Anfrage trägt Zeitraum, Stücke und '
                     + 'den ganzen Schriftwechsel an einem Ort.',
                 screens: [
@@ -1263,13 +1236,13 @@ export const MODULE_TRACKS: PitchTrack[] = [
                                 [{text: 'Feldküche', strong: true}, {text: '1'}],
                             ],
                         },
-                        footer: 'Darunter läuft der Nachrichtenverlauf beider Wachen — Statuswechsel schreiben '
+                        footer: 'Darunter läuft der Nachrichtenverlauf beider Wachen: Statuswechsel schreiben '
                             + 'sich selbst hinein.',
                     },
                 ],
                 points: [
                     'Sperrzeiten halten Zeiträume frei, in denen die eigene Wache nichts verleiht',
-                    'Beim Bewilligen werden die konkreten Stücke zugeordnet — nicht nur die Menge',
+                    'Beim Bewilligen werden die konkreten Stücke zugeordnet, nicht nur die Menge',
                     'Überfällige Rückgaben sind an der Liste zu sehen, ohne nachzurechnen',
                 ],
             },
@@ -1278,17 +1251,17 @@ export const MODULE_TRACKS: PitchTrack[] = [
     {
         overview: {
             kind: 'split', id: 'boards', accent: 'info', chip: 'Organisation',
-            heading: 'Planer',
-            lead: 'Zeltlager, Großübung, Beschaffung — Vorhaben, die länger laufen als ein Dienstabend, '
-                + 'liegen auf einem Board statt in einem Nachrichtenverlauf.',
+            heading: 'Boards',
+            lead: 'Vorhaben, die länger laufen als ein Dienstabend: Zeltlager, Großübung, Beschaffung. '
+                + 'Sie liegen auf einem Board statt in einem Nachrichtenverlauf.',
             bullets: [
                 'Frei benannte Spalten mit eigener Farbe, Karten per Ziehen dazwischen',
-                'Jedes Ticket trägt Kürzel und Nummer — auf die man sich berufen kann',
+                'Jedes Ticket trägt Kürzel und Nummer, auf die man sich berufen kann',
                 'Priorität, Fälligkeit, Zuweisung, Labels und eigene Felder',
                 'Checklisten, verknüpfte Tickets, Weblinks, Anhänge und Wiki-Seiten am Ticket',
                 'Kommentare und ein Verlauf, der jede Änderung nennt',
                 'Backlog und Archiv halten das Board frei von dem, was gerade nicht dran ist',
-                'Ein Board mit einer Partnerwache teilen — lesend oder mitarbeitend',
+                'Ein Board mit einer Partnerwache teilen, lesend oder mitarbeitend',
             ],
             screen: {
                 title: 'Planer', subtitle: 'Deine Boards',
@@ -1314,10 +1287,9 @@ export const MODULE_TRACKS: PitchTrack[] = [
         details: [
             {
                 kind: 'showcase', id: 'boards-board', accent: 'info', tone: 'accent',
-                chip: 'Deep Dive · Planer',
-                heading: 'Das Board',
-                headingAccent: 'zeigt den Stand.',
-                lead: 'Spalten, wie das Vorhaben sie braucht. Eine Karte zieht man weiter, wenn sie weiter ist — '
+                chip: 'Boards im Detail',
+                heading: 'Das Board zeigt den Stand',
+                lead: 'Spalten, wie das Vorhaben sie braucht. Eine Karte zieht man weiter, wenn sie weiter ist, '
                     + 'und sieht an den Punkten, wie lange sie schon liegt.',
                 screens: [
                     {
@@ -1339,21 +1311,19 @@ export const MODULE_TRACKS: PitchTrack[] = [
                                     {text: 'Hoch'}, {text: '—', muted: true}, {text: '—', muted: true}],
                             ],
                         },
-                        footer: 'Erledigtes wandert nach einer eingestellten Frist ins Archiv — der Blick bleibt frei.',
+                        footer: 'Erledigtes wandert nach einer eingestellten Frist ins Archiv. Der Blick bleibt frei.',
                     },
                 ],
                 points: [
                     'Filter nach Bearbeiter und Labels blenden aus, was gerade nicht die eigene Sache ist',
                     'Die Suche über dem Board findet Tickets nach Nummer und Titel',
-                    'Ein Board bringt beim Anlegen fertige Spalten mit, wenn man will',
                 ],
             },
             {
                 kind: 'showcase', id: 'boards-ticket', accent: 'info',
-                chip: 'Deep Dive · Planer',
-                heading: 'Ein Ticket',
-                headingAccent: 'von innen.',
-                lead: 'Alles zu einer Aufgabe an einem Ort — und daneben die Frage, wer wann was daran geändert hat.',
+                chip: 'Boards im Detail',
+                heading: 'Ein Ticket von innen',
+                lead: 'Alles zu einer Aufgabe an einem Ort, daneben die Frage, wer wann was daran geändert hat.',
                 screens: [
                     {
                         title: 'ZL-41 · Zelte auf Schäden prüfen', subtitle: 'In Arbeit',
@@ -1373,7 +1343,7 @@ export const MODULE_TRACKS: PitchTrack[] = [
                                     {text: 'Erledigt'}],
                             ],
                         },
-                        footer: 'Darunter: Weblinks, Anhänge als Kacheln mit Vorschau — und verknüpfte Wiki-Seiten.',
+                        footer: 'Darunter: Weblinks, Anhänge als Kacheln mit Vorschau und verknüpfte Wiki-Seiten.',
                     },
                     {
                         title: 'ZL-41 · Zelte auf Schäden prüfen', subtitle: 'Kommentare und Verlauf',
@@ -1387,14 +1357,14 @@ export const MODULE_TRACKS: PitchTrack[] = [
                     'Eine Checkliste zerlegt die Aufgabe, ohne dafür eigene Tickets zu brauchen',
                     'Verknüpfungen sagen, was blockiert und was wovon kommt',
                     'Eine verknüpfte Wiki-Seite ersetzt die halbe Beschreibung',
+                    'Anhänge lassen sich im Vollbild durchblättern, Bilder wie PDFs',
                 ],
             },
             {
                 kind: 'showcase', id: 'boards-access', accent: 'info', tone: 'accent',
-                chip: 'Deep Dive · Planer',
-                heading: 'Wer liest,',
-                headingAccent: 'wer schreibt, wer mitarbeitet.',
-                lead: 'Ein Board beantwortet zwei Fragen für die eigene Wache — und dieselben zwei noch einmal '
+                chip: 'Boards im Detail',
+                heading: 'Wer liest, wer schreibt, wer mitarbeitet',
+                lead: 'Ein Board beantwortet zwei Fragen für die eigene Wache und dieselben zwei noch einmal '
                     + 'für jede Partnerwache, mit der es geteilt wird.',
                 screens: [
                     {
@@ -1434,11 +1404,11 @@ export const MODULE_TRACKS: PitchTrack[] = [
                                 badges: [{text: 'Nur Lesen', tone: 'info'}],
                             },
                         ],
-                        footer: 'Geteilte Boards stehen nach Partnerwache gruppiert — hier die von Talbach.',
+                        footer: 'Geteilte Boards stehen nach Partnerwache gruppiert; hier die von Talbach.',
                     },
                 ],
                 points: [
-                    'Teilen darf nur, wer die Berechtigung dafür hat — sonst zeigt der Abschnitt nur den Stand',
+                    'Teilen darf nur, wer die Berechtigung dafür hat, sonst zeigt der Abschnitt nur den Stand',
                     'Ein nur lesend geteiltes Board bietet gar keine Knöpfe zum Schreiben an',
                     'Die eigene Leitung kann den Zugriff auf ein fremdes Board weiter einschränken, nie erweitern',
                 ],
@@ -1450,10 +1420,10 @@ export const MODULE_TRACKS: PitchTrack[] = [
             kind: 'split', id: 'procedures', accent: 'success', chip: 'Organisation',
             heading: 'Abläufe',
             lead: 'Aufnahme, Austritt, Veranstaltung: was immer gleich läuft, läuft als Checkliste mit '
-                + 'Fortschritt — statt in einem Kopf.',
+                + 'Fortschritt, statt in einem Kopf.',
             bullets: [
                 'Vorlagen mit beliebig vielen Schritten, aus denen neue Abläufe entstehen',
-                'Schritte hängen voneinander ab — was noch nicht dran ist, bleibt gesperrt',
+                'Schritte hängen voneinander ab, was noch nicht dran ist, bleibt gesperrt',
                 'Ein Schritt ist intern oder für die Zugewiesenen sichtbar',
                 'Manche Schritte hakt die betroffene Person selbst ab, andere nur die Betreuung',
                 'Fälligkeit, Fortschritt und der Filter „Meine“ zeigen, wo es klemmt',
@@ -1483,15 +1453,14 @@ export const MODULE_TRACKS: PitchTrack[] = [
                         trailing: 'Fällig 10.06.2026',
                     },
                 ],
-                footer: 'Ein Ablauf entsteht aus einer Vorlage oder von Hand — mit Fälligkeit und Zugewiesenen.',
+                footer: 'Ein Ablauf entsteht aus einer Vorlage oder von Hand, mit Fälligkeit und Zugewiesenen.',
             },
         },
         details: [
             {
                 kind: 'showcase', id: 'procedures-run', accent: 'success', tone: 'accent',
-                chip: 'Deep Dive · Abläufe',
-                heading: 'Aufnahme —',
-                headingAccent: 'Schritt für Schritt.',
+                chip: 'Abläufe im Detail',
+                heading: 'Eine Aufnahme, Schritt für Schritt',
                 lead: 'Ein neues Mitglied kommt dazu. Der Ablauf sagt allen Beteiligten, was erledigt ist, '
                     + 'was ansteht und was noch warten muss.',
                 screens: [
@@ -1506,22 +1475,20 @@ export const MODULE_TRACKS: PitchTrack[] = [
                 points: [
                     'Erledigte Schritte tragen ihren Zeitpunkt und sind durchgestrichen',
                     'Die Notiz am offenen Schritt hält fest, warum er noch offen ist',
-                    'Der Fortschritt zählt mit, ohne dass jemand nachzählt',
                 ],
             },
             {
                 kind: 'showcase', id: 'procedures-template', accent: 'success',
-                chip: 'Deep Dive · Abläufe',
-                heading: 'Einmal beschreiben,',
-                headingAccent: 'immer gleich ablaufen.',
-                lead: 'Die Vorlage hält fest, was zu einer Aufnahme gehört — mitsamt der Reihenfolge und der '
+                chip: 'Abläufe im Detail',
+                heading: 'Einmal beschreiben, immer gleich ablaufen',
+                lead: 'Die Vorlage hält fest, was zu einer Aufnahme gehört, mitsamt der Reihenfolge und der '
                     + 'Frage, wer welchen Schritt abhaken darf.',
                 screens: [
                     {
                         title: 'Vorlage bearbeiten', subtitle: 'Aufnahme neues Mitglied',
                         actions: ['Schritt hinzufügen'],
                         procedureTemplate: PROCEDURE_TEMPLATE,
-                        footer: 'Aus dieser Vorlage entsteht jede Aufnahme — die Schritte lassen sich vorher '
+                        footer: 'Aus dieser Vorlage entsteht jede Aufnahme. Die Schritte lassen sich vorher '
                             + 'noch anpassen.',
                     },
                 ],
@@ -1537,13 +1504,13 @@ export const MODULE_TRACKS: PitchTrack[] = [
         overview: {
             kind: 'split', id: 'news', accent: 'error', chip: 'Kommunikation',
             heading: 'Neuigkeiten',
-            lead: 'Was in der Wache passiert, steht da, wo alle es finden — mit den Rückfragen darunter '
+            lead: 'Was in der Wache passiert, steht da, wo alle es finden, mit den Rückfragen darunter '
                 + 'und der Gewissheit, wer es gelesen hat.',
             bullets: [
                 'Beiträge in Markdown, mit Bildern und Vorschau vor dem Veröffentlichen',
                 'Sichtbarkeit über Rolle, Gruppe und Tag einschränken',
                 'Kommentare mit Antworten und Erwähnungen direkt unter dem Beitrag',
-                'Ein Auge zeigt, wer den Beitrag gesehen hat — und wer noch nicht',
+                'Ein Auge zeigt, wer den Beitrag gesehen hat, und wer noch nicht',
                 'Als Blog-Beitrag auf die öffentliche Seite stellen',
                 'Mit Partnerwachen teilen; ihre Beiträge stehen in derselben Liste',
                 'Der öffentliche Blog läuft zusätzlich als RSS- und Atom-Feed',
@@ -1558,16 +1525,15 @@ export const MODULE_TRACKS: PitchTrack[] = [
         details: [
             {
                 kind: 'showcase', id: 'news-reach', accent: 'error', tone: 'accent',
-                chip: 'Deep Dive · Neuigkeiten',
-                heading: 'Ein Beitrag,',
-                headingAccent: 'drei Fragen zur Reichweite.',
+                chip: 'Neuigkeiten im Detail',
+                heading: 'Wer bekommt den Beitrag zu sehen?',
                 lead: 'Wer darf es lesen, steht es auch öffentlich, und bekommen die Partnerwachen es auch? '
                     + 'Alle drei Antworten stehen beim Schreiben nebeneinander.',
                 screens: [
                     {
                         title: 'Neuigkeit bearbeiten', subtitle: 'Zeltlager 2026 — Anmeldung offen',
                         newsSettings: NEWS_SETTINGS,
-                        footer: 'Ohne Auswahl liest die Neuigkeit jedes Mitglied — Einschränken ist die Ausnahme.',
+                        footer: 'Ohne Auswahl liest die Neuigkeit jedes Mitglied: Einschränken ist die Ausnahme.',
                     },
                 ],
                 points: [
@@ -1578,9 +1544,8 @@ export const MODULE_TRACKS: PitchTrack[] = [
             },
             {
                 kind: 'showcase', id: 'news-read', accent: 'error',
-                chip: 'Deep Dive · Neuigkeiten',
-                heading: 'Angekommen —',
-                headingAccent: 'nachweislich.',
+                chip: 'Neuigkeiten im Detail',
+                heading: 'Angekommen, und zwar nachweislich',
                 lead: 'Eine Nachricht in einer Gruppe verschwindet nach oben. Ein Beitrag bleibt stehen, '
                     + 'sammelt seine Rückfragen und zählt mit, wer ihn gesehen hat.',
                 screens: [
@@ -1594,7 +1559,6 @@ export const MODULE_TRACKS: PitchTrack[] = [
                 points: [
                     'Der Aufruf-Dialog trennt „Gesehen“ von „Noch nicht gesehen“, mit Zeitpunkt',
                     'Kommentare erlauben Antworten und Erwähnungen mit @',
-                    'Beiträge von Partnerwachen lassen sich genauso kommentieren',
                 ],
             },
         ],
@@ -1604,11 +1568,11 @@ export const MODULE_TRACKS: PitchTrack[] = [
             kind: 'split', id: 'forms', accent: 'secondary', chip: 'Kommunikation',
             wide: true,
             heading: 'Formulare',
-            lead: 'Eigene Fragen stellen — an die Wache, an die Eltern oder an die Öffentlichkeit. '
+            lead: 'Eigene Fragen stellen, an die Wache, an die Eltern oder an die Öffentlichkeit. '
                 + 'Die Auswertung entsteht dabei von selbst.',
             bullets: [
                 'Sechs Fragetypen: Auswahl, Text, Bewertung, Datum, Rangfolge und Likert-Skala',
-                'Entwurf, offen, geschlossen — veröffentlicht wird bewusst',
+                'Entwurf, offen, geschlossen, veröffentlicht wird bewusst',
                 'Wer antworten darf, entscheiden Rolle, Gruppe und Tag',
                 'Antworten auf Wunsch später noch änderbar',
                 'Diagramme je Frage, dazu die Einzelantworten und ein CSV-Export',
@@ -1625,11 +1589,10 @@ export const MODULE_TRACKS: PitchTrack[] = [
         details: [
             {
                 kind: 'showcase', id: 'forms-fill', accent: 'secondary', tone: 'accent',
-                chip: 'Deep Dive · Formulare',
-                heading: 'Fragen,',
-                headingAccent: 'die zur Antwort passen.',
+                chip: 'Formulare im Detail',
+                heading: 'Jede Frage bringt ihre Eingabe mit',
                 lead: 'Eine Rangfolge fragt man nicht mit einem Textfeld ab. Jeder Fragetyp bringt seine '
-                    + 'eigene Eingabe mit — auf dem Handy genauso bedienbar wie am Rechner.',
+                    + 'eigene Eingabe mit, auf dem Handy genauso bedienbar wie am Rechner.',
                 screens: [
                     {
                         title: 'Formular ausfüllen', subtitle: 'Zeltlager 2026 — Rückmeldung',
@@ -1646,9 +1609,8 @@ export const MODULE_TRACKS: PitchTrack[] = [
             },
             {
                 kind: 'showcase', id: 'forms-analytics', accent: 'secondary',
-                chip: 'Deep Dive · Formulare',
-                heading: 'Die Auswertung',
-                headingAccent: 'entsteht beim Antworten.',
+                chip: 'Formulare im Detail',
+                heading: 'Die Auswertung entsteht beim Antworten',
                 lead: 'Kein Sammeln, kein Nachzählen: jede Frage bringt ihr Diagramm mit, und daneben steht, '
                     + 'wer noch nicht geantwortet hat.',
                 screens: [
@@ -1657,7 +1619,7 @@ export const MODULE_TRACKS: PitchTrack[] = [
                         tabs: ['Diagramme', 'Einzelantworten'],
                         actions: ['Exportieren'],
                         formAnalytics: FORM_ANALYTICS_DATA,
-                        footer: 'Der Export nimmt ausgewählte Fragen und auf Wunsch Profilfelder mit — als CSV.',
+                        footer: 'Der Export nimmt ausgewählte Fragen und auf Wunsch Profilfelder mit und liefert eine CSV-Datei.',
                     },
                 ],
                 points: [
@@ -1673,12 +1635,12 @@ export const MODULE_TRACKS: PitchTrack[] = [
             kind: 'split', id: 'waitlist', accent: 'primary', chip: 'Kommunikation',
             wide: true,
             heading: 'Wartelisten',
-            lead: 'Wer dazukommen will, trägt sich selbst ein — und die Liste führt ihn bis zur Aufnahme, '
+            lead: 'Wer dazukommen will, trägt sich selbst ein. Die Liste führt ihn dann bis zur Aufnahme, '
                 + 'ohne dass jemand eine Tabelle pflegt.',
             bullets: [
                 'Öffentliches Anmeldeformular mit euren eigenen Feldern und den Erziehungsberechtigten',
                 'Jeder Eintrag bekommt einen persönlichen Statuslink und bestätigt darüber sein Interesse',
-                'Eine Punkteformel bestimmt die Reihenfolge — Wartezeit, Alter, eigene Felder',
+                'Eine Punkteformel bestimmt die Reihenfolge: Wartezeit, Alter, eigene Felder',
                 'Vom Ausstehend über Wartend, Eingeladen und Probezeit bis Beigetreten',
                 'Mehrere Listen nebeneinander, öffentlich oder nur intern',
             ],
@@ -1691,9 +1653,8 @@ export const MODULE_TRACKS: PitchTrack[] = [
         details: [
             {
                 kind: 'showcase', id: 'waitlist-intake', accent: 'primary', tone: 'accent',
-                chip: 'Deep Dive · Wartelisten',
-                heading: 'Die Anfrage',
-                headingAccent: 'kommt herein.',
+                chip: 'Wartelisten im Detail',
+                heading: 'Die Anfrage kommt herein',
                 lead: 'Das Formular steht öffentlich, die Angaben landen als Anfrage. Erst wenn jemand sie '
                     + 'freigibt, wird daraus ein Platz in der Warteliste.',
                 screens: [
@@ -1707,13 +1668,13 @@ export const MODULE_TRACKS: PitchTrack[] = [
                     'Die E-Mail-Adresse wird bestätigt, bevor die Anfrage überhaupt erscheint',
                     'Ablehnen ist genauso ein Klick wie Freigeben',
                     'Über Einladungslinks lassen sich Anmeldungen auch gezielt öffnen',
+                    'Notizen zur Anfrage bleiben intern und stehen nur der Leitung',
                 ],
             },
             {
                 kind: 'showcase', id: 'waitlist-order', accent: 'primary',
-                chip: 'Deep Dive · Wartelisten',
-                heading: 'Die Reihenfolge',
-                headingAccent: 'rechnet sich selbst.',
+                chip: 'Wartelisten im Detail',
+                heading: 'Die Reihenfolge rechnet sich selbst',
                 lead: 'Statt einer handgepflegten Sortierung steht eine Formel dahinter: Wartezeit, Alter und '
                     + 'eure eigenen Felder ergeben die Punktzahl, nach der die Liste sortiert.',
                 screens: [
@@ -1725,16 +1686,15 @@ export const MODULE_TRACKS: PitchTrack[] = [
                 ],
                 points: [
                     'Die Punktzahl steht in der Liste, nicht in einer Nebenrechnung',
-                    'Ein Klick lädt ein — der Statuslink zeigt den Stand ohne Konto',
+                    'Ein Klick lädt ein, der Statuslink zeigt den Stand ohne Konto',
                     'Die Position ist ein Anhaltspunkt, keine Zusage; das sagt die Seite auch so',
                 ],
             },
             {
                 kind: 'showcase', id: 'waitlist-settings', accent: 'primary', tone: 'accent',
-                chip: 'Deep Dive · Wartelisten',
-                heading: 'Eine Formel',
-                headingAccent: 'statt einer Meinung.',
-                lead: 'Wie die Punkte entstehen, steht in den Einstellungen der Liste — nachvollziehbar für '
+                chip: 'Wartelisten im Detail',
+                heading: 'Eine Formel statt einer Meinung',
+                lead: 'Wie die Punkte entstehen, steht in den Einstellungen der Liste, nachvollziehbar für '
                     + 'alle, die es wissen wollen.',
                 screens: [
                     {
@@ -1751,16 +1711,15 @@ export const MODULE_TRACKS: PitchTrack[] = [
             },
             {
                 kind: 'showcase', id: 'waitlist-testing', accent: 'primary', tone: 'accent',
-                chip: 'Deep Dive · Wartelisten',
-                heading: 'Probezeit —',
-                headingAccent: 'und dann dabei.',
+                chip: 'Wartelisten im Detail',
+                heading: 'Probezeit, und dann dabei',
                 lead: 'Wer eingeladen wurde, schnuppert erst mit. Die Anwesenheit zählt dabei automatisch mit, '
                     + 'bis die vereinbarte Schwelle erreicht ist.',
                 screens: [
                     {
                         title: 'Warteliste 2026', subtitle: 'Im Probezeitraum',
                         waitlist: {data: WAITLIST, section: 'testing'},
-                        footer: 'Erreicht jemand die Schwelle, hebt die Karte sich hervor — aufgenommen wird '
+                        footer: 'Erreicht jemand die Schwelle, hebt die Karte sich hervor. Aufgenommen wird '
                             + 'trotzdem per Klick.',
                     },
                 ],
@@ -1776,8 +1735,8 @@ export const MODULE_TRACKS: PitchTrack[] = [
         overview: {
             kind: 'split', id: 'pages', accent: 'error', chip: 'Außenauftritt',
             heading: 'Öffentliche Seiten',
-            lead: 'Die Webseite der Wache entsteht in derselben Anwendung — kein zweites System, '
-                + 'kein zweiter Login, keine zweite Wahrheit.',
+            lead: 'Die Webseite der Wache entsteht in derselben Anwendung. Kein zweites System und '
+                + 'kein zweiter Login.',
             bullets: [
                 'Seiten in Zeilen und Spalten, Blöcke per Ziehen sortiert',
                 'Über dreißig Bausteine: Hero, Zahlen, Galerie, Karte, Countdown, Zitat, Akkordeon',
@@ -1796,11 +1755,10 @@ export const MODULE_TRACKS: PitchTrack[] = [
         details: [
             {
                 kind: 'showcase', id: 'pages-public', accent: 'error', tone: 'accent',
-                chip: 'Deep Dive · Öffentliche Seiten',
-                heading: 'So sieht es',
-                headingAccent: 'von außen aus.',
+                chip: 'Öffentliche Seiten im Detail',
+                heading: 'So sieht es von außen aus',
                 lead: 'Dieselben Blöcke, die in der Verwaltung zusammengeschoben werden, stehen für Besucher '
-                    + 'als fertige Seite da — im Erscheinungsbild der Wache.',
+                    + 'als fertige Seite da, im Erscheinungsbild der Wache.',
                 screens: [
                     {
                         title: 'Startseite', subtitle: 'musterstadt.example / start',
@@ -1810,7 +1768,7 @@ export const MODULE_TRACKS: PitchTrack[] = [
                     },
                 ],
                 points: [
-                    'Ein Block kann die halbe Zeile einnehmen — die Breite ist frei einstellbar',
+                    'Ein Block kann die halbe Zeile einnehmen, die Breite ist frei einstellbar',
                     'Auf dem Handy stapeln sich die Spalten von selbst untereinander',
                     'Zugriffszahlen je Seite entstehen ohne Cookies und ohne IP-Adressen',
                 ],
@@ -1821,7 +1779,7 @@ export const MODULE_TRACKS: PitchTrack[] = [
         overview: {
             kind: 'split', id: 'notifications', accent: 'primary', chip: 'Kommunikation',
             heading: 'Benachrichtigungen',
-            lead: 'Jeder stellt selbst ein, was ihn erreicht — und auf welchem Weg.',
+            lead: 'Jeder stellt selbst ein, was ihn erreicht und auf welchem Weg.',
             bullets: [
                 'Neun Arten, drei Kanäle: App, E-Mail und Feed einzeln schaltbar',
                 'Ohne eingerichteten Mailversand bleibt die E-Mail-Spalte aus',
@@ -1831,15 +1789,14 @@ export const MODULE_TRACKS: PitchTrack[] = [
             screen: {
                 title: 'Benachrichtigungen', subtitle: 'Was dich erreicht und wie',
                 notifications: {settings: NOTIFICATION_SETTINGS},
-                footer: 'Ein abgeschalteter Kanal gilt nur für dich — andere bekommen ihre Mitteilung trotzdem.',
+                footer: 'Ein abgeschalteter Kanal gilt nur für dich. Andere bekommen ihre Mitteilung trotzdem.',
             },
         },
         details: [
             {
                 kind: 'showcase', id: 'notifications-feeds', accent: 'primary', tone: 'accent',
-                chip: 'Deep Dive · Benachrichtigungen',
-                heading: 'Der Dienstplan',
-                headingAccent: 'im eigenen Kalender.',
+                chip: 'Benachrichtigungen im Detail',
+                heading: 'Der Dienstplan im eigenen Kalender',
                 lead: 'Wer die Anwendung nicht dauernd offen hat, holt sich beides dahin, wo er ohnehin '
                     + 'hinschaut: die Termine in den Kalender, die Mitteilungen in den Reader.',
                 screens: [
@@ -1850,7 +1807,7 @@ export const MODULE_TRACKS: PitchTrack[] = [
                     },
                 ],
                 points: [
-                    'Der Kalender aktualisiert sich von selbst — geänderte Termine wandern mit',
+                    'Der Kalender aktualisiert sich von selbst, geänderte Termine wandern mit',
                     'Der Feed zeigt nur, was die eigenen Berechtigungen hergeben',
                     'Der Zugang hängt an einem persönlichen Schlüssel, der sich neu erzeugen lässt',
                 ],

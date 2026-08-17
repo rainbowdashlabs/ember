@@ -29,7 +29,10 @@ import type {PartnerResponse} from '@/api/federation'
 export type Accent = 'primary' | 'secondary' | 'success' | 'info' | 'error'
 
 export interface PitchCard {
-    icon: string
+    /** A FontAwesome solid icon name, as the application uses them. */
+    icon?: string
+    /** Shown instead of an icon where a card is numbered. */
+    label?: string
     title: string
     body: string
     accent?: Accent
