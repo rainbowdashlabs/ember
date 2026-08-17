@@ -5,7 +5,7 @@
  */
 import {statSync} from 'node:fs'
 import type {Page} from '@playwright/test'
-import {test, expect} from './fixtures/auth'
+import {test, expect, accountWithout, pageAsThrowaway} from './fixtures/auth'
 import {unique} from './fixtures/unique'
 
 /**
@@ -275,6 +275,40 @@ test.describe('Members', () => {
 
         await expect(page.getByTestId('app-shell')).toBeVisible()
         await expect(page.getByRole('button', {name: 'Offene Änderungen'})).toBeVisible()
+    })
+
+    /**
+     * What is written about a member is not for everyone who may look at them. The station keeps one
+     * helper who may read the members but not their notes, which is the whole point of the story:
+     * the manager writes a note and the helper, on the same member, is not even offered the tab.
+     */
+    test('a note is shown to whoever may read notes and hidden from the rest', async ({managerPage, browser, request}) => {
+        const note = unique('Notiz')
+
+        await managerPage.goto('/station/members/list')
+        await managerPage.getByTestId('member-row').first().getByRole('button', {name: 'Details'}).click()
+        await managerPage.waitForURL(/\/station\/members\/detail\/(\d+)/)
+        const id = managerPage.url().match(/detail\/(\d+)/)?.[1]
+
+        // The note is one field per member rather than a list of entries, so what says it was kept
+        // is the field still holding it after a reload.
+        await managerPage.getByRole('button', {name: 'Notizen'}).click()
+        await managerPage.getByPlaceholder(/Notiz schreiben/).fill(note)
+        await managerPage.getByRole('button', {name: 'Speichern'}).last().click()
+
+        await managerPage.reload()
+        await managerPage.getByRole('button', {name: 'Notizen'}).click()
+        await expect(managerPage.getByPlaceholder(/Notiz schreiben/)).toHaveValue(note)
+
+        const helper = await accountWithout(request, 'TEAM', 'MEMBER_NOTES')
+        const helperPage = await pageAsThrowaway(browser, request, [], helper)
+
+        await helperPage.goto(`/station/members/detail/${id}`)
+        await expect(helperPage.getByTestId('app-shell')).toBeVisible()
+        await expect(helperPage.getByRole('button', {name: 'Notizen'})).toHaveCount(0)
+        await expect(helperPage.getByText(note)).toHaveCount(0)
+
+        await helperPage.context().close()
     })
 
     /**
