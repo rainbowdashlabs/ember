@@ -1,6 +1,11 @@
 name: Verify
 
-on: [push, pull_request, merge_group]
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  merge_group:
 
 env:
   JAVA_VERSION: 25
@@ -207,8 +212,6 @@ jobs:
     runs-on: ubuntu-latest
     name: Verify Frontend End-to-End
     needs: [ verify-build-frontend ]
-    # The job takes about ten minutes. Without a limit of its own it would run against GitHub's
-    # six hour default, which is what a stalled download outside our control actually costs.
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
@@ -221,10 +224,6 @@ jobs:
       - name: Install dependencies
         working-directory: frontend
         run: npm ci
-      # The browser only, not its system dependencies: the runner image already carries every
-      # library Chromium needs, so --with-deps installs nothing beyond a few fonts while adding
-      # an apt run against the Ubuntu mirrors. That run is what wedged for six hours once, which
-      # the timeout is there to cut short. The step itself takes about half a minute.
       - name: Install Playwright browsers
         working-directory: frontend
         timeout-minutes: 5

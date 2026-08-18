@@ -30,10 +30,6 @@ export default defineNuxtConfig({
   },
 
   nitro: {
-    // Bundled rather than externalised, because these packages ship both a CommonJS and an ESM
-    // build. Externalised, the plugin imports the ESM core while vue-fontawesome requires the
-    // CommonJS one, and Node keeps the two apart: registering an icon fills one instance and
-    // rendering it searches the other, so every icon is missing from the server rendered page.
     externals: {
       inline: [
         '@fortawesome/fontawesome-svg-core',
