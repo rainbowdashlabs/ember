@@ -62,8 +62,11 @@ import jakarta.servlet.http.HttpServletResponseWrapper;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tools.jackson.core.exc.StreamReadException;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.exc.MismatchedInputException;
+import tools.jackson.databind.exc.UnrecognizedPropertyException;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.InputStream;
@@ -885,6 +888,20 @@ public class ApiServer {
         routes.exception(IllegalArgumentException.class, (err, ctx) -> {
             log.warn("Invalid input on {} {}: {}", ctx.method(), ctx.path(), err.getMessage(), err);
             ctx.json(new ErrorResponseWrapper("Invalid Input", "Invalid input")).status(HttpStatus.BAD_REQUEST);
+        });
+
+        routes.exception(StreamReadException.class, (err, ctx) -> {
+            log.warn("Malformed body on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
+            ctx.json(new ErrorResponseWrapper("Bad Request", "The request body is not valid JSON"))
+                    .status(HttpStatus.BAD_REQUEST);
+        });
+
+        routes.exception(MismatchedInputException.class, (err, ctx) -> {
+            String detail = err instanceof UnrecognizedPropertyException unknown
+                    ? "The request body carries a field this endpoint does not accept: " + unknown.getPropertyName()
+                    : "The request body does not match what this endpoint expects";
+            log.warn("Rejected body on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
+            ctx.json(new ErrorResponseWrapper("Bad Request", detail)).status(HttpStatus.BAD_REQUEST);
         });
 
         routes.exception(Exception.class, (err, ctx) -> {
