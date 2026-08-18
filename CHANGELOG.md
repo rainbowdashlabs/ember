@@ -69,6 +69,7 @@
 - **Switching off quiz or examinations clears the menu.** A station that switches off one of the two no longer keeps its pages in the sidebar.
 - **The member import reports what it did.** Finishing an import shows how many members and helpers were created, how many were linked to a group and how many profile fields were filled, plus anything the import had to point out - instead of an empty page.
 - **Chosen files are actually uploaded.** Picking a file - a wiki attachment or original, a folder icon, an avatar, a question or member import - sends the file itself, so the upload completes instead of failing as though no file had been chosen.
+- **Icons arrive with the page itself.** The public pages, the login page and the help center carry their icons in the page the server sends, so they are there from the first moment and stay there when scripts are switched off.
 
 ## v26.11.7
 
