@@ -114,7 +114,8 @@ public class DataInitializer {
                     .substring(directory.length())
                     .replaceFirst("^_?\\d+-", "")
                     .replaceFirst("\\.md$", "");
-            sections.add(new TemplateSection(displayName, content));
+            String fileName = fileName(templateFile);
+            sections.add(new TemplateSection(displayName, content, fileName.startsWith("_")));
         }
         return sections;
     }
@@ -138,7 +139,7 @@ public class DataInitializer {
             // A section Ember ships switched off is not part of the document until someone enables it.
             if (name.startsWith("_")) continue;
             String content = readTemplate(templateFile);
-            sections.add(new TemplateSection(name, content == null ? "" : content));
+            sections.add(new TemplateSection(name, content == null ? "" : content, false));
         }
         return sections;
     }
@@ -174,7 +175,13 @@ public class DataInitializer {
      * @param displayName the section name without ordering prefix or extension
      * @param content     the markdown the section carries
      */
-    public record TemplateSection(String displayName, String content) {}
+    /**
+     * @param optional whether Ember ships this section switched off. Those sections are alternatives
+     *                 or extras rather than part of the document as it stands: only one of the
+     *                 several mail provider sections belongs in a policy, and picking them all would
+     *                 produce a document that contradicts itself.
+     */
+    public record TemplateSection(String displayName, String content, boolean optional) {}
 
     /**
      * Copies bundled templates into the data directory and ensures the runtime directories exist.

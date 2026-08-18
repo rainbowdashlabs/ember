@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
+import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import type {LegalTemplate} from '@/api/adminSettings'
 
 /**
@@ -52,6 +53,7 @@ const title = computed(() => {
         <div class="flex items-center gap-2 flex-wrap">
           <span class="font-medium truncate">{{ title }}</span>
           <InfoBadge v-if="replaces">{{ t('adminSettings.legal.templateReplaces') }}</InfoBadge>
+          <SecondaryBadge v-if="template.optional">{{ t('adminSettings.legal.templateOptional') }}</SecondaryBadge>
         </div>
         <div class="font-mono text-xs text-(--text-muted) truncate">{{ template.displayName }}</div>
       </div>
