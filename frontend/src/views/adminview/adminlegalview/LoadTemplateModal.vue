@@ -57,8 +57,13 @@ function toggle(name: string) {
   selected.value = next
 }
 
+/**
+ * Selects the sections the document is made of, and deliberately not the ones Ember ships switched
+ * off. Those are alternatives: only one of the several mail provider sections belongs in a policy,
+ * and taking them all would produce a document that contradicts itself.
+ */
 function selectAll() {
-  selected.value = new Set(templates.value.map(entry => entry.displayName))
+  selected.value = new Set(templates.value.filter(entry => !entry.optional).map(entry => entry.displayName))
 }
 
 function confirm() {
@@ -93,6 +98,10 @@ watch(show, open => {
         />
       </div>
 
+      <MutedText v-if="templates.length > 0" size="sm">
+        {{ t('adminSettings.legal.selectedCount', {count: selected.size, total: templates.length}) }}
+      </MutedText>
+
       <div class="flex justify-between gap-2 flex-wrap">
         <div class="flex gap-2">
           <SecondaryButton v-if="templates.length > 0" @click="selectAll">
@@ -105,7 +114,7 @@ watch(show, open => {
         <div class="flex gap-2">
           <SecondaryButton @click="show = false">{{ t('common.cancel') }}</SecondaryButton>
           <PrimaryButton :disabled="selected.size === 0" @click="confirm">
-            {{ t('adminSettings.legal.loadSelected', {count: selected.size}) }}
+            {{ t('adminSettings.legal.loadSelected') }}
           </PrimaryButton>
         </div>
       </div>

@@ -1,6 +1,11 @@
 name: Verify
 
-on: [push, pull_request, merge_group]
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  merge_group:
 
 env:
   JAVA_VERSION: 25
@@ -207,6 +212,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Verify Frontend End-to-End
     needs: [ verify-build-frontend ]
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - name: Set up Node.js
@@ -220,7 +226,8 @@ jobs:
         run: npm ci
       - name: Install Playwright browsers
         working-directory: frontend
-        run: npx playwright install --with-deps chromium
+        timeout-minutes: 5
+        run: npx playwright install chromium
       # The stories run against the built server rather than a dev server: a dev server compiles
       # each route the first time it is asked for, which takes longer than an assertion waits.
       - name: Build the frontend

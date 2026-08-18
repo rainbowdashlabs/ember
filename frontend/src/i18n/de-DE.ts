@@ -3636,11 +3636,15 @@ export default {
             loadTemplateTitle: 'Mitgelieferte Vorlage laden',
             loadTemplateHint: 'Wähle die Abschnitte, die aus Embers Vorlage übernommen werden sollen. '
                 + 'Ein Abschnitt mit gleichem Namen wird überschrieben, alle anderen bleiben unberührt. '
-                + 'Die Änderung greift erst beim Speichern.',
+                + 'Die Änderung greift erst beim Speichern. Als „standardmäßig aus" markierte '
+                + 'Abschnitte sind Alternativen, etwa je Mailanbieter einer; von ihnen gehört in der '
+                + 'Regel höchstens einer ins Dokument, weshalb „Alle auswählen" sie ausspart.',
             selectAllTemplates: 'Alle auswählen',
             selectNoTemplates: 'Auswahl aufheben',
-            loadSelected: '{count} Abschnitt(e) laden',
+            loadSelected: 'Auswahl laden',
+            selectedCount: '{count} von {total} ausgewählt',
             templateReplaces: 'Ersetzt vorhandenen Abschnitt',
+            templateOptional: 'Standardmäßig aus',
             templatePreview: 'Inhalt anzeigen',
             noTemplates: 'Für diese Sprache liefert Ember keine Vorlage mit.',
             import: 'Dokument importieren',

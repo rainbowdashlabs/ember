@@ -54,7 +54,7 @@ async function loadEveryTemplate(page: Page) {
     await page.getByRole('button', {name: 'Vorlage laden'}).first().click()
     await expect(page.getByText('Mitgelieferte Vorlage laden')).toBeVisible()
     await page.getByRole('button', {name: 'Alle auswählen'}).click()
-    await page.getByRole('button', {name: 'Vorlage laden'}).last().click()
+    await page.getByRole('button', {name: 'Auswahl laden'}).click()
     await expect(page.getByText('Mitgelieferte Vorlage laden')).toHaveCount(0)
 }
 

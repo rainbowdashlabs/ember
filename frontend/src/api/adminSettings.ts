@@ -261,6 +261,11 @@ export interface LegalFile {
 export interface LegalTemplate {
     displayName: string
     content: string
+    /**
+     * Whether Ember ships this section switched off. Those are alternatives or extras rather than
+     * part of the document as it stands, so selecting everything deliberately leaves them out.
+     */
+    optional?: boolean
 }
 
 export async function getLegalFiles(type: string, locale: string): Promise<LegalFile[]> {
