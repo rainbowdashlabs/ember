@@ -29,7 +29,11 @@ public record MailFallbackPayload(
         String apiKey,
         String senderAddress,
         String senderName,
-        int attempts) {
+        int attempts,
+        int dailySendLimit,
+        String providerName,
+        String providerUrl,
+        String deliveryWebhookUrl) {
 
     /**
      * What a stored secret looks like on its way out.
@@ -66,6 +70,35 @@ public record MailFallbackPayload(
                 apiKey == null || apiKey.isEmpty() ? "" : MASK,
                 senderAddress,
                 senderName,
-                attempts);
+                attempts,
+                dailySendLimit,
+                providerName,
+                providerUrl,
+                deliveryWebhookUrl);
+    }
+
+    /**
+     * The same entry carrying the address this provider reports delivery events to.
+     *
+     * <p>Every entry gets one of its own: the address ends in the report format the provider sends,
+     * so a list holding two different providers needs two different addresses, and the one further
+     * down is exactly the one nobody would think to ask for until it is carrying the post.
+     */
+    public MailFallbackPayload withWebhookUrl(String url) {
+        return new MailFallbackPayload(
+                provider,
+                smtpHost,
+                smtpPort,
+                smtpSsl,
+                smtpUser,
+                smtpPassword,
+                apiKey,
+                senderAddress,
+                senderName,
+                attempts,
+                dailySendLimit,
+                providerName,
+                providerUrl,
+                url);
     }
 }

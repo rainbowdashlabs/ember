@@ -8,10 +8,11 @@ package dev.chojo.ember.feature.members.route;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.mail.entity.MailChainEntry;
+import dev.chojo.ember.feature.mail.repository.StationMailProviderRepository;
 import dev.chojo.ember.feature.members.service.UserSettingsService;
 import dev.chojo.ember.feature.notifications.entity.NotificationSetting;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.station.repository.StationMailConfigRepository;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -33,12 +34,13 @@ import java.util.Map;
 @Singleton
 public class UserSettingsRoutes implements Routes {
     private final UserSettingsService settingsService;
-    private final StationMailConfigRepository mailConfigRepository;
+    private final StationMailProviderRepository mailProviderRepository;
 
     @Inject
-    public UserSettingsRoutes(UserSettingsService settingsService, StationMailConfigRepository mailConfigRepository) {
+    public UserSettingsRoutes(
+            UserSettingsService settingsService, StationMailProviderRepository mailProviderRepository) {
         this.settingsService = settingsService;
-        this.mailConfigRepository = mailConfigRepository;
+        this.mailProviderRepository = mailProviderRepository;
     }
 
     @Override
@@ -121,16 +123,10 @@ public class UserSettingsRoutes implements Routes {
             String feel,
             Map<NotificationType, NotificationSetting> notifSettings,
             int stationId) {
-        var mailConfig = mailConfigRepository.findByStation(stationId);
-        String mailProviderName = "";
-        String mailProviderUrl = "";
-        boolean mailConfigured = false;
-        if (mailConfig.isPresent() && mailConfig.get().isConfigured()) {
-            var mc = mailConfig.get();
-            mailProviderName = mc.providerName();
-            mailProviderUrl = mc.providerUrl();
-            mailConfigured = true;
-        }
+        var first = mailProviderRepository.findByStation(stationId).stream().findFirst();
+        String mailProviderName = first.map(MailChainEntry::providerName).orElse("");
+        String mailProviderUrl = first.map(MailChainEntry::providerUrl).orElse("");
+        boolean mailConfigured = first.isPresent();
 
         // Build response map with defaults for missing types
         var responseMap = new LinkedHashMap<NotificationType, NotificationToggle>();

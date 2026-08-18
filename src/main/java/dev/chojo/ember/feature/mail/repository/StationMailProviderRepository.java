@@ -20,7 +20,7 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 public class StationMailProviderRepository {
 
     private static final String COLUMNS =
-            "position, provider, smtp_host, smtp_port, smtp_ssl, smtp_user, smtp_password, api_key, sender_address, sender_name, attempts";
+            "position, provider, smtp_host, smtp_port, smtp_ssl, smtp_user, smtp_password, api_key, sender_address, sender_name, attempts, daily_limit, provider_name, provider_url";
 
     /**
      * The fallbacks of a station, in the order they are tried.
@@ -42,7 +42,7 @@ public class StationMailProviderRepository {
         query("DELETE FROM station_mail_provider WHERE station_id = :station_id;")
                 .single(call().bind("station_id", stationId))
                 .delete();
-        int position = 1;
+        int position = 0;
         for (var entry : entries) {
             if (!entry.isConfigured()) continue;
             insert(stationId, position++, entry);
@@ -55,10 +55,12 @@ public class StationMailProviderRepository {
                 INTO
                     station_mail_provider(
                         station_id, position, provider, smtp_host, smtp_port, smtp_ssl, smtp_user,
-                        smtp_password, api_key, sender_address, sender_name, attempts)
+                        smtp_password, api_key, sender_address, sender_name, attempts, daily_limit,
+                        provider_name, provider_url)
                 VALUES
                     (:station_id, :position, :provider, :smtp_host, :smtp_port, :smtp_ssl, :smtp_user,
-                     :smtp_password, :api_key, :sender_address, :sender_name, :attempts);""")
+                     :smtp_password, :api_key, :sender_address, :sender_name, :attempts, :daily_limit,
+                     :provider_name, :provider_url);""")
                 .single(call().bind("station_id", stationId)
                         .bind("position", position)
                         .bind("provider", entry.provider().name())
@@ -70,7 +72,10 @@ public class StationMailProviderRepository {
                         .bind("api_key", entry.apiKey())
                         .bind("sender_address", entry.senderAddress())
                         .bind("sender_name", entry.senderName())
-                        .bind("attempts", Math.max(1, entry.attempts())))
+                        .bind("attempts", Math.max(1, entry.attempts()))
+                        .bind("daily_limit", Math.max(0, entry.dailySendLimit()))
+                        .bind("provider_name", entry.providerName() == null ? "" : entry.providerName())
+                        .bind("provider_url", entry.providerUrl() == null ? "" : entry.providerUrl()))
                 .insert();
     }
 }

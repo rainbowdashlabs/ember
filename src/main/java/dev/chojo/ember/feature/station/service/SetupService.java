@@ -7,12 +7,11 @@ package dev.chojo.ember.feature.station.service;
 
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
+import dev.chojo.ember.feature.mail.repository.StationMailProviderRepository;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.entity.Station;
-import dev.chojo.ember.feature.station.entity.StationMailConfig;
 import dev.chojo.ember.feature.station.entity.StationModule;
-import dev.chojo.ember.feature.station.repository.StationMailConfigRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -71,7 +70,7 @@ public class SetupService {
             STEP_GROUPS, STEP_MAIL, STEP_BRANDING, STEP_FIRST_EVENT, STEP_KB_SEED, STEP_FEDERATION, STEP_INVITES);
 
     private final StationRepository stationRepository;
-    private final StationMailConfigRepository mailConfigRepository;
+    private final StationMailProviderRepository mailProviderRepository;
     private final MemberGroupRepository memberGroupRepository;
     private final EventRepository eventRepository;
     private final KnowledgeBaseRepository knowledgeBaseRepository;
@@ -81,14 +80,14 @@ public class SetupService {
     @Inject
     public SetupService(
             StationRepository stationRepository,
-            StationMailConfigRepository mailConfigRepository,
+            StationMailProviderRepository mailProviderRepository,
             MemberGroupRepository memberGroupRepository,
             EventRepository eventRepository,
             KnowledgeBaseRepository knowledgeBaseRepository,
             StationMemberRepository stationMemberRepository,
             StationService stationService) {
         this.stationRepository = stationRepository;
-        this.mailConfigRepository = mailConfigRepository;
+        this.mailProviderRepository = mailProviderRepository;
         this.memberGroupRepository = memberGroupRepository;
         this.eventRepository = eventRepository;
         this.knowledgeBaseRepository = knowledgeBaseRepository;
@@ -195,10 +194,7 @@ public class SetupService {
     }
 
     private boolean isMailComplete(int stationId) {
-        return mailConfigRepository
-                .findByStation(stationId)
-                .map(StationMailConfig::isConfigured)
-                .orElse(false);
+        return !mailProviderRepository.findByStation(stationId).isEmpty();
     }
 
     private boolean isBrandingComplete(int stationId, Station station) {

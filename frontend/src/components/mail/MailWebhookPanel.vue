@@ -118,7 +118,8 @@ async function replace() {
     <Alert v-if="error" variant="error">{{ error }}</Alert>
     <Alert v-if="copied" variant="success">{{ t('mailWebhook.copied') }}</Alert>
 
-    <code class="block w-full overflow-x-auto rounded-theme bg-(--bg-accent) px-3 py-2 text-sm select-all">
+    <code data-testid="mail-webhook-url"
+          class="block w-full overflow-x-auto rounded-theme bg-(--bg-accent) px-3 py-2 text-sm select-all">
       {{ current || t('mailWebhook.unavailable') }}
     </code>
 

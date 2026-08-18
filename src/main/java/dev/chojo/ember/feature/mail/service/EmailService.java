@@ -13,8 +13,6 @@ import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
 import dev.chojo.ember.feature.mail.service.mail.MailProvider;
 import dev.chojo.ember.feature.mail.service.mail.SmtpMailProvider;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
-import dev.chojo.ember.feature.station.entity.StationMailConfig;
-import dev.chojo.ember.feature.station.repository.StationMailConfigRepository;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -67,7 +65,6 @@ public class EmailService {
     private final Api api;
     private final Demo demoConfig;
     private final EmailQueueRepository queueRepository;
-    private final StationMailConfigRepository mailConfigRepository;
     private final MailTemplateRenderer templateRenderer;
     private final StationReadOnlyGuard readOnlyGuard;
     private final MailChainService chainService;
@@ -78,7 +75,6 @@ public class EmailService {
             Api api,
             Demo demoConfig,
             EmailQueueRepository queueRepository,
-            StationMailConfigRepository mailConfigRepository,
             MailTemplateRenderer templateRenderer,
             StationReadOnlyGuard readOnlyGuard,
             MailChainService chainService) {
@@ -87,7 +83,6 @@ public class EmailService {
         this.api = api;
         this.demoConfig = demoConfig;
         this.queueRepository = queueRepository;
-        this.mailConfigRepository = mailConfigRepository;
         this.templateRenderer = templateRenderer;
         this.readOnlyGuard = readOnlyGuard;
         if (currentGlobalProvider() == null) {
@@ -112,7 +107,6 @@ public class EmailService {
     private void runCleanup() {
         try {
             queueRepository.cleanupOldEntries(30);
-            mailConfigRepository.cleanupOldCounts(60);
             log.debug("Email queue cleanup completed");
         } catch (Exception e) {
             log.error("Email queue cleanup failed", e);
@@ -130,19 +124,23 @@ public class EmailService {
      */
     public Optional<MailProvider> resolveStationProvider(Integer stationId) {
         if (stationId == null) return Optional.empty();
-        var config = mailConfigRepository.findByStation(stationId);
-        if (config.isEmpty() || !config.get().isConfigured()) return Optional.empty();
-        var c = config.get();
-        return Optional.ofNullable(buildProvider(
-                c.provider(),
-                c.smtpHost(),
-                c.smtpPort(),
-                c.smtpSsl(),
-                c.smtpUser(),
-                c.smtpPassword(),
-                c.apiKey(),
-                c.senderAddress(),
-                c.senderName()));
+        return chainService.firstForStation(stationId).map(EmailService::buildProvider);
+    }
+
+    /**
+     * Builds a {@link MailProvider} from one entry of a list, without persisting anything.
+     */
+    private static MailProvider buildProvider(MailChainEntry entry) {
+        return buildProvider(
+                entry.provider(),
+                entry.smtpHost(),
+                entry.smtpPort(),
+                entry.smtpSsl(),
+                entry.smtpUser(),
+                entry.smtpPassword(),
+                entry.apiKey(),
+                entry.senderAddress(),
+                entry.senderName());
     }
 
     /**
@@ -252,18 +250,34 @@ public class EmailService {
      * @return {@code null} on success, or the underlying error message on failure
      */
     public String testStationMailConnection(Integer stationId) {
-        if (stationId == null) return "No mail provider configured";
-        var config = mailConfigRepository.findByStation(stationId);
-        if (config.isEmpty() || !config.get().isConfigured()) return "No mail provider configured";
-        return testMailConnection(config.get());
+        return testStationMailConnection(stationId, 0);
     }
 
     /**
-     * Attempts a real connection against a {@link StationMailConfig} without persisting anything.
+     * Attempts a real connection against one provider of a station's list.
+     *
+     * <p>Every entry can be reached, not only the first: a provider further down is the one that
+     * carries the post once those above it are spent, so being unable to try it means finding out
+     * it was misconfigured only when it is needed.
+     *
+     * @param stationId the station, or null
+     * @param position  which provider of its list
+     * @return {@code null} on success, or the underlying error message on failure
+     */
+    public String testStationMailConnection(Integer stationId, int position) {
+        if (stationId == null) return "No mail provider configured";
+        var chain = chainService.forStation(stationId);
+        var entry = chainService.at(chain, position);
+        if (entry.isEmpty()) return "No mail provider configured";
+        return testMailConnection(entry.get());
+    }
+
+    /**
+     * Attempts a real connection against one entry of a list, without persisting anything.
      *
      * @return {@code null} on success, or the underlying error message on failure
      */
-    public String testMailConnection(StationMailConfig config) {
+    public String testMailConnection(MailChainEntry config) {
         return testMailConnection(
                 config.provider(),
                 config.smtpHost(),
@@ -309,15 +323,20 @@ public class EmailService {
     }
 
     /**
-     * Check if the station can still send emails today.
+     * Whether any provider in the station's list still has room today.
+     *
+     * <p>The allowance belongs to the providers rather than to the station, so a list whose first
+     * provider is spent can still send through the next one.
      */
     public boolean canStationSend(int stationId) {
-        var config = mailConfigRepository.findByStation(stationId);
-        if (config.isEmpty() || !config.get().isConfigured()) return false;
-        var c = config.get();
         LocalDate today = LocalDate.now();
-        return mailConfigRepository.getDailyCount(stationId, today) < c.dailyLimit()
-                && mailConfigRepository.getMonthlyCount(stationId, today) < c.monthlyLimit();
+        var chain = chainService.forStation(stationId);
+        for (int position = 0; position < chain.size(); position++) {
+            if (chain.get(position).hasRoomToday(queueRepository.getProviderDailyCount(today, stationId, position))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // -- Station email (queued, with per-station limits checked on send) --
@@ -355,6 +374,32 @@ public class EmailService {
      * routes the mail through that station's own outbound mailbox, including its send caps;
      * {@code null} routes it through the instance-wide relay.
      */
+    /**
+     * Sends a test mail through one provider of a list, rather than queueing it for whichever
+     * provider is in turn.
+     *
+     * <p>Queueing would prove only that the list as a whole delivers, which is the thing already
+     * known to work when somebody comes here to check a provider further down. Handing it to the
+     * chosen entry directly is what answers the question actually being asked.
+     *
+     * @param stationId the station, or null for the instance list
+     * @param position  which provider of that list
+     * @param to        where the mail goes, which need not be the address of whoever asked
+     * @return {@code null} when the provider accepted it, or the reason it did not
+     */
+    public String sendTestMailThrough(Integer stationId, int position, String to, String name, String locale) {
+        var chain = stationId == null ? chainService.forInstance() : chainService.forStation(stationId);
+        var entry = chainService.at(chain, position);
+        if (entry.isEmpty()) return "No mail provider configured";
+        MailProvider provider = buildProvider(entry.get());
+        if (provider == null) return "No mail provider configured";
+        var vars = baseVars(name, stationId);
+        String subjectLine = subject("test-mail", locale, null);
+        String body = loadTemplate("test-mail.html", locale, vars);
+        var result = provider.send(to, subjectLine, body, "test-" + position);
+        return result == MailProvider.SendResult.SENT ? null : "The provider refused the message";
+    }
+
     public void sendTestEmail(String to, String name, String locale, Integer stationId) {
         var vars = baseVars(name, stationId);
         String subjectLine = subject("test-mail", locale, null);
@@ -724,8 +769,7 @@ public class EmailService {
      * @return the provider, or empty when the chain holds nothing or has been used up
      */
     private Optional<MailProvider> providerInTurn(List<MailChainEntry> chain, EmailQueueRepository.QueuedEmail email) {
-        return chainService
-                .at(chain, email.providerPosition())
+        return entryInTurn(chain, email)
                 .map(entry -> buildProvider(
                         entry.provider(),
                         entry.smtpHost(),
@@ -736,6 +780,34 @@ public class EmailService {
                         entry.apiKey(),
                         entry.senderAddress(),
                         entry.senderName()));
+    }
+
+    /**
+     * The entry whose turn it actually is, having walked past any whose daily allowance is spent.
+     *
+     * <p>A free tier is sold by the day, so a provider that has sent its share is not merely
+     * failing, it is finished until tomorrow. Walking past it puts the mail on the next provider
+     * straight away instead of spending attempts on a refusal that is certain.
+     *
+     * @return the entry, or empty when nothing in the chain has room left today
+     */
+    private Optional<MailChainEntry> entryInTurn(List<MailChainEntry> chain, EmailQueueRepository.QueuedEmail email) {
+        LocalDate today = LocalDate.now();
+        int position = email.providerPosition();
+        while (position < chain.size()) {
+            MailChainEntry entry = chain.get(position);
+            if (entry.hasRoomToday(queueRepository.getProviderDailyCount(today, email.stationId(), position))) {
+                return Optional.of(entry);
+            }
+            log.info(
+                    "Provider {} of the chain has sent its {} for today; email {} moves to the next",
+                    position,
+                    entry.dailySendLimit(),
+                    email.id());
+            position++;
+            queueRepository.advanceProvider(email.id());
+        }
+        return Optional.empty();
     }
 
     /**
@@ -819,18 +891,11 @@ public class EmailService {
                     MailProvider current = inTurn.orElse(null);
                     if (current == null) {
                         log.debug(
-                                "Email {} deferred: global mail provider not configured; keeping it queued",
+                                "Email {} deferred: no instance provider is configured or has room left today",
                                 email.id());
                         queueRepository.requeue(email.id());
                         requeued++;
                         continue;
-                    }
-                    int remaining = remainingToday();
-                    if (remaining <= 0) {
-                        log.debug(
-                                "Global daily send limit ({}) reached; deferring remaining emails",
-                                mailing.dailySendLimit());
-                        break;
                     }
                     provider = current;
                 }
@@ -840,11 +905,7 @@ public class EmailService {
                 switch (result) {
                     case SENT -> {
                         queueRepository.markSent(email.id());
-                        if (email.stationId() != null) {
-                            mailConfigRepository.incrementDailyCount(email.stationId(), LocalDate.now());
-                        } else {
-                            queueRepository.incrementDailyCount(LocalDate.now());
-                        }
+                        if (email.stationId() == null) queueRepository.incrementDailyCount(LocalDate.now());
                         sent++;
                     }
                     case TRANSIENT_FAILURE -> {

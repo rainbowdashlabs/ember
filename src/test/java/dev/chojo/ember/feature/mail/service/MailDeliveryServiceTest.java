@@ -37,8 +37,8 @@ class MailDeliveryServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         var mailing = new Mailing();
-        var chainService = new MailChainService(
-                mailing, stationMailConfigRepo, new StationMailProviderRepository(), new ProviderSecretRepository());
+        var chainService =
+                new MailChainService(mailing, new StationMailProviderRepository(), new ProviderSecretRepository());
         service = new MailDeliveryService(queue, chainService);
         stationA = stationRepo.create("Delivery Station A");
         stationB = stationRepo.create("Delivery Station B");

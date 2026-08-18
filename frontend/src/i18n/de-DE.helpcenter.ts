@@ -1220,7 +1220,8 @@ volumes:
                 + 'funktionieren; eine Mail, die der Anbieter annimmt und die erst danach abgewiesen '
                 + 'wird, bleibt hier aber unsichtbar.',
             BREVO: {
-                webhookStep1: 'Öffne in Brevo „Transactional → Email → Settings → Webhook“.',
+                webhookStep1: 'Öffne in Brevo „Einstellungen → Transaktionsbezogene E-Mails → '
+                    + 'Webhook“ oder direkt app.brevo.com/webhooks/outbound/create.',
                 webhookStep2: 'Klicke auf „Add a new webhook“ und füge die Adresse aus den '
                     + 'Mail-Einstellungen ein.',
                 webhookStep3: 'Wähle mindestens die Ereignisse „delivered“, „softBounce“, '
@@ -3261,7 +3262,8 @@ volumes:
                 + 'Ob sie ankommt, entscheidet sich danach zwischen ihm und dem Empfängerserver - '
                 + 'und ohne Rückkanal erfährt Ember davon nichts: Eine später abgewiesene Mail steht '
                 + 'weiterhin als versendet da. Trage deshalb die angezeigte Adresse bei deinem '
-                + 'Anbieter als Webhook ein, bei Brevo unter Transactional → Settings → Webhooks. '
+                + 'Anbieter als Webhook ein, bei Brevo unter Einstellungen → Transaktionsbezogene '
+                + 'E-Mails → Webhook. '
                 + 'Danach zeigt Ember zu jeder Mail, ob sie zugestellt, weich abgewiesen, hart '
                 + 'abgewiesen oder blockiert wurde.',
             webhookKeyText: 'Den Schlüssel in der Adresse erzeugt Ember selbst; du musst dir keinen '

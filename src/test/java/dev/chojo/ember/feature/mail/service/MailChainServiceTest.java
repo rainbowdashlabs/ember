@@ -11,7 +11,6 @@ import dev.chojo.ember.feature.mail.repository.ProviderSecretRepository;
 import dev.chojo.ember.feature.mail.repository.StationMailProviderRepository;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.station.entity.Station;
-import dev.chojo.ember.feature.station.entity.StationMailConfig;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -37,7 +36,7 @@ class MailChainServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new MailChainService(new Mailing(), stationMailConfigRepo, providers, new ProviderSecretRepository());
+        service = new MailChainService(new Mailing(), providers, new ProviderSecretRepository());
         station = stationRepo.create("Chain Station");
     }
 
@@ -58,7 +57,10 @@ class MailChainServiceTest extends RepositoryTestBase {
                 "key",
                 "post@example",
                 "Wache",
-                attempts);
+                attempts,
+                0,
+                "",
+                "");
     }
 
     /**
@@ -72,29 +74,18 @@ class MailChainServiceTest extends RepositoryTestBase {
 
     @Test
     void aStationsOwnProviderComesFirstAndItsFallbacksFollow() {
-        stationMailConfigRepo.upsert(new StationMailConfig(
-                station.id(),
-                MailProviderType.SMTP,
-                "own.example",
-                587,
-                false,
-                "own",
-                "own-secret",
-                "post@wache",
-                "Wache",
-                "",
-                "",
-                "",
-                100,
-                2000));
         providers.replace(
-                station.id(), List.of(fallback(1, MailProviderType.BREVO, 3), fallback(2, MailProviderType.SWEEGO, 1)));
+                station.id(),
+                List.of(
+                        fallback(0, MailProviderType.SMTP, 2),
+                        fallback(1, MailProviderType.BREVO, 3),
+                        fallback(2, MailProviderType.SWEEGO, 1)));
 
         var chain = service.forStation(station.id());
 
         assertEquals(3, chain.size());
         assertEquals(MailProviderType.SMTP, chain.get(0).provider());
-        assertEquals("own.example", chain.get(0).smtpHost());
+        assertEquals("smtp.example", chain.get(0).smtpHost());
         assertEquals(MailProviderType.BREVO, chain.get(1).provider());
         assertEquals(3, chain.get(1).attempts());
         assertEquals(MailProviderType.SWEEGO, chain.get(2).provider());
@@ -107,7 +98,11 @@ class MailChainServiceTest extends RepositoryTestBase {
     @Test
     void anEntryWithoutAProviderIsLeftOut() {
         providers.replace(
-                station.id(), List.of(fallback(1, MailProviderType.NONE, 2), fallback(2, MailProviderType.BREVO, 2)));
+                station.id(),
+                List.of(
+                        fallback(0, MailProviderType.SMTP, 2),
+                        fallback(1, MailProviderType.NONE, 2),
+                        fallback(2, MailProviderType.BREVO, 2)));
 
         var chain = service.forStation(station.id());
 

@@ -26,4 +26,19 @@ public enum MailProviderType {
     public boolean requiresServer() {
         return this == SMTP || this == SWEEGO;
     }
+
+    /**
+     * The last part of the address this provider reports delivery events to.
+     *
+     * <p>Each provider sends a report of its own shape, so the address says which shape to expect.
+     * A provider that reports nothing of its own is read as Brevo's, which is what a plain server
+     * relayed through one looks like.
+     */
+    public String webhookPath() {
+        return switch (this) {
+            case SWEEGO -> "mail/sweego";
+            case TWILIO -> "mail/sendgrid";
+            default -> "mail/brevo";
+        };
+    }
 }

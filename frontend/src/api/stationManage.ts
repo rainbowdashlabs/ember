@@ -76,52 +76,9 @@ export function getLogoUrl(): string {
 
 // -- Mail config --
 
-export interface MailConfig {
-    provider: string
-    smtpHost: string
-    smtpPort: number
-    smtpSsl: boolean
-    smtpUser: string
-    senderAddress: string
-    senderName: string
-    hasApiKey: boolean
-    providerName: string
-    providerUrl: string
-    dailyLimit: number
-    monthlyLimit: number
-    sentToday: number
-    sentThisMonth: number
-}
-
-export interface MailConfigRequest {
-    provider: string
-    smtpHost?: string
-    smtpPort?: number
-    smtpSsl?: boolean
-    smtpUser?: string
-    smtpPassword?: string
-    senderAddress?: string
-    senderName?: string
-    apiKey?: string
-    providerName?: string
-    providerUrl?: string
-    dailyLimit?: number
-    monthlyLimit?: number
-}
-
 export interface MailTestResponse {
     success: boolean
     error?: string | null
-}
-
-export async function getMailConfig(): Promise<MailConfig> {
-    const res = await client.get<MailConfig>('/station/manage/mail')
-    return res.data
-}
-
-export async function updateMailConfig(data: MailConfigRequest): Promise<MailConfig> {
-    const res = await client.put<MailConfig>('/station/manage/mail', data)
-    return res.data
 }
 
 export async function testMailConfig(): Promise<MailTestResponse> {
