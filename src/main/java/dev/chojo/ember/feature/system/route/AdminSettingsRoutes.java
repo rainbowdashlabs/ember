@@ -14,6 +14,7 @@ import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.HibpSettings;
+import dev.chojo.ember.conf.file.elements.Logging;
 import dev.chojo.ember.conf.file.elements.MailProviderEntry;
 import dev.chojo.ember.conf.file.elements.MailSettings;
 import dev.chojo.ember.conf.file.elements.Mailing;
@@ -27,13 +28,17 @@ import dev.chojo.ember.feature.legal.service.LegalDocumentService;
 import dev.chojo.ember.feature.legal.service.LegalImportService;
 import dev.chojo.ember.feature.mail.route.MailFallbackPayload;
 import dev.chojo.ember.feature.mail.service.EmailService;
+import dev.chojo.ember.feature.mail.service.MailDashboardService;
+import dev.chojo.ember.feature.mail.service.MailDashboardService.MailDashboard;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.mail.service.MailTemplateRenderer;
 import dev.chojo.ember.feature.media.service.LogoFragmentService;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
+import dev.chojo.ember.feature.system.repository.ApplicationLogRepository;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import dev.chojo.ember.feature.system.service.DataInitializer;
+import dev.chojo.ember.feature.system.service.DatabaseLogAppender;
 import dev.chojo.ember.feature.webhook.service.WebhookKeyService;
 import dev.chojo.ember.util.MailAddress;
 import dev.chojo.ember.util.PandocConverter;
@@ -102,6 +107,8 @@ public class AdminSettingsRoutes implements Routes {
     private final AccountRepository accountRepository;
     private final MailLocaleService mailLocaleService;
     private final WebhookKeyService webhookKeyService;
+    private final MailDashboardService dashboardService;
+    private final ApplicationLogRepository logRepository;
     private final LegalDocumentService documentService;
 
     @Inject
@@ -112,7 +119,11 @@ public class AdminSettingsRoutes implements Routes {
             EmailService emailService,
             AccountRepository accountRepository,
             MailLocaleService mailLocaleService,
-            WebhookKeyService webhookKeyService) {
+            WebhookKeyService webhookKeyService,
+            MailDashboardService dashboardService,
+            ApplicationLogRepository logRepository) {
+        this.dashboardService = dashboardService;
+        this.logRepository = logRepository;
         this.settingRepository = settingRepository;
         this.logoFragmentService = logoFragmentService;
         this.conf = conf;
@@ -250,6 +261,15 @@ public class AdminSettingsRoutes implements Routes {
         routes.post(
                 prefix + "/admin/config/mailing/webhook-key",
                 this::regenerateWebhookKey,
+                InstancePermission.ADMINISTRATOR,
+                StepUpCategory.INSTANCE_CONFIG);
+        routes.get(prefix + "/admin/config/mailing/dashboard", this::mailDashboard, InstancePermission.ADMINISTRATOR);
+        routes.get(prefix + "/admin/monitoring/log", this::applicationLog, InstancePermission.ADMINISTRATOR);
+        routes.delete(prefix + "/admin/monitoring/log", this::clearApplicationLog, InstancePermission.ADMINISTRATOR);
+        routes.get(prefix + "/admin/config/logging", this::getLoggingConfig, InstancePermission.ADMINISTRATOR);
+        routes.put(
+                prefix + "/admin/config/logging",
+                this::updateLoggingConfig,
                 InstancePermission.ADMINISTRATOR,
                 StepUpCategory.INSTANCE_CONFIG);
         routes.post(prefix + "/admin/config/mailing/test-mail", this::sendTestMail, InstancePermission.ADMINISTRATOR);
@@ -470,7 +490,7 @@ public class AdminSettingsRoutes implements Routes {
         requireRange(request.tokenBytes(), 16, 256, "tokenBytes");
         requireRange(request.verifyTokenHours(), 1, 720, "verifyTokenHours");
         requireRange(request.passwordTokenHours(), 1, 720, "passwordTokenHours");
-        requireRange(request.sessionMinutes(), 5, 1440, "sessionMinutes");
+        requireRange(request.sessionMinutes(), 5, 43200, "sessionMinutes");
         var auth = conf.main().auth();
         try {
             setField(Auth.class, auth, "tokenBytes", request.tokenBytes());
@@ -757,6 +777,133 @@ public class AdminSettingsRoutes implements Routes {
         ctx.json(new MailTestResult(error == null, error));
     }
 
+    /**
+     * What has become of the instance's post: the queue, how each provider stands today, and what
+     * the providers reported back about the mails they took.
+     */
+    @OpenApi(
+            path = "/api/v1/admin/config/mailing/dashboard",
+            methods = HttpMethod.GET,
+            summary = "The state of the instance mail queue and its providers",
+            tags = {"Settings"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MailDashboard.class)))
+    private void mailDashboard(Context ctx) {
+        ctx.json(dashboardService.forOwner(null));
+    }
+
+    /**
+     * The application log, newest first, narrowed by whatever the reader asked for.
+     *
+     * <p>Only what the operator chose to keep in the database is here. The console and the file
+     * always hold everything, which is what makes this safe to switch off.
+     */
+    @OpenApi(
+            path = "/api/v1/admin/monitoring/log",
+            methods = HttpMethod.GET,
+            summary = "Read and search the application log",
+            tags = {"Monitoring"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ApplicationLogPage.class)))
+    private void applicationLog(Context ctx) {
+        List<String> levels = Arrays.stream(ctx.queryParamAsClass("level", String.class)
+                        .getOrDefault("")
+                        .split(","))
+                .map(String::trim)
+                .filter(value -> !value.isBlank())
+                .map(value -> value.toUpperCase(Locale.ROOT))
+                .filter(LOG_LEVELS::contains)
+                .toList();
+        String search = ctx.queryParam("search");
+        Long before = parseLongOrNull(ctx.queryParam("before"));
+        int limit = Math.clamp(ctx.queryParamAsClass("limit", Integer.class).getOrDefault(200), 1, 500);
+        var entries = logRepository.search(levels, search, before, limit);
+        ctx.json(new ApplicationLogPage(
+                entries,
+                conf.main().logging().databaseEnabled(),
+                conf.main().logging().databaseLevel(),
+                conf.main().logging().retentionDays(),
+                DatabaseLogAppender.dropped()));
+    }
+
+    /**
+     * Empties the stored log, for when it holds something that should not be kept.
+     */
+    private void clearApplicationLog(Context ctx) {
+        logRepository.clear();
+        log.info("The stored application log was cleared by an administrator");
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    private void getLoggingConfig(Context ctx) {
+        var logging = conf.main().logging();
+        ctx.json(new LoggingConfig(
+                logging.databaseEnabled(), logging.databaseLevel(), logging.retentionDays(), logRepository.size()));
+    }
+
+    private void updateLoggingConfig(Context ctx) {
+        var request = ctx.bodyAsClass(LoggingConfigRequest.class);
+        String level = request.databaseLevel() == null
+                ? "DEBUG"
+                : request.databaseLevel().toUpperCase(Locale.ROOT);
+        if (!LOG_LEVELS.contains(level)) {
+            throw new BadRequestResponse("Unknown log level: " + request.databaseLevel());
+        }
+        requireRange(request.retentionDays(), 1, 3650, "retentionDays");
+        var logging = conf.main().logging();
+        try {
+            setField(Logging.class, logging, "databaseEnabled", request.databaseEnabled());
+            setField(Logging.class, logging, "databaseLevel", level);
+            setField(Logging.class, logging, "retentionDays", request.retentionDays());
+            conf.save();
+        } catch (Exception e) {
+            log.error("Failed to update the logging configuration", e);
+            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
+            return;
+        }
+        getLoggingConfig(ctx);
+    }
+
+    /** The severities a client may ask for, so an unknown one is refused rather than ignored. */
+    private static final Set<String> LOG_LEVELS = Set.of("TRACE", "DEBUG", "INFO", "WARN", "ERROR");
+
+    /**
+     * Reads the paging cursor. An unreadable one starts at the top rather than refusing: the cursor
+     * is an optimisation for reading further back, not something worth an error.
+     */
+    private static Long parseLongOrNull(String value) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            return Long.valueOf(value.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /**
+     * A page of the log, with what the reader needs to make sense of a short one.
+     *
+     * @param entries       the lines, newest first
+     * @param databaseEnabled whether anything is being stored at all
+     * @param databaseLevel the lowest severity being stored
+     * @param retentionDays how long lines are kept
+     * @param dropped       how many lines were dropped since start because the queue was full,
+     *                      which is what says the log is incomplete rather than quiet
+     */
+    public record ApplicationLogPage(
+            List<ApplicationLogRepository.LogEntry> entries,
+            boolean databaseEnabled,
+            String databaseLevel,
+            int retentionDays,
+            long dropped) {}
+
+    /**
+     * @param storedLines how many lines are stored, so an operator can see what a retention change
+     *                    would act on
+     */
+    public record LoggingConfig(boolean databaseEnabled, String databaseLevel, int retentionDays, int storedLines) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record LoggingConfigRequest(boolean databaseEnabled, String databaseLevel, int retentionDays) {}
+
     /** Where a test mail should go. */
     public record ProviderTestRequest(String recipient) {}
 
@@ -828,12 +975,15 @@ public class AdminSettingsRoutes implements Routes {
                     Math.max(1, entry.attempts()),
                     Math.max(0, entry.dailySendLimit())));
         }
+        // Emptying the list is what the delete route is for. A save that arrives empty is far more
+        // often a client that failed to load it than an operator meaning to stop sending, and the
+        // difference is not recoverable: the fields the first provider used to live in go with it.
+        if (next.isEmpty() && !stored.isEmpty()) {
+            throw new BadRequestResponse("Refusing to replace the provider list with an empty one");
+        }
         try {
             setField(Mailing.class, mailing, "providers", next);
             setField(Mailing.class, mailing, "fallbacks", List.<MailProviderEntry>of());
-            // The list is what counts from here on. Leaving the fields the first provider used to
-            // live in would bring them back the moment the list is emptied again.
-            setField(Mailing.class, mailing, "provider", MailProviderType.NONE);
             conf.save();
         } catch (Exception e) {
             log.error("Failed to update the mail provider list", e);

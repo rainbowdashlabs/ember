@@ -10,9 +10,13 @@ import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import MailProviderChain from '@/components/mail/MailProviderChain.vue'
+import MailDashboard from '@/components/mail/MailDashboard.vue'
+import ClearProvidersModal from '@/components/mail/ClearProvidersModal.vue'
 import MailWebhookPanel from '@/components/mail/MailWebhookPanel.vue'
 import MailProviderFreeTiers from '@/components/mail/MailProviderFreeTiers.vue'
 import {
+  clearStationProviders,
+  getStationMailDashboard,
   getStationProviders,
   getStationWebhook,
   regenerateStationWebhookKey,
@@ -42,14 +46,17 @@ function handleSuccess(msg: string) { success.value = msg; error.value = '' }
 
 const providers = ref<MailProvider[]>([])
 const signingSecretSet = ref(false)
+/** Whether the list on screen is the stored one. Nothing may be saved before it is. */
+const providersLoaded = ref(false)
 
 onMounted(async () => {
   try {
     const [entries, webhook] = await Promise.all([getStationProviders(), getStationWebhook()])
     providers.value = entries
     signingSecretSet.value = webhook.signingSecretSet
+    providersLoaded.value = true
   } catch {
-    handleError(t('common.error'))
+    handleError(t('mailChain.loadFailed'))
   }
 })
 
@@ -59,7 +66,29 @@ async function saveSigningSecret(secret: string) {
   handleSuccess(t('mailWebhook.signingSecretSaved'))
 }
 
+const showClearModal = ref(false)
+const clearing = ref(false)
+
+/**
+ * The deliberate way to stop sending. A save can no longer empty the list by accident, so this is
+ * the only route that leaves nothing behind, and it asks first.
+ */
+async function clearProviders() {
+  clearing.value = true
+  try {
+    await clearStationProviders()
+    providers.value = []
+    showClearModal.value = false
+    handleSuccess(t('mailChain.cleared'))
+  } catch {
+    handleError(t('common.error'))
+  } finally {
+    clearing.value = false
+  }
+}
+
 async function saveProviders() {
+  if (!providersLoaded.value) return
   providers.value = await updateStationProviders(providers.value)
   handleSuccess(t('mailChain.saved'))
 }
@@ -91,8 +120,10 @@ async function test(position: number, recipient: string) {
           v-model:providers="providers"
           :save="saveProviders"
           :default-recipient="ownAddress"
+          :ready="providersLoaded"
           show-display-fields
           @test="test"
+          @clear="showClearModal = true"
       >
         <template #webhook="{provider, position}">
           <MailWebhookPanel
@@ -104,7 +135,9 @@ async function test(position: number, recipient: string) {
           />
         </template>
       </MailProviderChain>
+      <MailDashboard :load="getStationMailDashboard"/>
       <MailProviderFreeTiers/>
+      <ClearProvidersModal v-model="showClearModal" :clearing="clearing" @confirm="clearProviders"/>
     </div>
   </ViewContent>
 </template>

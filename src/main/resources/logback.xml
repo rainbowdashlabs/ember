@@ -7,13 +7,20 @@
         </encoder>
     </appender>
 
-    <appender name="FILE" class="ch.qos.logback.core.FileAppender">
-        <file>logs/ember-${runTimestamp}.log</file>
-        <append>false</append>
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/ember.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>logs/ember-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>14</maxHistory>
+            <totalSizeCap>2GB</totalSizeCap>
+        </rollingPolicy>
         <encoder>
             <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
+
+    <appender name="DATABASE" class="dev.chojo.ember.feature.system.service.DatabaseLogAppender"/>
 
     <appender name="PROBLEMS" class="dev.chojo.ember.feature.system.service.ProblemLogAppender">
         <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
@@ -43,5 +50,6 @@
         <appender-ref ref="STDOUT" />
         <appender-ref ref="FILE" />
         <appender-ref ref="PROBLEMS" />
+        <appender-ref ref="DATABASE" />
     </root>
 </configuration>

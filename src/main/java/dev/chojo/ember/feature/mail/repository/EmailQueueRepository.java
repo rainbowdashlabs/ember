@@ -10,12 +10,16 @@ import dev.chojo.ember.feature.mail.entity.MailDeliveryStatus;
 import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
 
+import java.time.Instant;
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
+import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 import static dev.chojo.ember.util.sql.SqlSupport.count;
 
 /**
@@ -301,4 +305,134 @@ public class EmailQueueRepository {
             Integer stationId,
             int attempts,
             int providerPosition) {}
+
+    /**
+     * How the post stands, in one row.
+     *
+     * @param pending  waiting for the next round
+     * @param sending  handed to the worker and not yet answered for
+     * @param sent     accepted by a provider, whatever became of it afterwards
+     * @param failed   given up on, every provider having refused it
+     * @param stuck    in sending for longer than any send should take, which means a worker died
+     *                 holding them: they are counted separately because nothing retries them
+     * @param oldestPendingAt when the longest-waiting mail was written, or null when none waits
+     */
+    public record QueueSummary(int pending, int sending, int sent, int failed, int stuck, Instant oldestPendingAt) {}
+
+    /**
+     * One mail as the dashboard shows it. The body is deliberately absent: this is a list of what
+     * happened to the post, not a way to read other people's mail.
+     */
+    public record QueueEntry(
+            int id,
+            String recipient,
+            String subject,
+            Instant createdAt,
+            Instant sentAt,
+            String status,
+            MailDeliveryStatus deliveryStatus,
+            String deliveryDetail,
+            int attempts,
+            int providerPosition) {}
+
+    private static final RowMapping<QueueEntry> QUEUE_ENTRY = row -> new QueueEntry(
+            row.getInt("id"),
+            row.getString("recipient"),
+            row.getString("subject"),
+            row.get("created_at", INSTANT_TIMESTAMP),
+            row.get("sent_at", INSTANT_TIMESTAMP),
+            row.getString("status"),
+            row.getEnum("delivery_status", MailDeliveryStatus.class),
+            row.getString("delivery_detail"),
+            row.getInt("attempts"),
+            row.getInt("provider_position"));
+
+    /**
+     * The state of the queue for one owner.
+     *
+     * @param stationId the station whose post is meant, or null for the instance's
+     */
+    public QueueSummary summary(Integer stationId) {
+        var where = WhereBuilder.create().add("AND station_id = :station_id", "station_id", stationId);
+        String scope = stationId == null ? "AND station_id IS NULL" : where.fragment();
+        return query("""
+                        SELECT
+                            count(*) FILTER (WHERE status = 'PENDING')                  AS pending,
+                            count(*) FILTER (WHERE status = 'SENDING')                  AS sending,
+                            count(*) FILTER (WHERE status = 'SENT')                     AS sent,
+                            count(*) FILTER (WHERE status = 'FAILED')                   AS failed,
+                            count(*) FILTER (WHERE status = 'SENDING'
+                                             AND created_at < now() - interval '10 minutes') AS stuck,
+                            min(created_at) FILTER (WHERE status = 'PENDING')           AS oldest
+                        FROM
+                            email_queue
+                        WHERE
+                            1 = 1 %s;""", scope)
+                .single(stationId == null ? call() : where.apply(call()))
+                .map(row -> new QueueSummary(
+                        row.getInt("pending"),
+                        row.getInt("sending"),
+                        row.getInt("sent"),
+                        row.getInt("failed"),
+                        row.getInt("stuck"),
+                        row.get("oldest", INSTANT_TIMESTAMP)))
+                .first()
+                .orElse(new QueueSummary(0, 0, 0, 0, 0, null));
+    }
+
+    /**
+     * How many waiting mails sit on each provider of the list.
+     *
+     * <p>This is what says who is next: a mail waits at the provider whose turn it is, and moves on
+     * only once that one has used its attempts or its allowance.
+     *
+     * @param stationId the station whose post is meant, or null for the instance's
+     * @return position to number of mails waiting there
+     */
+    public Map<Integer, Integer> pendingByProvider(Integer stationId) {
+        var where = WhereBuilder.create().add("AND station_id = :station_id", "station_id", stationId);
+        String scope = stationId == null ? "AND station_id IS NULL" : where.fragment();
+        Map<Integer, Integer> counts = new LinkedHashMap<>();
+        query("""
+                        SELECT
+                            provider_position, count(*) AS waiting
+                        FROM
+                            email_queue
+                        WHERE
+                            status IN ('PENDING', 'SENDING') %s
+                        GROUP BY
+                            provider_position
+                        ORDER BY
+                            provider_position;""", scope)
+                .single(stationId == null ? call() : where.apply(call()))
+                .map(row -> Map.entry(row.getInt("provider_position"), row.getInt("waiting")))
+                .all()
+                .forEach(entry -> counts.put(entry.getKey(), entry.getValue()));
+        return counts;
+    }
+
+    /**
+     * The most recent mails of one owner, newest first.
+     *
+     * @param stationId the station whose post is meant, or null for the instance's
+     * @param limit     how many to return
+     */
+    public List<QueueEntry> recent(Integer stationId, int limit) {
+        var where = WhereBuilder.create().add("AND station_id = :station_id", "station_id", stationId);
+        String scope = stationId == null ? "AND station_id IS NULL" : where.fragment();
+        return query("""
+                        SELECT
+                            id, recipient, subject, created_at, sent_at, status,
+                            delivery_status, delivery_detail, attempts, provider_position
+                        FROM
+                            email_queue
+                        WHERE
+                            1 = 1 %s
+                        ORDER BY
+                            created_at DESC
+                        LIMIT :limit;""", scope)
+                .single((stationId == null ? call() : where.apply(call())).bind("limit", limit))
+                .map(QUEUE_ENTRY)
+                .all();
+    }
 }

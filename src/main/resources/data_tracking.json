@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:89aa4ad1a96b466acd6482edc6ef3c1def45d483c473b6277d6b620dffeff519",
-  "generatedAt" : "2026-08-18T12:28:17Z",
+  "schemaHash" : "sha256:90c3c09ff54bf782fd40fbaa79f7950fec65b670a1e57dc63cd3acfff786b88d",
+  "generatedAt" : "2026-08-18T17:29:36Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -813,6 +813,68 @@
         "reason" : "Diagnostic log, no permanent personal data"
       },
       "description" : "HTTP API request log for monitoring and diagnostics."
+    },
+    "application_log" : {
+      "feature" : "system",
+      "scope" : "INSTANCE",
+      "tableHash" : "sha256:2768cc35cfaf81be4255d1c9091f60a1ffed28a7e4f38c44a871c2ee9e30ba25",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int8",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "logged_at",
+        "type" : "timestamp",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the line was logged."
+      }, {
+        "name" : "level",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Severity: TRACE, DEBUG, INFO, WARN or ERROR."
+      }, {
+        "name" : "logger",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Which logger emitted the line."
+      }, {
+        "name" : "thread",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The thread the line was logged from."
+      }, {
+        "name" : "message",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The line itself, already formatted. May incidentally name a person or an address, the way any log does."
+      }, {
+        "name" : "throwable",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The stack trace, when the line carried one."
+      } ],
+      "foreignKeys" : [ ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Operational log of the instance, not station data"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Lines are not keyed to a person and cannot be attributed to one without reading every message; kept only for the configured retention"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Lines are not keyed to a person; the retention removes them by age instead"
+      },
+      "description" : "Application log lines kept for reading and searching from the administration area."
     },
     "application_setting" : {
       "feature" : "system",

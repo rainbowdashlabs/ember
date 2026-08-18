@@ -489,6 +489,8 @@ export default {
         storageDashboard: 'Speicher-Übersicht',
         monitoring: 'Monitoring',
         problemLog: 'Fehlerprotokoll',
+        mailLog: 'Mailprotokoll',
+        applicationLog: 'Anwendungslog',
         problemReports: 'Problemmeldungen',
         apiStatus: 'API-Status',
         feedMetrics: 'Feed-Telemetrie',
@@ -860,6 +862,14 @@ export default {
         'admin-problems': {
             title: 'System-Log',
             subtitle: 'Warnungen und Fehler der laufenden Instanz',
+        },
+        'admin-mail-log': {
+            title: 'Mailprotokoll',
+            subtitle: 'Was aus der Post geworden ist, und woran sie gerade steht',
+        },
+        'admin-log': {
+            title: 'Anwendungslog',
+            subtitle: 'Das Log der Instanz, durchsuchbar und nach Stufe filterbar',
         },
         'admin-problem-reports': {
             title: 'Problemmeldungen',
@@ -3506,6 +3516,49 @@ export default {
         home: 'Startseite',
         login: 'Anmelden',
     },
+    applicationLog: {
+        disabled: 'Das Log wird derzeit nicht in der Datenbank gespeichert, hier steht deshalb '
+            + 'nichts oder nur, was vor dem Abschalten anfiel. Einschalten lässt sich das unter '
+            + 'Einstellungen. Console und Logdatei auf dem Server enthalten unabhängig davon alles.',
+        dropped: '{count} Zeile(n) sind seit dem Start verworfen worden, weil sie schneller anfielen '
+            + 'als sie geschrieben werden konnten. Das Log hat also Lücken; in der Logdatei stehen sie.',
+        kept: 'Gespeichert wird ab {level}, {days} Tage lang.',
+        searchPlaceholder: 'In Nachricht oder Logger suchen',
+        doSearch: 'Suchen',
+        levels: 'Stufen',
+        filtered: 'Es sind nicht alle Stufen eingeschaltet, es fehlt also möglicherweise Kontext.',
+        empty: 'Keine Zeilen, auf die das passt.',
+        loadMore: 'Weiter zurück laden',
+        showTrace: 'Stacktrace anzeigen',
+    },
+    mailDashboard: {
+        title: 'Zustellung',
+        hint: 'Was aus der Post geworden ist: was noch wartet, an welchem Anbieter es wartet, und '
+            + 'was die Anbieter über die Mails zurückgemeldet haben, die sie übernommen haben.',
+        pending: 'Wartet',
+        sending: 'In Zustellung',
+        sent: 'Übergeben',
+        failed: 'Gescheitert',
+        stuck: 'Hängengeblieben',
+        stuckWarning: '{count} Mail(s) stehen seit über zehn Minuten in der Zustellung. Das '
+            + 'bedeutet, dass ein Arbeitsprozess während des Versands abgebrochen ist. Sie werden '
+            + 'von selbst nicht erneut versucht.',
+        oldestPending: 'Die längste wartende Mail wurde am {when} geschrieben.',
+        providersTitle: 'Anbieter heute',
+        noProviders: 'Kein Anbieter eingetragen, es kann also nichts versendet werden.',
+        waitingHere: '{count} warten hier',
+        exhausted: 'Tageslimit erreicht',
+        sentOfLimit: '{sent} von {limit} heute versendet',
+        sentNoLimit: '{sent} heute versendet, kein Limit',
+        attempts: '{count} Versuche je Mail',
+        recentTitle: 'Letzte Mails',
+        searchPlaceholder: 'Nach Empfänger oder Betreff suchen',
+        deliveryFilter: 'Nach Zustellstatus filtern',
+        allDeliveryStates: 'Alle Zustellstatus',
+        noMails: 'Keine Mails, auf die das passt.',
+        viaProvider: 'über {position}. Anbieter',
+        attemptsMade: '{count} Versuche',
+    },
     mailChain: {
         title: 'Mailanbieter',
         hint: 'Mail wird von oben nach unten durch diese Liste versucht. Jeder Anbieter bekommt eine '
@@ -3534,7 +3587,11 @@ export default {
         providerName: 'Anzeigename für Mitglieder',
         providerUrl: 'Website des Anbieters',
         add: 'Anbieter hinzufügen',
+        clearAll: 'Alle entfernen',
+        cleared: 'Alle Anbieter entfernt. Bis ein neuer eingetragen ist, bleibt jede Mail liegen.',
         saved: 'Anbieter gespeichert.',
+        loadFailed: 'Die Anbieterliste konnte nicht geladen werden. Lade die Seite neu, bevor du '
+            + 'etwas speicherst, sonst würde eine leere Liste über die gespeicherte geschrieben.',
         test: 'Testmail senden',
         testRecipient: 'Testmail an',
         testHint: 'Geprüft wird der gespeicherte Stand dieses Anbieters, nicht das, was gerade im '
@@ -3575,7 +3632,22 @@ export default {
             passwordTokenHours: 'Gültigkeitsdauer Passwort-Reset-Token (Stunden)',
             passwordTokenHoursHint: 'Wie lange ein Link zum Zurücksetzen des Passworts gültig bleibt.',
             sessionMinutes: 'Sitzungsdauer (Minuten)',
-            sessionMinutesHint: 'Wie lange ein angemeldeter Nutzer ohne Aktivität angemeldet bleibt.',
+            sessionMinutesHint: 'Wie lange ein angemeldeter Nutzer ohne Aktivität angemeldet bleibt. '
+                + 'Bis zu 30 Tage sind möglich: häufiges Anmelden frustriert mehr, als es schützt.',
+        },
+        logging: {
+            title: 'Log',
+            hint: 'Console und Logdatei auf dem Server bekommen immer alles. Hier wird entschieden, '
+                + 'was zusätzlich in die Datenbank geht, damit es unter Monitoring durchsucht werden '
+                + 'kann. In der Datenbank zu speichern ist nie die einzige Ablage: der Ausfall, den '
+                + 'sie nicht abdecken kann, ist ihr eigener.',
+            enabled: 'Log in der Datenbank speichern',
+            level: 'Ab welcher Stufe',
+            levelHint: 'Alles darunter erreicht weiterhin Console und Datei, wird aber nicht gespeichert.',
+            retentionDays: 'Aufbewahrung in Tagen',
+            retentionHint: 'Ältere Zeilen werden stündlich entfernt.',
+            stored: 'Derzeit sind {count} Zeilen gespeichert.',
+            saved: 'Log-Einstellungen gespeichert.',
         },
         mailing: {
             title: 'E-Mail',
@@ -3673,7 +3745,9 @@ export default {
             passwordTokenHours: 'Passworttoken (Stunden)',
             passwordTokenHoursHint: 'Gültigkeitsdauer des Passwort-Reset-Tokens (1–720).',
             sessionMinutes: 'Sitzungsdauer (Minuten)',
-            sessionMinutesHint: 'Dauer einer Sitzung in Minuten (5–1440).',
+            sessionMinutesHint: 'Dauer einer Sitzung in Minuten (5 bis 43200, also bis zu 30 Tage). '
+                + 'Lange Sitzungen ersparen häufiges Anmelden; wer sich abmeldet oder sein Passwort '
+                + 'ändert, ist unabhängig davon sofort ausgeloggt.',
             pepper: {
                 title: 'Token-Pepper',
                 hint: 'Server-seitiges Geheimnis, das in den HMAC der gespeicherten Tokens einfließt. Ohne ihn kann ein reiner Datenbankleak Tokens nicht wiederherstellen.',

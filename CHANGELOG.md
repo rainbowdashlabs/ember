@@ -6,8 +6,12 @@
 
 - **Mail providers are one list, worked from the top.** An instance and a station each keep an ordered list of providers instead of one provider plus a set of stand-ins behind it. Every entry is edited, moved, tested and given its own delivery address the same way, and the first is simply the first.
 
+- **The instance log can be read from the application.** Under Monitoring the log of the running instance is searched by message or by logger and narrowed to the severities you want, without reaching the server. It is kept in the database only when an operator switches that on under Settings, where the severity and how many days to keep are chosen; the console and the log file always hold everything regardless.
+- **A mail overview says where the post stands.** Under Monitoring there is now a page for what became of the email: how much waits, how much a provider accepted, what it reported back afterwards, and which provider each waiting message is standing at. Every provider shows what it has sent today against its allowance.
+
 ### Improvements
 
+- **The log file no longer grows without end.** It rolls at 100 MB, keeps two weeks or 2 GB of history, and compresses what it rolls, instead of writing a single file per start that nothing ever removed.
 - **Every provider carries its own daily allowance.** Free tiers are sold by the day, so an entry that has sent its share hands the post to the next one instead of holding it until tomorrow. A station's overall daily and monthly caps give way to this: the allowance now belongs to the provider that actually has one.
 - **A test mail goes to any address you name.** Any provider in the list can be sent a test mail, not only the one currently carrying the post, and to any address rather than only your own. A provider further down is no longer found to be misconfigured at the moment everything above it has run out.
 - **Every provider has its own address for delivery reports.** The address ends in the report format the provider sends, so a list holding two different providers is offered two different addresses, for a station as much as for the instance.

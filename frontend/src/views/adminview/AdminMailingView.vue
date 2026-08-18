@@ -7,12 +7,10 @@
 import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import Modal from '@/components/feedback/Modal.vue'
 import InstanceMailPanel from './adminmailingview/InstanceMailPanel.vue'
+import ClearProvidersModal from '@/components/mail/ClearProvidersModal.vue'
 import MailWebhookPanel from '@/components/mail/MailWebhookPanel.vue'
 import MailProviderFreeTiers from '@/components/mail/MailProviderFreeTiers.vue'
 import MailProviderChain from '@/components/mail/MailProviderChain.vue'
@@ -50,6 +48,8 @@ const {sessionInfo} = useSession()
 const ownAddress = computed(() => sessionInfo.value?.account?.email ?? '')
 
 const providers = ref<MailProvider[]>([])
+/** Whether the list on screen is the stored one. Nothing may be saved before it is. */
+const providersLoaded = ref(false)
 
 /**
  * Tries the stored provider rather than what is on screen, so the result says something about what
@@ -68,11 +68,17 @@ async function test(position: number, recipient: string) {
 }
 
 onMounted(async () => {
-  const chain = await getInstanceProviders()
-  providers.value = chain.fallbacks ?? []
+  try {
+    const chain = await getInstanceProviders()
+    providers.value = chain.fallbacks ?? []
+    providersLoaded.value = true
+  } catch {
+    testResult.value = t('mailChain.loadFailed')
+  }
 })
 
 async function saveProviders() {
+  if (!providersLoaded.value) return
   const chain = await updateInstanceProviders({attempts: 2, fallbacks: providers.value})
   providers.value = chain.fallbacks ?? []
 }
@@ -110,7 +116,9 @@ const error = computed(() => panelError.value || testMailError.value || clearErr
             v-model:providers="providers"
             :save="saveProviders"
             :default-recipient="ownAddress"
+            :ready="providersLoaded"
             @test="test"
+            @clear="showClearModal = true"
         >
           <template #webhook="{provider, position}">
             <MailWebhookPanel
@@ -135,17 +143,7 @@ const error = computed(() => panelError.value || testMailError.value || clearErr
         <MailProviderFreeTiers/>
       </template>
 
-      <Modal v-model="showClearModal">
-        <div class="space-y-4">
-          <p>{{ t('adminSettings.mailing.clearConfirm') }}</p>
-          <div class="flex justify-end gap-3">
-            <SecondaryButton :disabled="clearing" @click="showClearModal = false">{{ t('common.cancel') }}</SecondaryButton>
-            <ErrorButton :icon="['fas', 'trash']" :disabled="clearing" @click="clearMailingConfig">
-              {{ t('adminSettings.mailing.clear') }}
-            </ErrorButton>
-          </div>
-        </div>
-      </Modal>
+      <ClearProvidersModal v-model="showClearModal" :clearing="clearing" @confirm="clearMailingConfig"/>
     </div>
   </ViewContent>
 </template>

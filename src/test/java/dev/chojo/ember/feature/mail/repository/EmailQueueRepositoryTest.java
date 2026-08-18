@@ -141,4 +141,44 @@ class EmailQueueRepositoryTest extends RepositoryTestBase {
         assertEquals(0, emailQueueRepo.getProviderDailyCount(today, station.id(), 0), "a station's own list");
         assertEquals(0, emailQueueRepo.getProviderDailyCount(today.minusDays(1), null, 0), "yesterday");
     }
+
+    /**
+     * The overview reads what was always recorded and never readable. It has to separate the
+     * instance's post from a station's, because they travel through different lists.
+     */
+    @Test
+    @Order(13)
+    void summarySeparatesTheInstanceFromAStation() {
+        emailQueueRepo.enqueue("waiting@example.com", "Waiting", "Body");
+        emailQueueRepo.enqueue("station@example.com", "Station", "Body", station.id());
+
+        var instance = emailQueueRepo.summary(null);
+        var stationSummary = emailQueueRepo.summary(station.id());
+
+        assertTrue(instance.pending() >= 1, "the instance mail waits");
+        assertEquals(1, stationSummary.pending(), "the station has exactly the one just written");
+        assertNotNull(instance.oldestPendingAt(), "something waits, so there is an oldest");
+        assertEquals(0, stationSummary.stuck(), "nothing has been left behind by a dead worker");
+    }
+
+    @Test
+    @Order(14)
+    void pendingByProviderCountsWhereTheMailWaits() {
+        var counts = emailQueueRepo.pendingByProvider(null);
+
+        assertTrue(counts.getOrDefault(0, 0) >= 1, "a fresh mail waits at the first provider");
+        assertEquals(0, counts.getOrDefault(5, 0), "nothing waits at a provider that does not exist");
+    }
+
+    @Test
+    @Order(15)
+    void recentReturnsTheStationsOwnPostNewestFirst() {
+        var recent = emailQueueRepo.recent(station.id(), 10);
+
+        assertFalse(recent.isEmpty());
+        assertEquals("station@example.com", recent.getFirst().recipient());
+        assertEquals("Station", recent.getFirst().subject());
+        assertNotNull(recent.getFirst().createdAt());
+        assertTrue(emailQueueRepo.recent(station.id(), 10).size() <= 10, "the limit is honoured");
+    }
 }

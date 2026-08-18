@@ -11,6 +11,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import GeneralPanel from '@/views/adminview/adminsettingsview/GeneralPanel.vue'
 import ThemePanel from '@/views/adminview/adminsettingsview/ThemePanel.vue'
+import LoggingPanel from '@/views/adminview/adminsettingsview/LoggingPanel.vue'
 import {adminSettings} from '@/api'
 import {useTheme} from '@/composables/useTheme'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -116,6 +117,7 @@ async function saveInstanceTheme() {
             v-model:lockFeel="instanceLockFeel"
             :save="saveInstanceTheme"
         />
+        <LoggingPanel/>
       </template>
     </div>
   </ViewContent>

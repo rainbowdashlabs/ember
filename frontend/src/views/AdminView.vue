@@ -97,6 +97,12 @@ onMounted(() => {
         <SidebarLink :icon="['fas', 'hard-drive']" name="admin-storage" to="/admin/monitoring/storage" @navigate="close">
           {{ t('sidebar.storageDashboard') }}
         </SidebarLink>
+        <SidebarLink :icon="['fas', 'envelope']" name="admin-mail-log" to="/admin/monitoring/mail-log" @navigate="close">
+          {{ t('sidebar.mailLog') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'file-lines']" name="admin-log" to="/admin/monitoring/log" @navigate="close">
+          {{ t('sidebar.applicationLog') }}
+        </SidebarLink>
         <SidebarLink :icon="['fas', 'bug']" name="admin-problems" to="/admin/monitoring/problems" @navigate="close">
           {{ t('sidebar.problemLog') }}
         </SidebarLink>
