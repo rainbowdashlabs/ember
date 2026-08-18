@@ -54,9 +54,8 @@ const {t} = useI18n()
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <FieldLabel class="mb-1">{{ t('adminSettings.mailing.provider') }}</FieldLabel>
+            <FieldLabel class="mb-1">{{ t('mailChain.provider') }}</FieldLabel>
             <SelectInput :model-value="'SMTP'" class="w-full">
-              <option value="NONE">NONE</option>
               <option value="SMTP">SMTP</option>
               <option value="RAPIDMAIL">RAPIDMAIL</option>
               <option value="TWILIO">TWILIO</option>
@@ -65,26 +64,31 @@ const {t} = useI18n()
             </SelectInput>
           </div>
           <div>
-            <FieldLabel class="mb-1">{{ t('adminSettings.mailing.senderAddress') }}</FieldLabel>
+            <FieldLabel class="mb-1">{{ t('mailChain.senderAddress') }}</FieldLabel>
             <TextInput :model-value="'noreply@beispiel.de'" />
           </div>
           <div>
-            <FieldLabel class="mb-1">{{ t('adminSettings.mailing.senderName') }}</FieldLabel>
+            <FieldLabel class="mb-1">{{ t('mailChain.senderName') }}</FieldLabel>
             <TextInput :model-value="'DLRG Plattform'" />
           </div>
           <div>
-            <FieldLabel class="mb-1">{{ t('adminSettings.mailing.apiKey') }}</FieldLabel>
+            <FieldLabel class="mb-1">{{ t('mailChain.apiKey') }}</FieldLabel>
             <TextInput :model-value="'••••••••'" />
           </div>
           <div>
-            <FieldLabel class="mb-1">{{ t('adminSettings.mailing.dailySendLimit') }}</FieldLabel>
-            <NumberInput :model-value="200" />
-            <MutedText tag="div" class="mt-1">{{ t('adminSettings.mailing.dailySendLimitHint') }}</MutedText>
+            <FieldLabel class="mb-1">{{ t('mailChain.attempts') }}</FieldLabel>
+            <NumberInput :model-value="2" />
+            <MutedText tag="div" class="mt-1">{{ t('mailChain.attemptsHint') }}</MutedText>
           </div>
           <div>
-            <FieldLabel class="mb-1">{{ t('adminSettings.mailing.notificationDigestIntervalMinutes') }}</FieldLabel>
+            <FieldLabel class="mb-1">{{ t('mailChain.dailyLimit') }}</FieldLabel>
+            <NumberInput :model-value="300" />
+            <MutedText tag="div" class="mt-1">{{ t('mailChain.dailyLimitHint') }}</MutedText>
+          </div>
+          <div>
+            <FieldLabel class="mb-1">{{ t('adminSettings.mailing.digestInterval') }}</FieldLabel>
             <NumberInput :model-value="60" />
-            <MutedText tag="div" class="mt-1">{{ t('adminSettings.mailing.notificationDigestIntervalMinutesHint') }}</MutedText>
+            <MutedText tag="div" class="mt-1">{{ t('adminSettings.mailing.digestIntervalHint') }}</MutedText>
           </div>
         </div>
 

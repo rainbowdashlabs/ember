@@ -4,29 +4,29 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {onMounted, ref, watch} from 'vue'
+import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import MailConfigSection from './stationview/MailConfigSection.vue'
-import MailFallbackChain from '@/components/mail/MailFallbackChain.vue'
+import MailProviderChain from '@/components/mail/MailProviderChain.vue'
 import MailWebhookPanel from '@/components/mail/MailWebhookPanel.vue'
 import MailProviderFreeTiers from '@/components/mail/MailProviderFreeTiers.vue'
 import {
-  getStationFallbacks,
+  getStationProviders,
   getStationWebhook,
   regenerateStationWebhookKey,
   saveStationSigningSecret,
-  updateStationFallbacks,
-  type MailFallback,
-} from '@/api/mailFallbacks'
-import {stationManage} from '@/api'
+  testStationProvider,
+  updateStationProviders,
+  type MailProvider,
+} from '@/api/mailProviders'
 import {StationPermission} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 
 const {t} = useI18n()
-const {hasPermission, loaded} = useSession()
+const {hasPermission, loaded, sessionInfo} = useSession()
+const ownAddress = computed(() => sessionInfo.value?.account?.email ?? '')
 const router = useRouter()
 watch(loaded, (isLoaded) => {
   if (isLoaded && !hasPermission(StationPermission.STATION_MAIL)) {
@@ -40,22 +40,14 @@ const success = ref('')
 function handleError(msg: string) { error.value = msg; success.value = '' }
 function handleSuccess(msg: string) { success.value = msg; error.value = '' }
 
-const fallbacks = ref<MailFallback[]>([])
-const webhookUrl = ref('')
+const providers = ref<MailProvider[]>([])
 const signingSecretSet = ref(false)
-const provider = ref('')
 
 onMounted(async () => {
   try {
-    const [entries, webhook, config] = await Promise.all([
-      getStationFallbacks(),
-      getStationWebhook(),
-      stationManage.getMailConfig(),
-    ])
-    fallbacks.value = entries
-    webhookUrl.value = webhook.deliveryWebhookUrl
+    const [entries, webhook] = await Promise.all([getStationProviders(), getStationWebhook()])
+    providers.value = entries
     signingSecretSet.value = webhook.signingSecretSet
-    provider.value = config.provider
   } catch {
     handleError(t('common.error'))
   }
@@ -67,9 +59,23 @@ async function saveSigningSecret(secret: string) {
   handleSuccess(t('mailWebhook.signingSecretSaved'))
 }
 
-async function saveFallbacks() {
-  fallbacks.value = await updateStationFallbacks(fallbacks.value)
-  handleSuccess(t('mailFallbacks.saved'))
+async function saveProviders() {
+  providers.value = await updateStationProviders(providers.value)
+  handleSuccess(t('mailChain.saved'))
+}
+
+/**
+ * Tries the stored provider rather than what is on screen, so the result says something about what
+ * would actually carry the post. Anything unsaved has to be saved first to be tried.
+ */
+async function test(position: number, recipient: string) {
+  try {
+    const result = await testStationProvider(position, recipient)
+    if (result.success) handleSuccess(t('mailChain.testOk', {position: position + 1, recipient}))
+    else handleError(t('mailChain.testFailed', {position: position + 1, error: result.error ?? ''}))
+  } catch {
+    handleError(t('common.error'))
+  }
 }
 </script>
 
@@ -81,15 +87,23 @@ async function saveFallbacks() {
     <div class="space-y-6">
       <Alert v-if="error" variant="error">{{ error }}</Alert>
       <Alert v-if="success" variant="success">{{ success }}</Alert>
-      <MailConfigSection @error="handleError" @success="handleSuccess"/>
-      <MailFallbackChain v-model:fallbacks="fallbacks" :save="saveFallbacks"/>
-      <MailWebhookPanel
-          :url="webhookUrl"
-          :provider="provider"
-          :regenerate="regenerateStationWebhookKey"
-          :save-signing-secret="saveSigningSecret"
-          :signing-secret-set="signingSecretSet"
-      />
+      <MailProviderChain
+          v-model:providers="providers"
+          :save="saveProviders"
+          :default-recipient="ownAddress"
+          show-display-fields
+          @test="test"
+      >
+        <template #webhook="{provider, position}">
+          <MailWebhookPanel
+              :url="providers[position]?.deliveryWebhookUrl"
+              :provider="provider"
+              :regenerate="regenerateStationWebhookKey"
+              :save-signing-secret="saveSigningSecret"
+              :signing-secret-set="signingSecretSet"
+          />
+        </template>
+      </MailProviderChain>
       <MailProviderFreeTiers/>
     </div>
   </ViewContent>

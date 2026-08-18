@@ -10,7 +10,6 @@ import dev.chojo.ember.feature.mail.entity.MailChainEntry;
 import dev.chojo.ember.feature.mail.repository.ProviderSecretRepository;
 import dev.chojo.ember.feature.mail.repository.StationMailProviderRepository;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
-import dev.chojo.ember.feature.station.repository.StationMailConfigRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -26,33 +25,24 @@ import java.util.Optional;
  * a relay whose address has landed on somebody's block list survivable - the mail goes out by
  * another route instead of disappearing.
  *
- * <p>The first entry is the provider already configured today: the instance's own for system mail,
- * the station's own for station mail. Everything after it is a fallback. A station's chain never
- * runs into the instance's: a station that has taken its outgoing mail into its own hands keeps it
- * there, and its post does not silently leave under the instance's sender.
- *
- * <p>The seam is deliberate and worth naming: the first provider still lives where it always did -
- * in the configuration for the instance, in {@code station_mail_config} for a station - while the
- * fallbacks live in their own places. Normalising the first one into the same list would be
- * tidier, and would also change what a station transfer carries, so it is a separate piece of work.
- * Nothing outside this service sees the seam; everyone else is handed a list.
+ * <p>The first entry is simply the first, not a provider of a different kind. One list per owner,
+ * worked from the top: the instance's for system mail, the station's for station mail. A station's
+ * list never runs into the instance's, so a station that has taken its outgoing mail into its own
+ * hands keeps it there and its post does not silently leave under the instance's sender.
  */
 @Singleton
 public class MailChainService {
 
     private final Mailing mailing;
-    private final StationMailConfigRepository configRepository;
     private final StationMailProviderRepository providerRepository;
     private final ProviderSecretRepository secretRepository;
 
     @Inject
     public MailChainService(
             Mailing mailing,
-            StationMailConfigRepository configRepository,
             StationMailProviderRepository providerRepository,
             ProviderSecretRepository secretRepository) {
         this.mailing = mailing;
-        this.configRepository = configRepository;
         this.providerRepository = providerRepository;
         this.secretRepository = secretRepository;
     }
@@ -62,33 +52,23 @@ public class MailChainService {
      */
     public List<MailChainEntry> forInstance() {
         List<MailChainEntry> chain = new ArrayList<>();
-        var smtp = mailing.smtp();
-        chain.add(new MailChainEntry(
-                0,
-                mailing.provider(),
-                smtp.host(),
-                smtp.port(),
-                smtp.ssl(),
-                mailing.user(),
-                mailing.password(),
-                mailing.apiKey(),
-                mailing.senderAddress(),
-                mailing.senderName(),
-                Math.max(1, mailing.attempts())));
-        int position = 1;
-        for (var fallback : mailing.fallbacks()) {
+        int position = 0;
+        for (var entry : mailing.providers()) {
             chain.add(new MailChainEntry(
                     position++,
-                    fallback.provider(),
-                    fallback.host(),
-                    fallback.port(),
-                    fallback.ssl(),
-                    fallback.user(),
-                    fallback.password(),
-                    fallback.apiKey(),
-                    fallback.senderAddress(),
-                    fallback.senderName(),
-                    Math.max(1, fallback.attempts())));
+                    entry.provider(),
+                    entry.host(),
+                    entry.port(),
+                    entry.ssl(),
+                    entry.user(),
+                    entry.password(),
+                    entry.apiKey(),
+                    entry.senderAddress(),
+                    entry.senderName(),
+                    Math.max(1, entry.attempts()),
+                    entry.dailySendLimit(),
+                    "",
+                    ""));
         }
         return configured(chain);
     }
@@ -98,32 +78,16 @@ public class MailChainService {
      * instance rather than through anything of its own.
      */
     public List<MailChainEntry> forStation(int stationId) {
-        var config = configRepository.findByStation(stationId);
-        if (config.isEmpty() || !config.get().isConfigured()) return List.of();
-        var c = config.get();
-        List<MailChainEntry> chain = new ArrayList<>();
-        chain.add(new MailChainEntry(
-                0,
-                c.provider(),
-                c.smtpHost(),
-                c.smtpPort(),
-                c.smtpSsl(),
-                c.smtpUser(),
-                c.smtpPassword(),
-                c.apiKey(),
-                c.senderAddress(),
-                c.senderName(),
-                DEFAULT_STATION_ATTEMPTS));
-        chain.addAll(providerRepository.findByStation(stationId));
-        return configured(chain);
+        return configured(new ArrayList<>(providerRepository.findByStation(stationId)));
     }
 
     /**
-     * How many attempts a station's own provider gets before its first fallback takes over. Not
-     * configurable yet - a station chooses its fallbacks, and two attempts is what the instance
-     * defaults to as well.
+     * The provider a station shows its members as the one carrying its post, which is the first it
+     * sends through.
      */
-    private static final int DEFAULT_STATION_ATTEMPTS = 2;
+    public Optional<MailChainEntry> firstForStation(int stationId) {
+        return forStation(stationId).stream().findFirst();
+    }
 
     /**
      * The signing secret Sweego issued for whoever owns this chain, or null when reports from it
@@ -167,7 +131,10 @@ public class MailChainService {
                     entry.apiKey(),
                     entry.senderAddress(),
                     entry.senderName(),
-                    entry.attempts()));
+                    entry.attempts(),
+                    entry.dailySendLimit(),
+                    entry.providerName(),
+                    entry.providerUrl()));
         }
         return usable;
     }

@@ -183,6 +183,15 @@ jobs:
       - name: Build frontend
         working-directory: frontend
         run: NODE_OPTIONS="--max-old-space-size=8192" npm run build
+      - name: Pack the build
+        working-directory: frontend
+        run: tar czf frontend-build.tar.gz .output
+      - name: Upload the build
+        uses: actions/upload-artifact@v7
+        with:
+          name: frontend-build
+          path: frontend/frontend-build.tar.gz
+          retention-days: 1
 
   verify-test-frontend:
     runs-on: ubuntu-latest
@@ -228,11 +237,14 @@ jobs:
         working-directory: frontend
         timeout-minutes: 5
         run: npx playwright install chromium
-      # The stories run against the built server rather than a dev server: a dev server compiles
-      # each route the first time it is asked for, which takes longer than an assertion waits.
-      - name: Build the frontend
+      - name: Download the build
+        uses: actions/download-artifact@v8
+        with:
+          name: frontend-build
+          path: frontend
+      - name: Unpack the build
         working-directory: frontend
-        run: NODE_OPTIONS="--max-old-space-size=8192" npm run build
+        run: tar xzf frontend-build.tar.gz
       # The suite brings up its own stack - a database and a backend of its own, and the built server
       # in front of them - because that is what it is configured against. Starting another backend
       # here would only occupy a port nothing asks for.

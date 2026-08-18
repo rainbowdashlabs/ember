@@ -11,7 +11,8 @@ export default {
             userHint: 'Die E-Mail-Adresse, die Brevo auf der Seite „SMTP & API“ als Login anzeigt - in der Regel die E-Mail-Adresse deines Brevo-Kontos.',
             secretLabel: 'SMTP-Schlüssel',
             secretHint: 'Ein SMTP-Schlüssel beginnt mit „xsmtpsib-“. Der reguläre API-Schlüssel („xkeysib-“) funktioniert für den Versand nicht.',
-            webhookStep1: 'Öffne in Brevo „Transactional → Email → Settings → Webhook“.',
+            webhookStep1: 'Öffne in Brevo „Einstellungen → Transaktionsbezogene E-Mails → Webhook“ '
+                + 'oder direkt app.brevo.com/webhooks/outbound/create.',
             webhookStep2: 'Klicke auf „Add a new webhook“ und füge die Adresse von oben ein.',
             webhookStep3: 'Wähle mindestens „delivered“, „softBounce“, „hardBounce“, „blocked“, '
                 + '„spam“ und „deferred“ und speichere.',
@@ -3505,23 +3506,23 @@ export default {
         home: 'Startseite',
         login: 'Anmelden',
     },
-    mailFallbacks: {
-        title: 'Ausweichanbieter',
-        hint: 'Scheitert der Versand über den oben eingerichteten Anbieter, übernimmt der nächste '
-            + 'aus dieser Liste. Jeder bekommt eine eigene Anzahl Versuche. Lehnt die Gegenstelle '
-            + 'nicht die Nachricht, sondern den Absendeserver ab - etwa weil er auf einer Sperrliste '
-            + 'steht -, wird sofort der nächste Anbieter genommen, weil ein weiterer Versuch über '
-            + 'denselben Weg genauso abgelehnt würde.',
-        empty: 'Noch kein Ausweichanbieter eingetragen. Scheitert der Versand, bleibt die Mail liegen.',
+    mailChain: {
+        title: 'Mailanbieter',
+        hint: 'Mail wird von oben nach unten durch diese Liste versucht. Jeder Anbieter bekommt eine '
+            + 'eigene Anzahl Versuche und ein eigenes Tageslimit; ist eines davon aufgebraucht, '
+            + 'übernimmt der nächste. Lehnt die Gegenstelle nicht die Nachricht, sondern den '
+            + 'Absendeserver ab, etwa weil er auf einer Sperrliste steht, wird sofort gewechselt, '
+            + 'weil ein weiterer Versuch über denselben Weg genauso abgelehnt würde.',
+        empty: 'Noch kein Anbieter eingetragen. Bis dahin bleibt jede Mail liegen.',
         position: '{position}. Anbieter',
+        firstBadge: 'Wird zuerst versucht',
         provider: 'Anbieter',
         ownServer: 'Eigener Server',
         serverTitle: 'Serveradresse',
         attempts: 'Versuche',
         attemptsHint: 'So oft wird dieser Anbieter versucht, bevor der nächste übernimmt.',
-        primaryAttempts: 'Versuche des ersten Anbieters',
-        primaryAttemptsHint: 'So oft wird der oben eingerichtete Anbieter versucht, bevor der erste '
-            + 'Ausweichanbieter übernimmt.',
+        dailyLimit: 'Tageslimit',
+        dailyLimitHint: 'So viele Mails darf dieser Anbieter am Tag versenden. 0 bedeutet kein Limit.',
         host: 'Server',
         port: 'Port',
         ssl: 'SSL statt STARTTLS',
@@ -3530,8 +3531,16 @@ export default {
         apiKey: 'API-Schlüssel',
         senderAddress: 'Absender-Adresse',
         senderName: 'Absender-Name',
+        providerName: 'Anzeigename für Mitglieder',
+        providerUrl: 'Website des Anbieters',
         add: 'Anbieter hinzufügen',
-        saved: 'Ausweichanbieter gespeichert.',
+        saved: 'Anbieter gespeichert.',
+        test: 'Testmail senden',
+        testRecipient: 'Testmail an',
+        testHint: 'Geprüft wird der gespeicherte Stand dieses Anbieters, nicht das, was gerade im '
+            + 'Formular steht. Die Adresse muss nicht deine eigene sein.',
+        testOk: 'Der {position}. Anbieter hat die Mail an {recipient} angenommen.',
+        testFailed: 'Der {position}. Anbieter hat abgelehnt: {error}',
     },
     adminSettings: {
         title: 'Einstellungen',
@@ -3570,42 +3579,15 @@ export default {
         },
         mailing: {
             title: 'E-Mail',
-            provider: 'Anbieter',
-            senderAddress: 'Absender-Adresse',
-            senderName: 'Absender-Name',
-            user: 'Benutzername',
-            password: 'Passwort',
-            apiKey: 'API-Schlüssel',
-            dailySendLimit: 'Tageslimit',
-            dailySendLimitHint: 'Maximale Anzahl an E-Mails pro Tag.',
-            notificationDigestIntervalMinutes: 'Benachrichtigungsintervall (Minuten)',
-            notificationDigestIntervalMinutesHint: 'Intervall für die Zusammenfassung von Benachrichtigungen.',
-            smtp: {
-                title: 'SMTP-Einstellungen',
-                host: 'Host',
-                port: 'Port',
-                ssl: 'SSL aktiviert',
-            },
-            clear: 'Konfiguration löschen',
-            clearConfirm: 'Die instanzweite E-Mail-Konfiguration wird vollständig entfernt. Fortfahren?',
+            instanceTitle: 'Einstellungen der Instanz',
+            digestInterval: 'Benachrichtigungsintervall (Minuten)',
+            digestIntervalHint: 'Intervall für die Zusammenfassung von Benachrichtigungen.',
+            clear: 'Alle Anbieter entfernen',
+            clearConfirm: 'Die Anbieterliste der Instanz wird vollständig geleert. Bis ein neuer '
+                + 'Anbieter eingetragen ist, bleibt jede Mail liegen. Fortfahren?',
             saveFailed: 'Speichern fehlgeschlagen: {error}',
             testMail: 'Test-Mail an mich senden',
             testMailSent: 'Test-Mail wurde versendet. Prüfe dein Postfach.',
-            webhook: {
-                title: 'Rückmeldungen zur Zustellung',
-                hint: 'Trage diese Adresse bei deinem Mailanbieter als Webhook ein. Erst dann '
-                    + 'erfährt Ember, ob eine Mail wirklich angekommen ist - ohne sie endet das '
-                    + 'Wissen bei der Übergabe an den Anbieter, und eine später abgewiesene Mail '
-                    + 'gilt weiter als versendet. Bei Brevo steht das unter Transactional → '
-                    + 'Settings → Webhooks. Den Schlüssel darin erzeugt Ember selbst.',
-                copy: 'Adresse kopieren',
-                copied: 'Adresse kopiert.',
-                copyFailed: 'Kopieren nicht möglich. Markiere die Adresse und kopiere sie von Hand.',
-                replace: 'Neuen Schlüssel erzeugen',
-                replaceHint: 'Ein neuer Schlüssel macht die alte Adresse sofort ungültig. Trage die '
-                    + 'neue danach bei deinem Anbieter ein, sonst kommen keine Rückmeldungen mehr an.',
-                unavailable: 'Noch keine Adresse verfügbar.',
-            },
         },
         legal: {
             title: 'Rechtliche Dokumente',

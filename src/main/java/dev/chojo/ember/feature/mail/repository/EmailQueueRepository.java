@@ -180,9 +180,37 @@ public class EmailQueueRepository {
      * @param id the queued email ID
      */
     public void markSent(int id) {
-        query("UPDATE email_queue SET status = 'SENT' WHERE id = :id;")
+        query("UPDATE email_queue SET status = 'SENT', sent_at = now() WHERE id = :id;")
                 .single(call().bind("id", id))
                 .update();
+    }
+
+    /**
+     * How many mails one provider of a chain has sent on the given day.
+     *
+     * <p>Read from what actually left rather than from a counter of its own, so a mail written
+     * yesterday and sent today counts towards today, which is what a daily allowance means.
+     *
+     * @param day       the day to count
+     * @param stationId the station whose chain is meant, or null for the instance chain
+     * @param position  which provider of that chain
+     */
+    public int getProviderDailyCount(LocalDate day, Integer stationId, int position) {
+        return count(
+                """
+                        SELECT
+                            count(*) AS count
+                        FROM
+                            email_queue
+                        WHERE
+                            sent_at >= :day_start
+                            AND sent_at < :day_end
+                            AND provider_position = :position
+                            AND station_id IS NOT DISTINCT FROM CAST(:station_id AS INTEGER);""",
+                call().bind("day_start", day)
+                        .bind("day_end", day.plusDays(1))
+                        .bind("position", position)
+                        .bind("station_id", stationId));
     }
 
     /**

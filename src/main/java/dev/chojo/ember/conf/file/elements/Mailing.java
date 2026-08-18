@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ocular.override.Env;
 import dev.chojo.ocular.override.Overwrite;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -58,10 +59,18 @@ public class Mailing {
     private String webhookSecret = "";
 
     /**
-     * Providers to fall back to when the one above has used its attempts, in the order they are
-     * tried. Empty means there is nothing to fall back to, which is how an instance starts.
+     * The providers mail is tried through, in order. The first is simply the first, not a provider
+     * of a different kind.
      */
-    private List<MailFallback> fallbacks = Collections.emptyList();
+    private List<MailProviderEntry> providers = Collections.emptyList();
+
+    /**
+     * The shape this held before the providers became one list: the entries after the one written
+     * directly on this element. Read so an instance that has not been saved since keeps sending,
+     * and written no more; the first save through the administration page replaces both with
+     * {@link #providers}.
+     */
+    private List<MailProviderEntry> fallbacks = Collections.emptyList();
 
     /**
      * How many attempts the provider configured here gets before the first fallback takes over.
@@ -119,10 +128,30 @@ public class Mailing {
     }
 
     /**
-     * The providers tried after the one configured here, in order.
+     * The providers mail is tried through, in order, from the top.
+     *
+     * <p>An instance written before the providers became one list has none of its own; its first
+     * provider still stands in the fields on this element, with the rest behind {@code fallbacks}.
+     * Both are folded into the same list here, so nothing has to be saved before it sends.
      */
-    public List<MailFallback> fallbacks() {
-        return fallbacks == null ? Collections.emptyList() : fallbacks;
+    public List<MailProviderEntry> providers() {
+        if (providers != null && !providers.isEmpty()) return providers;
+        if (provider == null || provider == MailProviderType.NONE) return Collections.emptyList();
+        List<MailProviderEntry> folded = new ArrayList<>();
+        folded.add(new MailProviderEntry(
+                provider,
+                smtp.host(),
+                smtp.port(),
+                smtp.ssl(),
+                user,
+                password,
+                apiKey,
+                senderAddress,
+                senderName,
+                Math.max(1, attempts),
+                dailySendLimit));
+        if (fallbacks != null) folded.addAll(fallbacks);
+        return folded;
     }
 
     /**

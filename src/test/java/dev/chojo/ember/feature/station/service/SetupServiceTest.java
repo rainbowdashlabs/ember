@@ -10,11 +10,11 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.mail.entity.MailChainEntry;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.station.entity.Station;
-import dev.chojo.ember.feature.station.entity.StationMailConfig;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.service.SetupService.CompletionResult;
 import dev.chojo.ember.feature.station.service.SetupService.SetupStatus;
@@ -57,7 +57,7 @@ class SetupServiceTest extends RepositoryTestBase {
                         stationMemberRepo, memberGroupRepo, accountRepo, mock(AuthService.class)));
         setupService = new SetupService(
                 stationRepo,
-                stationMailConfigRepo,
+                stationMailProviderRepo,
                 memberGroupRepo,
                 eventRepo,
                 knowledgeBaseRepo,
@@ -127,24 +127,26 @@ class SetupServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    void mail_step_completes_when_station_mail_config_is_configured() {
+    void mail_step_completes_when_the_station_lists_a_provider() {
         assertFalse(optionalComplete(SetupService.STEP_MAIL));
 
-        stationMailConfigRepo.upsert(new StationMailConfig(
+        stationMailProviderRepo.replace(
                 station.id(),
-                MailProviderType.SMTP,
-                "smtp.example.com",
-                587,
-                false,
-                "user",
-                "pw",
-                "hello@example.com",
-                "Test",
-                "",
-                "",
-                "",
-                100,
-                3000));
+                List.of(new MailChainEntry(
+                        0,
+                        MailProviderType.SMTP,
+                        "smtp.example.com",
+                        587,
+                        false,
+                        "user",
+                        "pw",
+                        "",
+                        "hello@example.com",
+                        "Test",
+                        2,
+                        0,
+                        "",
+                        "")));
 
         assertTrue(optionalComplete(SetupService.STEP_MAIL));
     }

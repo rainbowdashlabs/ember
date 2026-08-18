@@ -15,8 +15,7 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import MailProviderCredentialFields from '@/components/mail/MailProviderCredentialFields.vue'
-import {stationManage} from '@/api'
-import type {MailConfigRequest} from '@/api/stationManage'
+import {emptyMailProvider, getStationProviders, updateStationProviders, type MailProvider} from '@/api/mailProviders'
 import {useSetupStatus} from '@/composables/useSetupStatus'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {goToNextStep} from '@/views/stationview/setup/steps'
@@ -26,17 +25,11 @@ const {t} = useI18n()
 const router = useRouter()
 const {reload} = useSetupStatus()
 
-const cfg = ref<MailConfigRequest>({
-    provider: 'NONE',
-    smtpHost: '',
-    smtpPort: 587,
-    smtpSsl: false,
-    smtpUser: '',
-    smtpPassword: '',
-    senderAddress: '',
-    senderName: '',
-    apiKey: '',
-})
+/**
+ * Setting up asks for one provider, which becomes the first of the station's list. More can be
+ * added later on the mail page; a station being set up has no use for a second one yet.
+ */
+const cfg = ref<MailProvider>({...emptyMailProvider(), provider: 'NONE'})
 const loading = ref(true)
 
 const relayUser = computed({
@@ -53,24 +46,14 @@ const PROVIDERS = ['NONE', 'SMTP', 'RAPIDMAIL', 'TWILIO', 'SWEEGO', 'BREVO']
 
 onMounted(async () => {
     try {
-        const existing = await stationManage.getMailConfig()
-        cfg.value = {
-            provider: existing.provider,
-            smtpHost: existing.smtpHost,
-            smtpPort: existing.smtpPort,
-            smtpSsl: existing.smtpSsl,
-            smtpUser: existing.smtpUser,
-            smtpPassword: '',
-            senderAddress: existing.senderAddress,
-            senderName: existing.senderName,
-            apiKey: '',
-        }
+        const [existing] = await getStationProviders()
+        if (existing) cfg.value = {...existing, smtpPassword: '', apiKey: ''}
     } catch { /* ignore */ }
     loading.value = false
 })
 
 const {running: saving, error, run: save} = useAsyncAction(async () => {
-    await stationManage.updateMailConfig(cfg.value)
+    await updateStationProviders(cfg.value.provider === 'NONE' ? [] : [cfg.value])
     await reload()
     goToNextStep(router, 'mail')
 })

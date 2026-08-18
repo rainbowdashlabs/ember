@@ -120,4 +120,25 @@ class EmailQueueRepositoryTest extends RepositoryTestBase {
         // Should not throw
         emailQueueRepo.cleanupOldEntries(1);
     }
+
+    /**
+     * A daily allowance belongs to one provider of one list, so the count has to separate them:
+     * what the instance sent through its second provider is nothing to do with what a station sent
+     * through its first.
+     */
+    @Test
+    @Order(12)
+    void providerDailyCountSeparatesListsAndPositions() {
+        LocalDate today = LocalDate.now();
+        int before = emailQueueRepo.getProviderDailyCount(today, null, 0);
+
+        emailQueueRepo.enqueue("counted@example.com", "Counted", "Body");
+        var pending = emailQueueRepo.fetchPending(1, true);
+        emailQueueRepo.markSent(pending.getFirst().id());
+
+        assertEquals(before + 1, emailQueueRepo.getProviderDailyCount(today, null, 0));
+        assertEquals(0, emailQueueRepo.getProviderDailyCount(today, null, 1), "another provider of the same list");
+        assertEquals(0, emailQueueRepo.getProviderDailyCount(today, station.id(), 0), "a station's own list");
+        assertEquals(0, emailQueueRepo.getProviderDailyCount(today.minusDays(1), null, 0), "yesterday");
+    }
 }

@@ -23,10 +23,8 @@ import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.station.entity.Station;
-import dev.chojo.ember.feature.station.entity.StationMailConfig;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
-import dev.chojo.ember.feature.station.repository.StationMailConfigRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationExportService;
 import dev.chojo.ember.feature.station.service.StationImportService;
@@ -35,6 +33,7 @@ import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.feature.station.transfer.ImportProgress;
 import dev.chojo.ember.feature.webhook.service.WebhookKeyService;
+import dev.chojo.ember.util.MailAddress;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -55,7 +54,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.zone.ZoneRulesException;
 import java.util.ArrayList;
@@ -81,7 +79,6 @@ public class StationManageRoutes implements Routes {
     private final WebhookKeyService webhookKeyService;
     private final ProviderSecretRepository providerSecretRepository;
     private final Api apiConfig;
-    private final StationMailConfigRepository mailConfigRepository;
     private final EmailService emailService;
     private final AuthService authService;
     private final StationImportService importService;
@@ -98,7 +95,6 @@ public class StationManageRoutes implements Routes {
             WebhookKeyService webhookKeyService,
             ProviderSecretRepository providerSecretRepository,
             Api apiConfig,
-            StationMailConfigRepository mailConfigRepository,
             EmailService emailService,
             AuthService authService,
             StationImportService importService,
@@ -112,7 +108,6 @@ public class StationManageRoutes implements Routes {
         this.webhookKeyService = webhookKeyService;
         this.providerSecretRepository = providerSecretRepository;
         this.apiConfig = apiConfig;
-        this.mailConfigRepository = mailConfigRepository;
         this.emailService = emailService;
         this.authService = authService;
         this.importService = importService;
@@ -135,8 +130,6 @@ public class StationManageRoutes implements Routes {
         routes.get(prefix + "/stations/{stationId}/logo", this::getLogoByStation, StationPermission.LOGIN);
         routes.get(prefix + "/public/stations/{stationId}/logo", this::getLogoByStation);
         routes.delete(prefix + "/station/manage/logo", this::deleteLogo, StationPermission.STATION_LOOK_AND_FEEL);
-        routes.get(prefix + "/station/manage/mail", this::getMailConfig, StationPermission.STATION_MAIL);
-        routes.put(prefix + "/station/manage/mail", this::updateMailConfig, StationPermission.STATION_MAIL);
         routes.delete(prefix + "/station/manage/mail", this::clearMailConfig, StationPermission.STATION_MAIL);
         routes.get(prefix + "/station/manage/mail/webhook", this::getMailWebhook, StationPermission.STATION_MAIL);
         routes.post(
@@ -145,10 +138,14 @@ public class StationManageRoutes implements Routes {
                 prefix + "/station/manage/mail/signing-secret",
                 this::updateSigningSecret,
                 StationPermission.STATION_MAIL);
-        routes.get(prefix + "/station/manage/mail/fallbacks", this::getMailFallbacks, StationPermission.STATION_MAIL);
+        routes.get(prefix + "/station/manage/mail/providers", this::getMailFallbacks, StationPermission.STATION_MAIL);
         routes.put(
-                prefix + "/station/manage/mail/fallbacks", this::updateMailFallbacks, StationPermission.STATION_MAIL);
+                prefix + "/station/manage/mail/providers", this::updateMailFallbacks, StationPermission.STATION_MAIL);
         routes.post(prefix + "/station/manage/mail/test", this::testMailConfig, StationPermission.STATION_MAIL);
+        routes.post(
+                prefix + "/station/manage/mail/providers/{position}/test",
+                this::testMailProvider,
+                StationPermission.STATION_MAIL);
         routes.post(prefix + "/station/manage/mail/test-mail", this::sendTestMail, StationPermission.STATION_MAIL);
         routes.get(prefix + "/station/manage/modules", this::getDisabledModules, StationPermission.STATION_MODULES);
         routes.put(prefix + "/station/manage/modules", this::setDisabledModules, StationPermission.STATION_MODULES);
@@ -414,12 +411,12 @@ public class StationManageRoutes implements Routes {
      */
     private void getMailWebhook(Context ctx) {
         var session = UserSession.from(ctx);
-        var provider = mailConfigRepository
-                .findByStation(session.stationId())
-                .map(StationMailConfig::provider)
+        var provider = mailProviderRepository.findByStation(session.stationId()).stream()
+                .findFirst()
+                .map(MailChainEntry::provider)
                 .orElse(MailProviderType.NONE);
         ctx.json(new WebhookUrl(
-                webhookKeyService.webhookUrl(apiConfig.baseUrl(), session.stationId(), webhookPath(provider)),
+                webhookKeyService.webhookUrl(apiConfig.baseUrl(), session.stationId(), provider.webhookPath()),
                 providerSecretRepository.find(session.stationId(), provider).isPresent()));
     }
 
@@ -430,24 +427,13 @@ public class StationManageRoutes implements Routes {
     private void updateSigningSecret(Context ctx) {
         var session = UserSession.from(ctx);
         var request = ctx.bodyAsClass(SigningSecretRequest.class);
-        var provider = mailConfigRepository
-                .findByStation(session.stationId())
-                .map(StationMailConfig::provider)
+        var provider = mailProviderRepository.findByStation(session.stationId()).stream()
+                .findFirst()
+                .map(MailChainEntry::provider)
                 .orElse(MailProviderType.NONE);
         providerSecretRepository.store(session.stationId(), provider, request.secret());
         log.info("Station {} set the signing secret of {}", session.stationId(), provider);
         getMailWebhook(ctx);
-    }
-
-    /**
-     * Which report a provider sends, as the last part of its webhook address.
-     */
-    private static String webhookPath(MailProviderType provider) {
-        return switch (provider) {
-            case SWEEGO -> "mail/sweego";
-            case TWILIO -> "mail/sendgrid";
-            default -> "mail/brevo";
-        };
     }
 
     /**
@@ -487,8 +473,16 @@ public class StationManageRoutes implements Routes {
                                 entry.apiKey(),
                                 entry.senderAddress(),
                                 entry.senderName(),
-                                entry.attempts())
-                        .masked())
+                                entry.attempts(),
+                                entry.dailySendLimit(),
+                                entry.providerName(),
+                                entry.providerUrl(),
+                                null)
+                        .masked()
+                        .withWebhookUrl(webhookKeyService.webhookUrl(
+                                apiConfig.baseUrl(),
+                                session.stationId(),
+                                entry.provider().webhookPath())))
                 .toList());
     }
 
@@ -520,98 +514,42 @@ public class StationManageRoutes implements Routes {
                     MailFallbackPayload.keepOrReplace(entry.apiKey(), previous == null ? "" : previous.apiKey()),
                     entry.senderAddress(),
                     entry.senderName(),
-                    Math.max(1, entry.attempts())));
+                    Math.max(1, entry.attempts()),
+                    Math.max(0, entry.dailySendLimit()),
+                    entry.providerName(),
+                    entry.providerUrl()));
         }
         mailProviderRepository.replace(session.stationId(), next);
         log.info("Station {} set {} mail fallback(s)", session.stationId(), next.size());
         getMailFallbacks(ctx);
     }
 
-    private void getMailConfig(Context ctx) {
+    /**
+     * Tries one provider of this station's list against its relay, without sending anything.
+     */
+    private void testMailProvider(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        ctx.json(buildMailConfigResponse(session.stationId()));
-    }
-
-    private MailConfigResponse buildMailConfigResponse(int stationId) {
-        var config = mailConfigRepository.findByStation(stationId);
-        if (config.isPresent()) {
-            var c = config.get();
-            return new MailConfigResponse(
-                    c.provider().name(),
-                    c.smtpHost(),
-                    c.smtpPort(),
-                    c.smtpSsl(),
-                    c.smtpUser(),
-                    c.senderAddress(),
-                    c.senderName(),
-                    !c.apiKey().isBlank(),
-                    c.providerName(),
-                    c.providerUrl(),
-                    c.dailyLimit(),
-                    c.monthlyLimit(),
-                    mailConfigRepository.getDailyCount(stationId, LocalDate.now()),
-                    mailConfigRepository.getMonthlyCount(stationId, LocalDate.now()));
-        }
-        return new MailConfigResponse("NONE", "", 587, false, "", "", "", false, "", "", 100, 2000, 0, 0);
-    }
-
-    // -- Mail config --
-
-    @OpenApi(
-            path = "/api/v1/station/manage/mail",
-            methods = HttpMethod.PUT,
-            summary = "Update station mail configuration",
-            tags = {"Station Manage"},
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MailConfigRequest.class)),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MailConfigResponse.class)))
-    private void updateMailConfig(Context ctx) {
-        UserSession session = UserSession.from(ctx);
-        var body = ctx.bodyAsClass(MailConfigRequest.class);
-
-        MailProviderType provider;
+        int position;
         try {
-            provider = body.provider() != null ? MailProviderType.valueOf(body.provider()) : MailProviderType.NONE;
-        } catch (IllegalArgumentException e) {
-            log.warn("Invalid mail provider: {}", body.provider(), e);
-            throw new BadRequestResponse("Invalid provider: " + body.provider());
+            position = Integer.parseInt(ctx.pathParam("position"));
+        } catch (NumberFormatException e) {
+            throw new BadRequestResponse("Invalid provider position: " + ctx.pathParam("position"));
         }
-
-        // Preserve existing password/apiKey if not provided (empty string = keep existing)
-        var existing = mailConfigRepository.findByStation(session.stationId()).orElse(null);
-        String smtpPassword = body.smtpPassword();
-        String apiKey = body.apiKey();
-        if (existing != null) {
-            if (smtpPassword == null || smtpPassword.isEmpty()) smtpPassword = existing.smtpPassword();
-            if (apiKey == null || apiKey.isEmpty()) apiKey = existing.apiKey();
+        var body = ctx.body().isBlank() ? null : ctx.bodyAsClass(ProviderTestRequest.class);
+        String recipient = body == null ? null : body.recipient();
+        if (recipient == null || recipient.isBlank()) {
+            String error = emailService.testStationMailConnection(session.stationId(), position);
+            ctx.json(new MailTestResponse(error == null, error));
+            return;
         }
-        if (smtpPassword == null) smtpPassword = "";
-        if (apiKey == null) apiKey = "";
-
-        var config = new StationMailConfig(
+        var account = session.account();
+        String error = emailService.sendTestMailThrough(
                 session.stationId(),
-                provider,
-                body.smtpHost() != null ? body.smtpHost() : "",
-                body.smtpPort() != null ? body.smtpPort() : 587,
-                body.smtpSsl() != null ? body.smtpSsl() : false,
-                body.smtpUser() != null ? body.smtpUser() : "",
-                smtpPassword,
-                body.senderAddress() != null ? body.senderAddress() : "",
-                body.senderName() != null ? body.senderName() : "",
-                apiKey,
-                body.providerName() != null ? body.providerName() : "",
-                body.providerUrl() != null ? body.providerUrl() : "",
-                body.dailyLimit() != null ? body.dailyLimit() : 100,
-                body.monthlyLimit() != null ? body.monthlyLimit() : 2000);
-
-        if (provider != MailProviderType.NONE) {
-            String error = emailService.testMailConnection(config);
-            if (error != null) {
-                throw new BadRequestResponse("Mail configuration test failed: " + error);
-            }
-        }
-
-        mailConfigRepository.upsert(config);
-        ctx.json(buildMailConfigResponse(session.stationId()));
+                position,
+                MailAddress.require(recipient),
+                account.firstName(),
+                mailLocaleService.forAccount(account.id()));
+        ctx.json(new MailTestResponse(error == null, error));
     }
 
     @OpenApi(
@@ -622,7 +560,7 @@ public class StationManageRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void clearMailConfig(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        mailConfigRepository.delete(session.stationId());
+        mailProviderRepository.replace(session.stationId(), List.of());
         throw new NoContentResponse();
     }
 
@@ -649,8 +587,7 @@ public class StationManageRoutes implements Routes {
             })
     private void sendTestMail(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        var config = mailConfigRepository.findByStation(session.stationId());
-        if (config.isEmpty() || !config.get().isConfigured()) {
+        if (mailProviderRepository.findByStation(session.stationId()).isEmpty()) {
             throw new BadRequestResponse("No mail provider configured");
         }
         var account = session.account();
@@ -925,6 +862,14 @@ public class StationManageRoutes implements Routes {
      * @param error   the error message if the test failed, or {@code null}
      */
     public record MailTestResponse(boolean success, String error) {}
+
+    /**
+     * Where a test mail should go. Empty means only the connection is tried and nothing is sent.
+     *
+     * @param recipient the address to send to, which need not be the one asking: whether a relay
+     *                  delivers is often a question about somebody else's mailbox
+     */
+    public record ProviderTestRequest(String recipient) {}
 
     /**
      * Response and request body for the set of disabled modules.

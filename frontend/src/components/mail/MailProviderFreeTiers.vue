@@ -24,7 +24,7 @@ const {t} = useI18n()
 
 const entries = Object.entries(PROVIDER_FREE_TIER).map(([key, tier]) => ({
   key,
-  name: RELAY_PROVIDER_NAMES[key] ?? t('mailFallbacks.ownServer'),
+  name: RELAY_PROVIDER_NAMES[key] ?? t('mailChain.ownServer'),
   ...tier,
 }))
 </script>

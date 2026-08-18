@@ -16,8 +16,13 @@ import dev.chojo.ember.feature.station.entity.MailProviderType;
  * block list, for one. So sending is not one provider but a list: each gets a number of attempts,
  * and when it has used them the next one takes over.
  *
- * @param position where in the order this provider sits, counted from zero
- * @param attempts how many attempts it gets before the next one takes over
+ * @param position       where in the order this provider sits, counted from zero
+ * @param attempts       how many attempts it gets before the next one takes over
+ * @param dailySendLimit how many mails it may send in a day, or zero for no limit. Free tiers are
+ *                       sold by the day, so a chain that ignores the allowance keeps pushing at a
+ *                       provider that has already spent it instead of moving to the next.
+ * @param providerName   the provider name shown to members, empty when none was given
+ * @param providerUrl    the provider website shown to members, empty when none was given
  */
 public record MailChainEntry(
         int position,
@@ -30,13 +35,25 @@ public record MailChainEntry(
         String apiKey,
         String senderAddress,
         String senderName,
-        int attempts) {
+        int attempts,
+        int dailySendLimit,
+        String providerName,
+        String providerUrl) {
 
     /**
      * Whether this entry names a provider that could actually send something.
      */
     public boolean isConfigured() {
         return provider != null && provider != MailProviderType.NONE;
+    }
+
+    /**
+     * Whether this entry has room for another mail today.
+     *
+     * @param sentToday what it has already sent
+     */
+    public boolean hasRoomToday(int sentToday) {
+        return dailySendLimit <= 0 || sentToday < dailySendLimit;
     }
 
     public static RowMapping<MailChainEntry> map() {
@@ -51,6 +68,9 @@ public record MailChainEntry(
                 row.getString("api_key"),
                 row.getString("sender_address"),
                 row.getString("sender_name"),
-                row.getInt("attempts"));
+                row.getInt("attempts"),
+                row.getInt("daily_limit"),
+                row.getString("provider_name"),
+                row.getString("provider_url"));
     }
 }

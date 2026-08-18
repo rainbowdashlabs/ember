@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:77e5ef32a56e2cc64e682af19fcfc8ee6dbcba946d883b5d8000625163f70631",
-  "generatedAt" : "2026-08-17T23:44:07Z",
+  "schemaHash" : "sha256:89aa4ad1a96b466acd6482edc6ef3c1def45d483c473b6277d6b620dffeff519",
+  "generatedAt" : "2026-08-18T12:28:17Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -3059,7 +3059,7 @@
     "email_queue" : {
       "feature" : "mail",
       "scope" : "INSTANCE",
-      "tableHash" : "sha256:63b8a9ebf64f1e4f57cc1428bdb227635d2cd87d44e8662d483aa275943e476d",
+      "tableHash" : "sha256:b6bb127b153e521c1c60b5d89a9e323cd4188fff77fcf326ed09e2d128b55407",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -3138,6 +3138,12 @@
         "nullable" : false,
         "verified" : true,
         "description" : "Which provider of the chain is currently in turn, counted from zero."
+      }, {
+        "name" : "sent_at",
+        "type" : "timestamp",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "When the mail was handed to a provider, which is what the per-provider daily count reads."
       } ],
       "foreignKeys" : [ {
         "column" : "station_id",
@@ -12248,49 +12254,6 @@
       },
       "description" : "Modules disabled for a station (enabled by default, rows here disable them)."
     },
-    "station_email_count" : {
-      "feature" : "mail",
-      "scope" : "STATION",
-      "tableHash" : "sha256:1bb652b051f3048439f408eefbbfa453bf0ef2bed3e617a1ddea1a08c2ee5871",
-      "columns" : [ {
-        "name" : "station_id",
-        "type" : "int4",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "References the station."
-      }, {
-        "name" : "day",
-        "type" : "date",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Date."
-      }, {
-        "name" : "count",
-        "type" : "int4",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Number of emails sent on this date."
-      } ],
-      "foreignKeys" : [ {
-        "column" : "station_id",
-        "refTable" : "station",
-        "refColumn" : "id",
-        "onDelete" : "CASCADE"
-      } ],
-      "stationTransfer" : {
-        "status" : "IGNORED",
-        "reason" : "Email delivery queue/counters, ephemeral and instance-scoped"
-      },
-      "gdprExport" : {
-        "status" : "IGNORED",
-        "reason" : "Aggregate/station-level data, no personal data"
-      },
-      "gdprDeletion" : {
-        "status" : "IGNORED",
-        "reason" : "Aggregate/station-level data, no personal data"
-      },
-      "description" : "Per-station daily email send count for rate limiting."
-    },
     "station_event" : {
       "feature" : "events",
       "scope" : "STATION",
@@ -12537,126 +12500,10 @@
       },
       "description" : "Date ranges during which recurring events are suspended (e.g. holidays)."
     },
-    "station_mail_config" : {
-      "feature" : "station",
-      "scope" : "STATION",
-      "tableHash" : "sha256:d8560f55469fc80999741bb286fedba126dc2a1e665bc87effea2c54630bdac6",
-      "columns" : [ {
-        "name" : "station_id",
-        "type" : "int4",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "References the station."
-      }, {
-        "name" : "provider",
-        "type" : "text",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Email provider: NONE, SMTP, RAPIDMAIL."
-      }, {
-        "name" : "smtp_host",
-        "type" : "text",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "SMTP server hostname."
-      }, {
-        "name" : "smtp_port",
-        "type" : "int4",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "SMTP server port."
-      }, {
-        "name" : "smtp_ssl",
-        "type" : "bool",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Whether to use SSL/TLS for SMTP."
-      }, {
-        "name" : "smtp_user",
-        "type" : "text",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "SMTP authentication username."
-      }, {
-        "name" : "smtp_password",
-        "type" : "text",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "SMTP authentication password."
-      }, {
-        "name" : "sender_address",
-        "type" : "text",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Sender email address (From header)."
-      }, {
-        "name" : "sender_name",
-        "type" : "text",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Sender display name."
-      }, {
-        "name" : "api_key",
-        "type" : "text",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "API key for non-SMTP providers."
-      }, {
-        "name" : "provider_name",
-        "type" : "text",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Display name of the email provider."
-      }, {
-        "name" : "provider_url",
-        "type" : "text",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "URL of the email provider portal."
-      }, {
-        "name" : "daily_limit",
-        "type" : "int4",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Max emails per day for this station."
-      }, {
-        "name" : "monthly_limit",
-        "type" : "int4",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Max emails per month for this station."
-      }, {
-        "name" : "updated_at",
-        "type" : "timestamp",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "When the configuration was last updated."
-      } ],
-      "foreignKeys" : [ {
-        "column" : "station_id",
-        "refTable" : "station",
-        "refColumn" : "id",
-        "onDelete" : "CASCADE"
-      } ],
-      "stationTransfer" : {
-        "status" : "TRACKED",
-        "ignoredColumns" : [ "station_id" ],
-        "rationale" : "Per-station outgoing-mail config (SMTP/API credentials); without it the station can't send mail on the target instance."
-      },
-      "gdprExport" : {
-        "status" : "IGNORED",
-        "reason" : "Station/instance configuration, not personal data"
-      },
-      "gdprDeletion" : {
-        "status" : "IGNORED",
-        "reason" : "Station/instance configuration, not personal data"
-      },
-      "description" : "Email provider configuration per station."
-    },
     "station_mail_provider" : {
       "feature" : "mail",
       "scope" : "STATION",
-      "tableHash" : "sha256:33dc832ca12bb45767abf74e7d733efd746fec64b48992a267187da790389c2d",
+      "tableHash" : "sha256:729e176316845f8092d3efe23e90f0804da498c94964f649fc2684d41e8a05d3",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -12674,7 +12521,7 @@
         "type" : "int4",
         "nullable" : false,
         "verified" : true,
-        "description" : "Where in the order this provider is tried; the station configuration itself is 0."
+        "description" : "Where in the order this provider is tried, counted from zero."
       }, {
         "name" : "provider",
         "type" : "text",
@@ -12741,6 +12588,24 @@
         "nullable" : false,
         "verified" : true,
         "description" : "When the provider was added."
+      }, {
+        "name" : "daily_limit",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "How many mails this provider may send in a day; 0 for no limit."
+      }, {
+        "name" : "provider_name",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The provider name shown to members of the station."
+      }, {
+        "name" : "provider_url",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The provider website shown to members of the station."
       } ],
       "foreignKeys" : [ {
         "column" : "station_id",
@@ -12761,7 +12626,7 @@
         "status" : "IGNORED",
         "reason" : "Station configuration, not personal data"
       },
-      "description" : "Further mail providers a station falls back to, after the one in its own mail configuration."
+      "description" : "The mail providers a station sends through, in the order they are tried."
     },
     "station_member" : {
       "feature" : "station",

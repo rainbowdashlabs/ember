@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.system.route;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
@@ -13,7 +14,7 @@ import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.HibpSettings;
-import dev.chojo.ember.conf.file.elements.MailFallback;
+import dev.chojo.ember.conf.file.elements.MailProviderEntry;
 import dev.chojo.ember.conf.file.elements.MailSettings;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.conf.file.elements.Theming;
@@ -34,6 +35,7 @@ import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import dev.chojo.ember.feature.system.service.DataInitializer;
 import dev.chojo.ember.feature.webhook.service.WebhookKeyService;
+import dev.chojo.ember.util.MailAddress;
 import dev.chojo.ember.util.PandocConverter;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -239,9 +241,9 @@ public class AdminSettingsRoutes implements Routes {
                 StepUpCategory.INSTANCE_CONFIG);
         routes.get(prefix + "/admin/config/mailing", this::getMailingConfig, InstancePermission.ADMINISTRATOR);
         routes.get(
-                prefix + "/admin/config/mailing/fallbacks", this::getMailFallbacks, InstancePermission.ADMINISTRATOR);
+                prefix + "/admin/config/mailing/providers", this::getMailFallbacks, InstancePermission.ADMINISTRATOR);
         routes.put(
-                prefix + "/admin/config/mailing/fallbacks",
+                prefix + "/admin/config/mailing/providers",
                 this::updateMailFallbacks,
                 InstancePermission.ADMINISTRATOR,
                 StepUpCategory.INSTANCE_CONFIG);
@@ -251,6 +253,10 @@ public class AdminSettingsRoutes implements Routes {
                 InstancePermission.ADMINISTRATOR,
                 StepUpCategory.INSTANCE_CONFIG);
         routes.post(prefix + "/admin/config/mailing/test-mail", this::sendTestMail, InstancePermission.ADMINISTRATOR);
+        routes.post(
+                prefix + "/admin/config/mailing/providers/{position}/test",
+                this::testMailProvider,
+                InstancePermission.ADMINISTRATOR);
         routes.put(
                 prefix + "/admin/config/mailing",
                 this::updateMailingConfig,
@@ -723,22 +729,42 @@ public class AdminSettingsRoutes implements Routes {
         ctx.json(new MessageResponse("Test email queued"));
     }
 
+    /**
+     * Tries one provider of the instance list, and sends a test mail through it when an address is
+     * given. The address need not be the administrator's own: whether a relay delivers is often a
+     * question about somebody else's mailbox.
+     */
+    private void testMailProvider(Context ctx) {
+        int position;
+        try {
+            position = Integer.parseInt(ctx.pathParam("position"));
+        } catch (NumberFormatException e) {
+            throw new BadRequestResponse("Invalid provider position: " + ctx.pathParam("position"));
+        }
+        var body = ctx.body().isBlank() ? null : ctx.bodyAsClass(ProviderTestRequest.class);
+        String recipient = body == null ? null : body.recipient();
+        if (recipient == null || recipient.isBlank()) {
+            ctx.json(new MailTestResult(false, "No recipient given"));
+            return;
+        }
+        var account = UserSession.from(ctx).account();
+        String error = emailService.sendTestMailThrough(
+                null,
+                position,
+                MailAddress.require(recipient),
+                account.firstName(),
+                mailLocaleService.forAccount(account.id()));
+        ctx.json(new MailTestResult(error == null, error));
+    }
+
+    /** Where a test mail should go. */
+    public record ProviderTestRequest(String recipient) {}
+
+    /** Whether the provider took the message, and what it said when it did not. */
+    public record MailTestResult(boolean success, String error) {}
+
     private void getMailingConfig(Context ctx) {
-        var mailing = conf.main().mailing();
-        var smtp = mailing.smtp();
-        ctx.json(new MailingConfigResponse(
-                mailing.provider(),
-                mailing.senderAddress(),
-                mailing.senderName(),
-                mailing.user(),
-                mailing.password().isEmpty() ? "" : "********",
-                mailing.apiKey(),
-                smtp.host(),
-                smtp.port(),
-                smtp.ssl(),
-                mailing.dailySendLimit(),
-                mailing.notificationDigestIntervalMinutes(),
-                webhookKeyService.webhookUrl(conf.main().api().baseUrl(), null, "mail/brevo")));
+        ctx.json(new MailingConfigResponse(conf.main().mailing().notificationDigestIntervalMinutes()));
     }
 
     /**
@@ -748,7 +774,7 @@ public class AdminSettingsRoutes implements Routes {
         var mailing = conf.main().mailing();
         ctx.json(new MailFallbackChain(
                 Math.max(1, mailing.attempts()),
-                mailing.fallbacks().stream()
+                mailing.providers().stream()
                         .map(fallback -> new MailFallbackPayload(
                                         fallback.provider(),
                                         fallback.host(),
@@ -759,8 +785,16 @@ public class AdminSettingsRoutes implements Routes {
                                         fallback.apiKey(),
                                         fallback.senderAddress(),
                                         fallback.senderName(),
-                                        fallback.attempts())
-                                .masked())
+                                        fallback.attempts(),
+                                        fallback.dailySendLimit(),
+                                        "",
+                                        "",
+                                        null)
+                                .masked()
+                                .withWebhookUrl(webhookKeyService.webhookUrl(
+                                        conf.main().api().baseUrl(),
+                                        null,
+                                        fallback.provider().webhookPath())))
                         .toList()));
     }
 
@@ -773,14 +807,14 @@ public class AdminSettingsRoutes implements Routes {
     private void updateMailFallbacks(Context ctx) {
         var request = ctx.bodyAsClass(MailFallbackChain.class);
         var mailing = conf.main().mailing();
-        var stored = mailing.fallbacks();
-        List<MailFallback> next = new ArrayList<>();
+        var stored = mailing.providers();
+        List<MailProviderEntry> next = new ArrayList<>();
         var entries = request.fallbacks() == null ? List.<MailFallbackPayload>of() : request.fallbacks();
         for (int i = 0; i < entries.size(); i++) {
             var entry = entries.get(i);
             if (entry.provider() == null || entry.provider() == MailProviderType.NONE) continue;
             var previous = i < stored.size() ? stored.get(i) : null;
-            next.add(new MailFallback(
+            next.add(new MailProviderEntry(
                     entry.provider(),
                     entry.smtpHost(),
                     entry.smtpPort(),
@@ -791,14 +825,18 @@ public class AdminSettingsRoutes implements Routes {
                     MailFallbackPayload.keepOrReplace(entry.apiKey(), previous == null ? "" : previous.apiKey()),
                     entry.senderAddress(),
                     entry.senderName(),
-                    Math.max(1, entry.attempts())));
+                    Math.max(1, entry.attempts()),
+                    Math.max(0, entry.dailySendLimit())));
         }
         try {
-            setField(Mailing.class, mailing, "attempts", Math.max(1, request.attempts()));
-            setField(Mailing.class, mailing, "fallbacks", next);
+            setField(Mailing.class, mailing, "providers", next);
+            setField(Mailing.class, mailing, "fallbacks", List.<MailProviderEntry>of());
+            // The list is what counts from here on. Leaving the fields the first provider used to
+            // live in would bring them back the moment the list is emptied again.
+            setField(Mailing.class, mailing, "provider", MailProviderType.NONE);
             conf.save();
         } catch (Exception e) {
-            log.error("Failed to update the mail fallback chain", e);
+            log.error("Failed to update the mail provider list", e);
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
             return;
         }
@@ -831,70 +869,31 @@ public class AdminSettingsRoutes implements Routes {
     private void updateMailingConfig(Context ctx) {
         var request = ctx.bodyAsClass(MailingConfigRequest.class);
         var mailing = conf.main().mailing();
-        var smtp = mailing.smtp();
-
-        String effectivePassword = mailing.password();
-        if (request.password() != null && !"********".equals(request.password())) {
-            effectivePassword = request.password();
-        }
-
-        if (request.provider() != null && request.provider() != MailProviderType.NONE) {
-            String error = emailService.testMailConnection(
-                    request.provider(),
-                    request.smtpHost(),
-                    request.smtpPort(),
-                    request.smtpSsl(),
-                    request.user(),
-                    effectivePassword,
-                    request.apiKey(),
-                    request.senderAddress(),
-                    request.senderName());
-            if (error != null) {
-                throw new BadRequestResponse("Mail configuration test failed: " + error);
-            }
-        }
-
         try {
-            setField(Mailing.class, mailing, "provider", request.provider());
-            setField(Mailing.class, mailing, "senderAddress", request.senderAddress());
-            setField(Mailing.class, mailing, "senderName", request.senderName());
-            setField(Mailing.class, mailing, "user", request.user());
-            setField(Mailing.class, mailing, "password", effectivePassword);
-            setField(Mailing.class, mailing, "apiKey", request.apiKey());
-            setField(MailSettings.class, smtp, "host", request.smtpHost());
-            setField(MailSettings.class, smtp, "port", request.smtpPort());
-            setField(MailSettings.class, smtp, "ssl", request.smtpSsl());
-            setField(Mailing.class, mailing, "dailySendLimit", request.dailySendLimit());
             setField(
                     Mailing.class,
                     mailing,
                     "notificationDigestIntervalMinutes",
                     request.notificationDigestIntervalMinutes());
             conf.save();
-
-            ctx.json(new MailingConfigResponse(
-                    mailing.provider(),
-                    mailing.senderAddress(),
-                    mailing.senderName(),
-                    mailing.user(),
-                    mailing.password().isEmpty() ? "" : "********",
-                    mailing.apiKey(),
-                    smtp.host(),
-                    smtp.port(),
-                    smtp.ssl(),
-                    mailing.dailySendLimit(),
-                    mailing.notificationDigestIntervalMinutes(),
-                    webhookKeyService.webhookUrl(conf.main().api().baseUrl(), null, "mail/brevo")));
+            ctx.json(new MailingConfigResponse(mailing.notificationDigestIntervalMinutes()));
         } catch (Exception e) {
             log.error("Failed to update mailing config", e);
             ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
+    /**
+     * Empties the instance list, which is what stopping to send means now that the providers are
+     * one list. The fields the first provider used to live in are cleared with it, so an instance
+     * that has never been saved since does not fall back to them.
+     */
     private void clearMailingConfig(Context ctx) {
         var mailing = conf.main().mailing();
         var smtp = mailing.smtp();
         try {
+            setField(Mailing.class, mailing, "providers", List.<MailProviderEntry>of());
+            setField(Mailing.class, mailing, "fallbacks", List.<MailProviderEntry>of());
             setField(Mailing.class, mailing, "provider", MailProviderType.NONE);
             setField(Mailing.class, mailing, "senderAddress", "");
             setField(Mailing.class, mailing, "user", "");
@@ -1222,32 +1221,19 @@ public class AdminSettingsRoutes implements Routes {
      *                           the instance webhook key, so it is a secret in itself and is only
      *                           ever handed to an administrator.
      */
-    public record MailingConfigResponse(
-            MailProviderType provider,
-            String senderAddress,
-            String senderName,
-            String user,
-            String password,
-            String apiKey,
-            String smtpHost,
-            int smtpPort,
-            boolean smtpSsl,
-            int dailySendLimit,
-            int notificationDigestIntervalMinutes,
-            String deliveryWebhookUrl) {}
+    /**
+     * What is left of the mailing page once the providers became a list of their own: the settings
+     * that belong to the instance rather than to any one provider.
+     */
+    public record MailingConfigResponse(int notificationDigestIntervalMinutes) {}
 
-    public record MailingConfigRequest(
-            MailProviderType provider,
-            String senderAddress,
-            String senderName,
-            String user,
-            String password,
-            String apiKey,
-            String smtpHost,
-            int smtpPort,
-            boolean smtpSsl,
-            int dailySendLimit,
-            int notificationDigestIntervalMinutes) {}
+    /**
+     * The fields the client may set. Read-only ones the response carries, the webhook address
+     * among them, are accepted and dropped rather than refused, so a client holding an older
+     * response does not fail on them.
+     */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record MailingConfigRequest(int notificationDigestIntervalMinutes) {}
 
     public record LegalDocumentResponse(LegalDocumentType type, String content, String version) {}
 

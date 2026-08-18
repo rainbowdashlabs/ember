@@ -1,5 +1,26 @@
 # Changelog
 
+## v26.11.9
+
+### New Features
+
+- **Mail providers are one list, worked from the top.** An instance and a station each keep an ordered list of providers instead of one provider plus a set of stand-ins behind it. Every entry is edited, moved, tested and given its own delivery address the same way, and the first is simply the first.
+
+### Improvements
+
+- **Every provider carries its own daily allowance.** Free tiers are sold by the day, so an entry that has sent its share hands the post to the next one instead of holding it until tomorrow. A station's overall daily and monthly caps give way to this: the allowance now belongs to the provider that actually has one.
+- **A test mail goes to any address you name.** Any provider in the list can be sent a test mail, not only the one currently carrying the post, and to any address rather than only your own. A provider further down is no longer found to be misconfigured at the moment everything above it has run out.
+- **Every provider has its own address for delivery reports.** The address ends in the report format the provider sends, so a list holding two different providers is offered two different addresses, for a station as much as for the instance.
+- **A section for each email provider is ready to switch on.** The privacy policy ships one written out for Brevo, Sweego, Twilio SendGrid and rapidmail, naming the company behind it, its address and where it processes, plus a blank one for any other server. All ship switched off, and only the one naming the provider in use belongs in the document.
+- **A section for Cloudflare is ready to switch on.** An instance reached through Cloudflare passes every visitor request through their servers, so the privacy policy ships a section saying what is processed there, on what legal basis, and that the contracting company sits in the United Kingdom while processing also happens in the United States.
+- **You choose which shipped sections to load.** Under Settings → Legal each row leads with the heading it carries, says whether it would replace a section already in the editor, and offers its full text to read beforehand. Selecting everything takes the document as Ember lays it out and leaves the alternatives, such as the several email provider sections, to be picked by hand.
+
+### Fixes
+
+- **Icons arrive with the page itself.** The public pages, the login page and the help center carry their icons in the page the server sends, so they are there from the first moment and stay there when scripts are switched off.
+- **Queued mail is no longer stranded at the daily limit.** Reaching the limit leaves the remaining messages waiting for the next attempt instead of leaving them behind.
+- **A malformed request says what is wrong with it.** A request the server cannot read is answered with the reason and the field it stumbled on, rather than a bare failure.
+
 ## v26.11.8
 
 ### New Features
@@ -21,9 +42,8 @@
 - **The shipped imprint asks to be filled in rather than edited.** It carries placeholders for the operator's name, address, phone number, email address and the person responsible for content, so an instance is ready once those values are entered. A placeholder left empty stays visible in the text instead of leaving a blank line. New operator setting: `api.placeholderFile`.
 - **A document written by a lawyer can be taken over as it is.** Under Settings → Legal a document is imported as a file or pasted as text: Ember cuts it into sections, takes the numbering out of the headings and turns references like "§ 12" into links to the section they mean. Numbers that match no section stay untouched and are listed before anything is saved.
 - **The terms number themselves.** Paragraph numbers are assigned when the document is shown, so switching a section on, off or into another position renumbers the whole document and every reference in it. A reference whose section is gone is marked in the text instead of pointing nowhere.
-- **A section for the email provider is ready to switch on.** Privacy policy and terms of service ship a section describing the service that sends the email, written out for Brevo, Sweego, Twilio SendGrid and rapidmail with the company behind it, its address and where it processes, plus a blank one to fill in for any other server. All of them ship switched off, and only the one naming the provider actually in use belongs in the document.
-- **A section for Cloudflare is ready to switch on.** An instance reached through Cloudflare passes every visitor request through their servers, so the privacy policy ships a section saying what is processed there, on what legal basis, and that the contracting company sits in the United Kingdom while processing also happens in the United States. It ships switched off, like the others.
-- **Legal documents can start from the shipped templates.** Under Settings → Legal you choose which shipped sections to load: each row leads with the heading it carries, says whether it would replace a section already in the editor, and offers its full text to read beforehand. Selecting everything takes the document as Ember lays it out and leaves the alternatives, such as the several email provider sections, to be picked by hand; nothing is written until you save.
+- **A section for the email provider is ready to switch on.** Privacy policy and terms of service ship a section describing the service that sends the email, switched off until an instance fills in the provider, its address, its server location and how long it keeps delivery logs.
+- **Legal documents can start from the shipped templates.** Under Settings → Legal, a section of the document Ember ships can be loaded into the editor - one at a time or all at once. A section of the same name is replaced, everything else stays as it is, and nothing is written until you save.
 - **You decide what stays in your browser, group by group.** Alongside the technically required values there are now two groups you allow or refuse separately: what individual features remember, and what your view settings remember. The choice is offered with the consent and can be changed later under Account → Data & account; taking a group back deletes its values at once.
 - **Privacy policy and terms are never blank.** If an instance has no documents of its own, the pages serve the ones Ember ships instead of an error, and the shipped set is laid down where the instance actually reads its documents from.
 - **The section on browser storage cannot fall out of date.** It is generated rather than written, so it can only be shown, hidden or moved. Both privacy policy and consent text pick it up, and a change to it prompts for consent again like any other change.
@@ -38,7 +58,7 @@
 - **Tile and list view of the knowledge base offer the same actions.** Removing a favourite is available in both views, and the buttons on every entry name what they do.
 - **Guardians hand out access to the members in their care.** Under Profile → Managed profiles a guardian sets the email address of a member they look after and switches signing in on or off. Allowing it sends the invitation to set a password; refusing it ends the sessions that are open, and a new address does the same.
 - **Email falls back to another provider instead of getting stuck.** An instance can list further providers after its first one, each with the number of attempts it gets before the next takes over. A message the receiving side refuses because of the relay itself - a sending address on somebody's block list, for instance - moves straight to the next provider rather than being tried against the same refusal.
-- **Ember learns whether an email actually arrived.** A mail provider only confirms that it took the message; what happens afterwards - delivered, bounced, blocked - is now reported back and recorded against the email. Under Settings → Mailing there is an address to paste into the provider (for Brevo under Transactional → Settings → Webhooks), and Ember generates the key it contains itself.
+- **Ember learns whether an email actually arrived.** A mail provider only confirms that it took the message; what happens afterwards - delivered, bounced, blocked - is now reported back and recorded against the email. Under Settings → Mailing there is an address to paste into the provider (for Brevo under Settings → Transactional emails → Webhook), and Ember generates the key it contains itself.
 - **The language of system emails is set for the whole instance.** Under Settings, an operator picks the language emails are written in for accounts that belong to no station - self-registration and the administrator created at first start, which were written to in English whatever the instance wanted. Accounts created from a station keep that station's language.
 
 ### Security
@@ -69,7 +89,6 @@
 - **Switching off quiz or examinations clears the menu.** A station that switches off one of the two no longer keeps its pages in the sidebar.
 - **The member import reports what it did.** Finishing an import shows how many members and helpers were created, how many were linked to a group and how many profile fields were filled, plus anything the import had to point out - instead of an empty page.
 - **Chosen files are actually uploaded.** Picking a file - a wiki attachment or original, a folder icon, an avatar, a question or member import - sends the file itself, so the upload completes instead of failing as though no file had been chosen.
-- **Icons arrive with the page itself.** The public pages, the login page and the help center carry their icons in the page the server sends, so they are there from the first moment and stay there when scripts are switched off.
 
 ## v26.11.7
 

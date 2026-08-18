@@ -8,13 +8,13 @@ package dev.chojo.ember.conf.file.elements;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 
 /**
- * A provider the instance falls back to when the one before it has used its attempts.
+ * One provider the instance sends through, in the order it is tried.
  *
- * <p>The provider configured directly on {@link Mailing} is always the first one tried; these come
- * after it, in the order they are written.
+ * <p>The first is simply the first, not a provider of a different kind. Each gets a number of
+ * attempts and a daily allowance; when either is spent the next one takes over.
  */
 @SuppressWarnings("unused")
-public class MailFallback {
+public class MailProviderEntry {
 
     private MailProviderType provider = MailProviderType.NONE;
     private String host = "";
@@ -32,14 +32,20 @@ public class MailFallback {
     private int attempts = 2;
 
     /**
-     * Required by the configuration reader, which builds the object before filling it.
+     * How many mails this provider may send in a day, or zero for no limit. Free tiers are sold by
+     * the day, so a list that ignores the allowance keeps pushing at a provider that has spent it.
      */
-    public MailFallback() {}
+    private int dailySendLimit = 0;
 
     /**
-     * Builds a fallback from values an administrator has just entered.
+     * Required by the configuration reader, which builds the object before filling it.
      */
-    public MailFallback(
+    public MailProviderEntry() {}
+
+    /**
+     * Builds an entry from values an administrator has just entered.
+     */
+    public MailProviderEntry(
             MailProviderType provider,
             String host,
             int port,
@@ -49,7 +55,8 @@ public class MailFallback {
             String apiKey,
             String senderAddress,
             String senderName,
-            int attempts) {
+            int attempts,
+            int dailySendLimit) {
         this.provider = provider;
         this.host = host;
         this.port = port;
@@ -60,6 +67,7 @@ public class MailFallback {
         this.senderAddress = senderAddress;
         this.senderName = senderName;
         this.attempts = attempts;
+        this.dailySendLimit = dailySendLimit;
     }
 
     public MailProviderType provider() {
@@ -100,5 +108,9 @@ public class MailFallback {
 
     public int attempts() {
         return attempts;
+    }
+
+    public int dailySendLimit() {
+        return dailySendLimit;
     }
 }

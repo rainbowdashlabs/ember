@@ -78,23 +78,12 @@ export interface WebAuthnConfig {
     requireResidentKey: boolean
 }
 
+/**
+ * What is left of the mailing settings once the providers became a list of their own: what belongs
+ * to the instance rather than to any one provider.
+ */
 export interface MailingConfig {
-    provider: string
-    senderAddress: string
-    senderName: string
-    user: string
-    password: string
-    apiKey: string
-    smtpHost: string
-    smtpPort: number
-    smtpSsl: boolean
-    dailySendLimit: number
     notificationDigestIntervalMinutes: number
-    /**
-     * The address a mail provider reports delivery events to. It carries the instance webhook key,
-     * so it is a secret in its own right - the server sends it, never the client.
-     */
-    deliveryWebhookUrl?: string
 }
 
 /**
@@ -219,7 +208,9 @@ export async function getMailingConfig(): Promise<MailingConfig> {
 }
 
 export async function updateMailingConfig(data: MailingConfig): Promise<MailingConfig> {
-    const res = await client.put<MailingConfig>('/admin/config/mailing', data)
+    const res = await client.put<MailingConfig>('/admin/config/mailing', {
+        notificationDigestIntervalMinutes: data.notificationDigestIntervalMinutes,
+    })
     return res.data
 }
 
