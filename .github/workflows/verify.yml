@@ -207,6 +207,9 @@ jobs:
     runs-on: ubuntu-latest
     name: Verify Frontend End-to-End
     needs: [ verify-build-frontend ]
+    # The job takes about ten minutes. Without a limit of its own it would run against GitHub's
+    # six hour default, which is what a stalled download outside our control actually costs.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - name: Set up Node.js
@@ -218,8 +221,11 @@ jobs:
       - name: Install dependencies
         working-directory: frontend
         run: npm ci
+      # Downloading the pinned Chromium build takes half a minute. The five minutes are there to
+      # end a stalled download quickly rather than to leave room for a slow one.
       - name: Install Playwright browsers
         working-directory: frontend
+        timeout-minutes: 5
         run: npx playwright install --with-deps chromium
       # The stories run against the built server rather than a dev server: a dev server compiles
       # each route the first time it is asked for, which takes longer than an assertion waits.
