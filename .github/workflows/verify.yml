@@ -221,12 +221,14 @@ jobs:
       - name: Install dependencies
         working-directory: frontend
         run: npm ci
-      # Downloading the pinned Chromium build takes half a minute. The five minutes are there to
-      # end a stalled download quickly rather than to leave room for a slow one.
+      # The browser only, not its system dependencies: the runner image already carries every
+      # library Chromium needs, so --with-deps installs nothing beyond a few fonts while adding
+      # an apt run against the Ubuntu mirrors. That run is what wedged for six hours once, which
+      # the timeout is there to cut short. The step itself takes about half a minute.
       - name: Install Playwright browsers
         working-directory: frontend
         timeout-minutes: 5
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
       # The stories run against the built server rather than a dev server: a dev server compiles
       # each route the first time it is asked for, which takes longer than an assertion waits.
       - name: Build the frontend
