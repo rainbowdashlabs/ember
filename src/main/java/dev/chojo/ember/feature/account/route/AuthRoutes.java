@@ -297,7 +297,7 @@ public class AuthRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/demo/login",
             methods = HttpMethod.POST,
-            summary = "Quick login (dev / demo only) — sign in by email, no password check",
+            summary = "Quick login (dev / demo only) - sign in by email, no password check",
             description =
                     "Issues a session for the account behind the given email without verifying any password. Registered only when the backend runs with demo.dev or demo.enabled set; absent in production. Used by the dev / demo login UI so the click-to-impersonate buttons keep working after a seeded user has rotated their password.",
             tags = {"Auth"},
@@ -419,7 +419,7 @@ public class AuthRoutes implements Routes {
 
     /**
      * Request body for the dev / demo {@code POST /demo/login} quick-login endpoint. Only an
-     * email is needed — the password field is intentionally absent because the backend skips
+     * email is needed - the password field is intentionally absent because the backend skips
      * password verification on this path. Refer to {@link AuthService#loginAsDemo} for the
      * gating rules.
      */

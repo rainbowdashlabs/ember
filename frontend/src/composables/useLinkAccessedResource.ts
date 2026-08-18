@@ -7,7 +7,7 @@ import { ref, type Ref } from 'vue'
 import { useRoute } from 'vue-router'
 
 /**
- * A public page reached by a link that carries its own credential in the query — a waiting-list
+ * A public page reached by a link that carries its own credential in the query - a waiting-list
  * status link, a registration invite, and the like.
  *
  * There is no session behind these pages, so the credential is the whole authorisation and the

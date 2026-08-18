@@ -10,6 +10,7 @@ import dev.chojo.ocular.override.Env;
 import dev.chojo.ocular.override.Overwrite;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -48,6 +49,34 @@ public class Mailing {
     @Overwrite(env = @Env)
     private int notificationDigestIntervalMinutes = 60;
 
+    /**
+     * The secret a mail provider must present to report delivery events. Empty switches the
+     * webhook off, which is the default: an endpoint that accepts anything would let a stranger
+     * mark mail as bounced.
+     */
+    @Overwrite(env = @Env)
+    private String webhookSecret = "";
+
+    /**
+     * Providers to fall back to when the one above has used its attempts, in the order they are
+     * tried. Empty means there is nothing to fall back to, which is how an instance starts.
+     */
+    private List<MailFallback> fallbacks = Collections.emptyList();
+
+    /**
+     * How many attempts the provider configured here gets before the first fallback takes over.
+     */
+    @Overwrite(env = @Env)
+    private int attempts = 2;
+
+    /**
+     * The signing secret Sweego issued for its webhook. Set it and every report from Sweego is
+     * checked against it; leave it empty and the key in the address is what authorises a report,
+     * as with the relays that do not sign at all.
+     */
+    @Overwrite(env = @Env)
+    private String sweegoWebhookSecret = "";
+
     public MailProviderType provider() {
         return provider;
     }
@@ -80,6 +109,45 @@ public class Mailing {
 
     public String senderAddress() {
         return senderAddress;
+    }
+
+    /**
+     * The secret that authorises a delivery-event report. Empty until Ember has generated one.
+     */
+    public String webhookSecret() {
+        return webhookSecret;
+    }
+
+    /**
+     * The providers tried after the one configured here, in order.
+     */
+    public List<MailFallback> fallbacks() {
+        return fallbacks == null ? Collections.emptyList() : fallbacks;
+    }
+
+    /**
+     * How many attempts the first provider gets before the chain moves on.
+     */
+    public int attempts() {
+        return attempts;
+    }
+
+    /**
+     * The signing secret Sweego issued, or empty when reports are not checked against one.
+     */
+    public String sweegoWebhookSecret() {
+        return sweegoWebhookSecret;
+    }
+
+    /**
+     * Sets the generated webhook secret.
+     *
+     * <p>Ember generates this itself on first start rather than asking an operator for it - nobody
+     * needs another secret to look after - so unlike every other value here it is written from the
+     * inside.
+     */
+    public void webhookSecret(String webhookSecret) {
+        this.webhookSecret = webhookSecret;
     }
 
     public String senderName() {

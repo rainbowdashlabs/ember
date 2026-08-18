@@ -63,7 +63,7 @@ function eventTypeBadge(type?: string): string {
       <MutedText size="sm" class="font-medium">{{ t('federatedEventDetail.fields') }}</MutedText>
       <div class="flex flex-wrap gap-3 text-sm">
         <span v-for="field in props.publicFields" :key="field.id" class="text-(--text-muted)">
-          <span class="font-medium">{{ field.name }}:</span> {{ field.value || '—' }}
+          <span class="font-medium">{{ field.name }}:</span> {{ field.value || '-' }}
         </span>
       </div>
     </div>

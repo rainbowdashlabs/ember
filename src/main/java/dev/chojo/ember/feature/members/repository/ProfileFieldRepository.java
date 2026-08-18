@@ -65,6 +65,26 @@ public class ProfileFieldRepository {
     }
 
     /**
+     * Finds the field of the given type in a station, across every scope.
+     *
+     * @param stationId the station to search
+     * @param fieldType the type to look for
+     * @return the field, or empty if the station declares none of that type
+     */
+    public Optional<ProfileField> findByStationAndType(int stationId, ProfileFieldType fieldType) {
+        return query("""
+                SELECT %s
+                FROM profile_field
+                WHERE station_id = :station_id
+                  AND field_type = :field_type
+                ORDER BY id
+                LIMIT 1;""", PROFILE_FIELD_COLUMNS)
+                .single(call().bind("station_id", stationId).bind("field_type", fieldType))
+                .map(ProfileField.map())
+                .first();
+    }
+
+    /**
      * Creates a new profile field definition for a station.
      */
     public ProfileField create(

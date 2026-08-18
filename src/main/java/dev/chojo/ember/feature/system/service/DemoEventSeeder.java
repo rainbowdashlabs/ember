@@ -5,21 +5,29 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldType;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplate;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldType;
+import dev.chojo.ember.feature.events.entity.EventRegistrationField;
+import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventCategoryRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
+import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository.FieldEntry;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.service.EventCrudService;
+import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
+import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.events.service.EventTemplateService;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -29,7 +37,9 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Seeds demo event data: categories, recurring/one-time events, registrations,
@@ -45,6 +55,8 @@ public class DemoEventSeeder implements DemoSeeder {
     private final AttendanceRepository attendanceRepository;
     private final EventCrudService crudService;
     private final EventTemplateService eventTemplateService;
+    private final EventRestrictionService restrictionService;
+    private final EventRegistrationFieldService registrationFieldService;
 
     @Inject
     public DemoEventSeeder(
@@ -53,13 +65,17 @@ public class DemoEventSeeder implements DemoSeeder {
             EventFieldRepository eventFieldRepository,
             AttendanceRepository attendanceRepository,
             EventCrudService crudService,
-            EventTemplateService eventTemplateService) {
+            EventTemplateService eventTemplateService,
+            EventRestrictionService restrictionService,
+            EventRegistrationFieldService registrationFieldService) {
         this.categoryRepository = categoryRepository;
         this.registrationRepository = registrationRepository;
         this.eventFieldRepository = eventFieldRepository;
         this.attendanceRepository = attendanceRepository;
         this.crudService = crudService;
         this.eventTemplateService = eventTemplateService;
+        this.restrictionService = restrictionService;
+        this.registrationFieldService = registrationFieldService;
     }
 
     @Override
@@ -378,6 +394,8 @@ public class DemoEventSeeder implements DemoSeeder {
                     tagDerOffenenTuer.id(), anfaengerMembers.get(9).id(), tagDate, RegistrationStatus.DENIED, null);
         }
 
+        seedMarathon(stationId, catVeranstaltung.id(), fortgeschrittenMembers, anfaengerMembers);
+
         // -- Oeffentlichkeitsarbeit events --
         var catOeffentlichkeit = categoryRepository.create(stationId, "Öffentlichkeitsarbeit", 3, "#00c507");
         categoryRepository.update(
@@ -468,7 +486,7 @@ public class DemoEventSeeder implements DemoSeeder {
         var oeOpen = crudService.create(
                 stationId,
                 "Blaulichtmeile Bürgerfest",
-                "Öffentlichkeitsarbeit — Anmeldung offen",
+                "Öffentlichkeitsarbeit - Anmeldung offen",
                 StationEvent.EventType.ONE_TIME,
                 null,
                 openStart,
@@ -711,6 +729,129 @@ public class DemoEventSeeder implements DemoSeeder {
                         new EventTemplateFieldData(
                                 "Thema", EventFieldType.STRING, EventFieldConfig.parse("{}"), 1, true, false, null)));
         log.info("Demo: Created event templates");
+    }
+
+    /**
+     * Seeds the charity marathon: an event open to the team and to members alike, which asks
+     * everyone registering for their shirt size and how many guests they bring.
+     *
+     * <p>It is the demo of registration questions, so the answers are seeded too - a registration
+     * list with empty answers would not show what the feature does.
+     */
+    private void seedMarathon(
+            int stationId, int categoryId, List<StationMember> teamMembers, List<StationMember> members) {
+        LocalDate raceDay = LocalDate.now().plusMonths(1).withDayOfMonth(8);
+        Instant start = raceDay.atTime(9, 0).toInstant(ZoneOffset.UTC);
+        Instant end = raceDay.atTime(15, 0).toInstant(ZoneOffset.UTC);
+        Instant deadline = raceDay.minusWeeks(2).atTime(23, 59).toInstant(ZoneOffset.UTC);
+
+        var marathon = crudService.create(
+                stationId,
+                "Benefiz-Marathon",
+                "Staffellauf für den guten Zweck. Anmeldung mit Shirtgröße, das Shirt gibt es am Renntag.",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                end,
+                null,
+                true,
+                deadline,
+                false,
+                categoryId,
+                null,
+                null,
+                null,
+                null);
+
+        restrictionService.setRestrictions(
+                marathon.id(),
+                new RestrictionSelection(
+                        List.of(StationUserType.TEAM, StationUserType.MEMBER),
+                        List.of(),
+                        List.of(),
+                        List.of(),
+                        RestrictionMode.OR));
+
+        registrationFieldService.replaceFields(
+                marathon.id(),
+                List.of(
+                        new FieldEntry(
+                                "Shirtgröße",
+                                EventFieldType.ENUM,
+                                new EventRegistrationFieldConfig(
+                                        true,
+                                        "M",
+                                        List.of("XS", "S", "M", "L", "XL", "XXL"),
+                                        null,
+                                        null,
+                                        null,
+                                        null,
+                                        null,
+                                        false),
+                                true),
+                        new FieldEntry(
+                                "Begleitpersonen",
+                                EventFieldType.NUMBER,
+                                new EventRegistrationFieldConfig(false, "0", null, 0, 5, null, null, null, false),
+                                true),
+                        new FieldEntry(
+                                "Anmerkungen", EventFieldType.TEXTAREA, EventRegistrationFieldConfig.empty(), false),
+                        new FieldEntry(
+                                "Startnummer",
+                                EventFieldType.STRING,
+                                new EventRegistrationFieldConfig(false, null, null, null, null, null, null, null, true),
+                                true)));
+
+        var fields = registrationFieldService.findByEvent(marathon.id());
+        int sizeFieldId = fieldId(fields, "Shirtgröße");
+        int guestFieldId = fieldId(fields, "Begleitpersonen");
+        int noteFieldId = fieldId(fields, "Anmerkungen");
+
+        String[] sizes = {"S", "M", "L", "M", "XL", "S", "M", "L", "XXL", "M"};
+        int[] guests = {0, 2, 1, 0, 3, 1, 0, 2, 0, 1};
+        String[] notes = {
+            "Laufe die erste Etappe.", "", "Bringe Kuchen mit.", "", "Komme mit der ganzen Familie.",
+        };
+
+        var registrants = new ArrayList<StationMember>();
+        for (int i = 0; i < 6 && i < teamMembers.size(); i++) registrants.add(teamMembers.get(i));
+        for (int i = 0; i < 4 && i < members.size(); i++) registrants.add(members.get(i));
+
+        for (int i = 0; i < registrants.size(); i++) {
+            var registration = registrationRepository.create(
+                    marathon.id(), registrants.get(i).id(), raceDay, RegistrationStatus.ACCEPTED, null);
+            registrationFieldService.persistAnswers(
+                    registration.id(),
+                    answers(
+                            sizeFieldId,
+                            sizes[i % sizes.length],
+                            guestFieldId,
+                            String.valueOf(guests[i % guests.length]),
+                            noteFieldId,
+                            i < notes.length ? notes[i] : ""));
+        }
+        log.info("Demo: Created marathon event with registration questions");
+    }
+
+    private static int fieldId(List<EventRegistrationField> fields, String name) {
+        return fields.stream()
+                .filter(f -> f.name().equals(name))
+                .findFirst()
+                .map(EventRegistrationField::id)
+                .orElseThrow();
+    }
+
+    /**
+     * Builds an answer map, skipping the blank entries so a seeded registration looks like one a
+     * member filled in rather than one with empty strings stored.
+     */
+    private static Map<Integer, String> answers(
+            int sizeFieldId, String size, int guestFieldId, String guests, int noteFieldId, String note) {
+        var values = new LinkedHashMap<Integer, String>();
+        values.put(sizeFieldId, size);
+        values.put(guestFieldId, guests);
+        if (!note.isBlank()) values.put(noteFieldId, note);
+        return values;
     }
 
     /**

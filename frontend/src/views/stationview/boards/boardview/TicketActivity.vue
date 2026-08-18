@@ -86,7 +86,7 @@ function activityKey(item: ActivityItem): string {
 }
 
 function laneName(id: number | null): string {
-    if (id === null) return '—'
+    if (id === null) return '-'
     return props.lanes.find(l => l.id === id)?.name ?? `#${id}`
 }
 
@@ -137,7 +137,7 @@ function laneName(id: number | null): string {
                     <span class="ml-auto text-xs">{{ formatDateTime(item.ts) }}</span>
                 </div>
             </template>
-            <p v-if="changesActivity.length === 0" class="text-sm text-(--text-muted) text-center py-4">—</p>
+            <p v-if="changesActivity.length === 0" class="text-sm text-(--text-muted) text-center py-4">-</p>
         </div>
 
         <div v-if="activeTab === 'all'" class="space-y-3">
@@ -175,7 +175,7 @@ function laneName(id: number | null): string {
                     <span class="ml-auto text-xs">{{ formatDateTime(item.ts) }}</span>
                 </div>
             </div>
-            <p v-if="allActivity.length === 0" class="text-sm text-(--text-muted) text-center py-4">—</p>
+            <p v-if="allActivity.length === 0" class="text-sm text-(--text-muted) text-center py-4">-</p>
         </div>
 
     </div>

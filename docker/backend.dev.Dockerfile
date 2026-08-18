@@ -1,4 +1,4 @@
-# Dev image — source is bind-mounted at /home/gradle/project, the Gradle home
+# Dev image - source is bind-mounted at /home/gradle/project, the Gradle home
 # (~/.gradle) and the project's build/ live in named volumes so incremental
 # compilation survives container restarts. Building inside this container is
 # as fast as building on the host once the cache is warm.

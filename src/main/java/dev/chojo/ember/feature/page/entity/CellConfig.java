@@ -225,8 +225,8 @@ public sealed interface CellConfig {
             implements CellConfig {}
 
     /**
-     * Partner stations cell. Either renders an explicit list of station UUIDs, or — when
-     * {@code autoFillFromPartners} is {@code true} — every federated partner of the host station.
+     * Partner stations cell. Either renders an explicit list of station UUIDs, or - when
+     * {@code autoFillFromPartners} is {@code true} - every federated partner of the host station.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record PartnerStationsConfig(String title, List<String> stationUids, Boolean autoFillFromPartners)
@@ -296,7 +296,7 @@ public sealed interface CellConfig {
     record StatItem(String label, String value, String suffix) {}
 
     /**
-     * Image gallery — list of items, each with its own image hash + alt + subtext.
+     * Image gallery - list of items, each with its own image hash + alt + subtext.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record ImageGalleryConfig(
@@ -307,7 +307,7 @@ public sealed interface CellConfig {
     record GalleryItem(String imageHash, String altText, String subtext) {}
 
     /**
-     * Hero banner — full-width image with overlay text.
+     * Hero banner - full-width image with overlay text.
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     record HeroBannerConfig(String imageHash, String headline, String subtitle, String ctaText, String ctaUrl)

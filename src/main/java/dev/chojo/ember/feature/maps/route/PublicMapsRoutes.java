@@ -20,10 +20,10 @@ import jakarta.inject.Singleton;
  * Anonymous-internet routes for the maps feature:
  *
  * <ul>
- *   <li>{@code GET /public/settings/maps} — read the operator-configured tile provider so
+ *   <li>{@code GET /public/settings/maps} - read the operator-configured tile provider so
  *       the Vue frontend can render the right Leaflet tile layer with the right
  *       attribution.</li>
- *   <li>{@code GET /public/maps/tiles/{z}/{x}/{y}} — passthrough through the on-disk cache
+ *   <li>{@code GET /public/maps/tiles/{z}/{x}/{y}} - passthrough through the on-disk cache
  *       so member browsers never speak directly to the upstream provider (privacy +
  *       outage resilience).</li>
  * </ul>
@@ -87,7 +87,7 @@ public class PublicMapsRoutes implements Routes {
     }
 
     /**
-     * Public-facing tile config — never includes the API key. Frontend reads only this.
+     * Public-facing tile config - never includes the API key. Frontend reads only this.
      */
     public record PublicMapsConfig(
             MapTileProvider provider, String urlTemplate, String attribution, int minZoom, int maxZoom) {}

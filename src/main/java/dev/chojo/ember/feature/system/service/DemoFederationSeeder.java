@@ -167,12 +167,15 @@ public class DemoFederationSeeder implements DemoSeeder {
         stationRepository.updateDiscoverySettings(
                 primaryStationId,
                 DiscoveryVisibility.PUBLIC,
-                "Unsere Jugendfeuerwehr — Ausbildung, Technik und Gemeinschaft",
+                "Unsere Jugendfeuerwehr - Ausbildung, Technik und Gemeinschaft",
                 true);
 
         // Create a second station
         var partnerStation = stationRepository.create("JF Partnerwache", DemoUids.station("jf-partnerwache"));
         stationRepository.updatePublicSlug(partnerStation.id(), "jf-partnerwache");
+        // A station that has not finished the setup assistant sends its manager straight back into
+        // it, so a seeded partner nobody ever set up is a station nobody can look around.
+        stationRepository.markSetupComplete(partnerStation.id());
         log.info("Demo: Created partner station '{}' (id={})", partnerStation.name(), partnerStation.id());
         stationRepository.updateDiscoverySettings(
                 partnerStation.id(),
@@ -404,7 +407,7 @@ public class DemoFederationSeeder implements DemoSeeder {
         var fedEvent = crudService.create(
                 partnerStation.id(),
                 "Gemeinsame Großübung",
-                "Übergreifende Übung mit beiden Wehren — Einsatzszenarien Brand und THL",
+                "Übergreifende Übung mit beiden Wehren - Einsatzszenarien Brand und THL",
                 StationEvent.EventType.ONE_TIME,
                 null,
                 nextSatStart,
@@ -554,7 +557,7 @@ public class DemoFederationSeeder implements DemoSeeder {
                             null,
                             memberIdentityFactory.local(primaryStationId, createdBy),
                             "Admin",
-                            "Nächste Woche üben wir den Löschangriff — bitte Sportkleidung mitbringen!",
+                            "Nächste Woche üben wir den Löschangriff - bitte Sportkleidung mitbringen!",
                             evUebung.name(),
                             nextOccurrence);
                 });
@@ -572,7 +575,7 @@ public class DemoFederationSeeder implements DemoSeeder {
                 .findFirst()
                 .orElse(null);
         if (reversePartnerForEvents != null) {
-            // fedEvent is a one-off federation demo event — null eventDate (whole-event).
+            // fedEvent is a one-off federation demo event - null eventDate (whole-event).
             var fc1 = eventFederationService.createRemoteComment(
                     reversePartnerForEvents,
                     fedEvent.id(),
@@ -637,6 +640,7 @@ public class DemoFederationSeeder implements DemoSeeder {
         // === Third station (not federated) ===
         var thirdStation = stationRepository.create("JF Nachbarstadt", DemoUids.station("jf-nachbarstadt"));
         stationRepository.updatePublicSlug(thirdStation.id(), "jf-nachbarstadt");
+        stationRepository.markSetupComplete(thirdStation.id());
         log.info("Demo: Created third station '{}' (id={})", thirdStation.name(), thirdStation.id());
         stationRepository.updateDiscoverySettings(
                 thirdStation.id(), DiscoveryVisibility.PUBLIC, "Nachbarstadt sucht Partner für Übungsaustausch", true);

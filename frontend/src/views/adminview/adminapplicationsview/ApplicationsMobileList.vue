@@ -9,7 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import ApplicationStatusBadge from '@/views/adminview/adminapplicationsview/ApplicationStatusBadge.vue'
-import type {StationApplication} from '@/api/stationApplications'
+import {ApplicationStatus, type StationApplication} from '@/api/stationApplications'
 import {formatDateTime} from '@/util/format'
 
 const {t} = useI18n()
@@ -27,7 +27,7 @@ defineEmits<{
 
 <template>
   <div class="space-y-3">
-    <NeutralContainer v-for="app in applications" :key="app.id" class="space-y-2">
+    <NeutralContainer v-for="app in applications" :key="app.id" class="space-y-2" data-testid="application-entry">
       <div class="flex items-center justify-between">
         <div class="font-medium">{{ app.firstName }} {{ app.lastName }}</div>
         <ApplicationStatusBadge :status="app.status"/>
@@ -38,7 +38,7 @@ defineEmits<{
         <div class="text-(--text-muted)">{{ formatDateTime(app.createdAt) || '-' }}</div>
         <div v-if="app.introduction" class="text-(--text-muted) truncate">{{ app.introduction }}</div>
       </div>
-      <div v-if="app.status === 'pending'"
+      <div v-if="app.status === ApplicationStatus.PENDING"
            class="flex gap-1 pt-1 border-t border-bg-light-accent/50 dark:border-bg-dark-accent/50">
         <PrimaryButton :disabled="processing" @click="$emit('accept', app)">
           {{ t('adminApplications.accept') }}
@@ -47,7 +47,7 @@ defineEmits<{
           {{ t('adminApplications.deny') }}
         </ErrorButton>
       </div>
-      <div v-else-if="app.status === 'denied' && app.denyReason" class="text-xs text-(--text-muted)">
+      <div v-else-if="app.status === ApplicationStatus.DENIED && app.denyReason" class="text-xs text-(--text-muted)">
         {{ app.denyReason }}
       </div>
     </NeutralContainer>

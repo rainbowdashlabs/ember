@@ -32,7 +32,7 @@ import java.util.Map;
  *
  * <p>Reads the file from {@link #DEFAULT_TRACKING_PATH} (under the source tree) so an in-process
  * developer build can persist edits between restarts. Production deployments must never
- * expose this service — the route layer guards on {@code Demo.dev()}.
+ * expose this service - the route layer guards on {@code Demo.dev()}.
  */
 @Singleton
 public class DataTrackingAdminService {
@@ -121,7 +121,7 @@ public class DataTrackingAdminService {
         var existing = tracking.tables() == null ? null : tracking.tables().get(tableName);
         if (existing == null) throw new BadRequestResponse("Unknown table: " + tableName);
 
-        // Build the new column list — only the verified flags can change here. Descriptions are
+        // Build the new column list - only the verified flags can change here. Descriptions are
         // mirrored from the live schema and preserved verbatim.
         List<ColumnEntry> newColumns = new ArrayList<>();
         Map<String, Boolean> verifiedOverrides = update.columnVerified();

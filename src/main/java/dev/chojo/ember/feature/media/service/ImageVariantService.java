@@ -42,7 +42,7 @@ import javax.imageio.ImageIO;
  *       variant.</li>
  * </ul>
  *
- * <p>The extension is derived from the sniffed MIME type — the client-supplied content-type is
+ * <p>The extension is derived from the sniffed MIME type - the client-supplied content-type is
  * advisory only. An off-allow-list or unidentifiable upload is rejected before any disk write
  * so an attacker cannot land scriptable content (HTML / SVG / JS) regardless of the claimed
  * MIME header.
@@ -77,7 +77,7 @@ public class ImageVariantService {
     /**
      * Returns the MIME type identified by inspecting the first bytes of {@code data}, or empty
      * when the bytes do not match any allow-listed image signature (PNG / JPEG / WebP / GIF).
-     * The client-declared MIME is intentionally not consulted — clients can forge it; magic
+     * The client-declared MIME is intentionally not consulted - clients can forge it; magic
      * bytes cannot be forged without also changing the actual format.
      */
     public static Optional<String> sniffImageMime(byte[] data) {

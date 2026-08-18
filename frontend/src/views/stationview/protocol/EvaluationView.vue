@@ -81,8 +81,8 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
 
     <template v-if="!loading && evalData">
       <MutedText tag="p" size="sm">
-        {{ evalData.protocolName }} — {{ formatDate(evalData.testDate) }}
-        <template v-if="evalData.passThreshold"> — {{ t('protocol.threshold') }}: {{ evalData.passThreshold }}P</template>
+        {{ evalData.protocolName }} - {{ formatDate(evalData.testDate) }}
+        <template v-if="evalData.passThreshold"> - {{ t('protocol.threshold') }}: {{ evalData.passThreshold }}P</template>
       </MutedText>
 
       <EvaluationTable

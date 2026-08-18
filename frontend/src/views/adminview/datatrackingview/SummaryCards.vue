@@ -41,7 +41,7 @@ const {t} = useI18n()
     </component>
     <InfoContainer class="!py-3">
       <div class="text-xs uppercase">{{ t('adminDataTracking.schemaHash') }}</div>
-      <div class="text-xs font-mono break-all">{{ schemaHash ?? '—' }}</div>
+      <div class="text-xs font-mono break-all">{{ schemaHash ?? '-' }}</div>
     </InfoContainer>
   </div>
 </template>

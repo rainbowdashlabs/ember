@@ -13,6 +13,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import {getRequirements, type RequirementsResponse} from '@/api/requirements'
+import {usableRedirect} from '@/util/redirect'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -25,8 +26,9 @@ const hasRequirements = computed(() =>
 )
 
 function redirectAway() {
-    const redirect = route.query.redirect as string | undefined
-    router.replace(redirect || '/station/dashboard/overview')
+    const redirect = route.query.redirect
+    const target = typeof redirect === 'string' ? redirect : null
+    router.replace(usableRedirect(target) ? target : '/station/dashboard/overview')
 }
 
 onMounted(async () => {

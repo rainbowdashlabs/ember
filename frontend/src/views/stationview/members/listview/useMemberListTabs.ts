@@ -17,7 +17,7 @@ const TAB_KEYS = ['ALL', StationUserType.TRIAL, StationUserType.MEMBER, StationU
  * The member list's tabs and the per-tab view state behind them.
  *
  * Filters, sorting and column choices are kept per tab rather than shared, because the tabs show
- * different populations with different fields — a filter that makes sense for trial members is
+ * different populations with different fields - a filter that makes sense for trial members is
  * meaningless on the manager tab. Switching tabs therefore restores what that tab last looked
  * like instead of carrying the previous tab's narrowing across.
  *
@@ -68,7 +68,7 @@ export function useMemberListTabs(fields: Ref<ProfileField[]>) {
 
   /**
    * The fields the active tab may show. The "all" tab spans every member type; a type tab is
-   * limited to its own. Group-scoped fields never appear — they belong to a group, not a member.
+   * limited to its own. Group-scoped fields never appear - they belong to a group, not a member.
    */
   const tabScopedFields = computed(() => {
     const scopes: string[] = activeTab.value === 'ALL'

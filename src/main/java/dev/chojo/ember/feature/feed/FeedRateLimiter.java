@@ -17,23 +17,23 @@ import java.util.Optional;
  *
  * <p>The bucket gives readers {@link #BURST_CAPACITY} requests immediately available with a
  * sustained refill of {@link #REFILL_PER_MINUTE} per minute. That covers the realistic
- * shape of feed traffic — a reader opens or refreshes and fires a small burst, then idles
- * — while still shielding the backend from misbehaving aggregators.
+ * shape of feed traffic - a reader opens or refreshes and fires a small burst, then idles
+ * - while still shielding the backend from misbehaving aggregators.
  *
  * <p>The bucket is shared per token across {@code events.ics},
- * {@code notifications.rss}, and {@code notifications.atom} — all three hit the same
+ * {@code notifications.rss}, and {@code notifications.atom} - all three hit the same
  * backing data, so the cap is "total feed reads per token". The token-scoped image
  * endpoint is intentionally exempt: a single feed body may link many images and they have
  * their own 24 h cache.
  *
- * <p>State is held in-memory. A restart resets every bucket; that's fine — the worst case
+ * <p>State is held in-memory. A restart resets every bucket; that's fine - the worst case
  * is a brief permissive window where pollers' first requests succeed.
  */
 @Singleton
 public class FeedRateLimiter {
 
     /**
-     * Burst capacity — how many requests are admitted immediately from an idle bucket.
+     * Burst capacity - how many requests are admitted immediately from an idle bucket.
      */
     public static final int BURST_CAPACITY = 10;
 

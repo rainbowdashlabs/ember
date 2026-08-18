@@ -182,7 +182,7 @@ public class PageRoutes implements Routes {
     /**
      * Marks a CONTACT-form submission as acknowledged by the calling station member. Requires
      * the response to belong to the form id in the path (which has already been verified to be
-     * a CONTACT form on the caller's station). Acknowledgement is idempotent — the first
+     * a CONTACT form on the caller's station). Acknowledgement is idempotent - the first
      * acknowledger wins, so a second viewer cannot rewrite the audit trail.
      */
     private void acknowledgeFormResponse(Context ctx, FormPurpose expected) {
@@ -198,7 +198,7 @@ public class PageRoutes implements Routes {
 
     /**
      * Expands an MEMBER_LIST_SPOTLIGHT (member-list) source descriptor to an ordered
-     * {@code ResolvedMember} list — the same shape baked into the public render path — so the
+     * {@code ResolvedMember} list - the same shape baked into the public render path - so the
      * editor preview can render the cell live. Delegates to {@link MemberListResolver} so
      * both surfaces stay in lockstep.
      */

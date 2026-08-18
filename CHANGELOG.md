@@ -1,18 +1,87 @@
 # Changelog
 
+## v26.11.8
+
+### New Features
+
+- **Read and write permissions for the knowledge base.** A folder or file can now say what its audience may do with it, not only who sees it: read only, read and edit, or full access including deleting and publishing. A group can be given reading rights on a directory without being able to change anything in it.
+- **Ask questions when someone registers for an event.** An event can ask everyone signing up for extra details - shirt size, number of guests, what they are bringing - as text, number, yes/no, date, choice or member. Each question can be mandatory and can start from a default value.
+- **Answers stand next to the registration.** The answers marked for the list appear beside the member's name in the registration list, and number questions get their total above it. Event templates carry their questions into every event created from them.
+
+- **Placeholders for details that repeat across the legal documents.** A name in double curly braces stands in for a value - the operator's name, address or email address - and is filled in once under Settings → Legal. Ember finds every placeholder written into any document by itself and applies the same value across all document types and languages.
+- **The privacy notice lists what stays in your browser.** Privacy policy and consent text carry a section naming every value the application keeps in your browser, what it is for and how long it stays - grouped into what login needs, what a single feature needs and what only remembers a display preference. The section writes itself from the application, so it stays correct as the software changes.
+
+### Improvements
+
+- **The attendance buttons say what they do.** Marking someone present, absent or excused now carries a name, so a screen reader announces it and hovering shows it.
+
+- **Steps are written straight into the procedure.** Adding a step puts an empty row in the list instead of asking for its title in a dialog first. Every field of a step was already editable in that list.
+- **A profile field can be marked as the date of birth.** The new field type behaves like a date field and can serve as the source of a calculated age. A station has one of them: once a field carries it, the type is offered again only after that field is deleted or changed to something else.
+- **Terms of service now cover what the product actually does.** The shipped terms describe public pages, sharing with partner stations, AI-assisted question generation, feeds and exports, the obligations of a station admitted to an instance, and how a station's use ends. They are laid out in six parts that can be reordered or switched off individually.
+- **The shipped imprint asks to be filled in rather than edited.** It carries placeholders for the operator's name, address, phone number, email address and the person responsible for content, so an instance is ready once those values are entered. A placeholder left empty stays visible in the text instead of leaving a blank line. New operator setting: `api.placeholderFile`.
+- **A document written by a lawyer can be taken over as it is.** Under Settings → Legal a document is imported as a file or pasted as text: Ember cuts it into sections, takes the numbering out of the headings and turns references like "§ 12" into links to the section they mean. Numbers that match no section stay untouched and are listed before anything is saved.
+- **The terms number themselves.** Paragraph numbers are assigned when the document is shown, so switching a section on, off or into another position renumbers the whole document and every reference in it. A reference whose section is gone is marked in the text instead of pointing nowhere.
+- **A section for the email provider is ready to switch on.** Privacy policy and terms of service ship a section describing the service that sends the email, switched off until an instance fills in the provider, its address, its server location and how long it keeps delivery logs.
+- **Legal documents can start from the shipped templates.** Under Settings → Legal, a section of the document Ember ships can be loaded into the editor - one at a time or all at once. A section of the same name is replaced, everything else stays as it is, and nothing is written until you save.
+- **You decide what stays in your browser, group by group.** Alongside the technically required values there are now two groups you allow or refuse separately: what individual features remember, and what your view settings remember. The choice is offered with the consent and can be changed later under Account → Data & account; taking a group back deletes its values at once.
+- **Privacy policy and terms are never blank.** If an instance has no documents of its own, the pages serve the ones Ember ships instead of an error, and the shipped set is laid down where the instance actually reads its documents from.
+- **The section on browser storage cannot fall out of date.** It is generated rather than written, so it can only be shown, hidden or moved. Both privacy policy and consent text pick it up, and a change to it prompts for consent again like any other change.
+- **The knowledge base only offers what you may actually do.** Editing, deleting and creating appear where your permission allows them, an entry you may only read is marked as read only, and a file you may only read names the folder that decided it. Existing stations notice nothing until they set their first permission.
+- **Answers to registration questions are complete for the organisers.** Whoever may edit the event sees every answer including the notes, plus totals per question: numbers are added up and choices counted per option. A question can also be marked as belonging to the organisers, in which case it is neither asked of members nor visible to them.
+- **The public calendar of a station opens.** Visiting it shows the station's dates, and the subscription link for a calendar application is offered beside them.
+- **A station's public pages arrive complete.** The station name, its menu and its blog, wiki and calendar come with the page the server sends, so search engines and link previews see them.
+- **Public pages arrive complete.** The station directory and the imprint, privacy and terms pages carry their content in the page the server sends, so search engines and link previews see it. Visitors reach the same pages as before, a moment sooner.
+- **Files shared by partner stations open.** A shared file in the knowledge base opens like one of your own, both from the file list and from a search result, instead of only offering a copy. Text and Markdown files show their content and take comments; other formats still have to be copied into your station first.
+- **Question catalogues and test sheets shared by partner stations open.** A shared question catalogue shows its categories and question count, a shared test sheet its sections and points. Both can still be copied into your own station from the page.
+- **Knowledge base files save as PDF.** Markdown and text files can be downloaded as a PDF carrying the station name and logo - from the file, from the file list, from a file a partner station shares, and from a page on the public wiki. Headings, lists, tables, quotes and code blocks are kept; images are replaced by their description.
+- **Tile and list view of the knowledge base offer the same actions.** Removing a favourite is available in both views, and the buttons on every entry name what they do.
+- **Guardians hand out access to the members in their care.** Under Profile → Managed profiles a guardian sets the email address of a member they look after and switches signing in on or off. Allowing it sends the invitation to set a password; refusing it ends the sessions that are open, and a new address does the same.
+- **Email falls back to another provider instead of getting stuck.** An instance can list further providers after its first one, each with the number of attempts it gets before the next takes over. A message the receiving side refuses because of the relay itself - a sending address on somebody's block list, for instance - moves straight to the next provider rather than being tried against the same refusal.
+- **Ember learns whether an email actually arrived.** A mail provider only confirms that it took the message; what happens afterwards - delivered, bounced, blocked - is now reported back and recorded against the email. Under Settings → Mailing there is an address to paste into the provider (for Brevo under Transactional → Settings → Webhooks), and Ember generates the key it contains itself.
+- **The language of system emails is set for the whole instance.** Under Settings, an operator picks the language emails are written in for accounts that belong to no station - self-registration and the administrator created at first start, which were written to in English whatever the instance wanted. Accounts created from a station keep that station's language.
+
+### Security
+
+- **Guardians only see the profile changes of their own children.** The change list, the pending overview and the acknowledgement of a change are limited to the members a guardian manages; reviewing the whole station stays with the permission meant for it. Nothing changes for anyone holding that permission.
+
+### Changes
+
+- **One menu for the actions on a knowledge base entry.** Editing, downloading and deleting an entry sit in a single menu instead of a row of icons. An entry offering only one action keeps that action as a plain button.
+- **Quiz and examinations are named for what a station uses.** The shared menu entry reads "Quiz & Prüfungen" while both are switched on, and "Quiz" or "Prüfungen" when only one of them is. With both in use, the quiz pages and the examination pages sit in a section each instead of in one list of five.
+- **Shared knowledge base needs matching versions.** Partner stations still on the previous version pause knowledge-base sharing until both sides have updated. Every other federated feature keeps working in the meantime.
+
+### Fixes
+
+- **Members find the forms they are meant to fill in.** The forms page lists what the station has opened to them instead of showing nothing at all.
+
+- **Editing a procedure saves.** Changing the name, description, due date or visibility of a procedure keeps the change.
+- **Choosing a station leads somewhere.** Picking a station opens the page that was asked for instead of returning to the station picker, also after a long break and when the link carries a station of its own.
+- **Outstanding tasks appear after a long break.** Coming back to a station shows the forms and tests still to be completed instead of passing them by.
+- **The administration area stays shut without the rights for it.** Opening an administration page without instance administration rights leads back to the station instead of showing a panel where nothing works.
+- **The sidebar control for narrowing the menu stays on desktop.** It no longer appears on phones, where there is nothing to narrow.
+- **Applications for a new station can be decided again.** The list shows the applications waiting for a decision, each with its accepting and rejecting buttons and its actual state.
+- **A new instance starts with legal documents in place.** Privacy policy, terms of service, consent text and imprint are laid down on first start in German and English. A language that already holds a document keeps exactly what is there.
+- **Members see the events of their station.** Opening the events page shows the station's events for everyone, not only for those who also record attendance.
+- **The registration list of an event loads.** Opening an event and switching to its registrations shows who has signed up.
+- **Question catalogues shared by partner stations appear again.** The catalogue list shows what partner stations share instead of leaving the shared section empty.
+- **Filtering by partner station works across search and lists.** Picking a partner station in the knowledge base, catalogue or test sheet filters matches the entries from that station.
+- **Switching off quiz or examinations clears the menu.** A station that switches off one of the two no longer keeps its pages in the sidebar.
+- **The member import reports what it did.** Finishing an import shows how many members and helpers were created, how many were linked to a group and how many profile fields were filled, plus anything the import had to point out - instead of an empty page.
+- **Chosen files are actually uploaded.** Picking a file - a wiki attachment or original, a folder icon, an avatar, a question or member import - sends the file itself, so the upload completes instead of failing as though no file had been chosen.
+
 ## v26.11.7
 
 ### New Features
 
-- **Sortable and filterable item lists.** The item tables on the inventory detail and edit pages can show custom fields as columns, sort by any column, and filter by specific values — including by source and assignment state (assigned, not assigned, in storage, not in storage). A column picker shows or hides additional columns.
+- **Sortable and filterable item lists.** The item tables on the inventory detail and edit pages can show custom fields as columns, sort by any column, and filter by specific values - including by source and assignment state (assigned, not assigned, in storage, not in storage). A column picker shows or hides additional columns.
 - **Custom fields when adding items.** The add-item dialog fills in the inventory's custom fields directly, and number fields check their allowed range while typing.
 - **Help articles for the setup assistant.** Every step of the station setup assistant has its own help article, reachable from the help center menu and the search box.
-- **A help article for every page.** The pages that still had no guide — event templates, a single news article, an inventory item, the answer generator for choice questions, the partner-station views and the reported-problems page — now have one, and every article in the help center is searchable from the menu.
+- **A help article for every page.** The pages that still had no guide - event templates, a single news article, an inventory item, the answer generator for choice questions, the partner-station views and the reported-problems page - now have one, and every article in the help center is searchable from the menu.
 - **Separate help articles for procedures.** The procedure list, the editor, the detail page and the templates each have their own article instead of sharing one general page.
 
 ### Changes
 
-- **Federation compatibility is checked per feature.** When two connected stations run different versions, only the features whose data exchange actually changed are paused instead of the whole partnership — everything else keeps federating. The partner page shows which features are paused, and they resume automatically once both stations run the same version.
+- **Federation compatibility is checked per feature.** When two connected stations run different versions, only the features whose data exchange actually changed are paused instead of the whole partnership - everything else keeps federating. The partner page shows which features are paused, and they resume automatically once both stations run the same version.
 - **No size placeholder for unsized items.** Item lists and member inventory pages leave the size empty for items without sizes instead of showing a one-size label. Size transitions in exchange and procurement views are unchanged.
 - **Item actions in one menu.** The action buttons on each inventory item row are collected in a single menu with labelled entries.
 - **Custom item fields are easier to set up.** The technical key and the values of selection options are suggested automatically from the entered names, and fields can be reordered by dragging them (on phones, with up and down arrows).
@@ -111,13 +180,13 @@
 
 ### New Features
 
-- **Step-by-step mail provider guides.** The help center has a dedicated page for each supported mail provider — Brevo, RapidMail, Sweego and Twilio SendGrid — that walks through creating the SMTP credentials and shows which fields to fill in. The mail settings help articles link to them.
+- **Step-by-step mail provider guides.** The help center has a dedicated page for each supported mail provider - Brevo, RapidMail, Sweego and Twilio SendGrid - that walks through creating the SMTP credentials and shows which fields to fill in. The mail settings help articles link to them.
 
 ### Changes
 
 - **Bundled database upgraded to PostgreSQL 18.** The compose files now mount the database volume at `/var/lib/postgresql` as the new version requires. Existing installations must migrate their data when upgrading, for example with a dump before and a restore after, because the old data directory format is not compatible.
 - **Emails wait for mail setup instead of being lost.** On an instance without a configured mail provider, sign-up, invite and password emails stay queued and are delivered automatically once the mail settings are configured. Before, such emails were only written to the server log.
-- **Mail settings adapt to the chosen provider.** The mail forms in the admin area, the station settings and the station setup show each provider's own fields with matching labels and guidance — Brevo asks for the account login email and an SMTP key, RapidMail and Sweego for their generated SMTP credentials, Twilio SendGrid only for an API key. Failed connection tests explain which credentials the provider expects.
+- **Mail settings adapt to the chosen provider.** The mail forms in the admin area, the station settings and the station setup show each provider's own fields with matching labels and guidance - Brevo asks for the account login email and an SMTP key, RapidMail and Sweego for their generated SMTP credentials, Twilio SendGrid only for an API key. Failed connection tests explain which credentials the provider expects.
 
 ### Fixes
 
@@ -142,7 +211,7 @@
 
 ### Security
 
-- **Stricter cross-station isolation.** Every station-scoped resource — pages and their files, forms and responses, events and registrations, members and their profile data, notes, quiz catalogs and attempts, inventory, attendance, waiting lists, knowledge-base documents and boards — is now checked to belong to the signed-in user's own station before it can be read or changed, closing cases where a resource from another station could be reached by supplying its id.
+- **Stricter cross-station isolation.** Every station-scoped resource - pages and their files, forms and responses, events and registrations, members and their profile data, notes, quiz catalogs and attempts, inventory, attendance, waiting lists, knowledge-base documents and boards - is now checked to belong to the signed-in user's own station before it can be read or changed, closing cases where a resource from another station could be reached by supplying its id.
 - **Two-factor sign-in is rate limited.** Repeated two-factor and step-up attempts are throttled per account and per address, and a login's pending two-factor challenge is invalidated after several wrong codes, so a stolen password can no longer be paired with unlimited guesses.
 - **Authenticator codes are single-use.** A time-based authenticator code can no longer be used more than once within its short validity window.
 - **Password resets clear remembered devices.** Resetting a password, and removing a second factor, now revoke every "remember this device" entry so a saved device can no longer skip the two-factor prompt afterwards.
@@ -164,13 +233,13 @@
 
 - **Admin overview page.** Administrators land on a real "needs attention" panel at Admin → Dashboard → Übersicht with tiles for failed and stuck emails, pending station applications, stations still in setup, unverified accounts, open federation requests, unreachable discovery peers and open problem reports, plus short lists of the most recent applications and problem reports. Tiles turn green when the count is zero and jump straight to the relevant admin page on click.
 - **Admin statistics with charts.** The statistics dashboard now shows daily new-session activity for the last 30 days, a top-ten-stations-by-member bar chart, and pies for email verification and station setup progress alongside the existing tiles.
-- **Form list redesigned as tiles.** The station's form list now shows each form as a tile with its status, response count, title and description. Each tile also shows when the form was created and when it last saw activity (either an edit or a new response), and the list can be sorted by last activity, creation date, or title, in either direction. Clicking a tile opens the form — the editor for drafts, analytics for everything else. Publish, close, edit, analytics and delete actions live in a context menu in the tile's upper-right corner.
+- **Form list redesigned as tiles.** The station's form list now shows each form as a tile with its status, response count, title and description. Each tile also shows when the form was created and when it last saw activity (either an edit or a new response), and the list can be sorted by last activity, creation date, or title, in either direction. Clicking a tile opens the form - the editor for drafts, analytics for everything else. Publish, close, edit, analytics and delete actions live in a context menu in the tile's upper-right corner.
 - **Outstanding members on required-form analytics.** When a form is marked as required, its analytics page lists the eligible members who have not submitted a response yet, so chasing the missing ones is a glance away.
 - **Checklists for member follow-up.** Managers can build a list of yes/no questions, pick a member set by user type, group, tag or by hand, and tick each member off as they finish each step. The list overview shows one tile per checklist; on a phone the detail view switches from the wide matrix to a per-member card so every column is readable without horizontal scrolling. Member rows are listed alphabetically by name, and the search bar at the top of the matrix jumps straight to a member as you type. The add-members picker is also sorted alphabetically. Each cell takes an optional note with full history of every change, and the note text shows directly in the matrix next to its toggle. The list's name and description stay editable after creation, columns can be reordered by drag-and-drop or with up/down arrows in the edit dialog (the arrows also work on touch), and a new column lands at the position the manager picks. The list can be refreshed later to pull in newly-matching members, individual members can be added or removed by hand at any time, and the matrix exports to CSV for spreadsheet work or to a printable PDF that carries the station logo and name in a compact running header, uses drawn checkboxes instead of emoji, and follows the station language. Access splits into a read-only permission for staff who only need to look, and a manage permission for the rest.
 
 ### Changes
 
-- **Consistent page headers across the app.** Every page now shows its title in the top header bar exactly once — duplicated in-page titles and pages missing a header title are both gone. Applies to the whole admin panel, station manage, station federate, requirements, checklists, quiz, procedures, boards, pages, protocols, lost-and-found and every other station and helpcenter view.
+- **Consistent page headers across the app.** Every page now shows its title in the top header bar exactly once - duplicated in-page titles and pages missing a header title are both gone. Applies to the whole admin panel, station manage, station federate, requirements, checklists, quiz, procedures, boards, pages, protocols, lost-and-found and every other station and helpcenter view.
 
 ### Fixes
 
@@ -191,8 +260,8 @@
 
 - **Batch event creation loads from an event template.** Picking an event template in the batch creator copies the template's title, description, category, registration toggles, and field set into the form so every event in the batch starts from the same preset. The separate "field layout" feature it replaces has been removed.
 - **Member list flags accounts pending setup.** Members whose account has not yet been signed into for the first time show an hourglass icon next to their name in the member list, and managers see a paper-plane button to resend the password-setup email without having to step through the user themselves.
-- **Mail relay failures retry indefinitely.** Emails that fail because the relay was unreachable, timed out, or returned a transient error are no longer marked failed on the first attempt — they stay queued and the email worker keeps retrying every ten seconds until the relay accepts them again. Permanent failures (rejected recipient, bad credentials) still mark the row failed so an operator notices.
-- **System mails follow the station's language.** Accounts that were created from a station — through an invite, application acceptance, waiting-list registration, member import, or cross-instance import — receive verification, password-setup, password-reset, two-factor-reset, and email-change notifications in the language configured for that station. Accounts from self-signup still default to English.
+- **Mail relay failures retry indefinitely.** Emails that fail because the relay was unreachable, timed out, or returned a transient error are no longer marked failed on the first attempt - they stay queued and the email worker keeps retrying every ten seconds until the relay accepts them again. Permanent failures (rejected recipient, bad credentials) still mark the row failed so an operator notices.
+- **System mails follow the station's language.** Accounts that were created from a station - through an invite, application acceptance, waiting-list registration, member import, or cross-instance import - receive verification, password-setup, password-reset, two-factor-reset, and email-change notifications in the language configured for that station. Accounts from self-signup still default to English.
 - **Mail settings validated and clearable.** Saving the instance-wide or per-station mail configuration now runs a live connection test against the configured provider before persisting; the save is rejected with the actual server error if the test fails. A new clear action wipes either configuration back to the unset state.
 
 ## v26.10.1
@@ -227,21 +296,21 @@
 #### Inventory Storage and Custom Fields
 
 - **Storage containers.** Every room, shelf, drawer and box is a container that can hold items and other containers, nested as deeply as the operator needs. Containers are reached from a new Station → Inventar → Lager entry, can be searched and resolved by scan, and each item carries its container path as a clickable breadcrumb on the item detail page.
-- **Custom fields per inventory.** Each inventory now defines its own extra fields with one of five types — date, dropdown, text, number with optional unit, or yes/no. Managers add and reorder them in the inventory editor; the inputs then show up on the item form and the values are persisted alongside the item.
+- **Custom fields per inventory.** Each inventory now defines its own extra fields with one of five types - date, dropdown, text, number with optional unit, or yes/no. Managers add and reorder them in the inventory editor; the inputs then show up on the item form and the values are persisted alongside the item.
 - **Container check workflow.** A new Station → Inventar → Prüfung → Behälter-Prüfung flow walks the items expected in a chosen container, scan by scan. Items are confirmed, marked missing, or flagged lost; items the operator finds but the system did not expect for the container are collected separately. A toggle extends the walk to every nested container.
-- **Dedicated assign-and-return page.** A new Station → Inventar → Zuweisen page lets a station member with the new "Inventar zuweisen" permission pick a recipient and then scan items in sequence — each scan assigns the item, scanning an already-assigned item with the same recipient selected returns it. The permission is off by default for every role; the station owner grants it explicitly to whoever runs equipment handover.
+- **Dedicated assign-and-return page.** A new Station → Inventar → Zuweisen page lets a station member with the new "Inventar zuweisen" permission pick a recipient and then scan items in sequence - each scan assigns the item, scanning an already-assigned item with the same recipient selected returns it. The permission is off by default for every role; the station owner grants it explicitly to whoever runs equipment handover.
 - **An item is either with a member or in storage, never both.** Assigning an item to a member clears any container it was placed in; placing an item in a container ends the open assignment. The database enforces the same invariant so no path can leave an item in a halfway state.
 
 #### Pluggable Storage Backends
 
 - **Choose where uploaded files live.** A new backend layer lets the instance keep stored files on local disk (the default) or push them to an SMB share, an SFTP server, or any S3-compatible object store (AWS S3, MinIO, Backblaze B2, Wasabi, Hetzner Object Storage, Cloudflare R2). Operators pick the instance-wide default from Admin → Monitoring → Storage → Backend; remote backends talk their protocol directly, with no kernel mount, FUSE, or container privileges required.
 - **Per-station backend overrides.** A station manager can point their own station at a private S3 bucket, SMB share, or SFTP host from Station → Manage → Storage → Backend without instance-admin involvement; credentials are entered in the form, stored encrypted at rest, and a "test connection" button probes them before any change is applied.
-- **One-shot migration when the backend changes.** Applying a new backend probes the target, copies every existing file over, and only then flips the active backend in one step — there is no half-migrated state where the configuration points at one backend and the bytes still live on another. A failed migration leaves the previous backend authoritative.
+- **One-shot migration when the backend changes.** Applying a new backend probes the target, copies every existing file over, and only then flips the active backend in one step - there is no half-migrated state where the configuration points at one backend and the bytes still live on another. A failed migration leaves the previous backend authoritative.
 - **Stations on their own backend skip instance quotas.** Once a station is using its own remote backend, the instance-side total, per-page, per-image and per-file caps no longer apply and the quota bars on the storage dashboard hide behind a badge marking the station as using its own backend.
 - **Backend audit log.** Every backend create, update, delete, probe, rejection, and migration event is recorded with the actor (account or system), station, and outcome. Visible per station under Station → Manage → Storage → Backend → Audit and instance-wide under Admin → Monitoring → Storage → Audit.
 - **Cross-instance station transfer.** A station can be exported from one instance and imported on another in a single flow. The source flags the station read-only for the duration with a banner naming the destination, refuses writes with `503 Service Unavailable`, streams the database rows, stored files, and account avatars over a signed channel to the destination, and clears the flag when the operator aborts.
 - **Help articles for the new flows.** Help center entries cover the instance-wide backend swap, the per-station backend picker, and how to read the audit log.
-- **New operator config** — `storage.credentialEncryptionKey` (env `STORAGE_CREDENTIAL_ENCRYPTION_KEY`), the AES-256 key used to encrypt station-supplied remote-backend credentials before they hit the database. Required once any station opts into self-service remote storage; auto-generated on first boot in a fresh install.
+- **New operator config** - `storage.credentialEncryptionKey` (env `STORAGE_CREDENTIAL_ENCRYPTION_KEY`), the AES-256 key used to encrypt station-supplied remote-backend credentials before they hit the database. Required once any station opts into self-service remote storage; auto-generated on first boot in a fresh install.
 
 ### Changes
 
@@ -265,7 +334,7 @@
 
 ### New Features
 
-- **Barcode and QR scanning for inventory.** A scan button next to every internal-id field opens the camera (rear camera on phones, webcam on laptops) and resolves printed Code 128, Code 39, QR, Data Matrix, EAN and UPC labels to the item's internal id. Available when creating or editing an item, on the inventory search bar, when assigning items to a lending request, and in the rapid inventory-check mode — where the modal stays open in continuous mode so you can sweep a pile of returning items. Decoded values are normalised (uppercased, trimmed) and the same normalisation is applied to hand-typed ids so they always match.
+- **Barcode and QR scanning for inventory.** A scan button next to every internal-id field opens the camera (rear camera on phones, webcam on laptops) and resolves printed Code 128, Code 39, QR, Data Matrix, EAN and UPC labels to the item's internal id. Available when creating or editing an item, on the inventory search bar, when assigning items to a lending request, and in the rapid inventory-check mode - where the modal stays open in continuous mode so you can sweep a pile of returning items. Decoded values are normalised (uppercased, trimmed) and the same normalisation is applied to hand-typed ids so they always match.
 
 ### Changes
 
@@ -273,7 +342,7 @@
 - **Admin panel button always reachable.** The shield button that opens the admin panel now shows on the cross-station overview, the Account area and the station dashboard whenever the signed-in user is an administrator and isn't already inside the admin panel.
 - **Header unified across views.** The cross-station overview, account pages and station panel use the same avatar menu and station-panel button. The station-panel button is only shown when the user actually has a station to switch to.
 - **Login returns you where you started.** A login that requires two-factor verification now carries the original destination through the verification step, so you land back on the page you originally tried to open.
-- **Member type list ordered by role power.** The member-type dropdown now lists *Manager* first, then *Team*, *Guardian*, *Member*, *Trial* — top-down by responsibility instead of alphabetically.
+- **Member type list ordered by role power.** The member-type dropdown now lists *Manager* first, then *Team*, *Guardian*, *Member*, *Trial* - top-down by responsibility instead of alphabetically.
 - **Data export button labels what it does.** The Account → GDPR download button now reads "Download the full data export as a ZIP" and the per-managed-member variant names the person. The page text spells out that the archive covers every station the account belongs to.
 - **Trusted devices section translated.** The trusted-devices block on the security page now shows a localised title, description, empty state and column labels.
 - **Demo login shows station-less accounts above the tabs.** In demo and dev mode, accounts that don't belong to any station (the demo administrator) appear at the top of the login picker instead of in their own tab.
@@ -298,7 +367,7 @@
 
 - **New Account area.** Profile picture, name, e-mail, password, two-factor, theme, active sessions and GDPR / account deletion are collected on a dedicated set of pages that apply to the user, not to a single station membership.
 - **Avatar menu in the header.** An avatar + name button replaces the standalone logout icon. Clicking it opens a dropdown on desktop or a slide-in drawer on mobile, with entries for Account settings and Logout.
-- **One profile picture per account.** A user's avatar now follows them across every station they belong to. Existing avatars are not migrated — re-upload once after the update.
+- **One profile picture per account.** A user's avatar now follows them across every station they belong to. Existing avatars are not migrated - re-upload once after the update.
 - **Station profile slimmed down.** The station-side profile page keeps only the station-specific fields and the incomplete-fields nudge; name, e-mail, password, two-factor, theme and sessions are managed from the new Account area, with a link left in their old spot.
 
 #### Instance Security Configuration
@@ -331,7 +400,7 @@
 
 #### Page Editor Cell Types
 
-- **Many new cell types** — callout, quote, divider, spacer, accordion, PDF, file download, countdown, partner stations, stats counter, tabs, achievements, image gallery, KB article, news teaser, page link, map, address card, member spotlight, hero banner, external link card, blog signup, audio embed, poll embed, forms CTA, code block, member list, and a nested-rows layout primitive that lets cells be split or wrapped in place.
+- **Many new cell types** - callout, quote, divider, spacer, accordion, PDF, file download, countdown, partner stations, stats counter, tabs, achievements, image gallery, KB article, news teaser, page link, map, address card, member spotlight, hero banner, external link card, blog signup, audio embed, poll embed, forms CTA, code block, member list, and a nested-rows layout primitive that lets cells be split or wrapped in place.
 - **Cut, copy, paste between cells**, with a paste-here shortcut in the empty-cell chooser.
 
 #### Public Quiz Teaser
@@ -354,7 +423,7 @@
 #### Consent Gating for Public Submissions
 
 - **Acceptance recorded with every public submission.** Anonymous form, poll, and waiting-list submissions require a checkbox accepting the current privacy policy and terms of service; the proof is captured at the moment of submission.
-- **GDPR-friendly IP recording.** The client IP captured with the proof is truncated before storage — IPv4 keeps only the first three octets, IPv6 keeps only the /48 prefix.
+- **GDPR-friendly IP recording.** The client IP captured with the proof is truncated before storage - IPv4 keeps only the first three octets, IPv6 keeps only the /48 prefix.
 
 #### Landing Page Rebuild
 
@@ -363,7 +432,7 @@
 
 #### Theme Improvements
 
-- **No more post-hydration flash.** The instance theme — and the station theme on public station pages — is resolved server-side and applied before any client JavaScript runs.
+- **No more post-hydration flash.** The instance theme - and the station theme on public station pages - is resolved server-side and applied before any client JavaScript runs.
 - **Anonymous visitors get the instance default.** A cached per-user theme no longer leaks into a logged-out session or a fresh tab.
 - **Public station themes stay scoped.** A station's theme no longer bleeds into the start page after navigating away.
 
@@ -371,11 +440,11 @@
 
 - **Traffic dashboards** at Admin → Monitoring → Traffic and Station → Manage → Traffic show hourly ingress and egress bytes plus request counts per station, split into authenticated, unauthenticated and federation traffic. Time window (24h / 3d / 7d / 30d), metric (egress / ingress / requests) and bucket filter are switchable; the admin view adds a per-station leaderboard.
 - **HTTP responses are gzipped by default** for text-shaped content (JSON, HTML, CSS, XML / RSS / Atom, SVG, plain text, ICS feeds). Binary uploads stay untouched.
-- **New operator config** — `metrics.trafficEnabled`, `metrics.trafficRetentionDays`, `metrics.trafficFlushIntervalSeconds`, and `api.httpGzipEnabled` / `api.httpGzipLevel` / `api.httpGzipMinSizeBytes` for the gzip tuning.
+- **New operator config** - `metrics.trafficEnabled`, `metrics.trafficRetentionDays`, `metrics.trafficFlushIntervalSeconds`, and `api.httpGzipEnabled` / `api.httpGzipLevel` / `api.httpGzipMinSizeBytes` for the gzip tuning.
 
 ### Security
 
-- **Bearer tokens hashed at rest.** Session cookies, password-reset codes, email-verification codes and station-delete codes are now stored hashed with a server-side pepper. A database-only leak no longer yields usable tokens — the attacker also needs the server secret.
+- **Bearer tokens hashed at rest.** Session cookies, password-reset codes, email-verification codes and station-delete codes are now stored hashed with a server-side pepper. A database-only leak no longer yields usable tokens - the attacker also needs the server secret.
 - **Breaking on upgrade.** The migration removes the plaintext token columns. Every active session and pending recovery link is invalidated; users sign in again once, and pending password-reset / email-verification / station-delete emails have to be re-requested.
 - **New required production secret: `auth.tokenPepper`.** Generated automatically on first boot if not already configured. Demo / dev runs fall back to a fixed placeholder.
 - **Markdown is sanitised before display.** KB articles, station pages and legal documents pass through a strict HTML allow-list. Scripts, inline event handlers, `javascript:` URLs, cross-origin iframes and off-allow-list images are stripped; legal documents additionally forbid images and iframes.
@@ -385,7 +454,7 @@
 - **Auth endpoints rate-limited.** Login, forgot-password, resend-verification, register, verify-email, set-password, change-password, confirm-email-change and refresh all have leaky-bucket limits per IP and (when the request carries an identity) per email or account. Exhausting a bucket returns `429 Too Many Requests` with a `Retry-After` header.
 - **Email enumeration on auth endpoints removed.** Registering with an already-used address always reports success and notifies the existing owner out of band. Login responds with a single generic message for wrong account, wrong password and missing permissions; the password check runs in constant time so timing cannot distinguish the cases.
 - **Stronger password policy.** New passwords must be at least 12 characters. The hash algorithm now SHA-256-pre-hashes the plaintext before BCrypt, so passphrases longer than 72 bytes no longer collide on their first 72 bytes. Existing hashes still verify and migrate to the new algorithm on the next successful login.
-- **HIBP breach checking.** New passwords are checked against Have I Been Pwned before being accepted, and the password is re-checked in the background after every successful login — a match forces a rotation on the next login. Operators can tune or disable the lookup via the new `auth.hibp` config block. Both paths fail-open on an HIBP outage.
+- **HIBP breach checking.** New passwords are checked against Have I Been Pwned before being accepted, and the password is re-checked in the background after every successful login - a match forces a rotation on the next login. Operators can tune or disable the lookup via the new `auth.hibp` config block. Both paths fail-open on an HIBP outage.
 - **Password rotation invalidates other sessions and recovery tokens.** Self-service password change keeps the user's current browser signed in; admin reset and token-based set-password log out every session. Each rotation sends an out-of-band notice to the account email.
 - **Two-step email change.** Both the old and the new address must click their respective confirmation link before the change commits. The release mail tells the previous owner that someone tried to move their account away and recommends a password reset.
 - **Path-traversal hardening.** Image, public logo and admin legal-document routes reject any path segment that would resolve outside the configured directory. Member UUIDs in path segments must be valid UUIDs.
@@ -400,7 +469,7 @@
 ### Changes
 
 - **Admin sidebar reorganised.** Every monitoring entry lives under "Monitoring" (problems, problem reports, storage, API status, feed metrics, traffic, discovery, maps) and the dev-only data-tracking inspector lives under "Dev Tools". Update any bookmarks to the old top-level paths.
-- **Waiting-list status page rewritten.** The page now shows the e-mail used for reminders under the name, the date the entry joined the list, the next confirmation deadline, and a queue position derived from the waiting-list score (highest score first, oldest entry as tiebreaker) — labelled as a rough indicator rather than the literal admission order. Guardian rows render their full name with e-mail as a fallback.
+- **Waiting-list status page rewritten.** The page now shows the e-mail used for reminders under the name, the date the entry joined the list, the next confirmation deadline, and a queue position derived from the waiting-list score (highest score first, oldest entry as tiebreaker) - labelled as a rough indicator rather than the literal admission order. Guardian rows render their full name with e-mail as a fallback.
 - **Member editor.** The join-date control moves from the General tab to the Profile tab, next to first name, last name and e-mail.
 - **Waiting-list entry detail page.** Metadata chips align consistently and wrap cleanly on narrow widths.
 - **Per-run log file.** The server writes a fresh log file at `logs/ember-<timestamp>.log` on every startup, alongside the existing console output.
@@ -411,27 +480,27 @@
 
 #### Discovery Chain (Cross-instance Catalog)
 
-A new two-layer protocol lets every Ember instance build an organic, asynchronously-refreshed catalog of *other Ember instances* and surface their `PUBLIC`-scoped stations on a single discovery page — including stations the local instance has never federated with. See `.concept/discovery.md` for the full design.
+A new two-layer protocol lets every Ember instance build an organic, asynchronously-refreshed catalog of *other Ember instances* and surface their `PUBLIC`-scoped stations on a single discovery page - including stations the local instance has never federated with. See `.concept/discovery.md` for the full design.
 
-- **Ed25519-signed gossip** — every instance owns a long-lived Ed25519 keypair generated on first boot under `data/discovery/`. The fingerprint `sha256(publicKey)[:16]` is the stable instance id used in logs and the admin UI. Distinct from the per-partner RSA keys used by federation, so discovery and federation key rotations stay independent.
-- **Async-first ping/callback** — pinging another instance returns `204` immediately; the actual peer list comes back via a delayed `POST` to the originator's callback URL. No long-lived HTTP connections on either side, and slow peers can't pile up against the requester. Replay-protected per-nonce, drift-checked ±5 min.
-- **Public station catalog endpoint** — `GET /public/discovery/stations` returns every `PUBLIC`-scoped station with bucketed member count (`<10 / 10-50 / 50-200 / 200+`) so small stations don't leak exact size. `INSTANCE` and `NONE` scopes are filtered at the SQL level, never trusted to the application layer alone. Cacheable for 5 min.
-- **Instance info probe** — unauthenticated `GET /public/discovery/info` returns `{baseUrl, instanceId, publicKey, softwareVersion, discoveryEnabled}`. Drives manual peer addition, admin "test connectivity" checks, and any future external aggregator.
-- **Bootstrap via federation** — on boot the instance walks its active federation partners, probes their info endpoint, and seeds the peer registry as `BOOTSTRAP` source. No global seed list — operators stay in control of who they federate with first.
-- **Manual admin add** — admins can register a known instance by base URL; the discovery public key is fetched from the peer's info endpoint and may optionally be pinned to an admin-supplied value so URL/key drift is caught at add time.
-- **Reputation + back-off** — signature failures (−20), timeouts (−1), invalid announcements (−2), and admin downvotes (−50) accumulate per peer; reputations below −50 trigger a 24h ping back-off. Successful callbacks and station fetches each add +1; a daily decay pulls negative scores toward zero by 5/day so transient outages don't permanently degrade a peer.
-- **Hard blocklist** — admin-managed list of base URLs or public keys that are refused on both sides of the protocol regardless of reputation. Outbound pings, inbound pings, callbacks, and station fetches all consult the list.
-- **Per-instance admin settings** — `discovery_enabled` (kill switch for outbound pings and the public stations endpoint), `discovery_max_depth` (0..10, default 2 — fan-out hint attached to pings), `discovery_ping_interval_minutes` (default 60, minimum 60).
-- **Schedulers** — ping cycle (60 min), station-listing refresh (6 h), nonce GC (5 min), reputation decay (24 h). All initial delays staggered so federation seeding fills the registry before the first ping cycle.
-- **Admin UI** under `/admin/discovery` — identity card (showing our own instanceId, publicKey, baseUrl), settings panel, peer registry with per-row actions (upvote / downvote / block / unblock / ping now / delete), manual add with probe, blocklist editor, "Discover now" trigger that pings every usable peer and refreshes the station cache in one shot, and "Seed from federation" trigger that rescans the federation partner list.
+- **Ed25519-signed gossip** - every instance owns a long-lived Ed25519 keypair generated on first boot under `data/discovery/`. The fingerprint `sha256(publicKey)[:16]` is the stable instance id used in logs and the admin UI. Distinct from the per-partner RSA keys used by federation, so discovery and federation key rotations stay independent.
+- **Async-first ping/callback** - pinging another instance returns `204` immediately; the actual peer list comes back via a delayed `POST` to the originator's callback URL. No long-lived HTTP connections on either side, and slow peers can't pile up against the requester. Replay-protected per-nonce, drift-checked ±5 min.
+- **Public station catalog endpoint** - `GET /public/discovery/stations` returns every `PUBLIC`-scoped station with bucketed member count (`<10 / 10-50 / 50-200 / 200+`) so small stations don't leak exact size. `INSTANCE` and `NONE` scopes are filtered at the SQL level, never trusted to the application layer alone. Cacheable for 5 min.
+- **Instance info probe** - unauthenticated `GET /public/discovery/info` returns `{baseUrl, instanceId, publicKey, softwareVersion, discoveryEnabled}`. Drives manual peer addition, admin "test connectivity" checks, and any future external aggregator.
+- **Bootstrap via federation** - on boot the instance walks its active federation partners, probes their info endpoint, and seeds the peer registry as `BOOTSTRAP` source. No global seed list - operators stay in control of who they federate with first.
+- **Manual admin add** - admins can register a known instance by base URL; the discovery public key is fetched from the peer's info endpoint and may optionally be pinned to an admin-supplied value so URL/key drift is caught at add time.
+- **Reputation + back-off** - signature failures (−20), timeouts (−1), invalid announcements (−2), and admin downvotes (−50) accumulate per peer; reputations below −50 trigger a 24h ping back-off. Successful callbacks and station fetches each add +1; a daily decay pulls negative scores toward zero by 5/day so transient outages don't permanently degrade a peer.
+- **Hard blocklist** - admin-managed list of base URLs or public keys that are refused on both sides of the protocol regardless of reputation. Outbound pings, inbound pings, callbacks, and station fetches all consult the list.
+- **Per-instance admin settings** - `discovery_enabled` (kill switch for outbound pings and the public stations endpoint), `discovery_max_depth` (0..10, default 2 - fan-out hint attached to pings), `discovery_ping_interval_minutes` (default 60, minimum 60).
+- **Schedulers** - ping cycle (60 min), station-listing refresh (6 h), nonce GC (5 min), reputation decay (24 h). All initial delays staggered so federation seeding fills the registry before the first ping cycle.
+- **Admin UI** under `/admin/discovery` - identity card (showing our own instanceId, publicKey, baseUrl), settings panel, peer registry with per-row actions (upvote / downvote / block / unblock / ping now / delete), manual add with probe, blocklist editor, "Discover now" trigger that pings every usable peer and refreshes the station cache in one shot, and "Seed from federation" trigger that rescans the federation partner list.
 
 ### Changes
 
 #### Calendar Multi-day Events
 
-- **Google-calendar-style spanning bars** on `/station/events/upcoming` — multi-day events render as a single continuous bar across the week grid instead of one chip per day. Bars carry the event's category colour, round only on the start/end sides, and pack into lanes so multiple overlapping multi-day events stay readable.
-- **Recurring multi-day events** — the same spanning logic now enumerates per occurrence of recurring events (weekly, monthly-first, quarterly, yearly), so a multi-day recurring meeting spans correctly on every occurrence and not just the first.
-- **Fix `multiDayEndDate` in the upcoming list view** — recurring events no longer display absurd ranges like `Samstag, 2026-07-04 – Sonntag, 2026-06-14`; recurring entries skip the range entirely and one-time events whose end falls on the start day collapse to a single date.
+- **Google-calendar-style spanning bars** on `/station/events/upcoming` - multi-day events render as a single continuous bar across the week grid instead of one chip per day. Bars carry the event's category colour, round only on the start/end sides, and pack into lanes so multiple overlapping multi-day events stay readable.
+- **Recurring multi-day events** - the same spanning logic now enumerates per occurrence of recurring events (weekly, monthly-first, quarterly, yearly), so a multi-day recurring meeting spans correctly on every occurrence and not just the first.
+- **Fix `multiDayEndDate` in the upcoming list view** - recurring events no longer display absurd ranges like `Samstag, 2026-07-04 – Sonntag, 2026-06-14`; recurring entries skip the range entirely and one-time events whose end falls on the start day collapse to a single date.
 
 ## v26.7.1
 
@@ -441,42 +510,42 @@ A new two-layer protocol lets every Ember instance build an organic, asynchronou
 
 Every member's personal calendar and notification feed got a top-to-bottom rewrite so feed readers like Thunderbird, Apple Calendar, NetNewsWire, Feedly, and Reeder surface the same context that the web UI does.
 
-- **Guardian-aware visibility** — the iCal feed only hides events when *every* relevant registration is declined/denied, so a guardian whose child is going still sees the event. Events whose registration deadline has passed without any active registrations drop out to keep the calendar clean.
-- **Rich iCal event entries** — every event now carries category, recurrence label, registration deadline/limit/status, custom field values, per-managed-member registration breakdown, station-timezone-aware timestamps, and a tap-to-open web link. Cancelled events get a localised `[Cancelled]` prefix so clients strike through or hide them.
-- **New `LOCATION` event field** — feeds the standard iCal `LOCATION` property so phones and calendar apps turn it into a tap-to-navigate map link.
-- **Rich notification feed entries** — RSS/Atom entries carry a semantic HTML body (status badges with Unicode markers, prominent action button), a plain-text fallback for readers that strip HTML, the notification's actor as the entry author, both localised and stable filterable categories, and embedded images with meaningful alt text.
-- **Event context in notifications** — new-event, reminder, cancellation, and registration-status entries surface the event's start/end timestamps and every non-empty custom field value (location, meeting point, notes, …) so feed readers carry the same info as the event-detail page.
-- **Rich entry titles** — feed titles now read `News: Q3 schedule published`, `Procurement requested: Hose 25m`, `Registration ✓ Accepted: Open Training`, etc. instead of a bare category. Long fragments are truncated on a word boundary.
-- **Same-day event range merge** — events whose start and end fall on the same day collapse into one `When: 15 Sep 17:00 – 19:00` row.
-- **Live context lookups** — feed entries pull fresh details at render time: lost-and-found find/claim dates, lending date ranges, inventory ownership (organisation-owned / member-owned / mixed), board ticket title/assignee/priority, procedure progress, and storage-warning category breakdowns.
-- **Embedded lost-and-found images** — feed readers can fetch item images via a token-scoped endpoint without exposing the rest of the API.
-- **Atom is the recommended format** — featured prominently on the feed settings page with an explainer. RSS collapses into an "emergency fallback" section. iCal gets its own card explaining the calendar-subscription use case.
-- **Verbosity presets** — three radio buttons on feed settings (Rich / Compact / Minimal) rewrite the copied URL accordingly. Persists locally; Rich is the default.
-- **Privacy hardening** — the feed token never leaks via `Referer` and leaked URLs can't be picked up by search engines. The Regenerate-token / Revoke-token buttons show a confirmation modal warning that the action breaks every subscribed reader immediately.
-- **Accessibility** — semantic HTML, `dir="auto"`, persistent link underlines, 44px tap targets, Unicode status symbols so meaning survives monochrome rendering and colour-blindness.
+- **Guardian-aware visibility** - the iCal feed only hides events when *every* relevant registration is declined/denied, so a guardian whose child is going still sees the event. Events whose registration deadline has passed without any active registrations drop out to keep the calendar clean.
+- **Rich iCal event entries** - every event now carries category, recurrence label, registration deadline/limit/status, custom field values, per-managed-member registration breakdown, station-timezone-aware timestamps, and a tap-to-open web link. Cancelled events get a localised `[Cancelled]` prefix so clients strike through or hide them.
+- **New `LOCATION` event field** - feeds the standard iCal `LOCATION` property so phones and calendar apps turn it into a tap-to-navigate map link.
+- **Rich notification feed entries** - RSS/Atom entries carry a semantic HTML body (status badges with Unicode markers, prominent action button), a plain-text fallback for readers that strip HTML, the notification's actor as the entry author, both localised and stable filterable categories, and embedded images with meaningful alt text.
+- **Event context in notifications** - new-event, reminder, cancellation, and registration-status entries surface the event's start/end timestamps and every non-empty custom field value (location, meeting point, notes, …) so feed readers carry the same info as the event-detail page.
+- **Rich entry titles** - feed titles now read `News: Q3 schedule published`, `Procurement requested: Hose 25m`, `Registration ✓ Accepted: Open Training`, etc. instead of a bare category. Long fragments are truncated on a word boundary.
+- **Same-day event range merge** - events whose start and end fall on the same day collapse into one `When: 15 Sep 17:00 – 19:00` row.
+- **Live context lookups** - feed entries pull fresh details at render time: lost-and-found find/claim dates, lending date ranges, inventory ownership (organisation-owned / member-owned / mixed), board ticket title/assignee/priority, procedure progress, and storage-warning category breakdowns.
+- **Embedded lost-and-found images** - feed readers can fetch item images via a token-scoped endpoint without exposing the rest of the API.
+- **Atom is the recommended format** - featured prominently on the feed settings page with an explainer. RSS collapses into an "emergency fallback" section. iCal gets its own card explaining the calendar-subscription use case.
+- **Verbosity presets** - three radio buttons on feed settings (Rich / Compact / Minimal) rewrite the copied URL accordingly. Persists locally; Rich is the default.
+- **Privacy hardening** - the feed token never leaks via `Referer` and leaked URLs can't be picked up by search engines. The Regenerate-token / Revoke-token buttons show a confirmation modal warning that the action breaks every subscribed reader immediately.
+- **Accessibility** - semantic HTML, `dir="auto"`, persistent link underlines, 44px tap targets, Unicode status symbols so meaning survives monochrome rendering and colour-blindness.
 
 #### Notifications
 
-- **Aggregated batch event notifications** — bulk-created events produce one batched notification per recipient instead of one per row.
-- **Complete EN/DE coverage** — every notification type now has a localised category label and message.
+- **Aggregated batch event notifications** - bulk-created events produce one batched notification per recipient instead of one per row.
+- **Complete EN/DE coverage** - every notification type now has a localised category label and message.
 - **Correct singular/plural handling** for `newEventsBatch`, `eventReminder`, `registrationDeadlineExpired`, and the email digest subject.
 
 #### Recurring Events
 
 Reminders for recurring events used to deep-link to a generic event page and comments merged across every occurrence. Both are now occurrence-aware end-to-end.
 
-- **Date-aware deep links** — weekly reminders land on the right occurrence.
-- **Detail view bound to a single date** — derived from the URL or the next occurrence. The redundant "Next date" container is gone; the date is shown directly as the `Start` / `End` rows.
-- **List ↔ calendar toggle on `/station/events/upcoming`** — new month-grid view; the user's choice persists in `localStorage`.
-- **Mobile-tight calendar layout** — reclaims roughly 60 px of horizontal space on a 360 px viewport (~21 % wider cells).
-- **Per-occurrence comment threads** — comments on a specific occurrence of a recurring event stay scoped to that occurrence.
+- **Date-aware deep links** - weekly reminders land on the right occurrence.
+- **Detail view bound to a single date** - derived from the URL or the next occurrence. The redundant "Next date" container is gone; the date is shown directly as the `Start` / `End` rows.
+- **List ↔ calendar toggle on `/station/events/upcoming`** - new month-grid view; the user's choice persists in `localStorage`.
+- **Mobile-tight calendar layout** - reclaims roughly 60 px of horizontal space on a 360 px viewport (~21 % wider cells).
+- **Per-occurrence comment threads** - comments on a specific occurrence of a recurring event stay scoped to that occurrence.
 
 #### Feed Telemetry (Admin)
 
 A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and performance.
 
 - Four summary cards (total requests, fully rendered, 304 cache hits, average render duration), three ECharts diagrams (requests-by-type, latency histogram, daily volume), a status-code breakdown table, and a global reader leaderboard.
-- **No per-token attribution by design** — a station admin with DB access cannot derive which member uses which reader.
+- **No per-token attribution by design** - a station admin with DB access cannot derive which member uses which reader.
 - Configurable retention windows; default 3 days for request stats, 90 days for feed metrics.
 - Help center article explaining every chart, the histogram colour code, the relevant HTTP status codes, and the privacy posture of the reader leaderboard.
 
@@ -492,12 +561,12 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 
 #### Other Improvements
 
-- **Calendar view multi-day events** — one-time events with multi-day duration now render on every day from start to end.
+- **Calendar view multi-day events** - one-time events with multi-day duration now render on every day from start to end.
 - **Guardian sees own inventory page** when at least one of their managed members owns an item.
 - **Exchange type column** gated by `INVENTORY_EXCHANGE`.
 - **Notification settings shortcut** from the dashboard notifications panel.
-- **Reactive item state** — submitting an exchange request flips the inventory card into its "exchange pending" state immediately.
-- **`/station/quiz/tests` accessible to anyone** — the page handles permission gating internally.
+- **Reactive item state** - submitting an exchange request flips the inventory card into its "exchange pending" state immediately.
+- **`/station/quiz/tests` accessible to anyone** - the page handles permission gating internally.
 - **Event notes** no longer require member-notes permission for event managers.
 - **Quiz reviewers** can list catalog names with `TEST_RESULT_READ` alone.
 - **`Exchanged` status renamed to `Done`** (German `Erledigt`) for clarity.
@@ -519,433 +588,433 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 
 ### Technical
 
-- **Feed plumbing** — Conditional GET (ETag + If-Modified-Since) on every endpoint; per-token leaky-bucket rate limiting (10 burst, 5/min refill); body size caps (RSS/Atom: last 100 notifications, iCal: `[now − 7 days, now + 1 year]`); per-entry failure isolation; `Referrer-Policy` and `X-Robots-Tag` on every response.
-- **Atom `<summary>` / `<content>` swap** — ROME maps `setDescription` → `<summary>` and `setContents` → `<content>`; previously reversed. Duplicate-`term` categories disambiguated via `scheme="urn:ember:notification-type"`.
+- **Feed plumbing** - Conditional GET (ETag + If-Modified-Since) on every endpoint; per-token leaky-bucket rate limiting (10 burst, 5/min refill); body size caps (RSS/Atom: last 100 notifications, iCal: `[now − 7 days, now + 1 year]`); per-entry failure isolation; `Referrer-Policy` and `X-Robots-Tag` on every response.
+- **Atom `<summary>` / `<content>` swap** - ROME maps `setDescription` → `<summary>` and `setContents` → `<content>`; previously reversed. Duplicate-`term` categories disambiguated via `scheme="urn:ember:notification-type"`.
 - **New shared utility `dev.chojo.ember.util.LeakyBucket`** and `HelpCenterHint` Vue component.
-- **Notification pipeline** — new `EventsBatchCreated` domain event aggregates bulk notifications; `NotificationService.notify*` now enforces a `NotificationLink` (fails fast otherwise).
-- **Recurring events** — new `event-detail-date` route (`/station/events/{id}/{date}`); nullable `event_comment.event_date`; `RemoteCommentRequest` federation payload carries `eventDate` (backwards compatible with peers that omit it).
-- **Typed date fields** — `LocalDate` instead of `String` on comment / reminder payloads (Jackson ISO `yyyy-MM-dd`).
-- **Permission model cleanup** — `api.roles` → `api.auth` package rename (~160 import sites). `RoleValidation` → `PermissionValidation`, `RolesTest` → `PermissionsTest`. Frontend: `RoleSelector.vue` deleted, `RoleStep.vue` → `UserTypeStep.vue`, `RolesHelp.vue` → `PermissionsHelp.vue`; matching i18n key sweep.
-- **`MemberIdentity.sameMember(other)` helper** — UID-only equality for ownership checks; adopted in news / event / KB comment routes and their federation variants. Fixes self-edit when DB-loaded vs. session-enriched identities are compared.
-- **`StationIdModule` deserializer added** — previously serializer-only, so round-tripped UUID strings on `int` fields blew up with `InvalidFormatException`. `partnerStationId` added to the field-name set.
-- **Bulk-friendly registration lookup** — `EventRepository.findRegistrationsByMembers(Collection<Integer>)` collapses N queries into 1 for guardian iCal feeds.
-- **Schema migrations** — patch_11 (`station_event.updated_at`), patch_12 (`feed_metric_daily`, `feed_user_agent_stat`, `event_comment.event_date`, `EXCHANGED` → `DONE` rewrite, `news_view` table, `PAGE_EDIT` / `PAGE_MANAGER` backfill). `data_tracking.json` refreshed and verified.
+- **Notification pipeline** - new `EventsBatchCreated` domain event aggregates bulk notifications; `NotificationService.notify*` now enforces a `NotificationLink` (fails fast otherwise).
+- **Recurring events** - new `event-detail-date` route (`/station/events/{id}/{date}`); nullable `event_comment.event_date`; `RemoteCommentRequest` federation payload carries `eventDate` (backwards compatible with peers that omit it).
+- **Typed date fields** - `LocalDate` instead of `String` on comment / reminder payloads (Jackson ISO `yyyy-MM-dd`).
+- **Permission model cleanup** - `api.roles` → `api.auth` package rename (~160 import sites). `RoleValidation` → `PermissionValidation`, `RolesTest` → `PermissionsTest`. Frontend: `RoleSelector.vue` deleted, `RoleStep.vue` → `UserTypeStep.vue`, `RolesHelp.vue` → `PermissionsHelp.vue`; matching i18n key sweep.
+- **`MemberIdentity.sameMember(other)` helper** - UID-only equality for ownership checks; adopted in news / event / KB comment routes and their federation variants. Fixes self-edit when DB-loaded vs. session-enriched identities are compared.
+- **`StationIdModule` deserializer added** - previously serializer-only, so round-tripped UUID strings on `int` fields blew up with `InvalidFormatException`. `partnerStationId` added to the field-name set.
+- **Bulk-friendly registration lookup** - `EventRepository.findRegistrationsByMembers(Collection<Integer>)` collapses N queries into 1 for guardian iCal feeds.
+- **Schema migrations** - patch_11 (`station_event.updated_at`), patch_12 (`feed_metric_daily`, `feed_user_agent_stat`, `event_comment.event_date`, `EXCHANGED` → `DONE` rewrite, `news_view` table, `PAGE_EDIT` / `PAGE_MANAGER` backfill). `data_tracking.json` refreshed and verified.
 - **`npm run build` now runs the four convention linters** (`lint-icons`, `lint-conventions`, `lint-helpcenter`, `lint-locales`) before `nuxi build`, matching `build:spa`. Two argument-order bugs in `lint-conventions.mjs` fixed.
 - **`helpcenter-admin` layout** split from the generic `helpcenter` layout so the two sidebars are decoupled.
 - **Component extractions** to satisfy the 500-line view-size lint: `useKbTagFilter`, `KbDeleteModals`, `KbFiltersBar`, `KbFileContent`.
 - **rome-modules dependency** added for MediaRSS support.
 - **Demo seeders** refactored to call real services (`NewsService`, `EventService`, `ExchangeService`, …) so notifications fire organically with correct link metadata. New `DemoLostAndFoundSeeder`; one showcase notification of every type seeded for the demo admin.
-- **Test infrastructure** — new `UserFeedRoutesIntegrationTest`, `LeakyBucketTest`, `FeedFingerprintTest`, `FeedRateLimiterTest`, `IcalEventRendererTest`, `NotificationFeedRendererTest`, `FeedMetricsRepositoryTest`. `NotificationServiceTest` expanded with pluralisation coverage and a `notifyRejectsDataWithoutLink` regression. `jacocoCoverageCheck` and `testTracking` green.
+- **Test infrastructure** - new `UserFeedRoutesIntegrationTest`, `LeakyBucketTest`, `FeedFingerprintTest`, `FeedRateLimiterTest`, `IcalEventRendererTest`, `NotificationFeedRendererTest`, `FeedMetricsRepositoryTest`. `NotificationServiceTest` expanded with pluralisation coverage and a `notifyRejectsDataWithoutLink` regression. `jacocoCoverageCheck` and `testTracking` green.
 
 ## v26.7.0
 
 ### New Features
 
 #### Storage Monitoring & Quota System
-- **Per-station storage tracking** — tracks file storage usage across 5 categories: KB files, board attachments, page images, avatars, and other images
-- **Quota enforcement** — configurable per-category and total storage limits with rejection on exceed (HTTP 413)
-- **Quota presets** — reusable named profiles (e.g. Small, Standard, Premium) that can be applied to stations in bulk
-- **Per-station overrides** — stations can have custom quotas or use instance defaults from config
-- **Warning notifications** — domain event notifies station managers when usage crosses the configurable threshold (default 80%)
-- **Automatic reconciliation** — background job recalculates actual usage from DB and filesystem on startup and at configurable intervals
-- **Presentation compression** — lossless ZIP recompression of PPTX/ODP files, saving 10-30% for files above the threshold
-- **Admin dashboard** — storage overview with summary stats, stacked bar charts per station, category pie chart, sortable station table with status badges and preset assignment
-- **Station storage view** — read-only usage view for station managers with bar chart and per-category breakdown
-- **Preset management** — CRUD UI with size inputs (number + MiB/GiB/TiB dropdown), apply to multiple stations, delete with confirmation
-- **Config** — `storage` section in config.yaml with defaults for all quotas, compression, warning threshold, and reconciliation interval
-- **Help center** — help articles for both admin and station storage views
+- **Per-station storage tracking** - tracks file storage usage across 5 categories: KB files, board attachments, page images, avatars, and other images
+- **Quota enforcement** - configurable per-category and total storage limits with rejection on exceed (HTTP 413)
+- **Quota presets** - reusable named profiles (e.g. Small, Standard, Premium) that can be applied to stations in bulk
+- **Per-station overrides** - stations can have custom quotas or use instance defaults from config
+- **Warning notifications** - domain event notifies station managers when usage crosses the configurable threshold (default 80%)
+- **Automatic reconciliation** - background job recalculates actual usage from DB and filesystem on startup and at configurable intervals
+- **Presentation compression** - lossless ZIP recompression of PPTX/ODP files, saving 10-30% for files above the threshold
+- **Admin dashboard** - storage overview with summary stats, stacked bar charts per station, category pie chart, sortable station table with status badges and preset assignment
+- **Station storage view** - read-only usage view for station managers with bar chart and per-category breakdown
+- **Preset management** - CRUD UI with size inputs (number + MiB/GiB/TiB dropdown), apply to multiple stations, delete with confirmation
+- **Config** - `storage` section in config.yaml with defaults for all quotas, compression, warning threshold, and reconciliation interval
+- **Help center** - help articles for both admin and station storage views
 
 #### Federation Version Broadcasting
-- **Startup broadcast** — on boot, pings all remote federation partners to exchange version information
-- **Version ping endpoint** — new `/remote/federation/ping` returns the current federation version hash
-- **Version backfill** — partners created before version tracking get updated on startup
-- **Version at creation** — new partners are created with the current federation version instead of placeholder '0'
-- **DTO tracking** — federation version hash now includes inner record DTOs from FederationRemoteRoutes, FederationRoutes, LendingRoutes, and BoardRoutes
+- **Startup broadcast** - on boot, pings all remote federation partners to exchange version information
+- **Version ping endpoint** - new `/remote/federation/ping` returns the current federation version hash
+- **Version backfill** - partners created before version tracking get updated on startup
+- **Version at creation** - new partners are created with the current federation version instead of placeholder '0'
+- **DTO tracking** - federation version hash now includes inner record DTOs from FederationRemoteRoutes, FederationRoutes, LendingRoutes, and BoardRoutes
 
 #### Public Pages (Layout Editor)
-- **Page builder** — stations can create public pages using a lightweight layout editor inspired by WordPress/Elementor
-- **Row-based layout** — pages are built from horizontal rows, each containing 1-4 columns with free-form percentage widths
-- **Content types** — cells support rich markdown (WYSIWYG TipTap editor), images (upload with fit/sizing), and videos (YouTube embeds or direct URLs)
-- **Responsive design** — horizontal rows automatically stack vertically on mobile
-- **Page hierarchy** — pages support up to 3 levels of nesting with nested URL paths (e.g., `/page/about/team`)
-- **Landing page** — one page can be designated as the station landing page, shown first in the sidebar
-- **Station slug** — stations get a human-readable URL slug (auto-generated from name, editable) as alternative to UUID
-- **SEO metadata** — per-page meta description and OG image, with auto-generation from content
-- **Markdown rendering** — server-side commonmark rendering for public pages
-- **Station theming** — public pages display the station's configured theme (colors, feel)
-- **Image management** — per-page image upload (max 5 MB), orphaned images auto-cleaned on save
-- **Copy/cut/paste** — clipboard for rows and cells with paste buttons between rows
-- **Column controls** — visual column split buttons, swap button between columns, free-form resize handles
-- **Move up/down** — row reordering via buttons
-- **Preview mode** — toggle between edit and preview in the editor
-- **Page duplication** — duplicate pages with full row/cell tree
-- **Publish/unpublish** — PAGE_MANAGER permission for publishing, unpublished parents hide children
-- **Help center** — article explaining page management
-- **Demo data** — 4 sample pages (Willkommen, Über uns, Unser Team, Ausrüstung, Mitmachen) with hierarchy
+- **Page builder** - stations can create public pages using a lightweight layout editor inspired by WordPress/Elementor
+- **Row-based layout** - pages are built from horizontal rows, each containing 1-4 columns with free-form percentage widths
+- **Content types** - cells support rich markdown (WYSIWYG TipTap editor), images (upload with fit/sizing), and videos (YouTube embeds or direct URLs)
+- **Responsive design** - horizontal rows automatically stack vertically on mobile
+- **Page hierarchy** - pages support up to 3 levels of nesting with nested URL paths (e.g., `/page/about/team`)
+- **Landing page** - one page can be designated as the station landing page, shown first in the sidebar
+- **Station slug** - stations get a human-readable URL slug (auto-generated from name, editable) as alternative to UUID
+- **SEO metadata** - per-page meta description and OG image, with auto-generation from content
+- **Markdown rendering** - server-side commonmark rendering for public pages
+- **Station theming** - public pages display the station's configured theme (colors, feel)
+- **Image management** - per-page image upload (max 5 MB), orphaned images auto-cleaned on save
+- **Copy/cut/paste** - clipboard for rows and cells with paste buttons between rows
+- **Column controls** - visual column split buttons, swap button between columns, free-form resize handles
+- **Move up/down** - row reordering via buttons
+- **Preview mode** - toggle between edit and preview in the editor
+- **Page duplication** - duplicate pages with full row/cell tree
+- **Publish/unpublish** - PAGE_MANAGER permission for publishing, unpublished parents hide children
+- **Help center** - article explaining page management
+- **Demo data** - 4 sample pages (Willkommen, Über uns, Unser Team, Ausrüstung, Mitmachen) with hierarchy
 
 #### Station Public URL
-- **Public slug** — stations have a customizable URL slug (e.g., `/public/station/jugendfeuerwehr-musterstadt`)
-- **Auto-generated** — slugs created from station name on creation, with dedup
-- **UUID redirect** — UUID-based URLs automatically redirect to the slug version
-- **Discovery links** — station discovery uses slugs for cleaner URLs
-- **Settings UI** — editable slug in federation settings with duplicate detection
+- **Public slug** - stations have a customizable URL slug (e.g., `/public/station/jugendfeuerwehr-musterstadt`)
+- **Auto-generated** - slugs created from station name on creation, with dedup
+- **UUID redirect** - UUID-based URLs automatically redirect to the slug version
+- **Discovery links** - station discovery uses slugs for cleaner URLs
+- **Settings UI** - editable slug in federation settings with duplicate detection
 
 #### Public Waitlist Registration
-- **Public waitlists** — per-waitlist `isPublic` toggle allows external registration without login
-- **Per-field visibility** — each waitlist field can be marked as public or hidden from the registration form
-- **Email verification** — registrants receive a verification email; token expires after 24 hours
-- **Pending approval** — verified registrations get `PENDING` status, requiring WAITLIST_EDIT approval
-- **Approve/reject** — expandable pending entries in the waitlist detail view with approve/reject actions showing full registration details
-- **Notifications** — WAITLIST_EDIT users are notified when a new public registration arrives
-- **Station toggle** — `publicWaitlistEnabled` station setting controls whether public waitlists are available
-- **Public registration page** — list selection, form with public fields, guardian inputs, and email verification flow
-- **Verification page** — standalone page at `/public/waitlist/verify/{token}` confirming email
-- **Public sidebar** — waitlist link in the public station sidebar when enabled
-- **Guardian name split** — guardians now have separate firstname + lastname fields for direct account conversion
+- **Public waitlists** - per-waitlist `isPublic` toggle allows external registration without login
+- **Per-field visibility** - each waitlist field can be marked as public or hidden from the registration form
+- **Email verification** - registrants receive a verification email; token expires after 24 hours
+- **Pending approval** - verified registrations get `PENDING` status, requiring WAITLIST_EDIT approval
+- **Approve/reject** - expandable pending entries in the waitlist detail view with approve/reject actions showing full registration details
+- **Notifications** - WAITLIST_EDIT users are notified when a new public registration arrives
+- **Station toggle** - `publicWaitlistEnabled` station setting controls whether public waitlists are available
+- **Public registration page** - list selection, form with public fields, guardian inputs, and email verification flow
+- **Verification page** - standalone page at `/public/waitlist/verify/{token}` confirming email
+- **Public sidebar** - waitlist link in the public station sidebar when enabled
+- **Guardian name split** - guardians now have separate firstname + lastname fields for direct account conversion
 
 #### Public Blog
-- **Blog entries** — news articles can be flagged as blog posts via a toggle in the editor
-- **Blog badge** — blog entries show a "Blog" badge in the internal news list
-- **Public blog page** — blog list with title, excerpt, author, and date; detail view with full HTML content
-- **Landing fallback** — blog becomes the default landing page when no custom page is set
-- **Station toggle** — `publicBlogEnabled` setting controls whether the blog is available
-- **Public sidebar** — blog link appears after landing page, before calendar
+- **Blog entries** - news articles can be flagged as blog posts via a toggle in the editor
+- **Blog badge** - blog entries show a "Blog" badge in the internal news list
+- **Public blog page** - blog list with title, excerpt, author, and date; detail view with full HTML content
+- **Landing fallback** - blog becomes the default landing page when no custom page is set
+- **Station toggle** - `publicBlogEnabled` setting controls whether the blog is available
+- **Public sidebar** - blog link appears after landing page, before calendar
 
 #### Station Settings UX
-- **Reactive save** — federation settings now auto-save on change (debounced 600ms) instead of requiring a save button
-- **Save indicator** — shows "Speichern…" spinner and "Gespeichert" checkmark
+- **Reactive save** - federation settings now auto-save on change (debounced 600ms) instead of requiring a save button
+- **Save indicator** - shows "Speichern…" spinner and "Gespeichert" checkmark
 
 #### Knowledge Base: Presentation Support
-- **Presentation uploads** — upload PowerPoint (.pptx, .ppt) and OpenDocument (.odp) presentations to the knowledge base
-- **Automatic PDF conversion** — presentations are converted to PDF server-side via LibreOffice headless for in-browser viewing
-- **Async conversion** — upload returns immediately, conversion runs in the background with status tracking (pending/success/failed)
-- **Presentation mode** — full-screen slide-by-slide viewer for PDFs and presentations using pdf.js, with keyboard/click/swipe navigation and slide counter
-- **Auto-hiding controls** — presentation mode header and navigation buttons fade out after inactivity for a clean viewing experience
-- **Original file download** — download the original presentation file from the file detail view
-- **Re-upload** — replace the original presentation and trigger reconversion
+- **Presentation uploads** - upload PowerPoint (.pptx, .ppt) and OpenDocument (.odp) presentations to the knowledge base
+- **Automatic PDF conversion** - presentations are converted to PDF server-side via LibreOffice headless for in-browser viewing
+- **Async conversion** - upload returns immediately, conversion runs in the background with status tracking (pending/success/failed)
+- **Presentation mode** - full-screen slide-by-slide viewer for PDFs and presentations using pdf.js, with keyboard/click/swipe navigation and slide counter
+- **Auto-hiding controls** - presentation mode header and navigation buttons fade out after inactivity for a clean viewing experience
+- **Original file download** - download the original presentation file from the file detail view
+- **Re-upload** - replace the original presentation and trigger reconversion
 
 #### Procedures (Abläufe)
-- **New module: Procedures** — per-user checklists for structured processes (onboarding, equipment handout, etc.)
-- **Templates** — reusable procedure blueprints with items and dependency chains, managed by PROCEDURE_MANAGER
-- **Procedure instances** — created ad-hoc or from templates, with editable items before submission
-- **Assignees** — assign procedures to one or more members with member picker
-- **Item dependencies** — items can depend on other items (DAG), blocked items shown with lock icon
-- **Public/private visibility** — procedures and individual items can be marked private (only visible to PROCEDURE_EDIT users)
-- **User-assigned items** — items can be flagged as checkable by assignees; other items require PROCEDURE_EDIT permission
-- **Resolve/reopen** — procedures can be resolved at any time and reopened if needed
-- **Notifications** — domain events for assignment, resolution, reopening, and item completion
-- **Sidebar integration** — badge shows open procedures; visible to all users with assigned procedures
-- **Demo data** — 2 templates (onboarding, equipment handout) and 4 sample procedures with mixed states
-- **Help center** — overview article for the procedures module
+- **New module: Procedures** - per-user checklists for structured processes (onboarding, equipment handout, etc.)
+- **Templates** - reusable procedure blueprints with items and dependency chains, managed by PROCEDURE_MANAGER
+- **Procedure instances** - created ad-hoc or from templates, with editable items before submission
+- **Assignees** - assign procedures to one or more members with member picker
+- **Item dependencies** - items can depend on other items (DAG), blocked items shown with lock icon
+- **Public/private visibility** - procedures and individual items can be marked private (only visible to PROCEDURE_EDIT users)
+- **User-assigned items** - items can be flagged as checkable by assignees; other items require PROCEDURE_EDIT permission
+- **Resolve/reopen** - procedures can be resolved at any time and reopened if needed
+- **Notifications** - domain events for assignment, resolution, reopening, and item completion
+- **Sidebar integration** - badge shows open procedures; visible to all users with assigned procedures
+- **Demo data** - 2 templates (onboarding, equipment handout) and 4 sample procedures with mixed states
+- **Help center** - overview article for the procedures module
 
 #### Server-Side Rendering
-- **Nuxt 3 SSR migration** — frontend migrated from Vue SPA to Nuxt 3 with hybrid rendering: SSR for public pages, ISR for help center, SPA for authenticated station/admin views
-- **Two-container deployment** — separate backend (Java) and frontend (Nuxt) Docker images for independent scaling and deployment
+- **Nuxt 3 SSR migration** - frontend migrated from Vue SPA to Nuxt 3 with hybrid rendering: SSR for public pages, ISR for help center, SPA for authenticated station/admin views
+- **Two-container deployment** - separate backend (Java) and frontend (Nuxt) Docker images for independent scaling and deployment
 
 #### SEO
-- **Dynamic sitemap** — `@nuxtjs/sitemap` generates `/sitemap.xml` with static pages and dynamic station URLs fetched from the discovery API
-- **robots.txt** — crawl rules allowing public pages (`/discovery`, `/public/`, `/helpcenter/`) and blocking private routes (`/station/`, `/admin/`, `/api/`)
-- **Canonical URLs** — `useCanonical` composable adds `<link rel="canonical">` and `og:url` to all public pages
-- **Open Graph & Twitter cards** — all public pages include OG tags (title, description, type, image, locale, site_name) and Twitter card meta
-- **Structured data (JSON-LD)** — `SoftwareApplication` on homepage, `Organization` on station pages, `Event` on public calendar (enables rich results), `BreadcrumbList` on KB navigation
-- **SearchAction schema** — sitelinks search box on discovery page
-- **Google optimizations** — `max-image-preview:large`, `max-snippet:-1`, `max-video-preview:-1` for richer search result previews
-- **Google Search Console** — optional `NUXT_PUBLIC_GOOGLE_SITE_VERIFICATION` env var for site verification
-- **Help center SEO** — `HelpArticle` component auto-generates meta description and OG tags from article title/subtitle for all 142 help pages
+- **Dynamic sitemap** - `@nuxtjs/sitemap` generates `/sitemap.xml` with static pages and dynamic station URLs fetched from the discovery API
+- **robots.txt** - crawl rules allowing public pages (`/discovery`, `/public/`, `/helpcenter/`) and blocking private routes (`/station/`, `/admin/`, `/api/`)
+- **Canonical URLs** - `useCanonical` composable adds `<link rel="canonical">` and `og:url` to all public pages
+- **Open Graph & Twitter cards** - all public pages include OG tags (title, description, type, image, locale, site_name) and Twitter card meta
+- **Structured data (JSON-LD)** - `SoftwareApplication` on homepage, `Organization` on station pages, `Event` on public calendar (enables rich results), `BreadcrumbList` on KB navigation
+- **SearchAction schema** - sitelinks search box on discovery page
+- **Google optimizations** - `max-image-preview:large`, `max-snippet:-1`, `max-video-preview:-1` for richer search result previews
+- **Google Search Console** - optional `NUXT_PUBLIC_GOOGLE_SITE_VERIFICATION` env var for site verification
+- **Help center SEO** - `HelpArticle` component auto-generates meta description and OG tags from article title/subtitle for all 142 help pages
 
 #### Data Tracking System
-- **`data_tracking.json`** — single source of truth for every DB table tracked in station transfer, GDPR export, and GDPR deletion. Stores per-column verification flags, FK metadata, lookups, output shape, custom scope paths, and PG `COMMENT ON TABLE`/`COMMENT ON COLUMN` text (descriptions excluded from the hash so editing comments doesn't invalidate verification)
-- **Metadata-driven station export/import** — `GenericTableExporter` and `GenericTableImporter` generate SELECT/INSERT queries dynamically from the tracking metadata. `StationExportService` and `StationImportService` are now thin orchestrators with no per-table SQL
-- **Topological table order** — `TableOrder` derives the export/import order from FK dependencies (skipping `SET NULL` FKs to break cycles); no hand-coded `TABLE_ORDER` list
-- **Custom scope support** — tables reached via an incoming FK (e.g. `account` through `station_member.account_id`) declare a `customScope` in tracking and the engine emits an `IN (SELECT … FROM viaTable WHERE …)` filter
-- **FK-flattened lookups** — `lookups` array on `TableEntry` adds joined fields like `account_email` to exported rows; the importer resolves them back to local FK ids
-- **Output shape per table** — `SINGLE` for one-row-per-station tables (`station`), `FLAT` for enum-only tables (`station_disabled_module`); the wire format is keyed by DB table name
-- **Account migration** — accounts/credentials transfer via `customScope` through `station_member`; existing target accounts (matched by email) are linked as-is, new accounts are created with `force_password_change=TRUE`
-- **Federation state transfer** — every federation table (`federation_partner`, capability, share configs across boards/inventory/KB/protocol/quiz, event/news federation) now transfers with the station; the private key column transfers too so partners keep recognising the station post-migration
-- **Metadata-driven GDPR export** — `GenericGdprExporter` builds queries from `gdprExport.identityColumns` matching the requested identity type (`ACCOUNT_ID`/`MEMBER_ID`/`MEMBER_UID`). `GdprExportService` shrank from ~470 hand-coded lines to a thin orchestrator; output keyed by DB table name (`accountTables`, `memberTables`, `memberUidTables`)
-- **Metadata-driven GDPR deletion** — `GenericGdprDeleter` honours each `gdprDeletion` strategy (`DELETE_EXPLICIT`, `NULL`, `ANONYMIZE` with type-derived sentinels — zero-UUID, `"Gelöscht"`, NULL for nullable int — and `CASCADE`/`RETAIN`/`RETAIN_UNLINKED`/`NOT_APPLICABLE` no-ops with audit logs). UPDATEs run before DELETEs across all tables; DELETEs in reverse-topological order
-- **Dev-mode admin panel** — `/admin/data-tracking` view available only when `Demo.dev()` is true (frontend tree-shakes via `import.meta.env.DEV`). Color-coded status badges, summary dashboard, search by table name / column name / description, batch status changes, per-column verified toggles, multi-select dropdowns for `ignoredColumns`, fully editable GDPR deletion strategies, foreign-key chips with key icons, dangling-reference audit banner that flags MEMBER_ID identity columns without an FK to `station_member`, CASCADE chip warnings when the FK parent's effective strategy isn't actually a deletion
-- **Federated uploader for board attachments** — `board_ticket_attachment.uploaded_by INT REFERENCES station_member` replaced with `uploader_station_uid UUID` + `uploader_member_uid UUID`; matches the federated identity pattern already used on `board_ticket.creator_*`, `board_ticket_comment.author_*`, `board_ticket_transition.actor_*`, `board_ticket_watcher.watcher_*`. Federated members from partner stations can now attach files
+- **`data_tracking.json`** - single source of truth for every DB table tracked in station transfer, GDPR export, and GDPR deletion. Stores per-column verification flags, FK metadata, lookups, output shape, custom scope paths, and PG `COMMENT ON TABLE`/`COMMENT ON COLUMN` text (descriptions excluded from the hash so editing comments doesn't invalidate verification)
+- **Metadata-driven station export/import** - `GenericTableExporter` and `GenericTableImporter` generate SELECT/INSERT queries dynamically from the tracking metadata. `StationExportService` and `StationImportService` are now thin orchestrators with no per-table SQL
+- **Topological table order** - `TableOrder` derives the export/import order from FK dependencies (skipping `SET NULL` FKs to break cycles); no hand-coded `TABLE_ORDER` list
+- **Custom scope support** - tables reached via an incoming FK (e.g. `account` through `station_member.account_id`) declare a `customScope` in tracking and the engine emits an `IN (SELECT … FROM viaTable WHERE …)` filter
+- **FK-flattened lookups** - `lookups` array on `TableEntry` adds joined fields like `account_email` to exported rows; the importer resolves them back to local FK ids
+- **Output shape per table** - `SINGLE` for one-row-per-station tables (`station`), `FLAT` for enum-only tables (`station_disabled_module`); the wire format is keyed by DB table name
+- **Account migration** - accounts/credentials transfer via `customScope` through `station_member`; existing target accounts (matched by email) are linked as-is, new accounts are created with `force_password_change=TRUE`
+- **Federation state transfer** - every federation table (`federation_partner`, capability, share configs across boards/inventory/KB/protocol/quiz, event/news federation) now transfers with the station; the private key column transfers too so partners keep recognising the station post-migration
+- **Metadata-driven GDPR export** - `GenericGdprExporter` builds queries from `gdprExport.identityColumns` matching the requested identity type (`ACCOUNT_ID`/`MEMBER_ID`/`MEMBER_UID`). `GdprExportService` shrank from ~470 hand-coded lines to a thin orchestrator; output keyed by DB table name (`accountTables`, `memberTables`, `memberUidTables`)
+- **Metadata-driven GDPR deletion** - `GenericGdprDeleter` honours each `gdprDeletion` strategy (`DELETE_EXPLICIT`, `NULL`, `ANONYMIZE` with type-derived sentinels - zero-UUID, `"Gelöscht"`, NULL for nullable int - and `CASCADE`/`RETAIN`/`RETAIN_UNLINKED`/`NOT_APPLICABLE` no-ops with audit logs). UPDATEs run before DELETEs across all tables; DELETEs in reverse-topological order
+- **Dev-mode admin panel** - `/admin/data-tracking` view available only when `Demo.dev()` is true (frontend tree-shakes via `import.meta.env.DEV`). Color-coded status badges, summary dashboard, search by table name / column name / description, batch status changes, per-column verified toggles, multi-select dropdowns for `ignoredColumns`, fully editable GDPR deletion strategies, foreign-key chips with key icons, dangling-reference audit banner that flags MEMBER_ID identity columns without an FK to `station_member`, CASCADE chip warnings when the FK parent's effective strategy isn't actually a deletion
+- **Federated uploader for board attachments** - `board_ticket_attachment.uploaded_by INT REFERENCES station_member` replaced with `uploader_station_uid UUID` + `uploader_member_uid UUID`; matches the federated identity pattern already used on `board_ticket.creator_*`, `board_ticket_comment.author_*`, `board_ticket_transition.actor_*`, `board_ticket_watcher.watcher_*`. Federated members from partner stations can now attach files
 
 #### Documentation
-- **Environment variable reference** — hosting help page now documents all env vars organized by category: Database, API, Mailing, Auth, Theming, Tools, Frontend, Demo, and Docker/Compose — each with default value and beginner-friendly description
+- **Environment variable reference** - hosting help page now documents all env vars organized by category: Database, API, Mailing, Auth, Theming, Tools, Frontend, Demo, and Docker/Compose - each with default value and beginner-friendly description
 
 ### Improvements
-- **Type-safe API responses** — replaced ~50 `Map.of()` API responses across routes, services, and export classes with typed Java records for compile-time safety
-- **CI retry** — test jobs (repository, service, other) retry once on failure; Docker push steps retry up to 3 times for transient registry errors
-- **CI coverage job** — no longer re-runs all tests; skips the default `test` task since coverage data is downloaded from artifacts
-- **FileInput component** — new reusable styled file picker component replacing raw `<input type="file">` elements across the knowledge base
-- **Frontend Docker image** — replaced `nixos/nix:latest` with `node:24-alpine` for dramatically faster builds (no nix-shell overhead)
-- **Inventory item status** — item detail now shows "Zugewiesen" (assigned) or "Verfügbar" (available) instead of generic "Aktiv"
-- **Inventory member avatars** — member names in inventory edit view now display with avatars via MemberName component
-- **Members sidebar badge** — now includes both pending changes and waiting list entry counts
-- **Inventory sidebar badge** — shows pending exchange request count on the inventory section
+- **Type-safe API responses** - replaced ~50 `Map.of()` API responses across routes, services, and export classes with typed Java records for compile-time safety
+- **CI retry** - test jobs (repository, service, other) retry once on failure; Docker push steps retry up to 3 times for transient registry errors
+- **CI coverage job** - no longer re-runs all tests; skips the default `test` task since coverage data is downloaded from artifacts
+- **FileInput component** - new reusable styled file picker component replacing raw `<input type="file">` elements across the knowledge base
+- **Frontend Docker image** - replaced `nixos/nix:latest` with `node:24-alpine` for dramatically faster builds (no nix-shell overhead)
+- **Inventory item status** - item detail now shows "Zugewiesen" (assigned) or "Verfügbar" (available) instead of generic "Aktiv"
+- **Inventory member avatars** - member names in inventory edit view now display with avatars via MemberName component
+- **Members sidebar badge** - now includes both pending changes and waiting list entry counts
+- **Inventory sidebar badge** - shows pending exchange request count on the inventory section
 
 ### Bug Fixes
-- **Help center waiting list link** — home page feature tile linked to non-existent route `/helpcenter/station/members/waitinglist` instead of `/helpcenter/station/members/waiting-lists`
-- **Inventory item assigned user** — assigned user was not shown on the item detail page; lookup relied on history entries instead of the direct assignment
-- **Permission picker rollback** — unchecking a parent permission (e.g. LOST_AND_FOUND_MANAGE) discarded previously selected child permissions (e.g. LOST_AND_FOUND_CREATE) instead of restoring them
-- **My Inventory tab visibility** — sidebar tab was always visible even when the user had no assigned inventory items
-- **Orphaned quiz attempt rows** — `quiz_test_attempt.member_id` and `graded_by` were bare INT columns without FKs, so deleting a member left dangling references. Both now FK to `station_member.id` with `CASCADE` and `SET NULL` respectively
+- **Help center waiting list link** - home page feature tile linked to non-existent route `/helpcenter/station/members/waitinglist` instead of `/helpcenter/station/members/waiting-lists`
+- **Inventory item assigned user** - assigned user was not shown on the item detail page; lookup relied on history entries instead of the direct assignment
+- **Permission picker rollback** - unchecking a parent permission (e.g. LOST_AND_FOUND_MANAGE) discarded previously selected child permissions (e.g. LOST_AND_FOUND_CREATE) instead of restoring them
+- **My Inventory tab visibility** - sidebar tab was always visible even when the user had no assigned inventory items
+- **Orphaned quiz attempt rows** - `quiz_test_attempt.member_id` and `graded_by` were bare INT columns without FKs, so deleting a member left dangling references. Both now FK to `station_member.id` with `CASCADE` and `SET NULL` respectively
 
 ### Technical Changes
 
 #### Data Tracking Backend
-- **`DataTracking` records** — `TableEntry`, `ColumnEntry`, `ForeignKey`, `Lookup`, `CustomScope`, `TransferContext`, `GdprExportContext`, `GdprDeletionContext`, `DeletionStrategy`, `IdentityColumn` with `Status`/`Strategy`/`IdentityType`/`OutputShape`/`Scope` enums
-- **`SchemaReader`** — reads PG `information_schema` plus `obj_description` / `col_description` for table+column comments; emits `RawTable` / `RawColumn` / `RawForeignKey`
-- **`HashComputer`** — deterministic SHA-256 over columns + FKs; descriptions intentionally excluded
-- **`DataTrackingRefresher`** — merges live schema into `data_tracking.json`, refreshing descriptions on every run and preserving verification flags
-- **`StationScopeResolver`** — BFS over the FK graph to find the join chain from any table to a `station_id` column; handles the `station` table itself via `id`, skips `SET NULL` FKs
-- **`TableOrder.topological`** — Kahn's algorithm over `dependsOn`, breaks cycles via `SET NULL` skipping, leftover nodes appended alphabetically for stable output
-- **`GenericTableExporter`** + **`GenericTableImporter`** + **`GenericGdprExporter`** + **`GenericGdprDeleter`** — engine classes driving the four major flows
-- **`DataTrackingAdminService`** — dev-mode only service backing the admin panel, file-path-configurable for tests
-- **`DataTrackingRoutes`** — handlers registered only when `Demo.dev()` is true
-- **Engine wiring** — `StationExportService`/`StationImportService` dropped ~2400 lines of hand-coded SQL; `GdprExportService` dropped ~470 lines; `GdprDeletionService` dropped ~100 lines. Public API preserved on each
-- **DB migration** — `board_ticket_attachment` `uploaded_by` → `uploader_station_uid` + `uploader_member_uid` UUID pair with data backfill; missing FKs on `quiz_test_attempt.member_id` (CASCADE) and `graded_by` (SET NULL) added with defensive orphan cleanup
-- **Metadata drift fixes** — `entity_note`, `entity_note_version`, `inventory_item`, `profile_field_change_acknowledgement` identity-column names corrected to match real schema; stale entries removed on `form_answer`, `waiting_list_entry_guardian`, `waiting_list_entry_value`, `waiting_list_invite`, `kb_file`
-- **CLI cleanup** — removed `DataTrackingReviewer`/`Prompter`/`ReviewCli`/`BackfillCli`/`TransferMetadataBackfillCli` and their gradle tasks; the dev admin panel covers their use cases. Kept `refreshDataTracking` since the frontend can't read live PG schema
+- **`DataTracking` records** - `TableEntry`, `ColumnEntry`, `ForeignKey`, `Lookup`, `CustomScope`, `TransferContext`, `GdprExportContext`, `GdprDeletionContext`, `DeletionStrategy`, `IdentityColumn` with `Status`/`Strategy`/`IdentityType`/`OutputShape`/`Scope` enums
+- **`SchemaReader`** - reads PG `information_schema` plus `obj_description` / `col_description` for table+column comments; emits `RawTable` / `RawColumn` / `RawForeignKey`
+- **`HashComputer`** - deterministic SHA-256 over columns + FKs; descriptions intentionally excluded
+- **`DataTrackingRefresher`** - merges live schema into `data_tracking.json`, refreshing descriptions on every run and preserving verification flags
+- **`StationScopeResolver`** - BFS over the FK graph to find the join chain from any table to a `station_id` column; handles the `station` table itself via `id`, skips `SET NULL` FKs
+- **`TableOrder.topological`** - Kahn's algorithm over `dependsOn`, breaks cycles via `SET NULL` skipping, leftover nodes appended alphabetically for stable output
+- **`GenericTableExporter`** + **`GenericTableImporter`** + **`GenericGdprExporter`** + **`GenericGdprDeleter`** - engine classes driving the four major flows
+- **`DataTrackingAdminService`** - dev-mode only service backing the admin panel, file-path-configurable for tests
+- **`DataTrackingRoutes`** - handlers registered only when `Demo.dev()` is true
+- **Engine wiring** - `StationExportService`/`StationImportService` dropped ~2400 lines of hand-coded SQL; `GdprExportService` dropped ~470 lines; `GdprDeletionService` dropped ~100 lines. Public API preserved on each
+- **DB migration** - `board_ticket_attachment` `uploaded_by` → `uploader_station_uid` + `uploader_member_uid` UUID pair with data backfill; missing FKs on `quiz_test_attempt.member_id` (CASCADE) and `graded_by` (SET NULL) added with defensive orphan cleanup
+- **Metadata drift fixes** - `entity_note`, `entity_note_version`, `inventory_item`, `profile_field_change_acknowledgement` identity-column names corrected to match real schema; stale entries removed on `form_answer`, `waiting_list_entry_guardian`, `waiting_list_entry_value`, `waiting_list_invite`, `kb_file`
+- **CLI cleanup** - removed `DataTrackingReviewer`/`Prompter`/`ReviewCli`/`BackfillCli`/`TransferMetadataBackfillCli` and their gradle tasks; the dev admin panel covers their use cases. Kept `refreshDataTracking` since the frontend can't read live PG schema
 
 #### Storage Monitoring Backend
-- **`StorageCategory` enum** — `KB_FILES`, `BOARD_ATTACHMENTS`, `PAGE_IMAGES`, `AVATARS`, `IMAGES`
-- **`StorageUsageRepository`** — delta updates, absolute sets, per-station/category queries
-- **`StorageQuotaPresetRepository`** — preset CRUD, apply-to-station, reset quotas, station preset name lookup
-- **`StorageQuotaService`** — quota checking, per-file/image size limits, delta tracking, warning threshold detection
-- **`StorageReconciliationService`** — filesystem walk + DB recalculation, runs on startup (1min delay) and at configured interval
-- **`PresentationCompressor`** — lossless ZIP recompression with `Deflater.BEST_COMPRESSION`
-- **`StorageRoutes`** — station usage, admin overview, preset CRUD, apply/reset, reconciliation triggers
-- **`StorageWarningEvent`** + handler — domain event notifying STATION_MANAGER role
-- **`SizeParser` utility** — parses "5G", "50M" etc. into bytes and formats back
-- **`Storage` config** — Ocular config element with env var overrides (`STORAGE_*`)
-- **DB migration** — `station_storage_usage`, `storage_quota_preset` tables; station quota columns + `storage_preset_id` FK
+- **`StorageCategory` enum** - `KB_FILES`, `BOARD_ATTACHMENTS`, `PAGE_IMAGES`, `AVATARS`, `IMAGES`
+- **`StorageUsageRepository`** - delta updates, absolute sets, per-station/category queries
+- **`StorageQuotaPresetRepository`** - preset CRUD, apply-to-station, reset quotas, station preset name lookup
+- **`StorageQuotaService`** - quota checking, per-file/image size limits, delta tracking, warning threshold detection
+- **`StorageReconciliationService`** - filesystem walk + DB recalculation, runs on startup (1min delay) and at configured interval
+- **`PresentationCompressor`** - lossless ZIP recompression with `Deflater.BEST_COMPRESSION`
+- **`StorageRoutes`** - station usage, admin overview, preset CRUD, apply/reset, reconciliation triggers
+- **`StorageWarningEvent`** + handler - domain event notifying STATION_MANAGER role
+- **`SizeParser` utility** - parses "5G", "50M" etc. into bytes and formats back
+- **`Storage` config** - Ocular config element with env var overrides (`STORAGE_*`)
+- **DB migration** - `station_storage_usage`, `storage_quota_preset` tables; station quota columns + `storage_preset_id` FK
 
 #### Federation Version
-- **`FederationVersionBroadcaster`** — eager singleton, pings all remote partners 2min after startup
-- **`/remote/federation/ping`** — returns `VersionPingResponse` (typed record, not Map)
-- **`FederationVersionComputer`** — now tracks DTOs from `FederationRemoteRoutes`, `FederationRoutes`, `LendingRoutes`, `BoardRoutes`
-- **`FederationRepository.backfillPartnerVersions`** — updates all partners with version '0' on startup
-- **`FederationRepository.createPartner`** — sets `federation_version` to current version at creation time
+- **`FederationVersionBroadcaster`** - eager singleton, pings all remote partners 2min after startup
+- **`/remote/federation/ping`** - returns `VersionPingResponse` (typed record, not Map)
+- **`FederationVersionComputer`** - now tracks DTOs from `FederationRemoteRoutes`, `FederationRoutes`, `LendingRoutes`, `BoardRoutes`
+- **`FederationRepository.backfillPartnerVersions`** - updates all partners with version '0' on startup
+- **`FederationRepository.createPartner`** - sets `federation_version` to current version at creation time
 
 #### Sitemap
-- **Jackson XML serialization** — replaced manual XML string concatenation with typed records and Jackson `XmlMapper`
-- **`lastmod` dates** — KB files and pages include W3C Datetime `lastmod` from `updatedAt`; index URLs derive `lastmod` from their most recent child
-- **Caffeine caching** — sitemap responses cached in-memory for 6 hours
+- **Jackson XML serialization** - replaced manual XML string concatenation with typed records and Jackson `XmlMapper`
+- **`lastmod` dates** - KB files and pages include W3C Datetime `lastmod` from `updatedAt`; index URLs derive `lastmod` from their most recent child
+- **Caffeine caching** - sitemap responses cached in-memory for 6 hours
 
 #### Station Applications
-- **Enum status** — `StationApplication.status` changed from raw string to `ApplicationStatus` enum
-- **DB migration** — existing lowercase status values normalized to uppercase
+- **Enum status** - `StationApplication.status` changed from raw string to `ApplicationStatus` enum
+- **DB migration** - existing lowercase status values normalized to uppercase
 
 #### Public Waitlist Backend
-- **PENDING status** — new `WaitingListEntryStatus.PENDING` for entries awaiting approval
-- **Verification tokens** — `waitlist_verification_token` table with 24h expiry
-- **Domain event** — `WaitlistPublicRegistration` event + handler for WAITLIST_EDIT notifications
-- **Email template** — verification email in DE/EN
+- **PENDING status** - new `WaitingListEntryStatus.PENDING` for entries awaiting approval
+- **Verification tokens** - `waitlist_verification_token` table with 24h expiry
+- **Domain event** - `WaitlistPublicRegistration` event + handler for WAITLIST_EDIT notifications
+- **Email template** - verification email in DE/EN
 
 #### Guardian Schema
-- **Name split** — `waiting_list_entry_guardian.name` replaced with `firstname` + `lastname` for direct account creation
-- **`GuardianInput` type** — extracted from inline object types in frontend for type safety
+- **Name split** - `waiting_list_entry_guardian.name` replaced with `firstname` + `lastname` for direct account creation
+- **`GuardianInput` type** - extracted from inline object types in frontend for type safety
 
 #### Badge Convention
-- **Lint rule** — error-level rule flags `<span>` with `rounded-full` + padding; must use Badge components
-- **Refactored** — 54 violations converted to PrimaryBadge, SecondaryBadge, SuccessBadge, etc.
-- **Inline type rule** — warning-level rule flags `ref<{ ... }>` patterns that should use named types
+- **Lint rule** - error-level rule flags `<span>` with `rounded-full` + padding; must use Badge components
+- **Refactored** - 54 violations converted to PrimaryBadge, SecondaryBadge, SuccessBadge, etc.
+- **Inline type rule** - warning-level rule flags `ref<{ ... }>` patterns that should use named types
 
 #### Bug Fixes
-- **AccountRepository.setEmailVerified** — missing `= TRUE` in SET clause
-- **EventCommentRepository.delete** — missing `= TRUE` in soft-delete SET clause
-- **WaitingListFieldConfig deserialization** — `FieldRequest.config` changed to `String` to match frontend JSON contract
+- **AccountRepository.setEmailVerified** - missing `= TRUE` in SET clause
+- **EventCommentRepository.delete** - missing `= TRUE` in soft-delete SET clause
+- **WaitingListFieldConfig deserialization** - `FieldRequest.config` changed to `String` to match frontend JSON contract
 
 #### Federation Routes
-- **Route restructure** — federation management moved from `/station/manage/federation` to `/station/federate` to fix sidebar prefix overlap
+- **Route restructure** - federation management moved from `/station/manage/federation` to `/station/federate` to fix sidebar prefix overlap
 
 #### Help Center
-- **Roles page** — rewritten to use correct "Benutzertypen & Berechtigungen" terminology
-- **Federation page** — added missing i18n keys (shared5-7, dummy content keys)
-- **FormLabel component** — extracted repeated label pattern into reusable component
-- **Page editor help** — dedicated help center page for page editor route
+- **Roles page** - rewritten to use correct "Benutzertypen & Berechtigungen" terminology
+- **Federation page** - added missing i18n keys (shared5-7, dummy content keys)
+- **FormLabel component** - extracted repeated label pattern into reusable component
+- **Page editor help** - dedicated help center page for page editor route
 
 #### Demo Service Refactoring
-- **DemoService split** — reduced from 2180 to 679 lines by extracting 4 new seeders:
-  - `DemoMemberSeeder` (643 lines) — groups, profile fields, users, tags
-  - `DemoEventSeeder` (684 lines) — categories, events, attendance, templates
-  - `DemoNewsSeeder` (214 lines) — news articles with comments
-  - `DemoPageSeeder` (174 lines) — public pages with hierarchy
-- **Parallel seeding** — member seeding runs first, all other seeders run in parallel
+- **DemoService split** - reduced from 2180 to 679 lines by extracting 4 new seeders:
+  - `DemoMemberSeeder` (643 lines) - groups, profile fields, users, tags
+  - `DemoEventSeeder` (684 lines) - categories, events, attendance, templates
+  - `DemoNewsSeeder` (214 lines) - news articles with comments
+  - `DemoPageSeeder` (174 lines) - public pages with hierarchy
+- **Parallel seeding** - member seeding runs first, all other seeders run in parallel
 
 #### Frontend Architecture
-- **`useCanonical` composable** — reusable canonical URL + `og:url` injection from `NUXT_PUBLIC_SITE_URL`
-- **`__sitemap` server route** — Nitro server route fetching discoverable stations for dynamic sitemap entries
-- **`build.mjs` wrapper** — polls for build output completion, then SIGKILL's the detached nuxi process group to work around esbuild hang
+- **`useCanonical` composable** - reusable canonical URL + `og:url` injection from `NUXT_PUBLIC_SITE_URL`
+- **`__sitemap` server route** - Nitro server route fetching discoverable stations for dynamic sitemap entries
+- **`build.mjs` wrapper** - polls for build output completion, then SIGKILL's the detached nuxi process group to work around esbuild hang
 
 #### CI/CD
-- **`ignore-checks`** — Docker Build workflow excludes `Verify Docker Build` from `wait-on-check-action` to prevent deadlock
+- **`ignore-checks`** - Docker Build workflow excludes `Verify Docker Build` from `wait-on-check-action` to prevent deadlock
 
 ## v26.6.1
 
 ### New Features
 
 #### Mention System
-- **Bulk mentions** — mention entire groups, all event participants, registered members, or declined members in comments
-- **Mention UI with avatars** — mention dropdown shows user avatars, name colors, and display tags
-- **Guardian notifications** — event-related bulk mentions also notify guardians of mentioned members
-- **Restricted mention lists** — when content is restricted to certain groups, only eligible members appear in the mention picker
+- **Bulk mentions** - mention entire groups, all event participants, registered members, or declined members in comments
+- **Mention UI with avatars** - mention dropdown shows user avatars, name colors, and display tags
+- **Guardian notifications** - event-related bulk mentions also notify guardians of mentioned members
+- **Restricted mention lists** - when content is restricted to certain groups, only eligible members appear in the mention picker
 
 #### Notifications
-- **Mention notifications** — dedicated notification for mentions, separate from comment reply notifications
-- **News mention notifications** — mentioning users in news comments now triggers notifications
-- **News author in notifications** — new news notifications now show the author name
+- **Mention notifications** - dedicated notification for mentions, separate from comment reply notifications
+- **News mention notifications** - mentioning users in news comments now triggers notifications
+- **News author in notifications** - new news notifications now show the author name
 
 #### Event Detail
-- **Tab layout** — event detail page split into Info and Registrations tabs
-- **Non-manager registration display** — pending registrations show as simple cards for users without confirmation permissions
+- **Tab layout** - event detail page split into Info and Registrations tabs
+- **Non-manager registration display** - pending registrations show as simple cards for users without confirmation permissions
 
 ### Bug Fixes
-- **Event registration date** — registration and decline actions now use the correct event date instead of defaulting to today
-- **Recurring event next occurrence** — correctly shows today as next occurrence when the event hasn't ended yet
-- **Notification links** — comment and mention notifications for events now link to the specific event detail page instead of the events list
-- **Requirements redirect** — requirements page redirects to the dashboard when there are no pending requirements instead of showing an empty page
-- **Avatar loading** — user avatars no longer re-fetch on every hover in the mention dropdown
+- **Event registration date** - registration and decline actions now use the correct event date instead of defaulting to today
+- **Recurring event next occurrence** - correctly shows today as next occurrence when the event hasn't ended yet
+- **Notification links** - comment and mention notifications for events now link to the specific event detail page instead of the events list
+- **Requirements redirect** - requirements page redirects to the dashboard when there are no pending requirements instead of showing an empty page
+- **Avatar loading** - user avatars no longer re-fetch on every hover in the mention dropdown
 
 ### Improvements
-- **Mobile-friendly tile reel** — home page tiles are responsive (1 on mobile, 2 on tablet, 3 on desktop) with always-visible navigation arrows and touch swipe support
-- **Sidebar home link** — clicking the Ember logo/name in the sidebar navigates to the home page
+- **Mobile-friendly tile reel** - home page tiles are responsive (1 on mobile, 2 on tablet, 3 on desktop) with always-visible navigation arrows and touch swipe support
+- **Sidebar home link** - clicking the Ember logo/name in the sidebar navigates to the home page
 
 ### Technical Changes
 
 #### Database
-- **Generated `full_name` column** — `account.full_name` stored generated column replaces repeated `TRIM(first_name || ' ' || last_name)` in SQL queries (patch_7)
+- **Generated `full_name` column** - `account.full_name` stored generated column replaces repeated `TRIM(first_name || ' ' || last_name)` in SQL queries (patch_7)
 
 #### Backend Architecture
-- **`MentionType` enum** — replaces raw strings for bulk mention types (`GROUP`, `EVENT`, `REGISTERED`, `DECLINED`)
-- **`BulkMentionedInComment` domain event** — new event type resolved by `BulkMentionedInCommentHandler` to individual member notifications
-- **`COMMENT_MENTION` notification type** — separate from `NEWS_COMMENT`, with `CommentMention` params and own locale key
-- **KB comment events moved to service** — domain event publishing for KB comments moved from `KnowledgeBaseRoutes` to `KnowledgeBaseService`
-- **`NewsService` resolves author name** — derives author name from `MemberIdentity` via account lookup instead of requiring callers to pass it
-- **Event date validation** — backend derives event date for one-time events from `startTime` and validates day-of-week for recurring events
-- **Restriction-filtered completions** — `/station-members/completions` accepts optional `restrictionType` and `entityId` params to filter by entity visibility
+- **`MentionType` enum** - replaces raw strings for bulk mention types (`GROUP`, `EVENT`, `REGISTERED`, `DECLINED`)
+- **`BulkMentionedInComment` domain event** - new event type resolved by `BulkMentionedInCommentHandler` to individual member notifications
+- **`COMMENT_MENTION` notification type** - separate from `NEWS_COMMENT`, with `CommentMention` params and own locale key
+- **KB comment events moved to service** - domain event publishing for KB comments moved from `KnowledgeBaseRoutes` to `KnowledgeBaseService`
+- **`NewsService` resolves author name** - derives author name from `MemberIdentity` via account lookup instead of requiring callers to pass it
+- **Event date validation** - backend derives event date for one-time events from `startTime` and validates day-of-week for recurring events
+- **Restriction-filtered completions** - `/station-members/completions` accepts optional `restrictionType` and `entityId` params to filter by entity visibility
 
 #### Frontend Architecture
-- **`EventRegistrationsTab` component** — extracted registration logic from `EventDetailView` (319 lines, down from 506)
-- **`MentionInput` unified suggestions** — refactored to support members, groups, and special mentions in a single dropdown
-- **`UserAvatar` watcher fix** — watches derived `stationUid/memberUid` string instead of deep-watching the identity object
+- **`EventRegistrationsTab` component** - extracted registration logic from `EventDetailView` (319 lines, down from 506)
+- **`MentionInput` unified suggestions** - refactored to support members, groups, and special mentions in a single dropdown
+- **`UserAvatar` watcher fix** - watches derived `stationUid/memberUid` string instead of deep-watching the identity object
 
 ## v26.6.0
 
 ### New Features
 
 #### Boards (Planer)
-- **Kanban boards** — per-station scrum/kanban boards with customizable lanes, drag-and-drop ticket reordering between lanes, and position indicators
-- **Ticket management** — create, edit, delete tickets with title, rich markdown description (tiptap editor), priority (5 levels with icons), assignee, due date, and custom fields
-- **Checklists** — add checklists to tickets with drag-and-drop reordering, progress bar, and bulk delete
-- **Ticket links** — link tickets with typed relationships (Relates to, Blocks, Blocked by, Causes, Caused by) with confluence-style display
-- **Weblinks** — add external URLs to tickets
-- **File attachments** — upload files to tickets with tile-based preview grid; image thumbnails, PDF viewer, and CSV table preview in a fullscreen overlay with keyboard navigation (arrow keys)
-- **Labels** — color-coded labels per board with multi-select dropdown, inline creation, and label filter on the board and archived views
-- **Knowledge base links** — link KB pages to tickets with title search and folder path display
-- **Comments** — threaded comments using CommentThread component with @mentions, reply, edit, delete
-- **Watch/unwatch** — subscribe to ticket changes and receive notifications
-- **Activity feed** — interleaved timeline of comments, lane transitions, and history entries (priority changes, label assignments, title/description/due date changes, field changes) with rich formatting (lane color pills, priority icons, label badges)
-- **Lane colors** — assign colors to lanes; used for lane column top borders and the ticket status button
-- **Lane assignee** — custom field type `lane_assignee` that auto-assigns a member when a ticket moves to the referenced lane
-- **Backlog** — board-level toggle that creates a hidden backlog lane; dedicated table view at `/station/boards/:boardId/backlog`
-- **Archived view** — dedicated table view for tickets past the hide-done-after-days threshold at `/station/boards/:boardId/archived` with label filtering
-- **Board overview** — `/station/boards` shows only boards accessible to the user
-- **Board management** — `/station/boards/manage` for managers to create, edit, delete boards with settings icon per card
-- **Board settings** — lane editor with color picker, field editor (string, number, boolean, enum, date, lane_assignee), backlog toggle, view/edit access restrictions
-- **Due date reminders** — daily notification to assignee for overdue tickets not in the last lane
-- **Full-text search** — PostgreSQL tsvector/tsquery on ticket title and description with relevance ranking
-- **Read-only access** — users with view-only access see all content but cannot edit; all edit controls hidden
-- **Drag-and-drop** — tickets between lanes with visual drop indicator; checklist items with grip handles
+- **Kanban boards** - per-station scrum/kanban boards with customizable lanes, drag-and-drop ticket reordering between lanes, and position indicators
+- **Ticket management** - create, edit, delete tickets with title, rich markdown description (tiptap editor), priority (5 levels with icons), assignee, due date, and custom fields
+- **Checklists** - add checklists to tickets with drag-and-drop reordering, progress bar, and bulk delete
+- **Ticket links** - link tickets with typed relationships (Relates to, Blocks, Blocked by, Causes, Caused by) with confluence-style display
+- **Weblinks** - add external URLs to tickets
+- **File attachments** - upload files to tickets with tile-based preview grid; image thumbnails, PDF viewer, and CSV table preview in a fullscreen overlay with keyboard navigation (arrow keys)
+- **Labels** - color-coded labels per board with multi-select dropdown, inline creation, and label filter on the board and archived views
+- **Knowledge base links** - link KB pages to tickets with title search and folder path display
+- **Comments** - threaded comments using CommentThread component with @mentions, reply, edit, delete
+- **Watch/unwatch** - subscribe to ticket changes and receive notifications
+- **Activity feed** - interleaved timeline of comments, lane transitions, and history entries (priority changes, label assignments, title/description/due date changes, field changes) with rich formatting (lane color pills, priority icons, label badges)
+- **Lane colors** - assign colors to lanes; used for lane column top borders and the ticket status button
+- **Lane assignee** - custom field type `lane_assignee` that auto-assigns a member when a ticket moves to the referenced lane
+- **Backlog** - board-level toggle that creates a hidden backlog lane; dedicated table view at `/station/boards/:boardId/backlog`
+- **Archived view** - dedicated table view for tickets past the hide-done-after-days threshold at `/station/boards/:boardId/archived` with label filtering
+- **Board overview** - `/station/boards` shows only boards accessible to the user
+- **Board management** - `/station/boards/manage` for managers to create, edit, delete boards with settings icon per card
+- **Board settings** - lane editor with color picker, field editor (string, number, boolean, enum, date, lane_assignee), backlog toggle, view/edit access restrictions
+- **Due date reminders** - daily notification to assignee for overdue tickets not in the last lane
+- **Full-text search** - PostgreSQL tsvector/tsquery on ticket title and description with relevance ranking
+- **Read-only access** - users with view-only access see all content but cannot edit; all edit controls hidden
+- **Drag-and-drop** - tickets between lanes with visual drop indicator; checklist items with grip handles
 
 #### Board Access & Permissions
-- **Role hierarchy in board access** — MANAGER role now correctly grants access to TEAM-restricted boards via transitive role expansion
-- **Dedicated can-edit endpoint** — `GET /boards/{id}/can-edit` for frontend to check edit permission
-- **View/edit access restrictions** — per-board role, group, and tag based access control
+- **Role hierarchy in board access** - MANAGER role now correctly grants access to TEAM-restricted boards via transitive role expansion
+- **Dedicated can-edit endpoint** - `GET /boards/{id}/can-edit` for frontend to check edit permission
+- **View/edit access restrictions** - per-board role, group, and tag based access control
 
 #### Permission System
-- **Granular permissions** — replaced the flat role system with a hierarchical permission tree; each feature area (events, members, inventory, boards, etc.) has its own read/edit/manage permissions
-- **User type permissions** — assign extra permissions to entire user types (Trial, Member, Guardian, Team) station-wide via a new management page
-- **Permission picker** — new hierarchical permission selector with collapsible groups, icons, and descriptions; replaces the old flat role checkboxes in member edit and group management
-- **Sidebar permission gating** — sidebar links are now shown or hidden based on the user's actual permissions rather than all-or-nothing manager checks
-- **Read-only views** — users with read permission but not edit permission see content without edit controls (e.g. waiting list, boards)
-- **Granular test permissions** — decomissioned QUIZ_MANAGER; replaced with TEST_CATALOG_VIEW, TEST_CATALOG_EDIT, TEST_CONFIGURE, TEST_RESULT_READ, TEST_REVIEW, and standalone TEST_MANAGER/PROTOCOL_MANAGER under STATION_ADMINISTRATOR
-- **Protocol permissions** — PROTOCOL_CONFIGURE for definitions, PROTOCOL_CREATE for runs, PROTOCOL_TESTER for grading
-- **NEWS_CREATE renamed to NEWS_EDIT** — covers creating, editing, and deleting news posts; NEWS_FEDERATE gates federation sharing
-- **Form permissions** — POLL_VIEW_RESULTS for viewing analytics, POLL_CREATE for creating/editing forms; member restrictions in restriction picker
-- **Station management permissions** — granular route permissions (STATION_GENERAL, STATION_LOOK_AND_FEEL, STATION_MAIL, STATION_MODULES, STATION_IMPORT_EXPORT) replace STATION_ADMINISTRATOR; sidebar restructured with manage and federation as separate top-level groups
-- **Member permissions** — MEMBER_EDIT replaces MEMBER_MANAGER on import/delete/permissions/user-type routes; MEMBER_MANAGE_TAGS for tag CRUD; MEMBER_READ for GET endpoints
-- **Inventory permissions** — INVENTORY_EDIT for update/delete items; MEMBER_READ for member inventory items
+- **Granular permissions** - replaced the flat role system with a hierarchical permission tree; each feature area (events, members, inventory, boards, etc.) has its own read/edit/manage permissions
+- **User type permissions** - assign extra permissions to entire user types (Trial, Member, Guardian, Team) station-wide via a new management page
+- **Permission picker** - new hierarchical permission selector with collapsible groups, icons, and descriptions; replaces the old flat role checkboxes in member edit and group management
+- **Sidebar permission gating** - sidebar links are now shown or hidden based on the user's actual permissions rather than all-or-nothing manager checks
+- **Read-only views** - users with read permission but not edit permission see content without edit controls (e.g. waiting list, boards)
+- **Granular test permissions** - decomissioned QUIZ_MANAGER; replaced with TEST_CATALOG_VIEW, TEST_CATALOG_EDIT, TEST_CONFIGURE, TEST_RESULT_READ, TEST_REVIEW, and standalone TEST_MANAGER/PROTOCOL_MANAGER under STATION_ADMINISTRATOR
+- **Protocol permissions** - PROTOCOL_CONFIGURE for definitions, PROTOCOL_CREATE for runs, PROTOCOL_TESTER for grading
+- **NEWS_CREATE renamed to NEWS_EDIT** - covers creating, editing, and deleting news posts; NEWS_FEDERATE gates federation sharing
+- **Form permissions** - POLL_VIEW_RESULTS for viewing analytics, POLL_CREATE for creating/editing forms; member restrictions in restriction picker
+- **Station management permissions** - granular route permissions (STATION_GENERAL, STATION_LOOK_AND_FEEL, STATION_MAIL, STATION_MODULES, STATION_IMPORT_EXPORT) replace STATION_ADMINISTRATOR; sidebar restructured with manage and federation as separate top-level groups
+- **Member permissions** - MEMBER_EDIT replaces MEMBER_MANAGER on import/delete/permissions/user-type routes; MEMBER_MANAGE_TAGS for tag CRUD; MEMBER_READ for GET endpoints
+- **Inventory permissions** - INVENTORY_EDIT for update/delete items; MEMBER_READ for member inventory items
 
 #### Member Identity & Display
-- **Group colors** — assign a display color to groups; the highest-priority group's color is used as the member's name color everywhere
-- **Tag badges** — tags can be marked visible with a color and position; they appear as inline colored pill badges next to member names
-- **Unified member identity** — a single identity model (station UUID + member UUID + display name) is used everywhere from database through API to frontend
-- **MemberName driven by identity** — the `MemberName` component derives its display name solely from the identity object
+- **Group colors** - assign a display color to groups; the highest-priority group's color is used as the member's name color everywhere
+- **Tag badges** - tags can be marked visible with a color and position; they appear as inline colored pill badges next to member names
+- **Unified member identity** - a single identity model (station UUID + member UUID + display name) is used everywhere from database through API to frontend
+- **MemberName driven by identity** - the `MemberName` component derives its display name solely from the identity object
 
 #### Waitlist Guardians
-- **Multiple guardians per waitlist entry** — each entry can have multiple guardians with name, email, and phone number, replacing the single parent name/email fields
-- **Guardian auto-onboarding** — when a waitlist entry is accepted, guardian accounts are automatically created with GUARDIAN user type, LOGIN and MEMBER_GUARDIAN permissions, and linked to the child member
-- **Trial member type** — waitlist entries are created as TRIAL type until accepted, then converted to MEMBER
-- **Expandable guardian details** — clicking a waitlist entry expands to show guardian contact details
-- **Dedicated entry creation view** — adding waitlist entries uses a full page view instead of a modal
-- **Waitlist permission split** — new WAITLIST_ADD permission for adding entries without full edit access
+- **Multiple guardians per waitlist entry** - each entry can have multiple guardians with name, email, and phone number, replacing the single parent name/email fields
+- **Guardian auto-onboarding** - when a waitlist entry is accepted, guardian accounts are automatically created with GUARDIAN user type, LOGIN and MEMBER_GUARDIAN permissions, and linked to the child member
+- **Trial member type** - waitlist entries are created as TRIAL type until accepted, then converted to MEMBER
+- **Expandable guardian details** - clicking a waitlist entry expands to show guardian contact details
+- **Dedicated entry creation view** - adding waitlist entries uses a full page view instead of a modal
+- **Waitlist permission split** - new WAITLIST_ADD permission for adding entries without full edit access
 
 #### Member Detail & Edit
-- **Member detail tabs** — split into tabs: Profile, Permissions, Guardians, Absences, Inventory, Notes
-- **Relations tab** — new tab on member edit for assigning guardians to members and members to guardians
-- **Absences tab** — users with MEMBER_EDIT can create, view, and delete absences from the member detail view
-- **Permissions tab** — shows user type, permissions with human-friendly names, groups, and tags
+- **Member detail tabs** - split into tabs: Profile, Permissions, Guardians, Absences, Inventory, Notes
+- **Relations tab** - new tab on member edit for assigning guardians to members and members to guardians
+- **Absences tab** - users with MEMBER_EDIT can create, view, and delete absences from the member detail view
+- **Permissions tab** - shows user type, permissions with human-friendly names, groups, and tags
 
 #### Event Reminders
-- **Configurable reminders** — events and event templates support multiple reminders defined in days before the event
-- **Reminder scheduler** — background checker sends EVENT_REMINDER notifications to eligible members
-- **Smart targeting** — public events notify all non-declined members; registration-required events notify only accepted/pending registrants
-- **Template carry-over** — reminders from templates are applied when creating events from templates
+- **Configurable reminders** - events and event templates support multiple reminders defined in days before the event
+- **Reminder scheduler** - background checker sends EVENT_REMINDER notifications to eligible members
+- **Smart targeting** - public events notify all non-declined members; registration-required events notify only accepted/pending registrants
+- **Template carry-over** - reminders from templates are applied when creating events from templates
 
 #### Federated Comments
-- **Event comments** — comment on events shared by federation partners; comments show the author's station badge
-- **News comments** — comment on news posts shared by partners with full threading support
-- **Knowledge base comments** — threaded comments on KB files with federation support and soft-delete
+- **Event comments** - comment on events shared by federation partners; comments show the author's station badge
+- **News comments** - comment on news posts shared by partners with full threading support
+- **Knowledge base comments** - threaded comments on KB files with federation support and soft-delete
 
 #### News Federation
-- **Per-post sharing** — choose which news posts to share with partners: all partners or specific ones
-- **Visibility role** — set a minimum role for shared news visibility at partner stations
-- **Federated news in feed** — partner news posts appear inline in the news list, marked with a federation badge
+- **Per-post sharing** - choose which news posts to share with partners: all partners or specific ones
+- **Visibility role** - set a minimum role for shared news visibility at partner stations
+- **Federated news in feed** - partner news posts appear inline in the news list, marked with a federation badge
 
 #### Event Cancellation
-- **Manual cancellation** — managers can cancel events with a reason
-- **Auto-cancellation** — events that don't reach the minimum registration count by a threshold date are automatically cancelled
-- **Cancellation notifications** — all registered members receive an EVENT_CANCELLED notification
+- **Manual cancellation** - managers can cancel events with a reason
+- **Auto-cancellation** - events that don't reach the minimum registration count by a threshold date are automatically cancelled
+- **Cancellation notifications** - all registered members receive an EVENT_CANCELLED notification
 
 #### Quiz & Test Improvements
-- **New question types** — enumeration, ordering, matching, and fill-in-the-gap questions
-- **Readonly catalog view** — users with TEST_CATALOG_VIEW see catalogs and questions with answers without edit controls
-- **Test results tab** — test detail view has a Results tab showing all attempts
-- **Enriched attempt detail** — single API call returns attempt, full question details, and member identity
-- **Grading UX** — "Geprüft & Weiter" / "Geprüft & Beenden" shortcuts; compact icon buttons; reorganized mobile navigation
+- **New question types** - enumeration, ordering, matching, and fill-in-the-gap questions
+- **Readonly catalog view** - users with TEST_CATALOG_VIEW see catalogs and questions with answers without edit controls
+- **Test results tab** - test detail view has a Results tab showing all attempts
+- **Enriched attempt detail** - single API call returns attempt, full question details, and member identity
+- **Grading UX** - "Geprüft & Weiter" / "Geprüft & Beenden" shortcuts; compact icon buttons; reorganized mobile navigation
 
 #### Other
-- **Station requirements view** — shows outstanding requirements for the current member with sidebar badge
-- **Board improvements** — human-readable URLs, federated ticket links, chronological activity tab, keyboard navigation
-- **Sidebar counts** — all sidebar badges load in a single API call
-- **Dev error handler** — filename format `HH-mm-ss - source - hash.txt`; `reportCaughtError()` for frontend catch blocks
-- **Start/end date sync** — setting a start date auto-fills the end date if empty
-- **Modules toggle** — added TEST_PROTOCOL and BOARDS to the modules management page
+- **Station requirements view** - shows outstanding requirements for the current member with sidebar badge
+- **Board improvements** - human-readable URLs, federated ticket links, chronological activity tab, keyboard navigation
+- **Sidebar counts** - all sidebar badges load in a single API call
+- **Dev error handler** - filename format `HH-mm-ss - source - hash.txt`; `reportCaughtError()` for frontend catch blocks
+- **Start/end date sync** - setting a start date auto-fills the end date if empty
+- **Modules toggle** - added TEST_PROTOCOL and BOARDS to the modules management page
 
 ### Improvements
 
-- **Borderless input fields** — new `borderless` prop on BaseInput/TextInput for clean inline editing
-- **Click-to-edit title** — ticket title renders as heading, switches to borderless input on click
-- **MemberSelectInput auto-open** — opens dropdown and focuses search immediately on mount
-- **IconSelectInput auto-open** — priority selector opens dropdown immediately
-- **Click-outside handling** — all sidebar editors (lane, priority, assignee, due date) close when clicking outside the right column
-- **Color input component** — new ColorInput.vue for lane color selection in settings
-- **SelectInput min-w-0** — global fix for dropdown width issues in flex containers
-- **Checklist progress bar** — fixed invisible bar (was using undefined `--accent`, now uses `bg-primary`)
-- **Overdue due dates** — highlighted in red on ticket tiles
-- **Attachment count on tiles** — paperclip icon with count in ticket tile bottom row
-- **Description save button** — replaced checkmark icon with proper "Speichern" PrimaryButton
-- **Comment submit button** — changed to "Absenden" matching news comment pattern
-- **Sidebar boards** — only shows boards the user can view (managers see all in manage view)
+- **Borderless input fields** - new `borderless` prop on BaseInput/TextInput for clean inline editing
+- **Click-to-edit title** - ticket title renders as heading, switches to borderless input on click
+- **MemberSelectInput auto-open** - opens dropdown and focuses search immediately on mount
+- **IconSelectInput auto-open** - priority selector opens dropdown immediately
+- **Click-outside handling** - all sidebar editors (lane, priority, assignee, due date) close when clicking outside the right column
+- **Color input component** - new ColorInput.vue for lane color selection in settings
+- **SelectInput min-w-0** - global fix for dropdown width issues in flex containers
+- **Checklist progress bar** - fixed invisible bar (was using undefined `--accent`, now uses `bg-primary`)
+- **Overdue due dates** - highlighted in red on ticket tiles
+- **Attachment count on tiles** - paperclip icon with count in ticket tile bottom row
+- **Description save button** - replaced checkmark icon with proper "Speichern" PrimaryButton
+- **Comment submit button** - changed to "Absenden" matching news comment pattern
+- **Sidebar boards** - only shows boards the user can view (managers see all in manage view)
 
 ### Bug Fixes
 
@@ -965,27 +1034,27 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 ### Technical Changes
 
 #### Database
-- **Patch 6** — 15 new tables: `board`, `board_lane` (with color), `board_field`, `board_view_access`, `board_edit_access`, `board_ticket` (with full-text search vector), `board_ticket_field_value`, `board_ticket_link`, `board_ticket_checklist_item`, `board_ticket_transition`, `board_ticket_comment`, `board_ticket_watcher`, `board_ticket_weblink`, `board_ticket_attachment`, `board_ticket_history`, `board_label`, `board_ticket_label`, `board_ticket_kb_link`
+- **Patch 6** - 15 new tables: `board`, `board_lane` (with color), `board_field`, `board_view_access`, `board_edit_access`, `board_ticket` (with full-text search vector), `board_ticket_field_value`, `board_ticket_link`, `board_ticket_checklist_item`, `board_ticket_transition`, `board_ticket_comment`, `board_ticket_watcher`, `board_ticket_weblink`, `board_ticket_attachment`, `board_ticket_history`, `board_label`, `board_ticket_label`, `board_ticket_kb_link`
 - Generated tsvector column with GIN index for full-text search
 - Board-level `backlog_lane_id` FK for backlog support
 
 #### Backend Architecture
 - **18 new entity records** with RowMapping: Board, BoardLane, BoardField, BoardFieldConfig, BoardTicket, BoardTicketLink, LinkType, BoardTicketTransition, BoardChecklistItem, BoardComment, BoardWeblink, BoardTicketAttachment, BoardTicketFieldValue, BoardTicketWatcher, BoardTicketHistory, BoardLabel, BoardTicketKbLink, TicketPriority
-- **BoardRepository** — CRUD for boards, lanes, fields, labels, access restrictions, backlog management
-- **BoardTicketRepository** — CRUD for tickets, links, checklist, comments, weblinks, attachments, field values, watchers, history, KB links, activity feed (UNION ALL query)
-- **BoardService** — access control with role hierarchy expansion via `Roles.expand()`, label management, backlog toggle
-- **BoardTicketService** — ticket lifecycle, lane_assignee auto-assignment on move, @mention parsing in comments, watcher notifications, history logging for all changes
-- **BoardRoutes / BoardTicketRoutes** — 50+ REST endpoints
-- **DueDateReminderChecker** — scheduled executor for daily due date notifications
-- **BoardTicketChanged** domain event — consolidated watcher notification for all ticket changes
-- **MentionedInComment** extended — `BOARD_TICKET` ethentity type with ticket-detail link
-- **LaneData, AccessData, TicketLabelMapping** — extracted to top-level records by spotless
+- **BoardRepository** - CRUD for boards, lanes, fields, labels, access restrictions, backlog management
+- **BoardTicketRepository** - CRUD for tickets, links, checklist, comments, weblinks, attachments, field values, watchers, history, KB links, activity feed (UNION ALL query)
+- **BoardService** - access control with role hierarchy expansion via `Roles.expand()`, label management, backlog toggle
+- **BoardTicketService** - ticket lifecycle, lane_assignee auto-assignment on move, @mention parsing in comments, watcher notifications, history logging for all changes
+- **BoardRoutes / BoardTicketRoutes** - 50+ REST endpoints
+- **DueDateReminderChecker** - scheduled executor for daily due date notifications
+- **BoardTicketChanged** domain event - consolidated watcher notification for all ticket changes
+- **MentionedInComment** extended - `BOARD_TICKET` ethentity type with ticket-detail link
+- **LaneData, AccessData, TicketLabelMapping** - extracted to top-level records by spotless
 
 #### Frontend Architecture
 - **15 new views**: BoardOverviewView, BoardListView, BoardView, TicketDetailView, BoardSettingsView, BacklogView, ArchivedView + 5 help center pages
 - **7 new components**: TicketTile, TicketChecklist, TicketActivity, TicketLinksSection, LabelSelectInput, ColorInput, DragList (reused)
-- **boards.ts API** — 40+ functions for all board, ticket, label, attachment, KB link, and history operations
-- **Authenticated file handling** — blob download/preview via axios instead of direct URLs
+- **boards.ts API** - 40+ functions for all board, ticket, label, attachment, KB link, and history operations
+- **Authenticated file handling** - blob download/preview via axios instead of direct URLs
 
 #### Permission Architecture
 - Four new enums: `StationPermission`, `StationUserType`, `InstancePermission`, `InstanceUserType` replacing flat role strings
@@ -1005,9 +1074,9 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 - `QuizCatalogRepository.findQuestionsByIds()` batch query for enriched attempt detail
 
 #### Test Coverage
-- **Board repository tests** — 20+ tests covering tickets, lanes, labels, attachments, field values, weblinks, search, history, backlog, KB links
-- **Board service tests** — 25+ tests covering CRUD, access control with role hierarchy, labels, backlog, field values, attachments, comments, watchers, move/reorder/link operations
-- **JaCoCo exclusion** — DueDateReminderChecker, EventReminderChecker excluded (daemon pattern)
+- **Board repository tests** - 20+ tests covering tickets, lanes, labels, attachments, field values, weblinks, search, history, backlog, KB links
+- **Board service tests** - 25+ tests covering CRUD, access control with role hierarchy, labels, backlog, field values, attachments, comments, watchers, move/reorder/link operations
+- **JaCoCo exclusion** - DueDateReminderChecker, EventReminderChecker excluded (daemon pattern)
 - All coverage thresholds met: 95% repositories, 90% services, 80% handlers
 
 ---
@@ -1017,38 +1086,38 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 ### New Features
 
 #### Comments & @Mentions
-- **Event comments** — threaded comments on events, just like news comments
-- **@Mentions** — type `@` in any comment to search and tag members; they get a notification
-- **Reply notifications** — replying to a comment notifies the original author
-- **Soft-delete** — deleting a comment with replies shows "Dieser Kommentar wurde gelöscht" instead of removing the whole thread
+- **Event comments** - threaded comments on events, just like news comments
+- **@Mentions** - type `@` in any comment to search and tag members; they get a notification
+- **Reply notifications** - replying to a comment notifies the original author
+- **Soft-delete** - deleting a comment with replies shows "Dieser Kommentar wurde gelöscht" instead of removing the whole thread
 
 #### Notes
-- **Notes on inventory items, member profiles, and events** — managers can keep internal notes with version history
+- **Notes on inventory items, member profiles, and events** - managers can keep internal notes with version history
 - Member profile notes are only visible to managers
 
 #### Feeds (iCal, RSS, Atom)
-- **iCal feed** — subscribe to your events in Thunderbird, Outlook, Google Calendar, or any calendar app
-- **RSS and Atom feeds** — follow your notifications in any feed reader
-- **Feed management** — generate, regenerate, or revoke your feed token; toggle which notification types appear in feeds
+- **iCal feed** - subscribe to your events in Thunderbird, Outlook, Google Calendar, or any calendar app
+- **RSS and Atom feeds** - follow your notifications in any feed reader
+- **Feed management** - generate, regenerate, or revoke your feed token; toggle which notification types appear in feeds
 - Dashboard shows a reminder when feeds are not set up or inactive
 
 #### Event Templates
-- **Reusable templates** — save and load event templates with all fields, attendance settings, and registration limits
-- **Quick fields** — Ort, Treffpunkt, and Thema quick-add buttons in the field editor
+- **Reusable templates** - save and load event templates with all fields, attendance settings, and registration limits
+- **Quick fields** - Ort, Treffpunkt, and Thema quick-add buttons in the field editor
 
 #### Federated Events
-- **Cross-station event sharing** — share events with federation partners
-- **Remote registration** — register for events at partner stations
+- **Cross-station event sharing** - share events with federation partners
+- **Remote registration** - register for events at partner stations
 - Partner station events shown on the upcoming events page
 
 #### Federated Knowledge Base
-- **Shared KB browsing** — browse files and folders from partner stations
-- **Federated search** — search queries partner stations in parallel
-- **Partner filter** — show only content from a specific partner
+- **Shared KB browsing** - browse files and folders from partner stations
+- **Federated search** - search queries partner stations in parallel
+- **Partner filter** - show only content from a specific partner
 
 #### Public Calendar & Station View
-- **Public calendar** — expose an event calendar for visitors without an account
-- **Public station page** — unified public view with calendar and knowledge base tabs
+- **Public calendar** - expose an event calendar for visitors without an account
+- **Public station page** - unified public view with calendar and knowledge base tabs
 - Event fields can be marked as public or internal
 
 #### Event Categories
@@ -1057,26 +1126,26 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 - Mark categories as public for the public calendar
 
 #### Registrations
-- **Grouped view** — registrations grouped by event, sorted by deadline
-- **Fairness table** — acceptance/denial ratio per member for fair decision-making
-- **Registration limit** — cap the number of accepted registrations per event
-- **Deadline notifications** — managers are notified when a deadline expires with pending registrations
+- **Grouped view** - registrations grouped by event, sorted by deadline
+- **Fairness table** - acceptance/denial ratio per member for fair decision-making
+- **Registration limit** - cap the number of accepted registrations per event
+- **Deadline notifications** - managers are notified when a deadline expires with pending registrations
 
 #### Inventory
-- **Item detail page** — view item metadata, current assignment, full history, and manager notes
+- **Item detail page** - view item metadata, current assignment, full history, and manager notes
 
 #### Theming
-- **New themes** — color blind accessible themes and fire theme
-- **Feel setting** — choose between rounded or cornered UI style
-- **Hierarchical settings** — instance, station, and user each pick their theme; each level can lock for the level below
+- **New themes** - color blind accessible themes and fire theme
+- **Feel setting** - choose between rounded or cornered UI style
+- **Hierarchical settings** - instance, station, and user each pick their theme; each level can lock for the level below
 
 #### Problem Reports
-- **Report a problem** — floating bug icon on all station pages; automatically captures page, roles, and recent requests
-- **Admin review** — view, acknowledge, and delete problem reports
+- **Report a problem** - floating bug icon on all station pages; automatically captures page, roles, and recent requests
+- **Admin review** - view, acknowledge, and delete problem reports
 
 #### Admin Settings
-- **Legal documents** — edit privacy policy, terms of service, consent text, and imprint
-- **Mailing settings** — configure SMTP in the admin UI
+- **Legal documents** - edit privacy policy, terms of service, consent text, and imprint
+- **Mailing settings** - configure SMTP in the admin UI
 
 ### Improvements
 
@@ -1088,13 +1157,13 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 - Item names in inventory tables link to the detail page
 - Admin and station settings split into focused sub-views
 - Improved landing page
-- **Form answer validation** — submitted answers are now validated against question rules (option range, multi-select limits, rating scale, ranking order, likert bounds)
+- **Form answer validation** - submitted answers are now validated against question rules (option range, multi-select limits, rating scale, ranking order, likert bounds)
 - Absences visible to both event and attendance managers
 
 ### Bug Fixes
 
 - Fixed @mentions not matching between frontend and backend
-- Fixed deleting a comment removing all replies — now soft-deletes
+- Fixed deleting a comment removing all replies - now soft-deletes
 - Fixed news author being notified on every comment instead of only on replies
 - Fixed KB share links pointing to the wrong URL
 - Fixed federated KB files navigating to a non-existent local file
@@ -1107,7 +1176,7 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 ### Technical Changes
 
 #### Architecture
-- **Domain event system** — `DomainEventBus` with Guice multibinding; 19 event handlers decouple notification logic from routes
+- **Domain event system** - `DomainEventBus` with Guice multibinding; 19 event handlers decouple notification logic from routes
 - Services publish events after state changes; handlers create notifications
 - Notifications no longer created in route handlers
 
@@ -1117,7 +1186,7 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 - `QuizService.createQuestion()` accepts `QuestionConfig` instead of raw JSON
 - `FormQuestionConfig.validate(FormAnswerValue)` validates answers per question type on submission
 - `MultiLimitType` enum replaces raw `String multiLimitType` (NONE, AT_MOST, AT_LEAST, EXACTLY)
-- Unified `QuestionType` enum — removed duplicate inner `FormQuestion.QuestionType`
+- Unified `QuestionType` enum - removed duplicate inner `FormQuestion.QuestionType`
 - Removed dead `NewsCommented` event (superseded by `CommentCreated`)
 
 #### Frontend Components
@@ -1141,134 +1210,134 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 ### New Features
 
 #### Event Batch Import/Creation
-- **Batch event creation** — create multiple events at once with a multi-step wizard (schedule, edit, confirm)
-- **Date generation** — auto-generate recurring date ranges by count, interval, and event type
-- **Batch edit table** — spreadsheet-style editing of generated events before creation
-- **Event layouts** — reusable field templates for consistent event configuration across batch and single creation
-- **Layout management view** — dedicated view for creating/editing event layouts with field configuration
-- **Event filter bar** — filter upcoming events by category and other criteria
-- **Events by category** — categorized display in the event index view
-- **Registration stats panel** — fairness statistics for event registration acceptance/denial decisions (accepted/denied ratio per member)
+- **Batch event creation** - create multiple events at once with a multi-step wizard (schedule, edit, confirm)
+- **Date generation** - auto-generate recurring date ranges by count, interval, and event type
+- **Batch edit table** - spreadsheet-style editing of generated events before creation
+- **Event layouts** - reusable field templates for consistent event configuration across batch and single creation
+- **Layout management view** - dedicated view for creating/editing event layouts with field configuration
+- **Event filter bar** - filter upcoming events by category and other criteria
+- **Events by category** - categorized display in the event index view
+- **Registration stats panel** - fairness statistics for event registration acceptance/denial decisions (accepted/denied ratio per member)
 
 #### Federation System
-- **Multi-station federation** — connect with other stations to share content (Knowledge Base, Quiz catalogs, Test Protocols)
-- **Partnership management** — create, suspend, resume, or end federation partnerships
-- **Capability configuration** — control which content types can be shared per direction (import/export) per partner
-- **Cross-instance federation** — RSA-signed HTTP communication between separate Ember instances
-- **Shared content browsing** — browse KB files, quiz catalogs, and protocols shared by partners
-- **One-click content copy** — copy federated content to your own station
-- **Metadata caching** — browse federated content even when remote instance is temporarily unavailable
-- **Webhook notifications** — real-time change notification between federated instances
-- **Sync polling** — change log based sync for detecting content updates
+- **Multi-station federation** - connect with other stations to share content (Knowledge Base, Quiz catalogs, Test Protocols)
+- **Partnership management** - create, suspend, resume, or end federation partnerships
+- **Capability configuration** - control which content types can be shared per direction (import/export) per partner
+- **Cross-instance federation** - RSA-signed HTTP communication between separate Ember instances
+- **Shared content browsing** - browse KB files, quiz catalogs, and protocols shared by partners
+- **One-click content copy** - copy federated content to your own station
+- **Metadata caching** - browse federated content even when remote instance is temporarily unavailable
+- **Webhook notifications** - real-time change notification between federated instances
+- **Sync polling** - change log based sync for detecting content updates
 
 #### Inventory Lending
-- **Lending requests** — request inventory items from federated partner stations with date ranges
-- **Request lifecycle** — REQUESTED → APPROVED → LENT → RETURNED → CLOSED workflow
-- **Item assignment** — assign specific items to approved lending requests
-- **Built-in messaging** — chat between requesting and owning stations with system messages
-- **Inventory blocking** — block inventories or items during date ranges to prevent lending
-- **Available browsing** — browse available inventory from partners with date filtering and search
-- **Lent-out tracking** — view currently lent out items per inventory
-- **Lending blocks** — tile-based creation UI supporting multiple inventories and items per block
+- **Lending requests** - request inventory items from federated partner stations with date ranges
+- **Request lifecycle** - REQUESTED → APPROVED → LENT → RETURNED → CLOSED workflow
+- **Item assignment** - assign specific items to approved lending requests
+- **Built-in messaging** - chat between requesting and owning stations with system messages
+- **Inventory blocking** - block inventories or items during date ranges to prevent lending
+- **Available browsing** - browse available inventory from partners with date filtering and search
+- **Lent-out tracking** - view currently lent out items per inventory
+- **Lending blocks** - tile-based creation UI supporting multiple inventories and items per block
 
 #### Federation Discovery
-- **Discovery registry** — stations can opt into being discoverable (none/instance/public visibility)
-- **Public discovery page** (`/discovery`) — browse discoverable stations without login
-- **Pairing codes** — stateless codes (`ember-BASE64(uid)-BASE64(host)`) for requesting federation
-- **Station invite codes** — manager-generated codes that auto-activate (consent already given)
-- **Pair requests** — discovery codes create pending requests that target station must accept/decline
-- **Pair request management** — view and accept/decline incoming federation requests
+- **Discovery registry** - stations can opt into being discoverable (none/instance/public visibility)
+- **Public discovery page** (`/discovery`) - browse discoverable stations without login
+- **Pairing codes** - stateless codes (`ember-BASE64(uid)-BASE64(host)`) for requesting federation
+- **Station invite codes** - manager-generated codes that auto-activate (consent already given)
+- **Pair requests** - discovery codes create pending requests that target station must accept/decline
+- **Pair request management** - view and accept/decline incoming federation requests
 
 #### Public Knowledge Base
-- **Public KB mode** — OFF, ALLOW_ALL, or DENY_ALL per station
-- **Per-file/folder visibility override** — override the global mode for individual items
-- **Public browsing** — unauthenticated access to browse, read, and search public KB content
-- **Public file viewer** — rendered markdown, PDF download, image display, YouTube embeds
-- **Full-text search** — PostgreSQL tsvector search on public content with snippets
+- **Public KB mode** - OFF, ALLOW_ALL, or DENY_ALL per station
+- **Per-file/folder visibility override** - override the global mode for individual items
+- **Public browsing** - unauthenticated access to browse, read, and search public KB content
+- **Public file viewer** - rendered markdown, PDF download, image display, YouTube embeds
+- **Full-text search** - PostgreSQL tsvector search on public content with snippets
 
 #### Unified Restrictions System
-- **Consolidated architecture** — single restriction table per entity type replacing scattered tables
-- **Flexible modes** — AND/OR logic for combining role, group, tag, and member restrictions
-- **Role hierarchy** — transitive permission inheritance in PostgreSQL (MANAGER → TEAM → LOGIN)
-- **Manager bypass** — management roles automatically bypass restrictions in their domain
-- **Database functions** — efficient PL/pgSQL restriction checking with member identity resolution
+- **Consolidated architecture** - single restriction table per entity type replacing scattered tables
+- **Flexible modes** - AND/OR logic for combining role, group, tag, and member restrictions
+- **Role hierarchy** - transitive permission inheritance in PostgreSQL (MANAGER → TEAM → LOGIN)
+- **Manager bypass** - management roles automatically bypass restrictions in their domain
+- **Database functions** - efficient PL/pgSQL restriction checking with member identity resolution
 
 #### Quiz AI Generation
-- **AI-powered question generation** — generate quiz questions and wrong answers via AI providers
-- **Batch generation** — generate multiple questions per category with context awareness
-- **Custom prompts** — override default prompts per generation batch
-- **Async job processing** — long-running generation with polling for results
+- **AI-powered question generation** - generate quiz questions and wrong answers via AI providers
+- **Batch generation** - generate multiple questions per category with context awareness
+- **Custom prompts** - override default prompts per generation batch
+- **Async job processing** - long-running generation with polling for results
 
 #### Quiz CSV Import
-- **CSV file import** — import questions from CSV into quiz catalogs
-- **Column mapping** — flexible mapping of CSV columns to question fields
-- **Custom separators** — configure separators for columns and multi-answer fields
+- **CSV file import** - import questions from CSV into quiz catalogs
+- **Column mapping** - flexible mapping of CSV columns to question fields
+- **Custom separators** - configure separators for columns and multi-answer fields
 
 #### API Monitoring (Admin)
-- **Request logging** — all API requests logged with method, path, status code, and duration
-- **Performance dashboard** — slowest/fastest endpoints, hourly stats, status code breakdown
-- **Endpoint detail view** — drill into individual endpoints for response time charts and request history
-- **Problem log** — application-wide problem logging with acknowledge/filter functionality
+- **Request logging** - all API requests logged with method, path, status code, and duration
+- **Performance dashboard** - slowest/fastest endpoints, hourly stats, status code breakdown
+- **Endpoint detail view** - drill into individual endpoints for response time charts and request history
+- **Problem log** - application-wide problem logging with acknowledge/filter functionality
 
 #### GDPR Export Improvements
-- **ZIP format** — data export downloads as ZIP instead of plain JSON
-- **PDF summary** — human-readable Typst-generated PDF with account info, memberships, inventory
-- **User files included** — KB files created by the user bundled in the ZIP
+- **ZIP format** - data export downloads as ZIP instead of plain JSON
+- **PDF summary** - human-readable Typst-generated PDF with account info, memberships, inventory
+- **User files included** - KB files created by the user bundled in the ZIP
 
 #### Station Export/Import
-- **UUID preservation** — station UUID preserved during transfer (federation codes survive)
-- **Knowledge base export** — KB folders, files, content, and version history in station transfer
-- **Logo export** — station logo transferred as base64
+- **UUID preservation** - station UUID preserved during transfer (federation codes survive)
+- **Knowledge base export** - KB folders, files, content, and version history in station transfer
+- **Logo export** - station logo transferred as base64
 
 ### Improvements
 
 #### Frontend Architecture
-- **Component library expansion** — 30+ new base components (Table, Typography, Display, Input, Discovery)
-- **Convention linting** — automated checks for raw HTML elements, CSS class count, repeated patterns, file size
-- **Help center linting** — validates every route has a corresponding help article
-- **Icon linting** — verifies all FontAwesome icons are properly registered
-- **View decomposition** — large views split into focused sub-components (Attendance, Inventory, Members, Quiz, Knowledge Base)
-- **Style guide** — updated `/style` page showcasing all base components
+- **Component library expansion** - 30+ new base components (Table, Typography, Display, Input, Discovery)
+- **Convention linting** - automated checks for raw HTML elements, CSS class count, repeated patterns, file size
+- **Help center linting** - validates every route has a corresponding help article
+- **Icon linting** - verifies all FontAwesome icons are properly registered
+- **View decomposition** - large views split into focused sub-components (Attendance, Inventory, Members, Quiz, Knowledge Base)
+- **Style guide** - updated `/style` page showcasing all base components
 
 #### Knowledge Base
-- **Edit modals** — improved file/folder editing with restrictions, tags, and public visibility
+- **Edit modals** - improved file/folder editing with restrictions, tags, and public visibility
 
 #### Attendance
-- **Session view refactoring** — decomposed into toolbar, header, member list, check mode, summary, and fields panels
-- **Rapid check mode** — fast check-in/out workflow
+- **Session view refactoring** - decomposed into toolbar, header, member list, check mode, summary, and fields panels
+- **Rapid check mode** - fast check-in/out workflow
 
 #### Events
-- **Export modal** — configurable event data export
+- **Export modal** - configurable event data export
 
 #### Waiting List
-- **Detail sub-views** — separated into overview, waiting, invites, testing, and finished sections
+- **Detail sub-views** - separated into overview, waiting, invites, testing, and finished sections
 
 #### Theme & UI
-- **Theme initialization fix** — dark/light mode applies correctly on first visit
-- **Dark mode chart colors** — fixed ECharts label colors in dark mode
-- **Station switcher** — improved station selection UI in footer
+- **Theme initialization fix** - dark/light mode applies correctly on first visit
+- **Dark mode chart colors** - fixed ECharts label colors in dark mode
+- **Station switcher** - improved station selection UI in footer
 
 #### Quiz
-- **Question point calculation rework** — improved scoring logic for quiz questions
-- **Code cleanup** — refactored quiz configuration editors and catalog views
+- **Question point calculation rework** - improved scoring logic for quiz questions
+- **Code cleanup** - refactored quiz configuration editors and catalog views
 
 #### Federation
-- **Webhook service cleanup** — improved reliability and code quality
-- **Federation service refactoring** — cleaner entity handling with proper enums for ChangeType and ContentType
-- **HTTP client improvements** — better error handling in federation communication
+- **Webhook service cleanup** - improved reliability and code quality
+- **Federation service refactoring** - cleaner entity handling with proper enums for ChangeType and ContentType
+- **HTTP client improvements** - better error handling in federation communication
 
 #### Admin
-- **Station management** — enhanced with federation, discovery, and module settings
-- **Docker workflow** — releases tag as `latest`, pushes to `main` tag as `dev`
+- **Station management** - enhanced with federation, discovery, and module settings
+- **Docker workflow** - releases tag as `latest`, pushes to `main` tag as `dev`
 
 ### Security & Technical
 
-- **Station-scoped access enforcement** — all entity read/write operations now validate that the authenticated user belongs to the correct station, preventing cross-station data access even with a valid session
-- **Repository hardening** — queries now consistently filter by station ID to prevent unauthorized cross-station reads (Events, News, Members, Forms, Inventory, Knowledge Base, Attendance, Groups, Tags, Waiting List, Federation)
-- **RSA-2048 signing** — federation requests cryptographically signed
-- **Station UUIDs** — external identifiers prevent enumeration
-- **Role hierarchy enforcement** — database-level transitive permission checking
-- **Private key per station** — generated at station creation
+- **Station-scoped access enforcement** - all entity read/write operations now validate that the authenticated user belongs to the correct station, preventing cross-station data access even with a valid session
+- **Repository hardening** - queries now consistently filter by station ID to prevent unauthorized cross-station reads (Events, News, Members, Forms, Inventory, Knowledge Base, Attendance, Groups, Tags, Waiting List, Federation)
+- **RSA-2048 signing** - federation requests cryptographically signed
+- **Station UUIDs** - external identifiers prevent enumeration
+- **Role hierarchy enforcement** - database-level transitive permission checking
+- **Private key per station** - generated at station creation
 
 ### Privacy Policy
 
@@ -1276,8 +1345,8 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 
 ### Infrastructure
 
-- **Renovate** — automated dependency updates with 14-day stabilization, auto-merge for minor/patch
-- **Database patches 4-6** — federation tables, unified restrictions, role hierarchy, API logging, discovery settings
+- **Renovate** - automated dependency updates with 14-day stabilization, auto-merge for minor/patch
+- **Database patches 4-6** - federation tables, unified restrictions, role hierarchy, API logging, discovery settings
 
 ### Bug Fixes
 
@@ -1293,7 +1362,7 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 
 #### Test Protocols (Prüfungsprotokolle)
 
-- **Full test protocol system** for practical exams (e.g. Jugendflamme) — create protocol templates with hierarchical sections, subsections, and individual checkboxes with 0.5 or 1 point values
+- **Full test protocol system** for practical exams (e.g. Jugendflamme) - create protocol templates with hierarchical sections, subsections, and individual checkboxes with 0.5 or 1 point values
 - **Protocol builder**: create and edit protocols with sections, subsections, and items. Edit protocol name, description, and pass threshold. Add descriptions to sections and items
 - **Test runs**: create a test run from a protocol template, select members to test by group/role/individual. Runs have OPEN/CLOSED lifecycle
 - **Touch-optimized grading wizard**: step-by-step or section-selectable grading view with large touch-friendly checkboxes. Auto-saves on every check. Section selector tabs with live score progress
@@ -1318,13 +1387,13 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 - **Rich text editor** (Tiptap-based) with full WYSIWYG formatting: bold, italic, underline, strikethrough, headings (H1–H3), bullet/ordered lists, blockquotes, code blocks, tables, horizontal rules, colored text, highlighted text
 - **Editor refactored** into self-contained sub-components: `EditorToolbar`, `EditorTableBar`, `EditorLinkDialog`, `EditorImageDialog`, `EditorVideoDialog`, `EditorBubbleMenu`, `ImageNodeView`
 - **Image support**: upload images or insert from URL, with resizable width controls directly below each image in the editor
-- **Video embedding**: YouTube, Vimeo, PeerTube, Dailymotion — auto-detects provider and generates correct embed URL
+- **Video embedding**: YouTube, Vimeo, PeerTube, Dailymotion - auto-detects provider and generates correct embed URL
 - **Link dialog**: Confluence-style floating panel with KB file search by title, folder path display, and inline text editing. Replaces native `prompt()` dialogs
 - **Link tooltip**: hovering on a link shows URL, edit button, open-in-new-tab button, and unlink button
 - **Table editing**: contextual toolbar for adding/removing rows and columns, sticky below the app header for long documents
 - **Raw markdown toggle**: switch between rich text and raw markdown view
 - **Bubble menu**: formatting toolbar on text selection; link tooltip on link hover; dismiss button to close without losing selection
-- **Word document import**: upload `.docx`, `.odt`, `.rtf`, `.html` files — automatically converted to markdown via pandoc
+- **Word document import**: upload `.docx`, `.odt`, `.rtf`, `.html` files - automatically converted to markdown via pandoc
 - **PDF text extraction**: uploaded PDFs are indexed for full-text search using Apache PDFBox
 - **Search improvements**: prefix matching (e.g. "Notr" matches "Notruf"), highlighted snippets with yellow `<mark>` tags, markdown/HTML stripped from snippet text
 - **Related files**: "further reading" links between KB files with add/remove UI on file detail page
@@ -1371,7 +1440,7 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 - **SelectionToggleButton**: shared component for role/group/tag toggle selections (replaces raw buttons in 6+ views: EventEditView, IndexView, EventModal, NewsEditView, AbsenceView)
 - **DropdownMenuItem**: shared component for dropdown menu items (used in KnowledgeBaseView)
 - **Markdown content CSS**: comprehensive `.markdown-content` class replacing non-functional `prose` classes (Tailwind Typography plugin was not installed). Covers headings, lists, quotes, tables, code blocks, images, iframes, horizontal rules, alternating table row backgrounds
-- **`--border` CSS variable**: properly defined for light (`#c0c0c0`) and dark (`#3a3a3a`) modes — fixes invisible borders throughout the app
+- **`--border` CSS variable**: properly defined for light (`#c0c0c0`) and dark (`#3a3a3a`) modes - fixes invisible borders throughout the app
 - **Search snippet highlighting**: matched terms shown with yellow `<mark>` background
 - **EmberLogo component**: reusable logo display with blink animation, used across landing page, sidebar, help center, 404 pages
 - **ThemePicker component**: theme color selection
@@ -1394,19 +1463,19 @@ A new admin panel under "Monitoring → Feed-Telemetrie" charts feed usage and p
 ### Bug Fixes
 
 - Fixed diff view colors using `color-mix()` instead of broken Tailwind CSS variable opacity
-- Fixed `prose` classes doing nothing — replaced with custom `.markdown-content` CSS
+- Fixed `prose` classes doing nothing - replaced with custom `.markdown-content` CSS
 - Fixed markdown toggle crash (`el is null`) by using `v-show` instead of `v-if` for editor content
-- Fixed link clicks opening URLs in the editor — intercepted via `editorProps.handleClick`
-- Fixed horizontal rule invisible — changed border color to `color-mix(in srgb, var(--text) 25%, transparent)`
-- Fixed heading buttons not working — added `clearNodes()` before `setHeading()` to exit lists/blockquotes
-- Fixed P button no effect — changed to `clearNodes().setParagraph()`
-- Fixed images not showing in editor — lift `<img>` out of `<p>` tags before setting editor content
-- Fixed image upload for WebP — added fallback for formats ImageIO can't read
-- Fixed folder icon not showing after upload — now updates `folder.iconUrl` in database
-- Fixed table controls bar not appearing — moved reactive refs before `useEditor()` call
-- Fixed BubbleMenu conflicts — merged two BubbleMenus into one with `shouldShow` callback
-- Fixed search snippets showing tsvector tokens — now uses `ts_headline` on actual `text_content`
-- Fixed demo mode station registration — disabled via `station_registration_enabled` setting
+- Fixed link clicks opening URLs in the editor - intercepted via `editorProps.handleClick`
+- Fixed horizontal rule invisible - changed border color to `color-mix(in srgb, var(--text) 25%, transparent)`
+- Fixed heading buttons not working - added `clearNodes()` before `setHeading()` to exit lists/blockquotes
+- Fixed P button no effect - changed to `clearNodes().setParagraph()`
+- Fixed images not showing in editor - lift `<img>` out of `<p>` tags before setting editor content
+- Fixed image upload for WebP - added fallback for formats ImageIO can't read
+- Fixed folder icon not showing after upload - now updates `folder.iconUrl` in database
+- Fixed table controls bar not appearing - moved reactive refs before `useEditor()` call
+- Fixed BubbleMenu conflicts - merged two BubbleMenus into one with `shouldShow` callback
+- Fixed search snippets showing tsvector tokens - now uses `ts_headline` on actual `text_content`
+- Fixed demo mode station registration - disabled via `station_registration_enabled` setting
 
 ### Dependencies Added
 

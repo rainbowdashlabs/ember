@@ -32,7 +32,7 @@ export function useKbFilters(browse: ReturnType<typeof useKbBrowse>) {
     const partnerStations = computed(() => {
         const map = new Map<string, string>()
         for (const s of browse.sharedFiles.value) {
-            if (s.sourceStationId) map.set(s.sourceStationId, s.stationName)
+            if (s.sourceStationUid) map.set(s.sourceStationUid, s.stationName)
         }
         return [...map.entries()].map(([id, name]) => ({id, name}))
     })
@@ -40,7 +40,7 @@ export function useKbFilters(browse: ReturnType<typeof useKbBrowse>) {
     const filteredSharedFiles = computed(() => {
         if (!showFederated.value) return []
         if (filterStationId.value != null) {
-            return browse.sharedFiles.value.filter(s => s.sourceStationId === filterStationId.value)
+            return browse.sharedFiles.value.filter(s => s.sourceStationUid === filterStationId.value)
         }
         return browse.sharedFiles.value
     })

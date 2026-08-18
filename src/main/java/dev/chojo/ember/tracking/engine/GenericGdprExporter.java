@@ -36,7 +36,7 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  * <p>The resulting payload is a map keyed by DB table name; consumers can wrap it for output.
  * Tables whose {@code gdprExport.status} is {@link Status#IGNORED} or {@link Status#UNVERIFIED}
  * are skipped, as are tables whose {@code identityColumns} list is empty (those are linked through
- * a parent row — the caller should chain them).
+ * a parent row - the caller should chain them).
  */
 public final class GenericGdprExporter {
 
@@ -79,7 +79,7 @@ public final class GenericGdprExporter {
             sb.append("t.").append(col.name());
         }
 
-        // Optional Lookup-flattened columns (account_email etc.) — same as the transfer exporter.
+        // Optional Lookup-flattened columns (account_email etc.) - same as the transfer exporter.
         List<Lookup> lookups = table.lookups() == null ? List.of() : table.lookups();
         for (int i = 0; i < lookups.size(); i++) {
             var lk = lookups.get(i);

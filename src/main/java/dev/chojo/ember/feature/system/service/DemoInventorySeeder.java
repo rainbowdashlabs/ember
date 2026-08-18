@@ -305,7 +305,7 @@ public class DemoInventorySeeder implements DemoSeeder {
         for (var member : allKids) {
             int idx = allKids.indexOf(member);
 
-            // Helm (MIXED, no size) — station-provided = INTERNAL
+            // Helm (MIXED, no size) - station-provided = INTERNAL
             var helmItem = inventoryRepository.createItem(
                     helm.id(),
                     "H-" + String.format("%03d", itemCounter++),
@@ -345,7 +345,7 @@ public class DemoInventorySeeder implements DemoSeeder {
                     InventoryItem.ItemSource.EXTERNAL);
             inventoryRepository.assignItem(latzItem.id(), member.id());
 
-            // Handschuhe (MIXED) — station-provided = INTERNAL
+            // Handschuhe (MIXED) - station-provided = INTERNAL
             var handschuhItem = inventoryRepository.createItem(
                     handschuhe.id(),
                     "HS-" + String.format("%03d", itemCounter++),
@@ -457,7 +457,7 @@ public class DemoInventorySeeder implements DemoSeeder {
                 historyCount++;
             }
 
-            // Current owner — given out after last return, no return date
+            // Current owner - given out after last return, no return date
             var currentAccount = accountRepository
                     .findById(allKids.stream()
                             .filter(m -> m.id() == item.assignedTo())

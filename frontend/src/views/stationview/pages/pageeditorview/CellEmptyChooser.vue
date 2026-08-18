@@ -13,7 +13,7 @@ import {CHOOSER_CATEGORIES} from './cellChoosers'
 
 /**
  * Picker shown inside an EMPTY cell. Offers a category-grouped grid of content-type buttons plus
- * a paste-here shortcut when the clipboard holds a cell. Owns its own search filter — the parent
+ * a paste-here shortcut when the clipboard holds a cell. Owns its own search filter - the parent
  * just listens for the chosen content type via {@code pick} or applies a clipboard paste via
  * {@code paste-here}.
  */

@@ -32,7 +32,7 @@ import java.util.Set;
  *
  * <p>Step completion is intentionally <em>derived</em> rather than stored, so an administrator can
  * undo a setting later (e.g. delete the only member group) and the dashboard checklist reappears
- * with the now-missing step. The single persisted flag is {@code station.setup_completed_at} —
+ * with the now-missing step. The single persisted flag is {@code station.setup_completed_at} -
  * once set, the wizard route stops auto-redirecting administrators on login.
  */
 @Singleton
@@ -98,7 +98,7 @@ public class SetupService {
 
     /**
      * Computes the current state of the setup wizard for the given station. The returned record is
-     * a snapshot — callers should re-fetch after any mutation that might affect completeness.
+     * a snapshot - callers should re-fetch after any mutation that might affect completeness.
      *
      * @param stationId the station whose status is requested
      * @return the derived status snapshot
@@ -231,7 +231,7 @@ public class SetupService {
      *
      * @param id         stable identifier matching one of the {@code STEP_*} constants
      * @param complete   whether the step's underlying data is currently filled in
-     * @param applicable whether the step is shown at all — module-gated optional steps may be
+     * @param applicable whether the step is shown at all - module-gated optional steps may be
      *                   hidden when their module is disabled, in which case {@code complete} is
      *                   also {@code false}
      */

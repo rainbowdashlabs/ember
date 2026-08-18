@@ -188,7 +188,7 @@ public class EventFederationService {
             }
         }
 
-        // Remote registrations — query each remote partner
+        // Remote registrations - query each remote partner
         var partners = partnerRepository.findPartners(stationId).stream()
                 .filter(p -> p.isRemote() && p.status() == FederationStatus.ACTIVE)
                 .toList();
@@ -207,7 +207,7 @@ public class EventFederationService {
                     result.addAll(remoteRegs);
                 }
             } catch (Exception e) {
-                // Remote partner unavailable — skip silently
+                // Remote partner unavailable - skip silently
             }
         }
 
@@ -667,7 +667,7 @@ public class EventFederationService {
      * Payload for {@code POST /remote/events/{eventId}/comments}. {@code eventDate} is the
      * occurrence date for date-scoped comments on recurring events; {@code null} for
      * one-time events or whole-event comments. Older peers that omit the field continue to
-     * work — Jackson maps the absent property to {@code null} on the receiving side.
+     * work - Jackson maps the absent property to {@code null} on the receiving side.
      */
     private record RemoteCommentRequest(
             String remoteMemberUid, String displayName, int parentId, String content, String eventDate) {}

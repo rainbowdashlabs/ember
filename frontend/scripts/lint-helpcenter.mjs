@@ -18,7 +18,7 @@ const allRoutes = parseRoutes()
 //
 // Routes that shipped without a help-center counterpart before the linter
 // started reading the real Nuxt pages tree. New routes must NOT be added
-// here — write the help page instead. Remove entries as pages get written.
+// here - write the help page instead. Remove entries as pages get written.
 
 const KNOWN_MISSING_HELP = new Set([])
 
@@ -31,7 +31,8 @@ const panels = [
         label: 'Station',
         appFilter: (r) => !['help-', 'admin-', 'account-', 'login', 'forgot', 'set-password', 'station-select',
             'cross-station-dashboard', '2fa-verify', 'apply', 'waitlist-', 'waiting-list', 'home', 'privacy', 'terms', 'reconsent', 'imprint',
-            'patch-notes', 'reset-password', 'public-', 'not-found', 'style', 'helpcenter-', 'requirements']
+            'patch-notes', 'reset-password', 'public-', 'not-found', 'style', 'helpcenter-', 'requirements',
+            'pitch']
             .some(p => r.name.startsWith(p)),
         helpFilter: (r) => r.name.startsWith('help-') && !r.name.startsWith('help-admin') && !r.name.startsWith('help-cluster'),
         supplementaryHelp: (r) => r.name.startsWith('help-basics') || r.name === 'help-welcome'
@@ -89,14 +90,14 @@ for (const panel of panels) {
     console.log(`  App routes: ${appRoutes.length} | Help routes: ${helpRoutes.length} | Coverage: ${covered}/${appRoutes.length} (${pct}%)`)
 
     if (knownMissing.length > 0) {
-        console.log(`\n  ${YELLOW}Known missing help pages (${knownMissing.length}) — tracked in KNOWN_MISSING_HELP:${RESET}`)
+        console.log(`\n  ${YELLOW}Known missing help pages (${knownMissing.length}) - tracked in KNOWN_MISSING_HELP:${RESET}`)
         for (const {name, path} of knownMissing.sort((a, b) => a.path.localeCompare(b.path))) {
             console.log(`    ${YELLOW}warning${RESET} ${name} → ${path}`)
         }
     }
 
     if (orphaned.length > 0) {
-        console.log(`\n  ${YELLOW}Orphaned help pages (${orphaned.length}) — path doesn't match any app route:${RESET}`)
+        console.log(`\n  ${YELLOW}Orphaned help pages (${orphaned.length}) - path doesn't match any app route:${RESET}`)
         for (const {name, path} of orphaned.sort((a, b) => a.path.localeCompare(b.path))) {
             console.log(`    ${YELLOW}warning${RESET} ${name} → ${path}`)
         }

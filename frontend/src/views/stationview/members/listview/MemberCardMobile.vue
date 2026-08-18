@@ -39,7 +39,7 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <NeutralContainer class="space-y-2" @click="emit('click')">
+  <NeutralContainer data-testid="member-row" class="space-y-2" @click="emit('click')">
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-2">
         <div>

@@ -162,6 +162,7 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
         <NeutralContainer
           v-for="p in filteredItems"
           :key="p.id"
+          data-testid="procedure-entry"
           class="flex items-center gap-3 cursor-pointer hover:border-[var(--primary)] transition-colors group"
           @click="router.push({ name: 'procedure-detail', params: { id: p.id } })"
         >
@@ -201,7 +202,7 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
           <FieldLabel class="mb-1">{{ t('procedures.selectTemplate') }}</FieldLabel>
           <div v-if="templates.length === 0" class="text-sm text-[var(--text-muted)]">{{ t('procedures.noTemplates') }}</div>
           <SelectInput v-else :model-value="newTemplateId != null ? String(newTemplateId) : ''" @update:model-value="(v: string | number | null | undefined) => { newTemplateId = v ? Number(v) : null }">
-            <option value="">—</option>
+            <option value="">-</option>
             <option v-for="tpl in templates" :key="tpl.id" :value="String(tpl.id)">{{ tpl.name }}</option>
           </SelectInput>
         </template>

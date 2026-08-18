@@ -5,8 +5,9 @@
  */
 <script setup lang="ts">
 import {ref, watch, computed} from 'vue'
+import {marked} from 'marked'
 import {useI18n} from 'vue-i18n'
-import {useRouter, useRoute} from 'vue-router'
+import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -25,7 +26,14 @@ import KbEditFileModal from '@/views/stationview/knowledge/knowledgebaseview/KbE
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {knowledgeBase} from '@/api'
-import {KbFileType, type KbFile, type MarkdownHtmlResponse} from '@/api/knowledgeBase'
+import {
+    KbAccessLevel,
+    KbFileType,
+    levelCovers,
+    type KbAccessLevelName,
+    type KbFile,
+    type MarkdownHtmlResponse,
+} from '@/api/knowledgeBase'
 import {useKbFileMetadata} from '@/views/stationview/knowledge/kbfileview/useKbFileMetadata'
 import {getItem} from '@/api/storage'
 import {downloadAuthed} from '@/util/downloadAuthed'
@@ -34,9 +42,13 @@ import {youtubeEmbedUrl as toYoutubeEmbedUrl} from '@/util/youtube'
 import MutedText from '@/components/typography/MutedText.vue'
 import {useFlashMessage} from '@/composables/useFlashMessage'
 
+const props = defineProps<{
+    fileId: number
+    stationUid?: string
+}>()
+
 const {t} = useI18n()
 const router = useRouter()
-const route = useRoute()
 const {canEditKnowledge, loaded, isKbPublic} = useSession()
 
 const file = ref<KbFile | null>(null)
@@ -59,12 +71,50 @@ async function downloadOriginal() {
     await downloadAuthed(knowledgeBase.originalFileUrl(file.value.id), file.value.name)
 }
 
-const fileId = computed(() => Number(route.params.id))
-const isFederated = computed(() => {
-    if (!file.value) return false
-    const myStationId = getItem('station_id')
-    return file.value.stationId !== myStationId
+async function downloadPdf() {
+    if (!file.value) return
+    const url = props.stationUid
+        ? knowledgeBase.federatedPdfExportUrl(props.stationUid, file.value.id)
+        : knowledgeBase.pdfExportUrl(file.value.id)
+    await downloadAuthed(url, `${file.value.name}.pdf`)
+}
+
+const isFederated = computed(() => props.stationUid != null)
+
+const isTextual = computed(() =>
+    file.value?.fileType === KbFileType.MARKDOWN || file.value?.fileType === KbFileType.TEXT)
+
+/**
+ * A partner publishes the file record and, for textual files, the raw body. Videos and links need
+ * nothing beyond the record, so they render; stored formats such as PDFs and images have no
+ * federated content route and can only be read after copying the file.
+ */
+const federatedContentUnavailable = computed(() => isFederated.value
+    && !isTextual.value
+    && file.value?.fileType !== KbFileType.YOUTUBE
+    && file.value?.fileType !== KbFileType.LINK)
+
+/**
+ * What this reader may do here. A folder can hold the level below the station-wide right, so the
+ * page has to ask the file rather than the session.
+ */
+const accessLevel = ref<KbAccessLevelName | undefined>(undefined)
+const accessLevelSource = ref<string | null>(null)
+
+const mayEdit = computed(() =>
+    canEditKnowledge() && !isFederated.value && levelCovers(accessLevel.value, KbAccessLevel.WRITE))
+
+/**
+ * Why editing is unavailable, when a folder is the reason. Silent absence reads as a bug, so the
+ * page names the folder that holds the file read-only.
+ */
+const readOnlyReason = computed(() => {
+    if (isFederated.value || mayEdit.value || !canEditKnowledge()) return ''
+    if (!accessLevelSource.value) return t('kb.readOnlyHere')
+    return t('kb.readOnlyFrom', {folder: accessLevelSource.value})
 })
+
+const canEditDescription = computed(() => mayEdit.value)
 
 async function copyToStation() {
     if (!file.value) return
@@ -85,14 +135,21 @@ const youtubeEmbedUrl = computed(() => {
 })
 
 const contentUrl = computed(() => {
-    if (!file.value) return ''
+    if (!file.value || isFederated.value) return ''
     return knowledgeBase.fileContentUrl(file.value.id)
 })
 
 const {loading, error, reload: loadData} = useAsyncLoader(async () => {
-    const fileRes = await knowledgeBase.getFile(fileId.value)
+    if (props.stationUid) {
+        await loadFederatedFile(props.stationUid)
+        return
+    }
+
+    const fileRes = await knowledgeBase.getFile(props.fileId)
     file.value = fileRes.file
     lastEditedByName.value = fileRes.lastEditedByName
+    accessLevel.value = fileRes.accessLevel
+    accessLevelSource.value = fileRes.accessLevelSource ?? null
 
     const [tags, stationTags, related] = await Promise.all([
         knowledgeBase.getFileTags(file.value.id),
@@ -111,6 +168,32 @@ const {loading, error, reload: loadData} = useAsyncLoader(async () => {
         editContent.value = textContent.value
     }
 }, {autoLoad: false})
+
+/**
+ * Loads a file served by a federation partner. Partners publish the file record and, for textual
+ * files, the raw body; tags, related files and the rendered markdown stay on the owning station,
+ * so the markdown is rendered here instead.
+ */
+async function loadFederatedFile(stationUid: string) {
+    file.value = await knowledgeBase.getFederatedFile(stationUid, props.fileId)
+    lastEditedByName.value = null
+    fileTags.value = []
+    allStationTags.value = []
+    relatedFiles.value = []
+    markdownData.value = null
+    textContent.value = ''
+    accessLevel.value = undefined
+    accessLevelSource.value = null
+
+    if (!isTextual.value) return
+
+    const content = await knowledgeBase.getFederatedFileContent(stationUid, props.fileId)
+    if (file.value.fileType === KbFileType.MARKDOWN) {
+        markdownData.value = {html: await marked.parse(content), markdown: content}
+    } else {
+        textContent.value = content
+    }
+}
 function toggleEdit() {
     editing.value = !editing.value
     if (editing.value) {
@@ -169,12 +252,16 @@ async function handleReuploadFile(uploadFile: File) {
 watch(loaded, (isLoaded) => {
     if (isLoaded) loadData()
 }, {immediate: true})
+
+watch(() => [props.fileId, props.stationUid], () => {
+    if (loaded.value) loadData()
+})
 </script>
 
 <template>
     <ViewContent
-        :title="t('pages.kb-file.title')"
-        :subtitle="t('pages.kb-file.subtitle')"
+        :title="isFederated ? t('pages.federated-kb-file.title') : t('pages.kb-file.title')"
+        :subtitle="isFederated ? t('pages.federated-kb-file.subtitle') : t('pages.kb-file.subtitle')"
     >
         <Alert v-if="error" variant="error" class="mb-4">{{ error }}</Alert>
         <Spinner v-if="loading"/>
@@ -185,7 +272,7 @@ watch(loaded, (isLoaded) => {
                 :is-federated="isFederated"
                 :is-kb-public="isKbPublic()"
                 :share-copied="shareCopied"
-                :can-edit="canEditKnowledge()"
+                :can-edit="mayEdit"
                 :editing="editing"
                 @back="goBack"
                 @copy-share-link="copyShareLink"
@@ -195,28 +282,38 @@ watch(loaded, (isLoaded) => {
                 @open-versions="router.push({name: 'kb-versions', params: {id: file.id}})"
                 @open-presentation="showPresentation = true"
                 @download-original="downloadOriginal"
+                @download-pdf="downloadPdf"
             />
 
             <!-- Description -->
             <div v-if="editingDescription" class="flex items-center gap-2 mb-4">
                 <TextAreaInput v-model="editDescriptionValue" class="flex-1 !text-sm" :placeholder="t('kb.description')"/>
-                <PrimaryButton @click="saveDescription">
+                <PrimaryButton :aria-label="t('common.save')" :title="t('common.save')" @click="saveDescription">
                     <font-awesome-icon :icon="['fas', 'check']"/>
                 </PrimaryButton>
-                <SecondaryButton @click="editingDescription = false">
+                <SecondaryButton
+                    :aria-label="t('common.cancel')"
+                    :title="t('common.cancel')"
+                    @click="editingDescription = false"
+                >
                     <font-awesome-icon :icon="['fas', 'xmark']"/>
                 </SecondaryButton>
             </div>
-            <MutedText tag="p" size="sm" v-else-if="file.description || canEditKnowledge()" class="group/desc">
+            <MutedText tag="p" size="sm" v-else-if="file.description || canEditDescription" class="group/desc">
                 {{ file.description || t('kb.description') }}
                 <IconButton
-                    v-if="canEditKnowledge()"
+                    v-if="canEditDescription"
                     :icon="['fas', 'pen']"
                     :label="t('kb.edit')"
                     class="opacity-0 group-hover/desc:opacity-100 ml-1 text-[var(--primary)] !p-0 text-xs"
                     @click="startEditDescription"
                 />
             </MutedText>
+
+            <p v-if="readOnlyReason" class="text-xs text-[var(--text-muted)] mb-3 flex items-center gap-1">
+                <font-awesome-icon :icon="['fas', 'lock']" class="h-3 w-3"/>
+                {{ readOnlyReason }}
+            </p>
 
             <!-- Last edit info -->
             <p v-if="file.updatedAt" class="text-xs text-[var(--text-muted)] mb-3">
@@ -229,7 +326,7 @@ watch(loaded, (isLoaded) => {
                 v-if="!isFederated"
                 :tags="fileTags"
                 :all-tags="allStationTags"
-                :can-manage="canEditKnowledge()"
+                :can-manage="mayEdit"
                 @add-tag="addTag"
                 @remove-tag="removeTag"
             />
@@ -239,7 +336,7 @@ watch(loaded, (isLoaded) => {
                 v-if="!isFederated"
                 :related-files="relatedFiles"
                 :file-id="file.id"
-                :can-manage="canEditKnowledge()"
+                :can-manage="mayEdit"
                 @add-related="addRelatedFile"
                 @remove-related="removeRelatedFile"
             />
@@ -252,14 +349,18 @@ watch(loaded, (isLoaded) => {
                 </span>
             </div>
 
+            <Alert v-if="federatedContentUnavailable" variant="info">
+                {{ t('kb.federatedContentUnavailable') }}
+            </Alert>
             <KbFileContent
+                v-else
                 :file="file"
                 :editing="editing"
                 :content-url="contentUrl"
                 :text-content="textContent"
                 :rendered-html="renderedHtml"
                 :youtube-embed-url="youtubeEmbedUrl"
-                :can-edit="canEditKnowledge()"
+                :can-edit="mayEdit"
                 v-model:edit-content="editContent"
                 @content-input="onContentInput"
                 @reupload="handleReuploadFile"
@@ -268,7 +369,7 @@ watch(loaded, (isLoaded) => {
             <!-- Comments -->
             <KbCommentSection
                 :file-id="file.id"
-                :station-uid="isFederated ? file.stationId : undefined"
+                :station-uid="stationUid"
                 class="mt-6"
             />
         </template>

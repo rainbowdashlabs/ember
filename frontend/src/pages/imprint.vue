@@ -18,7 +18,7 @@ useHead({
   title: 'Impressum',
   meta: [
     {name: 'description', content: 'Impressum und rechtliche Informationen zu Ember.'},
-    {property: 'og:title', content: 'Impressum — Ember'},
+    {property: 'og:title', content: 'Impressum - Ember'},
     {property: 'og:type', content: 'website'},
   ],
 })

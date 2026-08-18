@@ -99,7 +99,7 @@ public class InventoryFieldDefinitionService {
     /**
      * Updates the mutable parts of a field definition: label, required flag,
      * sort order and (matching-type) config. Changing the field type or key
-     * is intentionally rejected — the operator deletes and re-adds instead.
+     * is intentionally rejected - the operator deletes and re-adds instead.
      */
     public Optional<InventoryFieldDefinition> update(
             int id, String label, boolean required, int sortOrder, FieldConfig config) {

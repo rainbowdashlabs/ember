@@ -6,7 +6,7 @@
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {federation, knowledgeBase} from '@/api'
-import type {KbFile, KbFolder, SharedFileEntry} from '@/api/knowledgeBase'
+import type {KbAccessLevelName, KbFile, KbFolder, SharedFileEntry} from '@/api/knowledgeBase'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import type {useKbNavigation} from './useKbNavigation'
 
@@ -23,6 +23,9 @@ export function useKbBrowse(navigation: ReturnType<typeof useKbNavigation>) {
     const sharedFiles = ref<SharedFileEntry[]>([])
     const favourites = ref<KbFile[]>([])
     const breadcrumbs = ref<KbFolder[]>([])
+    const currentLevel = ref<KbAccessLevelName | undefined>(undefined)
+    const folderLevels = ref<Record<number, KbAccessLevelName>>({})
+    const fileLevels = ref<Record<number, KbAccessLevelName>>({})
 
     const favouriteIds = computed(() => new Set(favourites.value.map(f => f.id)))
 
@@ -30,6 +33,7 @@ export function useKbBrowse(navigation: ReturnType<typeof useKbNavigation>) {
         if (navigation.isFavouritesView.value) {
             const result = await knowledgeBase.browse(null)
             currentFolder.value = null
+            currentLevel.value = result.currentLevel
             folders.value = []
             files.value = result.favourites ?? []
             sharedFiles.value = []
@@ -40,6 +44,9 @@ export function useKbBrowse(navigation: ReturnType<typeof useKbNavigation>) {
             currentFolder.value = result.currentFolder
             folders.value = result.folders
             files.value = result.files
+            currentLevel.value = result.currentLevel
+            folderLevels.value = result.folderLevels ?? {}
+            fileLevels.value = result.fileLevels ?? {}
             favourites.value = result.favourites ?? []
             await buildBreadcrumbs()
 
@@ -49,7 +56,7 @@ export function useKbBrowse(navigation: ReturnType<typeof useKbNavigation>) {
                     sharedFiles.value = shared.map(s => ({
                         file: {id: s.remoteId, name: s.title, description: s.description},
                         stationName: s.stationName,
-                        sourceStationId: s.stationId,
+                        sourceStationUid: s.stationUid,
                     }))
                 } catch { sharedFiles.value = [] }
             } else {
@@ -108,6 +115,9 @@ export function useKbBrowse(navigation: ReturnType<typeof useKbNavigation>) {
         sharedFiles,
         favourites,
         breadcrumbs,
+        currentLevel,
+        folderLevels,
+        fileLevels,
         favouriteIds,
         loading,
         error,

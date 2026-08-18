@@ -92,7 +92,7 @@ public class DemoBoardSeeder implements DemoSeeder {
             Random rng) {
         this.currentStationId = stationId;
 
-        // ── Board 1: "Dienstplanung" — SIMPLE preset, TEAM only (view + edit) ──
+        // ── Board 1: "Dienstplanung" - SIMPLE preset, TEAM only (view + edit) ──
 
         var board1 = boardRepo.create(stationId, "Dienstplanung", "Interne Aufgaben für das Betreuerteam", "PLAN");
         var lane1Open = boardRepo.createLane(board1.id(), "Offen", "#3b82f6", 0);
@@ -211,7 +211,7 @@ public class DemoBoardSeeder implements DemoSeeder {
         }
         ticketRepo.createComment(t1, null, localIdentity(admin.id()), "Wer hat im Juni Urlaub? Bitte melden!");
 
-        // ── Board 2: "Jugendarbeit" — FEEDBACK preset, TEAM edit, USER view ──
+        // ── Board 2: "Jugendarbeit" - FEEDBACK preset, TEAM edit, USER view ──
 
         var board2 = boardRepo.create(stationId, "Jugendarbeit", "Ideen und Aufgaben für die Jugendgruppe", "JUG");
         var lane2Open = boardRepo.createLane(board2.id(), "Offen", "#3b82f6", 0);
@@ -286,7 +286,7 @@ public class DemoBoardSeeder implements DemoSeeder {
                 lane2Feed.id(),
                 6,
                 "Elternabend-Präsentation",
-                "Folien für den Elternabend vorbereiten — bitte prüfen.",
+                "Folien für den Elternabend vorbereiten - bitte prüfen.",
                 admin.id(),
                 TicketPriority.MEDIUM,
                 LocalDate.now().plusDays(2),
@@ -321,7 +321,7 @@ public class DemoBoardSeeder implements DemoSeeder {
         ticketRepo.createChecklistItem(j1, "Einkaufsliste", 3);
         ticketRepo.createChecklistItem(j1, "Eltern informieren", 4);
 
-        // Checklist on j4 — partially done
+        // Checklist on j4 - partially done
         var jcl1 = ticketRepo.createChecklistItem(j4, "Löschangriff üben", 0);
         ticketRepo.updateChecklistItem(jcl1.id(), "Löschangriff üben", true);
         var jcl2 = ticketRepo.createChecklistItem(j4, "Staffellauf üben", 1);
@@ -343,7 +343,7 @@ public class DemoBoardSeeder implements DemoSeeder {
 
         // Comments
         ticketRepo.createComment(
-                j4, null, localIdentity(admin.id()), "Wettbewerb ist am 20. Juni — wir müssen Gas geben!");
+                j4, null, localIdentity(admin.id()), "Wettbewerb ist am 20. Juni - wir müssen Gas geben!");
         if (!teamMembers.isEmpty()) {
             ticketRepo.createComment(
                     j4, null, localIdentity(teamMembers.getFirst().id()), "Ich kümmere mich um den Staffellauf.");
@@ -609,7 +609,7 @@ public class DemoBoardSeeder implements DemoSeeder {
         ticketRepo.logTransition(t7, laneOpen.id(), laneWork.id(), localIdentity(admin.id()));
         boardRepo.addLabelToTicket(t7, labelUebung.id());
 
-        // Federated comments (from partner members — use inline MemberIdentity)
+        // Federated comments (from partner members - use inline MemberIdentity)
         var partnerIdentity1 = new MemberIdentity(partner.partnerStationId(), partnerMember1);
         var partnerIdentity2 = new MemberIdentity(partner.partnerStationId(), partnerMember2);
 
@@ -643,7 +643,7 @@ public class DemoBoardSeeder implements DemoSeeder {
         ticketRepo.createChecklistItem(t1, "Materialien klären", 2);
         ticketRepo.createChecklistItem(t1, "Anfahrt kommunizieren", 3);
 
-        // Checklist on t4 — partially done
+        // Checklist on t4 - partially done
         var cl1 = ticketRepo.createChecklistItem(t4, "Teilnehmer unserer Wache", 0);
         ticketRepo.updateChecklistItem(cl1.id(), "Teilnehmer unserer Wache", true);
         ticketRepo.createChecklistItem(t4, "Teilnehmer Partnerwache", 1);

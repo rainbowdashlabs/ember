@@ -123,7 +123,7 @@ const dummyStiefel: MyInventoryItem = {
       <div class="space-y-3">
         <SectionHeader>{{ t('profile.requestExchange') }}</SectionHeader>
         <p class="text-sm">
-          Helme — Helm #12 <SizeBadge>M</SizeBadge>
+          Helme - Helm #12 <SizeBadge>M</SizeBadge>
         </p>
         <div class="space-y-1">
           <FieldLabel>{{ t('exchanges.newSize') }}</FieldLabel>

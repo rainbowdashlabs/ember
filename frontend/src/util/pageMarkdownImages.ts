@@ -9,7 +9,7 @@ const PAGE_FILE_URL = /^\/api\/v1\/public\/pages\/[^/]+\/files\/[a-f0-9]+(?:$|\?
  * Post-processes marked-rendered HTML to upgrade {@code <img>} tags whose {@code src}
  * points at our public page-files endpoint ({@code /api/v1/public/pages/<uid>/files/<hash>}).
  * For every match, adds {@code loading="lazy"} + {@code decoding="async"} and rewrites the
- * URL to request the 1024 px variant — mirroring the "markdown-embedded inline
+ * URL to request the 1024 px variant - mirroring the "markdown-embedded inline
  * images → w=1024" default.
  *
  * <p>Non-page-file images (external CDNs, data URIs, third-party hosts) are left untouched

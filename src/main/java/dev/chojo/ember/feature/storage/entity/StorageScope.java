@@ -66,7 +66,7 @@ public sealed interface StorageScope {
     }
 
     /**
-     * Account-scoped objects (user avatars — follow the user across stations).
+     * Account-scoped objects (user avatars - follow the user across stations).
      */
     record Account(UUID accountUid) implements StorageScope {
         @Override

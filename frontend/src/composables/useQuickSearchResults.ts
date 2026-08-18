@@ -40,7 +40,7 @@ export interface PaletteSection {
  * empty section, so one unavailable module cannot stop the palette from answering.
  *
  * @param query the current search text
- * @param scope which route set applies — the station palette or the admin one
+ * @param scope which route set applies - the station palette or the admin one
  */
 export function useQuickSearchResults(query: Ref<string>, scope: Ref<string>) {
   const { t } = useI18n()

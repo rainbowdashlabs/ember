@@ -669,7 +669,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         var discovered = discoveryService.discoverBoards(station1.id());
         assertTrue(discovered.isEmpty());
 
-        // Reset httpClient to clear the catch-all thenThrow stub — otherwise it poisons
+        // Reset httpClient to clear the catch-all thenThrow stub - otherwise it poisons
         // subsequent when().thenReturn() calls (the when() invocation triggers the stub)
         reset(httpClient);
     }
@@ -770,7 +770,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
 
         var labels = structureProxy.proxyGetLabels(partnerId, BOARD_KEY);
         assertNotNull(labels);
-        // Board was just created, may have no labels yet — just verify it returns
+        // Board was just created, may have no labels yet - just verify it returns
     }
 
     @Test

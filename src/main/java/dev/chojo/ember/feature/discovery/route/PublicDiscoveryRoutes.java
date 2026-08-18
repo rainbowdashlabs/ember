@@ -31,11 +31,11 @@ import java.util.concurrent.ScheduledExecutorService;
  * Public, anonymous-internet endpoints exposed by every Ember instance.
  *
  * <ul>
- *   <li>{@code GET /public/discovery/info} — cheap metadata probe (§6.0).</li>
- *   <li>{@code GET /public/discovery/stations} — {@code PUBLIC}-scoped station cards (§6.1).</li>
- *   <li>{@code POST /discovery/ping} — receive a signed ping; answers 204 and dispatches the
+ *   <li>{@code GET /public/discovery/info} - cheap metadata probe (§6.0).</li>
+ *   <li>{@code GET /public/discovery/stations} - {@code PUBLIC}-scoped station cards (§6.1).</li>
+ *   <li>{@code POST /discovery/ping} - receive a signed ping; answers 204 and dispatches the
  *       callback asynchronously.</li>
- *   <li>{@code POST /discovery/peers} — receive a signed callback for one of our outbound
+ *   <li>{@code POST /discovery/peers} - receive a signed callback for one of our outbound
  *       pings.</li>
  * </ul>
  */
@@ -112,7 +112,7 @@ public class PublicDiscoveryRoutes implements Routes {
             return;
         }
         // The service validates the signature, drift, replay, then dispatches the callback
-        // asynchronously. Either way, we answer 204 — never block the peer waiting for our
+        // asynchronously. Either way, we answer 204 - never block the peer waiting for our
         // peer-list compilation.
         inboundExecutor.execute(() -> {
             try {

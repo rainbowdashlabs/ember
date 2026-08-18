@@ -14,7 +14,7 @@ import java.util.List;
  *
  * @param status     current verification status
  * @param reason     required when {@code status = IGNORED}
- * @param strategies required when {@code status = TRACKED} — one entry per identity column
+ * @param strategies required when {@code status = TRACKED} - one entry per identity column
  */
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public record GdprDeletionContext(Status status, String reason, List<DeletionStrategy> strategies) {

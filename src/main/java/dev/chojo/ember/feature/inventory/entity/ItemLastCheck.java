@@ -17,7 +17,7 @@ import java.time.Instant;
  *                    item was created after the most recent container check and has never been
  *                    checked yet
  * @param checkedAt   when the most recent check ran, or {@code null} if never checked
- * @param checkerName display name of the member who performed the check, never {@code null} —
+ * @param checkerName display name of the member who performed the check, never {@code null} -
  *                    falls back to an empty string when the checker has been removed
  */
 public record ItemLastCheck(int itemId, CheckResult result, Instant checkedAt, String checkerName) {}

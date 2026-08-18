@@ -9,7 +9,7 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * Body of {@code POST /api/v1/discovery/peers} — the asynchronous answer to a ping.
+ * Body of {@code POST /api/v1/discovery/peers} - the asynchronous answer to a ping.
  */
 public record DiscoveryCallbackMessage(
         DiscoveryIdentity from, String inReplyTo, Instant issuedAt, List<PeerAnnouncement> peers) {}

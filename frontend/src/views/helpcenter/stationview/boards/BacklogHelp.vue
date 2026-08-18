@@ -33,7 +33,7 @@ const {t} = useI18n()
             <NeutralContainer class="space-y-4">
                 <div class="flex items-center gap-3">
                     <IconButton :icon="['fas', 'chevron-left']" label="Back" />
-                    <SectionHeader>PLAN — {{ t('boards.backlogTitle') }}</SectionHeader>
+                    <SectionHeader>PLAN - {{ t('boards.backlogTitle') }}</SectionHeader>
                 </div>
                 <DummyBacklogTable />
             </NeutralContainer>

@@ -286,7 +286,7 @@ class InventoryCheckRepositoryTest extends RepositoryTestBase {
                 .nextUncheckedMember(station.id(), member1.id(), true)
                 .isEmpty());
 
-        // Promote member2 to TEAM and try again — it should now be picked up.
+        // Promote member2 to TEAM and try again - it should now be picked up.
         stationMemberRepo.setUserType(member2.id(), StationUserType.TEAM);
         var picked = inventoryCheckRepo.nextUncheckedMember(station.id(), member1.id(), true);
         assertTrue(picked.isPresent());

@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 
 /**
  * Bridges Yubico's {@link CredentialRepository} contract to our database. Usernames are stringified
- * account ids — the Yubico API is username-centric but our model identifies users by integer id.
+ * account ids - the Yubico API is username-centric but our model identifies users by integer id.
  */
 @Singleton
 public class WebAuthnCredentialStore implements CredentialRepository {

@@ -84,7 +84,8 @@ onMounted(async () => {
         <SectionHeader>{{ t('stationManage.modulesTitle') }}</SectionHeader>
         <p class="text-sm text-(--text-muted)">{{ t('stationManage.modulesHint') }}</p>
         <div class="space-y-3">
-          <div v-for="mod in allModules" :key="mod.key" class="flex items-center gap-3">
+          <div v-for="mod in allModules" :key="mod.key" data-testid="module-toggle" :data-module="mod.key"
+               class="flex items-center gap-3">
             <ToggleInput :model-value="isModuleEnabled(mod.key)" :disabled="modulesSaving" @update:model-value="toggleModule(mod.key)"/>
             <span class="text-sm font-medium">{{ t(`stationManage.${mod.label}`) }}</span>
           </div>

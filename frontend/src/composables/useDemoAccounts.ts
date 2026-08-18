@@ -4,23 +4,11 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import { computed, ref } from 'vue'
-import client from '@/api/client'
+import { demo } from '@/api'
+import type { DemoAccount, DemoAccountsPayload, DemoStationGroup } from '@/api/demo'
 import { StationUserType } from '@/api/types'
 
-/**
- * A demo account exposed by the backend on a demo or dev instance for one-click login on the
- * login page.
- */
-export interface DemoAccount {
-  email: string
-  firstName: string
-  lastName: string
-  userType: string
-  permissions: string[]
-  groups: string[]
-  tags: string[]
-  profileComplete: boolean
-}
+export type { DemoAccount }
 
 /**
  * A named group of demo accounts shown together on the demo login UI (e.g. "Admin", "Team").
@@ -39,23 +27,12 @@ export interface StationTab {
   label: string
 }
 
-interface StationGroup {
-  stationId: string
-  stationName: string
-  accounts: DemoAccount[]
-}
-
-type AccountsPayload =
-  | { noStationAccounts: DemoAccount[]; stationGroups: StationGroup[] }
-  | StationGroup[]
-  | DemoAccount[]
-
 /**
  * The one-click demo logins offered on demo and dev instances, grouped by station and then by
  * role so the list is navigable.
  *
  * An instance that is neither demo nor dev exposes nothing here, and a failure to reach the
- * status endpoint is treated the same way — the login page must still render for a normal
+ * status endpoint is treated the same way - the login page must still render for a normal
  * instance where these endpoints do not exist.
  */
 export function useDemoAccounts() {
@@ -63,7 +40,7 @@ export function useDemoAccounts() {
   const isDev = ref(false)
   const loading = ref(true)
 
-  const stationGroups = ref<StationGroup[]>([])
+  const stationGroups = ref<DemoStationGroup[]>([])
   const noStationAccounts = ref<DemoAccount[]>([])
   const activeStationTab = ref('')
 
@@ -109,7 +86,7 @@ export function useDemoAccounts() {
    * Accepts both the grouped payload and the two flat shapes older instances return, so a demo
    * instance one version behind still offers its accounts.
    */
-  function applyPayload(payload: AccountsPayload) {
+  function applyPayload(payload: DemoAccountsPayload) {
     if (!Array.isArray(payload)) {
       stationGroups.value = payload.stationGroups ?? []
       noStationAccounts.value = payload.noStationAccounts ?? []
@@ -117,18 +94,18 @@ export function useDemoAccounts() {
     }
     const [firstEntry] = payload
     stationGroups.value = firstEntry && 'accounts' in firstEntry
-      ? (payload as StationGroup[])
+      ? (payload as DemoStationGroup[])
       : [{stationId: 'default', stationName: 'Station', accounts: payload as DemoAccount[]}]
     noStationAccounts.value = []
   }
 
   async function load() {
     try {
-      const status = await client.get<{ demo: boolean; dev: boolean }>('/demo/status')
-      isDemo.value = status.data.demo
-      isDev.value = status.data.dev
+      const status = await demo.getDemoStatus()
+      isDemo.value = status.demo
+      isDev.value = status.dev
       if (isDemo.value || isDev.value) {
-        applyPayload((await client.get<AccountsPayload>('/demo/accounts')).data)
+        applyPayload(await demo.getDemoAccounts())
         activeStationTab.value = stationGroups.value[0]?.stationId ?? ''
       }
     } catch {

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, onMounted, ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import MutedText from '@/components/typography/MutedText.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -19,12 +19,24 @@ import {discovery} from '@/api'
 import type {DiscoveryEntry} from '@/api/discovery'
 import {useSession} from '@/composables/useSession'
 import {useFlashMessage} from '@/composables/useFlashMessage'
+import {apiUrl} from '@/util/apiUrl'
 
 const {t} = useI18n()
 const {canManageFederation} = useSession()
 
-const stations = ref<DiscoveryEntry[]>([])
-const loading = ref(true)
+/**
+ * Loaded during the server render rather than after mount. This page is public and indexed, and a
+ * station list that only appears once the browser has taken over is a list no crawler sees.
+ *
+ * The refresh after a federation action goes through the same call, so the two paths cannot drift.
+ */
+const {data: stations, status, refresh} = await useAsyncData(
+    'public-discovery',
+    () => $fetch<DiscoveryEntry[]>(apiUrl('/public/discovery')),
+    {default: (): DiscoveryEntry[] => []},
+)
+
+const loading = computed(() => status.value === 'pending')
 const error = ref('')
 const {message: success, flash} = useFlashMessage(3000)
 const inviteCode = ref('')
@@ -43,21 +55,11 @@ const mapStations = computed<MapStation[]>(() => stations.value
     })),
 )
 
-onMounted(async () => {
-  try {
-    stations.value = await discovery.listDiscoverable()
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
-  }
-})
-
 async function handleConnect(station: DiscoveryEntry) {
   try {
     await discovery.requestFederation(station.stationUid)
     flash(t('discovery.requestSent'))
-    stations.value = await discovery.listDiscoverable()
+    await refresh()
   } catch {
     error.value = t('discovery.requestError')
   }

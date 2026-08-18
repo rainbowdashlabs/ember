@@ -70,7 +70,7 @@ export interface SharedKbFile {
 export interface SharedFileEntry {
     file: SharedKbFile
     stationName: string
-    sourceStationId: string
+    sourceStationUid: string | null
 }
 
 export interface BrowseResponse {
@@ -79,6 +79,21 @@ export interface BrowseResponse {
     files: KbFile[]
     sharedFiles: SharedFileEntry[]
     favourites: KbFile[]
+    /** What the reader may do in the folder being browsed, which decides what may be created in it. */
+    currentLevel?: KbAccessLevelName
+    /** What the reader may do with each folder, keyed by folder id. */
+    folderLevels?: Record<number, KbAccessLevelName>
+    /** What the reader may do with each file, keyed by file id. */
+    fileLevels?: Record<number, KbAccessLevelName>
+}
+
+/**
+ * Tells whether a level is enough for an action, using the same order the server checks.
+ */
+export function levelCovers(level: KbAccessLevelName | undefined, required: KbAccessLevelName): boolean {
+    const order = [KbAccessLevel.NONE, KbAccessLevel.READ, KbAccessLevel.WRITE, KbAccessLevel.MANAGE]
+    if (!level) return true
+    return order.indexOf(level) >= order.indexOf(required)
 }
 
 export interface MarkdownHtmlResponse {
@@ -111,6 +126,10 @@ export interface FileResponse {
     file: KbFile
     lastEditedByName: string | null
     isFavourite: boolean
+    /** What the reader may do with this file. */
+    accessLevel?: KbAccessLevelName
+    /** The folder whose permission decided that, when one did. */
+    accessLevelSource?: string | null
 }
 
 interface FolderCreateRequest {
@@ -257,6 +276,22 @@ export function originalFileUrl(id: number): string {
     return `/kb/files/${id}/original`
 }
 
+/**
+ * Returns the API path (relative to the shared axios client's baseURL) for the PDF rendering of
+ * a markdown or text file. Pass to {@code downloadAuthed} to trigger an authenticated save.
+ */
+export function pdfExportUrl(id: number): string {
+    return `/kb/files/${id}/pdf`
+}
+
+/**
+ * Returns the API path for the PDF rendering of a file held by a federation partner. The document
+ * is headed with the partner's name, since the file is theirs.
+ */
+export function federatedPdfExportUrl(stationUid: string, fileId: number): string {
+    return `/federated/${stationUid}/kb/files/${fileId}/pdf`
+}
+
 export async function reuploadOriginal(id: number, file: File): Promise<KbFile> {
     return uploadMultipart<KbFile>(`/kb/files/${id}/original`, {file}, 'put')
 }
@@ -279,11 +314,36 @@ export async function revertToVersion(fileId: number, version: number): Promise<
 
 // -- Access Restrictions --
 
+/**
+ * What a member may do with a folder or file, from nothing to everything.
+ */
+export const KbAccessLevel = {
+    NONE: 'NONE',
+    READ: 'READ',
+    WRITE: 'WRITE',
+    MANAGE: 'MANAGE',
+} as const
+
+export type KbAccessLevelName = (typeof KbAccessLevel)[keyof typeof KbAccessLevel]
+
+/**
+ * One audience and what it may do. A null level names an audience and leaves the level to the
+ * station permission the member holds, which is what every entry carried before levels existed.
+ */
+export interface KbGrant {
+    userType?: string | null
+    groupId?: number | null
+    tagId?: number | null
+    memberId?: number | null
+    level?: KbAccessLevelName | null
+}
+
 export interface KbRestrictions {
     userTypes: string[]
     groupIds: number[]
     tagIds: number[]
     memberIds: number[]
+    grants?: KbGrant[]
 }
 
 export async function getFolderRestrictions(folderId: number): Promise<KbRestrictions> {
@@ -388,7 +448,7 @@ export async function uploadKbImage(fileId: number, image: File): Promise<ImageU
 /**
  * Returns the API path (relative to the shared axios client's baseURL) for
  * an inline KB image. The value is stored verbatim inside markdown content
- * — see {@code KbMarkdownView} and {@code ImageNodeView} which fetch it
+ * - see {@code KbMarkdownView} and {@code ImageNodeView} which fetch it
  * through the authenticated client at render time.
  */
 export function kbImageUrl(imageId: string, size = 1024): string {
@@ -417,7 +477,7 @@ export interface SearchResult {
     snippet: string
     folderPath: string
     stationName: string | null
-    sourceStationId: string
+    sourceStationUid: string | null
 }
 
 // -- Public Visibility --
@@ -482,6 +542,62 @@ export const listComments = fileComments.list
 export const createComment = fileComments.create
 export const updateComment = comments.update
 export const deleteComment = comments.remove
+
+// -- Federated files --
+
+/**
+ * The file facts a partner publishes for a single file. Folder, position, ownership and
+ * restriction data stay on the owning station, so only what the viewer renders crosses over.
+ */
+export interface FederatedKbFile {
+    id: number
+    stationUid: string
+    name: string
+    description: string
+    fileType: string
+    mimeType: string | null
+    fileSize: number
+    youtubeUrl: string | null
+    linkUrl: string | null
+    createdAt: string
+    updatedAt: string
+    conversionStatus: string | null
+}
+
+/**
+ * Reads a knowledge-base file served by a federation partner. The partner is addressed by its
+ * station UUID because the file id alone is only unique within the station that owns it.
+ *
+ * The result is widened to the shape the file viewer components take. The fields a partner does
+ * not publish are filled with neutral values; every part of the viewer that would read them is
+ * hidden for federated files.
+ */
+export async function getFederatedFile(stationUid: string, fileId: number): Promise<KbFile> {
+    const res = await client.get<FederatedKbFile>(`/federated/${stationUid}/kb/files/${fileId}`)
+    const file = res.data
+    return {
+        ...file,
+        stationId: file.stationUid,
+        folderId: null,
+        iconUrl: null,
+        position: 0,
+        createdBy: 0,
+        sourceFileId: null,
+        sourceStationId: null,
+        restricted: false,
+    }
+}
+
+/**
+ * Reads the text body of a knowledge-base file served by a federation partner. Only textual file
+ * types carry content; everything else answers an empty string.
+ */
+export async function getFederatedFileContent(stationUid: string, fileId: number): Promise<string> {
+    const res = await client.get<{fileId: number; content: string}>(
+        `/federated/${stationUid}/kb/files/${fileId}/content`,
+    )
+    return res.data.content ?? ''
+}
 
 // Federated KB comments
 

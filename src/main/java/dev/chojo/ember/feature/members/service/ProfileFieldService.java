@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
+import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -107,6 +108,7 @@ public class ProfileFieldService {
             ProfileFieldConfig config,
             int position,
             ProfileFieldScope scope) {
+        requireSingleBirthDate(stationId, fieldType, 0);
         var field = profileFieldRepository.create(stationId, name, fieldType, config, position, scope);
         log.info(
                 "Profile field created: id={}, station={}, name='{}', type={}, scope={}",
@@ -125,12 +127,37 @@ public class ProfileFieldService {
             ProfileFieldConfig config,
             int position,
             boolean keepOnArchive) {
+        var existing = profileFieldRepository.findById(id);
+        if (existing.isEmpty()) {
+            log.warn("Profile field update affected no rows: id={}", id);
+            return Optional.empty();
+        }
+        requireSingleBirthDate(existing.get().stationId(), fieldType, id);
         if (profileFieldRepository.update(id, name, fieldType, config, position, keepOnArchive)) {
             log.info("Profile field updated: id={}, name='{}', type={}", id, name, fieldType);
             return profileFieldRepository.findById(id);
         }
         log.warn("Profile field update affected no rows: id={}", id);
         return Optional.empty();
+    }
+
+    /**
+     * Rejects a second birth date field in the same station.
+     *
+     * @param stationId  the station the field belongs to
+     * @param fieldType  the type the field is about to carry
+     * @param excludedId the field being updated, so it does not clash with itself; 0 when creating
+     * @throws BadRequestResponse if another field of the station already is the birth date
+     */
+    private void requireSingleBirthDate(int stationId, ProfileFieldType fieldType, int excludedId) {
+        if (fieldType != ProfileFieldType.BIRTH_DATE) return;
+        profileFieldRepository
+                .findByStationAndType(stationId, ProfileFieldType.BIRTH_DATE)
+                .filter(existing -> existing.id() != excludedId)
+                .ifPresent(existing -> {
+                    throw new BadRequestResponse(
+                            "A birth date field already exists in this station: " + existing.name());
+                });
     }
 
     public boolean delete(int id) {
@@ -257,9 +284,38 @@ public class ProfileFieldService {
                 .toList();
     }
 
+    /**
+     * The changes of the given members, for a caller who may not see the whole station.
+     *
+     * @param memberIds the members the caller is allowed to see
+     * @param limit     page size
+     * @param offset    page offset
+     * @return the page of changes, enriched the same way the station-wide list is
+     */
+    public PagedChanges findChangesByMembers(List<Integer> memberIds, int limit, int offset) {
+        return enrich(
+                changeRepository.findByMembers(memberIds, limit, offset), changeRepository.countByMembers(memberIds));
+    }
+
+    /**
+     * The member a change was recorded for.
+     *
+     * @param changeId the change identifier
+     * @return the member, empty if there is no such change
+     */
+    public Optional<Integer> findMemberOfChange(int changeId) {
+        return changeRepository.findMemberOfChange(changeId);
+    }
+
     public PagedChanges findChangesByStation(int stationId, int limit, int offset) {
-        var changes = changeRepository.findByStation(stationId, limit, offset);
-        int total = changeRepository.countByStation(stationId);
+        return enrich(
+                changeRepository.findByStation(stationId, limit, offset), changeRepository.countByStation(stationId));
+    }
+
+    /**
+     * Fills a page of changes with their acknowledgements and the names of the members they belong to.
+     */
+    private PagedChanges enrich(List<ProfileFieldChange> changes, int total) {
         if (changes.isEmpty()) return new PagedChanges(changes, total);
 
         var allAcks = new ArrayList<ProfileFieldChangeAcknowledgement>();

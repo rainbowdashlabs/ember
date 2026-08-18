@@ -328,10 +328,10 @@ class FormServiceTest extends RepositoryTestBase {
         var restrictedService =
                 new FormService(formRepo, memberService, groupService, tagService, restrictionService, eventBus);
 
-        // Member is in the restriction list — should have access
+        // Member is in the restriction list - should have access
         assertTrue(restrictedService.canMemberAccess(form.id(), member.id()));
 
-        // A different member ID not in the list — should NOT have access
+        // A different member ID not in the list - should NOT have access
         when(memberService.findById(99999))
                 .thenReturn(Optional.of(new StationMember(
                         99999,
@@ -364,7 +364,7 @@ class FormServiceTest extends RepositoryTestBase {
     @Test
     @Order(35)
     void isAcceptingResponsesFutureStartAt() {
-        // Form is OPEN but startAt is in the future — should not accept responses
+        // Form is OPEN but startAt is in the future - should not accept responses
         var form = service.create(
                 station.id(), "Future Form", "", false, true, false, null, null, member.id(), FormPurpose.INTERNAL);
         service.publish(form.id());

@@ -15,12 +15,12 @@ import org.slf4j.LoggerFactory;
  * Thin wrapper around {@link ApplicationSettingRepository} for discovery-specific knobs.
  *
  * <ul>
- *   <li>{@code discovery_enabled} (bool, default true) — kill switch for outbound pings and
+ *   <li>{@code discovery_enabled} (bool, default true) - kill switch for outbound pings and
  *       the public stations endpoint.</li>
  *   <li>{@code discovery_max_depth} (int, 0..{@value #MAX_DEPTH}, default {@value
- *       #DEFAULT_MAX_DEPTH}) — fan-out depth attached to outbound pings.</li>
+ *       #DEFAULT_MAX_DEPTH}) - fan-out depth attached to outbound pings.</li>
  *   <li>{@code discovery_ping_interval_minutes} (int, default {@value
- *       #DEFAULT_PING_INTERVAL_MINUTES}) — cadence of {@code DiscoveryPingScheduler}.</li>
+ *       #DEFAULT_PING_INTERVAL_MINUTES}) - cadence of {@code DiscoveryPingScheduler}.</li>
  * </ul>
  */
 @Singleton

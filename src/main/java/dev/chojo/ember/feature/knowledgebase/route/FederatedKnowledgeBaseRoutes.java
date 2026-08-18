@@ -12,13 +12,17 @@ import dev.chojo.ember.feature.knowledgebase.route.KnowledgeBaseCommentRoutes.Cr
 import dev.chojo.ember.feature.knowledgebase.route.KnowledgeBaseCommentRoutes.UpdateKbCommentRequest;
 import dev.chojo.ember.feature.knowledgebase.route.RemoteKnowledgeBaseRoutes.FileContentResponse;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
+import dev.chojo.ember.util.SafeContentDisposition;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import io.javalin.http.InternalServerErrorResponse;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+
+import java.io.IOException;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 import static dev.chojo.ember.api.RouteSupport.pathUuid;
@@ -49,6 +53,7 @@ public class FederatedKnowledgeBaseRoutes implements Routes {
         routes.get(prefix + "/federated/{stationuid}/kb/files/{id}", this::getFile, StationPermission.USER);
         routes.get(
                 prefix + "/federated/{stationuid}/kb/files/{id}/content", this::getFileContent, StationPermission.USER);
+        routes.get(prefix + "/federated/{stationuid}/kb/files/{id}/pdf", this::getFilePdf, StationPermission.USER);
         routes.post(prefix + "/federated/kb/files/{id}/copy", this::copyFile, StationPermission.KNOWLEDGE_EDIT);
         routes.post(
                 prefix + "/federated/{stationuid}/kb/files/{id}/copy",
@@ -90,6 +95,27 @@ public class FederatedKnowledgeBaseRoutes implements Routes {
         var content =
                 federationService.getFederatedKbFileContent(session.stationId(), pathUuid(ctx, "stationuid"), fileId);
         ctx.json(new FileContentResponse(fileId, content));
+    }
+
+    private void getFilePdf(Context ctx) {
+        var session = UserSession.from(ctx);
+        try {
+            var rendered = federationService.renderFederatedKbFilePdf(
+                    session.stationId(),
+                    pathUuid(ctx, "stationuid"),
+                    pathInt(ctx, "id"),
+                    session.account().fullName().trim());
+            ctx.contentType("application/pdf");
+            ctx.header(
+                    "Content-Disposition",
+                    SafeContentDisposition.build(SafeContentDisposition.Disposition.ATTACHMENT, rendered.fileName()));
+            ctx.result(rendered.data());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new InternalServerErrorResponse("Failed to render PDF");
+        } catch (IOException e) {
+            throw new InternalServerErrorResponse("Failed to render PDF");
+        }
     }
 
     private void copyFile(Context ctx) {

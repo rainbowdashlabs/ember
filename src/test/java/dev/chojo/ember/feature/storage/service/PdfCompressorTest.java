@@ -38,7 +38,7 @@ class PdfCompressorTest {
 
     @Test
     void shouldCompressMatchesGate() {
-        Assumptions.assumeTrue(PdfCompressor.isAvailable(), "qpdf not available — skipping");
+        Assumptions.assumeTrue(PdfCompressor.isAvailable(), "qpdf not available - skipping");
         assertTrue(compressor.shouldCompress("application/pdf", 1024));
         assertFalse(compressor.shouldCompress("application/pdf", 0));
         assertFalse(compressor.shouldCompress("text/plain", 1024));
@@ -53,7 +53,7 @@ class PdfCompressorTest {
 
     @Test
     void compressReturnsOriginalWhenQpdfUnavailable() throws IOException {
-        Assumptions.assumeFalse(PdfCompressor.isAvailable(), "qpdf present — skipping unavailable-path");
+        Assumptions.assumeFalse(PdfCompressor.isAvailable(), "qpdf present - skipping unavailable-path");
         byte[] pdf = simplePdf();
         byte[] result = compressor.compress(pdf);
         assertArrayEquals(pdf, result);
@@ -61,7 +61,7 @@ class PdfCompressorTest {
 
     @Test
     void compressRoundTripsWhenAvailable() throws IOException {
-        Assumptions.assumeTrue(PdfCompressor.isAvailable(), "qpdf not available — skipping");
+        Assumptions.assumeTrue(PdfCompressor.isAvailable(), "qpdf not available - skipping");
         byte[] pdf = simplePdf();
         byte[] result = compressor.compress(pdf);
         assertNotNull(result);
@@ -73,7 +73,7 @@ class PdfCompressorTest {
 
     @Test
     void compressReturnsOriginalOnBrokenInput() {
-        Assumptions.assumeTrue(PdfCompressor.isAvailable(), "qpdf not available — skipping");
+        Assumptions.assumeTrue(PdfCompressor.isAvailable(), "qpdf not available - skipping");
         byte[] junk = "not a pdf".getBytes();
         byte[] result = compressor.compress(junk);
         assertArrayEquals(junk, result);

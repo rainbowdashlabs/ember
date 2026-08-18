@@ -129,7 +129,7 @@ class EventThresholdCheckerTest extends RepositoryTestBase {
     @Test
     @Order(3)
     void checkWithNoEligibleEvents() throws Exception {
-        // No events with thresholds — check should not fail
+        // No events with thresholds - check should not fail
         Method checkMethod = EventThresholdChecker.class.getDeclaredMethod("check");
         checkMethod.setAccessible(true);
         assertDoesNotThrow(() -> checkMethod.invoke(checker));

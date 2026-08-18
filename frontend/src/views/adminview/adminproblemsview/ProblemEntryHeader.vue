@@ -48,7 +48,7 @@ function shortLogger(logger: string): string {
       </p>
       <p class="text-xs text-[var(--text-muted)]">
         {{ formatDateTime(entry.firstOccurrence) }}
-        <template v-if="entry.count > 1"> — {{ formatDateTime(entry.lastOccurrence) }}</template>
+        <template v-if="entry.count > 1"> - {{ formatDateTime(entry.lastOccurrence) }}</template>
       </p>
     </div>
     <div class="flex items-center gap-1 shrink-0">

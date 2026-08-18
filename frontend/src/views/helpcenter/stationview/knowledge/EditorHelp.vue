@@ -109,7 +109,7 @@ Normaler Absatztext darunter.`)
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.kb.editor.demoTitle')">
-      <p class="mb-3 text-sm text-[var(--text-muted)]">Probiere den Editor direkt hier aus — du kannst den Text bearbeiten, formatieren und die Werkzeugleiste testen.</p>
+      <p class="mb-3 text-sm text-[var(--text-muted)]">Probiere den Editor direkt hier aus - du kannst den Text bearbeiten, formatieren und die Werkzeugleiste testen.</p>
       <MarkdownEditor v-model="demoContent" placeholder="Schreibe etwas..." />
     </HelpSection>
 

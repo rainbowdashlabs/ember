@@ -142,12 +142,15 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
     selectedAssigneeIds.value = selectedAssigneeIds.value.filter(a => a !== id)
   }
 
-  function addItem(title: string, itemDescription: string) {
-    const trimmed = title.trim()
-    if (!trimmed) return
+  /**
+   * Appends a step, empty unless something is handed in. An empty one is a row to write in rather
+   * than a step: the list edits every field in place, so asking for the title up front only defers
+   * what the row does anyway. Steps still without a title when the form is saved are dropped.
+   */
+  function addItem(title = '', itemDescription = '') {
     items.value = [...items.value, {
       tempId: nextTempId++,
-      title: trimmed,
+      title: title.trim(),
       description: itemDescription,
       isPublic: true,
       userAssigned: false,
@@ -212,6 +215,8 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
   }
 
   async function syncItems(pid: number): Promise<Map<number, number>> {
+    // A row nobody wrote a title into never became a step, so it is not saved as one.
+    items.value = items.value.filter(item => item.title.trim())
     const keptIds = new Set(items.value.filter(i => i.id).map(i => i.id!))
     for (const oldId of existingItemIds.value) {
       if (!keptIds.has(oldId)) await procedures.deleteItem(pid, oldId)

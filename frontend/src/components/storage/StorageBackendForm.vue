@@ -25,7 +25,7 @@ type BackendType = 'LOCAL' | 'S3' | 'SMB' | 'SFTP'
  * Editor for a storage backend selection, shared by the instance and the station view.
  *
  * All labels are read from `i18nPrefix`, so each caller keeps its own wording. Bind
- * `localRoot` when LOCAL means a writable directory — it then renders the root path
+ * `localRoot` when LOCAL means a writable directory - it then renders the root path
  * field, otherwise LOCAL only shows the caller's `form.localHint` text.
  */
 const selectedType = defineModel<BackendType>('selectedType', {required: true})

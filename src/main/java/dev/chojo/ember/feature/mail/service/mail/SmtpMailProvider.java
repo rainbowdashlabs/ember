@@ -38,6 +38,8 @@ public class SmtpMailProvider implements MailProvider {
     private final String password;
     private final String senderAddress;
     private final String senderName;
+    private final String correlationHeader;
+    private final String correlationFormat;
 
     /**
      * Creates a new SMTP mail provider.
@@ -52,6 +54,28 @@ public class SmtpMailProvider implements MailProvider {
      */
     public SmtpMailProvider(
             String host, int port, boolean ssl, String user, String password, String senderAddress, String senderName) {
+        this(host, port, ssl, user, password, senderAddress, senderName, null, null);
+    }
+
+    /**
+     * Creates a new SMTP mail provider that tags its messages for delivery tracking.
+     *
+     * @param correlationHeader the header this relay carries through to its delivery events, or
+     *                          null for a relay that reports nothing back
+     * @param correlationFormat how the token has to be written into that header, as a format string
+     *                          taking the token. Relays differ: one carries a plain value through,
+     *                          another expects a small JSON document.
+     */
+    public SmtpMailProvider(
+            String host,
+            int port,
+            boolean ssl,
+            String user,
+            String password,
+            String senderAddress,
+            String senderName,
+            String correlationHeader,
+            String correlationFormat) {
         this.host = host;
         this.port = port;
         this.ssl = ssl;
@@ -59,10 +83,12 @@ public class SmtpMailProvider implements MailProvider {
         this.password = password;
         this.senderAddress = senderAddress;
         this.senderName = senderName;
+        this.correlationHeader = correlationHeader;
+        this.correlationFormat = correlationFormat == null ? "%s" : correlationFormat;
     }
 
     @Override
-    public SendResult send(String to, String subject, String htmlBody) {
+    public SendResult send(String to, String subject, String htmlBody, String correlationId) {
         Session session = createSession();
         try {
             MimeMessage message = new MimeMessage(session);
@@ -71,6 +97,9 @@ public class SmtpMailProvider implements MailProvider {
             message.setSubject(subject);
             message.setContent(htmlBody, "text/html; charset=UTF-8");
             message.setSentDate(new Date());
+            if (correlationHeader != null && correlationId != null) {
+                message.setHeader(correlationHeader, correlationFormat.formatted(correlationId));
+            }
             Transport.send(message, user, password);
             log.info("SMTP email sent to {}: {}", to, subject);
             return SendResult.SENT;

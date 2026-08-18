@@ -91,7 +91,7 @@ class FeedMetricsServiceTest {
         verify(repo).pruneDailyMetrics(30);
         verify(repo).pruneInactiveUserAgents(30);
 
-        // Repo throws — service must not propagate.
+        // Repo throws - service must not propagate.
         reset(repo);
         when(repo.pruneDailyMetrics(anyInt())).thenThrow(new RuntimeException("db down"));
         assertDoesNotThrow(() -> invokePrune(service));

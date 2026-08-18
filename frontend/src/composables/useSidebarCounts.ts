@@ -26,7 +26,7 @@ export function useSidebarCounts() {
         try {
             counts.value = await getSidebarCounts()
         } catch {
-            // ignore — endpoint may not be available yet
+            // ignore - endpoint may not be available yet
         }
     }
 

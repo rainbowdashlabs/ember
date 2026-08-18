@@ -15,7 +15,7 @@ import java.util.Map;
  * covered by station export/import and GDPR export/deletion workflows.
  *
  * @param version     file format version
- * @param schemaHash  SHA-256 combining all table hashes — included in export bundles so import can verify schema parity
+ * @param schemaHash  SHA-256 combining all table hashes - included in export bundles so import can verify schema parity
  * @param generatedAt timestamp of last refresh
  * @param tables      per-table tracking entries, keyed by table name
  * @param fileStores  per-file-store tracking entries, keyed by store name

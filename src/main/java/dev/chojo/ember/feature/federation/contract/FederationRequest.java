@@ -40,7 +40,7 @@ public record FederationRequest(FederationEndpoint endpoint, String path) {
      * <p>
      * The check is structural rather than by identity: a caller may deserialize into its own
      * view record as long as every component it reads exists on the declared type. That is
-     * what makes a rolled hash meaningful — the fields a caller depends on are a subset of
+     * what makes a rolled hash meaningful - the fields a caller depends on are a subset of
      * the fields the contract covers.
      */
     public void requireResponseType(Class<?> expected) {

@@ -71,7 +71,7 @@ public class ProcedureRoutes implements Routes {
         routes.get(prefix + "/procedures", this::listProcedures, StationPermission.USER);
         routes.post(prefix + "/procedures", this::createProcedure, StationPermission.PROCEDURE_EDIT);
         routes.get(prefix + "/procedures/{rid}", this::getProcedure, StationPermission.USER);
-        routes.patch(prefix + "/procedures/{rid}", this::updateProcedure, StationPermission.PROCEDURE_EDIT);
+        routes.put(prefix + "/procedures/{rid}", this::updateProcedure, StationPermission.PROCEDURE_EDIT);
         routes.delete(prefix + "/procedures/{rid}", this::deleteProcedure, StationPermission.PROCEDURE_EDIT);
         routes.post(prefix + "/procedures/{rid}/resolve", this::resolveProcedure, StationPermission.PROCEDURE_EDIT);
         routes.post(prefix + "/procedures/{rid}/reopen", this::reopenProcedure, StationPermission.PROCEDURE_EDIT);
@@ -358,7 +358,7 @@ public class ProcedureRoutes implements Routes {
                     }
                 }
                 if (!procedureService.checkItem(iid, session.member().id())) {
-                    throw new BadRequestResponse("Cannot check item — dependencies not met or already checked");
+                    throw new BadRequestResponse("Cannot check item - dependencies not met or already checked");
                 }
             } else {
                 if (!hasEdit) {

@@ -12,7 +12,7 @@ import tools.jackson.databind.SerializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Shared default-configuration JSON mapper for internal (de)serialization — storage
+ * Shared default-configuration JSON mapper for internal (de)serialization - storage
  * backend metadata, entity JSONB payloads, CSV/AI processing, federation version
  * hashing. Deliberately distinct from the API-boundary mapper in the HTTP server,
  * which carries the station-id translation module and strict payload settings that
@@ -26,14 +26,14 @@ public final class Json {
      *
      * <p>These records are read back from JSONB columns written by older versions, so an unknown
      * property is expected rather than exceptional and a {@code null} where a primitive is declared
-     * has to fall back to the default instead of failing the whole read — a single stale column
+     * has to fall back to the default instead of failing the whole read - a single stale column
      * would otherwise take out the feature that reads it. Fields are read directly and getters
      * ignored so a derived accessor cannot leak into the persisted shape.
      */
     public static final ObjectMapper CONFIG_MAPPER = configMapperBuilder().build();
 
     /**
-     * {@link #CONFIG_MAPPER} for records that may serialize to nothing at all — a config whose
+     * {@link #CONFIG_MAPPER} for records that may serialize to nothing at all - a config whose
      * every field is absent. Without this an empty payload is an error rather than {@code {}}.
      */
     public static final ObjectMapper EMPTY_TOLERANT_CONFIG_MAPPER = configMapperBuilder()

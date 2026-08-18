@@ -27,7 +27,7 @@ function memberDisplayName(m: StationMember): string {
 <template>
   <div class="flex items-center justify-between flex-wrap gap-2">
     <SubHeader>
-      {{ member ? `${t('profile.inventory')} — ${memberDisplayName(member)}` : t('profile.inventory') }}
+      {{ member ? `${t('profile.inventory')} - ${memberDisplayName(member)}` : t('profile.inventory') }}
     </SubHeader>
     <SecondaryButton :icon="['fas', 'chevron-left']" @click="$emit('back')">
       {{ t('common.back') }}

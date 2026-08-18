@@ -105,10 +105,10 @@ onMounted(() => loadAudit(true))
           <tr v-for="e in audit" :key="e.id" class="border-t border-(--border)">
             <td class="py-2 pr-3 text-(--text-muted) whitespace-nowrap">{{ formatDateTime(e.createdAt) }}</td>
             <td class="py-2 pr-3 font-mono">{{ e.accountId }}</td>
-            <td class="py-2 pr-3 font-mono">{{ e.actorId ?? '—' }}</td>
+            <td class="py-2 pr-3 font-mono">{{ e.actorId ?? '-' }}</td>
             <td class="py-2 pr-3">{{ e.event }}</td>
-            <td class="py-2 pr-3 text-(--text-muted)">{{ e.factorKind ?? '—' }}</td>
-            <td class="py-2 pr-3 text-(--text-muted)">{{ e.country ?? '—' }}</td>
+            <td class="py-2 pr-3 text-(--text-muted)">{{ e.factorKind ?? '-' }}</td>
+            <td class="py-2 pr-3 text-(--text-muted)">{{ e.country ?? '-' }}</td>
           </tr>
           <tr v-if="!auditLoading && audit.length === 0">
             <td colspan="6" class="py-4 text-(--text-muted) text-center">{{ t('twoFactor.admin.audit.empty') }}</td>

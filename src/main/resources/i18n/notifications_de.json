@@ -1,6 +1,6 @@
 {
   "feed": {
-    "title": "{stationName} — Benachrichtigungen",
+    "title": "{stationName} - Benachrichtigungen",
     "description": "Persönlicher Benachrichtigungs-Feed von Ember"
   },
   "ical": {
@@ -116,28 +116,28 @@
     "EXCHANGE_STATUS_CHANGE": "Tausch {statusLabel}: {inventoryName}",
     "EXCHANGE_NEW_REQUEST": "Tausch-Anfrage: {inventoryName}",
     "MEMBER_ADDED_TO_GROUP": "Zur Gruppe hinzugefügt: {groupName}",
-    "PROFILE_FIELD_CHANGED": "Profiländerung: {memberName} — {fieldName}",
+    "PROFILE_FIELD_CHANGED": "Profiländerung: {memberName} - {fieldName}",
     "PROCUREMENT_REQUESTED": "Beschaffung angefragt: {inventoryName}",
     "PROCUREMENT_FULFILLED": "Beschaffung abgeschlossen: {inventoryName}",
     "NEW_FORM": "Neues Formular: {title}",
     "LOST_AND_FOUND_NEW": "Fundbüro: {description}",
-    "LOST_AND_FOUND_CLAIMED": "Beansprucht: {description} — von {name}",
+    "LOST_AND_FOUND_CLAIMED": "Beansprucht: {description} - von {name}",
     "WAITLIST_NEW_ENTRY": "Warteliste {listName}: {childName} hinzugefügt",
     "LENDING_NEW_REQUEST": "Leihanfrage von {stationName}: {itemSummary}",
     "LENDING_STATUS_CHANGE": "Leihe {statusLabel}: von {stationName}",
     "LENDING_NEW_MESSAGE": "Nachricht von {senderName} ({stationName})",
     "BOARD_TICKET_UPDATE": "{ticketKey} auf {boardName}: {changeDescription}",
-    "REGISTRATION_DEADLINE_EXPIRED.one": "Anmeldefrist abgelaufen: {eventName} — 1 offen",
-    "REGISTRATION_DEADLINE_EXPIRED.other": "Anmeldefrist abgelaufen: {eventName} — {pendingCount} offen",
+    "REGISTRATION_DEADLINE_EXPIRED.one": "Anmeldefrist abgelaufen: {eventName} - 1 offen",
+    "REGISTRATION_DEADLINE_EXPIRED.other": "Anmeldefrist abgelaufen: {eventName} - {pendingCount} offen",
     "EVENT_CANCELLED": "Abgesagt: {eventName}",
     "EVENT_REMINDER.one": "Erinnerung: {eventName} morgen",
     "EVENT_REMINDER.other": "Erinnerung: {eventName} in {daysBefore} Tagen",
     "PROCEDURE_ASSIGNED": "Prozedur zugewiesen: {procedureName}",
     "PROCEDURE_RESOLVED": "Abgeschlossen: {procedureName}",
     "PROCEDURE_REOPENED": "Wieder geöffnet: {procedureName}",
-    "PROCEDURE_ITEM_CHECKED": "Abgehakt: {itemTitle} — in {procedureName}",
-    "WAITLIST_PUBLIC_REGISTRATION": "Öffentliche Anmeldung — {listName}: {childName}",
-    "STORAGE_WARNING": "Speicher bei {usedPercent}% — {usedFormatted} / {quotaFormatted}"
+    "PROCEDURE_ITEM_CHECKED": "Abgehakt: {itemTitle} - in {procedureName}",
+    "WAITLIST_PUBLIC_REGISTRATION": "Öffentliche Anmeldung - {listName}: {childName}",
+    "STORAGE_WARNING": "Speicher bei {usedPercent}% - {usedFormatted} / {quotaFormatted}"
   },
   "digest": {
     "subject.one": "{stationName}: 1 neue Benachrichtigung",
@@ -175,7 +175,7 @@
     "STORAGE_WARNING": "Speicherwarnung"
   },
   "message": {
-    "notification.newNews": "{title} — von {author}",
+    "notification.newNews": "{title} - von {author}",
     "notification.newsComment": "{author} hat \"{newsTitle}\" kommentiert",
     "notification.commentMention": "{author} hat dich in \"{entityTitle}\" erwähnt",
     "notification.exchangeStatusChange": "{inventoryName}: Status geändert auf {status}",

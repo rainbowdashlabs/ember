@@ -13,7 +13,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import {STEP_ORDER, type WizardStepId} from '@/views/stationview/setup/steps'
 
 /**
- * Static snapshot of the wizard shell every setup step is wrapped in — heading, step counter,
+ * Static snapshot of the wizard shell every setup step is wrapped in - heading, step counter,
  * progress bar, hint line and the footer buttons. Each step help article fills the slot with
  * its own body so the frame itself is written once.
  */

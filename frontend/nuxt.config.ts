@@ -3,7 +3,12 @@ export default defineNuxtConfig({
 
   srcDir: 'src/',
 
+  modules: ['@nuxt/test-utils/module'],
+
   runtimeConfig: {
+    // Where the server itself reaches the backend. A server render cannot use the browser's
+    // relative `/api/v1`, because on the server there is no origin to resolve it against.
+    backendUrl: process.env.NUXT_BACKEND_URL || 'http://localhost:8080',
     public: {
       googleSiteVerification: process.env.NUXT_PUBLIC_GOOGLE_SITE_VERIFICATION || '',
     },
@@ -22,9 +27,6 @@ export default defineNuxtConfig({
     '/station/**': {ssr: false},
     '/admin/**': {ssr: false},
     '/style': {ssr: false},
-    '/sitemap.xml': {proxy: `${process.env.NUXT_BACKEND_URL || 'http://localhost:8080'}/sitemap.xml`},
-    '/sitemap-station-**': {proxy: `${process.env.NUXT_BACKEND_URL || 'http://localhost:8080'}/sitemap-station-**`},
-    '/api/**': {proxy: `${process.env.NUXT_BACKEND_URL || 'http://localhost:8080'}/api/**`},
   },
 
   nitro: {
@@ -62,7 +64,7 @@ export default defineNuxtConfig({
     server: {
       // Accept requests from any Host header. Vite 8 otherwise restricts the dev server to
       // localhost and silently holds the socket open without responding when a request arrives
-      // with a Host like `frontend:3000` — the compose service name another container in the
+      // with a Host like `frontend:3000` - the compose service name another container in the
       // dev stack uses to reach this Nuxt server (cross-instance station transfer in the
       // `transfer` compose profile).
       allowedHosts: true,

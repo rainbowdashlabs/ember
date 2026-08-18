@@ -49,7 +49,7 @@ function givenFor(index: number): string {
           ? 'text-success'
           : 'text-error'"
       >
-        {{ givenFor(pi) || '—' }}
+        {{ givenFor(pi) || '-' }}
       </span>
       <template v-if="givenFor(pi) !== pair.right">
         <span class="text-xs text-(--text-muted)">→</span>

@@ -10,7 +10,7 @@ package dev.chojo.ember.feature.station.transfer;
  *
  * <p>Implementations are collected through a Guice multibinding and looked up by {@link #table()}.
  * A table without a dedicated importer falls through to the metadata-driven generic engine. The
- * sequence in which tables are imported is not decided here — it comes from the foreign-key
+ * sequence in which tables are imported is not decided here - it comes from the foreign-key
  * topology of {@code data_tracking.json}, so the set of importers may be iterated in any order.
  */
 public interface TableImporter {

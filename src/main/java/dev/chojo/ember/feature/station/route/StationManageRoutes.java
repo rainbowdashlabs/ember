@@ -10,10 +10,16 @@ import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
+import dev.chojo.ember.feature.mail.entity.MailChainEntry;
+import dev.chojo.ember.feature.mail.repository.ProviderSecretRepository;
+import dev.chojo.ember.feature.mail.repository.StationMailProviderRepository;
+import dev.chojo.ember.feature.mail.route.MailFallbackPayload;
 import dev.chojo.ember.feature.mail.service.EmailService;
+import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -28,6 +34,7 @@ import dev.chojo.ember.feature.station.service.StationLocationService;
 import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.feature.station.transfer.ImportProgress;
+import dev.chojo.ember.feature.webhook.service.WebhookKeyService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -51,6 +58,7 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.zone.ZoneRulesException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -68,6 +76,11 @@ public class StationManageRoutes implements Routes {
 
     private final StationService stationService;
     private final AccountRepository accountRepository;
+    private final MailLocaleService mailLocaleService;
+    private final StationMailProviderRepository mailProviderRepository;
+    private final WebhookKeyService webhookKeyService;
+    private final ProviderSecretRepository providerSecretRepository;
+    private final Api apiConfig;
     private final StationMailConfigRepository mailConfigRepository;
     private final EmailService emailService;
     private final AuthService authService;
@@ -80,6 +93,11 @@ public class StationManageRoutes implements Routes {
     public StationManageRoutes(
             StationService stationService,
             AccountRepository accountRepository,
+            MailLocaleService mailLocaleService,
+            StationMailProviderRepository mailProviderRepository,
+            WebhookKeyService webhookKeyService,
+            ProviderSecretRepository providerSecretRepository,
+            Api apiConfig,
             StationMailConfigRepository mailConfigRepository,
             EmailService emailService,
             AuthService authService,
@@ -89,6 +107,11 @@ public class StationManageRoutes implements Routes {
             StationLogoService logoService) {
         this.stationService = stationService;
         this.accountRepository = accountRepository;
+        this.mailLocaleService = mailLocaleService;
+        this.mailProviderRepository = mailProviderRepository;
+        this.webhookKeyService = webhookKeyService;
+        this.providerSecretRepository = providerSecretRepository;
+        this.apiConfig = apiConfig;
         this.mailConfigRepository = mailConfigRepository;
         this.emailService = emailService;
         this.authService = authService;
@@ -115,6 +138,16 @@ public class StationManageRoutes implements Routes {
         routes.get(prefix + "/station/manage/mail", this::getMailConfig, StationPermission.STATION_MAIL);
         routes.put(prefix + "/station/manage/mail", this::updateMailConfig, StationPermission.STATION_MAIL);
         routes.delete(prefix + "/station/manage/mail", this::clearMailConfig, StationPermission.STATION_MAIL);
+        routes.get(prefix + "/station/manage/mail/webhook", this::getMailWebhook, StationPermission.STATION_MAIL);
+        routes.post(
+                prefix + "/station/manage/mail/webhook", this::regenerateMailWebhook, StationPermission.STATION_MAIL);
+        routes.put(
+                prefix + "/station/manage/mail/signing-secret",
+                this::updateSigningSecret,
+                StationPermission.STATION_MAIL);
+        routes.get(prefix + "/station/manage/mail/fallbacks", this::getMailFallbacks, StationPermission.STATION_MAIL);
+        routes.put(
+                prefix + "/station/manage/mail/fallbacks", this::updateMailFallbacks, StationPermission.STATION_MAIL);
         routes.post(prefix + "/station/manage/mail/test", this::testMailConfig, StationPermission.STATION_MAIL);
         routes.post(prefix + "/station/manage/mail/test-mail", this::sendTestMail, StationPermission.STATION_MAIL);
         routes.get(prefix + "/station/manage/modules", this::getDisabledModules, StationPermission.STATION_MODULES);
@@ -373,6 +406,127 @@ public class StationManageRoutes implements Routes {
             summary = "Get station mail configuration",
             tags = {"Station Manage"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MailConfigResponse.class)))
+    /**
+     * The address this station's own mail provider reports delivery events to.
+     *
+     * <p>A station gets an address of its own rather than the instance's, so what it hands to its
+     * provider can only ever touch its own post.
+     */
+    private void getMailWebhook(Context ctx) {
+        var session = UserSession.from(ctx);
+        var provider = mailConfigRepository
+                .findByStation(session.stationId())
+                .map(StationMailConfig::provider)
+                .orElse(MailProviderType.NONE);
+        ctx.json(new WebhookUrl(
+                webhookKeyService.webhookUrl(apiConfig.baseUrl(), session.stationId(), webhookPath(provider)),
+                providerSecretRepository.find(session.stationId(), provider).isPresent()));
+    }
+
+    /**
+     * Stores the signing secret a provider issued, so its reports can be checked against it rather
+     * than trusted for knowing the address. An empty value switches the check back off.
+     */
+    private void updateSigningSecret(Context ctx) {
+        var session = UserSession.from(ctx);
+        var request = ctx.bodyAsClass(SigningSecretRequest.class);
+        var provider = mailConfigRepository
+                .findByStation(session.stationId())
+                .map(StationMailConfig::provider)
+                .orElse(MailProviderType.NONE);
+        providerSecretRepository.store(session.stationId(), provider, request.secret());
+        log.info("Station {} set the signing secret of {}", session.stationId(), provider);
+        getMailWebhook(ctx);
+    }
+
+    /**
+     * Which report a provider sends, as the last part of its webhook address.
+     */
+    private static String webhookPath(MailProviderType provider) {
+        return switch (provider) {
+            case SWEEGO -> "mail/sweego";
+            case TWILIO -> "mail/sendgrid";
+            default -> "mail/brevo";
+        };
+    }
+
+    /**
+     * @param secret the secret as the provider issued it, or empty to stop checking signatures
+     */
+    public record SigningSecretRequest(String secret) {}
+
+    /**
+     * Replaces this station's webhook key, which takes its old address out of service at once.
+     */
+    private void regenerateMailWebhook(Context ctx) {
+        var session = UserSession.from(ctx);
+        webhookKeyService.regenerate(session.stationId());
+        log.info("Station {} replaced its webhook key", session.stationId());
+        getMailWebhook(ctx);
+    }
+
+    /**
+     * @param deliveryWebhookUrl the address to paste into the provider's settings
+     * @param signingSecretSet   whether a signing secret is stored, without revealing it
+     */
+    public record WebhookUrl(String deliveryWebhookUrl, boolean signingSecretSet) {}
+
+    /**
+     * The providers this station falls back to, after the one in its own mail configuration.
+     */
+    private void getMailFallbacks(Context ctx) {
+        var session = UserSession.from(ctx);
+        ctx.json(mailProviderRepository.findByStation(session.stationId()).stream()
+                .map(entry -> new MailFallbackPayload(
+                                entry.provider(),
+                                entry.smtpHost(),
+                                entry.smtpPort(),
+                                entry.smtpSsl(),
+                                entry.smtpUser(),
+                                entry.smtpPassword(),
+                                entry.apiKey(),
+                                entry.senderAddress(),
+                                entry.senderName(),
+                                entry.attempts())
+                        .masked())
+                .toList());
+    }
+
+    /**
+     * Replaces the order this station falls back through.
+     *
+     * <p>A station's chain is its own and never runs into the instance's: a station that has taken
+     * its outgoing mail into its own hands keeps it there, rather than having its post leave under
+     * a sender it did not choose.
+     */
+    private void updateMailFallbacks(Context ctx) {
+        var session = UserSession.from(ctx);
+        var incoming = List.of(ctx.bodyAsClass(MailFallbackPayload[].class));
+        var stored = mailProviderRepository.findByStation(session.stationId());
+        List<MailChainEntry> next = new ArrayList<>();
+        for (int i = 0; i < incoming.size(); i++) {
+            var entry = incoming.get(i);
+            if (entry.provider() == null || entry.provider() == MailProviderType.NONE) continue;
+            var previous = i < stored.size() ? stored.get(i) : null;
+            next.add(new MailChainEntry(
+                    next.size() + 1,
+                    entry.provider(),
+                    entry.smtpHost(),
+                    entry.smtpPort(),
+                    entry.smtpSsl(),
+                    entry.smtpUser(),
+                    MailFallbackPayload.keepOrReplace(
+                            entry.smtpPassword(), previous == null ? "" : previous.smtpPassword()),
+                    MailFallbackPayload.keepOrReplace(entry.apiKey(), previous == null ? "" : previous.apiKey()),
+                    entry.senderAddress(),
+                    entry.senderName(),
+                    Math.max(1, entry.attempts())));
+        }
+        mailProviderRepository.replace(session.stationId(), next);
+        log.info("Station {} set {} mail fallback(s)", session.stationId(), next.size());
+        getMailFallbacks(ctx);
+    }
+
     private void getMailConfig(Context ctx) {
         UserSession session = UserSession.from(ctx);
         ctx.json(buildMailConfigResponse(session.stationId()));
@@ -501,10 +655,7 @@ public class StationManageRoutes implements Routes {
         }
         var account = session.account();
         emailService.sendTestEmail(
-                account.email(),
-                account.firstName(),
-                accountRepository.findMailLocale(account.id()),
-                session.stationId());
+                account.email(), account.firstName(), mailLocaleService.forAccount(account.id()), session.stationId());
         ctx.json(new MessageResponse("Test email queued"));
     }
 
@@ -550,7 +701,7 @@ public class StationManageRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Delete a station's local copy after it has been moved to another instance",
             description = "Bypass the email-confirmation flow used by request-delete. Allowed only when the "
-                    + "station is in the read-only-after-transfer state — the data lives on the destination "
+                    + "station is in the read-only-after-transfer state - the data lives on the destination "
                     + "instance, the local copy is a stale shadow.",
             tags = {"Station Manage"},
             responses = {

@@ -340,6 +340,80 @@ export interface EventRegistrationEntry {
     createdAt: string
     createdByName?: string | null
     memberIdentity?: MemberIdentity | null
+    fields?: RegistrationFieldValue[]
+}
+
+/**
+ * Configuration of a registration question. The names match the other custom field configs, so the
+ * shared config parser reads them without a special case.
+ */
+export interface EventRegistrationFieldConfig {
+    required?: boolean
+    defaultValue?: string | null
+    options?: string[]
+    min?: number | null
+    max?: number | null
+    groupId?: number | null
+    userType?: string | null
+    tagId?: number | null
+    /** Belongs to whoever runs the event: never asked of a member, never sent to one. */
+    managersOnly?: boolean
+}
+
+/**
+ * A question an event asks of everyone registering for it.
+ */
+export interface EventRegistrationField {
+    id: number
+    name: string
+    fieldType: EventFieldTypeName
+    config: EventRegistrationFieldConfig
+    overview: boolean
+}
+
+/**
+ * A question as the editor submits it, before it has an id of its own.
+ */
+export interface EventRegistrationFieldDefinition {
+    name: string
+    fieldType: EventFieldTypeName
+    config: EventRegistrationFieldConfig
+    overview: boolean
+}
+
+/**
+ * One member's answer to one registration question.
+ */
+export interface RegistrationFieldValue {
+    fieldId: number
+    value: string
+}
+
+export async function listRegistrationFields(eventId: number): Promise<EventRegistrationField[]> {
+    const res = await client.get<EventRegistrationField[]>(`/events/${eventId}/registration-fields`)
+    return res.data
+}
+
+export async function setRegistrationFields(
+    eventId: number,
+    fields: EventRegistrationFieldDefinition[],
+): Promise<void> {
+    await client.put(`/events/${eventId}/registration-fields`, {fields})
+}
+
+export async function updateRegistrationFieldValues(
+    registrationId: number,
+    fields: RegistrationFieldValue[],
+): Promise<EventRegistrationEntry> {
+    const res = await client.put<EventRegistrationEntry>(`/events/registrations/${registrationId}/fields`, {fields})
+    return res.data
+}
+
+export async function setTemplateRegistrationFields(
+    templateId: number,
+    fields: EventRegistrationFieldDefinition[],
+): Promise<void> {
+    await client.put(`/event-templates/${templateId}/registration-fields`, {fields})
 }
 
 export async function listMyRegistrations(): Promise<EventRegistrationEntry[]> {
@@ -398,7 +472,8 @@ export async function listEligibleMembers(): Promise<Record<number, number[]>> {
 
 export async function registerForEvent(eventId: number, data: {
     eventDate?: string;
-    memberId?: number
+    memberId?: number;
+    fields?: RegistrationFieldValue[]
 }): Promise<unknown> {
     const res = await client.post(`/events/${eventId}/register`, data)
     return res.data

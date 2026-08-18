@@ -110,9 +110,10 @@ watch(sessionReady, (ready) => {
     if (isAdmin()) {
       router.replace('/admin/dashboard/overview')
     } else {
+      const target = route.path.startsWith('/station') ? route.fullPath : null
       router.replace({
         name: 'cross-station-dashboard',
-        query: {redirect: route.fullPath},
+        query: target ? {redirect: target} : {},
       })
     }
     return

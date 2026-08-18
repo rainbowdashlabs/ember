@@ -293,7 +293,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Test
     @Order(36)
     void syncFromEvent() {
-        // No event linked — should just return existing entries
+        // No event linked - should just return existing entries
         var entries = service.syncFromEvent(sessionId);
         assertNotNull(entries);
     }
@@ -355,7 +355,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Test
     @Order(45)
     void createEntryWhileAbsent() {
-        // Member is absent — new entry should be DECLINED
+        // Member is absent - new entry should be DECLINED
         var entries = service.createEntry(sessionId, member.id(), AttendanceEntry.EntrySource.EXPECTED);
         assertFalse(entries.isEmpty());
         assertEquals(
@@ -396,7 +396,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
-        // Create session linked to event — should inherit event name and times
+        // Create session linked to event - should inherit event name and times
         var session = service.createSession(templateId, null, null, event.id(), null);
         assertNotNull(session);
         assertEquals("Attend Event", session.title());
@@ -415,7 +415,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Test
     @Order(51)
     void createSessionWithNoTitleFallsBack() {
-        // No event, no title — should fall back to template name
+        // No event, no title - should fall back to template name
         var session =
                 service.createSession(templateId, Instant.now(), Instant.now().plus(1, ChronoUnit.HOURS), null, null);
         assertNotNull(session);
@@ -444,7 +444,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Test
     @Order(54)
     void createEntryNotAbsentNotDeclined() {
-        // No absence, no declined event — should be UNCONFIRMED
+        // No absence, no declined event - should be UNCONFIRMED
         var newSession = service.createSession(
                 templateId, Instant.now(), Instant.now().plus(1, ChronoUnit.HOURS), null, "Fresh");
         var entries = service.createEntry(newSession.id(), member.id(), AttendanceEntry.EntrySource.EXPECTED);
@@ -626,7 +626,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Test
     @Order(59)
     void syncFromEventAbsenceUpdatesExistingPresent() {
-        // member starts PRESENT but is absent — sync should downgrade to ABSENT
+        // member starts PRESENT but is absent - sync should downgrade to ABSENT
         var account5 = accountRepo.create("attend-svc5@test.com", "Attend5", "User");
         var member5 = stationMemberRepo.create(station.id(), account5.id());
 
@@ -705,7 +705,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 fieldTemplate.id(), "Location", AttendanceFieldType.STRING, AttendanceFieldConfig.parse("{}"), 1);
         int attendanceFieldId = fields.getFirst().id();
 
-        // Create event field linked to attendance field — value must be valid JSON
+        // Create event field linked to attendance field - value must be valid JSON
         eventFieldRepo.create(
                 event.id(),
                 "Location",
@@ -717,7 +717,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 attendanceFieldId,
                 false);
 
-        // Create session — should auto-populate from event field
+        // Create session - should auto-populate from event field
         var session = service.createSession(fieldTemplate.id(), null, null, event.id(), null);
         assertNotNull(session);
 
@@ -763,7 +763,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
         var session = service.createSession(templateId, null, null, event.id(), null);
 
-        // Create entry — should be DECLINED because member7 declined the event
+        // Create entry - should be DECLINED because member7 declined the event
         var entries = service.createEntry(session.id(), member7.id(), AttendanceEntry.EntrySource.EXPECTED);
         assertTrue(entries.stream()
                 .anyMatch(
@@ -822,7 +822,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Test
     @Order(62)
     void createSessionWithDefaultFieldValues() {
-        // Template field with a default value — session creation should auto-populate
+        // Template field with a default value - session creation should auto-populate
         var defaultTemplate = service.createTemplate(station.id(), "Default Value Template");
         var fieldJson = "{\"defaultValue\":\"Room 101\"}";
         service.createTemplateField(
@@ -921,7 +921,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Test
     @Order(64)
     void createSessionWithGroupAutoPopulation() {
-        // Template with a group — members should be auto-populated
+        // Template with a group - members should be auto-populated
         var group = memberGroupRepo.create(station.id(), "Auto Pop Group");
         memberGroupRepo.addMember(group.id(), member.id());
 
@@ -981,7 +981,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Test
     @Order(66)
     void syncFromEventAutoAttendNewMember() {
-        // Member not already in session — autoAttend should add as PRESENT
+        // Member not already in session - autoAttend should add as PRESENT
         var account10 = accountRepo.create("attend-auto@test.com", "Auto", "New");
         var member10 = stationMemberRepo.create(station.id(), account10.id());
 
@@ -1013,7 +1013,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Test
     @Order(66)
     void createSessionNoTimeFallsBackToNow() {
-        // No event, no title, no time provided — should use now()
+        // No event, no title, no time provided - should use now()
         var session = service.createSession(templateId, null, null, null, "No Time Session");
         assertNotNull(session);
         assertNotNull(session.startTime());

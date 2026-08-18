@@ -143,7 +143,7 @@ public class StationMemberService {
         PermissionValidation.validatePermissionChanges(
                 currentPermissions, desiredPermissionIds, allPermissions, callerPermissions);
 
-        // Check if LOGIN permission is being added — requires account with email
+        // Check if LOGIN permission is being added - requires account with email
         var loginPerm = allPermissions.stream()
                 .filter(p -> p.permission() == StationPermission.LOGIN)
                 .findFirst();

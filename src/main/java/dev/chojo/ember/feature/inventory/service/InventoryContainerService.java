@@ -352,7 +352,7 @@ public class InventoryContainerService {
      * Places an item into a container, or clears its location with a
      * {@code null} container id. Validates that the item and the container
      * belong to the same station. An item placed in a container is
-     * implicitly returned from any member it was assigned to — the two
+     * implicitly returned from any member it was assigned to - the two
      * states are mutually exclusive.
      */
     public boolean setItemContainer(int itemId, Integer containerId) {
@@ -387,7 +387,7 @@ public class InventoryContainerService {
 
     /**
      * Returns whether {@code candidateParentId} is the moved container or one
-     * of its descendants — moving under it would create a cycle.
+     * of its descendants - moving under it would create a cycle.
      */
     boolean wouldCreateCycle(int movedContainerId, int candidateParentId) {
         if (movedContainerId == candidateParentId) return true;

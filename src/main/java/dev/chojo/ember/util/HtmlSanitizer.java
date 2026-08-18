@@ -16,17 +16,17 @@ import java.util.regex.Pattern;
 /**
  * Sanitises rendered HTML to a curated allow-list before it is returned to a
  * browser. The renderers (KB markdown, page markdown, legal documents) feed
- * their output through this utility so any user-authored HTML — including
- * HTML embedded inside markdown — is stripped of script vectors before
+ * their output through this utility so any user-authored HTML - including
+ * HTML embedded inside markdown - is stripped of script vectors before
  * reaching another user's session.
  *
  * <p>Two policies are exposed:
  * <ul>
- *   <li>{@link Policy#RICH} — used by knowledge-base and station-page
+ *   <li>{@link Policy#RICH} - used by knowledge-base and station-page
  *       renderers. Permits the formatting features the in-app editor can
  *       emit (headings, lists, tables, links, KB images, YouTube embeds,
  *       coloured spans / highlights).</li>
- *   <li>{@link Policy#STRICT} — used by the legal document renderer.
+ *   <li>{@link Policy#STRICT} - used by the legal document renderer.
  *       Same as RICH minus iframes and images, so an admin-authored legal
  *       document cannot embed remote frames or images even by accident.</li>
  * </ul>
@@ -171,11 +171,11 @@ public final class HtmlSanitizer {
      */
     public enum Policy {
         /**
-         * Allows images, tables, and YouTube embeds — for KB / page content.
+         * Allows images, tables, and YouTube embeds - for KB / page content.
          */
         RICH,
         /**
-         * Forbids images and iframes — for admin-authored legal documents.
+         * Forbids images and iframes - for admin-authored legal documents.
          */
         STRICT
     }

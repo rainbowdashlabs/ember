@@ -88,7 +88,7 @@ class TotpServiceTest {
 
     @Test
     void productionAcceptsBlankKeyWhenDisabled() {
-        // Service constructs without throwing even with a blank key when 2FA is disabled —
+        // Service constructs without throwing even with a blank key when 2FA is disabled -
         // the dead zero key is never actually invoked.
         assertDoesNotThrow(() -> new TotpService(settingsWithKey(false, ""), demoMode(false, false)));
     }

@@ -69,10 +69,10 @@ public class DemoProtocolSeeder implements DemoSeeder {
         var knoten = repo.createSection(protocol.id(), null, "Knoten und Stiche", "", 11, null, 1);
 
         var dreiVonVier = repo.createSection(protocol.id(), knoten.id(), "3 von 4 Knoten", "", 3, null, 0);
-        repo.createItem(dreiVonVier.id(), "Mastwurf — Gelegt", "", HALF, 0);
-        repo.createItem(dreiVonVier.id(), "Mastwurf — Gestochen", "", HALF, 1);
-        repo.createItem(dreiVonVier.id(), "Ankerstich — Gelegt ohne Spierenstich", "", HALF, 2);
-        repo.createItem(dreiVonVier.id(), "Ankerstich — Gestochen mit Spierenstich", "", HALF, 3);
+        repo.createItem(dreiVonVier.id(), "Mastwurf - Gelegt", "", HALF, 0);
+        repo.createItem(dreiVonVier.id(), "Mastwurf - Gestochen", "", HALF, 1);
+        repo.createItem(dreiVonVier.id(), "Ankerstich - Gelegt ohne Spierenstich", "", HALF, 2);
+        repo.createItem(dreiVonVier.id(), "Ankerstich - Gestochen mit Spierenstich", "", HALF, 3);
         repo.createItem(dreiVonVier.id(), "Zimmermannsschlag", "", ONE, 4);
         repo.createItem(dreiVonVier.id(), "Achterknoten", "", ONE, 5);
 
@@ -111,7 +111,7 @@ public class DemoProtocolSeeder implements DemoSeeder {
         repo.createItem(lagerung.id(), "Doppelt", "", ONE, 1);
 
         var auswerfen = repo.createSection(
-                protocol.id(), schlauche.id(), "Schlauch Auswerfen — Korrekte Durchführung", "", 6, null, 3);
+                protocol.id(), schlauche.id(), "Schlauch Auswerfen - Korrekte Durchführung", "", 6, null, 3);
         repo.createItem(auswerfen.id(), "Aufnehmen", "", ONE, 0);
         repo.createItem(auswerfen.id(), "Tragen", "", ONE, 1);
         repo.createItem(auswerfen.id(), "Auswerfen", "", ONE, 2);

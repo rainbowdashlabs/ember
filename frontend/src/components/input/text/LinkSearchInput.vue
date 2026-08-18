@@ -178,7 +178,7 @@ watch(() => model.value, v => { if (!loaded.value && needsResolve(v)) ensureLoad
                 <span class="flex flex-col min-w-0 flex-1">
                     <span class="text-sm truncate" :title="pickedFile.fileName">{{ pickedFile.fileName }}</span>
                     <span class="text-xs text-(--text-muted) truncate">
-                        {{ pickedFile.mimeType ?? '—' }} · {{ formatBytes(pickedFile.fileSize) }}
+                        {{ pickedFile.mimeType ?? '-' }} · {{ formatBytes(pickedFile.fileSize) }}
                     </span>
                 </span>
                 <IconButton

@@ -8,13 +8,13 @@ import type {QuickSearchScope} from '@/composables/useQuickSearch'
 
 /**
  * One entry in the command-palette route index. The shape is intentionally
- * flat — the palette filters and renders entries directly, no tree.
+ * flat - the palette filters and renders entries directly, no tree.
  *
  * <p>{@code labelKey} is the i18n key for the visible label (typically a
  * {@code sidebar.*} key already used by the matching {@code SidebarLink}).
  *
  * <p>{@code permission}, {@code anyPermission} and {@code module} together
- * gate visibility against the current session — entries the user cannot
+ * gate visibility against the current session - entries the user cannot
  * reach are never surfaced.
  */
 export interface PaletteRouteEntry {

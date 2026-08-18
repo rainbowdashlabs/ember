@@ -113,8 +113,8 @@ public abstract class RepositoryTestBase {
     /**
      * A single PostgreSQL container per JVM (Gradle test fork), started lazily on the first test
      * class's {@link #setupDatabase()} and shared by every repository test class in that fork; each
-     * class isolates its data in its own schema. Sharing one container — instead of letting the
-     * {@code @Testcontainers} lifecycle start and stop one per test class — removes the container
+     * class isolates its data in its own schema. Sharing one container - instead of letting the
+     * {@code @Testcontainers} lifecycle start and stop one per test class - removes the container
      * start/stop churn under parallel forks that let rootless Docker occasionally hand two
      * concurrently-starting containers the same host port. {@code withStartupAttempts} self-heals
      * the rare remaining collision, and the container is reaped when the fork's JVM exits.

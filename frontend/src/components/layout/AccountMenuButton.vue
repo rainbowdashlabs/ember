@@ -56,7 +56,7 @@ function goToSettings() {
 
 <template>
   <div ref="rootEl" class="relative">
-    <IdentityButton @click="toggle">
+    <IdentityButton data-testid="account-menu" @click="toggle">
       <UserAvatar
           :identity="accountUid ? { accountUid } : undefined"
           :name="displayName"

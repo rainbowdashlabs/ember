@@ -60,11 +60,11 @@ function setAllName(value: string) {
     <template v-else>
       <div class="flex gap-2 mb-2 items-end flex-wrap">
         <div class="space-y-1 min-w-32">
-          <FieldLabel>{{ t('batchCreate.eventName') }} — {{ t('batchCreate.setAll') }}</FieldLabel>
+          <FieldLabel>{{ t('batchCreate.eventName') }} - {{ t('batchCreate.setAll') }}</FieldLabel>
           <TextInput model-value="" @update:model-value="setAllName($event ?? '')"/>
         </div>
         <div v-for="fd in activeFields()" :key="'setall-' + fd.name" class="space-y-1 min-w-32">
-          <FieldLabel>{{ fd.name }} — {{ t('batchCreate.setAll') }}</FieldLabel>
+          <FieldLabel>{{ fd.name }} - {{ t('batchCreate.setAll') }}</FieldLabel>
           <EventFieldValueInput
               :field-type="fd.fieldType ?? 'STRING'"
               :config="fd.config"

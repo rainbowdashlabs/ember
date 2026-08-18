@@ -48,7 +48,7 @@ export async function getAdminHourly(query: TrafficQuery): Promise<HourlyTraffic
     return res.data
 }
 
-/** Station-scoped view — the caller's own station only. */
+/** Station-scoped view - the caller's own station only. */
 export async function getStationHourly(
     query: Omit<TrafficQuery, 'stationId'>,
 ): Promise<HourlyTrafficResponse> {

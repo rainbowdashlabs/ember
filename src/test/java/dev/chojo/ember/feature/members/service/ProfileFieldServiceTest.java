@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -204,7 +205,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     @Test
     @Order(21)
     void isProfileCompleteWithMemberRole() {
-        // Member has a MEMBER-scope field with value — should be complete
+        // Member has a MEMBER-scope field with value - should be complete
         // The field has default config (not required), so should be complete
         assertTrue(service.isProfileComplete(member.id(), station.id(), List.of("MEMBER")));
     }
@@ -360,7 +361,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
                 ProfileFieldScope.MEMBER);
         var account3 = accountRepo.create("pfield-readonly@test.com", "Readonly", "Test");
         var member3 = stationMemberRepo.create(station.id(), account3.id());
-        // Should be complete — readonly required fields are skipped
+        // Should be complete - readonly required fields are skipped
         assertTrue(service.isProfileComplete(member3.id(), station.id(), List.of("MEMBER")));
         service.delete(readonlyReqField.id());
         stationMemberRepo.delete(member3.id());
@@ -435,6 +436,84 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     void deleteValue() {
         assertTrue(service.deleteValue(member.id(), fieldId));
         assertTrue(service.findValues(member.id()).isEmpty());
+    }
+
+    @Test
+    @Order(30)
+    void onlyOneBirthDateFieldPerStation() {
+        var birthDate = service.create(
+                station.id(),
+                "Geburtsdatum",
+                ProfileFieldType.BIRTH_DATE,
+                ProfileFieldConfig.parse("{}"),
+                50,
+                ProfileFieldScope.MEMBER);
+
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.create(
+                        station.id(),
+                        "Zweites Geburtsdatum",
+                        ProfileFieldType.BIRTH_DATE,
+                        ProfileFieldConfig.parse("{}"),
+                        51,
+                        ProfileFieldScope.MEMBER),
+                "a station may declare one birth date field");
+
+        var plain = service.create(
+                station.id(),
+                "Eintrittsdatum",
+                ProfileFieldType.DATE,
+                ProfileFieldConfig.parse("{}"),
+                52,
+                ProfileFieldScope.MEMBER);
+        assertThrows(
+                BadRequestResponse.class,
+                () -> service.update(
+                        plain.id(),
+                        plain.name(),
+                        ProfileFieldType.BIRTH_DATE,
+                        ProfileFieldConfig.parse("{}"),
+                        plain.position(),
+                        false),
+                "turning a second field into the birth date is the same clash");
+
+        assertTrue(
+                service.update(
+                                birthDate.id(),
+                                "Geburtstag",
+                                ProfileFieldType.BIRTH_DATE,
+                                ProfileFieldConfig.parse("{}"),
+                                birthDate.position(),
+                                false)
+                        .isPresent(),
+                "the field that already is the birth date does not clash with itself");
+
+        service.delete(plain.id());
+        service.delete(birthDate.id());
+    }
+
+    @Test
+    @Order(31)
+    void aBirthDateFieldCanBeReplacedAfterTheFirstIsGone() {
+        var first = service.create(
+                station.id(),
+                "Geburtsdatum",
+                ProfileFieldType.BIRTH_DATE,
+                ProfileFieldConfig.parse("{}"),
+                60,
+                ProfileFieldScope.MEMBER);
+        service.delete(first.id());
+
+        var second = service.create(
+                station.id(),
+                "Geburtsdatum neu",
+                ProfileFieldType.BIRTH_DATE,
+                ProfileFieldConfig.parse("{}"),
+                61,
+                ProfileFieldScope.GUARDIAN);
+        assertEquals(ProfileFieldType.BIRTH_DATE, second.fieldType());
+        service.delete(second.id());
     }
 
     @Test

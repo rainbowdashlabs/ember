@@ -40,7 +40,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * SFTP-backed {@link StorageBackend}. Talks to the server through Apache MINA SSHD — no
+ * SFTP-backed {@link StorageBackend}. Talks to the server through Apache MINA SSHD - no
  * kernel mount, no FUSE, no host-level SSH client required.
  *
  * <p>In-flight encryption is the SSH channel itself and is always on. Host-key verification

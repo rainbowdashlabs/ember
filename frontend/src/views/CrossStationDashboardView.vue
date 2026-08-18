@@ -10,6 +10,7 @@ import {useRoute} from 'vue-router'
 import {getCrossStationDashboard, type CrossStationDashboard, type CrossStationNotification} from '@/api/session'
 import {useStations} from '@/composables/useStations'
 import {formatRelative} from '@/util/format'
+import {usableRedirect} from '@/util/redirect'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
@@ -37,13 +38,13 @@ onMounted(async () => {
 
 function resolveRedirect(): string | null {
   // Prefer the route query (Vue Router state) but fall back to the raw window URL
-  // — during SSR hydration the route can briefly lag behind the browser bar, and
+  // - during SSR hydration the route can briefly lag behind the browser bar, and
   // we never want to drop a deep link silently.
   const fromRoute = typeof route.query.redirect === 'string' ? route.query.redirect : null
-  if (fromRoute && fromRoute.startsWith('/') && !fromRoute.startsWith('//')) return fromRoute
+  if (usableRedirect(fromRoute)) return fromRoute
   if (typeof window !== 'undefined') {
     const fromUrl = new URLSearchParams(window.location.search).get('redirect')
-    if (fromUrl && fromUrl.startsWith('/') && !fromUrl.startsWith('//')) return fromUrl
+    if (usableRedirect(fromUrl)) return fromUrl
   }
   return null
 }

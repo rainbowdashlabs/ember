@@ -27,7 +27,7 @@ const emit = defineEmits<{
         <LabelSelectInput v-if="canEdit" :labels="allLabels" :selected="ticketLabels" @toggle="emit('toggle', $event)" @create="emit('create', $event)" />
         <div v-else class="flex flex-wrap gap-1">
             <BaseBadge v-for="label in ticketLabels" :key="label.id" bg-class="" :style="{ backgroundColor: label.color, color: contrastTextColor(label.color) }">{{ label.name }}</BaseBadge>
-            <span v-if="ticketLabels.length === 0" class="text-sm text-(--text-muted)">—</span>
+            <span v-if="ticketLabels.length === 0" class="text-sm text-(--text-muted)">-</span>
         </div>
     </div>
 </template>

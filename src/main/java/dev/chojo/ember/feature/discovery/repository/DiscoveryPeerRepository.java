@@ -36,7 +36,7 @@ public class DiscoveryPeerRepository {
     }
 
     /**
-     * Returns peers that are still candidates for outbound traffic — not blocked, not in
+     * Returns peers that are still candidates for outbound traffic - not blocked, not in
      * deep back-off due to negative reputation.
      */
     public List<DiscoveryPeer> findUsable() {

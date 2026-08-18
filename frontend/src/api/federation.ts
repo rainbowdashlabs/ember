@@ -48,12 +48,17 @@ export interface FederationShare {
     shareScope: string
 }
 
+/**
+ * An item a partner shares, in the shape every federated browse endpoint answers. The station
+ * UUID is what addresses the item on the federated read routes; it is null when the partnership
+ * behind the item no longer resolves, and such an item can only be copied, not opened.
+ */
 export interface SharedContentItem {
     remoteId: number
     title: string
     description: string
     stationName: string
-    stationId: string
+    stationUid: string | null
     partnerId: number
 }
 
@@ -143,16 +148,6 @@ export const deleteProtocolShare = protocolShares.remove
 
 export async function browseSharedKb(): Promise<SharedContentItem[]> {
     const res = await client.get<SharedContentItem[]>('/federated/kb')
-    return res.data
-}
-
-export async function browseSharedQuiz(): Promise<SharedContentItem[]> {
-    const res = await client.get<SharedContentItem[]>('/federated/quiz/catalogs')
-    return res.data
-}
-
-export async function browseSharedProtocols(): Promise<SharedContentItem[]> {
-    const res = await client.get<SharedContentItem[]>('/federated/protocols')
     return res.data
 }
 

@@ -9,7 +9,7 @@ import dev.chojo.ember.feature.federation.entity.CapabilityType;
 
 /**
  * A versioned slice of the federation API contract. {@link #CORE} is the envelope every
- * feature rides on — handshake, version ping, webhook registration, host-change
+ * feature rides on - handshake, version ping, webhook registration, host-change
  * announcements, sync polling and the request signing scheme. Every other surface maps
  * one-to-one onto a {@link CapabilityType}, so per-feature compatibility can be joined
  * directly onto the capability toggles a partnership already carries.

@@ -239,7 +239,7 @@ class FederatedBoardRepositoryTest extends RepositoryTestBase {
         assertFalse(federatedBoardRepo.hasFederatedEditUserTypes(-999));
     }
 
-    // Satellite table tests removed — identity is now inline in board_ticket columns
+    // Satellite table tests removed - identity is now inline in board_ticket columns
 
     // -- Bookmarks --
 

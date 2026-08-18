@@ -21,7 +21,7 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 /**
  * Structural conventions enforced across the backend. Every rule here holds for the whole
- * codebase without exception — if a new class cannot satisfy one, fix the placement rather
+ * codebase without exception - if a new class cannot satisfy one, fix the placement rather
  * than reintroducing a frozen exception list.
  */
 @AnalyzeClasses(packages = "dev.chojo.ember")

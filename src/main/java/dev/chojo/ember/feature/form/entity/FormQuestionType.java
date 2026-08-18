@@ -41,9 +41,9 @@ public enum FormQuestionType {
      *
      * <p>The whitelist:
      * <ul>
-     *   <li>{@link FormPurpose#INTERNAL} — all types.</li>
-     *   <li>{@link FormPurpose#CONTACT} — {@link #TEXT}, {@link #CHOICE}, {@link #DATE} only.</li>
-     *   <li>{@link FormPurpose#POLL} — all types.</li>
+     *   <li>{@link FormPurpose#INTERNAL} - all types.</li>
+     *   <li>{@link FormPurpose#CONTACT} - {@link #TEXT}, {@link #CHOICE}, {@link #DATE} only.</li>
+     *   <li>{@link FormPurpose#POLL} - all types.</li>
      * </ul>
      *
      * @param purpose the form's purpose

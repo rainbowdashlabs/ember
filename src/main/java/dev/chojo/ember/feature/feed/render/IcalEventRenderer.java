@@ -42,7 +42,7 @@ import java.util.Set;
  * web UI, and the location of the event (extracted from the first non-empty
  * {@link EventFieldType#LOCATION} field).
  *
- * <p>It is also responsible for the personal visibility rules — see
+ * <p>It is also responsible for the personal visibility rules - see
  * {@link #isVisibleForFeed(StationEvent, Context)}.
  */
 @Singleton
@@ -203,7 +203,7 @@ public class IcalEventRenderer {
                 ctx.locale(), "ical", "eventType." + event.eventType().name(), null);
         appendLine(sb, ctx.locale(), "label.eventType", typeLabel);
 
-        // Render custom field values (skip LOCATION — already on the LOCATION property).
+        // Render custom field values (skip LOCATION - already on the LOCATION property).
         for (var field : fields) {
             if (field.fieldType() == EventFieldType.LOCATION) continue;
             if (field.value() == null || field.value().isBlank()) continue;

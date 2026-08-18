@@ -100,7 +100,7 @@ public class ApiServer {
     // /station/transfer/abort are NOT blocked here on purpose. They are mandatory for the
     // cross-instance transfer test harness (the compose.dev.yaml "transfer" profile), and the
     // import-side counterpart /admin/transfer/import is already gated by
-    // InstancePermission.ADMINISTRATOR which demo accounts do not hold — so the source can
+    // InstancePermission.ADMINISTRATOR which demo accounts do not hold - so the source can
     // mint a token but a stranger on the demo cannot pull a station off of it.
     private static final Set<String> DEMO_BLOCKED_PATHS = Set.of(
             "/api/v1/auth/change-password",
@@ -231,7 +231,7 @@ public class ApiServer {
      *   <li>The length of {@code ctx.result()} for legacy {@code String}-bodied routes.</li>
      * </ol>
      *
-     * <p>Adds an approximation of response header bytes on top — same precision target as
+     * <p>Adds an approximation of response header bytes on top - same precision target as
      * ingress.
      */
     private static long estimateEgressBytes(Context ctx) {
@@ -262,10 +262,10 @@ public class ApiServer {
      * Returns the number of bytes Jetty has written for the current response, by walking the
      * servlet response wrapper chain and reflectively invoking
      * {@code org.eclipse.jetty.server.Response#getContentCount()}. Returns {@code -1} when
-     * the lookup fails — callers must fall back to {@code Content-Length} / {@code ctx.result()}.
+     * the lookup fails - callers must fall back to {@code Content-Length} / {@code ctx.result()}.
      *
      * <p>Reflection lets the recorder stay independent of the Jetty version pinned by Javalin
-     * — Jetty 11 named the method {@code getContentCount}; Jetty 12 added
+     * - Jetty 11 named the method {@code getContentCount}; Jetty 12 added
      * {@code getBytesWritten}. We try both.
      */
     private static long jettyContentCount(Context ctx) {
@@ -322,8 +322,13 @@ public class ApiServer {
                     rule.allowHost(origin);
                 }
                 if (demoConfig.dev()) {
+                    // The frontends a dev instance is asked from: the dev server, the second one
+                    // the cross-instance transfer harness runs, and the end-to-end suite's own.
+                    // An origin missing here is refused with 400 on every write, which reads as
+                    // the request being malformed rather than as the port being unknown.
                     rule.allowHost("http://localhost:3000");
                     rule.allowHost("http://localhost:3001");
+                    rule.allowHost("http://localhost:3010");
                 }
             }));
 
@@ -408,7 +413,7 @@ public class ApiServer {
             });
 
             // Per-public-page hit counters. Only fires when a public page
-            // handler has resolved the page row and stashed its id on the context — file
+            // handler has resolved the page row and stashed its id on the context - file
             // serves, partner lookups, and 404s are excluded by construction.
             config.routes.after(ctx -> {
                 if (ctx.method() != HandlerType.GET) return;
@@ -422,13 +427,13 @@ public class ApiServer {
             });
 
             // demoConfig.enabled() vs demoConfig.dev():
-            //   - enabled(): public demo mode — the instance is reset on an idle timer and
+            //   - enabled(): public demo mode - the instance is reset on an idle timer and
             //     handed to anonymous visitors. handleDemoGuard runs to block destructive
             //     and externally-effecting endpoints (account deletion, external probes,
             //     real-mail tests, file uploads, AI calls, …). See DEMO_BLOCKED_PATHS.
             //   - dev(): local-development flag. Enables /api/v1/dev/errors, relaxes secure-
             //     cookie requirements over plain HTTP, and skips the eager admin bootstrap.
-            //     NO endpoints are blocked in dev mode — the demo guard is intentionally
+            //     NO endpoints are blocked in dev mode - the demo guard is intentionally
             //     not attached so transfer, uploads, probes and everything else are usable.
             if (demoConfig.enabled()) {
                 config.routes.before(this::handleDemoGuard);
@@ -458,6 +463,7 @@ public class ApiServer {
 
             if (demoConfig.dev()) {
                 config.routes.post(API_PREFIX + "/dev/errors", this::handleDevErrorReport);
+                config.routes.post(API_PREFIX + "/dev/reset", this::handleDevReset);
             }
 
             for (Routes route : routes) {
@@ -473,12 +479,12 @@ public class ApiServer {
      *
      * <p>Three layers of protection are layered here:
      * <ol>
-     *   <li>Exact-match path blocks via {@link #DEMO_BLOCKED_PATHS} — password changes, account
+     *   <li>Exact-match path blocks via {@link #DEMO_BLOCKED_PATHS} - password changes, account
      *       deletion, GDPR export, mail-relay test (sends real SMTP), station-deletion request,
      *       station data import, public station-application submission, page-editor and
      *       knowledge-base file uploads.</li>
      *   <li>Method + prefix blocks for the admin-station create/delete and role-change PUTs.</li>
-     *   <li>Method + regex blocks for parameterised paths — public invite acceptance (avoids a
+     *   <li>Method + regex blocks for parameterised paths - public invite acceptance (avoids a
      *       leaked token turning the demo into a real account), public waitlist registration
      *       (spam), parameterised page/knowledge-base file uploads (disk pressure), and the
      *       WebAuthn enrolment routes (would lock a demo session out behind a key that cannot
@@ -550,6 +556,20 @@ public class ApiServer {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    /**
+     * Throws the data away and seeds it again, so a test run starts from the state the seeder
+     * describes rather than from whatever the run before it left behind.
+     *
+     * <p>Registered only while the backend runs with {@code demo.dev}, alongside the password-free
+     * login that serves the same purpose. It is destructive by design and has no place anywhere a
+     * real station's data lives.
+     */
+    private void handleDevReset(@NotNull Context ctx) {
+        log.info("Dev reset requested, discarding all data and seeding again");
+        demoService.resetAndSeed();
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
     private void handleDemoAccounts(@NotNull Context ctx) {
         var allStations = stationRepository.findAll();
         var stationGroups = new ArrayList<DemoStationGroup>();
@@ -578,7 +598,8 @@ public class ApiServer {
                             permissionNames,
                             groupNames,
                             tagNames,
-                            complete));
+                            complete,
+                            account.instanceUserType() == InstanceUserType.ADMINISTRATOR));
                 });
             }
             if (!accounts.isEmpty()) {
@@ -591,9 +612,8 @@ public class ApiServer {
             if (!stationMemberRepository.findAllByAccountId(account.id()).isEmpty()) {
                 continue;
             }
-            StationUserType bucket = account.instanceUserType() == InstanceUserType.ADMINISTRATOR
-                    ? StationUserType.MANAGER
-                    : StationUserType.MEMBER;
+            boolean administrator = account.instanceUserType() == InstanceUserType.ADMINISTRATOR;
+            StationUserType bucket = administrator ? StationUserType.MANAGER : StationUserType.MEMBER;
             noStationAccounts.add(new DemoAccount(
                     account.email(),
                     account.firstName(),
@@ -602,7 +622,8 @@ public class ApiServer {
                     List.of(),
                     List.of(),
                     List.of(),
-                    true));
+                    true,
+                    administrator));
         }
 
         ctx.json(new DemoAccountsResponse(noStationAccounts, stationGroups));
@@ -616,7 +637,7 @@ public class ApiServer {
     private void handleAccess(@NotNull Context ctx) {
         Set<RouteRole> routeRoles = ctx.routeRoles();
 
-        // Routes with no roles defined are public — still populate session if token or federation headers present
+        // Routes with no roles defined are public - still populate session if token or federation headers present
         if (routeRoles.isEmpty()) {
             // Try federation signature auth for /remote/ endpoints
             if (ctx.header("X-Federation-Station-Id") != null) {
@@ -893,11 +914,17 @@ public class ApiServer {
      * Coarse per-IP rate limit applied to every non-preflight API request, on top of
      * the finer auth-endpoint limits. Answers {@code 429 Too Many Requests} with a
      * {@code Retry-After} header when a client exceeds its budget. Server-to-server
-     * federation traffic under {@code /remote/} is exempt — it is authenticated by
+     * federation traffic under {@code /remote/} is exempt - it is authenticated by
      * request signature and replay-protected already.
+     *
+     * <p>A dev instance is exempt as a whole. Everything on it arrives from one address - the
+     * browser of whoever is working, or a test suite running several of them at once - so the
+     * limit measures nothing there except how busy the developer is, and it answers
+     * {@code 429} to pages that are simply loading their data.
      */
     private void enforceGlobalRateLimit(@NotNull Context ctx) {
         if (ctx.method() == HandlerType.OPTIONS) return;
+        if (demoConfig.dev()) return;
         if (ctx.path().startsWith(API_PREFIX + "/remote/")) return;
 
         String clientIp;
@@ -964,7 +991,7 @@ public class ApiServer {
     /**
      * Matches the binary-resource endpoints (avatars, logos, images) by whole path
      * segment or suffix rather than substring, so unrelated paths that merely contain
-     * {@code avatar}/{@code logo}/{@code image} — such as {@code /auth/logout} — are
+     * {@code avatar}/{@code logo}/{@code image} - such as {@code /auth/logout} - are
      * excluded.
      */
     private static boolean isBinaryResourcePath(String path) {
@@ -1038,6 +1065,13 @@ public class ApiServer {
      * @param tags            the tag names assigned to this member
      * @param profileComplete whether the member's profile is fully filled in
      */
+    /**
+     * One account the demo instance offers for signing in.
+     *
+     * @param instanceAdministrator whether the account administers the instance itself. Station
+     *                              permissions say nothing about that, so a caller looking for
+     *                              someone who may reach the admin area has no other way to tell.
+     */
     public record DemoAccount(
             String email,
             String firstName,
@@ -1046,7 +1080,8 @@ public class ApiServer {
             List<String> permissions,
             List<String> groups,
             List<String> tags,
-            boolean profileComplete) {}
+            boolean profileComplete,
+            boolean instanceAdministrator) {}
 
     public record PublicConfigResponse(String demoUrl, boolean demo, String version) {}
 

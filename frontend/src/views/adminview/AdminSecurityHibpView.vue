@@ -51,7 +51,7 @@ async function save() {
               <div class="font-medium">{{ t('adminSecurity.hibp.enabled') }}</div>
               <MutedText tag="div" size="sm">{{ t('adminSecurity.hibp.enabledHint') }}</MutedText>
             </div>
-            <ToggleInput v-model="config.enabled"/>
+            <ToggleInput v-model="config.enabled" :aria-label="t('adminSecurity.hibp.enabled')"/>
           </div>
 
           <div>

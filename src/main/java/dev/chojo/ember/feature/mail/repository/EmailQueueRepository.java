@@ -5,10 +5,14 @@
  */
 package dev.chojo.ember.feature.mail.repository;
 
+import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import dev.chojo.ember.feature.mail.entity.MailDeliveryStatus;
+import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -20,6 +24,15 @@ import static dev.chojo.ember.util.sql.SqlSupport.count;
  */
 @Singleton
 public class EmailQueueRepository {
+
+    private static final RowMapping<QueuedEmail> QUEUED_EMAIL = row -> new QueuedEmail(
+            row.getInt("id"),
+            row.getString("recipient"),
+            row.getString("subject"),
+            row.getString("body"),
+            row.getObject("station_id", Integer.class),
+            row.getInt("attempts"),
+            row.getInt("provider_position"));
 
     /**
      * Enqueues an email without a station association (global/system email).
@@ -67,15 +80,98 @@ public class EmailQueueRepository {
                     WHERE status = 'PENDING' AND (:include_global OR station_id IS NOT NULL)
                     ORDER BY created_at LIMIT :limit
                 )
-                RETURNING id, recipient, subject, body, station_id;""")
+                RETURNING id, recipient, subject, body, station_id, attempts, provider_position;""")
                 .single(call().bind("limit", limit).bind("include_global", includeGlobal))
-                .map(row -> new QueuedEmail(
-                        row.getInt("id"),
-                        row.getString("recipient"),
-                        row.getString("subject"),
-                        row.getString("body"),
-                        row.getObject("station_id", Integer.class)))
+                .map(QUEUED_EMAIL)
                 .all();
+    }
+
+    /**
+     * Records what a provider reported about an email after it had accepted it.
+     *
+     * @param id        the queued email ID
+     * @param status    the delivery outcome
+     * @param detail    the reason the provider gave, or null
+     * @param messageId the message id the provider assigned, or null when it named none
+     */
+    public void recordDelivery(int id, MailDeliveryStatus status, String detail, String messageId) {
+        query("""
+                UPDATE email_queue
+                SET
+                    delivery_status     = :status,
+                    delivery_detail     = :detail,
+                    delivery_updated_at = now(),
+                    provider_message_id = coalesce(:message_id, provider_message_id)
+                WHERE id = :id;""")
+                .single(call().bind("id", id)
+                        .bind("status", status.name())
+                        .bind("detail", detail)
+                        .bind("message_id", messageId))
+                .update();
+    }
+
+    /**
+     * Finds the email a provider event belongs to when the event carried our own token back.
+     *
+     * @param id the queued email ID taken from the event
+     * @return the email, or empty when it has since been cleaned up
+     */
+    public Optional<QueuedEmail> findById(int id) {
+        return query(
+                        "SELECT id, recipient, subject, body, station_id, attempts, provider_position FROM email_queue WHERE id = :id;")
+                .single(call().bind("id", id))
+                .map(QUEUED_EMAIL)
+                .first();
+    }
+
+    /**
+     * Finds the email a provider event belongs to when the event carried no token of ours.
+     *
+     * <p>Falls back to what every event does name: the recipient and the subject. The most recent
+     * match wins, because a repeated subject to the same address is almost always the same mail
+     * being sent again.
+     *
+     * @param recipient the address the event names
+     * @param subject   the subject the event names, or null when it named none
+     * @param stationId the station the report is limited to, or null for no limit
+     * @return the most recently queued match
+     */
+    public Optional<QueuedEmail> findLatestFor(String recipient, String subject, Integer stationId) {
+        var where = WhereBuilder.create()
+                .add("AND subject = :subject", "subject", subject)
+                .add("AND station_id = :station_id", "station_id", stationId);
+        return query("""
+                SELECT id, recipient, subject, body, station_id, attempts, provider_position
+                FROM email_queue
+                WHERE recipient = :recipient
+                  %s
+                ORDER BY created_at DESC
+                LIMIT 1;""", where.fragment())
+                .single(where.apply(call().bind("recipient", recipient)))
+                .map(QUEUED_EMAIL)
+                .first();
+    }
+
+    /**
+     * Records one used-up attempt against the provider currently in turn.
+     *
+     * @param id the queued email ID
+     */
+    public void countAttempt(int id) {
+        query("UPDATE email_queue SET attempts = attempts + 1 WHERE id = :id;")
+                .single(call().bind("id", id))
+                .update();
+    }
+
+    /**
+     * Hands the mail to the next provider in the chain and starts its attempts over.
+     *
+     * @param id the queued email ID
+     */
+    public void advanceProvider(int id) {
+        query("UPDATE email_queue SET provider_position = provider_position + 1, attempts = 0 WHERE id = :id;")
+                .single(call().bind("id", id))
+                .update();
     }
 
     /**
@@ -165,5 +261,16 @@ public class EmailQueueRepository {
      * @param body      the HTML email body
      * @param stationId the associated station ID (null for system emails)
      */
-    public record QueuedEmail(int id, String recipient, String subject, String body, Integer stationId) {}
+    /**
+     * @param attempts         how many times the provider currently in turn has tried this mail
+     * @param providerPosition which provider of the chain is in turn, counted from zero
+     */
+    public record QueuedEmail(
+            int id,
+            String recipient,
+            String subject,
+            String body,
+            Integer stationId,
+            int attempts,
+            int providerPosition) {}
 }

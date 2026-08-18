@@ -18,7 +18,7 @@ import java.time.LocalDate;
 
 /**
  * Consumer endpoints for inventory offered by federation partners. Lending has no local
- * counterpart to this listing — it only exists as an aggregation across partners. The endpoints
+ * counterpart to this listing - it only exists as an aggregation across partners. The endpoints
  * an owning station serves to its partners live in {@link RemoteLendingRoutes}.
  */
 @Singleton

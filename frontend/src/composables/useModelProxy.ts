@@ -10,7 +10,7 @@ import {computed, type WritableComputedRef} from 'vue'
  * forwards writes through `emit('update:X', v)`. Replaces the repeated
  * "computed-with-get-and-set" boilerplate that every modal and form section
  * writes when bridging a `v-model` between parent and child. The emit
- * parameter only requires the matching `update:K` overload — components that
+ * parameter only requires the matching `update:K` overload - components that
  * declare additional events (e.g. `save`) stay assignable because Vue's
  * `defineEmits` return value is the intersection of every overload.
  *

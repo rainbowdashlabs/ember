@@ -12,10 +12,6 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import Modal from '@/components/feedback/Modal.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
-import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
 import TemplateSelectorSection from '@/views/stationview/procedure/procedurecreateview/TemplateSelectorSection.vue'
 import BasicInfoSection from '@/views/stationview/procedure/procedurecreateview/BasicInfoSection.vue'
 import AssigneesSection from '@/views/stationview/procedure/procedurecreateview/AssigneesSection.vue'
@@ -44,9 +40,6 @@ const {
 } = form
 
 const assigneePickerValue = ref('')
-const showAddItemModal = ref(false)
-const newItemTitle = ref('')
-const newItemDescription = ref('')
 
 const {running: saving, error: saveError, run: runSubmit} = useAsyncAction(
     async () => router.push({name: 'procedure-detail', params: {id: await form.submit()}}),
@@ -62,13 +55,6 @@ function handleSubmit() {
 function addAssigneeFromPicker() {
   form.addAssignee(Number(assigneePickerValue.value))
   assigneePickerValue.value = ''
-}
-
-function addItemFromModal() {
-  form.addItem(newItemTitle.value, newItemDescription.value)
-  newItemTitle.value = ''
-  newItemDescription.value = ''
-  showAddItemModal.value = false
 }
 
 watch(loaded, (v) => {
@@ -111,7 +97,7 @@ watch(loaded, (v) => {
 
         <ItemsSection
             :items="items"
-            @add="showAddItemModal = true"
+            @add="form.addItem()"
             @move="form.moveItem"
             @remove="form.removeItem"
         />
@@ -125,15 +111,5 @@ watch(loaded, (v) => {
       </div>
     </template>
 
-    <Modal v-model="showAddItemModal">
-      <SubHeader class="mb-3">{{ t('procedures.addItem') }}</SubHeader>
-      <form @submit.prevent="addItemFromModal" class="space-y-3">
-        <TextInput v-model="newItemTitle" :placeholder="t('procedures.itemTitle')" required/>
-        <TextAreaInput v-model="newItemDescription" :placeholder="t('procedures.itemDescription')"/>
-        <div class="flex gap-2 justify-end">
-          <PrimaryButton type="submit">{{ t('procedures.addItem') }}</PrimaryButton>
-        </div>
-      </form>
-    </Modal>
   </ViewContent>
 </template>

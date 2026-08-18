@@ -97,7 +97,7 @@ public class EventReminderChecker {
                                                             "date",
                                                             occurrence.toString()))));
                             log.info(
-                                    "Sent {} reminder(s) for event '{}' (id={}) on {} — {} days before",
+                                    "Sent {} reminder(s) for event '{}' (id={}) on {} - {} days before",
                                     targetIds.size(),
                                     event.name(),
                                     event.id(),

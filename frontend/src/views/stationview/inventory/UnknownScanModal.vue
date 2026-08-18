@@ -108,7 +108,7 @@ watch(selectedInventory, async (inv) => {
     availableSizes.value = sizes
     fieldDefs.value = defs
   } catch {
-    /* swallow — surfaced on submit */
+    /* swallow - surfaced on submit */
   }
 })
 

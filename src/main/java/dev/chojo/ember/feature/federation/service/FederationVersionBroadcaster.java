@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
  * response contains the partner's full vector which we store.
  * <p>
  * The sweep repeats rather than running once at startup: a partner whose vector is unknown
- * is treated as incompatible, which gates off every outbound feature request to it — so the
+ * is treated as incompatible, which gates off every outbound feature request to it - so the
  * request-driven refresh triggers can never fire for that partner and a single missed ping
  * would pause the partnership until the next restart. The recurring sweep is the one path
  * that does not depend on traffic, so an unreachable or still-restarting partner heals on

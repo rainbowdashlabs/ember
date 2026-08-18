@@ -145,7 +145,7 @@ export interface FeaturedEventConfig {
 
 export interface UpcomingEventsConfig {
     title?: string | null
-    /** Empty / unset = "all categories". Event categories are referenced by their numeric id —
+    /** Empty / unset = "all categories". Event categories are referenced by their numeric id -
      *  no public_uid exists for them today. */
     categoryIds?: number[] | null
     /** Max items to render. Default 5, max 20. */
@@ -234,7 +234,7 @@ export interface ResolvedMember {
 
 export interface MemberListConfig {
     title?: string | null
-    /** Source of the member list — group / tag / manual override. */
+    /** Source of the member list - group / tag / manual override. */
     source?: MemberListSource | null
     /** Default {@link MemberListSortBy.ORDER}; falls back to natural source order or memberOrder. */
     sortBy?: MemberListSortByName | null
@@ -249,7 +249,7 @@ export interface MemberListConfig {
     /**
      * Render-time injection populated by the public render path so unauthenticated visitors
      * can display the cell without hitting the auth-gated avatar endpoint. Avatar is inlined
-     * as a base64 {@code data:} URL when present. {@code null} on the editor path — that
+     * as a base64 {@code data:} URL when present. {@code null} on the editor path - that
      * surface calls {@link resolveMemberListSource} live with auth in scope.
      */
     resolvedMembers?: ResolvedMember[] | null
@@ -435,7 +435,7 @@ export interface PageImage {
 /** Alias for clarity: page-files cover images and (eventually) PDFs, audio, etc. */
 export type PageFile = PageImage
 
-/** Listing entry returned by GET /pages/files — file + whether it's referenced anywhere + tag ids. */
+/** Listing entry returned by GET /pages/files - file + whether it's referenced anywhere + tag ids. */
 export interface PageFileListing {
     file: PageFile
     inUse: boolean

@@ -11,7 +11,7 @@ import dev.chojo.ocular.override.OverwritePrefix;
 
 /**
  * Cross-cutting configuration for persisted metrics. Owns the retention windows for every
- * metric table the application writes — operators can shrink them to save disk space on
+ * metric table the application writes - operators can shrink them to save disk space on
  * constrained deployments, or expand them when long-running trend analysis matters more.
  */
 @SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal", "CanBeFinal"})
@@ -20,7 +20,7 @@ public class Metrics {
 
     /**
      * How many days of {@code api_request_log} rows to keep. Each row is one API request, so
-     * this table grows linearly with traffic — keep low (default 3) unless you actually need
+     * this table grows linearly with traffic - keep low (default 3) unless you actually need
      * historical per-request data.
      */
     @Overwrite(env = @Env)

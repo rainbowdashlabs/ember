@@ -19,7 +19,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 /**
- * Admin routes for API request monitoring — response times, status codes, endpoint stats.
+ * Admin routes for API request monitoring - response times, status codes, endpoint stats.
  */
 @Singleton
 public class ApiStatusRoutes implements Routes {

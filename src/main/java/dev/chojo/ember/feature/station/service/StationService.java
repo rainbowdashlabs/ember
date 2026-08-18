@@ -344,7 +344,7 @@ public class StationService {
     }
 
     /**
-     * Finds stations discoverable without being signed in — only stations that opted into
+     * Finds stations discoverable without being signed in - only stations that opted into
      * public visibility.
      */
     public List<Station> findPubliclyDiscoverable(int excludeStationId) {

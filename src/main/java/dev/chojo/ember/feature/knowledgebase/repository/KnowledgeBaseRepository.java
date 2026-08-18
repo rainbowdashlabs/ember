@@ -5,15 +5,18 @@
  */
 package dev.chojo.ember.feature.knowledgebase.repository;
 
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.knowledgebase.entity.ConversionStatus;
-import dev.chojo.ember.feature.knowledgebase.entity.KbAccessRestriction;
+import dev.chojo.ember.feature.knowledgebase.entity.KbAccessGrant;
+import dev.chojo.ember.feature.knowledgebase.entity.KbAccessLevel;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileVersion;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFolder;
 import dev.chojo.ember.feature.knowledgebase.entity.KbSearchResult;
 import dev.chojo.ember.feature.knowledgebase.entity.KbTag;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSql;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.util.sql.FullTextSearch;
@@ -54,7 +57,8 @@ public class KnowledgeBaseRepository {
     private static final String FILE_COLUMNS = SqlSupport.alias("f", FILE_COLUMNS_BARE);
     private static final String FILE_RESTRICTED = RestrictionSql.restrictedFlag(RestrictionType.KB_FILE, "f.id");
     private static final String FILE_VERSION_COLUMNS = "id, file_id, patch, is_full, version, created_by, created_at";
-    private static final String RESTRICTION_COLUMNS = "id, folder_id, file_id, user_type, group_id, tag_id, member_id";
+    private static final String RESTRICTION_COLUMNS =
+            "id, folder_id, file_id, user_type, group_id, tag_id, member_id, level";
     private static final String TAG_COLUMNS = "id, station_id, name";
     private static final String TAG_COLUMNS_ALIASED = SqlSupport.alias("t", TAG_COLUMNS);
     private static final String SNIPPET_SOURCE =
@@ -65,7 +69,7 @@ public class KnowledgeBaseRepository {
      * Folders directly under {@code parentId}, or the root folders when it is {@code null}.
      *
      * <p>A null parent means "match {@code IS NULL}" here, not "no filter", so the predicate is
-     * chosen rather than left out — {@link WhereBuilder} drops null-valued predicates, which would
+     * chosen rather than left out - {@link WhereBuilder} drops null-valued predicates, which would
      * widen this to every folder in the station.
      */
     public List<KbFolder> findFolders(int stationId, Integer parentId) {
@@ -363,57 +367,131 @@ public class KnowledgeBaseRepository {
                 .all();
     }
 
-    // -- Access Restrictions --
+    // -- Access Grants --
 
-    public List<KbAccessRestriction> findRestrictions(Integer folderId, Integer fileId) {
+    public List<KbAccessGrant> findRestrictions(Integer folderId, Integer fileId) {
         if (folderId != null) {
-            return query("SELECT %s FROM kb_access_restriction WHERE folder_id = :folder_id;", RESTRICTION_COLUMNS)
+            return query("SELECT %s FROM kb_access_grant WHERE folder_id = :folder_id;", RESTRICTION_COLUMNS)
                     .single(call().bind("folder_id", folderId))
-                    .map(KbAccessRestriction.map())
+                    .map(KbAccessGrant.map())
                     .all();
         }
-        return query("SELECT %s FROM kb_access_restriction WHERE file_id = :file_id;", RESTRICTION_COLUMNS)
+        return query("SELECT %s FROM kb_access_grant WHERE file_id = :file_id;", RESTRICTION_COLUMNS)
                 .single(call().bind("file_id", fileId))
-                .map(KbAccessRestriction.map())
+                .map(KbAccessGrant.map())
                 .all();
     }
 
-    public KbAccessRestriction addRestriction(
+    /**
+     * Walks a folder's ancestry in one query, root first, so a permission check does not issue one
+     * lookup per level.
+     *
+     * @param folderId the folder to walk up from
+     * @return the path from the root down to that folder, each with the mode its grants combine in
+     */
+    public List<FolderPathNode> findFolderPath(int folderId) {
+        return query("""
+                WITH RECURSIVE ancestry AS (
+                    SELECT id, parent_id, restriction_mode, 0 AS depth
+                    FROM kb_folder
+                    WHERE id = :id
+                    UNION ALL
+                    SELECT parent.id, parent.parent_id, parent.restriction_mode, ancestry.depth + 1
+                    FROM kb_folder parent
+                    JOIN ancestry ON parent.id = ancestry.parent_id
+                )
+                SELECT id, restriction_mode
+                FROM ancestry
+                ORDER BY depth DESC;""")
+                .single(call().bind("id", folderId))
+                .map(row ->
+                        new FolderPathNode(row.getInt("id"), row.getEnum("restriction_mode", RestrictionMode.class)))
+                .all();
+    }
+
+    /**
+     * A folder on the path from the root to a node, with the mode its grants combine in.
+     */
+    public record FolderPathNode(int id, RestrictionMode restrictionMode) {}
+
+    /**
+     * Reads the grants of many folders and files at once, so listing a folder costs one query for
+     * every child rather than one per child.
+     *
+     * @param folderIds the folders to read grants for
+     * @param fileIds   the files to read grants for
+     * @return every grant row on any of those nodes
+     */
+    public List<KbAccessGrant> findRestrictionsForNodes(List<Integer> folderIds, List<Integer> fileIds) {
+        if (folderIds.isEmpty() && fileIds.isEmpty()) return List.of();
+        return query("""
+                        SELECT %s
+                        FROM kb_access_grant
+                        WHERE folder_id = ANY(:folder_ids) OR file_id = ANY(:file_ids);""", RESTRICTION_COLUMNS)
+                .single(call().bind("folder_ids", folderIds, PostgreSqlTypes.INTEGER)
+                        .bind("file_ids", fileIds, PostgreSqlTypes.INTEGER))
+                .map(KbAccessGrant.map())
+                .all();
+    }
+
+    /**
+     * Reads the grants of a whole ancestry in one query, so resolving a member's level costs one
+     * round trip rather than one per folder along the path.
+     *
+     * @param folderIds the folders of the path, root first
+     * @param fileId    the file at the end of the path, or {@code null} when resolving a folder
+     * @return every grant row on any of those nodes
+     */
+    public List<KbAccessGrant> findRestrictionsForPath(List<Integer> folderIds, Integer fileId) {
+        if (folderIds.isEmpty() && fileId == null) return List.of();
+        return query("""
+                        SELECT %s
+                        FROM kb_access_grant
+                        WHERE folder_id = ANY(:folder_ids) OR file_id = :file_id;""", RESTRICTION_COLUMNS)
+                .single(call().bind("folder_ids", folderIds, PostgreSqlTypes.INTEGER)
+                        .bind("file_id", fileId))
+                .map(KbAccessGrant.map())
+                .all();
+    }
+
+    public KbAccessGrant addRestriction(
             Integer folderId,
             Integer fileId,
             StationUserType userType,
             Integer groupId,
             Integer tagId,
-            Integer memberId) {
+            Integer memberId,
+            KbAccessLevel level) {
         return SqlSupport.insertReturning(
                 """
                 INSERT
                 INTO
-                    kb_access_restriction(folder_id, file_id, user_type, group_id, tag_id, member_id)
+                    kb_access_grant(folder_id, file_id, user_type, group_id, tag_id, member_id, level)
                 VALUES
-                    (:folder_id, :file_id, :user_type, :group_id, :tag_id, :member_id)
+                    (:folder_id, :file_id, :user_type, :group_id, :tag_id, :member_id, :level)
                 RETURNING %s;""",
                 call().bind("folder_id", folderId)
                         .bind("file_id", fileId)
                         .bind("user_type", userType)
                         .bind("group_id", groupId)
                         .bind("tag_id", tagId)
-                        .bind("member_id", memberId),
-                KbAccessRestriction.map(),
+                        .bind("member_id", memberId)
+                        .bind("level", level),
+                KbAccessGrant.map(),
                 RESTRICTION_COLUMNS);
     }
 
     public boolean removeRestriction(int id) {
-        return SqlSupport.deleteById("kb_access_restriction", id);
+        return SqlSupport.deleteById("kb_access_grant", id);
     }
 
     public void clearRestrictions(Integer folderId, Integer fileId) {
         if (folderId != null) {
-            query("DELETE FROM kb_access_restriction WHERE folder_id = :folder_id;")
+            query("DELETE FROM kb_access_grant WHERE folder_id = :folder_id;")
                     .single(call().bind("folder_id", folderId))
                     .delete();
         } else if (fileId != null) {
-            query("DELETE FROM kb_access_restriction WHERE file_id = :file_id;")
+            query("DELETE FROM kb_access_grant WHERE file_id = :file_id;")
                     .single(call().bind("file_id", fileId))
                     .delete();
         }
@@ -441,7 +519,7 @@ public class KnowledgeBaseRepository {
                 RETURNING %s;""", call().bind("station_id", stationId).bind("name", name.toLowerCase()), KbTag.map(), TAG_COLUMNS);
     }
 
-    // Not yet exposed via routes — tag management UI not implemented
+    // Not yet exposed via routes - tag management UI not implemented
     public boolean deleteTag(int id) {
         return SqlSupport.deleteById("kb_tag", id);
     }
@@ -580,7 +658,7 @@ public class KnowledgeBaseRepository {
                 .insert();
     }
 
-    // Not yet exposed via routes — favourites UI not implemented
+    // Not yet exposed via routes - favourites UI not implemented
     public boolean removeFavourite(int memberId, int fileId) {
         return query("DELETE FROM kb_favourite WHERE member_id = :member_id AND file_id = :file_id;")
                 .single(call().bind("member_id", memberId).bind("file_id", fileId))

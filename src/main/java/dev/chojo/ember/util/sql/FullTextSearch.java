@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
  * The text search configuration is the only part of a full-text expression that cannot be bound
  * as a parameter, so every fragment built here runs the requested configuration through
  * {@link #config(String)} first: anything outside the allow-list collapses to
- * {@link #DEFAULT_CONFIG}. User-supplied search text never reaches the statement — it is passed
+ * {@link #DEFAULT_CONFIG}. User-supplied search text never reaches the statement - it is passed
  * as a bind name and the caller binds the value produced by {@link #prefixTerms(String)}.
  */
 public final class FullTextSearch {
@@ -35,7 +35,7 @@ public final class FullTextSearch {
      * Maps a requested text search configuration onto the allow-list, falling back to
      * {@link #DEFAULT_CONFIG} for anything unknown or absent. This is the only guard between a
      * caller-chosen configuration name and the SQL text, so every fragment builder applies it and
-     * no input — including {@code null} — may leave the method without an allow-listed answer.
+     * no input - including {@code null} - may leave the method without an allow-listed answer.
      *
      * @param requested the configuration name to validate, may be {@code null}
      * @return an allow-listed configuration name, never {@code null}
@@ -89,7 +89,7 @@ public final class FullTextSearch {
      *
      * <p>Words are filtered <em>after</em> stripping, not before. A token made entirely of
      * punctuation strips to nothing, and appending {@code :*} to it would produce a bare
-     * {@code :*} — which is not valid tsquery syntax and makes {@code to_tsquery} reject the whole
+     * {@code :*} - which is not valid tsquery syntax and makes {@code to_tsquery} reject the whole
      * query. A query with no usable words yields an empty string.
      *
      * @param query the raw user query

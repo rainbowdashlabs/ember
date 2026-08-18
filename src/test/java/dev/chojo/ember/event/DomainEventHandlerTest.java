@@ -186,7 +186,7 @@ class DomainEventHandlerTest {
 
         verify(notificationService).notifyStation(eq(STATION_ID), eq(NotificationType.NEW_EVENT), argThat(data -> {
             var map = data.paramsAsMap();
-            // Full 100 chars survive — no handler-side truncation any more.
+            // Full 100 chars survive - no handler-side truncation any more.
             return map.get("eventDescription").length() == 100;
         }));
     }

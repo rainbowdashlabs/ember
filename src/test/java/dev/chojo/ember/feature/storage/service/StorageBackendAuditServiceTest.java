@@ -88,7 +88,7 @@ class StorageBackendAuditServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * A CREATED event carries only the new config, and the persisted snapshot is redacted —
+     * A CREATED event carries only the new config, and the persisted snapshot is redacted -
      * the plaintext secret key must never reach the table.
      */
     @Test

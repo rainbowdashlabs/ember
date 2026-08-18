@@ -61,13 +61,13 @@ function copyJson() {
           <div class="font-semibold text-xs uppercase tracking-wide text-(--text-muted)">{{ t('devTools.account') }}</div>
           <div class="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1">
             <span class="text-(--text-muted)">{{ t('devTools.name') }}</span>
-            <span>{{ accountName || '—' }}</span>
+            <span>{{ accountName || '-' }}</span>
             <span class="text-(--text-muted)">{{ t('devTools.email') }}</span>
-            <span class="break-all">{{ sessionInfo.account?.email || '—' }}</span>
+            <span class="break-all">{{ sessionInfo.account?.email || '-' }}</span>
             <span class="text-(--text-muted)">{{ t('devTools.accountId') }}</span>
-            <span>{{ sessionInfo.account?.id ?? '—' }}</span>
+            <span>{{ sessionInfo.account?.id ?? '-' }}</span>
             <span class="text-(--text-muted)">{{ t('devTools.instanceUserType') }}</span>
-            <span>{{ sessionInfo.instanceUserType || '—' }}</span>
+            <span>{{ sessionInfo.instanceUserType || '-' }}</span>
             <span class="text-(--text-muted)">{{ t('devTools.profileComplete') }}</span>
             <span>{{ sessionInfo.profileComplete ? '✓' : '✗' }}</span>
           </div>
@@ -77,21 +77,21 @@ function copyJson() {
           <div class="font-semibold text-xs uppercase tracking-wide text-(--text-muted)">{{ t('devTools.station') }}</div>
           <div class="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1">
             <span class="text-(--text-muted)">{{ t('devTools.stationId') }}</span>
-            <span class="break-all">{{ sessionInfo.stationId || '—' }}</span>
+            <span class="break-all">{{ sessionInfo.stationId || '-' }}</span>
             <span class="text-(--text-muted)">{{ t('devTools.memberId') }}</span>
-            <span>{{ sessionInfo.member?.id ?? '—' }}</span>
+            <span>{{ sessionInfo.member?.id ?? '-' }}</span>
             <span class="text-(--text-muted)">{{ t('devTools.memberUid') }}</span>
-            <span class="break-all">{{ sessionInfo.member?.uid || '—' }}</span>
+            <span class="break-all">{{ sessionInfo.member?.uid || '-' }}</span>
             <span class="text-(--text-muted)">{{ t('devTools.userType') }}</span>
-            <span>{{ sessionInfo.userType || '—' }}</span>
+            <span>{{ sessionInfo.userType || '-' }}</span>
             <span class="text-(--text-muted)">{{ t('devTools.publicKbMode') }}</span>
-            <span>{{ sessionInfo.publicKbMode || '—' }}</span>
+            <span>{{ sessionInfo.publicKbMode || '-' }}</span>
           </div>
         </section>
 
         <section class="space-y-1">
           <div class="font-semibold text-xs uppercase tracking-wide text-(--text-muted)">{{ t('devTools.permissions') }} ({{ sortedPermissions.length }})</div>
-          <div v-if="sortedPermissions.length === 0" class="text-(--text-muted)">—</div>
+          <div v-if="sortedPermissions.length === 0" class="text-(--text-muted)">-</div>
           <div v-else class="flex flex-wrap gap-1">
             <span
                 v-for="p in sortedPermissions"
@@ -103,17 +103,17 @@ function copyJson() {
 
         <section class="space-y-1">
           <div class="font-semibold text-xs uppercase tracking-wide text-(--text-muted)">{{ t('devTools.groups') }} ({{ sessionInfo.groups?.length ?? 0 }})</div>
-          <div v-if="!sessionInfo.groups?.length" class="text-(--text-muted)">—</div>
+          <div v-if="!sessionInfo.groups?.length" class="text-(--text-muted)">-</div>
           <ul v-else class="space-y-0.5">
             <li v-for="g in sessionInfo.groups" :key="g.id" class="font-mono text-xs">
-              #{{ g.id }} {{ g.name || '—' }}
+              #{{ g.id }} {{ g.name || '-' }}
             </li>
           </ul>
         </section>
 
         <section class="space-y-1">
           <div class="font-semibold text-xs uppercase tracking-wide text-(--text-muted)">{{ t('devTools.tags') }} ({{ sessionInfo.tags?.length ?? 0 }})</div>
-          <div v-if="!sessionInfo.tags?.length" class="text-(--text-muted)">—</div>
+          <div v-if="!sessionInfo.tags?.length" class="text-(--text-muted)">-</div>
           <ul v-else class="space-y-0.5">
             <li v-for="tag in sessionInfo.tags" :key="tag.id" class="font-mono text-xs">
               #{{ tag.id }} {{ tag.name }}
@@ -125,7 +125,7 @@ function copyJson() {
           <div class="font-semibold text-xs uppercase tracking-wide text-(--text-muted)">{{ t('devTools.managedMembers') }} ({{ sessionInfo.managedMembers.length }})</div>
           <ul class="space-y-0.5">
             <li v-for="m in sessionInfo.managedMembers" :key="m.id" class="font-mono text-xs">
-              #{{ m.id }} {{ m.name || m.email || '—' }}
+              #{{ m.id }} {{ m.name || m.email || '-' }}
             </li>
           </ul>
         </section>

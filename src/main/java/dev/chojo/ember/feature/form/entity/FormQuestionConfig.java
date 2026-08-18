@@ -40,7 +40,7 @@ public sealed interface FormQuestionConfig {
     /**
      * Parses a JSON string into the appropriate config for the given question type. The
      * {@code questionType} discriminator is stamped from the given type before parsing, so
-     * configs stored without one — or with a stale value — resolve to the type the question
+     * configs stored without one - or with a stale value - resolve to the type the question
      * row declares.
      */
     static FormQuestionConfig parse(FormQuestionType formQuestionType, String json) {

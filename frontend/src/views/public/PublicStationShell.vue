@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, onUnmounted, provide, ref} from 'vue'
+import {computed, onMounted, onUnmounted, provide} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import SidebarLayout from '@/components/layout/SidebarLayout.vue'
@@ -13,8 +13,9 @@ import SidebarLink from '@/components/navigation/SidebarLink.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import {getPublicStationInfo, type PublicStationInfo} from '@/api/discovery'
-import {listPublicPages, type PublicPageSummary} from '@/api/publicPages'
+import type {PublicStationInfo} from '@/api/discovery'
+import {apiUrl} from '@/util/apiUrl'
+import type {PublicPageSummary} from '@/api/publicPages'
 import {useCanonical} from '~/composables/useCanonical'
 import {usePageHeader} from '@/composables/usePageHeader'
 import {useTheme} from '@/composables/useTheme'
@@ -27,10 +28,6 @@ const {title: pageTitle, subtitle: pageSubtitle} = usePageHeader()
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 const stationUid = computed(() => route.params.stationUid as string)
-const station = ref<PublicStationInfo | null>(null)
-const loading = ref(true)
-const error = ref('')
-const publicPages = ref<PublicPageSummary[]>([])
 
 const logoUrl = computed(() =>
     station.value?.hasLogo ? `/api/v1/public/stations/${station.value.stationUid}/logo?size=256` : null)
@@ -54,34 +51,44 @@ function childrenOf(parentId: number) {
   return publicPages.value.filter(p => p.parentId === parentId)
 }
 
-onMounted(async () => {
-  try {
-    const uid = stationUid.value
-    station.value = await getPublicStationInfo(uid)
+/**
+ * Fetched during the server render rather than after mount. Every public page of a station hangs
+ * inside this shell, so loading it in the browser left a crawler, a link preview and a reader
+ * without JavaScript with an empty frame where the station's blog, wiki and calendar should be.
+ */
+// Resolved here rather than inside the loader: the address comes from the runtime configuration,
+// and reading that needs the Nuxt instance, which a loader running on its own no longer has.
+const apiBase = apiUrl('')
 
-    const {applyStationOverride} = useTheme()
-    applyStationOverride(
-        station.value.defaultTheme,
-        station.value.defaultFeel,
-        station.value.customThemeColors,
-    )
+const {data: shell, error: loadError, status} = await useAsyncData(
+    `public-station-${route.params.stationUid}`,
+    async () => {
+      const info = await $fetch<PublicStationInfo>(`${apiBase}/public/station/${stationUid.value}/info`)
+      const pages = info.hasPublicPages
+          ? await $fetch<PublicPageSummary[]>(`${apiBase}/public/pages/${info.stationUid}`)
+          : []
+      return {info, pages}
+    },
+    {watch: [stationUid]},
+)
 
-    if (station.value.hasPublicPages) {
-      publicPages.value = await listPublicPages(station.value.stationUid)
-    }
+const station = computed(() => shell.value?.info ?? null)
+const publicPages = computed(() => shell.value?.pages ?? [])
+const loading = computed(() => status.value === 'pending')
+const error = computed(() => (loadError.value ? t('common.error') : ''))
 
-    // Redirect UUID URLs to the clean slug URL AFTER all data is loaded
-    if (station.value.publicSlug && UUID_REGEX.test(uid)) {
-      const slugPath = route.path.replace(
-          `/public/station/${uid}`,
-          `/public/station/${station.value.publicSlug}`,
-      )
-      router.replace(slugPath)
-    }
-  } catch {
-    error.value = t('common.error')
-  } finally {
-    loading.value = false
+onMounted(() => {
+  if (!station.value) return
+
+  const {applyStationOverride} = useTheme()
+  applyStationOverride(station.value.defaultTheme, station.value.defaultFeel, station.value.customThemeColors)
+
+  // A station reached by its identifier moves to its readable address once the page is up.
+  if (station.value.publicSlug && UUID_REGEX.test(stationUid.value)) {
+    router.replace(route.path.replace(
+        `/public/station/${stationUid.value}`,
+        `/public/station/${station.value.publicSlug}`,
+    ))
   }
 })
 
@@ -102,7 +109,7 @@ useHead(computed(() => {
     title: s.name,
     meta: [
       {name: 'description', content: desc},
-      {property: 'og:title', content: `${s.name} — Ember`},
+      {property: 'og:title', content: `${s.name} - Ember`},
       {property: 'og:description', content: desc},
       {property: 'og:type', content: 'website'},
       ...(stationLogo ? [
@@ -110,7 +117,7 @@ useHead(computed(() => {
         {name: 'twitter:image', content: stationLogo},
       ] : []),
       {name: 'twitter:card', content: stationLogo ? 'summary_large_image' : 'summary'},
-      {name: 'twitter:title', content: `${s.name} — Ember`},
+      {name: 'twitter:title', content: `${s.name} - Ember`},
       {name: 'twitter:description', content: desc},
     ],
     script: [

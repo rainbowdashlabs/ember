@@ -49,7 +49,7 @@ const days = computed(() => {
   return [...set].sort()
 })
 
-/** Per-day request count, broken out by feed type. Sums counts across status codes —
+/** Per-day request count, broken out by feed type. Sums counts across status codes -
  *  totals are what answer "how loaded is the feed today". */
 const requestsByType = computed(() => {
   const make = (type: string) => days.value.map(day => {
@@ -101,7 +101,7 @@ const totalErrors = computed(() =>
     daily.value.filter(r => r.status >= 500).reduce((sum, r) => sum + r.count, 0),
 )
 
-/** Status-code breakdown across the window — sparkline-style. */
+/** Status-code breakdown across the window - sparkline-style. */
 const statusBreakdown = computed(() => {
   const map = new Map<number, number>()
   for (const row of daily.value) map.set(row.status, (map.get(row.status) ?? 0) + row.count)

@@ -64,7 +64,7 @@ public class TransferFileImporter {
     }
 
     /**
-     * Returns the slash-separated parent segment of {@code relativeKey} — for an original key
+     * Returns the slash-separated parent segment of {@code relativeKey} - for an original key
      * like {@code <hash>/orig.png} this is the {@code <hash>}; for a flat key with no slash
      * the input is returned as-is.
      */
@@ -161,7 +161,7 @@ public class TransferFileImporter {
 
     /**
      * Returns {@code true} when the key was streamed successfully; {@code false} when the source
-     * answered 404 (the row was deleted concurrently — acceptable, the row will likely be
+     * answered 404 (the row was deleted concurrently - acceptable, the row will likely be
      * re-listed in a later transfer or stay absent).
      */
     private boolean streamFile(

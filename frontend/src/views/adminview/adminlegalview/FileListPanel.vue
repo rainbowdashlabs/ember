@@ -11,12 +11,14 @@ import SaveButton from '@/components/button/SaveButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import LegalFileRow from './LegalFileRow.vue'
 import type {LegalFile} from '@/api/adminSettings'
+import {applyPlaceholders} from '@/util/placeholders'
 import {marked} from 'marked'
 
 const {t} = useI18n()
 
-defineProps<{
+const props = defineProps<{
   saveAction: () => Promise<void>
+  placeholderValues: Record<string, string>
 }>()
 
 const files = defineModel<LegalFile[]>('files', {required: true})
@@ -24,13 +26,15 @@ const showPreview = defineModel<boolean>('showPreview', {required: true})
 
 const emit = defineEmits<{
   addFile: []
+  loadTemplate: []
+  importDocument: []
   deleteFile: [index: number]
 }>()
 
 const renderedPreview = computed(() => {
   const enabledContent = files.value.filter(f => f.enabled).map(f => f.content).join('\n\n')
   if (!enabledContent) return ''
-  return marked.parse(enabledContent) as string
+  return marked.parse(applyPlaceholders(enabledContent, props.placeholderValues)) as string
 })
 
 function toggleEnabled(index: number) {
@@ -73,6 +77,12 @@ function updateContent(index: number, value: string) {
         {{ showPreview ? t('adminSettings.legal.edit') : t('adminSettings.legal.preview') }}
       </SecondaryButton>
       <div class="flex items-center gap-2">
+        <SecondaryButton :icon="['fas', 'file-import']" @click="emit('loadTemplate')">
+          {{ t('adminSettings.legal.loadTemplate') }}
+        </SecondaryButton>
+        <SecondaryButton :icon="['fas', 'upload']" @click="emit('importDocument')">
+          {{ t('adminSettings.legal.import') }}
+        </SecondaryButton>
         <SecondaryButton :icon="['fas', 'plus']" @click="emit('addFile')">
           {{ t('adminSettings.legal.addFile') }}
         </SecondaryButton>

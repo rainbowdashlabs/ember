@@ -58,7 +58,7 @@ export function newSftp(): SftpRequest {
 }
 
 /**
- * Seeds S3 form state from a stored backend summary. Credentials stay blank —
+ * Seeds S3 form state from a stored backend summary. Credentials stay blank -
  * the server never echoes them back.
  */
 export function s3FormFrom(summary: S3Summary): S3Request {
@@ -76,7 +76,7 @@ export function s3FormFrom(summary: S3Summary): S3Request {
 }
 
 /**
- * Seeds SMB form state from a stored backend summary. Credentials stay blank —
+ * Seeds SMB form state from a stored backend summary. Credentials stay blank -
  * the server never echoes them back.
  */
 export function smbFormFrom(summary: SmbSummary): SmbRequest {
@@ -96,7 +96,7 @@ export function smbFormFrom(summary: SmbSummary): SmbRequest {
 
 /**
  * Seeds SFTP form state from a stored backend summary. The host fingerprint and
- * the credentials stay blank — the server never echoes them back.
+ * the credentials stay blank - the server never echoes them back.
  */
 export function sftpFormFrom(summary: SftpSummary): SftpRequest {
     return {

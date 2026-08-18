@@ -13,7 +13,7 @@ import java.time.Instant;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 /**
- * One row of {@code two_factor_policy} — a per-(station, user-type) toggle that mandates 2FA
+ * One row of {@code two_factor_policy} - a per-(station, user-type) toggle that mandates 2FA
  * enrolment for anyone the row matches.
  *
  * @param id        row id

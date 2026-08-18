@@ -11,7 +11,7 @@ import SidebarExpandableLink from '@/components/navigation/SidebarExpandableLink
 import QuizSidebarGroup from '@/views/helpcenterstationview/QuizSidebarGroup.vue'
 
 /**
- * Help navigation for the optional station modules — everything a station can turn on, as opposed
+ * Help navigation for the optional station modules - everything a station can turn on, as opposed
  * to the always-present areas in {@link HelpCenterSidebar}.
  */
 defineProps<{

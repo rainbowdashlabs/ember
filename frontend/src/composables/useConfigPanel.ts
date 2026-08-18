@@ -7,7 +7,7 @@ import {onMounted, ref, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 
 /**
- * State container returned by {@link useConfigPanel} — wraps a single remote
+ * State container returned by {@link useConfigPanel} - wraps a single remote
  * configuration object plus its load lifecycle. Panels typically destructure
  * `config`, `loading`, `error`, and `reload`, and use {@link runWith} to wrap
  * additional admin actions (e.g. save, regenerate secret) so they share the

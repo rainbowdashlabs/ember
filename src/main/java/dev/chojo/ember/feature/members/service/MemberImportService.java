@@ -381,7 +381,7 @@ public class MemberImportService {
             namedFields.put(name, entry.getValue());
         }
 
-        // Build contacts — skip if no name or no email (managers need email to log in)
+        // Build contacts - skip if no name or no email (managers need email to log in)
         var contacts = new ArrayList<ContactPreview>();
         managerData.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
             String mgrFirst = entry.getValue()[0];

@@ -167,7 +167,7 @@ public class UserFeedRoutes implements Routes {
     /**
      * Enforces the per-token rate limit. On excess emits a {@code 429} with {@code Retry-After}
      * and returns {@code true} so the caller can short-circuit. The image endpoint is
-     * intentionally exempt — see {@link FeedRateLimiter}.
+     * intentionally exempt - see {@link FeedRateLimiter}.
      */
     private boolean rateLimit(Context ctx) {
         String token = ctx.pathParam("token");

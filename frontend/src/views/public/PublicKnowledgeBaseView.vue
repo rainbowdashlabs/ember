@@ -85,8 +85,8 @@ useHead(computed(() => {
     if (!stationInfo.value) return {}
     const folderName = currentFolder.value?.name
     const title = folderName
-        ? `${folderName} — Wiki — ${stationInfo.value.stationName}`
-        : `Wiki — ${stationInfo.value.stationName}`
+        ? `${folderName} - Wiki - ${stationInfo.value.stationName}`
+        : `Wiki - ${stationInfo.value.stationName}`
     const desc = currentFolder.value?.description || `Öffentliches Wiki von ${stationInfo.value.stationName}`
     const breadcrumbs: { '@type': string; position: number; name: string; item?: string }[] = [
         {'@type': 'ListItem', position: 1, name: stationInfo.value.stationName, item: `/public/station/${stationUid.value}/knowledge`},

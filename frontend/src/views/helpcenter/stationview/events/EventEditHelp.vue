@@ -97,6 +97,34 @@ const {t} = useI18n()
       </NeutralContainer>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.eventEdit.registrationFieldsTitle')">
+      <p>{{ t('helpCenter.eventEdit.registrationFieldsText') }}</p>
+      <p>{{ t('helpCenter.eventEdit.registrationFieldsDefaults') }}</p>
+      <p>{{ t('helpCenter.eventEdit.registrationFieldsOverview') }}</p>
+
+      <!-- Dummy: a shirt size question -->
+      <NeutralContainer class="space-y-3 mt-3">
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div class="space-y-1">
+            <FieldLabel>{{ t('events.registrationFields.fieldName') }}</FieldLabel>
+            <TextInput model-value="Shirtgröße" disabled/>
+          </div>
+          <div class="space-y-1">
+            <FieldLabel>{{ t('events.registrationFields.defaultValue') }}</FieldLabel>
+            <TextInput model-value="M" disabled/>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <ToggleInput :model-value="true"/>
+          <span class="text-sm">{{ t('events.registrationFields.required') }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <ToggleInput :model-value="true"/>
+          <span class="text-sm">{{ t('events.registrationFields.overview') }}</span>
+        </div>
+      </NeutralContainer>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.eventEdit.remindersTitle')">
       <p>{{ t('helpCenter.eventEdit.remindersText') }}</p>
     </HelpSection>

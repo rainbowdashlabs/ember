@@ -93,6 +93,8 @@ watch(loaded, (isLoaded) => {
                 <NeutralContainer
                     v-for="version in versions"
                     :key="version.id"
+                    data-testid="kb-version"
+                    :data-version="version.version"
                     class="flex flex-col sm:flex-row sm:items-center gap-3"
                 >
                     <div class="flex-1">

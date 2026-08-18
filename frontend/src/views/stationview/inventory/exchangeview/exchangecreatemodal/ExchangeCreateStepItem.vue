@@ -51,7 +51,7 @@ const emit = defineEmits<{
       <SelectInput v-model="itemId">
         <option value="" disabled>{{ t('exchanges.selectItem') }}</option>
         <option v-for="item in items" :key="item.id" :value="String(item.id)">
-          {{ item.inventoryName }} — {{ item.name }}
+          {{ item.inventoryName }} - {{ item.name }}
           {{ item.sizeName ?? '' }}
           {{ item.internalId ? `(${item.internalId})` : '' }}
         </option>

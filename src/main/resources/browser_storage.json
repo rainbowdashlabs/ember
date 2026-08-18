@@ -1,0 +1,304 @@
+{
+  "version": 1,
+  "text": {
+    "heading": {
+      "de": "Speicherung im Browser",
+      "en": "Storage in your browser"
+    },
+    "intro": {
+      "de": "Diese Anwendung setzt **keine Cookies** und bindet keine Dienste zur Reichweitenmessung ein. Sie legt die folgenden Werte im lokalen Speicher (Local Storage) Ihres Browsers ab. Diese Werte verbleiben auf Ihrem Gerät, werden nicht zu Werbe- oder Analysezwecken ausgewertet und nicht an Dritte weitergegeben.",
+      "en": "This application sets **no cookies** and embeds no analytics services. It keeps the following values in your browser's local storage. They stay on your device, are not evaluated for advertising or analytics, and are not passed to third parties."
+    },
+    "closing": {
+      "de": "Die technisch erforderlichen Werte gehören zur Anmeldung: lehnen Sie die Speicherung ab, ist eine Anmeldung nicht möglich. Über die beiden übrigen Gruppen entscheiden Sie einzeln, sowohl bei der Einwilligung als auch später unter „Konto → Daten & Konto\". Nehmen Sie eine Gruppe zurück, löscht die Anwendung deren Werte sofort. Bei der Abmeldung entfernt sie die Werte, die zur Sitzung gehören; alles Übrige können Sie jederzeit über die Einstellungen Ihres Browsers löschen.\n\nDiese Aufstellung wird unmittelbar aus der Anwendung erzeugt und bleibt dadurch mit dem tatsächlichen Verhalten der Software in Übereinstimmung.",
+      "en": "The technically required values belong to signing in: if you decline storage, signing in is not possible. The other two groups are yours to decide on separately, both when consenting and later under Account → Data & account. Withdrawing a group deletes its values at once. On sign-out the application removes the values belonging to the session; everything else you can delete at any time in your browser settings.\n\nThis list is generated directly from the application and therefore stays in step with what the software actually does."
+    },
+    "necessity": {
+      "REQUIRED": {
+        "heading": {
+          "de": "Technisch erforderlich",
+          "en": "Technically required"
+        },
+        "description": {
+          "de": "Ohne diese Werte lassen sich Anmeldung, Sitzung und die Abfrage der Einwilligung nicht durchführen. Sie werden gesetzt, sobald Sie die Speicherung zulassen.",
+          "en": "Without these values, signing in, maintaining a session and asking for consent are not possible. They are set as soon as you allow storage."
+        }
+      },
+      "FUNCTIONAL": {
+        "heading": {
+          "de": "Für einzelne Funktionen",
+          "en": "For individual features"
+        },
+        "description": {
+          "de": "Diese Werte entstehen erst, wenn Sie die jeweilige Funktion nutzen. Ohne sie bleibt die übrige Anwendung uneingeschränkt bedienbar.",
+          "en": "These values only appear once you use the feature in question. Without them the rest of the application remains fully usable."
+        }
+      },
+      "COMFORT": {
+        "heading": {
+          "de": "Einstellungen der Ansicht",
+          "en": "Display preferences"
+        },
+        "description": {
+          "de": "Diese Werte merken sich Ihre Ansichtseinstellungen über den Seitenwechsel hinaus. Fehlen sie, startet die Anwendung mit ihren Vorgaben.",
+          "en": "These values remember your display preferences across page changes. Without them the application starts with its defaults."
+        }
+      }
+    },
+    "retention": {
+      "UNTIL_LOGOUT": {
+        "de": "bis zur Abmeldung",
+        "en": "until sign-out"
+      },
+      "UNTIL_CLEARED": {
+        "de": "bis Sie die Daten Ihres Browsers löschen",
+        "en": "until you clear your browser data"
+      }
+    }
+  },
+  "entries": [
+    {
+      "key": "storage_consent",
+      "necessity": "REQUIRED",
+      "retention": "UNTIL_CLEARED",
+      "purpose": {
+        "de": "Hält fest, ob Sie der Speicherung im Browser zugestimmt oder widersprochen haben. Ohne diesen Wert wird die Frage bei jedem Aufruf erneut gestellt.",
+        "en": "Records whether you allowed or declined storage in the browser. Without it the question is asked again on every visit."
+      }
+    },
+    {
+      "key": "storage_scopes",
+      "necessity": "REQUIRED",
+      "retention": "UNTIL_CLEARED",
+      "purpose": {
+        "de": "Hält fest, welche der wählbaren Gruppen Sie zugelassen haben. Ohne diesen Wert gilt nur die technisch erforderliche Speicherung.",
+        "en": "Records which of the optional groups you allowed. Without it only technically required storage applies."
+      }
+    },
+    {
+      "key": "consent_version",
+      "necessity": "REQUIRED",
+      "retention": "UNTIL_LOGOUT",
+      "purpose": {
+        "de": "Fassung des Einwilligungstextes, dem Sie zugestimmt haben. Ändert sich der Text, erkennt die Anwendung daran, dass sie erneut fragen muss.",
+        "en": "Version of the consent text you agreed to. If the text changes, this is how the application knows to ask again."
+      }
+    },
+    {
+      "key": "privacy_version",
+      "necessity": "REQUIRED",
+      "retention": "UNTIL_LOGOUT",
+      "purpose": {
+        "de": "Fassung der Datenschutzerklärung, der Sie zugestimmt haben. Dient demselben Zweck wie der vorstehende Wert.",
+        "en": "Version of the privacy policy you agreed to. Serves the same purpose as the preceding value."
+      }
+    },
+    {
+      "key": "tos_version",
+      "necessity": "REQUIRED",
+      "retention": "UNTIL_LOGOUT",
+      "purpose": {
+        "de": "Fassung der Nutzungsbedingungen, denen Sie zugestimmt haben. Dient demselben Zweck wie der vorstehende Wert.",
+        "en": "Version of the terms of service you agreed to. Serves the same purpose as the preceding value."
+      }
+    },
+    {
+      "key": "session_token",
+      "necessity": "REQUIRED",
+      "retention": "UNTIL_LOGOUT",
+      "purpose": {
+        "de": "Weist Ihre angemeldete Sitzung gegenüber dem Server aus. Ohne diesen Wert wären Sie bei jedem Seitenwechsel abgemeldet.",
+        "en": "Identifies your signed-in session to the server. Without it you would be signed out on every page change."
+      }
+    },
+    {
+      "key": "session_expires_at",
+      "necessity": "REQUIRED",
+      "retention": "UNTIL_LOGOUT",
+      "purpose": {
+        "de": "Ablaufzeitpunkt der Sitzung. Die Anwendung meldet Sie rechtzeitig ab, statt Sie in eine abgelaufene Sitzung laufen zu lassen.",
+        "en": "Expiry time of the session. The application signs you out in good time instead of letting you run into an expired session."
+      }
+    },
+    {
+      "key": "ember_last_activity",
+      "necessity": "REQUIRED",
+      "retention": "UNTIL_CLEARED",
+      "purpose": {
+        "de": "Zeitpunkt Ihrer letzten Aktivität. Er sorgt dafür, dass eine unbeaufsichtigte Sitzung nach einer Zeit der Untätigkeit beendet wird.",
+        "en": "Time of your last activity. It ensures that an unattended session ends after a period of inactivity."
+      }
+    },
+    {
+      "key": "station_id",
+      "necessity": "REQUIRED",
+      "retention": "UNTIL_LOGOUT",
+      "purpose": {
+        "de": "Die von Ihnen gewählte Wache. Sie bestimmt, welche Inhalte geladen werden, wenn Sie mehreren Wachen angehören.",
+        "en": "The station you selected. It determines which content is loaded if you belong to more than one station."
+      }
+    },
+    {
+      "key": "ai_provider",
+      "necessity": "FUNCTIONAL",
+      "retention": "UNTIL_CLEARED",
+      "purpose": {
+        "de": "Der im Fragen-Generator zuletzt gewählte Anbieter künstlicher Intelligenz.",
+        "en": "The artificial intelligence provider last selected in the question generator."
+      }
+    },
+    {
+      "key": "ai_model",
+      "necessity": "FUNCTIONAL",
+      "retention": "UNTIL_CLEARED",
+      "purpose": {
+        "de": "Das im Fragen-Generator zuletzt gewählte Modell des Anbieters.",
+        "en": "The provider model last selected in the question generator."
+      }
+    },
+    {
+      "key": "ai_api_key",
+      "necessity": "FUNCTIONAL",
+      "retention": "UNTIL_CLEARED",
+      "purpose": {
+        "de": "Der Zugangsschlüssel für den Anbieter künstlicher Intelligenz, sofern Sie ihn nicht dauerhaft in der Wache hinterlegen. Er bleibt in Ihrem Browser und wird nur beim Erzeugen von Fragen an den Server und von dort an den Anbieter übergeben.",
+        "en": "The access key for the artificial intelligence provider, where you have not stored it permanently in the station. It stays in your browser and is passed to the server, and from there to the provider, only when questions are generated."
+      }
+    },
+    {
+      "key": "instance_theme",
+      "necessity": "FUNCTIONAL",
+      "retention": "UNTIL_CLEARED",
+      "purpose": {
+        "de": "Das Farbschema dieser Instanz. Es wird zwischengespeichert, damit Anmelde- und öffentliche Seiten sofort im richtigen Erscheinungsbild laden.",
+        "en": "The colour scheme of this instance. It is cached so that the sign-in and public pages load in the right appearance immediately."
+      }
+    },
+    {
+      "key": "instance_feel",
+      "necessity": "FUNCTIONAL",
+      "retention": "UNTIL_CLEARED",
+      "purpose": {
+        "de": "Die Formgebung dieser Instanz, etwa abgerundete oder eckige Flächen. Wird aus demselben Grund zwischengespeichert.",
+        "en": "The shape language of this instance, for example rounded or square surfaces. Cached for the same reason."
+      }
+    },
+    {
+      "key": "theme_name",
+      "necessity": "COMFORT",
+      "retention": "UNTIL_CLEARED",
+      "purpose": {
+        "de": "Das von Ihnen gewählte Farbschema.",
+        "en": "The colour scheme you selected."
+      }
+    },
+    {
+      "key": "dark_mode",
+      "necessity": "COMFORT",
+      "retention": "UNTIL_CLEARED",
+      "purpose": {
+        "de": "Ihre Wahl zwischen heller und dunkler Darstellung.",
+        "en": "Your choice between light and dark appearance."
+      }
+    },
+    {
+      "key": "feel",
+      "necessity": "COMFORT",
+      "retention": "UNTIL_CLEARED",
+      "purpose": {
+        "de": "Die von Ihnen gewählte Formgebung der Oberfläche.",
+        "en": "The shape language you selected for the interface."
+      }
+    },
+    {
+      "key": "theme",
+      "necessity": "COMFORT",
+      "retention": "UNTIL_CLEARED",
+      "purpose": {
+        "de": "Eine Darstellungseinstellung aus einer früheren Fassung der Anwendung. Sie wird nur noch gelesen, um Ihre bisherige Wahl zu übernehmen, und nicht mehr neu geschrieben.",
+        "en": "An appearance setting from an earlier version of the application. It is only read, to carry over your previous choice, and is no longer written."
+      }
+    },
+    {
+      "key": "sidebar_collapsed",
+      "necessity": "COMFORT",
+      "retention": "UNTIL_CLEARED",
+      "purpose": {
+        "de": "Ob Sie die Seitenleiste eingeklappt haben.",
+        "en": "Whether you collapsed the sidebar."
+      }
+    },
+    {
+      "key": "onboarding_tour_completed",
+      "necessity": "COMFORT",
+      "retention": "UNTIL_CLEARED",
+      "purpose": {
+        "de": "Ob Sie die Einführungstour abgeschlossen haben, damit sie nicht erneut startet.",
+        "en": "Whether you completed the introductory tour, so that it does not start again."
+      }
+    },
+    {
+      "key": "eventsUpcoming.viewMode",
+      "necessity": "COMFORT",
+      "retention": "UNTIL_CLEARED",
+      "purpose": {
+        "de": "Ob Sie kommende Termine als Liste oder als Kalender ansehen.",
+        "en": "Whether you view upcoming events as a list or as a calendar."
+      }
+    },
+    {
+      "key": "stationPages.filesPerPage",
+      "necessity": "COMFORT",
+      "retention": "UNTIL_CLEARED",
+      "purpose": {
+        "de": "Wie viele Dateien die Dateiübersicht der öffentlichen Seiten je Seite zeigt.",
+        "en": "How many files the file overview of the public pages shows per page."
+      }
+    },
+    {
+      "key": "ember.feedPreset",
+      "necessity": "COMFORT",
+      "retention": "UNTIL_CLEARED",
+      "purpose": {
+        "de": "Die zuletzt gewählte Vorlage beim Zusammenstellen eines Kalender- oder Nachrichten-Feeds.",
+        "en": "The preset last selected when assembling a calendar or news feed."
+      }
+    },
+    {
+      "key": "inv-members-show-name",
+      "necessity": "COMFORT",
+      "retention": "UNTIL_CLEARED",
+      "purpose": {
+        "de": "Ob die Mitgliederspalte der Materialübersicht den Namen zeigt.",
+        "en": "Whether the member column of the inventory overview shows the name."
+      }
+    },
+    {
+      "key": "inv-members-show-size",
+      "necessity": "COMFORT",
+      "retention": "UNTIL_CLEARED",
+      "purpose": {
+        "de": "Ob die Mitgliederspalte der Materialübersicht die Größe zeigt.",
+        "en": "Whether the member column of the inventory overview shows the size."
+      }
+    },
+    {
+      "key": "inv-members-show-internal-id",
+      "necessity": "COMFORT",
+      "retention": "UNTIL_CLEARED",
+      "purpose": {
+        "de": "Ob die Mitgliederspalte der Materialübersicht die interne Kennung zeigt.",
+        "en": "Whether the member column of the inventory overview shows the internal identifier."
+      }
+    },
+    {
+      "key": "inv-members-visible-ids",
+      "necessity": "COMFORT",
+      "retention": "UNTIL_CLEARED",
+      "purpose": {
+        "de": "Welche Mitglieder Sie in der Materialübersicht eingeblendet haben.",
+        "en": "Which members you have shown in the inventory overview."
+      }
+    }
+  ]
+}

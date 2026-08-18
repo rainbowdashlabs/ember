@@ -22,7 +22,7 @@ import org.slf4j.LoggerFactory;
  * Dev-mode-only routes for inspecting and editing {@code data_tracking.json} from a browser.
  *
  * <p>All handlers are registered only when {@link Demo#dev()} is true. In production no endpoints
- * are added to the router at all — there is no runtime opt-in path.
+ * are added to the router at all - there is no runtime opt-in path.
  */
 @Singleton
 public class DataTrackingRoutes implements Routes {

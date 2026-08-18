@@ -398,7 +398,7 @@ public class InventoryRepository {
 
     /**
      * Assigns an item to a member, or unassigns it by passing {@code null}.
-     * Assigning an item to a member also clears the item's container — an
+     * Assigning an item to a member also clears the item's container - an
      * item handed to a member is no longer in storage.
      *
      * @param itemId   the item ID
@@ -418,7 +418,7 @@ public class InventoryRepository {
 
     /**
      * Sets or clears the container an item is physically placed in. Placing
-     * an item in a container also clears the assignment — an item back in
+     * an item in a container also clears the assignment - an item back in
      * storage is no longer with a member.
      *
      * @param itemId      the item ID

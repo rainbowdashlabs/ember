@@ -29,7 +29,7 @@ const {t} = useI18n()
     </thead>
     <tbody>
       <DummyFieldRow name="Telefonnummer" type="Text" :required="true" :readonly="false"/>
-      <DummyFieldRow name="Geburtsdatum" type="Datum" :required="true" :readonly="true"/>
+      <DummyFieldRow name="Geburtsdatum" type="Geburtsdatum" :required="true" :readonly="true"/>
       <DummyFieldRow name="Kleidergröße" type="Auswahl" :required="false" :readonly="false"/>
     </tbody>
   </table>

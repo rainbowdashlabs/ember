@@ -125,6 +125,7 @@ import dev.chojo.ember.feature.knowledgebase.route.PublicKnowledgeBaseRoutes;
 import dev.chojo.ember.feature.knowledgebase.route.RemoteKnowledgeBaseRoutes;
 import dev.chojo.ember.feature.legal.route.ConsentRoutes;
 import dev.chojo.ember.feature.lostandfound.route.LostAndFoundRoutes;
+import dev.chojo.ember.feature.mail.route.MailWebhookRoutes;
 import dev.chojo.ember.feature.maps.route.AdminMapsRoutes;
 import dev.chojo.ember.feature.maps.route.PublicMapsRoutes;
 import dev.chojo.ember.feature.members.route.ManagedMemberRoutes;
@@ -208,6 +209,7 @@ import dev.chojo.ember.feature.system.service.DemoSessionSeeder;
 import dev.chojo.ember.feature.system.service.DemoSettingsSeeder;
 import dev.chojo.ember.feature.system.service.DemoSetupSeeder;
 import dev.chojo.ember.feature.system.service.DemoStationSeeder;
+import dev.chojo.ember.feature.system.service.DemoTwoFactorSeeder;
 import dev.chojo.ember.feature.system.service.DemoWaitingListSeeder;
 import dev.chojo.ember.feature.traffic.route.AdminTrafficRoutes;
 import dev.chojo.ember.feature.traffic.route.StationTrafficRoutes;
@@ -281,6 +283,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(RemoteNewsRoutes.class);
         routesBinder.addBinding().to(PageRoutes.class);
         routesBinder.addBinding().to(PublicPageRoutes.class);
+        routesBinder.addBinding().to(MailWebhookRoutes.class);
         routesBinder.addBinding().to(UserSettingsRoutes.class);
         routesBinder.addBinding().to(ExchangeRoutes.class);
         routesBinder.addBinding().to(ProcurementRoutes.class);
@@ -393,6 +396,7 @@ public class EmberModule extends AbstractModule {
         demoSeederBinder.addBinding().to(DemoLendingSeeder.class);
         demoSeederBinder.addBinding().to(DemoNotificationSeeder.class);
         demoSeederBinder.addBinding().to(DemoSetupSeeder.class);
+        demoSeederBinder.addBinding().to(DemoTwoFactorSeeder.class);
 
         // Domain event handlers
         Multibinder<DomainEventHandler<?>> eventBinder = Multibinder.newSetBinder(binder(), new TypeLiteral<>() {});
@@ -426,7 +430,7 @@ public class EmberModule extends AbstractModule {
         eventBinder.addBinding().to(WaitlistPublicRegistrationHandler.class);
         eventBinder.addBinding().to(StorageWarningHandler.class);
 
-        // Eager singletons — started on boot
+        // Eager singletons - started on boot
         bind(EventThresholdChecker.class).asEagerSingleton();
         bind(EventReminderChecker.class).asEagerSingleton();
         bind(StorageReconciliationService.class).asEagerSingleton();
@@ -538,9 +542,9 @@ public class EmberModule extends AbstractModule {
     QueryConfiguration queryConfiguration(DataSource dataSource, Database database, Demo demo)
             throws SQLException, IOException {
         // Skip the up-front migration only in full demo mode, where DemoService.resetAndSeed()
-        // drops the schema and re-runs the migration on every start. In every other mode —
+        // drops the schema and re-runs the migration on every start. In every other mode -
         // production, plain dev (DEMO_DEV=true without DEMO_ENABLED), and a fresh database under
-        // either — the schema must be in place before Guice provisions services whose
+        // either - the schema must be in place before Guice provisions services whose
         // constructors already query it.
         if (!demo.enabled()) {
             SqlUpdater.builder(dataSource, PostgreSql.get())

@@ -49,7 +49,7 @@
     inset: 6pt,
     [*Zeitpunkt*], [*Version*], [*Land*],
     ..data.consentRecords.map(r => (
-      r.consented_at, str(r.consent_version), r.at("country", default: "—")
+      r.consented_at, str(r.consent_version), r.at("country", default: "-")
     )).flatten()
   )
   #v(0.5em)
@@ -71,7 +71,7 @@
         columns: (auto, 1fr),
         stroke: 0.5pt + luma(200),
         inset: 6pt,
-        ..station.profileFields.map(f => (f.field_name, str(f.at("value", default: "—")))).flatten()
+        ..station.profileFields.map(f => (f.field_name, str(f.at("value", default: "-")))).flatten()
       )
       #v(0.3em)
     ]
@@ -84,9 +84,9 @@
         inset: 6pt,
         [*Gegenstand*], [*Inventar*], [*Interne ID*],
         ..station.inventoryItems.map(i => (
-          i.at("item_name", default: "—"),
-          i.at("inventory_name", default: "—"),
-          i.at("internal_id", default: "—"),
+          i.at("item_name", default: "-"),
+          i.at("inventory_name", default: "-"),
+          i.at("internal_id", default: "-"),
         )).flatten()
       )
       #v(0.3em)

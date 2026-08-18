@@ -12,7 +12,7 @@ import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 
 const props = defineProps<{
-    /** Async search function — called with the typed query (or empty string for the default state). */
+    /** Async search function - called with the typed query (or empty string for the default state). */
     searchFn: (query: string) => Promise<T[]>
     /** Primary label for each result row. */
     displayFn: (item: T) => string
@@ -22,7 +22,7 @@ const props = defineProps<{
     isSelectableFn?: (item: T) => boolean
     /** Optional FontAwesome icon for each row, e.g. {@code ['fas', 'newspaper']}. */
     iconFn?: (item: T) => string[]
-    /** Optional Tailwind class string applied to the leading icon — lets consumers colour by state. */
+    /** Optional Tailwind class string applied to the leading icon - lets consumers colour by state. */
     iconClassFn?: (item: T) => string
     /**
      * Optional avatar/image URL for each row. When the function returns a non-empty string, the

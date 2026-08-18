@@ -17,6 +17,8 @@ import EventEditHeader from './EventEditHeader.vue'
 import EventFormCard from './EventFormCard.vue'
 import FederationCard from './FederationCard.vue'
 import FieldDefaultsCard from './FieldDefaultsCard.vue'
+import RegistrationFieldsEditor from '../eventshared/RegistrationFieldsEditor.vue'
+import type {EventRegistrationFieldDefinition} from '@/api/events'
 
 interface FieldDefaultEntry {
   source: string
@@ -57,6 +59,7 @@ const dayOfWeek = defineModel<string>('dayOfWeek', {required: true})
 const startTime = defineModel<string>('startTime', {required: true})
 const endTime = defineModel<string>('endTime', {required: true})
 const requiresRegistration = defineModel<boolean>('requiresRegistration', {required: true})
+const registrationFields = defineModel<EventRegistrationFieldDefinition[]>('registrationFields', {required: true})
 const requiresConfirmation = defineModel<boolean>('requiresConfirmation', {required: true})
 const hasDeadline = defineModel<boolean>('hasDeadline', {required: true})
 const registrationDeadline = defineModel<string>('registrationDeadline', {required: true})
@@ -129,6 +132,8 @@ const canSubmit = computed(() => !props.saving && !!name.value && !!startTime.va
       @update:source="(fieldId, source) => emit('update:fieldDefaultSource', fieldId, source)"
       @update:value="(fieldId, value) => emit('update:fieldDefaultValue', fieldId, value)"
   />
+
+  <RegistrationFieldsEditor v-if="requiresRegistration" v-model="registrationFields"/>
 
   <div class="flex justify-end gap-3">
     <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>

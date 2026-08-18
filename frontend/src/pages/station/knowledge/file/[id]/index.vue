@@ -4,14 +4,20 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {computed} from 'vue'
+import {useRoute} from 'vue-router'
 import KbFileView from '~/views/stationview/knowledge/KbFileView.vue'
 
 definePageMeta({
   layout: 'station',
   name: 'kb-file',
 })
+
+const route = useRoute()
+
+const fileId = computed(() => Number(route.params.id))
 </script>
 
 <template>
-  <KbFileView />
+  <KbFileView :file-id="fileId" />
 </template>

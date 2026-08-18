@@ -107,7 +107,7 @@ const dummySeparator = ref(';')
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
             <div>
               <span class="font-medium text-sm">Notizen</span>
-              <div class="text-xs text-(--text-muted)">Anfänger, keine, —</div>
+              <div class="text-xs text-(--text-muted)">Anfänger, keine, -</div>
             </div>
             <div class="sm:col-span-2 text-sm text-(--text-muted)">
               → {{ t('memberImport.targetSkip') }}

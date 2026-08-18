@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, ref} from 'vue'
+import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
@@ -14,7 +14,7 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import {RegistrationStatus, type EventRegistrationEntry, type FederatedEventRegistration, type MemberRegistrationStats, type StationEvent} from '@/api/events'
+import {RegistrationStatus, type EventRegistrationEntry, type EventRegistrationField, type FederatedEventRegistration, type MemberRegistrationStats, type RegistrationFieldValue, type StationEvent} from '@/api/events'
 import {StationPermission} from '@/api/types'
 import {events, stationMembers as stationMembersApi} from '@/api'
 import {useSession} from '@/composables/useSession'
@@ -22,6 +22,7 @@ import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import RegistrationsPanel from './RegistrationsPanel.vue'
 import FederatedRegistrationsPanel from './FederatedRegistrationsPanel.vue'
+import RegistrationFieldsModal from '../eventshared/RegistrationFieldsModal.vue'
 
 const props = defineProps<{
   event: StationEvent
@@ -47,6 +48,10 @@ interface MemberOption {
 const allMembers = ref<MemberOption[]>([])
 const error = ref('')
 const manualRegisterMemberId = ref('')
+
+const registrationFields = ref<EventRegistrationField[]>([])
+const showFieldsModal = ref(false)
+const pendingRegistrationMemberId = ref<number | null>(null)
 
 interface StatusGroup { status: string; entries: EventRegistrationEntry[] }
 
@@ -95,6 +100,7 @@ function statusLabel(status: string): string {
 async function loadRegistrations() {
   try {
     registrations.value = await events.listEventRegistrations(props.eventId)
+    registrationFields.value = await events.listRegistrationFields(props.eventId).catch(() => [])
     if (hasPermission(StationPermission.EVENT_REGISTRATION) && props.event.requiresRegistration) {
       registrationStats.value = await events.getRegistrationStats(
           props.eventId, props.event.categoryId ?? undefined)
@@ -129,10 +135,11 @@ async function denyRegistration(id: number) {
 }
 
 const {running: registering, error: registrationError, run: runRegistration} = useAsyncAction(
-    async (kind: 'register' | 'decline', memberId: number) => {
+    async (kind: 'register' | 'decline', memberId: number, fields?: RegistrationFieldValue[]) => {
       const request = {
         eventDate: props.nextOccurrenceDate ?? undefined,
         memberId: memberId !== props.currentMemberId ? memberId : undefined,
+        fields,
       }
       if (kind === 'register') {
         await events.registerForEvent(props.eventId, request)
@@ -144,8 +151,26 @@ const {running: registering, error: registrationError, run: runRegistration} = u
     {formatError: () => t('common.error')},
 )
 
+/**
+ * Registering asks the event's questions first. Without questions the button stays a button -
+ * an event that asks nothing must not gain a dialog.
+ */
 function registerMember(memberId: number) {
-  return runRegistration('register', memberId)
+  if (registrationFields.value.length === 0) return runRegistration('register', memberId)
+  pendingRegistrationMemberId.value = memberId
+  showFieldsModal.value = true
+}
+
+async function confirmRegistrationFields(values: RegistrationFieldValue[]) {
+  const memberId = pendingRegistrationMemberId.value
+  if (memberId == null) return
+  showFieldsModal.value = false
+  pendingRegistrationMemberId.value = null
+  if (manualRegisterMemberId.value && Number(manualRegisterMemberId.value) === memberId) {
+    await manualRegister(values)
+    return
+  }
+  await runRegistration('register', memberId, values)
 }
 
 function declineMember(memberId: number) {
@@ -162,19 +187,34 @@ async function denyFederatedReg(regId: number) {
   await loadRegistrations()
 }
 
-async function manualRegister() {
+/**
+ * Adding a member by hand asks the same questions. The answers belong to the registration, not to
+ * whoever typed them, so a manager fills them in on the member's behalf.
+ */
+async function manualRegister(values?: RegistrationFieldValue[]) {
   if (!manualRegisterMemberId.value) return
+  if (registrationFields.value.length > 0 && values === undefined) {
+    pendingRegistrationMemberId.value = Number(manualRegisterMemberId.value)
+    showFieldsModal.value = true
+    return
+  }
   try {
     await events.registerForEvent(props.eventId, {
       eventDate: props.nextOccurrenceDate ?? undefined,
       memberId: Number(manualRegisterMemberId.value),
+      fields: values,
     })
     manualRegisterMemberId.value = ''
     await reloadAndRefresh()
   } catch { error.value = t('common.error') }
 }
 
-defineExpose({loadRegistrations})
+/**
+ * The tab loads itself. Its parent only renders it once the event is there, so mounting is the
+ * first moment the load can succeed - the parent's own call runs while it is still loading and its
+ * ref is therefore still null.
+ */
+onMounted(loadRegistrations)
 </script>
 
 <template>
@@ -214,10 +254,18 @@ defineExpose({loadRegistrations})
         :non-pending-registrations="nonPendingRegistrations"
         :registration-stats="registrationStats"
         :unregistered-members="unregisteredMembers"
+        :registration-fields="registrationFields"
         v-model:manual-register-member-id="manualRegisterMemberId"
         @accept="acceptRegistration"
         @deny="denyRegistration"
         @manual-register="manualRegister"
+    />
+
+    <RegistrationFieldsModal
+        v-model="showFieldsModal"
+        :fields="registrationFields"
+        :busy="registering"
+        @confirm="confirmRegistrationFields"
     />
 
     <FederatedRegistrationsPanel

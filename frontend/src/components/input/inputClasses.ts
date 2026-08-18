@@ -10,7 +10,7 @@
  * from here so border, focus ring, padding, and disabled state stay in
  * lock-step across the form library.
  *
- * Layout (width, height, resize-y, …) is up to the caller — append it
+ * Layout (width, height, resize-y, …) is up to the caller - append it
  * with `${BORDERED_INPUT_CLASSES} w-full` etc.
  */
 export const BORDERED_INPUT_CLASSES =
@@ -21,7 +21,7 @@ export const BORDERED_INPUT_CLASSES =
     ' dark:border-bg-dark-accent dark:bg-bg-dark'
 
 /**
- * Inline borderless variant — same focus / disabled language as
+ * Inline borderless variant - same focus / disabled language as
  * {@link BORDERED_INPUT_CLASSES} but no border by default, hover swap
  * to {@code --bg-accent}, and a tighter pad for inline editing inside
  * tables or cells.

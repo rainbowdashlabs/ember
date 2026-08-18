@@ -41,7 +41,7 @@ export interface NewsRequest {
 
 export interface PublicBlogEntry {
     id: number
-    /** Stable opaque public identifier — referenced by NEWS_TEASER cells. */
+    /** Stable opaque public identifier - referenced by NEWS_TEASER cells. */
     publicUid: string
     title: string
     contentHtml: string

@@ -22,7 +22,7 @@ import java.util.Set;
  * and the only allowed origin is the API base URL itself. When neither an explicit rpId nor
  * a usable host can be derived (e.g. {@code api.baseUrl} contains a hostname that fails
  * RFC 3986 parsing such as a docker service name with underscores), the factory falls back to
- * {@code "localhost"} with a warning rather than refusing to start — the same WebAuthn flow
+ * {@code "localhost"} with a warning rather than refusing to start - the same WebAuthn flow
  * just won't bind to a useful effective domain in that misconfigured case.
  */
 public final class WebAuthnRelyingPartyFactory {
@@ -38,7 +38,7 @@ public final class WebAuthnRelyingPartyFactory {
         if (rpId == null) rpId = blankToNull(safeHost(api.baseUrl()));
         if (rpId == null) {
             log.warn(
-                    "WebAuthn rpId could not be derived from api.baseUrl '{}' and twoFactor.webauthn.rpId is unset — "
+                    "WebAuthn rpId could not be derived from api.baseUrl '{}' and twoFactor.webauthn.rpId is unset - "
                             + "defaulting to '{}'. Set twoFactor.webauthn.rpId explicitly for production.",
                     api.baseUrl(),
                     DEFAULT_RP_ID);

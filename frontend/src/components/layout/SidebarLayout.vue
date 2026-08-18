@@ -23,7 +23,7 @@ const sidebarOpen = ref(false)
 </script>
 
 <template>
-  <div class="flex min-h-screen">
+  <div class="flex min-h-screen" data-testid="app-shell">
     <AppSidebar :open="sidebarOpen" :station-logo-url="stationLogoUrl" :station-name="stationName"
                 :collapsible="collapsible"
                 @close="sidebarOpen = false">

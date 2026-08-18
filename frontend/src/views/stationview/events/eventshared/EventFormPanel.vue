@@ -78,14 +78,14 @@ const {t} = useI18n()
       <div class="space-y-1">
         <FieldLabel>{{ t('events.category') }}</FieldLabel>
         <SelectInput v-model="categoryId" class="w-full">
-          <option value="">—</option>
+          <option value="">-</option>
           <option v-for="cat in categories" :key="cat.id" :value="String(cat.id)">{{ cat.name }}</option>
         </SelectInput>
       </div>
       <div class="space-y-1">
         <FieldLabel>{{ t('events.template') }}</FieldLabel>
         <SelectInput v-model="templateId" class="w-full">
-          <option value="">—</option>
+          <option value="">-</option>
           <option v-for="tpl in templates" :key="tpl.id" :value="String(tpl.id)">{{ tpl.name }}</option>
         </SelectInput>
       </div>

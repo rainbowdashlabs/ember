@@ -28,7 +28,7 @@ const {reload} = useSetupStatus()
 /**
  * Permissions granted by the {@link StationUserType} enum itself (backend
  * StationUserType.defaultPermissions()). These are inherent to the user type and cannot be
- * removed — the picker shows them as locked.
+ * removed - the picker shows them as locked.
  */
 const USER_TYPE_BUILTIN_DEFAULTS: Record<string, string[]> = {
     TRIAL: [],

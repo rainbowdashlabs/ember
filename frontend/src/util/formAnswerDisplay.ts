@@ -9,7 +9,7 @@ const EMPTY = '–'
 
 /**
  * A question's stored configuration, which travels either as an object or as the JSON string it
- * was persisted as. Malformed configuration reads as empty rather than throwing — a broken
+ * was persisted as. Malformed configuration reads as empty rather than throwing - a broken
  * question should render blank, not take the page down.
  */
 function parseConfig(config: Record<string, unknown> | string): Record<string, unknown> {

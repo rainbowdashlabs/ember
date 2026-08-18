@@ -116,7 +116,7 @@ class QuizFederationServiceTest extends RepositoryTestBase {
                 .findFirst();
         assertTrue(entry.isPresent());
         assertEquals(localPartner.name(), entry.get().stationName());
-        assertEquals(localPartner.id(), entry.get().sourceStationId());
+        assertEquals(localPartner.uid().toString(), entry.get().stationUid());
 
         federationRepo.deleteQuizShare(share.id(), localPartner.id());
         quizCatalogRepo.delete(catalog.id());

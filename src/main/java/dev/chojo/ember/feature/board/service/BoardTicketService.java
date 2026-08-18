@@ -172,7 +172,7 @@ public class BoardTicketService {
             // Log history
             String oldName = memberNameResolver.resolve(oldAssignee);
             String newName = memberNameResolver.resolve(assignee);
-            String detail = (oldName != null ? oldName : "—") + " → " + (newName != null ? newName : "—");
+            String detail = (oldName != null ? oldName : "-") + " → " + (newName != null ? newName : "-");
             ticketRepository.logHistory(ticketId, BoardTicketHistoryAction.ASSIGNEE_CHANGED, detail, actorIdentity);
 
             // Notify watchers

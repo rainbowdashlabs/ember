@@ -310,7 +310,7 @@ public class DemoFormSeeder implements DemoSeeder {
         var memberOnly = formRepository.create(
                 stationId,
                 "Persönliche Einschätzung",
-                "Nur für Mitglieder — Verwalter können dieses Formular für ihre verwalteten Mitglieder ausfüllen.",
+                "Nur für Mitglieder - Verwalter können dieses Formular für ihre verwalteten Mitglieder ausfüllen.",
                 false,
                 true,
                 false,
@@ -361,7 +361,7 @@ public class DemoFormSeeder implements DemoSeeder {
         var bothRoles = formRepository.create(
                 stationId,
                 "Terminplanung Herbstfest",
-                "Für Mitglieder und Verwalter — bitte gebt eure Verfügbarkeit an.",
+                "Für Mitglieder und Verwalter - bitte gebt eure Verfügbarkeit an.",
                 false,
                 true,
                 false,
@@ -446,7 +446,7 @@ public class DemoFormSeeder implements DemoSeeder {
         var anfaengerForm = formRepository.create(
                 stationId,
                 "Anfänger-Feedback",
-                "Nur für die Anfänger-Gruppe — wie läuft es bei euch?",
+                "Nur für die Anfänger-Gruppe - wie läuft es bei euch?",
                 false,
                 true,
                 false,
@@ -482,7 +482,7 @@ public class DemoFormSeeder implements DemoSeeder {
                 anfaengerForm.id(),
                 new RestrictionSelection(List.of(), List.of(anfaengerGroupId), List.of(), List.of(), null));
 
-        // Form 7: Showcase — one question per type, open, unrestricted
+        // Form 7: Showcase - one question per type, open, unrestricted
         var showcase = formRepository.create(
                 stationId,
                 "Showcase: Alle Fragetypen",
@@ -496,7 +496,7 @@ public class DemoFormSeeder implements DemoSeeder {
                 FormPurpose.INTERNAL);
         formRepository.updateStatus(showcase.id(), Form.FormStatus.OPEN);
 
-        // 1. CHOICE — single select
+        // 1. CHOICE - single select
         formRepository.createQuestion(
                 showcase.id(),
                 0,
@@ -513,7 +513,7 @@ public class DemoFormSeeder implements DemoSeeder {
                         FormQuestionConfig.MultiLimitType.NONE,
                         null));
 
-        // 2. CHOICE — multi select with dropdown and "other"
+        // 2. CHOICE - multi select with dropdown and "other"
         formRepository.createQuestion(
                 showcase.id(),
                 1,
@@ -530,7 +530,7 @@ public class DemoFormSeeder implements DemoSeeder {
                         FormQuestionConfig.MultiLimitType.AT_MOST,
                         3));
 
-        // 3. TEXT — short answer
+        // 3. TEXT - short answer
         formRepository.createQuestion(
                 showcase.id(),
                 2,
@@ -541,7 +541,7 @@ public class DemoFormSeeder implements DemoSeeder {
                 false,
                 new FormQuestionConfig.Text(false));
 
-        // 4. TEXT — long answer
+        // 4. TEXT - long answer
         formRepository.createQuestion(
                 showcase.id(),
                 3,
@@ -552,7 +552,7 @@ public class DemoFormSeeder implements DemoSeeder {
                 false,
                 new FormQuestionConfig.Text(true));
 
-        // 5. RATING — 5 stars
+        // 5. RATING - 5 stars
         formRepository.createQuestion(
                 showcase.id(),
                 4,
@@ -563,7 +563,7 @@ public class DemoFormSeeder implements DemoSeeder {
                 false,
                 new FormQuestionConfig.Rating(5, FormQuestionConfig.Rating.RatingIcon.STAR));
 
-        // 6. RATING — 10 hearts
+        // 6. RATING - 10 hearts
         formRepository.createQuestion(
                 showcase.id(),
                 5,

@@ -18,7 +18,7 @@ const {t} = useI18n()
 <template>
   <NeutralContainer class="mt-4 space-y-4">
     <SectionHeader>{{ t('adminApplications.denyTitle') }}</SectionHeader>
-    <p class="text-sm text-(--text-muted)">Lisa Beispiel — DLRG Neustadt</p>
+    <p class="text-sm text-(--text-muted)">Lisa Beispiel - DLRG Neustadt</p>
     <div class="space-y-1">
       <FieldLabel>{{ t('adminApplications.denyReasonLabel') }}</FieldLabel>
       <TextInput :model-value="''" :placeholder="t('adminApplications.denyReasonPlaceholder')" />

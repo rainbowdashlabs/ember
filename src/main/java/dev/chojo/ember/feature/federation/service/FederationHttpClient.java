@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.federation.service;
 
 import dev.chojo.ember.api.FederationHeaders;
+import dev.chojo.ember.api.ForeignStationIdModule;
 import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
 import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import dev.chojo.ember.feature.federation.contract.FederationRequest;
@@ -43,13 +44,14 @@ import java.util.UUID;
  * reject replays via {@link FederationReplayCache}.
  * <p>
  * All public methods accept and return typed objects. JSON serialization/deserialization
- * is handled internally — callers never deal with raw JSON strings.
+ * is handled internally - callers never deal with raw JSON strings.
  * <p>
  * The embedded {@link JsonMapper} intentionally disables
  * {@code FAIL_ON_UNKNOWN_PROPERTIES} so a federation peer running a newer protocol
  * version can add fields to a response without breaking older peers. The main API
  * mapper in {@code ApiServer.jacksonMapper()} keeps the strict default for
- * inbound client payloads.
+ * inbound client payloads. It also carries {@link ForeignStationIdModule}, which reads the
+ * station ids a partner publishes as UUIDs without trying to resolve them locally.
  */
 @Singleton
 public class FederationHttpClient {
@@ -84,6 +86,7 @@ public class FederationHttpClient {
         this.mapper = JsonMapper.builder()
                 .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
                 .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
+                .addModule(new ForeignStationIdModule())
                 .build();
     }
 
@@ -398,7 +401,7 @@ public class FederationHttpClient {
 
     /**
      * A {@code 409} carrying a contract mismatch body means the stored vector of the called
-     * partner is stale — the partner redeployed since the last exchange. Kick off a
+     * partner is stale - the partner redeployed since the last exchange. Kick off a
      * background ping so the vector heals without waiting for the next startup broadcast.
      */
     private void handleContractMismatch(String body, int localStationId, UUID partnerStationUid) {
@@ -409,7 +412,7 @@ public class FederationHttpClient {
                 return;
             }
             log.warn(
-                    "Federation partner station {} rejected the request with {} (theirs {}, ours {}) — refreshing its contract vector",
+                    "Federation partner station {} rejected the request with {} (theirs {}, ours {}) - refreshing its contract vector",
                     partnerStationUid,
                     mismatch.error(),
                     mismatch.local(),

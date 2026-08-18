@@ -36,7 +36,7 @@ import java.util.Map;
  * Seeds one notification of every {@link NotificationType} for the demo admin so all 29
  * categories can be reviewed in the dashboard and atom feed at a glance. The rest of the
  * demo's notifications are produced organically by the other seeders' service calls
- * (newsService, eventService, exchangeService, …) — this seeder doesn't compete with them
+ * (newsService, eventService, exchangeService, …) - this seeder doesn't compete with them
  * because admin already gets the organic notifications too.
  *
  * <p>Each entry uses representative link metadata so the renderer's per-type enrichment
@@ -174,7 +174,7 @@ public class DemoNotificationSeeder implements DemoSeeder {
                         new NotificationParams.NewNews(
                                 "Übungsplan Q3 veröffentlicht",
                                 "Alice Müller",
-                                "Ab nächster Woche rotieren wir Dienstag und Donnerstag — der vollständige Plan steht im Beitrag."),
+                                "Ab nächster Woche rotieren wir Dienstag und Donnerstag - der vollständige Plan steht im Beitrag."),
                         newsLink));
 
         notificationRepository.create(
@@ -216,7 +216,7 @@ public class DemoNotificationSeeder implements DemoSeeder {
                 NotificationData.of(
                         new NotificationParams.NewEvent(
                                 "Offenes Training",
-                                "Übung für alle Altersgruppen — Treffpunkt am Marktplatz, bitte rechtzeitig erscheinen."),
+                                "Übung für alle Altersgruppen - Treffpunkt am Marktplatz, bitte rechtzeitig erscheinen."),
                         oneTimeLink));
 
         notificationRepository.create(
@@ -318,7 +318,7 @@ public class DemoNotificationSeeder implements DemoSeeder {
                 memberId,
                 NotificationType.NEW_FORM,
                 NotificationData.of(
-                        new NotificationParams.NewForm("Fahrt nach Berlin — Teilnahme bestätigen"), formLink));
+                        new NotificationParams.NewForm("Fahrt nach Berlin - Teilnahme bestätigen"), formLink));
 
         Integer lostId = ctx.lostAndFoundItemId();
         var lostLink = lostId != null

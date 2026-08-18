@@ -1,6 +1,6 @@
 {
   "feed": {
-    "title": "{stationName} — Notifications",
+    "title": "{stationName} - Notifications",
     "description": "Personal notification feed from Ember"
   },
   "ical": {
@@ -116,28 +116,28 @@
     "EXCHANGE_STATUS_CHANGE": "Exchange {statusLabel}: {inventoryName}",
     "EXCHANGE_NEW_REQUEST": "Exchange request: {inventoryName}",
     "MEMBER_ADDED_TO_GROUP": "Added to group: {groupName}",
-    "PROFILE_FIELD_CHANGED": "Profile change: {memberName} — {fieldName}",
+    "PROFILE_FIELD_CHANGED": "Profile change: {memberName} - {fieldName}",
     "PROCUREMENT_REQUESTED": "Procurement requested: {inventoryName}",
     "PROCUREMENT_FULFILLED": "Procurement fulfilled: {inventoryName}",
     "NEW_FORM": "New form: {title}",
     "LOST_AND_FOUND_NEW": "Lost & Found: {description}",
-    "LOST_AND_FOUND_CLAIMED": "Claimed: {description} — by {name}",
+    "LOST_AND_FOUND_CLAIMED": "Claimed: {description} - by {name}",
     "WAITLIST_NEW_ENTRY": "Waitlist {listName}: {childName} added",
     "LENDING_NEW_REQUEST": "Lending request from {stationName}: {itemSummary}",
     "LENDING_STATUS_CHANGE": "Lending {statusLabel}: from {stationName}",
     "LENDING_NEW_MESSAGE": "Message from {senderName} ({stationName})",
     "BOARD_TICKET_UPDATE": "{ticketKey} on {boardName}: {changeDescription}",
-    "REGISTRATION_DEADLINE_EXPIRED.one": "Deadline expired: {eventName} — 1 pending",
-    "REGISTRATION_DEADLINE_EXPIRED.other": "Deadline expired: {eventName} — {pendingCount} pending",
+    "REGISTRATION_DEADLINE_EXPIRED.one": "Deadline expired: {eventName} - 1 pending",
+    "REGISTRATION_DEADLINE_EXPIRED.other": "Deadline expired: {eventName} - {pendingCount} pending",
     "EVENT_CANCELLED": "Cancelled: {eventName}",
     "EVENT_REMINDER.one": "Reminder: {eventName} tomorrow",
     "EVENT_REMINDER.other": "Reminder: {eventName} in {daysBefore} days",
     "PROCEDURE_ASSIGNED": "Procedure assigned: {procedureName}",
     "PROCEDURE_RESOLVED": "Resolved: {procedureName}",
     "PROCEDURE_REOPENED": "Reopened: {procedureName}",
-    "PROCEDURE_ITEM_CHECKED": "Checked off: {itemTitle} — in {procedureName}",
-    "WAITLIST_PUBLIC_REGISTRATION": "Public sign-up — {listName}: {childName}",
-    "STORAGE_WARNING": "Storage at {usedPercent}% — {usedFormatted} / {quotaFormatted}"
+    "PROCEDURE_ITEM_CHECKED": "Checked off: {itemTitle} - in {procedureName}",
+    "WAITLIST_PUBLIC_REGISTRATION": "Public sign-up - {listName}: {childName}",
+    "STORAGE_WARNING": "Storage at {usedPercent}% - {usedFormatted} / {quotaFormatted}"
   },
   "digest": {
     "subject.one": "{stationName}: 1 new notification",
@@ -175,7 +175,7 @@
     "STORAGE_WARNING": "Storage Warning"
   },
   "message": {
-    "notification.newNews": "{title} — by {author}",
+    "notification.newNews": "{title} - by {author}",
     "notification.newsComment": "{author} commented on \"{newsTitle}\"",
     "notification.commentMention": "{author} mentioned you in \"{entityTitle}\"",
     "notification.exchangeStatusChange": "{inventoryName}: Status changed to {status}",

@@ -22,7 +22,7 @@ import java.util.UUID;
 /**
  * Resolves which account an avatar request may be served for. Every lookup ends in the account
  * UUID the avatar is stored under, or an empty result when the caller has no relationship to the
- * target — existence of the target is never distinguishable from a missing permission.
+ * target - existence of the target is never distinguishable from a missing permission.
  */
 @Singleton
 public class AvatarAccessService {
@@ -94,8 +94,8 @@ public class AvatarAccessService {
      * Returns true when the calling session is allowed to view an avatar belonging
      * to {@code targetStationId}: the caller has a membership at the target station,
      * is an instance administrator, or the caller's currently selected station has
-     * an active federation partnership with the target station. All other cases —
-     * including a logged-in account with no station memberships — fall through to
+     * an active federation partnership with the target station. All other cases -
+     * including a logged-in account with no station memberships - fall through to
      * an empty result to avoid leaking whether the target member exists.
      */
     private boolean canSeeMemberAvatar(UserSession session, int targetStationId) {

@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.repository.KbCommentRepository;
 import dev.chojo.ember.feature.knowledgebase.route.RemoteKnowledgeBaseRoutes;
+import dev.chojo.ember.feature.knowledgebase.route.RemoteKnowledgeBaseRoutes.RemoteKbFile;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -38,6 +39,7 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -69,6 +71,7 @@ public class KnowledgeBaseFederationService {
     private final MemberNameResolver memberNameResolver;
     private final FederationFanout fanout;
     private final FederationEntityResolver entityResolver;
+    private final KbPdfExportService pdfExportService;
 
     @Inject
     public KnowledgeBaseFederationService(
@@ -83,7 +86,8 @@ public class KnowledgeBaseFederationService {
             EventFederationRepository eventFederationRepository,
             MemberNameResolver memberNameResolver,
             FederationFanout fanout,
-            FederationEntityResolver entityResolver) {
+            FederationEntityResolver entityResolver,
+            KbPdfExportService pdfExportService) {
         this.knowledgeBaseService = knowledgeBaseService;
         this.contentService = contentService;
         this.searchService = searchService;
@@ -96,6 +100,7 @@ public class KnowledgeBaseFederationService {
         this.memberNameResolver = memberNameResolver;
         this.fanout = fanout;
         this.entityResolver = entityResolver;
+        this.pdfExportService = pdfExportService;
     }
 
     /**
@@ -118,7 +123,7 @@ public class KnowledgeBaseFederationService {
                             item.file().name(),
                             item.file().description() != null ? item.file().description() : "",
                             stationName,
-                            item.sourceStationId(),
+                            partner != null ? partner.partnerStationId().toString() : null,
                             item.partnerId());
                 })
                 .toList();
@@ -155,14 +160,58 @@ public class KnowledgeBaseFederationService {
      * Fetches a single knowledge-base file from a federated partner, transparently handling
      * partners on this instance and on another one.
      */
-    public KbFile getFederatedKbFile(int localStationId, UUID partnerStationUid, int fileId) {
+    public RemoteKbFile getFederatedKbFile(int localStationId, UUID partnerStationUid, int fileId) {
         return entityResolver.resolve(
                 localStationId,
                 partnerStationUid,
                 RemoteKnowledgeBaseRoutes.GET_FILE.at(fileId),
-                KbFile.class,
+                RemoteKbFile.class,
                 "file",
-                partner -> requirePartnerFile(fileId, partner));
+                partner -> RemoteKbFile.of(requirePartnerFile(fileId, partner), partnerStationUid));
+    }
+
+    /**
+     * Renders a partner's knowledge-base file as a PDF, headed with the partner's name.
+     *
+     * @param localStationId    the reading station ID
+     * @param partnerStationUid the partner station UUID
+     * @param fileId            the file to render
+     * @param generatedBy       the name of the person requesting the export
+     * @return the rendered PDF
+     * @throws BadRequestResponse when the file has no written body to render
+     */
+    public RenderedPdf renderFederatedKbFilePdf(
+            int localStationId, UUID partnerStationUid, int fileId, String generatedBy)
+            throws IOException, InterruptedException {
+        var file = getFederatedKbFile(localStationId, partnerStationUid, fileId);
+        if (!KbPdfExportService.isExportable(file.fileType())) {
+            throw new BadRequestResponse("Only markdown and text files can be rendered as PDF");
+        }
+        String content = getFederatedKbFileContent(localStationId, partnerStationUid, fileId);
+        var partner = federationRepository
+                .findPartnerByStationAndRemoteUid(localStationId, partnerStationUid)
+                .orElse(null);
+        byte[] pdf = pdfExportService.renderFederated(
+                new KbPdfExportService.ExportSource(
+                        file.name(), file.description(), content, file.fileType() == KbFileType.MARKDOWN),
+                FederationDisplayNames.partnerName(stationRepository, partner, "?"),
+                stationRepository.findById(localStationId).orElse(null),
+                generatedBy);
+        return new RenderedPdf(file.name() + ".pdf", pdf);
+    }
+
+    /**
+     * A rendered document together with the name it should be saved under.
+     */
+    public record RenderedPdf(String fileName, byte[] data) {}
+
+    /**
+     * Loads a file for a requesting partner in the shape the federation contract publishes, refusing
+     * files that belong to another station.
+     */
+    public RemoteKbFile remoteFileForPartner(FederationPartner partner, int fileId) {
+        var file = fileForPartner(partner, fileId);
+        return RemoteKbFile.of(file, stationRepository.resolveUid(file.stationId()));
     }
 
     /**
@@ -633,10 +682,12 @@ public class KnowledgeBaseFederationService {
     public record FederatedSearchResult(KbFileSummary file, String snippet, String stationName, String stationUid) {}
 
     /**
-     * A shared file as rendered for the federated browse response.
+     * A shared file as rendered for the federated browse response. The station UUID addresses the
+     * serving station on the federated read routes and is null when the partnership behind the file
+     * can no longer be resolved.
      */
     public record FederatedKbItem(
-            int remoteId, String title, String description, String stationName, int stationId, int partnerId) {}
+            int remoteId, String title, String description, String stationName, String stationUid, int partnerId) {}
 
     /**
      * A shared file as served to a requesting partner.

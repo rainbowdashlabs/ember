@@ -19,7 +19,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 
 /**
  * Persists hourly traffic aggregations. Two upsert paths because {@code station_id IS NULL}
- * rows need their own conflict target — the partial unique indexes on
+ * rows need their own conflict target - the partial unique indexes on
  * {@code station_traffic_hourly} treat per-station and instance-global buckets as separate
  * uniqueness domains, and PostgreSQL needs an explicit predicate or column list that matches
  * exactly one of them per insert.
@@ -28,7 +28,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class StationTrafficRepository {
 
     /**
-     * Upserts a single hourly bucket — adds the given byte / request totals on top of the
+     * Upserts a single hourly bucket - adds the given byte / request totals on top of the
      * existing row if one already exists for the {@code (hour, stationId, auth)} key. Returns
      * silently; failures are surfaced by SADU as exceptions.
      */

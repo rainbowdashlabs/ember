@@ -8,7 +8,7 @@
 # Every command also runs inside the project's nix environment via `direnv exec`, so the JDK,
 # node and the external binaries the backend shells out to (cwebp, typst, pandoc, libreoffice,
 # qpdf) are the versions shell.nix pins, and the *_BIN variables it exports are set. Without
-# that, a caller whose shell has not entered the directory silently gets whatever is on PATH —
+# that, a caller whose shell has not entered the directory silently gets whatever is on PATH -
 # which is how WebP variant generation ends up skipped in one run and exercised in the next.
 #
 # Usage: ./toolchain.sh <command> [args...]
@@ -35,13 +35,32 @@ usage() {
 Usage: ./toolchain.sh <command> [args...]
 
 Frontend
-  fe-build              Full verification: formatting, all linters, vue-tsc, production build
+  fe-build              Full verification: formatting, unit tests, all linters, vue-tsc, build
   fe-format             Apply license headers and whitespace rules to Vue/TypeScript/locales
   fe-typecheck          vue-tsc only (silent on success)
   fe-audit              All linters, non-gating; prints the warning backlog
   fe-lint <name> [args] One linter, e.g. `fe-lint style` runs scripts/lint-style.mjs. Trailing
                         arguments reach the script, e.g. `fe-lint component-size --error=30`
   fe-dev                Dev server
+  fe-install            npm install - reconciles node_modules and the lock file with package.json,
+                        which is how a conflict in the generated lock file is resolved
+  fe-preview [port]     Serve the last build (default port 3000), the steady target for the stories
+
+Frontend tests
+  fe-test [args]        Unit, component and SSR tests (vitest run)
+  fe-test1 <pattern>    One test file or name pattern, e.g. `fe-test1 MemberName`
+  fe-test-watch         vitest in watch mode
+  fe-coverage           Tests with coverage and the threshold gate
+  fe-e2e [project]      End-to-end tests, default project chromium. Starts the e2e stack (its own
+                        database and backend on 8899) and serves the last build on 3010; set
+                        E2E_NO_SERVER=1 when they already run
+  fe-e2e1 <file> [args] One end-to-end spec, e.g. `fe-e2e1 account`
+  fe-e2e-ssr            The JavaScript-disabled project, which is what proves the public routes
+                        really are server-rendered
+  fe-e2e-built [proj]   Rebuild the frontend first, then run the stories
+  fe-e2e-list           List every end-to-end story without running anything or starting a server
+  fe-e2e-report         Open the last end-to-end report
+  fe-e2e-install        Download the Playwright browser binaries (once per machine)
 
 Backend
   be-verify             spotlessApply, all four test suites, and the coverage gate
@@ -60,7 +79,7 @@ Backend
 
 Docker
   docker-frontend       Build the frontend image, as CI's docker job does. Worth running when a
-                        linter learns to read something outside frontend/ — the image copies
+                        linter learns to read something outside frontend/ - the image copies
                         only that directory, so the repository root is not there
   docker-backend        Build the backend image
 
@@ -79,6 +98,9 @@ case "$cmd" in
         # Formatting first, mirroring be-verify: the frontend formats are Spotless tasks, so
         # nothing in the npm chain would ever see them.
         cd "$ROOT"; run ./gradlew formatFrontend
+        # Then the unit tests, which take seconds and fail on the thing a linter cannot see. The
+        # npm build carries the linters, the type-check and the production build after them.
+        fe; NODE_OPTIONS="$NODE_HEAP" run npx vitest run
         fe; NODE_OPTIONS="$NODE_HEAP" run npm run build
         ;;
     fe-format)     cd "$ROOT"; run ./gradlew formatFrontend "$@" ;;
@@ -89,7 +111,61 @@ case "$cmd" in
         linter="$1"; shift
         fe; run node "scripts/lint-$linter.mjs" "$@"
         ;;
-    fe-dev)        fe; run npm run dev ;;
+    fe-dev)        fe; run npm run dev -- "$@" ;;
+    fe-install)
+        # Reconciles node_modules and the lock file with package.json. Wanted after a merge that
+        # touched dependencies: the lock file is generated, so a conflict in it is resolved by
+        # writing it again rather than by editing the two sides together.
+        fe; NODE_OPTIONS="$NODE_HEAP" run npm install "$@"
+        ;;
+    fe-preview)
+        # Serves the last build. Unlike the dev server this compiles nothing on demand, which is
+        # what makes it a steady target for the end-to-end suite.
+        fe; NITRO_PORT="${1:-3000}" run node .output/server/index.mjs
+        ;;
+
+    fe-test)       fe; NODE_OPTIONS="$NODE_HEAP" run npx vitest run "$@" ;;
+    fe-test1)
+        [ $# -ge 1 ] || { echo "fe-test1 needs a file or name pattern, e.g. MemberName" >&2; exit 2; }
+        pattern="$1"; shift
+        fe; NODE_OPTIONS="$NODE_HEAP" run npx vitest run "$pattern" "$@"
+        ;;
+    fe-test-watch) fe; NODE_OPTIONS="$NODE_HEAP" run npx vitest "$@" ;;
+    fe-coverage)   fe; NODE_OPTIONS="$NODE_HEAP" run npx vitest run --coverage "$@" ;;
+    fe-e2e)
+        # The suite serves the last build; build once when there is none yet. After changing
+        # anything under src/, use fe-e2e-built - this command would otherwise run the stories
+        # against the build before the change and report on code nobody is looking at.
+        project="${1:-chromium}"; shift || true
+        fe
+        [ -f .output/server/index.mjs ] || NODE_OPTIONS="$NODE_HEAP" run npx nuxi build
+        run npx playwright test --project "$project" "$@"
+        ;;
+    fe-e2e1)
+        [ $# -ge 1 ] || { echo "fe-e2e1 needs a spec name, e.g. account" >&2; exit 2; }
+        spec="$1"; shift
+        fe; run npx playwright test "$spec" --project chromium "$@"
+        ;;
+    fe-e2e-ssr)      fe; run npx playwright test --project ssr-no-js "$@" ;;
+    fe-e2e-built)
+        # Rebuilds first, for when the sources moved since the last build.
+        project="${1:-chromium}"; shift || true
+        fe; NODE_OPTIONS="$NODE_HEAP" run npx nuxi build
+        fe; run npx playwright test --project "$project" "$@"
+        ;;
+    fe-e2e-list)     fe; E2E_NO_SERVER=1 run npx playwright test --list "$@" ;;
+    fe-e2e-report)   fe; run npx playwright show-report e2e/report "$@" ;;
+    fe-e2e-install)
+        # The nix shell provides the browsers already, so this only has to report where they are.
+        # It stays a command because CI runs on a Debian image, where the download is the right
+        # answer and PLAYWRIGHT_BROWSERS_PATH is unset.
+        fe
+        if [ -n "${PLAYWRIGHT_BROWSERS_PATH:-}" ] || [ -f "$ROOT/shell.nix" ]; then
+            run sh -c 'echo "Browsers come from the nix shell at $PLAYWRIGHT_BROWSERS_PATH"'
+        else
+            run npx playwright install --with-deps chromium "$@"
+        fi
+        ;;
 
     be-verify)
         cd "$ROOT"

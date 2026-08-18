@@ -57,7 +57,7 @@ function studentGap(idx: number): string {
     >
       <span class="text-xs text-(--text-muted) w-5 shrink-0">{{ gapIdx + 1 }}.</span>
       <span class="flex-1">
-        {{ studentGap(gapIdx) || '—' }}
+        {{ studentGap(gapIdx) || '-' }}
       </span>
       <span class="text-xs text-success shrink-0">{{ correctAns }}</span>
       <IconButton

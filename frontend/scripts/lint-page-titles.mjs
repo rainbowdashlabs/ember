@@ -29,7 +29,7 @@ const DEFAULT_LAYOUT = 'default'
  * Layouts that mount page-header chrome, so a ViewContent title is actually
  * rendered somewhere. The first five read usePageHeader() and forward it to
  * their AppHeader. `public-station` mounts the same AppHeader through
- * SidebarLayout but does not forward the shared header state yet — the chrome
+ * SidebarLayout but does not forward the shared header state yet - the chrome
  * exists, so the rule still applies to the pages it hosts.
  *
  * Every other layout (notably `default`, the landing-header-plus-footer shell
@@ -45,7 +45,7 @@ const CHROME_LAYOUTS = new Set([
 ])
 
 // Layout-root views that host their own SidebarLayout. Excluded from the
-// per-route audit because they don't render their own ViewContent — child
+// per-route audit because they don't render their own ViewContent - child
 // route views do.
 const LAYOUT_ROOTS = new Set([
     'AdminView.vue',
@@ -115,7 +115,7 @@ function openingTags(template) {
 // that carries page content (p, span, h1-h6, ul, table).
 function isRealContent(tag) {
     if (WRAPPERS.has(tag)) return false
-    // Skip pure HTML layout tags — they're structural, not content.
+    // Skip pure HTML layout tags - they're structural, not content.
     const STRUCTURAL_HTML = new Set(['div', 'section', 'main', 'span', 'br', 'hr'])
     if (STRUCTURAL_HTML.has(tag)) return false
     return true
@@ -351,7 +351,7 @@ for (const file of allVueFiles) {
 
     const vc = viewContentHasTitle(template)
 
-    // The rules only apply to files that host their own <ViewContent> — those
+    // The rules only apply to files that host their own <ViewContent> - those
     // are the leaf page-level views. Sub-components (modals, tiles, help-page
     // dummies, style-showcase panels) that render inside a parent ViewContent
     // are legitimately allowed to open with their own SectionHeader.
@@ -367,7 +367,7 @@ for (const file of allVueFiles) {
     // Rule 2: no top-of-page PageHeader/SectionHeader.
     if (hasTopOfPageTitle(template)) {
         reporter.error(file, 0,
-            'View renders its own top-of-page title (PageHeader / SectionHeader). Remove it — the header is set via ViewContent title prop.',
+            'View renders its own top-of-page title (PageHeader / SectionHeader). Remove it - the header is set via ViewContent title prop.',
             'Top-of-page title')
     }
 }

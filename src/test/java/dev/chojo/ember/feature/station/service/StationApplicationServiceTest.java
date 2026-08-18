@@ -60,7 +60,7 @@ class StationApplicationServiceTest extends RepositoryTestBase {
     @Test
     @Order(4)
     void findPending() {
-        // Not yet verified — not pending
+        // Not yet verified - not pending
         var pending = service.findPending();
         assertTrue(pending.stream().noneMatch(a -> a.id() == applicationId));
     }
@@ -110,7 +110,7 @@ class StationApplicationServiceTest extends RepositoryTestBase {
     @Test
     @Order(21)
     void denyAlreadyPending() {
-        // applicationId is still pending — deny it here
+        // applicationId is still pending - deny it here
         var denied = service.deny(applicationId, "Duplicate request");
         assertEquals(DENIED, denied.status());
     }

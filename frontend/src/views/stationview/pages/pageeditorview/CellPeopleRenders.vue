@@ -15,7 +15,7 @@ import {resolveMemberListSource, type LayoutKindName, type MemberListConfig, typ
  * Renderer for MEMBER_SPOTLIGHT and MEMBER_LIST_SPOTLIGHT (member-list spotlight).
  *
  * <p>MEMBER_LIST_SPOTLIGHT uses {@code resolvedMembers} when present (the server-baked, public-safe
- * shape produced by {@code getPageRendered} — avatars are inlined as {@code data:} URLs so
+ * shape produced by {@code getPageRendered} - avatars are inlined as {@code data:} URLs so
  * unauthenticated visitors never hit the auth-gated avatar endpoint) and falls back to the
  * PAGE_EDIT-gated resolve endpoint for the editor preview.
  */

@@ -21,7 +21,7 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import MailProviderCredentialFields from '@/components/mail/MailProviderCredentialFields.vue'
-import {RELAY_PROVIDER_NAMES} from '@/util/mailProviders'
+import {needsServerAddress, RELAY_PROVIDER_NAMES} from '@/util/mailProviders'
 import {stationManage} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {apiErrorMessage} from '@/util/apiError'
@@ -233,6 +233,22 @@ onMounted(loadMailConfig)
           <label class="text-sm font-medium">SSL</label>
           <ToggleInput v-model="mailSmtpSsl" />
         </div>
+      </template>
+
+      <!-- Server address for a relay that gives every account its own -->
+      <template v-if="mailProvider !== 'SMTP' && needsServerAddress(mailProvider)">
+        <SubHeader>{{ t('stationManage.mailServerTitle') }}</SubHeader>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div class="space-y-1">
+            <FieldLabel>{{ t('stationManage.mailSmtpHost') }}</FieldLabel>
+            <TextInput v-model="mailSmtpHost" placeholder="prod-mta-05.swg-srv.net" />
+          </div>
+          <div class="space-y-1">
+            <FieldLabel>{{ t('stationManage.mailSmtpPort') }}</FieldLabel>
+            <NumberInput v-model="mailSmtpPort" :min="1" :max="65535" />
+          </div>
+        </div>
+        <p class="text-xs text-(--text-muted)">{{ t(`mailProviders.${mailProvider}.hostHint`) }}</p>
       </template>
 
       <!-- Relay provider credentials -->

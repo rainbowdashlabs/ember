@@ -31,7 +31,7 @@ function setBool(val: boolean) {
   <template v-if="fieldType === 'BOOLEAN'">
     <ToggleInput :disabled="disabled" :model-value="getBool()" @update:model-value="setBool($event)"/>
   </template>
-  <template v-else-if="fieldType === 'DATE'">
+  <template v-else-if="fieldType === 'DATE' || fieldType === 'BIRTH_DATE'">
     <DateInput :disabled="disabled" :model-value="modelValue"
                @update:model-value="modelValue = $event ?? ''"/>
   </template>
@@ -42,7 +42,7 @@ function setBool(val: boolean) {
   <template v-else-if="fieldType === 'ENUM'">
     <SelectInput :disabled="disabled" :model-value="modelValue"
                  @update:model-value="modelValue = String($event ?? '')">
-      <option value="">—</option>
+      <option value="">-</option>
       <option v-for="opt in options ?? []" :key="opt" :value="opt">{{ opt }}</option>
     </SelectInput>
   </template>

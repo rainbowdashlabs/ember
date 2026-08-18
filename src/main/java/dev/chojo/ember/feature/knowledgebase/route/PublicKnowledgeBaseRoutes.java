@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
 import dev.chojo.ember.feature.knowledgebase.service.KbContentService;
 import dev.chojo.ember.feature.knowledgebase.service.KbIconService;
 import dev.chojo.ember.feature.knowledgebase.service.KbImageService;
+import dev.chojo.ember.feature.knowledgebase.service.KbPdfExportService;
 import dev.chojo.ember.feature.knowledgebase.service.KbSearchService;
 import dev.chojo.ember.feature.knowledgebase.service.KbTagService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
@@ -22,9 +23,11 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationService;
+import dev.chojo.ember.util.SafeContentDisposition;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import io.javalin.http.InternalServerErrorResponse;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -37,6 +40,7 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
@@ -60,6 +64,7 @@ public class PublicKnowledgeBaseRoutes implements Routes {
     private final StationRepository stationRepository;
     private final KbIconService iconService;
     private final KbImageService imageService;
+    private final KbPdfExportService pdfExportService;
 
     @Inject
     public PublicKnowledgeBaseRoutes(
@@ -71,7 +76,8 @@ public class PublicKnowledgeBaseRoutes implements Routes {
             StationService stationService,
             StationRepository stationRepository,
             KbIconService iconService,
-            KbImageService imageService) {
+            KbImageService imageService,
+            KbPdfExportService pdfExportService) {
         this.kbService = kbService;
         this.contentService = contentService;
         this.searchService = searchService;
@@ -81,6 +87,7 @@ public class PublicKnowledgeBaseRoutes implements Routes {
         this.stationRepository = stationRepository;
         this.iconService = iconService;
         this.imageService = imageService;
+        this.pdfExportService = pdfExportService;
     }
 
     @Override
@@ -92,6 +99,7 @@ public class PublicKnowledgeBaseRoutes implements Routes {
         routes.get(base + "/files/{id}", this::getFile);
         routes.get(base + "/files/{id}/content", this::getFileContent);
         routes.get(base + "/files/{id}/html", this::getMarkdownHtml);
+        routes.get(base + "/files/{id}/pdf", this::getFilePdf);
         routes.get(base + "/search", this::search);
         routes.get(base + "/folders/{id}/icon", this::getFolderIcon);
         routes.get(base + "/images/{imageId}", this::getKbImage);
@@ -261,6 +269,31 @@ public class PublicKnowledgeBaseRoutes implements Routes {
         var markdown = contentService.getMarkdownContent(file.id()).orElse("");
         var html = contentService.renderMarkdown(markdown);
         ctx.json(new MarkdownHtmlResponse(html, markdown));
+    }
+
+    private void getFilePdf(Context ctx) {
+        var station = resolveStation(ctx);
+        int id = pathInt(ctx, "id");
+        var file = kbService.findFile(id).orElseThrow(NotFoundResponse::new);
+        if (file.stationId() != station.id()) throw new NotFoundResponse();
+        requirePubliclyVisible(station, null, id);
+        if (!KbPdfExportService.isExportable(file.fileType())) {
+            throw new BadRequestResponse("Only markdown and text files can be rendered as PDF");
+        }
+        try {
+            byte[] pdf = pdfExportService.renderPublic(file, station);
+            ctx.contentType("application/pdf");
+            ctx.header(
+                    "Content-Disposition",
+                    SafeContentDisposition.build(SafeContentDisposition.Disposition.ATTACHMENT, file.name() + ".pdf"));
+            ctx.result(pdf);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new InternalServerErrorResponse("Failed to render PDF");
+        } catch (IOException e) {
+            log.warn("Failed to render public file {} as PDF", id, e);
+            throw new InternalServerErrorResponse("Failed to render PDF");
+        }
     }
 
     @OpenApi(

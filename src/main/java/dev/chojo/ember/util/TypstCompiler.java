@@ -40,6 +40,17 @@ public final class TypstCompiler {
 
     public static byte[] compileTemplate(Map<String, Object> data, String templateName, StationLogo logo)
             throws IOException, InterruptedException {
+        return compileTemplate(data, templateName, logo, Map.of());
+    }
+
+    /**
+     * Renders a template, additionally writing {@code resources} next to it. A template reads them
+     * with {@code read()} or {@code eval(read(...))}, which is how content too structured for
+     * {@code data.json} - a Typst markup fragment, say - reaches the document.
+     */
+    public static byte[] compileTemplate(
+            Map<String, Object> data, String templateName, StationLogo logo, Map<String, String> resources)
+            throws IOException, InterruptedException {
         Path tempDir = Files.createTempDirectory("typst-template-");
         try {
             Path templateSource = Path.of("templates", "typst", templateName);
@@ -55,6 +66,9 @@ public final class TypstCompiler {
             }
 
             Files.writeString(templateDir.resolve("data.json"), Json.MAPPER.writeValueAsString(data));
+            for (var entry : resources.entrySet()) {
+                Files.writeString(templateDir.resolve(entry.getKey()), entry.getValue());
+            }
             Files.copy(templateSource, templateFile);
 
             Path outputFile = tempDir.resolve("output.pdf");

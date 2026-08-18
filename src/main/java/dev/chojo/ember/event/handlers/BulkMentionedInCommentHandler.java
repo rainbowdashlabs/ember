@@ -116,7 +116,7 @@ public class BulkMentionedInCommentHandler implements DomainEventHandler<BulkMen
             return ids;
         }
 
-        // No registration required — notify all members who can see the event, minus declined
+        // No registration required - notify all members who can see the event, minus declined
         var eligible = restrictionService.findMembersPassingRestriction(
                 RestrictionType.EVENT, stationEvent.id(), stationEvent.stationId());
         if (eligible.isEmpty()) {

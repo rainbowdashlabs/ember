@@ -18,11 +18,11 @@ useHead({
   title: 'Stationen entdecken',
   meta: [
     {name: 'description', content: 'Finde Jugendfeuerwehren in deiner Nähe und entdecke ihre öffentlichen Stationen.'},
-    {property: 'og:title', content: 'Stationen entdecken — Ember'},
+    {property: 'og:title', content: 'Stationen entdecken - Ember'},
     {property: 'og:description', content: 'Finde Jugendfeuerwehren in deiner Nähe und entdecke ihre öffentlichen Stationen.'},
     {property: 'og:type', content: 'website'},
     {name: 'twitter:card', content: 'summary'},
-    {name: 'twitter:title', content: 'Stationen entdecken — Ember'},
+    {name: 'twitter:title', content: 'Stationen entdecken - Ember'},
     {name: 'twitter:description', content: 'Finde Jugendfeuerwehren in deiner Nähe und entdecke ihre öffentlichen Stationen.'},
   ],
   script: [

@@ -107,7 +107,7 @@ public class TotpService {
                         "auth.twoFactor.secretKey (or TWO_FACTOR_SECRET_KEY) must be set in production deployments. "
                                 + "Generate a 32-byte base64 random value and inject it via configuration.");
             }
-            // 2FA disabled — leave the key zeroed; the service will not be invoked.
+            // 2FA disabled - leave the key zeroed; the service will not be invoked.
             return new byte[32];
         }
         byte[] decoded = Base64.getDecoder().decode(keyBase64);

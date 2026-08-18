@@ -188,7 +188,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
      * The source-side {@code /avatars/{accountUid}} endpoint streams the stored original bytes
      * for accounts that have an avatar and reports {@code 404} when none is on file. Exercised
      * here at the HTTP layer because the destination's account-creation branch only fires when
-     * the destination's account database is independent of the source's — a property that does
+     * the destination's account database is independent of the source's - a property that does
      * not hold inside the shared test database. The HTTP test is enough to prove the surface
      * the destination consumes is correct.
      */
@@ -307,7 +307,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
      */
     @Test
     void localTransferShipsOriginalsOnlyAndRegeneratesVariants() throws Exception {
-        Assumptions.assumeTrue(WebpEncoder.isAvailable(), "cwebp not available — skipping image-transfer regen check");
+        Assumptions.assumeTrue(WebpEncoder.isAvailable(), "cwebp not available - skipping image-transfer regen check");
         Station source = stationRepo.create("Source IMAGE");
         byte[] png = pngBytes(800, 600);
         String contentHash = PageFileStorageService.hash(png);

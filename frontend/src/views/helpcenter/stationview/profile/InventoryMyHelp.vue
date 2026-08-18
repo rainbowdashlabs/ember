@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 /**
  * Help article for the inventory module's "my inventory" route. It is the same screen as
- * the one under the profile section, so this renders {@link InventoryHelp} — a separate
+ * the one under the profile section, so this renders {@link InventoryHelp} - a separate
  * component file only so both app routes own a help entry instead of sharing one and
  * tripping the duplicate-component check.
  */

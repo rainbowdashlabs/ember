@@ -36,7 +36,7 @@ const {t} = useI18n()
           date: formatDate(row.lastCheck.checkedAt),
           by: row.lastCheck.checkerName || t('common.unknown'),
         }) }}
-        —
+        -
         {{ t(`inventory.checkContainer.previousResult.${row.lastCheck.result}`) }}
       </span>
       <span v-else class="block text-xs text-(--text-muted) mt-0.5">

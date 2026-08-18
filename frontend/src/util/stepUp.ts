@@ -23,7 +23,7 @@ const current = ref<PendingPrompt | null>(null)
  * Opens the step-up modal for the given category and resolves once the user has completed
  * the 2FA challenge. Rejects when the user cancels the prompt.
  *
- * Calls made while a prompt is already in flight share the same outcome — this prevents a
+ * Calls made while a prompt is already in flight share the same outcome - this prevents a
  * burst of parallel ACCOUNT_SECURITY requests from stacking multiple modals on top of each
  * other.
  */

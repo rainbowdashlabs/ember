@@ -10,7 +10,7 @@ import java.util.Optional;
 
 /**
  * One row from the {@code storage_backend_audit} table. {@link #oldConfig()} and
- * {@link #newConfig()} are already-redacted JSON strings — credentials are stripped before
+ * {@link #newConfig()} are already-redacted JSON strings - credentials are stripped before
  * they reach this record.
  *
  * <p>Exactly one of {@link #actorAccountId()} and {@link #systemActor()} is set per the

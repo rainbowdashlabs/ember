@@ -54,7 +54,7 @@ const submitDisabled = computed(() =>
       </template>
       <template v-else>
         <p v-if="item" class="text-sm">
-          {{ item.inventoryName }} — {{ item.name }}
+          {{ item.inventoryName }} - {{ item.name }}
           <span v-if="item.sizeName" class="text-(--text-muted)">{{ item.sizeName }}</span>
         </p>
         <div v-if="sizes.length > 0" class="space-y-1">

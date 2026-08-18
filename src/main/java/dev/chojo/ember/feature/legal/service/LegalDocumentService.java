@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.legal.service;
 
+import dev.chojo.ember.feature.legal.entity.LegalDocumentType;
+import dev.chojo.ember.feature.system.service.DataInitializer;
 import dev.chojo.ember.util.HtmlSanitizer;
 import dev.chojo.ember.util.TextDiff;
 import org.commonmark.Extension;
@@ -27,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * Manages versioned legal documents (privacy policy, terms of service, consent text).
@@ -52,16 +55,49 @@ import java.util.List;
 public class LegalDocumentService {
     private static final Logger log = LoggerFactory.getLogger(LegalDocumentService.class);
     private static final String DEFAULT_LOCALE = "de";
+    private static final String DEFAULT_PLACEHOLDER_FILE = "data/documents/placeholders.json";
+    private static final Pattern ORDER_PREFIX = Pattern.compile("^_?(\\d+)-");
 
     private final Parser parser;
     private final HtmlRenderer renderer;
+    private final BrowserStorageService browserStorage;
+    private final PlaceholderService placeholders;
 
     public LegalDocumentService() {
+        this(null);
+    }
+
+    /**
+     * @param placeholderFile where the placeholder values are stored; falls back to
+     *                        {@value #DEFAULT_PLACEHOLDER_FILE} when null or blank
+     */
+    public LegalDocumentService(String placeholderFile) {
         List<Extension> extensions =
                 List.of(TablesExtension.create(), HeadingAnchorExtension.create(), AutolinkExtension.create());
         this.parser = Parser.builder().extensions(extensions).build();
         this.renderer =
                 HtmlRenderer.builder().extensions(extensions).sanitizeUrls(true).build();
+        this.browserStorage = new BrowserStorageService();
+        this.placeholders = new PlaceholderService(Path.of(
+                placeholderFile == null || placeholderFile.isBlank() ? DEFAULT_PLACEHOLDER_FILE : placeholderFile));
+    }
+
+    /**
+     * Returns the service rendering the generated browser storage disclosure.
+     *
+     * @return the browser storage service backing generated sections
+     */
+    public BrowserStorageService browserStorage() {
+        return browserStorage;
+    }
+
+    /**
+     * Returns the service resolving the placeholders used across the documents.
+     *
+     * @return the placeholder service backing substitution
+     */
+    public PlaceholderService placeholders() {
+        return placeholders;
     }
 
     /**
@@ -135,6 +171,51 @@ public class LegalDocumentService {
     }
 
     /**
+     * Ensures every locale of a document directory carries the generated browser storage section.
+     * Existing installations gain the section behind their hand-written ones; where it is already
+     * present, its position and its enabled state are left untouched.
+     *
+     * @param baseDir the base directory containing locale subdirectories with markdown files
+     */
+    public void ensureGeneratedSection(Path baseDir) {
+        if (!Files.isDirectory(baseDir)) return;
+        try (DirectoryStream<Path> locales = Files.newDirectoryStream(baseDir, Files::isDirectory)) {
+            for (Path localeDir : locales) {
+                if (localeDir.getFileName().toString().equals("history")) continue;
+                ensureGeneratedSectionInLocale(localeDir);
+            }
+        } catch (IOException e) {
+            log.error("Failed to ensure generated section in {}", baseDir, e);
+        }
+    }
+
+    private void ensureGeneratedSectionInLocale(Path localeDir) {
+        int highestPrefix = 0;
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(localeDir, "*.md")) {
+            for (Path entry : stream) {
+                String name = entry.getFileName().toString();
+                if (BrowserStorageService.isGeneratedSection(name)) return;
+                var matcher = ORDER_PREFIX.matcher(name);
+                if (matcher.find()) {
+                    highestPrefix = Math.max(highestPrefix, Integer.parseInt(matcher.group(1)));
+                }
+            }
+        } catch (IOException e) {
+            log.error("Failed to inspect legal section files in {}", localeDir, e);
+            return;
+        }
+
+        Path file =
+                localeDir.resolve(String.format("%02d-%s.md", highestPrefix + 1, BrowserStorageService.SECTION_NAME));
+        try {
+            Files.writeString(file, "", StandardCharsets.UTF_8);
+            log.info("Added generated browser storage section: {}", file);
+        } catch (IOException e) {
+            log.error("Failed to create generated section {}", file, e);
+        }
+    }
+
+    /**
      * Retrieves and renders a legal document for the given locale, falling back to the default locale if unavailable.
      *
      * @param baseDir the base directory containing locale subdirectories with markdown files
@@ -142,6 +223,22 @@ public class LegalDocumentService {
      * @return the rendered document with HTML, raw markdown, and version hash
      */
     public RenderedDocument getDocument(Path baseDir, String locale) {
+        return getDocument(baseDir, locale, typeSlug(baseDir));
+    }
+
+    /**
+     * Retrieves and renders a legal document.
+     *
+     * <p>A legal page must never come back blank: if the directory holds nothing - because it was
+     * pointed somewhere else, emptied by hand, or never laid down - the bundled template for the
+     * type takes over. What is served is then what Ember ships rather than nothing at all.
+     *
+     * @param baseDir  the base directory containing the markdown files
+     * @param locale   the desired locale (e.g. "de", "en")
+     * @param typeSlug the document type the bundled fallback is taken from
+     * @return the rendered document with HTML, raw markdown, and version hash
+     */
+    public RenderedDocument getDocument(Path baseDir, String locale, String typeSlug) {
         String markdown = readMarkdownDirectory(baseDir, locale);
         if (markdown.isEmpty()) {
             markdown = readMarkdownDirectoryFlat(baseDir);
@@ -150,9 +247,75 @@ public class LegalDocumentService {
             // Fall back to default locale
             markdown = readMarkdownDirectory(baseDir, DEFAULT_LOCALE);
         }
-        String html = renderMarkdown(markdown);
+        if (markdown.isEmpty()) {
+            markdown = readBundled(typeSlug, locale);
+            if (markdown.isEmpty() && !DEFAULT_LOCALE.equals(locale)) {
+                markdown = readBundled(typeSlug, DEFAULT_LOCALE);
+            }
+            if (!markdown.isEmpty()) {
+                log.warn(
+                        "No legal document in {} for locale {} - serving the bundled {} template instead",
+                        baseDir,
+                        locale,
+                        typeSlug);
+            }
+        }
+        var numbered = LegalNumbering.apply(markdown, styleFor(typeSlug), paragraphSign(locale));
+        String html = renderMarkdown(numbered.markdown());
         String version = hash(markdown);
+        if (!numbered.unresolved().isEmpty()) {
+            log.warn("Legal document {} refers to sections that do not exist: {}", baseDir, numbered.unresolved());
+        }
         return new RenderedDocument(html, markdown, version);
+    }
+
+    /**
+     * How a document type counts its sections.
+     *
+     * <p>Only the terms of service number their sections, and they already do: taking the numbers
+     * out of the headings and assigning them while rendering reproduces them exactly, as long as
+     * the order has not changed. Every other document is left as it reads, and a reference into it
+     * carries the section title instead of a number.
+     */
+    private static LegalNumbering.Style styleFor(String typeSlug) {
+        return LegalDocumentType.TOS.slug().equals(typeSlug)
+                ? LegalNumbering.Style.PARAGRAPH
+                : LegalNumbering.Style.NONE;
+    }
+
+    /**
+     * What a paragraph is called in the given locale. German legal texts use the section sign,
+     * English ones spell the word out.
+     */
+    private static String paragraphSign(String locale) {
+        return "en".equalsIgnoreCase(locale) ? "Section" : "§";
+    }
+
+    /**
+     * Assembles the bundled document of a type the same way a directory of sections is assembled,
+     * so the generated sections carry their generated content here too.
+     */
+    private String readBundled(String typeSlug, String locale) {
+        if (typeSlug == null) return "";
+        var sb = new StringBuilder();
+        for (var section : DataInitializer.bundledDocument(typeSlug, locale)) {
+            String content = BrowserStorageService.isGeneratedSection(section.displayName())
+                    ? browserStorage.toMarkdown(locale)
+                    : placeholders.apply(section.content());
+            if (content.isBlank()) continue;
+            if (!sb.isEmpty()) sb.append("\n\n");
+            sb.append(content);
+        }
+        return sb.toString();
+    }
+
+    /**
+     * The document type a directory stands for, taken from its name. Configuration may move the
+     * directory, but not rename what it holds.
+     */
+    private static String typeSlug(Path baseDir) {
+        Path name = baseDir.getFileName();
+        return name == null ? null : name.toString();
     }
 
     /**
@@ -258,7 +421,7 @@ public class LegalDocumentService {
         if (!Files.isDirectory(localeDir)) {
             return "";
         }
-        return readMarkdownFiles(localeDir);
+        return readMarkdownFiles(localeDir, locale);
     }
 
     /**
@@ -268,10 +431,10 @@ public class LegalDocumentService {
         if (!Files.isDirectory(baseDir)) {
             return "";
         }
-        return readMarkdownFiles(baseDir);
+        return readMarkdownFiles(baseDir, DEFAULT_LOCALE);
     }
 
-    private String readMarkdownFiles(Path dir) {
+    private String readMarkdownFiles(Path dir, String locale) {
         List<Path> files = new ArrayList<>();
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir, "*.md")) {
             for (Path entry : stream) {
@@ -292,7 +455,12 @@ public class LegalDocumentService {
                 if (!sb.isEmpty()) {
                     sb.append("\n\n");
                 }
-                sb.append(Files.readString(file, StandardCharsets.UTF_8));
+                String name = file.getFileName().toString();
+                if (BrowserStorageService.isGeneratedSection(name)) {
+                    sb.append(browserStorage.toMarkdown(locale));
+                } else {
+                    sb.append(placeholders.apply(Files.readString(file, StandardCharsets.UTF_8)));
+                }
             } catch (IOException e) {
                 log.error("Failed to read markdown file: {}", file, e);
             }

@@ -42,7 +42,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * SMB3-backed {@link StorageBackend}. Talks directly to the share through the smbj library —
+ * SMB3-backed {@link StorageBackend}. Talks directly to the share through the smbj library -
  * no kernel mount, no FUSE, no {@code SYS_ADMIN}.
  *
  * <p>SMB3 {@code seal} (in-flight encryption) is on by default; operators downgrading to a

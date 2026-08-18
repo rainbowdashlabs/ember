@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.federation.entity.ContentType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.service.FederationDisplayNames;
 import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
 import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
@@ -89,15 +90,17 @@ public class QuizFederationService {
      */
     public List<SharedQuizCatalog> browseSharedCatalogs(int stationId) {
         return browseSharedQuiz(stationId).stream()
-                .map(item -> new SharedQuizCatalog(
-                        item.id(),
-                        item.name(),
-                        item.description(),
-                        stationRepository
-                                .findById(item.sourceStationId())
-                                .map(Station::name)
-                                .orElse("Unknown"),
-                        item.sourceStationId()))
+                .map(item -> {
+                    var partner = federationRepository
+                            .findPartnerById(item.partnerId())
+                            .orElse(null);
+                    return new SharedQuizCatalog(
+                            item.id(),
+                            item.name(),
+                            item.description(),
+                            FederationDisplayNames.partnerName(stationRepository, partner, "Unknown"),
+                            partner != null ? partner.partnerStationId().toString() : null);
+                })
                 .toList();
     }
 
@@ -239,7 +242,11 @@ public class QuizFederationService {
      * A shared catalog as the browsing station sees it, including the owning station's
      * display name.
      */
-    public record SharedQuizCatalog(int id, String name, String description, String stationName, int sourceStationId) {}
+    /**
+     * A catalog shared by a partner. The station UUID addresses the serving station on the
+     * federated read routes and is null when the partnership behind it can no longer be resolved.
+     */
+    public record SharedQuizCatalog(int id, String name, String description, String stationName, String stationUid) {}
 
     public record RemoteQuizCatalog(int id, String name, String description) {}
 }

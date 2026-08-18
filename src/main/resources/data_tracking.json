@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:dbe51cd078379b622796b2b8ac2fab7ca11c9372ca702aa62a57a9b4da78e30d",
-  "generatedAt" : "2026-08-09T11:05:52Z",
+  "schemaHash" : "sha256:77e5ef32a56e2cc64e682af19fcfc8ee6dbcba946d883b5d8000625163f70631",
+  "generatedAt" : "2026-08-17T23:44:07Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -3059,7 +3059,7 @@
     "email_queue" : {
       "feature" : "mail",
       "scope" : "INSTANCE",
-      "tableHash" : "sha256:c704988fcd8cef04a28efffc15597ce094ea9b808ad9f7d3a37ae548d32e6db7",
+      "tableHash" : "sha256:63b8a9ebf64f1e4f57cc1428bdb227635d2cd87d44e8662d483aa275943e476d",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -3102,6 +3102,42 @@
         "nullable" : false,
         "verified" : true,
         "description" : "Delivery status: PENDING, SENT, FAILED."
+      }, {
+        "name" : "delivery_status",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "What the provider reported after accepting the message: UNKNOWN, DELIVERED, SOFT_BOUNCE, HARD_BOUNCE, BLOCKED, SPAM, DEFERRED or ERROR."
+      }, {
+        "name" : "delivery_detail",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The reason the provider gave for the delivery outcome, as received."
+      }, {
+        "name" : "delivery_updated_at",
+        "type" : "timestamp",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "When the last delivery event for this email arrived."
+      }, {
+        "name" : "provider_message_id",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The message id the provider assigned, learned from its delivery events."
+      }, {
+        "name" : "attempts",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "How many times the provider currently in turn has tried this mail."
+      }, {
+        "name" : "provider_position",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Which provider of the chain is currently in turn, counted from zero."
       } ],
       "foreignKeys" : [ {
         "column" : "station_id",
@@ -4130,6 +4166,122 @@
       },
       "description" : "Member registrations for events (per date for recurring events)."
     },
+    "event_registration_field" : {
+      "feature" : "events",
+      "scope" : "STATION",
+      "tableHash" : "sha256:359227999a431cbb781524646db662c17cf2b6b4414beb3fe6763bd8977b59d6",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "event_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The event asking the question."
+      }, {
+        "name" : "name",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Label shown above the input and next to the answer."
+      }, {
+        "name" : "field_type",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Data type of the answer, from the shared event field type set (STRING, NUMBER, ENUM, MEMBER, ...)."
+      }, {
+        "name" : "config",
+        "type" : "jsonb",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Field configuration as JSON: required, defaultValue, options, min, max and the member-field constraints."
+      }, {
+        "name" : "position",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Sort order of the question within the registration form."
+      }, {
+        "name" : "overview",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Whether the answer is shown next to the member in the registration list, rather than only on the registration itself."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "event_id",
+        "refTable" : "station_event",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Event structure/template data, not per-member"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Event structure/template data, not per-member"
+      },
+      "description" : "A question the event asks of everyone registering for it, answered once per registration."
+    },
+    "event_registration_field_value" : {
+      "feature" : "events",
+      "scope" : "STATION",
+      "tableHash" : "sha256:dbb6f7958b81b0afcf0a01e32a43fb70fd700d5efcc1f0afe7d8926ed50874a0",
+      "columns" : [ {
+        "name" : "registration_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The registration the answer belongs to; the answer is removed with it."
+      }, {
+        "name" : "field_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The question being answered."
+      }, {
+        "name" : "value",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The answer, stored as text in the same shape the event's own field values use."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "field_id",
+        "refTable" : "event_registration_field",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "registration_id",
+        "refTable" : "event_registration",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED"
+      },
+      "gdprExport" : {
+        "status" : "TRACKED"
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED",
+        "strategies" : [ {
+          "column" : "registration_id",
+          "strategy" : "CASCADE",
+          "reason" : "FK ON DELETE CASCADE — removed with the registration, which is removed with the member"
+        } ]
+      },
+      "description" : "One member's answer to one registration question. Keyed by the registration rather than by member and event, because a recurring event is registered for separately per date."
+    },
     "event_reminder" : {
       "feature" : "events",
       "scope" : "STATION",
@@ -4487,6 +4639,72 @@
         "reason" : "Event structure/template data, not per-member"
       },
       "description" : "Fields within an event template."
+    },
+    "event_template_registration_field" : {
+      "feature" : "events",
+      "scope" : "STATION",
+      "tableHash" : "sha256:3c97ed28d36c6086baf450f8456de368e3221b02be9a7a0e3208f287289fb8f2",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "template_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The template carrying the question."
+      }, {
+        "name" : "name",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Label shown above the input and next to the answer."
+      }, {
+        "name" : "field_type",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Data type of the answer, from the shared event field type set."
+      }, {
+        "name" : "config",
+        "type" : "jsonb",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Field configuration as JSON, copied verbatim into the created event."
+      }, {
+        "name" : "position",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Sort order of the question within the registration form."
+      }, {
+        "name" : "overview",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Whether the answer is shown next to the member in the registration list."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "template_id",
+        "refTable" : "event_template",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Event structure/template data, not per-member"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Event structure/template data, not per-member"
+      },
+      "description" : "A registration question carried by an event template and copied into every event created from it."
     },
     "event_template_reminder" : {
       "feature" : "events",
@@ -7536,10 +7754,10 @@
       },
       "description" : "Size options for inventories that have sizes enabled."
     },
-    "kb_access_restriction" : {
+    "kb_access_grant" : {
       "feature" : "knowledgebase",
       "scope" : "STATION",
-      "tableHash" : "sha256:4123021f84248c6d3d2f5c8c56a3bbf1e13acf16a4382a95e90851cc779502f6",
+      "tableHash" : "sha256:69d1a527f2edf96746cb8a864ea77826034dd44d518da6c6bbf608dcbe9e0d5b",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -7581,6 +7799,12 @@
         "type" : "text",
         "nullable" : true,
         "verified" : true
+      }, {
+        "name" : "level",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "NONE, READ, WRITE or MANAGE, or NULL for an audience row that says nothing about the level and leaves it to the station permission the member holds. NULL is what every row migrated from the previous restriction table carries, so the upgrade changes nothing."
       } ],
       "foreignKeys" : [ {
         "column" : "file_id",
@@ -7619,7 +7843,7 @@
         "status" : "IGNORED",
         "reason" : "KB structure data, not per-member"
       },
-      "description" : "Access restrictions for KB folders and files (role, group, tag, or member)."
+      "description" : "Who may reach a knowledge-base folder or file, and what they may do with it. A row names an audience; its level, when set, also decides whether that audience may only read, may write, or may manage."
     },
     "kb_comment" : {
       "feature" : "knowledgebase",
@@ -12429,6 +12653,116 @@
       },
       "description" : "Email provider configuration per station."
     },
+    "station_mail_provider" : {
+      "feature" : "mail",
+      "scope" : "STATION",
+      "tableHash" : "sha256:33dc832ca12bb45767abf74e7d733efd746fec64b48992a267187da790389c2d",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The station this provider belongs to."
+      }, {
+        "name" : "position",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Where in the order this provider is tried; the station configuration itself is 0."
+      }, {
+        "name" : "provider",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Which provider is used: SMTP, RAPIDMAIL, TWILIO, SWEEGO or BREVO."
+      }, {
+        "name" : "smtp_host",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Server hostname for a plain SMTP provider."
+      }, {
+        "name" : "smtp_port",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Server port for a plain SMTP provider."
+      }, {
+        "name" : "smtp_ssl",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Whether the connection uses direct SSL rather than STARTTLS."
+      }, {
+        "name" : "smtp_user",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Login name presented to the relay."
+      }, {
+        "name" : "smtp_password",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Password presented to the relay."
+      }, {
+        "name" : "api_key",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Key presented to a relay that authenticates with one."
+      }, {
+        "name" : "sender_address",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Address the mail is sent from."
+      }, {
+        "name" : "sender_name",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Display name the mail is sent under."
+      }, {
+        "name" : "attempts",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "How many attempts this provider gets before the next one takes over."
+      }, {
+        "name" : "created_at",
+        "type" : "timestamp",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the provider was added."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED",
+        "ignoredColumns" : [ "id", "station_id" ],
+        "rationale" : "The providers a station falls back to; without them a moved station loses every route but its first."
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Station configuration, not personal data"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Station configuration, not personal data"
+      },
+      "description" : "Further mail providers a station falls back to, after the one in its own mail configuration."
+    },
     "station_member" : {
       "feature" : "station",
       "scope" : "STATION",
@@ -12720,6 +13054,56 @@
         "reason" : "Permission catalog, seeded by migrations"
       }
     },
+    "station_provider_secret" : {
+      "feature" : "mail",
+      "scope" : "STATION",
+      "tableHash" : "sha256:e61e77238b854836008416da5c953c37a78e7089cdad6a081784830ef40266f4",
+      "columns" : [ {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The station the secret belongs to."
+      }, {
+        "name" : "provider",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Which provider issued it: SMTP, RAPIDMAIL, TWILIO, SWEEGO or BREVO."
+      }, {
+        "name" : "secret",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The secret as the provider issued it."
+      }, {
+        "name" : "updated_at",
+        "type" : "timestamp",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the secret was last set."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED",
+        "ignoredColumns" : [ "station_id" ],
+        "rationale" : "The signing secret a provider issued to this station; without it a moved station stops checking that provider reports are genuine."
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Station configuration, not personal data"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Station configuration, not personal data"
+      },
+      "description" : "Signing secrets a mail provider issued to a station, used to verify its delivery reports."
+    },
     "station_storage_config" : {
       "feature" : "storage",
       "scope" : "STATION",
@@ -12936,6 +13320,49 @@
         "status" : "IGNORED",
         "reason" : "Permission catalog, seeded by migrations"
       }
+    },
+    "station_webhook_key" : {
+      "feature" : "webhook",
+      "scope" : "STATION",
+      "tableHash" : "sha256:e30125f9aeed97989e2d02119c7b5f9a7285abb2876ffe47dfc0d25eb9d9b0f8",
+      "columns" : [ {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The station the key belongs to."
+      }, {
+        "name" : "key",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The secret presented in the webhook address."
+      }, {
+        "name" : "created_at",
+        "type" : "timestamp",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the key was generated."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "A key names an address on this instance; a moved station is given a fresh one rather than carrying the old one to a new host."
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Station configuration, not personal data"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Station configuration, not personal data"
+      },
+      "description" : "Per-station key that authorises webhook reports from external tools for that station."
     },
     "storage_backend_audit" : {
       "feature" : "storage",

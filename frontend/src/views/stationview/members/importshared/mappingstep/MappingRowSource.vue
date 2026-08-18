@@ -48,7 +48,7 @@ defineEmits<{
         </SecondaryButton>
       </template>
     </div>
-    <div class="text-xs text-(--text-muted) truncate">{{ previewText || '—' }}</div>
+    <div class="text-xs text-(--text-muted) truncate">{{ previewText || '-' }}</div>
     <div v-if="isSplit && isFirstSplitSibling" class="flex items-center gap-2 mt-1 text-xs">
       <label class="text-(--text-muted)">{{ t('memberImport.splitChar') }}:</label>
       <TextInput v-model="splitChar" class="w-12 text-center text-xs" />

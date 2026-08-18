@@ -22,10 +22,10 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * Persists feed render observability:
  *
  * <ul>
- *   <li>{@code feed_metric_daily} — one row per {@code (day, type, status)} with the request
+ *   <li>{@code feed_metric_daily} - one row per {@code (day, type, status)} with the request
  *       count, total duration, total entries rendered, and a fixed-bucket duration histogram.
  *       Upserted on every feed request.</li>
- *   <li>{@code feed_user_agent_stat} — global aggregate of feed reader User-Agents. No
+ *   <li>{@code feed_user_agent_stat} - global aggregate of feed reader User-Agents. No
  *       per-token attribution by design (see {@code patch_12.sql}).</li>
  * </ul>
  *

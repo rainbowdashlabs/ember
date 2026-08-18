@@ -16,8 +16,8 @@ import java.util.function.Consumer;
 
 /**
  * Registers a route class's declared federation contract with the Javalin router. Every
- * handler is wrapped in the contract compatibility check: a request whose core hash — or,
- * for feature surfaces, whose surface hash — differs from this build's is rejected with a
+ * handler is wrapped in the contract compatibility check: a request whose core hash - or,
+ * for feature surfaces, whose surface hash - differs from this build's is rejected with a
  * machine-readable {@code 409} before the handler runs. Endpoints marked
  * {@linkplain FederationEndpoint#versionExempt() version-exempt} skip the check so
  * diverged instances can still exchange their vectors.

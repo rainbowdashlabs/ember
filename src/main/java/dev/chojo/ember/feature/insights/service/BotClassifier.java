@@ -40,7 +40,7 @@ public class BotClassifier {
 
     /**
      * Returns {@code true} when the User-Agent matches any known crawler or the generic
-     * keyword denylist. A {@code null} or blank User-Agent counts as a bot — real browsers
+     * keyword denylist. A {@code null} or blank User-Agent counts as a bot - real browsers
      * always send one, scripts often don't.
      */
     public boolean isBot(String userAgent) {

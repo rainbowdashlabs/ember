@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "postinstall": "nuxi prepare",
     "dev": "nuxi dev --host 0.0.0.0",
     "lint:structure": "node scripts/lint-component-size.mjs",
     "lint:conventions": "node scripts/lint-conventions.mjs",
@@ -15,9 +16,11 @@
     "lint:imports": "node scripts/lint-imports.mjs",
     "lint:icons": "node scripts/lint-icons.mjs",
     "lint:page-titles": "node scripts/lint-page-titles.mjs",
+    "lint:browser-storage": "node scripts/lint-browser-storage.mjs",
+    "lint:em-dash": "node scripts/lint-em-dash.mjs",
     "lint:style": "node scripts/lint-style.mjs",
     "lint:standalone": "node scripts/lint-standalone.mjs",
-    "lint:audit": "node scripts/lint-icons.mjs; node scripts/lint-conventions.mjs; node scripts/lint-helpcenter.mjs; node scripts/lint-helpcenter-i18n.mjs; node scripts/lint-locales.mjs; node scripts/lint-imports.mjs; node scripts/lint-style.mjs; node scripts/lint-i18n-keys.mjs; node scripts/lint-component-size.mjs; node scripts/lint-duplication.mjs; node scripts/lint-page-titles.mjs; node scripts/lint-standalone.mjs; true",
+    "lint:audit": "node scripts/lint-icons.mjs; node scripts/lint-conventions.mjs; node scripts/lint-helpcenter.mjs; node scripts/lint-helpcenter-i18n.mjs; node scripts/lint-locales.mjs; node scripts/lint-imports.mjs; node scripts/lint-style.mjs; node scripts/lint-i18n-keys.mjs; node scripts/lint-component-size.mjs; node scripts/lint-duplication.mjs; node scripts/lint-page-titles.mjs; node scripts/lint-browser-storage.mjs; node scripts/lint-em-dash.mjs; node scripts/lint-standalone.mjs; true",
     "refactor": "python3 scripts/refactor.py",
     "refactor:scan": "python3 scripts/refactor.py scan",
     "build": "node scripts/build.mjs",
@@ -73,13 +76,19 @@
     "vue-router": "^5.0.6"
   },
   "devDependencies": {
+    "@nuxt/test-utils": "^4.1.0",
+    "@playwright/test": "1.59.1",
     "@types/leaflet": "^1.9.21",
     "@types/leaflet.markercluster": "^1.5.6",
     "@types/node": "^24.12.2",
     "@vitejs/plugin-vue": "^6.0.6",
+    "@vitest/coverage-v8": "^4.1.10",
+    "@vue/test-utils": "^2.4.11",
     "@vue/tsconfig": "^0.9.1",
+    "happy-dom": "^20.11.2",
     "typescript": "~6.0.2",
     "vite": "^8.0.10",
+    "vitest": "^4.1.10",
     "vue-tsc": "^3.2.7"
   }
 }

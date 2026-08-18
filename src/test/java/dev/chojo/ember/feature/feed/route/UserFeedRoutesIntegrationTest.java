@@ -55,7 +55,7 @@ import static org.mockito.Mockito.when;
  * Wiring-level integration tests for {@link UserFeedRoutes}. These exercise the route
  * handlers via a heavily-mocked Javalin {@link Context} so we can verify the cross-cutting
  * concerns (conditional GET, rate limiting, privacy headers, metrics) actually fire in the
- * intended order — independent of any single helper's unit test.
+ * intended order - independent of any single helper's unit test.
  */
 class UserFeedRoutesIntegrationTest {
 
@@ -189,7 +189,7 @@ class UserFeedRoutesIntegrationTest {
         invokeRss(first.ctx);
         String firstEtag = first.headers.get("ETag");
 
-        // Bump the notification stamp — the next render must produce a fresh ETag.
+        // Bump the notification stamp - the next render must produce a fresh ETag.
         when(notificationService.findMaxStamp(MEMBER_ID))
                 .thenReturn(new NotificationRepository.Stamp(99, Instant.parse("2026-06-12T11:00:00Z")));
 
@@ -208,7 +208,7 @@ class UserFeedRoutesIntegrationTest {
 
     @Test
     void rateLimitRejectsTheCallThatExceedsTheBurstCapacity() throws Exception {
-        // Drain the burst — every call within it must be admitted.
+        // Drain the burst - every call within it must be admitted.
         for (int i = 0; i < FeedRateLimiter.BURST_CAPACITY; i++) {
             var ctx = new RecordingContext();
             ctx.pathParams.put("token", TOKEN_VALUE);
@@ -236,7 +236,7 @@ class UserFeedRoutesIntegrationTest {
         assertEquals("no-referrer", ok.headers.get("Referrer-Policy"));
         assertEquals("noindex", ok.headers.get("X-Robots-Tag"));
 
-        // 429 path — drain the rest of the burst, then trip the limit.
+        // 429 path - drain the rest of the burst, then trip the limit.
         for (int i = 1; i < FeedRateLimiter.BURST_CAPACITY; i++) {
             var burn = new RecordingContext();
             burn.pathParams.put("token", TOKEN_VALUE);
@@ -291,7 +291,7 @@ class UserFeedRoutesIntegrationTest {
     }
 
     /**
-     * Hand-rolled stub for {@link Context} that records the bits we assert on — status,
+     * Hand-rolled stub for {@link Context} that records the bits we assert on - status,
      * response headers, request headers, query params. Built around a Mockito {@code mock}
      * so we don't have to implement the entire {@code Context} interface.
      */
@@ -325,7 +325,7 @@ class UserFeedRoutesIntegrationTest {
             });
             when(c.contentType(any(String.class))).thenReturn(c);
             when(c.result(any(String.class))).thenReturn(c);
-            // status() (no args) returns the current HttpStatus — used by metrics recording.
+            // status() (no args) returns the current HttpStatus - used by metrics recording.
             when(c.status()).thenAnswer(inv -> {
                 Integer s = status.get();
                 return s == null ? HttpStatus.OK : HttpStatus.forStatus(s);

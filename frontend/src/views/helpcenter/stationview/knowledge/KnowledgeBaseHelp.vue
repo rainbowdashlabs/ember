@@ -50,6 +50,10 @@ const { t } = useI18n()
       </div>
     </NeutralContainer>
 
+    <HelpSection :title="t('helpCenter.kb.actionsMenuTitle')">
+      <p>{{ t('helpCenter.kb.actionsMenuText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.kb.fileTypesTitle')">
       <BulletList>
         <li><strong>Markdown</strong>: {{ t('helpCenter.kb.markdownDesc') }}</li>

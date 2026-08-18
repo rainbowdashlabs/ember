@@ -132,7 +132,7 @@ class GenericTransferRoundtripTest extends RepositoryTestBase {
         Account preExisting = accountRepo.create(email, "Bea", "Berger", true);
         accountRepo.createCredential(preExisting.id(), "$bcrypt$target-hash");
 
-        // Build a synthetic bundle by hand — the import path is what we want to exercise; we don't
+        // Build a synthetic bundle by hand - the import path is what we want to exercise; we don't
         // need a real source station for this assertion.
         Map<String, Object> bundle = new LinkedHashMap<>();
         bundle.put(
@@ -161,7 +161,7 @@ class GenericTransferRoundtripTest extends RepositoryTestBase {
     void blankEmailApplicantTransfersWithMemberAndWaitlistEntry() {
         // Use the same first name as another already-imported account (Tim Berger lives on the
         // shared test database from prior test data). The importer must still resolve the right
-        // account because the FK-flattened lookup now matches by UID first — first-name / last-
+        // account because the FK-flattened lookup now matches by UID first - first-name / last-
         // name fallback was the production bug that mis-linked to the wrong same-named account
         // and lost the row to the UNIQUE(station_id, account_id) constraint.
         var sourceStation = stationRepo.create("Blank-Email Source");
@@ -217,7 +217,7 @@ class GenericTransferRoundtripTest extends RepositoryTestBase {
         assertEquals(
                 2,
                 targetMembers.size(),
-                "both blank-email applicants must arrive — null emails do not collide on the partial unique index");
+                "both blank-email applicants must arrive - null emails do not collide on the partial unique index");
     }
 
     /** Collects every wire entry produced by the exporter into a single Map. */

@@ -51,6 +51,7 @@ const emit = defineEmits<{
       <div
           v-for="member in availableMembers"
           :key="member.id"
+          data-testid="group-candidate"
           class="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent cursor-pointer transition-colors"
           @click="emit('add', member)"
       >

@@ -32,7 +32,7 @@ public final class RouteSupport {
     }
 
     /**
-     * Reads a UUID path parameter. Answers {@code 404} when the value is not a valid UUID —
+     * Reads a UUID path parameter. Answers {@code 404} when the value is not a valid UUID -
      * a malformed identifier can never address an existing resource, and this avoids
      * leaking whether the parameter format alone was the problem.
      */
@@ -67,7 +67,7 @@ public final class RouteSupport {
     /**
      * Loads an entity by id and confirms it belongs to the caller's station, returning
      * it. Answers {@code 404} when the entity is absent and {@code 403} when it belongs
-     * to another station — the predominant ownership pattern across the API.
+     * to another station - the predominant ownership pattern across the API.
      *
      * @param finder    the repository/service lookup for the entity type
      * @param stationOf extracts the owning station id from the entity

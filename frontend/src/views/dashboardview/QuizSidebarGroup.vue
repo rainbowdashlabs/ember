@@ -4,10 +4,13 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SidebarGroup from '@/components/navigation/SidebarGroup.vue'
-import SidebarLink from '@/components/navigation/SidebarLink.vue'
-import {StationPermission} from '@/api/types'
+import SidebarSubGroup from '@/components/navigation/SidebarSubGroup.vue'
+import QuizSidebarLinks from '@/views/dashboardview/quizsidebargroup/QuizSidebarLinks.vue'
+import ProtocolSidebarLinks from '@/views/dashboardview/quizsidebargroup/ProtocolSidebarLinks.vue'
+import {StationModules} from '@/api/types'
 import {useSession} from '@/composables/useSession'
 
 defineProps<{
@@ -21,7 +24,26 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
-const {hasPermission, canTestProtocol} = useSession()
+const {isModuleEnabled} = useSession()
+
+const quiz = computed(() => isModuleEnabled(StationModules.QUIZ))
+const protocols = computed(() => isModuleEnabled(StationModules.TEST_PROTOCOL))
+
+/**
+ * One group carries two features, so it is named after the ones it still carries: a station that
+ * runs its tests but no quiz should not read "Quiz" in the sidebar.
+ */
+const label = computed(() => {
+  if (quiz.value && protocols.value) return t('sidebar.quizAndProtocols')
+  if (protocols.value) return t('sidebar.protocolsGroup')
+  return t('sidebar.quiz')
+})
+
+/**
+ * With both features present the group would be a flat list of five, so each gets a section of its
+ * own. With only one there is nothing to separate, and a section would be a level for its own sake.
+ */
+const sectioned = computed(() => quiz.value && protocols.value)
 
 function close() {
   emit('navigate')
@@ -29,21 +51,18 @@ function close() {
 </script>
 
 <template>
-  <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" :icon="['fas', 'graduation-cap']" :label="t('sidebar.quiz')" prefix="/station/quiz" group-key="quiz-protocols">
-    <SidebarLink v-if="hasPermission(StationPermission.TEST_CATALOG_VIEW)" :icon="['fas', 'book']" name="quiz-catalogs" to="/station/quiz/catalogs" @navigate="close">
-      {{ t('sidebar.quizCatalogs') }}
-    </SidebarLink>
-    <SidebarLink :icon="['fas', 'file-lines']" name="quiz-tests" to="/station/quiz/tests" @navigate="close">
-      {{ t('sidebar.quizTests') }}
-    </SidebarLink>
-    <SidebarLink :icon="['fas', 'brain']" name="quiz-training" to="/station/quiz/training" @navigate="close">
-      {{ t('sidebar.quizTraining') }}
-    </SidebarLink>
-    <SidebarLink v-if="hasPermission(StationPermission.PROTOCOL_CREATE)" :icon="['fas', 'clipboard-list']" name="protocol-list" to="/station/protocols" @navigate="close">
-      {{ t('sidebar.protocols') }}
-    </SidebarLink>
-    <SidebarLink v-if="canTestProtocol()" :icon="['fas', 'clipboard-check']" name="protocol-run-list" to="/station/protocols/runs" @navigate="close">
-      {{ t('sidebar.protocolRuns') }}
-    </SidebarLink>
+  <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" :icon="['fas', 'graduation-cap']" :label="label" :prefix="['/station/quiz', '/station/protocols']" group-key="quiz-protocols">
+    <template v-if="sectioned">
+      <SidebarSubGroup :icon="['fas', 'graduation-cap']" :label="t('sidebar.quiz')" prefix="/station/quiz">
+        <QuizSidebarLinks @navigate="close"/>
+      </SidebarSubGroup>
+      <SidebarSubGroup :icon="['fas', 'clipboard-list']" :label="t('sidebar.protocolsGroup')" prefix="/station/protocols">
+        <ProtocolSidebarLinks @navigate="close"/>
+      </SidebarSubGroup>
+    </template>
+    <template v-else>
+      <QuizSidebarLinks v-if="quiz" @navigate="close"/>
+      <ProtocolSidebarLinks v-if="protocols" @navigate="close"/>
+    </template>
   </SidebarGroup>
 </template>

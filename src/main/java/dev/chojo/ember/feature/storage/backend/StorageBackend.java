@@ -15,11 +15,11 @@ import java.util.Set;
 /**
  * Pluggable byte-store contract. One concrete implementation per protocol
  * ({@code LocalStorageBackend}, {@code SmbStorageBackend}, {@code SftpStorageBackend},
- * {@code S3StorageBackend}). The backend never parses {@code fullKey} — the resolver and
+ * {@code S3StorageBackend}). The backend never parses {@code fullKey} - the resolver and
  * {@code StorageService} own the path structure.
  *
  * <p>Streaming is the primary path: byte arrays only enter the picture when the producer
- * genuinely needs to buffer (image resize, gzip, hash) — and even there the buffered bytes
+ * genuinely needs to buffer (image resize, gzip, hash) - and even there the buffered bytes
  * are handed to {@link #store(String, InputStream, long, ObjectMetadata)} as a wrapped
  * {@link java.io.ByteArrayInputStream}.
  */
@@ -36,7 +36,7 @@ public interface StorageBackend extends AutoCloseable {
      * round-tripping {@code metadata} so a later {@link #read(String)} sees the same record.
      *
      * @param fullKey       assembled {@code <scope>/<category>/<key>[/<variant>]} key
-     * @param body          payload — fully drained and closed by the implementation
+     * @param body          payload - fully drained and closed by the implementation
      * @param contentLength byte count of the payload; required (no chunked transfer in V1)
      * @param metadata      content type, sha-256, optional filename, optional encoding
      * @throws StorageException on any failure to persist

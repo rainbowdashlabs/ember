@@ -22,6 +22,8 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.ManagedAccessService;
+import dev.chojo.ember.feature.members.service.ManagedAccessService.ManagedAccess;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import io.javalin.http.Context;
@@ -67,6 +69,7 @@ public class ManagedMemberRoutes implements Routes {
     private final InventoryCheckService checkService;
     private final GdprExportService gdprExportService;
     private final AccessManager accessManager;
+    private final ManagedAccessService accessService;
 
     @Inject
     public ManagedMemberRoutes(
@@ -77,7 +80,9 @@ public class ManagedMemberRoutes implements Routes {
             InventoryService inventoryService,
             InventoryCheckService checkService,
             GdprExportService gdprExportService,
-            AccessManager accessManager) {
+            AccessManager accessManager,
+            ManagedAccessService accessService) {
+        this.accessService = accessService;
         this.memberService = memberService;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
@@ -93,6 +98,9 @@ public class ManagedMemberRoutes implements Routes {
         routes.get(prefix + "/managed-members", this::listManaged, StationPermission.MEMBER_GUARDIAN);
         routes.get(prefix + "/managed-members/{memberId}/profile", this::getProfile, StationPermission.MEMBER_GUARDIAN);
         routes.put(prefix + "/managed-members/{memberId}/profile", this::setProfile, StationPermission.MEMBER_GUARDIAN);
+        routes.get(prefix + "/managed-members/{memberId}/access", this::getAccess, StationPermission.MEMBER_GUARDIAN);
+        routes.put(prefix + "/managed-members/{memberId}/email", this::setEmail, StationPermission.MEMBER_GUARDIAN);
+        routes.put(prefix + "/managed-members/{memberId}/login", this::setLogin, StationPermission.MEMBER_GUARDIAN);
         routes.get(
                 prefix + "/managed-members/{memberId}/inventory-items",
                 this::getMemberInventory,
@@ -193,6 +201,61 @@ public class ManagedMemberRoutes implements Routes {
         ctx.json(profileFieldService.setValues(
                 memberId, entries, session.member().id()));
     }
+
+    @OpenApi(
+            path = "/api/v1/managed-members/{memberId}/access",
+            methods = HttpMethod.GET,
+            summary = "Read the access of a managed member",
+            description = "The address the account is reached at and whether the member may sign in.",
+            tags = {"Managed Members"},
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ManagedAccess.class)))
+    private void getAccess(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        ctx.json(accessService.get(session.member().id(), pathInt(ctx, "memberId")));
+    }
+
+    @OpenApi(
+            path = "/api/v1/managed-members/{memberId}/email",
+            methods = HttpMethod.PUT,
+            summary = "Set the email address of a managed member",
+            description = "Takes effect at once and ends the open sessions of that member. Where there was an "
+                    + "address before, the old and the new one are told.",
+            tags = {"Managed Members"},
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetEmailRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ManagedAccess.class)))
+    private void setEmail(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var request = ctx.bodyAsClass(SetEmailRequest.class);
+        ctx.json(accessService.setEmail(session.member().id(), pathInt(ctx, "memberId"), request.email()));
+    }
+
+    @OpenApi(
+            path = "/api/v1/managed-members/{memberId}/login",
+            methods = HttpMethod.PUT,
+            summary = "Allow or refuse signing in for a managed member",
+            description = "Allowing it sends the invitation to set a password when the account has none. "
+                    + "Refusing it ends the sessions that are open.",
+            tags = {"Managed Members"},
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetLoginRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ManagedAccess.class)))
+    private void setLogin(Context ctx) {
+        UserSession session = UserSession.from(ctx);
+        var request = ctx.bodyAsClass(SetLoginRequest.class);
+        ctx.json(accessService.setLogin(session.member().id(), pathInt(ctx, "memberId"), request.enabled()));
+    }
+
+    /**
+     * @param email the address the managed member's account should carry
+     */
+    public record SetEmailRequest(String email) {}
+
+    /**
+     * @param enabled whether the managed member may sign in
+     */
+    public record SetLoginRequest(boolean enabled) {}
 
     private ManagedMember toMemberWithName(StationMember m) {
         Account account = accountRepository.findById(m.accountId()).orElse(null);

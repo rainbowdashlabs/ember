@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, ref} from 'vue'
+import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -14,8 +14,11 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import GeneralFieldsPanel from './adminmailingview/GeneralFieldsPanel.vue'
-import SmtpPanel from './adminmailingview/SmtpPanel.vue'
+import MailingConfigPanel from './adminmailingview/MailingConfigPanel.vue'
+import MailWebhookPanel from '@/components/mail/MailWebhookPanel.vue'
+import MailProviderFreeTiers from '@/components/mail/MailProviderFreeTiers.vue'
+import MailFallbackChain from '@/components/mail/MailFallbackChain.vue'
+import {getInstanceFallbacks, updateInstanceFallbacks, type MailFallback} from '@/api/mailFallbacks'
 import {adminSettings} from '@/api'
 import type {MailingConfig} from '@/api/adminSettings'
 import {useConfigPanel} from '@/composables/useConfigPanel'
@@ -50,6 +53,21 @@ const {config: mailingConfig, loading, error: panelError, runWith, reload} = use
 const showClearModal = ref(false)
 const testMailSent = ref(false)
 
+const fallbacks = ref<MailFallback[]>([])
+const primaryAttempts = ref(2)
+
+onMounted(async () => {
+  const chain = await getInstanceFallbacks()
+  fallbacks.value = chain.fallbacks ?? []
+  primaryAttempts.value = chain.attempts ?? 2
+})
+
+async function saveFallbacks() {
+  const chain = await updateInstanceFallbacks({attempts: primaryAttempts.value, fallbacks: fallbacks.value})
+  fallbacks.value = chain.fallbacks ?? []
+  primaryAttempts.value = chain.attempts ?? 2
+}
+
 async function saveMailingConfig() {
   await runWith(() => adminSettings.updateMailingConfig(mailingConfig.value), {rethrow: true})
 }
@@ -76,24 +94,30 @@ const error = computed(() => panelError.value || testMailError.value || clearErr
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading">
-        <NeutralContainer class="space-y-4">
-          <GeneralFieldsPanel v-model="mailingConfig"/>
-          <SmtpPanel v-if="mailingConfig.provider === 'SMTP'" v-model="mailingConfig"/>
-          <div class="flex justify-end gap-2 flex-wrap">
-            <ErrorButton :icon="['fas', 'trash']" :disabled="clearing" @click="showClearModal = true">
-              {{ t('adminSettings.mailing.clear') }}
-            </ErrorButton>
-            <SecondaryButton
-                v-if="mailingConfig.provider !== 'NONE'"
-                :icon="['fas', 'paper-plane']"
-                :disabled="sendingTestMail"
-                @click="sendTestMail">
-              {{ sendingTestMail ? t('common.loading') : t('adminSettings.mailing.testMail') }}
-            </SecondaryButton>
-            <SaveButton :action="saveMailingConfig"/>
-          </div>
-          <Alert v-if="testMailSent" variant="success">{{ t('adminSettings.mailing.testMailSent') }}</Alert>
-        </NeutralContainer>
+        <MailingConfigPanel
+            v-model="mailingConfig"
+            :clearing="clearing"
+            :sending-test-mail="sendingTestMail"
+            :test-mail-sent="testMailSent"
+            :save="saveMailingConfig"
+            @clear="showClearModal = true"
+            @test-mail="sendTestMail"
+        />
+
+        <MailFallbackChain
+            v-model:fallbacks="fallbacks"
+            v-model:primaryAttempts="primaryAttempts"
+            :save="saveFallbacks"
+            show-primary-attempts
+        />
+
+        <MailWebhookPanel
+            :url="mailingConfig.deliveryWebhookUrl"
+            :provider="mailingConfig.provider"
+            :regenerate="adminSettings.regenerateWebhookKey"
+        />
+
+        <MailProviderFreeTiers/>
       </template>
 
       <Modal v-model="showClearModal">

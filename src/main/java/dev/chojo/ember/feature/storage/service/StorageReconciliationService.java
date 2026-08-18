@@ -34,7 +34,7 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  *
  * <p>Reconciliation goes through {@link StorageService#sumSize(StorageScope, StorageCategory)},
  * which delegates to the resolved backend's prefix-sum primitive. The producer never walks the
- * filesystem directly — that detail stays behind the storage interface so S3 / SMB / SFTP
+ * filesystem directly - that detail stays behind the storage interface so S3 / SMB / SFTP
  * backends pick the appropriate native operation.
  */
 @Singleton
@@ -96,7 +96,7 @@ public class StorageReconciliationService {
         try {
             UUID stationUid = stationRepository.resolveUid(stationId);
             if (stationUid == null) {
-                log.warn("Skipping reconciliation for station {} — no UUID resolved", stationId);
+                log.warn("Skipping reconciliation for station {} - no UUID resolved", stationId);
                 return;
             }
             var scope = new StorageScope.Station(stationId, stationUid);

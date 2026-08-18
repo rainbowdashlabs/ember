@@ -71,7 +71,7 @@ function toggleLabelFilter(id: number) { const n = new Set(labelFilter.value); i
         <template v-else-if="board">
             <div class="flex items-center gap-3 mb-4">
                 <IconButton :icon="['fas', 'chevron-left']" label="Back" @click="router.push(`/station/boards/${board.shortKey}`)" />
-                <SectionHeader>{{ board.name }} — {{ t('boards.archived') }}</SectionHeader>
+                <SectionHeader>{{ board.name }} - {{ t('boards.archived') }}</SectionHeader>
             </div>
 
             <div v-if="allLabels.length > 0" class="flex flex-wrap gap-1 mb-4 items-center">

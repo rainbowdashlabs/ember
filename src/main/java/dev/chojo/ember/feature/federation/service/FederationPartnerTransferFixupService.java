@@ -27,17 +27,17 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  * <p>Three cases the rewrite handles:
  * <ul>
  *   <li>The partner moved with this station (a multi-station transfer to the same destination)
- *       or already lived on the destination — the partnership becomes intra-instance, so
+ *       or already lived on the destination - the partnership becomes intra-instance, so
  *       {@code remote_host} and {@code webhook_url} are cleared.</li>
- *   <li>The partner stayed on the source instance — the partnership becomes cross-instance
+ *   <li>The partner stayed on the source instance - the partnership becomes cross-instance
  *       pointing back at the source, so {@code remote_host} / {@code webhook_url} are set to
  *       the source instance URL.</li>
- *   <li>The partner was already remote on the source (third instance) — the existing
+ *   <li>The partner was already remote on the source (third instance) - the existing
  *       {@code remote_host} is left untouched and round-trips verbatim.</li>
  * </ul>
  *
- * <p>The mirror operation on the source side — flipping retained partner rows whose partner
- * UID equals the departed station — runs out of the {@code /complete} signal received from
+ * <p>The mirror operation on the source side - flipping retained partner rows whose partner
+ * UID equals the departed station - runs out of the {@code /complete} signal received from
  * the destination, in {@link #flipSourceSideRetainedPartners(UUID, String)}.
  */
 @Singleton
@@ -114,7 +114,7 @@ public class FederationPartnerTransferFixupService {
      * the next protocol ping. Runs immediately after {@link #rewriteAfterImport(int, String)}
      * has settled the local rows. Each call is a signed {@code POST /remote/announce} sent under
      * the moved station's identity; receivers verify the signature, look up the partnership by
-     * the moved station's UID, and update their stored host. Failures are swallowed — the
+     * the moved station's UID, and update their stored host. Failures are swallowed - the
      * version-ping fallback will eventually carry the change anyway.
      */
     public void announceNewHostToRemotePartners(int stationId, String newInstanceUrl) {

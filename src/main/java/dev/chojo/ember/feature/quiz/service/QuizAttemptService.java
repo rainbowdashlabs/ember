@@ -71,7 +71,7 @@ public class QuizAttemptService {
     public QuizTestAttempt startAttempt(int testId, int memberId) {
         var frozenQuestions = testRepository.findFrozenQuestions(testId);
         if (frozenQuestions.isEmpty()) {
-            throw new IllegalStateException("Test has no frozen questions — was it activated properly?");
+            throw new IllegalStateException("Test has no frozen questions - was it activated properly?");
         }
 
         double totalMaxPoints = sumQuestionPoints(

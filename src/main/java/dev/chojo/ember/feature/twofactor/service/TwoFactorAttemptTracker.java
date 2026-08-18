@@ -17,7 +17,7 @@ import java.time.Duration;
  * guesses within its validity window.
  *
  * <p>State is in-memory and expires shortly after the pre-auth token would; a restart resets
- * every counter. Clustered deployments would need a shared backing store — tracked as a
+ * every counter. Clustered deployments would need a shared backing store - tracked as a
  * follow-up alongside the rate limiter and federation replay cache.
  */
 @Singleton

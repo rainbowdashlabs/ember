@@ -11,7 +11,9 @@ import {
   type EventCategory,
   type EventField,
   type EventRegistrationEntry,
+  type EventRegistrationField,
   type RegistrationCount,
+  type RegistrationFieldValue,
   type StationEvent,
   type UpcomingEventOccurrence,
 } from '@/api/events'
@@ -58,8 +60,19 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
   const registering = ref<string | null>(null)
 
   /**
+   * A registration waiting for its answers. Set when the event asks questions, cleared once the
+   * dialog the view renders for it is confirmed or dismissed.
+   */
+  const fieldPrompt = ref<{
+    event: StationEvent
+    date: string
+    memberId: number
+    fields: EventRegistrationField[]
+  } | null>(null)
+
+  /**
    * The end date of an event that spans more than its start day, or {@code null} when it does
-   * not. Recurring events never span days — each occurrence is its own entry.
+   * not. Recurring events never span days - each occurrence is its own entry.
    */
   function multiDayEndDate(event: StationEvent, startDateStr: string): string | null {
     if (isRecurringEvent(event.eventType) || !event.endTime) return null
@@ -162,14 +175,44 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
     return memberId !== currentMemberId.value ? memberId : undefined
   }
 
+  /**
+   * Signing up from the list. When the event asks questions, the answers have to be collected
+   * first, so the request is parked in {@link fieldPrompt} for the view to render a dialog for and
+   * completed by {@link confirmFieldPrompt}.
+   */
   async function registerForEvent(ev: StationEvent, date: string, memberId: number) {
+    const fields = await events.listRegistrationFields(ev.id).catch(() => [])
+    if (fields.length > 0) {
+      fieldPrompt.value = {event: ev, date, memberId, fields}
+      return
+    }
+    await sendRegistration(ev, date, memberId)
+  }
+
+  async function sendRegistration(
+    ev: StationEvent,
+    date: string,
+    memberId: number,
+    fields?: RegistrationFieldValue[],
+  ) {
     registering.value = `${ev.id}-${date}-${memberId}`
     try {
       await changeRegistration(() =>
-        events.registerForEvent(ev.id, {eventDate: date, memberId: memberIdParam(memberId)}))
+        events.registerForEvent(ev.id, {eventDate: date, memberId: memberIdParam(memberId), fields}))
     } finally {
       registering.value = null
     }
+  }
+
+  async function confirmFieldPrompt(values: RegistrationFieldValue[]) {
+    const prompt = fieldPrompt.value
+    if (!prompt) return
+    fieldPrompt.value = null
+    await sendRegistration(prompt.event, prompt.date, prompt.memberId, values)
+  }
+
+  function cancelFieldPrompt() {
+    fieldPrompt.value = null
   }
 
   async function declineEvent(ev: StationEvent, date: string, memberId: number) {
@@ -240,5 +283,8 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
     declineEvent,
     withdrawRegistration,
     loadMore,
+    fieldPrompt,
+    confirmFieldPrompt,
+    cancelFieldPrompt,
   }
 }

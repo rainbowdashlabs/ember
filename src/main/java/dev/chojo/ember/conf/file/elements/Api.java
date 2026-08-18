@@ -31,7 +31,7 @@ public class Api {
 
     /**
      * Origins permitted by the CORS policy. When empty, falls back to a single
-     * entry containing {@link #baseUrl()} — i.e. the SPA's own origin is the
+     * entry containing {@link #baseUrl()} - i.e. the SPA's own origin is the
      * only one allowed to call the API. Set explicitly to grant additional
      * trusted frontends access.
      */
@@ -69,6 +69,14 @@ public class Api {
     private String imprintDir = "data/documents/imprint";
 
     /**
+     * Where the values for the {@code {{ name }}} placeholders used across the legal documents
+     * are stored. One file for every document type, because the same placeholder is meant to
+     * mean the same thing in the privacy policy and in the imprint.
+     */
+    @Overwrite(env = @Env)
+    private String placeholderFile = "data/documents/placeholders.json";
+
+    /**
      * Whether to gzip text-shaped responses (JSON, HTML, CSS, XML/RSS/Atom, SVG, plain text,
      * ICS feeds, …) before sending them to the client. The largest single egress win after
      * image variants, universally supported, ~70% reduction on JSON. Switch off only for
@@ -88,7 +96,7 @@ public class Api {
 
     /**
      * Minimum response body size, in bytes, before compression kicks in. Smaller responses
-     * cost more CPU than they save in bytes — the default of ~1 KB sits slightly above the
+     * cost more CPU than they save in bytes - the default of ~1 KB sits slightly above the
      * typical MTU. Set to a higher value if many responses fall just over the threshold
      * and the overhead shows up; never set below ~256 B.
      */
@@ -146,6 +154,10 @@ public class Api {
 
     public String imprintDir() {
         return imprintDir;
+    }
+
+    public String placeholderFile() {
+        return placeholderFile;
     }
 
     public boolean httpGzipEnabled() {

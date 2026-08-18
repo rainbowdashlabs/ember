@@ -62,7 +62,7 @@ class PageImageVariantServiceTest {
 
     @Test
     void generatesWebpVariantsForLargePng() throws IOException {
-        Assumptions.assumeTrue(WebpEncoder.isAvailable(), "cwebp not available — skipping WebP assertions");
+        Assumptions.assumeTrue(WebpEncoder.isAvailable(), "cwebp not available - skipping WebP assertions");
         byte[] png = pngBytes(800, 600);
         String hash = PageFileStorageService.hash(png);
         storage.store(STATION_ID, hash, png, "image/png");
@@ -77,7 +77,7 @@ class PageImageVariantServiceTest {
 
     @Test
     void doesNotEmitOriginalFormatResizedVariants() throws IOException {
-        Assumptions.assumeTrue(WebpEncoder.isAvailable(), "cwebp not available — skipping check");
+        Assumptions.assumeTrue(WebpEncoder.isAvailable(), "cwebp not available - skipping check");
         byte[] png = pngBytes(800, 600);
         String hash = PageFileStorageService.hash(png);
         storage.store(STATION_ID, hash, png, "image/png");
@@ -93,7 +93,7 @@ class PageImageVariantServiceTest {
 
     @Test
     void skipsWidthsLargerOrEqualToSource() throws IOException {
-        Assumptions.assumeTrue(WebpEncoder.isAvailable(), "cwebp not available — skipping width-cap check");
+        Assumptions.assumeTrue(WebpEncoder.isAvailable(), "cwebp not available - skipping width-cap check");
         byte[] png = pngBytes(200, 100);
         String hash = PageFileStorageService.hash(png);
         storage.store(STATION_ID, hash, png, "image/png");
@@ -169,7 +169,7 @@ class PageImageVariantServiceTest {
 
     @Test
     void readBestPrefersWebpWhenAcceptIncludesIt() throws IOException {
-        Assumptions.assumeTrue(WebpEncoder.isAvailable(), "cwebp not available — skipping WebP-preferred path");
+        Assumptions.assumeTrue(WebpEncoder.isAvailable(), "cwebp not available - skipping WebP-preferred path");
         byte[] png = pngBytes(800, 600);
         String hash = PageFileStorageService.hash(png);
         storage.store(STATION_ID, hash, png, "image/png");
@@ -182,7 +182,7 @@ class PageImageVariantServiceTest {
 
     @Test
     void readBestFallsBackToOriginalWhenClientRejectsWebp() throws IOException {
-        Assumptions.assumeTrue(WebpEncoder.isAvailable(), "cwebp not available — skipping fallback check");
+        Assumptions.assumeTrue(WebpEncoder.isAvailable(), "cwebp not available - skipping fallback check");
         byte[] png = pngBytes(800, 600);
         String hash = PageFileStorageService.hash(png);
         storage.store(STATION_ID, hash, png, "image/png");
@@ -196,7 +196,7 @@ class PageImageVariantServiceTest {
 
     @Test
     void readBestSkipsWebpWhenWebpDisabledInConfig() throws IOException {
-        Assumptions.assumeTrue(WebpEncoder.isAvailable(), "cwebp not available — skipping config check");
+        Assumptions.assumeTrue(WebpEncoder.isAvailable(), "cwebp not available - skipping config check");
         byte[] png = pngBytes(800, 600);
         String hash = PageFileStorageService.hash(png);
         storage.store(STATION_ID, hash, png, "image/png");
@@ -259,7 +259,7 @@ class PageImageVariantServiceTest {
 
     @Test
     void generatesWebpVariantsForJpegSource() throws IOException {
-        Assumptions.assumeTrue(WebpEncoder.isAvailable(), "cwebp not available — skipping JPEG-source check");
+        Assumptions.assumeTrue(WebpEncoder.isAvailable(), "cwebp not available - skipping JPEG-source check");
         byte[] jpg = jpegBytes(800, 600);
         String hash = PageFileStorageService.hash(jpg);
         storage.store(STATION_ID, hash, jpg, "image/jpeg");
@@ -275,7 +275,7 @@ class PageImageVariantServiceTest {
 
     @Test
     void webpSourceLeavesOriginalAloneAndProducesNoCopies() throws IOException {
-        Assumptions.assumeTrue(WebpEncoder.isAvailable(), "cwebp not available — skipping webp-source test");
+        Assumptions.assumeTrue(WebpEncoder.isAvailable(), "cwebp not available - skipping webp-source test");
         byte[] png = pngBytes(800, 600);
         BufferedImage decoded = ImageIO.read(new ByteArrayInputStream(png));
         byte[] webpSource;

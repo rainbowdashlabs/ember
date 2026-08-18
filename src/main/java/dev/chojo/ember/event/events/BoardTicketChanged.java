@@ -19,7 +19,7 @@ import java.util.List;
  * @param boardKey          the board short key (e.g. "DEV", used in the frontend route)
  * @param ticketNumber      the per-board ticket number (used in the frontend route)
  * @param boardName         board display name
- * @param ticketKey         ticket key (e.g. "DEV-42") — display form combining boardKey + number
+ * @param ticketKey         ticket key (e.g. "DEV-42") - display form combining boardKey + number
  * @param changeDescription human-readable change description (e.g. "moved to Erledigt", "comment added")
  * @param actorMemberId     the member who made the change
  * @param watcherMemberIds  the member IDs watching this ticket

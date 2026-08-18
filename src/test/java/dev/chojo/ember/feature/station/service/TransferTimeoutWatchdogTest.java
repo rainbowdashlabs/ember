@@ -18,7 +18,7 @@ import static org.mockito.Mockito.when;
  * The watchdog's constructor performs the one-shot startup cleanup: every in-flight transfer
  * is treated as failed (via {@link StationExportService#abortAllInFlightTransfers()}) and any
  * orphan account left behind by a half-finished transfer is swept. The fixed-delay scheduler
- * is registered for the idle-timeout sweep but only fires on a 60-second cadence — the test
+ * is registered for the idle-timeout sweep but only fires on a 60-second cadence - the test
  * does not exercise the timer thread.
  */
 class TransferTimeoutWatchdogTest {

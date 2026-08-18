@@ -19,7 +19,7 @@ import {STEP_ORDER} from '@/views/stationview/setup/steps'
 
 /**
  * The help center's station navigation: a search box that replaces the tree with its results
- * while a query is active, and otherwise the tree itself — the always-present areas here, the
+ * while a query is active, and otherwise the tree itself - the always-present areas here, the
  * optional modules in {@link ModuleSidebarGroups}.
  */
 const props = defineProps<{

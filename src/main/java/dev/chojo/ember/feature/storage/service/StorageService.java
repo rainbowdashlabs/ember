@@ -243,7 +243,7 @@ public class StorageService {
     }
 
     /**
-     * Streaming read by category-relative key — the inverse of {@link #listKeys}. Unlike
+     * Streaming read by category-relative key - the inverse of {@link #listKeys}. Unlike
      * {@link #read(StorageScope, StorageCategory, String)} this does not append the
      * {@code original} variant suffix, so callers can address variant rows directly
      * (e.g. the entries returned by {@code listKeys} for image categories).
@@ -328,7 +328,7 @@ public class StorageService {
 
     /**
      * {@link InputStream} wrapper that computes SHA-256 as bytes flow through. The digest is
-     * read once the underlying stream is fully drained — typically right after the backend's
+     * read once the underlying stream is fully drained - typically right after the backend's
      * {@code store(...)} call returns.
      */
     private static final class DigestingInputStream extends InputStream {

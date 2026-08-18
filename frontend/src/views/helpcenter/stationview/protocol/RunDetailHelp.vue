@@ -29,7 +29,7 @@ const { t } = useI18n()
     <!-- Dummy: Member progress table -->
     <NeutralContainer>
       <div class="space-y-2 text-sm">
-        <div class="font-semibold text-xs text-[var(--text-muted)] uppercase mb-1">Jugendflamme Stufe 1 — Frühjahr 2025</div>
+        <div class="font-semibold text-xs text-[var(--text-muted)] uppercase mb-1">Jugendflamme Stufe 1 - Frühjahr 2025</div>
         <div class="flex items-center justify-between p-2 rounded border border-[var(--border)]">
           <span class="font-medium">Lena Müller</span>
           <div class="flex items-center gap-2">
@@ -47,7 +47,7 @@ const { t } = useI18n()
         <div class="flex items-center justify-between p-2 rounded border border-[var(--border)]">
           <span class="font-medium">Jonas Weber</span>
           <div class="flex items-center gap-2">
-            <span class="text-xs text-[var(--text-muted)]">—</span>
+            <span class="text-xs text-[var(--text-muted)]">-</span>
             <InfoBadge>{{ t('helpCenter.protocolRunDetail.statusPending') }}</InfoBadge>
           </div>
         </div>

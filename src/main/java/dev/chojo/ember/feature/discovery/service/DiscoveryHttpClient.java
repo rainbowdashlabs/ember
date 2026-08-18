@@ -27,7 +27,7 @@ import java.time.Duration;
  * and {@code /discovery/peers}. Signatures use the per-instance Ed25519 key via
  * {@link DiscoverySigningService}.
  *
- * <p>Distinct from {@code FederationHttpClient} — that one ties every request to a specific
+ * <p>Distinct from {@code FederationHttpClient} - that one ties every request to a specific
  * federation partner's RSA key pair; discovery uses a single instance-wide identity.
  *
  * <p>The embedded {@link JsonMapper} intentionally disables

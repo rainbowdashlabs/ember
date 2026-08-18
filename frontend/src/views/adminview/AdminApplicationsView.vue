@@ -11,7 +11,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import {stationApplications} from '@/api'
-import type {StationApplication} from '@/api/stationApplications'
+import {ApplicationStatus, type StationApplication} from '@/api/stationApplications'
 import {useBreakpoint} from '@/composables/useBreakpoint'
 import {useModalTarget} from '@/composables/useModalTarget'
 import ApplicationsTabs from './adminapplicationsview/ApplicationsTabs.vue'
@@ -40,7 +40,7 @@ const {config: applications, loading, error, runWith} = useConfigPanel<StationAp
 
 const filteredApplications = computed(() => {
   if (activeTab.value === 'pending') {
-    return applications.value.filter(a => a.status === 'pending')
+    return applications.value.filter(a => a.status === ApplicationStatus.PENDING)
   }
   return applications.value
 })

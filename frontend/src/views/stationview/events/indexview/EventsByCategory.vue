@@ -121,13 +121,15 @@ function detailRoute(ev: StationEvent) {
 
     <EmptyState compact v-if="!hasEvents">{{ t('events.noEvents') }}</EmptyState>
 
-    <div v-for="group in groups" :key="group.category?.id ?? 'none'" class="space-y-2">
+    <div v-for="group in groups" :key="group.category?.id ?? 'none'" data-testid="event-category-group" class="space-y-2">
       <div v-if="group.category" class="pt-2">
         <SubHeader class="text-sm font-semibold uppercase text-(--text-muted)">{{ group.category.name }}</SubHeader>
       </div>
       <SubHeader v-else class="text-sm font-semibold uppercase text-(--text-muted) pt-2">{{ t('events.uncategorized') }}</SubHeader>
 
-      <NeutralContainer v-for="ev in visibleEvents(group)" :key="ev.id" class="flex items-center justify-between cursor-pointer hover:bg-(--bg-accent) transition-colors"
+      <NeutralContainer v-for="ev in visibleEvents(group)" :key="ev.id" data-testid="event-entry"
+                        :data-registration="ev.requiresRegistration ? 'true' : 'false'"
+                        class="flex items-center justify-between cursor-pointer hover:bg-(--bg-accent) transition-colors"
                         @click="router.push(detailRoute(ev))">
         <div class="flex items-center gap-2 flex-wrap">
           <SecondaryBadge v-if="isRecurringEvent(ev.eventType)">

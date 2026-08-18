@@ -8,7 +8,7 @@
  * Compact event chip used inside calendar cells. Differs from the regular `SecondaryButton`
  * shape in three ways:
  *   - Left-aligned content (calendar rows scan top-down, not centred)
- *   - Hard-clipped overflow without ellipsis — on a 35-px mobile cell an ellipsis swallows
+ *   - Hard-clipped overflow without ellipsis - on a 35-px mobile cell an ellipsis swallows
  *     three letters we'd rather keep
  *   - Tiny padding so multiple chips stack inside a single cell
  */

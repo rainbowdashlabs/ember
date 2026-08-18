@@ -13,10 +13,10 @@ import java.util.List;
  *
  * <p>Entries are split conceptually into:
  * <ul>
- *   <li><b>Movable</b> — {@link #isLocalPinned()} returns {@code false}; the
+ *   <li><b>Movable</b> - {@link #isLocalPinned()} returns {@code false}; the
  *       {@link dev.chojo.ember.feature.storage.backend.StorageBackendResolver resolver}
  *       may bind the category to any remote backend.</li>
- *   <li><b>Local-pinned</b> — {@link #isLocalPinned()} returns {@code true}; resolver always
+ *   <li><b>Local-pinned</b> - {@link #isLocalPinned()} returns {@code true}; resolver always
  *       short-circuits to the local backend regardless of instance / station override.</li>
  * </ul>
  *
@@ -212,7 +212,7 @@ public enum StorageCategory {
     }
 
     /**
-     * Quota tracking mode — {@code ENFORCED}, {@code TRACKED}, or {@code UNTRACKED}.
+     * Quota tracking mode - {@code ENFORCED}, {@code TRACKED}, or {@code UNTRACKED}.
      */
     public QuotaMode quotaMode() {
         return quotaMode;

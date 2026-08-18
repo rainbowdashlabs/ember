@@ -26,7 +26,7 @@ import java.time.Duration;
  * still bakes a snapshot into the classpath so the first request after boot is
  * never gated on the live fetch finishing.
  *
- * <p>Skipped when {@link Network#cloudflare()} is {@code false} — a non-CF
+ * <p>Skipped when {@link Network#cloudflare()} is {@code false} - a non-CF
  * deployment never reads {@code CF-Connecting-IP} anyway, so the list is unused.
  *
  * <p>Failures are logged at {@code warn} and leave the build-time snapshot in
@@ -64,7 +64,7 @@ public class CloudflareRangesService {
     }
 
     /**
-     * Performs the synchronous refresh — fetches both {@code ips-v4} and
+     * Performs the synchronous refresh - fetches both {@code ips-v4} and
      * {@code ips-v6}, parses, and replaces the in-memory list. Returns silently
      * on any failure.
      */

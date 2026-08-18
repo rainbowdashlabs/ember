@@ -66,13 +66,13 @@ class StorageReconciliationServiceTest extends RepositoryTestBase {
         try {
             var scope = new StorageScope.Station(station.id(), station.uid());
 
-            // Live page-file row with hash "live-hash" — file under that hash must survive.
+            // Live page-file row with hash "live-hash" - file under that hash must survive.
             String liveHash = "a".repeat(64);
             pageRepo.createFile(null, station.id(), liveHash, "live.txt", "text/plain", 5);
             storageService.store(
                     scope, StorageCategory.PAGE_FILES, liveHash + "/orig.txt", "alive".getBytes(), "text/plain");
 
-            // Orphan hash with no DB row — file under that hash must be deleted.
+            // Orphan hash with no DB row - file under that hash must be deleted.
             String orphanHash = "b".repeat(64);
             storageService.store(
                     scope, StorageCategory.PAGE_FILES, orphanHash + "/orig.txt", "dead".getBytes(), "text/plain");

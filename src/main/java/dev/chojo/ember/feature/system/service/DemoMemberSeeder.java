@@ -100,6 +100,9 @@ public class DemoMemberSeeder implements DemoSeeder {
         var memberMgmt = stationMemberRepository
                 .findPermissionByName(StationPermission.MEMBER_MANAGER)
                 .orElseThrow();
+        var memberRead = stationMemberRepository
+                .findPermissionByName(StationPermission.MEMBER_READ)
+                .orElseThrow();
 
         // -- Groups --
         var groupBetreuer = memberGroupRepository.create(stationId, "Betreuer");
@@ -317,6 +320,13 @@ public class DemoMemberSeeder implements DemoSeeder {
             if (u.lastName().equals("Mustermann")) {
                 stationMemberRepository.setUserType(m.id(), StationUserType.MANAGER);
                 stationMemberRepository.grantPermission(m.id(), stationAdminRole.id());
+            } else if (u.lastName().equals("Wagner")) {
+                // One helper who may look at the members but not at what is written about them:
+                // reading and notes are separate rights, and an instance where every Betreuer holds
+                // the whole bundle never shows the difference.
+                stationMemberRepository.grantPermission(m.id(), attendanceMgmt.id());
+                stationMemberRepository.grantPermission(m.id(), eventMgmt.id());
+                stationMemberRepository.grantPermission(m.id(), memberRead.id());
             } else {
                 stationMemberRepository.grantPermission(m.id(), attendanceMgmt.id());
                 stationMemberRepository.grantPermission(m.id(), eventMgmt.id());
@@ -662,7 +672,7 @@ public class DemoMemberSeeder implements DemoSeeder {
 
     /**
      * Result of member seeding, containing all created member groups and lists needed by other seeders.
-     * The {@code head} is the station's primary manager — used by downstream seeders as the
+     * The {@code head} is the station's primary manager - used by downstream seeders as the
      * creator / owner of station-scoped content (news, events, KB, pages, …).
      */
     public record SeedResult(

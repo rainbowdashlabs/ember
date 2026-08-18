@@ -40,13 +40,13 @@ import static org.junit.jupiter.api.Assertions.fail;
 /**
  * Exhaustively exercises the generic transfer engine on every TRACKED table:
  * <ul>
- *   <li>{@code allTrackedTablesAreExportable} — calls {@code exportTable} for every TRACKED table
+ *   <li>{@code allTrackedTablesAreExportable} - calls {@code exportTable} for every TRACKED table
  *       in the tracking JSON and asserts no SQL/binding error is thrown. Verifies the engine's
  *       SQL is syntactically valid for every table, even on an empty station.</li>
- *   <li>{@code paginationIsConsistent} — seeds 7 rows into a multi-row table, walks pages of size
+ *   <li>{@code paginationIsConsistent} - seeds 7 rows into a multi-row table, walks pages of size
  *       3, and confirms the concatenated pages equal the single-call export with no duplicates
  *       or gaps.</li>
- *   <li>{@code roundTripAllTablesImportSucceeds} — seeds data across many domains, exports, deletes
+ *   <li>{@code roundTripAllTablesImportSucceeds} - seeds data across many domains, exports, deletes
  *       source-side artefacts, imports, and asserts every table that had source rows now has the
  *       same count on the target.</li>
  * </ul>

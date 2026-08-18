@@ -18,7 +18,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import ProfileFieldModal from './membersconfig/FieldModal.vue'
 import FieldsPanel from './membersconfig/FieldsPanel.vue'
 import type {FieldTemplate} from './membersconfig/fieldTemplates'
-import {parseFieldConfig, type ProfileField} from '@/api/profileFields'
+import {DATE_FIELD_TYPES, FieldTypes, parseFieldConfig, type ProfileField} from '@/api/profileFields'
 import type {MemberGroup} from '@/api/types'
 import {memberGroups, profileFields} from '@/api'
 
@@ -50,7 +50,11 @@ const currentFields = computed(() => {
   })
 })
 
-const dateFields = computed(() => currentFields.value.filter(f => f.fieldType === 'DATE'))
+const dateFields = computed(() => currentFields.value.filter(f => DATE_FIELD_TYPES.includes(f.fieldType ?? '')))
+
+/** One per station, not per scope - a member has one date of birth however the tabs are arranged. */
+const birthDateField = computed(() =>
+    allFields.value.find(f => f.fieldType === FieldTypes.BIRTH_DATE) ?? null)
 
 const showFieldModal = ref(false)
 const editingField = ref<ProfileField | null>(null)
@@ -221,6 +225,7 @@ async function applyTemplate(template: FieldTemplate) {
 
       <ProfileFieldModal
           v-model="showFieldModal"
+          :birth-date-field="birthDateField"
           :date-fields="dateFields"
           :field="editingField"
           :group-id="selectedGroupId"

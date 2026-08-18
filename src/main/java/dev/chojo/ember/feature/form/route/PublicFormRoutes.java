@@ -48,7 +48,7 @@ import static dev.chojo.ember.api.RouteSupport.pathUuid;
  * POLL_EMBED). The endpoint accepts a submission for any {@link FormPurpose#CONTACT}
  * or {@link FormPurpose#POLL} form belonging to the station identified by
  * {@code stationUid} that is currently accepting responses. Submissions are
- * keyed off a {@link SubmitterHashService} hash of the real client IP — no raw
+ * keyed off a {@link SubmitterHashService} hash of the real client IP - no raw
  * IP ever lands on disk.
  */
 @SuppressWarnings("DefaultAnnotationParam")
@@ -169,7 +169,7 @@ public class PublicFormRoutes implements Routes {
         }
         if (form.purpose() != FormPurpose.CONTACT && form.purpose() != FormPurpose.POLL) {
             throw new NotFoundResponse("Form " + formUid + " has purpose " + form.purpose()
-                    + " — only CONTACT and POLL forms are publicly submittable");
+                    + " - only CONTACT and POLL forms are publicly submittable");
         }
         return form;
     }

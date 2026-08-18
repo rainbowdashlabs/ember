@@ -26,8 +26,8 @@ import java.util.concurrent.Executors;
 /**
  * Fetches a remote partner's contract vector via the version ping and stores it on the
  * partner record. Called from the startup broadcast, and on demand whenever either side of
- * a partnership notices a vector that no longer matches — an incoming request with an
- * unexpected core hash, or an outgoing request rejected with a contract mismatch — so
+ * a partnership notices a vector that no longer matches - an incoming request with an
+ * unexpected core hash, or an outgoing request rejected with a contract mismatch - so
  * stored vectors self-heal on first contact after a partner redeploys.
  */
 @Singleton
@@ -80,7 +80,7 @@ public class FederationContractRefreshService {
      * Refreshes in the background, with at most one refresh in flight per partner and at
      * most one attempt per partner per minute. Mismatch detection re-arms on every request
      * for as long as a partner stays incompatible or unreachable, so without the interval a
-     * degraded partner would draw one outbound ping — with a 10 second connect timeout —
+     * degraded partner would draw one outbound ping - with a 10 second connect timeout -
      * per inbound request.
      */
     public void refreshAsync(FederationPartner partner) {

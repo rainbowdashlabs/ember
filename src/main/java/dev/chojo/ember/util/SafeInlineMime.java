@@ -12,7 +12,7 @@ import java.util.Set;
  * serve back with {@code Content-Disposition: inline}.
  *
  * <p>The allow-list contains only types the browser cannot execute as script
- * — raster images and PDF. Anything else (HTML, XHTML, SVG, JavaScript, JSON,
+ * - raster images and PDF. Anything else (HTML, XHTML, SVG, JavaScript, JSON,
  * unknown) is rewritten to {@code application/octet-stream} so the browser
  * downloads instead of rendering it.
  *

@@ -34,18 +34,18 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  * <p>For each TRACKED {@code gdprDeletion} entry, the engine inspects each strategy whose column
  * matches the requested {@link IdentityType} and runs the corresponding operation:
  * <ul>
- *   <li>{@link Strategy#DELETE_EXPLICIT} — {@code DELETE FROM table WHERE col = :id}</li>
- *   <li>{@link Strategy#NULL}             — {@code UPDATE table SET col = NULL WHERE col = :id}
+ *   <li>{@link Strategy#DELETE_EXPLICIT} - {@code DELETE FROM table WHERE col = :id}</li>
+ *   <li>{@link Strategy#NULL}             - {@code UPDATE table SET col = NULL WHERE col = :id}
  *                                          (requires the column to be nullable)</li>
- *   <li>{@link Strategy#ANONYMIZE}        — {@code UPDATE table SET col = <sentinel> WHERE col = :id}
+ *   <li>{@link Strategy#ANONYMIZE}        - {@code UPDATE table SET col = <sentinel> WHERE col = :id}
  *                                          where the sentinel is type-derived: zero-UUID for {@code uuid},
  *                                          the localised "Gelöscht" string for {@code text}, NULL for a
  *                                          nullable int.</li>
- *   <li>{@link Strategy#CASCADE}          — no-op; the FK CASCADE handles it. Note: this only fires
+ *   <li>{@link Strategy#CASCADE}          - no-op; the FK CASCADE handles it. Note: this only fires
  *                                          when the parent row is actually deleted, see the warnings
  *                                          surfaced in the admin panel.</li>
  *   <li>{@link Strategy#RETAIN}, {@link Strategy#RETAIN_UNLINKED}, {@link Strategy#NOT_APPLICABLE}
- *                                       — no-op; the row is preserved by design.</li>
+ *                                       - no-op; the row is preserved by design.</li>
  * </ul>
  *
  * <p>UPDATEs run first across all tables, then DELETEs in reverse topological order so children
@@ -76,7 +76,7 @@ public final class GenericGdprDeleter {
 
     /**
      * Returns true when {@code column} is listed as an identity column of the requested type. Without
-     * this check we'd run a DELETE/UPDATE on a strategy that isn't related to the requested identity —
+     * this check we'd run a DELETE/UPDATE on a strategy that isn't related to the requested identity -
      * e.g. station_member.id has DELETE_EXPLICIT but only for MEMBER_ID identity, never for ACCOUNT_ID.
      */
     private static boolean identityMatchesColumn(TableEntry table, IdentityType type, String column) {
@@ -115,13 +115,13 @@ public final class GenericGdprDeleter {
     public Report deleteByIdentity(IdentityType type, Object identityValue) {
         var report = new Report();
 
-        // Phase 1 — UPDATE operations (NULL + ANONYMIZE). Must run before the DELETEs so we don't
+        // Phase 1 - UPDATE operations (NULL + ANONYMIZE). Must run before the DELETEs so we don't
         // lose the rows we'd anonymise via cascade.
         for (String tableName : deletionOrder) {
             applyUpdatesForTable(tableName, type, identityValue, report);
         }
 
-        // Phase 2 — DELETE operations, children-first.
+        // Phase 2 - DELETE operations, children-first.
         for (String tableName : deletionOrder) {
             applyDeletesForTable(tableName, type, identityValue, report);
         }
@@ -214,7 +214,7 @@ public final class GenericGdprDeleter {
             }
             case "int4", "int8" -> {
                 if (col.nullable()) {
-                    // No safe integer sentinel — fall back to NULL.
+                    // No safe integer sentinel - fall back to NULL.
                     sql = "UPDATE " + tableName + " SET " + col.name() + " = NULL WHERE " + col.name() + " = :id"
                             + castWhere + ";";
                     c = bindIdentity(type, idVal);
@@ -223,7 +223,7 @@ public final class GenericGdprDeleter {
                             tableName,
                             col.name(),
                             Strategy.ANONYMIZE,
-                            "NOT NULL integer column needs a placeholder member/account — manual handling required"));
+                            "NOT NULL integer column needs a placeholder member/account - manual handling required"));
                     return;
                 }
             }
@@ -271,13 +271,13 @@ public final class GenericGdprDeleter {
 
         public void log(Logger logger) {
             logger.info(
-                    "GDPR deletion report — executed={}, rows={}, skipped={}, no-ops={}",
+                    "GDPR deletion report - executed={}, rows={}, skipped={}, no-ops={}",
                     executed.size(),
                     executed.stream().mapToInt(ExecutedOp::rowsAffected).sum(),
                     skipped.size(),
                     noOps.size());
             for (var s : skipped) {
-                logger.warn("  SKIPPED {} {}.{} — {}", s.strategy(), s.table(), s.column(), s.reason());
+                logger.warn("  SKIPPED {} {}.{} - {}", s.strategy(), s.table(), s.column(), s.reason());
             }
         }
     }

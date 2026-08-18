@@ -162,7 +162,7 @@ class WebAuthnServiceTest extends RepositoryTestBase {
 
         int accountId = newAccount();
         var start = spiedService.startRegistration(accountId, "rf@test.com", "RF");
-        // A real (but throwaway) PublicKeyCredential JSON is hard to forge — we route the
+        // A real (but throwaway) PublicKeyCredential JSON is hard to forge - we route the
         // parse-then-verify path by handing the route a credential JSON shaped enough to
         // parse but rigged to throw on verification.
         String credentialJson = "{\"id\":\"AA\",\"type\":\"public-key\",\"rawId\":\"AA\","

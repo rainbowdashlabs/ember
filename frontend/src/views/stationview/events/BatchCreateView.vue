@@ -165,7 +165,7 @@ const {running: saving, error: createError, run: createBatch} = useAsyncAction(a
           <FieldLabel>{{ t('batchCreate.applyTemplate') }}</FieldLabel>
           <SelectInput :model-value="String(selectedSourceTemplateId ?? '')"
                        @update:model-value="selectedSourceTemplateId = $event ? Number($event) : null; applyTemplate()">
-            <option value="">—</option>
+            <option value="">-</option>
             <option v-for="tpl in eventTemplates" :key="tpl.id" :value="String(tpl.id)">{{ tpl.name }}</option>
           </SelectInput>
         </div>

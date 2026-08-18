@@ -6,15 +6,17 @@
 import { ref, watch, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { knowledgeBase, memberGroups, userTags } from '@/api'
-import type { KbTag } from '@/api/knowledgeBase'
+import type { KbGrant, KbTag } from '@/api/knowledgeBase'
 import type { MemberGroup, UserTag } from '@/api/types'
 import { emptyRestriction, type RestrictionSelection } from '@/components/input/restriction'
+import { grantKey, groupKey, tagKey, userTypeKey, type GrantLevels } from './kbGrantLevels'
 
 interface RestrictionPayload {
   userTypes: string[]
   groupIds: number[]
   tagIds: number[]
   memberIds: number[]
+  grants: KbGrant[]
 }
 
 /**
@@ -24,7 +26,9 @@ interface RestrictionPayload {
  */
 export interface KbEntryApi {
   visibilityKind: 'files' | 'folders'
-  getRestrictions: (id: number) => Promise<{userTypes?: string[]; groupIds: number[]; tagIds: number[]}>
+  getRestrictions: (
+    id: number,
+  ) => Promise<{userTypes?: string[]; groupIds: number[]; tagIds: number[]; grants?: KbGrant[]}>
   setRestrictions: (id: number, payload: RestrictionPayload) => Promise<unknown>
   getTags: (id: number) => Promise<KbTag[]>
   setTags: (id: number, names: string[]) => Promise<unknown>
@@ -44,7 +48,7 @@ export interface KbEntryTarget {
  *
  * Everything is loaded when the dialog opens rather than kept in sync, so the dialog always shows
  * what is currently stored even if the entry changed underneath the list. A failed load leaves the
- * defaults in place instead of reporting an error — a missing restriction reads as "no
+ * defaults in place instead of reporting an error - a missing restriction reads as "no
  * restriction", which is what an entry without one has.
  *
  * @param show   whether the dialog is open; opening triggers the load
@@ -61,6 +65,7 @@ export function useKbEntryEditor(
   const editName = ref('')
   const editDescription = ref('')
   const restriction = ref<RestrictionSelection>(emptyRestriction())
+  const grantLevels = ref<GrantLevels>({})
   const tags = ref<string[]>([])
   const publicVisibility = ref<string>('default')
   const allGroups = ref<MemberGroup[]>([])
@@ -71,6 +76,7 @@ export function useKbEntryEditor(
     editName.value = target.name
     editDescription.value = target.description
     restriction.value = emptyRestriction()
+    grantLevels.value = {}
     tags.value = []
     publicVisibility.value = 'default'
     error.value = ''
@@ -102,6 +108,12 @@ export function useKbEntryEditor(
         memberIds: [],
         mode: 'AND',
       }
+      const levels: GrantLevels = {}
+      for (const grant of restrictions.grants ?? []) {
+        const key = grantKey(grant)
+        if (key) levels[key] = grant.level ?? null
+      }
+      grantLevels.value = levels
       tags.value = entryTags.map(tag => tag.name)
       publicVisibility.value = visibility.visible === true
         ? 'public'
@@ -112,8 +124,22 @@ export function useKbEntryEditor(
   })
 
   /**
-   * Saves every part of the dialog at once. {@code extra} carries writes only one kind has — the
-   * folder icon — so they succeed or fail together with the rest.
+   * Turns the chosen audience into one grant per entry, each carrying the level chosen for it.
+   * An entry the dialog has no level for keeps {@code null}, which leaves the station permission
+   * in charge for that audience.
+   */
+  function buildGrants(): KbGrant[] {
+    const levels = grantLevels.value
+    return [
+      ...restriction.value.userTypes.map(userType => ({userType, level: levels[userTypeKey(userType)] ?? null})),
+      ...restriction.value.groupIds.map(groupId => ({groupId, level: levels[groupKey(groupId)] ?? null})),
+      ...restriction.value.tagIds.map(tagId => ({tagId, level: levels[tagKey(tagId)] ?? null})),
+    ]
+  }
+
+  /**
+   * Saves every part of the dialog at once. {@code extra} carries writes only one kind has - the
+   * folder icon - so they succeed or fail together with the rest.
    */
   async function save(extra: (id: number) => Promise<unknown>[] = () => []): Promise<boolean> {
     const target = entry()
@@ -129,6 +155,7 @@ export function useKbEntryEditor(
           groupIds: restriction.value.groupIds,
           tagIds: restriction.value.tagIds,
           memberIds: [],
+          grants: buildGrants(),
         }),
         api.setTags(target.id, tags.value),
         knowledgeBase.setPublicVisibility(api.visibilityKind, target.id, visible),
@@ -146,6 +173,7 @@ export function useKbEntryEditor(
     editName,
     editDescription,
     restriction,
+    grantLevels,
     tags,
     publicVisibility,
     allGroups,

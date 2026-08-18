@@ -110,7 +110,7 @@ public class StationImportService {
         try {
             t = DataTrackingLoader.loadFromClasspath();
         } catch (IOException e) {
-            log.warn("Could not load data_tracking.json — import engine will be unusable", e);
+            log.warn("Could not load data_tracking.json - import engine will be unusable", e);
             t = DataTrackingLoader.empty();
         }
         this.tracking = t;
@@ -392,14 +392,14 @@ public class StationImportService {
                 p.startPhase(table);
                 if ("station".equals(table)) {
                     log.info(
-                            "table {}/{} '{}' — already applied synchronously, skipping",
+                            "table {}/{} '{}' - already applied synchronously, skipping",
                             ++i,
                             tableOrder.size(),
                             table);
                     p.completePhase();
                     continue;
                 }
-                log.info("table {}/{} '{}' — fetching from source", ++i, tableOrder.size(), table);
+                log.info("table {}/{} '{}' - fetching from source", ++i, tableOrder.size(), table);
                 fetchAndImportPaginated(context, table, client);
                 p.completePhase();
             }

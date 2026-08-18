@@ -4,8 +4,8 @@
  *
  * Every frontend linter has to pass with nothing but `frontend/` on disk. The frontend Docker
  * image is built from that one directory, and the image build runs the same lint chain this
- * verification does, so a linter that reads something above `frontend/` — a Java source it
- * cross-checks keys against, a config at the repository root — passes every local check and
+ * verification does, so a linter that reads something above `frontend/` - a Java source it
+ * cross-checks keys against, a config at the repository root - passes every local check and
  * fails only in the image, where the file it wants was never copied.
  *
  * Each linter therefore runs a second time inside a sandbox shaped like the image: a temporary

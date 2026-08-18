@@ -38,7 +38,7 @@ const {
 
 const legal = useLoginConsent()
 const {
-  consent, consentHtml, consentLoading,
+  consent, scopes, consentHtml, consentLoading,
   showPrivacyPolicy, privacyPolicyHtml, privacyPolicyLoading,
   showTos, tosHtml, tosLoading,
 } = legal
@@ -49,7 +49,7 @@ const registrationEnabled = ref(true)
 
 onMounted(async () => {
   if (getItem('session_token')) {
-    // Honor any pending deep link the router guard parked on /login — the user is already
+    // Honor any pending deep link the router guard parked on /login - the user is already
     // authed and we don't want a fresh tab refresh to lose their target.
     const redirectPath = route.query.redirect as string | undefined
     navigateTo(redirectPath?.startsWith('/') ? redirectPath : '/station/dashboard/overview')
@@ -148,6 +148,7 @@ function topRoleLabel(account: DemoAccount): string {
 
       <template v-if="!isDemo && !demoLoading">
         <ConsentGate v-if="consent === null"
+                     v-model:scopes="scopes"
                      :consent-loading="consentLoading" :consent-html="consentHtml"
                      @accept="legal.acceptCurrentVersions" @deny="legal.deny"
                      @show-privacy="legal.loadPrivacyPolicy" @show-tos="legal.loadTos"/>

@@ -22,7 +22,7 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  * Shared helpers for the repository layer, factoring out the query shapes that otherwise
  * repeat across every repository: find-by-id, insert-returning, delete-by-id, scalar
  * exists/count reads, and position reordering. All {@code table}/{@code columns} arguments
- * must be trusted compile-time constants — never user input; values are always bound via
+ * must be trusted compile-time constants - never user input; values are always bound via
  * named parameters on the passed {@link Call}.
  */
 public final class SqlSupport {
@@ -61,7 +61,7 @@ public final class SqlSupport {
     }
 
     /**
-     * Evaluates an existence query — any statement of the shape {@code SELECT 1 ... LIMIT 1} —
+     * Evaluates an existence query - any statement of the shape {@code SELECT 1 ... LIMIT 1} -
      * to a boolean without the per-repository {@code map(row -> true)} idiom.
      */
     public static boolean exists(String sql, Call call, Object... sqlFormat) {
@@ -84,8 +84,8 @@ public final class SqlSupport {
      * Rewrites {@code positionColumn} for every row of {@code table} named in
      * {@code orderedIds} to its zero-based index in the list, scoped by
      * {@code scopeColumn = scopeId} so ids from foreign scopes are ignored. Runs as two
-     * set-based statements — first parking the rows on distinct negative positions, then
-     * landing them on their final ones — to satisfy {@code UNIQUE(scope, position)}
+     * set-based statements - first parking the rows on distinct negative positions, then
+     * landing them on their final ones - to satisfy {@code UNIQUE(scope, position)}
      * constraints that would reject a direct permutation.
      */
     public static void reorder(

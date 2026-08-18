@@ -89,7 +89,7 @@ public sealed interface FieldConfig
     }
 
     /**
-     * Config for {@link FieldType#DATE} — no extra knobs in v1.
+     * Config for {@link FieldType#DATE} - no extra knobs in v1.
      */
     @JsonIgnoreProperties(ignoreUnknown = true)
     record DateConfig() implements FieldConfig {

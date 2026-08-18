@@ -487,7 +487,7 @@ class StationTransferTest extends RepositoryTestBase {
         // Owner is assigned to the first imported MANAGER after all tables land.
         assertNotNull(imported.ownerMemberId(), "Station owner should be set after import");
 
-        // PKs were remapped — source member ids should not match any target member id.
+        // PKs were remapped - source member ids should not match any target member id.
         var importedMemberIds = importedMembers.stream().map(StationMember::id).toList();
         assertTrue(importedMemberIds.stream().noneMatch(id -> id == sourceManagerId));
         assertTrue(importedMemberIds.stream().noneMatch(id -> id == sourceTrainerId));
@@ -507,7 +507,7 @@ class StationTransferTest extends RepositoryTestBase {
         accountRepo.createCredential(existingAccount.id(), "$bcrypt$target-original");
 
         // Build a minimal synthetic bundle whose account entry uses the same email but a
-        // different name + hash — the import path must NOT overwrite the existing account.
+        // different name + hash - the import path must NOT overwrite the existing account.
         Map<String, Object> bundle = new LinkedHashMap<>();
         bundle.put("station", Map.of("name", "Link-Test Station"));
         bundle.put(

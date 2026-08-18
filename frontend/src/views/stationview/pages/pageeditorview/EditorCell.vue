@@ -111,7 +111,7 @@ function splitCell(columns: number) {
 }
 
 /**
- * Wrap the current cell into a NESTED_ROWS cell containing two single-cell rows — the original
+ * Wrap the current cell into a NESTED_ROWS cell containing two single-cell rows - the original
  * content stays in one and an empty cell is added above or below it.
  */
 function wrapAndAddSibling(position: 'above' | 'below') {

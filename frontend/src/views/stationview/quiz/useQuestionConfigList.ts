@@ -6,7 +6,7 @@
 import { computed, type ModelRef } from 'vue'
 
 /**
- * Editing one string list inside a question's configuration — the answers of an enumeration, the
+ * Editing one string list inside a question's configuration - the answers of an enumeration, the
  * items of an ordering question, the distractors of a fill-in-the-blank, and so on.
  *
  * The configuration is a loosely-typed object shared by every question type, so each list is

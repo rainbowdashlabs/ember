@@ -23,7 +23,7 @@ const geocoding = defineModel<MapsGeocodingConfig>({required: true})
     <div class="space-y-1">
       <FieldLabel>{{ t('adminMaps.geocodingProvider') }}</FieldLabel>
       <SelectInput v-model="geocoding.provider">
-        <option value="NONE">— None</option>
+        <option value="NONE">- None</option>
         <option value="NOMINATIM">Nominatim</option>
         <option value="LOCATIONIQ">LocationIQ</option>
         <option value="GEOAPIFY">Geoapify</option>

@@ -29,7 +29,7 @@ import static dev.chojo.ember.feature.station.transfer.WireValues.asInstant;
 /**
  * Applies the station's own settings columns. The station row itself is created (or picked) by
  * the import service before any table is walked, so importing the {@code station} table during
- * the walk is a no-op — the fields land through {@link #applyFields(int, Map)} instead.
+ * the walk is a no-op - the fields land through {@link #applyFields(int, Map)} instead.
  */
 @Singleton
 public class StationTableImporter implements TableImporter {
@@ -44,7 +44,7 @@ public class StationTableImporter implements TableImporter {
         try {
             t = DataTrackingLoader.loadFromClasspath();
         } catch (IOException e) {
-            log.warn("Could not load data_tracking.json — station fields will not be applied", e);
+            log.warn("Could not load data_tracking.json - station fields will not be applied", e);
             t = DataTrackingLoader.empty();
         }
         this.tracking = t;

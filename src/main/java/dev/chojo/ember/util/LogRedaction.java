@@ -14,7 +14,7 @@ import java.util.Set;
  * Redaction helpers for trace-level request / response logging. Keys and header
  * names that are known to carry credentials are matched case-insensitively and
  * their values are replaced with the sentinel {@code [REDACTED]}. The original
- * inputs are not modified — every method returns a fresh string or map.
+ * inputs are not modified - every method returns a fresh string or map.
  */
 public final class LogRedaction {
 

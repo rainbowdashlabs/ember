@@ -19,13 +19,13 @@ import java.util.Optional;
 /**
  * Per-endpoint rate limiter for the {@code /auth/*} surface.
  *
- * <p>Each endpoint family has up to two dimensions — one bucket keyed by the resolved
+ * <p>Each endpoint family has up to two dimensions - one bucket keyed by the resolved
  * client IP and (where the request carries an identity) a second bucket keyed by a
  * SHA-256 hash of the lowercased email or the numeric account id. The most-recently
  * exhausted bucket's retry-after wins; the caller sees a single seconds value.
  *
  * <p>State is in-memory; a restart resets every bucket. Clustered deployments would
- * need a shared backing store — tracked as a follow-up alongside the federation
+ * need a shared backing store - tracked as a follow-up alongside the federation
  * replay cache.
  */
 @Singleton

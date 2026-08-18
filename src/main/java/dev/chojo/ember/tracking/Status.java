@@ -21,7 +21,7 @@ public enum Status {
     IGNORED,
 
     /**
-     * New or changed — reviewer must decide. Verification test fails until resolved.
+     * New or changed - reviewer must decide. Verification test fails until resolved.
      */
     UNVERIFIED
 }

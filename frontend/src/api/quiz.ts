@@ -197,9 +197,30 @@ import {downloadAuthed} from '@/util/downloadAuthed'
 // -- Shared catalog entry from federation --
 
 export interface SharedCatalogEntry {
-    catalog: QuizCatalog
+    id: number
+    name: string
+    description: string | null
     stationName: string
-    sourceStationId: string
+    stationUid: string | null
+}
+
+/**
+ * A catalog as a federation partner serves it: the catalog itself plus the categories and
+ * questions it holds.
+ */
+export interface FederatedCatalogDetail {
+    catalog: QuizCatalog
+    categories: QuizCategory[]
+    questions: QuizQuestion[]
+}
+
+/**
+ * Reads a catalog served by a federation partner. The partner is addressed by its station UUID
+ * because a catalog id is only unique within the station that owns it.
+ */
+export async function getFederatedCatalog(stationUid: string, catalogId: number): Promise<FederatedCatalogDetail> {
+    const res = await client.get<FederatedCatalogDetail>(`/federated/${stationUid}/quiz/catalogs/${catalogId}`)
+    return res.data
 }
 
 export interface CatalogListResponse {

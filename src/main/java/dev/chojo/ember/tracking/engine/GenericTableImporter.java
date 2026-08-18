@@ -53,7 +53,7 @@ public final class GenericTableImporter {
     /**
      * Looks up an id in {@code table} where {@code column = value}. Returns null when no row
      * matches. Adds a {@code ::uuid} cast to the bound value whenever the target column type is
-     * declared as {@code uuid} in the tracking config — Postgres rejects a {@code uuid = text}
+     * declared as {@code uuid} in the tracking config - Postgres rejects a {@code uuid = text}
      * comparison without the cast.
      */
     private Integer resolveByColumn(String table, String column, Object value) {
@@ -166,7 +166,7 @@ public final class GenericTableImporter {
     }
 
     private static Call bindOne(Call c, String name, BoundValue bv) {
-        // Null values were filtered out before reaching this point — see tryBindRow comments.
+        // Null values were filtered out before reaching this point - see tryBindRow comments.
         Object val = bv.value();
         String type = bv.type();
         return switch (type == null ? "" : type) {
@@ -242,7 +242,7 @@ public final class GenericTableImporter {
             Map<String, BoundValue> bind = new LinkedHashMap<>();
 
             if (!tryBindRow(table, tableName, row, stationId, ignored, idMap, bind)) {
-                continue; // unresolvable FK — skip
+                continue; // unresolvable FK - skip
             }
 
             String sql = buildInsertSql(tableName, bind, hasIdPk);
@@ -319,7 +319,7 @@ public final class GenericTableImporter {
         }
 
         // 4. Remaining writable columns. Null source values are skipped entirely so the column is
-        // omitted from the INSERT — PostgreSQL fills in NULL (for nullable columns) or the column
+        // omitted from the INSERT - PostgreSQL fills in NULL (for nullable columns) or the column
         // default (for non-null columns with a DEFAULT). Binding a typed null through JDBC would
         // otherwise be coerced to varchar and PG would reject it against int/jsonb/uuid columns.
         for (ColumnEntry col : table.columns()) {

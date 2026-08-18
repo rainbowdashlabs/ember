@@ -24,7 +24,7 @@ const pageTitle = computed(() => {
   const key = `pages.${name}.title`
   const helpKey = `helpCenter.pages.${route.name as string}.title`
   if (te(helpKey)) return t(helpKey)
-  return te(key) ? `${t(key)} — ${t('helpCenter.link')}` : t('helpCenter.link')
+  return te(key) ? `${t(key)} - ${t('helpCenter.link')}` : t('helpCenter.link')
 })
 
 const pageSubtitle = computed(() => t('helpCenter.title'))

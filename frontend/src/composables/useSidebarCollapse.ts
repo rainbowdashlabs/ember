@@ -23,7 +23,7 @@ function toggle() {
  * Provided by a parent ({@link AppSidebar}) to disable collapsing for its
  * subtree. When the injected value is {@code false}, every consumer of
  * {@link useSidebarCollapse} sees {@code collapsed = false} regardless of the
- * user's stored preference — used by panels (help center) where a collapsed
+ * user's stored preference - used by panels (help center) where a collapsed
  * sidebar would hide too much navigation.
  */
 export const SIDEBAR_COLLAPSIBLE: InjectionKey<Ref<boolean> | boolean> = Symbol('SidebarCollapsible')

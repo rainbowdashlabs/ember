@@ -11,7 +11,7 @@ import dev.chojo.ember.api.auth.StationPermission;
  * Defines the restriction table, foreign key column, entity table, entity ID column,
  * and management permission for each entity type that supports restrictions.
  * <p>
- * The management permission is checked in Java (not SQL) —
+ * The management permission is checked in Java (not SQL) -
  * a member with this permission bypasses restrictions entirely.
  */
 public enum RestrictionType {
@@ -19,8 +19,8 @@ public enum RestrictionType {
     QUIZ_TEST("quiz_test_restriction", "test_id", "quiz_test", "id", StationPermission.TEST_MANAGER),
     FORM("form_restriction", "form_id", "form", "id", StationPermission.POLL_MANAGER),
     NEWS("news_restriction", "news_id", "news", "id", StationPermission.NEWS_MANAGER),
-    KB_FOLDER("kb_access_restriction", "folder_id", "kb_folder", "id", StationPermission.KNOWLEDGE_MANAGER),
-    KB_FILE("kb_access_restriction", "file_id", "kb_file", "id", StationPermission.KNOWLEDGE_MANAGER);
+    KB_FOLDER("kb_access_grant", "folder_id", "kb_folder", "id", StationPermission.KNOWLEDGE_MANAGER),
+    KB_FILE("kb_access_grant", "file_id", "kb_file", "id", StationPermission.KNOWLEDGE_MANAGER);
 
     private final String table;
     private final String fkColumn;

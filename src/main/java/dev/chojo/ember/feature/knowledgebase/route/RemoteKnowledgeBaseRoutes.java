@@ -11,7 +11,9 @@ import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
 import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
 import dev.chojo.ember.feature.federation.contract.FederationSurface;
+import dev.chojo.ember.feature.knowledgebase.entity.ConversionStatus;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
+import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.service.KbCommentService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService.RemoteKbFileSummary;
@@ -24,6 +26,7 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -42,7 +45,7 @@ public class RemoteKnowledgeBaseRoutes implements Routes {
     public static final FederationEndpoint SEARCH_KB =
             FederationEndpoint.getList(FederationSurface.KB_SHARE, "/remote/kb/search", RemoteKbSearchResultItem.class);
     public static final FederationEndpoint GET_FILE =
-            FederationEndpoint.get(FederationSurface.KB_SHARE, "/remote/kb/files/{id}", KbFile.class);
+            FederationEndpoint.get(FederationSurface.KB_SHARE, "/remote/kb/files/{id}", RemoteKbFile.class);
     public static final FederationEndpoint GET_FILE_CONTENT = FederationEndpoint.get(
             FederationSurface.KB_SHARE, "/remote/kb/files/{id}/content", FileContentResponse.class);
     public static final FederationEndpoint LIST_COMMENTS = FederationEndpoint.getList(
@@ -111,7 +114,7 @@ public class RemoteKnowledgeBaseRoutes implements Routes {
 
     private void getFile(Context ctx) {
         var partner = FederationSession.requirePartner(ctx);
-        ctx.json(federationService.fileForPartner(partner, pathInt(ctx, "id")));
+        ctx.json(federationService.remoteFileForPartner(partner, pathInt(ctx, "id")));
     }
 
     private void getFileContent(Context ctx) {
@@ -155,6 +158,43 @@ public class RemoteKnowledgeBaseRoutes implements Routes {
         federationService.requireRemoteCommentAuthor(partner, commentId, req.remoteMemberUid(), "delete");
         if (!commentService.deleteComment(partner.stationId(), commentId)) throw new NotFoundResponse();
         ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /**
+     * A knowledge-base file as served to a requesting partner. It deliberately does not reuse the
+     * {@link KbFile} entity: that record carries this instance's internal numeric station id, which
+     * the API layer rewrites into a UUID on the way out and cannot map back on the way in, and the
+     * folder, position and restriction fields mean nothing to the partner reading it.
+     */
+    public record RemoteKbFile(
+            int id,
+            UUID stationUid,
+            String name,
+            String description,
+            KbFileType fileType,
+            String mimeType,
+            long fileSize,
+            String youtubeUrl,
+            String linkUrl,
+            Instant createdAt,
+            Instant updatedAt,
+            ConversionStatus conversionStatus) {
+
+        public static RemoteKbFile of(KbFile file, UUID stationUid) {
+            return new RemoteKbFile(
+                    file.id(),
+                    stationUid,
+                    file.name(),
+                    file.description(),
+                    file.fileType(),
+                    file.mimeType(),
+                    file.fileSize(),
+                    file.youtubeUrl(),
+                    file.linkUrl(),
+                    file.createdAt(),
+                    file.updatedAt(),
+                    file.conversionStatus());
+        }
     }
 
     public record FileContentResponse(int fileId, String content) {}

@@ -124,7 +124,7 @@ export interface FormResponse {
     memberIdentity?: MemberIdentity | null
     /** Set when a manager has acknowledged a CONTACT submission. */
     acknowledgedAt?: string | null
-    /** Set together with {@code acknowledgedAt} — kept around for backwards compat with code that asks for the id. */
+    /** Set together with {@code acknowledgedAt} - kept around for backwards compat with code that asks for the id. */
     acknowledgedBy?: number | null
     /** Enriched identity of the acknowledger so the UI can render it via {@code MemberName}. */
     acknowledgedByIdentity?: MemberIdentity | null
@@ -311,11 +311,11 @@ export async function updateForMember(formId: number, memberId: number, data: Fo
 
 /**
  * The forms analytics endpoints live under three parallel surfaces:
- * - {@code /forms/...} — managers viewing any INTERNAL form (gated by POLL_VIEW_RESULTS).
- * - {@code /pages/polls/forms/...} — page editors viewing a POLL form embedded in a POLL_EMBED
+ * - {@code /forms/...} - managers viewing any INTERNAL form (gated by POLL_VIEW_RESULTS).
+ * - {@code /pages/polls/forms/...} - page editors viewing a POLL form embedded in a POLL_EMBED
  *   cell (gated by PAGE_EDIT, with a server-side purpose check). CONTACT forms intentionally
  *   have no analytics surface; their submissions are read individually as messages.
- * - {@code /pages/forms/...} — page editors reading the individual submissions of a CONTACT form.
+ * - {@code /pages/forms/...} - page editors reading the individual submissions of a CONTACT form.
  *
  * Picking the right surface keeps the permission model honest: a user with PAGE_EDIT but no
  * POLL_VIEW_RESULTS can still see analytics for the polls they actually embedded on a page.

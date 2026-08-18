@@ -70,7 +70,7 @@ const { t } = useI18n()
             <p class="text-xs text-[var(--text-muted)] italic">{{ t('boards.federationNoPermission') }}</p>
             <div v-if="targets.length > 0" class="space-y-1 mt-2">
                 <div v-for="target in targets" :key="target.partnerId" class="text-sm text-[var(--text-muted)]">
-                    {{ partnerName(target.partnerId) }} — {{ target.shareMode }}
+                    {{ partnerName(target.partnerId) }} - {{ target.shareMode }}
                 </div>
             </div>
         </template>

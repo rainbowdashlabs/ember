@@ -12,7 +12,12 @@ export const FieldTypes = {
     BOOLEAN: 'BOOLEAN',
     ENUM: 'ENUM',
     AGE: 'AGE',
+    /** A date field holding the date of birth. A station may declare at most one. */
+    BIRTH_DATE: 'BIRTH_DATE',
 } as const
+
+/** Field types that hold a date and can therefore serve as the source of a calculated age. */
+export const DATE_FIELD_TYPES: readonly string[] = [FieldTypes.DATE, FieldTypes.BIRTH_DATE]
 
 export type FieldTypeName = (typeof FieldTypes)[keyof typeof FieldTypes]
 

@@ -75,7 +75,7 @@ function togglePartner(id: number, checked: boolean) {
         {{ scope === 'ALL_PARTNERS' ? t('federationShare.scopeAll') : t('federationShare.scopeSpecific') }}
       </p>
       <div v-if="scope === 'SPECIFIC_PARTNERS'" class="text-xs text-(--text-muted)">
-        {{ activePartners.filter(p => partnerIds.includes(p.partner.id)).map(p => p.partnerStationName).join(', ') || '—' }}
+        {{ activePartners.filter(p => partnerIds.includes(p.partner.id)).map(p => p.partnerStationName).join(', ') || '-' }}
       </div>
     </template>
   </div>

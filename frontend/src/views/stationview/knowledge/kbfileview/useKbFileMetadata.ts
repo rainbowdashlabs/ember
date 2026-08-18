@@ -12,7 +12,7 @@ import type { KbFile, KbTag } from '@/api/knowledgeBase'
  *
  * All three are replaced rather than patched: the endpoints take the complete set, so adding one
  * tag means sending the tags the file already has alongside it. Each write returns the stored
- * state, which is what is kept — the server owns the ordering and the tag identities.
+ * state, which is what is kept - the server owns the ordering and the tag identities.
  *
  * @param file             the file being described, reloaded after a description change
  * @param lastEditedByName the "edited by" label, which a description change also updates

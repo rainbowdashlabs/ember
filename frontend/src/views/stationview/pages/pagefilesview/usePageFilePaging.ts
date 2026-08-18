@@ -5,13 +5,14 @@
  */
 import {computed, ref, watch, type Ref, type WatchSource} from 'vue'
 import type {PageFileListing} from '@/api/pageManage'
+import {getItem, setItem} from '@/api/storage'
 
 export const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const
 
 const PAGE_SIZE_KEY = 'stationPages.filesPerPage'
 
 function loadStoredPageSize(): number {
-    const raw = typeof window !== 'undefined' ? window.localStorage?.getItem(PAGE_SIZE_KEY) : null
+    const raw = getItem(PAGE_SIZE_KEY)
     const parsed = raw ? parseInt(raw, 10) : NaN
     return (PAGE_SIZE_OPTIONS as readonly number[]).includes(parsed) ? parsed : 20
 }
@@ -26,7 +27,7 @@ export function usePageFilePaging(filtered: Ref<PageFileListing[]>, resetSources
     const currentPage = ref(1)
 
     watch(pageSize, (v) => {
-        if (typeof window !== 'undefined') window.localStorage?.setItem(PAGE_SIZE_KEY, String(v))
+        setItem(PAGE_SIZE_KEY, String(v))
         currentPage.value = 1
     })
 

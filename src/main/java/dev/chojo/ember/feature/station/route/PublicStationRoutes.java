@@ -111,7 +111,7 @@ public class PublicStationRoutes implements Routes {
             UUID uid = UUID.fromString(param);
             return stationRepository.findByUid(uid).orElseThrow(NotFoundResponse::new);
         } catch (IllegalArgumentException e) {
-            // Not a UUID — try as public slug
+            // Not a UUID - try as public slug
             return stationRepository.findBySlug(param).orElseThrow(NotFoundResponse::new);
         }
     }

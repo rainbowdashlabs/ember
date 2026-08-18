@@ -10,10 +10,15 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.feature.events.entity.EventFieldType;
+import dev.chojo.ember.feature.events.entity.EventRegistrationFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventTemplate;
 import dev.chojo.ember.feature.events.entity.EventTemplateField;
 import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
+import dev.chojo.ember.feature.events.entity.EventTemplateRegistrationField;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository.FieldEntry;
+import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventTemplateService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import io.javalin.http.BadRequestResponse;
@@ -38,10 +43,13 @@ import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 @Singleton
 public class EventTemplateRoutes implements Routes {
     private final EventTemplateService eventTemplateService;
+    private final EventRegistrationFieldService registrationFieldService;
 
     @Inject
-    public EventTemplateRoutes(EventTemplateService eventTemplateService) {
+    public EventTemplateRoutes(
+            EventTemplateService eventTemplateService, EventRegistrationFieldService registrationFieldService) {
         this.eventTemplateService = eventTemplateService;
+        this.registrationFieldService = registrationFieldService;
     }
 
     @Override
@@ -60,6 +68,10 @@ public class EventTemplateRoutes implements Routes {
         routes.put(prefix + "/event-templates/{id}", this::update, StationPermission.EVENT_MANAGE_TEMPLATE);
         routes.delete(prefix + "/event-templates/{id}", this::delete, StationPermission.EVENT_MANAGE_TEMPLATE);
         routes.put(prefix + "/event-templates/{id}/fields", this::setFields, StationPermission.EVENT_MANAGE_TEMPLATE);
+        routes.put(
+                prefix + "/event-templates/{id}/registration-fields",
+                this::setRegistrationFields,
+                StationPermission.EVENT_MANAGE_TEMPLATE);
         routes.put(
                 prefix + "/event-templates/{id}/restrictions",
                 this::setRestrictions,
@@ -118,7 +130,33 @@ public class EventTemplateRoutes implements Routes {
         var fields = eventTemplateService.findFields(id);
         var restrictionUserTypes = eventTemplateService.findRestrictions(id);
         var reminderDays = eventTemplateService.findReminderDays(id);
-        ctx.json(new TemplateDetailResponse(template, fields, restrictionUserTypes, reminderDays));
+        var registrationFields = registrationFieldService.findByTemplate(id);
+        ctx.json(new TemplateDetailResponse(template, fields, restrictionUserTypes, reminderDays, registrationFields));
+    }
+
+    @OpenApi(
+            path = "/api/v1/event-templates/{id}/registration-fields",
+            methods = HttpMethod.PUT,
+            summary = "Replace the registration questions an event template carries",
+            tags = {"Event Templates"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetRegistrationFieldsRequest.class)),
+            responses = @OpenApiResponse(status = "200"))
+    private void setRegistrationFields(Context ctx) {
+        int id = pathInt(ctx, "id");
+        requireOwnedOrNotFound(ctx, id, eventTemplateService::findById, EventTemplate::stationId);
+        var req = ctx.bodyAsClass(SetRegistrationFieldsRequest.class);
+        var fields = req.fields() == null ? List.<RegistrationFieldDefinition>of() : req.fields();
+        registrationFieldService.replaceTemplateFields(
+                id,
+                fields.stream()
+                        .map(f -> new FieldEntry(
+                                f.name(),
+                                f.fieldType(),
+                                f.config() != null ? f.config() : EventRegistrationFieldConfig.empty(),
+                                f.overview()))
+                        .toList());
+        ctx.json(registrationFieldService.findByTemplate(id));
     }
 
     @OpenApi(
@@ -243,9 +281,18 @@ public class EventTemplateRoutes implements Routes {
             EventTemplate template,
             List<EventTemplateField> fields,
             List<String> restrictionUserTypes,
-            List<Integer> reminderDays) {}
+            List<Integer> reminderDays,
+            List<EventTemplateRegistrationField> registrationFields) {}
 
     public record SetFieldsRequest(List<EventTemplateFieldData> fields) {}
+
+    public record SetRegistrationFieldsRequest(List<RegistrationFieldDefinition> fields) {}
+
+    /**
+     * A registration question as the template editor submits it, before it has a row of its own.
+     */
+    public record RegistrationFieldDefinition(
+            String name, EventFieldType fieldType, EventRegistrationFieldConfig config, boolean overview) {}
 
     public record SetRestrictionsRequest(List<StationUserType> userTypes) {}
 

@@ -5,7 +5,7 @@
  */
 import client from './client'
 
-/** Identifier segment appended to a resource path — numeric ids and UUID strings both occur. */
+/** Identifier segment appended to a resource path - numeric ids and UUID strings both occur. */
 export type ResourceId = number | string
 
 /** A single query-parameter value as accepted by the backend. */

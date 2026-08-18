@@ -29,6 +29,7 @@ const fieldTypeOptions = [
   {value: 'TEXT', label: 'Text'},
   {value: 'NUMBER', label: 'Zahl'},
   {value: 'DATE', label: 'Datum'},
+  {value: 'BIRTH_DATE', label: 'Geburtsdatum'},
   {value: 'BOOLEAN', label: 'Ja/Nein'},
   {value: 'ENUM', label: 'Auswahl'},
   {value: 'AGE', label: 'Alter (berechnet)'},

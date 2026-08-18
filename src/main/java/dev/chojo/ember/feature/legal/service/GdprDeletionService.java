@@ -28,7 +28,7 @@ import static org.slf4j.LoggerFactory.getLogger;
  * orchestrator that resolves the identity, runs the engine, and handles the few side effects that
  * sit outside the relational schema (avatar files on disk, account row finalization).
  *
- * <p>The hand-coded SQL queries from the previous implementation have been removed — the source
+ * <p>The hand-coded SQL queries from the previous implementation have been removed - the source
  * of truth for what gets deleted, anonymised, or retained is the tracking JSON.
  */
 @Singleton
@@ -56,7 +56,7 @@ public class GdprDeletionService {
         try {
             t = DataTrackingLoader.loadFromClasspath();
         } catch (IOException e) {
-            log.warn("Could not load data_tracking.json — GDPR deletion engine will be a no-op", e);
+            log.warn("Could not load data_tracking.json - GDPR deletion engine will be a no-op", e);
             t = DataTrackingLoader.empty();
         }
         this.engine = new GenericGdprDeleter(t);

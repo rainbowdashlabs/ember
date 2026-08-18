@@ -113,7 +113,7 @@ public class InventoryCheckService {
             if (existingLock.get().lockedBy() != lockedBy) {
                 throw new ConflictResponse("Member is already being checked by another user");
             }
-            // Same user already holds the lock — continue the check
+            // Same user already holds the lock - continue the check
         } else {
             // Release any other lock held by this checker, then acquire on this member
             checkRepository.releaseLockByLocker(lockedBy);

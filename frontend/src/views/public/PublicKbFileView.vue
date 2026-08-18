@@ -80,9 +80,9 @@ function goBack() {
 useHead(computed(() => {
     if (!file.value || !stationInfo.value) return {}
     const f = file.value
-    const desc = f.description || `${f.name} — ${stationInfo.value.stationName}`
+    const desc = f.description || `${f.name} - ${stationInfo.value.stationName}`
     return {
-        title: `${f.name} — ${stationInfo.value.stationName}`,
+        title: `${f.name} - ${stationInfo.value.stationName}`,
         meta: [
             {name: 'description', content: desc},
         ],
@@ -110,7 +110,7 @@ useHead(computed(() => {
             <Spinner v-if="loading"/>
 
             <template v-else-if="file">
-                <KbFileHeader :file="file" @back="goBack"/>
+                <KbFileHeader :file="file" :station-uid="stationUid" @back="goBack"/>
                 <KbFileRenderer :file="file"
                                 :content-url="contentUrl"
                                 :youtube-embed-url="youtubeEmbedUrl"

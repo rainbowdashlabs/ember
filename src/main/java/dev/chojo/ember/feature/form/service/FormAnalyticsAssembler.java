@@ -28,7 +28,7 @@ import java.util.Optional;
  * {@code /pages/polls/forms/{id}/…}). Keeping the DTO + assembly logic here means improvements
  * to the analytics shape land in both surfaces.
  *
- * <p>Permission and form-purpose gating remain the responsibility of the calling route — this
+ * <p>Permission and form-purpose gating remain the responsibility of the calling route - this
  * helper just turns an already-authorised form id into a {@link FormAnalyticsDto} or response
  * list.
  */
@@ -52,8 +52,8 @@ public class FormAnalyticsAssembler {
     }
 
     /**
-     * Aggregated analytics for a form, including per-question answer data and — for forms
-     * marked as required — the list of eligible members who have not yet submitted a response.
+     * Aggregated analytics for a form, including per-question answer data and - for forms
+     * marked as required - the list of eligible members who have not yet submitted a response.
      */
     public FormAnalyticsDto buildAnalytics(int formId) {
         var questions = formService.findQuestions(formId);
@@ -137,7 +137,7 @@ public class FormAnalyticsAssembler {
     }
 
     /**
-     * Aggregated analytics payload — wire shape returned by the analytics endpoints.
+     * Aggregated analytics payload - wire shape returned by the analytics endpoints.
      */
     public record FormAnalyticsDto(
             int formId,

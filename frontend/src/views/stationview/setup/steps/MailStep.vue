@@ -20,6 +20,7 @@ import type {MailConfigRequest} from '@/api/stationManage'
 import {useSetupStatus} from '@/composables/useSetupStatus'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {goToNextStep} from '@/views/stationview/setup/steps'
+import {needsServerAddress} from '@/util/mailProviders'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -98,7 +99,7 @@ const {running: saving, error, run: save} = useAsyncAction(async () => {
         {{ t('setup.steps.mail.senderName') }}
         <TextInput v-model="cfg.senderName"/>
       </label>
-      <template v-if="cfg.provider === 'SMTP'">
+      <template v-if="needsServerAddress(cfg.provider)">
         <label class="block text-sm">
           {{ t('setup.steps.mail.smtpHost') }}
           <TextInput v-model="cfg.smtpHost"/>

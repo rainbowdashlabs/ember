@@ -31,5 +31,10 @@ const {t} = useI18n()
       </div>
       <ToggleInput :model-value="false" />
     </div>
+
+    <div class="space-y-1 border-t border-(--border) pt-4">
+      <div class="font-medium">{{ t('adminSettings.mailLocale') }}</div>
+      <div class="text-sm text-(--text-muted)">{{ t('adminSettings.mailLocaleHint') }}</div>
+    </div>
   </NeutralContainer>
 </template>

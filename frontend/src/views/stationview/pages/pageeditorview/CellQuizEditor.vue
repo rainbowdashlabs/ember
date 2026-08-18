@@ -15,7 +15,7 @@ import {useConfigPatch} from '@/composables/useConfigPatch'
 import type {CellEditorEmits, CellEditorStationProps} from './cellTypes'
 
 /**
- * Editor block for the QUIZ_TEASER cell. The cell stores a list of public catalog ids — the
+ * Editor block for the QUIZ_TEASER cell. The cell stores a list of public catalog ids - the
  * renderer draws one random question from them and reveals the answer on click.
  */
 const props = defineProps<CellEditorStationProps>()

@@ -17,8 +17,11 @@ import type {EventBreak, EventCategory, EventField, StationEvent} from '@/api/ev
 import {attendance, events} from '@/api'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useSession} from '@/composables/useSession'
+import {StationPermission} from '@/api/types'
 
 const {t} = useI18n()
+const {hasPermission} = useSession()
 const router = useRouter()
 const allEvents = ref<StationEvent[]>([])
 const todayEvents = ref<StationEvent[]>([])
@@ -59,21 +62,29 @@ const editingBreak = ref<EventBreak | null>(null)
 const showHolidayModal = ref(false)
 const showExportModal = ref(false)
 
+/**
+ * Attendance templates belong to the attendance action, which only whoever records it may use.
+ * Asking for them alongside the events sank the whole page for everyone else: a member opening the
+ * events page got an error instead of the station's events, because one of the calls beside them
+ * was refused.
+ */
 const {loading, error, reload} = useAsyncLoader(async () => {
-  const [ev, today, br, cats, tpl, ovFields] = await Promise.all([
+  const [ev, today, br, cats, ovFields] = await Promise.all([
     events.listEvents(),
     events.listTodayEvents(),
     events.listBreaks(),
     events.listCategories(),
-    attendance.listTemplates(),
     events.getOverviewFields(),
   ])
   allEvents.value = ev
   todayEvents.value = today
   breaks.value = br
   categories.value = cats
-  templates.value = tpl
   overviewFields.value = ovFields
+
+  templates.value = hasPermission(StationPermission.ATTENDANCE_EDIT)
+      ? await attendance.listTemplates().catch(() => [])
+      : []
 })
 
 const {

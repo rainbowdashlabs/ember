@@ -41,7 +41,7 @@ public class PageHitRepository {
     }
 
     /**
-     * Upserts a single hit bucket — adds the given hit count on top of the existing row if
+     * Upserts a single hit bucket - adds the given hit count on top of the existing row if
      * one already exists for the {@code (hour, page_id, country, referer_domain, is_bot)}
      * key. Returns silently; SADU surfaces failures as exceptions.
      */
@@ -80,7 +80,7 @@ public class PageHitRepository {
     }
 
     /**
-     * Returns the per-page hit leaderboard for a station in the given window — one row per
+     * Returns the per-page hit leaderboard for a station in the given window - one row per
      * page with summed hits and bot-hits. Sorted by total hits descending, capped by
      * {@code limit}.
      */
@@ -135,7 +135,7 @@ public class PageHitRepository {
 
     /**
      * Returns hits-per-referer-domain totals for one page in the given window. Excludes bot
-     * hits — the dashboard already ships bot referrers behind its own toggle.
+     * hits - the dashboard already ships bot referrers behind its own toggle.
      */
     public List<DimensionTotal> refererTotalsForPage(int pageId, Instant from, Instant to) {
         return query("""

@@ -76,7 +76,7 @@ public class DemoLendingSeeder implements DemoSeeder {
         inventoryRepository.createItem(partnerZelte.id(), "Z-001", "Mannschaftszelt 6x4m", null, null);
         inventoryRepository.createItem(partnerZelte.id(), "Z-002", "Faltzelt 3x3m", null, null);
 
-        // -- Request 1: APPROVED — partner lends Feuerlöscher to main station --
+        // -- Request 1: APPROVED - partner lends Feuerlöscher to main station --
         var approvedRequest = lendingService.createRequest(
                 stationId,
                 partnerStationId,
@@ -100,7 +100,7 @@ public class DemoLendingSeeder implements DemoSeeder {
                 "Partner Manager",
                 "Kein Problem, die stehen bereit. Können ab Montag abgeholt werden.");
 
-        // -- Request 2: REQUESTED — main station wants Schläuche from partner --
+        // -- Request 2: REQUESTED - main station wants Schläuche from partner --
         var requestedRequest = lendingService.createRequest(
                 stationId,
                 partnerStationId,
@@ -117,7 +117,7 @@ public class DemoLendingSeeder implements DemoSeeder {
                 "Admin",
                 "Für den Kreiswettbewerb bräuchten wir 3 zusätzliche Schläuche.");
 
-        // -- Request 3: RETURNED — completed lending from last month --
+        // -- Request 3: RETURNED - completed lending from last month --
         var returnedRequest = lendingService.createRequest(
                 stationId,
                 partnerStationId,
@@ -148,7 +148,7 @@ public class DemoLendingSeeder implements DemoSeeder {
         inventoryRepository.createItem(walkieTalkies.id(), "FG-005", "Motorola DP3441e", null, null);
         inventoryRepository.createItem(walkieTalkies.id(), "FG-006", "Motorola DP3441e", null, null);
 
-        // -- Request 4 (INCOMING): partner requests Funkgeräte from main station (LENT — currently out) --
+        // -- Request 4 (INCOMING): partner requests Funkgeräte from main station (LENT - currently out) --
         var lentRequest = lendingService.createRequest(
                 partnerStationId,
                 stationId,
@@ -168,7 +168,7 @@ public class DemoLendingSeeder implements DemoSeeder {
                 "Könnten wir uns 2 Funkgeräte für unser Wochenende ausleihen?");
         lendingService.sendMessage(lentRequest.id(), stationId, createdBy, "Admin", "Klar, kommt sie einfach abholen.");
 
-        // -- Request 5 (INCOMING): partner requests Funkgeräte from main station (REQUESTED — pending) --
+        // -- Request 5 (INCOMING): partner requests Funkgeräte from main station (REQUESTED - pending) --
         var incomingPending = lendingService.createRequest(
                 partnerStationId,
                 stationId,
@@ -184,7 +184,7 @@ public class DemoLendingSeeder implements DemoSeeder {
                 "Partner Manager",
                 "Für unsere Übung am übernächsten Wochenende bräuchten wir 3 Funkgeräte.");
 
-        // -- Request 6 (INCOMING): partner wants Zelte — APPROVED, about to be picked up --
+        // -- Request 6 (INCOMING): partner wants Zelte - APPROVED, about to be picked up --
         var aboutToLend = lendingService.createRequest(
                 partnerStationId,
                 stationId,
@@ -203,7 +203,7 @@ public class DemoLendingSeeder implements DemoSeeder {
         lendingService.sendMessage(
                 aboutToLend.id(), stationId, createdBy, "Admin", "Geht klar, könnt ihr morgen abholen.");
 
-        // -- Request 7 (INCOMING): OVERDUE — partner has items past return date --
+        // -- Request 7 (INCOMING): OVERDUE - partner has items past return date --
         var overdueRequest = lendingService.createRequest(
                 partnerStationId,
                 stationId,
