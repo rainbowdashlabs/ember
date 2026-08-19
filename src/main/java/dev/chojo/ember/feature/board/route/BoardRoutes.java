@@ -574,10 +574,14 @@ public class BoardRoutes implements Routes {
 
     public record LaneRequest(Integer id, String name, String color) {}
 
+    /**
+     * @param config the field's settings as an object. Which record they are follows from the field
+     *               type beside them, so they are bound once that is known rather than while the
+     *               request is read.
+     */
     public record FieldRequest(String name, BoardFieldType fieldType, JsonNode config) {
         public BoardFieldConfig parsedConfig() {
-            if (config == null || config.isNull()) return BoardFieldConfig.empty(fieldType);
-            return BoardFieldConfig.parse(fieldType, config.toString());
+            return BoardFieldConfig.parse(fieldType, config);
         }
     }
 
