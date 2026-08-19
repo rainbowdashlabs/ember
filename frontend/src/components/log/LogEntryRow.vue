@@ -29,17 +29,24 @@ interface Tone {
   badge: string
 }
 
-const QUIET: Tone = {border: 'border-l-(--border)', badge: 'bg-(--bg-accent) text-(--text-muted)'}
+/**
+ * The severity colours, as the level's own colour on a tint of it rather than as a filled block.
+ *
+ * A filled badge needs a foreground that contrasts with it, which is a different colour in each
+ * theme and was hardcoded to white and black here. Colouring the text instead leaves the surface to
+ * the theme, so both work without either being written down.
+ */
+const TRACE_TONE: Tone = {border: 'border-l-(--border)', badge: 'text-(--text-muted)'}
 
 const LEVEL_TONES: Record<string, Tone> = {
-  ERROR: {border: 'border-l-(--error)', badge: 'bg-(--error) text-white'},
-  WARN: {border: 'border-l-(--warning)', badge: 'bg-(--warning) text-black'},
-  INFO: {border: 'border-l-(--accent)', badge: 'bg-(--accent) text-white'},
-  DEBUG: QUIET,
-  TRACE: QUIET,
+  ERROR: {border: 'border-l-error', badge: 'bg-error/15 text-error'},
+  WARN: {border: 'border-l-warning', badge: 'bg-warning/15 text-warning'},
+  INFO: {border: 'border-l-(--text)', badge: 'text-(--text)'},
+  DEBUG: {border: 'border-l-secondary', badge: 'bg-secondary/15 text-secondary'},
+  TRACE: TRACE_TONE,
 }
 
-const tone = computed<Tone>(() => LEVEL_TONES[props.entry.level] ?? QUIET)
+const tone = computed<Tone>(() => LEVEL_TONES[props.entry.level] ?? TRACE_TONE)
 
 const when = computed(() => new Date(props.entry.loggedAt).toLocaleString('de-DE'))
 
@@ -50,13 +57,15 @@ const shortLogger = computed(() => props.entry.logger.split('.').pop() ?? props.
 <template>
   <div :class="tone.border" class="rounded-lg border border-l-4 border-(--border) p-2 space-y-1">
     <div class="flex items-baseline gap-2 flex-wrap text-xs text-(--text-muted)">
-      <span :class="tone.badge" class="rounded px-1.5 py-0.5 font-semibold">{{ entry.level }}</span>
+      <span :class="tone.badge" class="w-14 shrink-0 rounded px-1.5 py-0.5 text-center font-semibold">
+        {{ entry.level }}
+      </span>
       <span>{{ when }}</span>
       <span :title="entry.logger">{{ shortLogger }}</span>
       <span class="font-mono">{{ entry.thread }}</span>
       <button
           v-if="entry.throwable"
-          class="flex items-center gap-1 rounded border border-(--error) px-1.5 py-0.5 font-semibold text-(--error) hover:bg-(--error) hover:text-white"
+          class="flex items-center gap-1 rounded border border-error px-1.5 py-0.5 font-semibold text-error hover:bg-error/15"
           type="button"
           @click="expanded = !expanded"
       >
