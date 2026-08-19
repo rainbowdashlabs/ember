@@ -304,6 +304,37 @@ jobs:
       - name: Check locale encoding
         run: ./gradlew spotlessFrontendLocalesCheck
 
+  # A database that has run a patch is never offered it again, so a patch may not change once it
+  # exists on main. Every test builds its database from nothing, which is the one path where such
+  # an edit is invisible: the from-nothing database runs the edited file and looks correct, while
+  # every running instance skips it and silently lacks whatever was added.
+  verify-migrations-frozen:
+    runs-on: ubuntu-latest
+    name: Verify Migrations Are Frozen
+    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Check that no existing migration was changed
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+        run: |
+          base=$(git merge-base "$BASE_SHA" HEAD)
+          touched=$(git diff --name-status --diff-filter=MDR "$base" HEAD -- \
+            'src/main/resources/database/postgresql/**/patch_*.sql' \
+            'src/main/resources/database/postgresql/**/setup.sql')
+          if [ -n "$touched" ]; then
+            echo "These migrations already exist and were changed or removed:"
+            echo "$touched"
+            echo
+            echo "A database that has applied a patch is never offered it again, so this change"
+            echo "would reach new databases only. Restore the file and add a new patch instead,"
+            echo "raising src/main/resources/database/version to match."
+            exit 1
+          fi
+          echo "No existing migration was changed."
+
   verify-docker:
     runs-on: ubuntu-latest
     name: Verify Docker Build
