@@ -50,6 +50,8 @@ services:
   ember_frontend:
     container_name: ember_demo_frontend
     image: ghcr.io/rainbowdashlabs/ember-frontend:latest
+    environment:
+      NUXT_BACKEND_URL: http://ember:8080
     labels:
       traefik.enable: true
       traefik.http.routers.demo_ember_web.rule: "Host(`demo.ember-panel.de`)"
@@ -98,6 +100,8 @@ services:
   ember_dev_frontend:
     container_name: ember_demo_dev_frontend
     image: ghcr.io/rainbowdashlabs/ember-frontend:dev
+    environment:
+      NUXT_BACKEND_URL: http://ember_dev:8080
     labels:
       traefik.enable: true
       traefik.http.routers.demo_dev_ember_web.rule: "Host(`dev.ember-panel.de`)"
@@ -146,6 +150,8 @@ services:
   ember_snapshot_frontend:
     container_name: ember_demo_snapshot_frontend
     image: ghcr.io/rainbowdashlabs/ember-frontend:snapshot
+    environment:
+      NUXT_BACKEND_URL: http://ember_snapshot:8080
     labels:
       traefik.enable: true
       traefik.http.routers.demo_snapshot_ember_web.rule: "Host(`snapshot.ember-panel.de`)"

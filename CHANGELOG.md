@@ -1,5 +1,13 @@
 # Changelog
 
+## v26.11.11
+
+### Fixes
+
+- **The link for changing your address opens a page.** Confirming a new email address leads somewhere that says what happened, and it says which of the two confirmations is still outstanding rather than reporting the change as done after the first one.
+- **A selection field shows the choices it was given.** The options of a waiting list field appear in the list, come back when it is edited, and fill the dropdown on the public form and on an entry.
+- **The legal pages open when the address is entered directly.** `/privacy`, `/terms` and `/imprint` load whether they are reached through a link or opened fresh, and they say so plainly if the text cannot be fetched instead of failing outright. The shipped deployment files now set `NUXT_BACKEND_URL`, which an installation with its own files must set too.
+
 ## v26.11.10
 
 ### New Features
