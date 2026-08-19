@@ -2954,9 +2954,13 @@ volumes:
             subtitle: 'Systemweite Auswertungen und Zahlen.',
             whatShown: 'Was zeigen die Statistiken?',
             whatShownText: 'Hier siehst du Zahlen über die gesamte Plattform:',
-            emailSystem: 'E-Mail System - Wie viele E-Mails heute, insgesamt und in der Warteschlange sind.',
-            platform: 'Plattform - Anzahl der Wachen, Konten, Mitglieder, aktiven Sitzungen.',
-            dataStore: 'Datenbestand - Termine, Anwesenheiten, Inventar-Artikel, Profilfelder.',
+            emailSystem: 'E-Mail System - Wie viele E-Mails heute, insgesamt und in der Warteschlange sind, '
+                + 'und wie viele Zustell-Sperren aktuell hinterlegt sind.',
+            platform: 'Plattform - Anzahl der Wachen, Konten, Mitglieder, aktiven Sitzungen und Konten mit '
+                + 'Zwei-Faktor-Anmeldung.',
+            dataStore: 'Datenbestand - Termine, Anmeldungen, Anwesenheiten, Inventar-Artikel, Profilfelder.',
+            charts: 'Aktivität und Status - Verläufe der letzten 30 Tage sowie die Verteilung von '
+                + 'E-Mail-, Anwesenheits- und Einrichtungsstatus.',
             tip: 'Die Statistiken werden automatisch aktualisiert, wenn sich Daten ändern.',
         },
         notes: {

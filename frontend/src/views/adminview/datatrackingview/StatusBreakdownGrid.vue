@@ -18,9 +18,9 @@ const {t} = useI18n()
 </script>
 
 <template>
-  <div class="contents">
+  <div class="space-y-4">
     <SubHeader>{{ t('adminDataTracking.statusBreakdown') }}</SubHeader>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
       <NeutralContainer>
         <div class="font-semibold mb-2">{{ t('adminDataTracking.stationTransfer') }}</div>
         <div class="flex items-center gap-2 text-sm flex-wrap">

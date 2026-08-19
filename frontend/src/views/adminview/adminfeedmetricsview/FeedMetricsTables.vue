@@ -21,7 +21,7 @@ const {t, n} = useI18n()
 </script>
 
 <template>
-  <div class="contents">
+  <div class="space-y-4">
     <NeutralContainer class="space-y-2">
       <SectionHeader>{{ t('feedMetrics.statusBreakdown') }}</SectionHeader>
       <table v-if="statusBreakdown.length > 0" class="w-full text-sm">

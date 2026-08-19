@@ -6,7 +6,7 @@
 
 - **The instance log can be read from the application.** Under Monitoring the log of the running instance is searched by message or by logger and narrowed to the severities you want, without reaching the server. It is kept in the database only when an operator switches that on under Settings, where the severity and how many days to keep are chosen; the console and the log file always hold everything regardless.
 - **A mail overview says where the post stands.** Under Monitoring there is now a page for what became of the email: how much waits, how much a provider accepted, what it reported back afterwards, and which provider each waiting message is standing at. Every provider shows what it has sent today against its allowance.
-- **A provider a domain refuses is not asked again.** When a receiving domain turns away the sending server rather than the message, that pairing is remembered and the provider is skipped for that domain instead of spending an allowance on a refusal that is certain. The block lapses on its own after a week, and the mail overview names every one that stands.
+- **A provider a domain refuses is not asked again.** When a receiving domain turns away the sending server rather than the message, that pairing is remembered and the provider is skipped for that domain instead of spending an allowance on a refusal that is certain. The block lapses on its own after a week, and the mail overview names every one that stands and lets you lift it by hand once the matter is settled.
 - **Stay signed in on your own device.** The login screen offers to keep you signed in, and only then does the session run for the long duration. Without it a session ends after an hour, which is what a shared or borrowed machine should get. It says nothing about the second factor: that stays a separate choice.
 
 ### Improvements
@@ -15,6 +15,12 @@
 - **The log file no longer grows without end.** It rolls at 100 MB, keeps two weeks or 2 GB of history, and compresses what it rolls, instead of writing a single file per start that nothing ever removed.
 - **Sessions may last up to thirty days.** An operator sets how long a session runs on a device somebody vouched for, and separately how long it runs otherwise, under Settings → Security. Signing in over and over frustrates more than it protects, and signing out or changing a password still ends every session at once.
 - **The consent text has room to be read.** The window asking to agree to data processing is wider on the login screen and shows more of the document at a time, rather than presenting it in a column the width of a password field.
+- **The platform statistics count more.** Mail on its way out, delivery blocks that stand, accounts secured with a second factor, upcoming appointments and their registrations all have a figure now, and two new charts show registrations across the last thirty days and how attendance was answered overall.
+
+### Fixes
+
+- **Chart headings and legends stay clear of the chart.** A heading, a legend and the label on the value axis each keep their own place wherever a chart shows them together.
+- **Panels keep an even distance on the statistics page.** Every block on the page is separated the same way, including the first one under each heading.
 
 ## v26.11.9
 
