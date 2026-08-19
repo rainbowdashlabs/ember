@@ -32,7 +32,7 @@ jobs:
           ignore-checks: "Verify Docker Build"
           running-workflow-name: 'Deploy Docker Images (${{ matrix.name }})'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-          allowed-conclusions: success
+          allowed-conclusions: success,skipped
       - uses: actions/checkout@v7
       - uses: gradle/actions/wrapper-validation@v6
         if: matrix.name == 'backend'
