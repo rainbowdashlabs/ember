@@ -56,6 +56,10 @@ jobs:
     runs-on: ubuntu-latest
     name: Verify Service Tests
     needs: verify-build-backend
+    # Only to catch a job that has genuinely wedged, which would otherwise sit for six hours. It is
+    # far above anything a slow run has taken, on purpose: a run that is merely slow should finish
+    # and go green rather than turn red and need starting again by hand.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - name: Set up JDK
@@ -63,17 +67,15 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
-      # The packages are large and come from a mirror that is occasionally slow: the same step has
-      # taken twenty seconds and ten minutes on consecutive runs. Keeping the downloads means a
-      # good run does not reach for the mirror at all, and the timeouts mean a bad one gives up
-      # rather than spending a quarter of an hour trying.
+      # The packages are large and come from mirrors that are occasionally slow: the same step has
+      # taken twenty seconds and ten minutes on consecutive runs. Keeping the downloads means a run
+      # that hits the cache does not reach for a mirror at all.
       #
       # The key is the versions the packages resolve to rather than their names. Keyed by name the
       # cache would be written once and never again, because a hit does not save: the first time
       # Ubuntu moved a package the entry would go stale and quietly stop helping.
       - name: Work out which versions the tools resolve to
         id: tools
-        timeout-minutes: 3
         run: |
           sudo apt-get update
           versions=$(apt-cache policy libreoffice-core libreoffice-impress pandoc webp qpdf \
@@ -87,7 +89,6 @@ jobs:
             ~/tool-cache/typst
           key: external-tools-${{ runner.os }}-${{ steps.tools.outputs.key }}-typst-${{ env.TYPST_VERSION }}
       - name: Install external tools
-        timeout-minutes: 6
         env:
           PACKAGES: libreoffice-core libreoffice-impress pandoc webp qpdf
         run: |
@@ -107,7 +108,9 @@ jobs:
           sudo apt-get install -y --no-install-recommends $PACKAGES
 
           if [ ! -x ~/tool-cache/typst/typst ]; then
-            curl -fsSL --retry 3 --retry-delay 5 --max-time 180 \
+            # Aborts on a stalled connection, not on a slow one: below a kilobyte a second for a
+            # minute is a download that has stopped, while a slow one should be left to finish.
+            curl -fsSL --retry 3 --retry-delay 5 --speed-limit 1000 --speed-time 60 \
               "https://github.com/typst/typst/releases/download/v${TYPST_VERSION}/typst-x86_64-unknown-linux-musl.tar.xz" \
               | tar -xJ -C ~/tool-cache/typst --strip-components=1 typst-x86_64-unknown-linux-musl/typst
           fi
