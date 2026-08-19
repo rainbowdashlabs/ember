@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.legal.entity.LegalDocumentType;
 import dev.chojo.ember.feature.legal.service.BrowserStorageService;
 import dev.chojo.ember.feature.legal.service.LegalDocumentService;
 import dev.chojo.ember.feature.legal.service.LegalImportService;
+import dev.chojo.ember.feature.mail.repository.MailProviderBlockRepository;
 import dev.chojo.ember.feature.mail.route.MailFallbackPayload;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailDashboardService;
@@ -109,6 +110,7 @@ public class AdminSettingsRoutes implements Routes {
     private final WebhookKeyService webhookKeyService;
     private final MailDashboardService dashboardService;
     private final ApplicationLogRepository logRepository;
+    private final MailProviderBlockRepository blockRepository;
     private final LegalDocumentService documentService;
 
     @Inject
@@ -121,9 +123,11 @@ public class AdminSettingsRoutes implements Routes {
             MailLocaleService mailLocaleService,
             WebhookKeyService webhookKeyService,
             MailDashboardService dashboardService,
-            ApplicationLogRepository logRepository) {
+            ApplicationLogRepository logRepository,
+            MailProviderBlockRepository blockRepository) {
         this.dashboardService = dashboardService;
         this.logRepository = logRepository;
+        this.blockRepository = blockRepository;
         this.settingRepository = settingRepository;
         this.logoFragmentService = logoFragmentService;
         this.conf = conf;
@@ -264,6 +268,7 @@ public class AdminSettingsRoutes implements Routes {
                 InstancePermission.ADMINISTRATOR,
                 StepUpCategory.INSTANCE_CONFIG);
         routes.get(prefix + "/admin/config/mailing/dashboard", this::mailDashboard, InstancePermission.ADMINISTRATOR);
+        routes.delete(prefix + "/admin/config/mailing/blocks", this::liftMailBlock, InstancePermission.ADMINISTRATOR);
         routes.get(prefix + "/admin/monitoring/log", this::applicationLog, InstancePermission.ADMINISTRATOR);
         routes.delete(prefix + "/admin/monitoring/log", this::clearApplicationLog, InstancePermission.ADMINISTRATOR);
         routes.get(prefix + "/admin/config/logging", this::getLoggingConfig, InstancePermission.ADMINISTRATOR);
@@ -795,6 +800,17 @@ public class AdminSettingsRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MailDashboard.class)))
     private void mailDashboard(Context ctx) {
         ctx.json(dashboardService.forOwner(null));
+    }
+
+    /**
+     * Lifts a block by hand, for when an operator knows the relay has been taken off the list and
+     * does not want to wait out the week.
+     */
+    private void liftMailBlock(Context ctx) {
+        var provider = MailProviderType.fromName(ctx.queryParam("provider"))
+                .orElseThrow(() -> new BadRequestResponse("Unknown mail provider: " + ctx.queryParam("provider")));
+        blockRepository.lift(null, provider, ctx.queryParam("domain"));
+        ctx.status(HttpStatus.NO_CONTENT);
     }
 
     /**

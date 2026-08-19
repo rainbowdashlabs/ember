@@ -19,6 +19,7 @@ import {
   getStationMailDashboard,
   getStationProviders,
   getStationWebhook,
+  liftStationBlock,
   regenerateStationWebhookKey,
   saveStationSigningSecret,
   testStationProvider,
@@ -147,7 +148,7 @@ async function test(position: number, recipient: string) {
           />
         </template>
       </MailProviderChain>
-      <MailDashboard :load="getStationMailDashboard"/>
+      <MailDashboard :load="getStationMailDashboard" :lift="liftStationBlock"/>
       <MailProviderFreeTiers/>
       <ClearProvidersModal v-model="showClearModal" :clearing="clearing" @confirm="clearProviders"/>
     </div>

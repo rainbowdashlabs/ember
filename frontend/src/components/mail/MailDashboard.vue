@@ -18,7 +18,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import MailQueueRow from '@/components/mail/MailQueueRow.vue'
 import MailProviderStanding from '@/components/mail/MailProviderStanding.vue'
-import type {MailDashboard} from '@/api/mailProviders'
+import type {MailDashboard, ProviderBlock} from '@/api/mailProviders'
 
 /**
  * What has become of the post.
@@ -29,6 +29,8 @@ import type {MailDashboard} from '@/api/mailProviders'
  */
 const props = defineProps<{
   load: () => Promise<MailDashboard>
+  /** Lifts a block by hand. Absent where nobody may. */
+  lift?: (provider: string, domain: string) => Promise<void>
 }>()
 
 const {t} = useI18n()
@@ -49,6 +51,21 @@ async function reload() {
     error.value = t('common.error')
   } finally {
     loading.value = false
+  }
+}
+
+const lifting = ref<string | null>(null)
+
+async function doLift(block: ProviderBlock) {
+  if (!props.lift) return
+  lifting.value = `${block.provider}-${block.recipientDomain}`
+  try {
+    await props.lift(block.provider, block.recipientDomain)
+    await reload()
+  } catch {
+    error.value = t('common.error')
+  } finally {
+    lifting.value = null
   }
 }
 
@@ -111,8 +128,13 @@ const visible = computed(() => {
         <MutedText tag="p" size="sm">{{ t('mailDashboard.blocksHint') }}</MutedText>
         <div v-for="block in data.blocks" :key="`${block.provider}-${block.recipientDomain}`"
              class="rounded-lg border border-(--error) p-3 space-y-1">
-          <div class="text-sm font-medium">
-            {{ t('mailDashboard.blockRow', {provider: block.provider, domain: block.recipientDomain}) }}
+          <div class="flex items-start justify-between gap-2 flex-wrap">
+            <div class="text-sm font-medium">
+              {{ t('mailDashboard.blockRow', {provider: block.provider, domain: block.recipientDomain}) }}
+            </div>
+            <SecondaryButton v-if="props.lift" :disabled="lifting !== null" @click="doLift(block)">
+              {{ t('mailDashboard.liftBlock') }}
+            </SecondaryButton>
           </div>
           <div class="text-xs text-(--text-muted)">
             {{ t('mailDashboard.blockUntil', {when: new Date(block.expiresAt).toLocaleString('de-DE')}) }}

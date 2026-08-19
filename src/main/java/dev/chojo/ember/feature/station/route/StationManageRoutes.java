@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
+import dev.chojo.ember.feature.mail.repository.MailProviderBlockRepository;
 import dev.chojo.ember.feature.mail.repository.ProviderSecretRepository;
 import dev.chojo.ember.feature.mail.repository.StationMailProviderRepository;
 import dev.chojo.ember.feature.mail.route.MailFallbackPayload;
@@ -83,6 +84,7 @@ public class StationManageRoutes implements Routes {
     private final Api apiConfig;
     private final EmailService emailService;
     private final MailDashboardService dashboardService;
+    private final MailProviderBlockRepository blockRepository;
     private final AuthService authService;
     private final StationImportService importService;
     private final StationLocationService locationService;
@@ -100,6 +102,7 @@ public class StationManageRoutes implements Routes {
             Api apiConfig,
             EmailService emailService,
             MailDashboardService dashboardService,
+            MailProviderBlockRepository blockRepository,
             AuthService authService,
             StationImportService importService,
             StationLocationService locationService,
@@ -114,6 +117,7 @@ public class StationManageRoutes implements Routes {
         this.apiConfig = apiConfig;
         this.emailService = emailService;
         this.dashboardService = dashboardService;
+        this.blockRepository = blockRepository;
         this.authService = authService;
         this.importService = importService;
         this.locationService = locationService;
@@ -152,6 +156,7 @@ public class StationManageRoutes implements Routes {
                 this::testMailProvider,
                 StationPermission.STATION_MAIL);
         routes.get(prefix + "/station/manage/mail/dashboard", this::mailDashboard, StationPermission.STATION_MAIL);
+        routes.delete(prefix + "/station/manage/mail/blocks", this::liftMailBlock, StationPermission.STATION_MAIL);
         routes.post(prefix + "/station/manage/mail/test-mail", this::sendTestMail, StationPermission.STATION_MAIL);
         routes.get(prefix + "/station/manage/modules", this::getDisabledModules, StationPermission.STATION_MODULES);
         routes.put(prefix + "/station/manage/modules", this::setDisabledModules, StationPermission.STATION_MODULES);
@@ -894,6 +899,17 @@ public class StationManageRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MailDashboard.class)))
     private void mailDashboard(Context ctx) {
         ctx.json(dashboardService.forOwner(UserSession.from(ctx).stationId()));
+    }
+
+    /**
+     * Lifts a block by hand, for when the relay has been taken off the list and nobody wants to
+     * wait out the week.
+     */
+    private void liftMailBlock(Context ctx) {
+        var provider = MailProviderType.fromName(ctx.queryParam("provider"))
+                .orElseThrow(() -> new BadRequestResponse("Unknown mail provider: " + ctx.queryParam("provider")));
+        blockRepository.lift(UserSession.from(ctx).stationId(), provider, ctx.queryParam("domain"));
+        throw new NoContentResponse();
     }
 
     /**

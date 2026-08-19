@@ -181,6 +181,18 @@ export interface MailDashboard {
     blocks: ProviderBlock[]
 }
 
+/**
+ * Lifts a block by hand, for when the relay is known to be off the list again and nobody wants to
+ * wait out the week the block would otherwise stand.
+ */
+export async function liftInstanceBlock(provider: string, domain: string): Promise<void> {
+    await client.delete('/admin/config/mailing/blocks', {params: {provider, domain}})
+}
+
+export async function liftStationBlock(provider: string, domain: string): Promise<void> {
+    await client.delete('/station/manage/mail/blocks', {params: {provider, domain}})
+}
+
 export async function getInstanceMailDashboard(): Promise<MailDashboard> {
     const res = await client.get<MailDashboard>('/admin/config/mailing/dashboard')
     return res.data
