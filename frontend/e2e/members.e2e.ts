@@ -212,6 +212,29 @@ test.describe('Members', () => {
     })
 
     /**
+     * A field of group scope is listed at its group and nowhere else, so the group it was made for
+     * has to survive being saved. It travels as one opaque lump of configuration, which no type on
+     * either side describes, so only walking both ends says whether it arrived.
+     */
+    test('a field made for a group is still at that group afterwards', async ({managerPage: page}) => {
+        const field = unique('Gruppenfeld')
+
+        await page.goto('/station/members/config')
+        await page.getByRole('button', {name: 'Gruppenspezifisch'}).click()
+        await page.getByRole('combobox').first().selectOption({index: 1})
+        await page.getByRole('button', {name: 'Feld hinzufügen'}).first().click()
+        await page.getByPlaceholder('Name des Feldes').fill(field)
+        await page.getByRole('button', {name: 'Speichern'}).click()
+
+        await expect(page.getByText(field).first()).toBeVisible()
+
+        await page.reload()
+        await page.getByRole('button', {name: 'Gruppenspezifisch'}).click()
+        await page.getByRole('combobox').first().selectOption({index: 1})
+        await expect(page.getByText(field).first()).toBeVisible()
+    })
+
+    /**
      * A station arriving with its members in a spreadsheet imports them. The story walks the whole
      * wizard and then looks for the imported person in the member list, which is the only place
      * that says the import did anything.

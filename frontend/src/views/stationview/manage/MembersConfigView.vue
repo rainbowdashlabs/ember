@@ -9,14 +9,14 @@ import {useI18n} from 'vue-i18n'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
 import ProfileFieldModal from './membersconfig/FieldModal.vue'
+import GroupSelect from './membersconfig/GroupSelect.vue'
 import FieldsPanel from './membersconfig/FieldsPanel.vue'
+import UnassignedGroupFields from './membersconfig/UnassignedGroupFields.vue'
 import type {FieldTemplate} from './membersconfig/fieldTemplates'
 import {DATE_FIELD_TYPES, FieldTypes, parseFieldConfig, type ProfileField} from '@/api/profileFields'
 import type {MemberGroup} from '@/api/types'
@@ -49,6 +49,14 @@ const currentFields = computed(() => {
     return cfg.groupId === Number(selectedGroupId.value)
   })
 })
+
+/**
+ * Group fields that name no group. A field of this scope is only ever shown at its group, so one
+ * without belongs nowhere and would stay out of reach. Opening it and saving puts it in the group
+ * chosen above.
+ */
+const unassignedGroupFields = computed(() => allFields.value.filter(
+    f => f.scope === 'GROUP' && !parseFieldConfig(f.config).groupId))
 
 const dateFields = computed(() => currentFields.value.filter(f => DATE_FIELD_TYPES.includes(f.fieldType ?? '')))
 
@@ -200,14 +208,13 @@ async function applyTemplate(template: FieldTemplate) {
       <div v-if="!loading" class="space-y-6">
         <TabBar v-model="activeTab" :tabs="tabs"/>
 
-        <!-- Group selector for GROUP tab -->
-        <div v-if="activeTab === 'GROUP'" class="space-y-2">
-          <FieldLabel>{{ t('membersConfig.selectGroup') }}</FieldLabel>
-          <SelectInput v-model="selectedGroupId" class="w-full">
-            <option disabled value="">{{ t('membersConfig.selectGroupPlaceholder') }}</option>
-            <option v-for="group in availableGroups" :key="group.id" :value="String(group.id)">{{ group.name }}</option>
-          </SelectInput>
-        </div>
+        <GroupSelect v-if="activeTab === 'GROUP'" v-model="selectedGroupId" :groups="availableGroups"/>
+
+        <UnassignedGroupFields
+            v-if="activeTab === 'GROUP' && selectedGroupId && unassignedGroupFields.length > 0"
+            :fields="unassignedGroupFields"
+            @edit="openEditField"
+        />
 
         <FieldsPanel
             v-if="activeTab !== 'GROUP' || selectedGroupId"
