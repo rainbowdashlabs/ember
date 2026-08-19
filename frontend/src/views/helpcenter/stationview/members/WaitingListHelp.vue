@@ -7,6 +7,7 @@
 import { useI18n } from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
+import BulletList from '@/components/typography/BulletList.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -59,6 +60,16 @@ const { t } = useI18n()
     <!-- Entry list with status badges -->
     <HelpSection :title="t('helpCenter.waitingList.entriesTitle')">
       <p>{{ t('helpCenter.waitingList.entriesText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.waitingList.agesTitle')">
+      <p>{{ t('helpCenter.waitingList.agesText') }}</p>
+      <BulletList>
+        <li>{{ t('helpCenter.waitingList.agesField') }}</li>
+        <li>{{ t('helpCenter.waitingList.agesRegister') }}</li>
+        <li>{{ t('helpCenter.waitingList.agesJoin') }}</li>
+      </BulletList>
+      <p class="mt-2 text-sm">{{ t('helpCenter.waitingList.agesConvert') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.waitingList.statusTitle')">

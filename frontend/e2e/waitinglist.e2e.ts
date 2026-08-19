@@ -82,6 +82,50 @@ test.describe('Waiting lists', () => {
     })
 
     /**
+     * A list that knows where the date of birth is can work with ages. The field carries that by
+     * its type, so an ordinary date field becomes the birth date without the answers moving.
+     */
+    test('a date field becomes the date of birth and the list sorts by it', async ({managerPage: page}) => {
+        const fieldName = `Geburtstag-${Date.now()}`
+
+        await page.goto('/station/members/waiting-lists')
+        await page.getByText('Schnupperstunde').first().click()
+        await page.waitForURL(/\/station\/members\/waiting-lists\/(\d+)/)
+        const id = page.url().match(/waiting-lists\/(\d+)/)?.[1]
+
+        await page.goto(`/station/members/waiting-lists/${id}/fields`)
+        await page.getByRole('button', {name: 'Feld hinzufügen'}).click()
+        await page.getByPlaceholder('Name des Feldes').fill(fieldName)
+        await page.getByRole('combobox').first().selectOption('BIRTH_DATE')
+        await page.getByRole('button', {name: 'Speichern'}).click()
+
+        await page.reload()
+        await expect(page.getByText('Geburtsdatum').first()).toBeVisible()
+
+        // The list opens with a column of its own for it, sortable like the rest.
+        await page.goto(`/station/members/waiting-lists/${id}`)
+        await expect(page.getByRole('columnheader', {name: new RegExp(fieldName)})).toBeVisible()
+        await page.getByRole('columnheader', {name: 'Vorname'}).click()
+        await expect(page.getByRole('columnheader', {name: 'Vorname'})).toHaveAttribute('aria-sort', 'ascending')
+    })
+
+    /** One is what makes the age findable without being told where it is; two would be a guess. */
+    test('a list takes only one date of birth field', async ({managerPage: page}) => {
+        await page.goto('/station/members/waiting-lists')
+        await page.getByText('Schnupperstunde').first().click()
+        await page.waitForURL(/\/station\/members\/waiting-lists\/(\d+)/)
+        const id = page.url().match(/waiting-lists\/(\d+)/)?.[1]
+
+        await page.goto(`/station/members/waiting-lists/${id}/fields`)
+        await page.getByRole('button', {name: 'Feld hinzufügen'}).click()
+        await page.getByPlaceholder('Name des Feldes').fill(`Zweites-${Date.now()}`)
+        await page.getByRole('combobox').first().selectOption('BIRTH_DATE')
+        await page.getByRole('button', {name: 'Speichern'}).click()
+
+        await expect(page.getByText(/already has a date of birth field|Fehler/)).toBeVisible()
+    })
+
+    /**
      * A field offering a choice is only worth having if the choices come back. They are saved as
      * an object and were read as though they were text, which left every such field looking empty
      * everywhere it was shown while the answers sat in the database intact.

@@ -1,5 +1,15 @@
 # Changelog
 
+## v26.11.12
+
+### New Features
+
+- **A waiting list can work with ages.** A date field set to the type date of birth gives the list an age to go by: it can refuse a registration below a minimum age, and it marks everyone still under the age for joining so they are told apart from those merely waiting their turn. Those entries can be hidden while the list is worked through. An existing date field becomes the date of birth without losing the answers already given.
+
+### Improvements
+
+- **The waiting list shows the date of birth in its own column and sorts by any of them.** Every column heading sorts, the list still opens on the highest score, and a column picked afterwards starts at the top of its own order.
+
 ## v26.11.11
 
 ### Improvements

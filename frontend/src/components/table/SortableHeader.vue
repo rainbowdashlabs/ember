@@ -45,7 +45,6 @@ const ariaSort = computed<AriaSort>(() => {
           :label="t('tableFilter.sortBy', {column: label})"
           :class="active ? 'text-primary' : 'text-(--text-muted) hover:text-primary'"
           class="-my-2"
-          @click.stop="emit('sort', sortKey)"
       />
     </span>
   </Th>

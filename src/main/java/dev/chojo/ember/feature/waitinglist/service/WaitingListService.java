@@ -32,6 +32,7 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldType;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvite;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
+import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -121,7 +122,9 @@ public class WaitingListService {
             Integer testingGroupId,
             Integer joinGroupId,
             int attendanceThreshold,
-            boolean isPublic) {
+            boolean isPublic,
+            Integer minAgeRegister,
+            Integer minAgeJoin) {
         var list = repository.create(
                 stationId,
                 name,
@@ -131,7 +134,9 @@ public class WaitingListService {
                 testingGroupId,
                 joinGroupId,
                 attendanceThreshold,
-                isPublic);
+                isPublic,
+                minAgeRegister,
+                minAgeJoin);
         log.info("Created waiting list {} on station {} (public {})", list.id(), stationId, isPublic);
         return list;
     }
@@ -145,7 +150,9 @@ public class WaitingListService {
             Integer testingGroupId,
             Integer joinGroupId,
             int attendanceThreshold,
-            boolean isPublic) {
+            boolean isPublic,
+            Integer minAgeRegister,
+            Integer minAgeJoin) {
         var updated = repository.update(
                 id,
                 name,
@@ -155,7 +162,9 @@ public class WaitingListService {
                 testingGroupId,
                 joinGroupId,
                 attendanceThreshold,
-                isPublic);
+                isPublic,
+                minAgeRegister,
+                minAgeJoin);
         if (updated.isPresent()) {
             log.info("Updated waiting list {}", id);
         } else {
@@ -193,6 +202,7 @@ public class WaitingListService {
             int position,
             boolean required,
             boolean isPublic) {
+        requireSingleBirthDate(listId, fieldType, 0);
         var field = repository.createField(listId, name, fieldType, config, position, required, isPublic);
         log.info("Created waiting-list field {} on list {} (type {})", field.id(), listId, fieldType);
         return field;
@@ -206,6 +216,9 @@ public class WaitingListService {
             int position,
             boolean required,
             boolean isPublic) {
+        repository
+                .findFieldById(fieldId)
+                .ifPresent(field -> requireSingleBirthDate(field.listId(), fieldType, fieldId));
         var updated = repository.updateField(fieldId, name, fieldType, config, position, required, isPublic);
         if (updated.isPresent()) {
             log.info("Updated waiting-list field {}", fieldId);
@@ -213,6 +226,25 @@ public class WaitingListService {
             log.warn("Field update affected zero rows for waiting-list field {}", fieldId);
         }
         return updated;
+    }
+
+    /**
+     * Rejects a second birth date field on the same list.
+     *
+     * <p>One is what makes the age findable without being told where it is. Two would leave the
+     * list to guess, and the guess would be silent.
+     *
+     * @param excludedId the field being changed, so it does not clash with itself; 0 when creating
+     */
+    private void requireSingleBirthDate(int listId, WaitingListFieldType fieldType, int excludedId) {
+        if (fieldType != WaitingListFieldType.BIRTH_DATE) return;
+        findFieldsByList(listId).stream()
+                .filter(existing -> existing.fieldType() == WaitingListFieldType.BIRTH_DATE)
+                .filter(existing -> existing.id() != excludedId)
+                .findFirst()
+                .ifPresent(existing -> {
+                    throw new BadRequestResponse("This list already has a date of birth field: " + existing.name());
+                });
     }
 
     // --- Invites ---
@@ -616,6 +648,87 @@ public class WaitingListService {
     }
 
     // --- Confirmation checker ---
+
+    /**
+     * The field a list reads a date of birth from, if it has declared one.
+     *
+     * <p>Declared by type rather than by name, so nothing has to be told which field holds it and a
+     * list that renames the field keeps working.
+     */
+    public Optional<WaitingListField> birthDateField(int listId) {
+        return findFieldsByList(listId).stream()
+                .filter(field -> field.fieldType() == WaitingListFieldType.BIRTH_DATE)
+                .findFirst();
+    }
+
+    /**
+     * How old somebody on the list is today, from whatever they answered in the birth date field.
+     *
+     * @return the age in whole years, or empty when the list has no birth date field or the entry
+     *         left it unanswered
+     */
+    public Optional<Integer> ageOf(int listId, List<WaitingListEntryValue> values) {
+        return birthDateField(listId).flatMap(field -> values.stream()
+                .filter(value -> value.fieldId() == field.id())
+                .findFirst()
+                .flatMap(value -> ageFrom(readDate(value))));
+    }
+
+    /** Reads the answer as text, whether it was stored as a string or as something else. */
+    private static String readDate(WaitingListEntryValue value) {
+        var node = value.value();
+        if (node == null || node.isNull()) return null;
+        return node.isString() ? node.asString() : node.toString().replace("\"", "");
+    }
+
+    private static Optional<Integer> ageFrom(String date) {
+        if (date == null || date.isBlank()) return Optional.empty();
+        try {
+            return Optional.of((int) ChronoUnit.YEARS.between(LocalDate.parse(date.trim()), LocalDate.now()));
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * How old somebody signing themselves up is, from what they just filled in.
+     *
+     * @param values the answers as submitted, keyed by field
+     */
+    public Optional<Integer> ageFromSubmitted(int listId, Map<Integer, JsonNode> values) {
+        return birthDateField(listId).flatMap(field -> {
+            var node = values.get(field.id());
+            if (node == null || node.isNull()) return Optional.empty();
+            return ageFrom(node.isString() ? node.asString() : node.toString().replace("\"", ""));
+        });
+    }
+
+    /**
+     * Refuses a sign-up from somebody too young for the list to take.
+     *
+     * <p>Only when an age can actually be worked out. A list asking for a birth date that nobody
+     * filled in is a form to fix, not a person to turn away.
+     */
+    public void requireOldEnoughToRegister(WaitingList list, Map<Integer, JsonNode> values) {
+        if (list.minAgeRegister() == null) return;
+        ageFromSubmitted(list.id(), values).ifPresent(age -> {
+            if (age < list.minAgeRegister()) {
+                throw new BadRequestResponse(
+                        "This list takes registrations from age %d.".formatted(list.minAgeRegister()));
+            }
+        });
+    }
+
+    /**
+     * Whether this entry is waiting for its age rather than for its turn.
+     *
+     * <p>An entry whose age cannot be worked out is not held back: a list that asks for a birth date
+     * and does not get one is a gap in the answers, not a reason to treat somebody as too young.
+     */
+    public boolean belowJoinAge(WaitingList list, Optional<Integer> age) {
+        if (list.minAgeJoin() == null) return false;
+        return age.map(years -> years < list.minAgeJoin()).orElse(false);
+    }
 
     public double evaluateScore(
             WaitingListEntry entry, List<WaitingListEntryValue> values, List<WaitingListField> fields, String formula) {
