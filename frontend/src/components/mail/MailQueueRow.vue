@@ -47,7 +47,10 @@ const when = computed(() => new Date(props.entry.sentAt ?? props.entry.createdAt
   <div class="rounded-lg border-l-4 border border-(--border) p-3 space-y-1" :class="tone">
     <div class="flex items-baseline justify-between gap-2 flex-wrap">
       <span class="font-medium break-all">{{ entry.recipient }}</span>
-      <MutedText tag="span" size="sm">{{ when }}</MutedText>
+      <div class="flex items-center gap-2">
+        <MutedText tag="span" size="sm">{{ when }}</MutedText>
+        <slot name="action"/>
+      </div>
     </div>
     <div class="text-sm break-words">{{ entry.subject }}</div>
     <div class="text-xs text-(--text-muted) flex gap-2 flex-wrap">

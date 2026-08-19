@@ -29,6 +29,12 @@ import static dev.chojo.ember.util.sql.SqlSupport.count;
 @Singleton
 public class EmailQueueRepository {
 
+    /**
+     * How long a mail may sit in sending before the worker that took it counts as dead. Every send
+     * finishes or gives up well inside this, so anything older was left behind rather than delayed.
+     */
+    private static final int STUCK_MINUTES = 10;
+
     private static final RowMapping<QueuedEmail> QUEUED_EMAIL = row -> new QueuedEmail(
             row.getInt("id"),
             row.getString("recipient"),
@@ -362,12 +368,12 @@ public class EmailQueueRepository {
                             count(*) FILTER (WHERE status = 'SENT')                     AS sent,
                             count(*) FILTER (WHERE status = 'FAILED')                   AS failed,
                             count(*) FILTER (WHERE status = 'SENDING'
-                                             AND created_at < now() - interval '10 minutes') AS stuck,
+                                             AND created_at < now() - make_interval(mins => %d)) AS stuck,
                             min(created_at) FILTER (WHERE status = 'PENDING')           AS oldest
                         FROM
                             email_queue
                         WHERE
-                            1 = 1 %s;""", scope)
+                            1 = 1 %s;""", STUCK_MINUTES, scope)
                 .single(stationId == null ? call() : where.apply(call()))
                 .map(row -> new QueueSummary(
                         row.getInt("pending"),
@@ -409,6 +415,65 @@ public class EmailQueueRepository {
                 .all()
                 .forEach(entry -> counts.put(entry.getKey(), entry.getValue()));
         return counts;
+    }
+
+    /**
+     * The mails a dead worker left in sending, oldest first.
+     *
+     * <p>Nothing picks these up again on its own, which is the whole reason they can be named: the
+     * counter alone says how many there are without saying which, and an operator cannot act on a
+     * number.
+     *
+     * @param stationId the station whose post is meant, or null for the instance's
+     * @param limit     how many to return
+     */
+    public List<QueueEntry> stuck(Integer stationId, int limit) {
+        var where = WhereBuilder.create().add("AND station_id = :station_id", "station_id", stationId);
+        String scope = stationId == null ? "AND station_id IS NULL" : where.fragment();
+        return query("""
+                        SELECT
+                            id, recipient, subject, created_at, sent_at, status,
+                            delivery_status, delivery_detail, attempts, provider_position
+                        FROM
+                            email_queue
+                        WHERE
+                            status = 'SENDING'
+                            AND created_at < now() - make_interval(mins => %d)
+                            %s
+                        ORDER BY
+                            created_at
+                        LIMIT :limit;""", STUCK_MINUTES, scope)
+                .single((stationId == null ? call() : where.apply(call())).bind("limit", limit))
+                .map(QUEUE_ENTRY)
+                .all();
+    }
+
+    /**
+     * Puts left-behind mails back in the queue so the next round carries them.
+     *
+     * <p>Scoped to the owner and to the stuck ones on purpose: a mail the worker is holding right
+     * now must not be pulled out from under it, and one owner must not reach into another's post.
+     *
+     * @param stationId the station whose post is meant, or null for the instance's
+     * @param id        the one mail meant, or null for every stuck one
+     * @return how many mails were put back
+     */
+    public int requeueStuck(Integer stationId, Integer id) {
+        var where = WhereBuilder.create()
+                .add("AND station_id = :station_id", "station_id", stationId)
+                .add("AND id = :id", "id", id);
+        String owner = stationId == null ? "AND station_id IS NULL" : "";
+        return query("""
+                        UPDATE email_queue
+                        SET status = 'PENDING'
+                        WHERE
+                            status = 'SENDING'
+                            AND created_at < now() - make_interval(mins => %d)
+                            %s
+                            %s;""", STUCK_MINUTES, owner, where.fragment())
+                .single(where.apply(call()))
+                .update()
+                .rows();
     }
 
     /**

@@ -4125,6 +4125,11 @@ volumes:
             stuckText: 'Steht eine Mail länger als zehn Minuten in der Zustellung, ist der '
                 + 'Arbeitsprozess dabei abgebrochen. Solche Mails werden von selbst nicht erneut '
                 + 'versucht und sind deshalb eigens gezählt.',
+            requeueText: 'Sie stehen unter der Warnung einzeln aufgelistet. Über „Wieder einreihen" '
+                + 'geht eine davon zurück in die Warteschlange, über „Alle wieder einreihen" alle '
+                + 'zusammen. Hatte der Anbieter eine Mail schon angenommen, bevor der Prozess '
+                + 'abbrach, kommt sie dadurch doppelt an, weshalb das niemand von selbst tut. Mails, '
+                + 'die gerade wirklich versendet werden, bleiben unangetastet.',
             providersTitle: 'Anbieter heute',
             providersText: 'Zu jedem Anbieter steht, wie viel er heute versendet hat, wie viel er '
                 + 'darf, und wie viele Mails gerade an ihm warten. Ist sein Tageslimit erreicht, '

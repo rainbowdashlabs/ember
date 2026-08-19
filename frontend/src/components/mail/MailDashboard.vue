@@ -18,7 +18,8 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import MailQueueRow from '@/components/mail/MailQueueRow.vue'
 import MailProviderStanding from '@/components/mail/MailProviderStanding.vue'
-import type {MailDashboard, ProviderBlock} from '@/api/mailProviders'
+import {showToast} from '@/util/toast'
+import type {MailDashboard, ProviderBlock, RequeuedMails} from '@/api/mailProviders'
 
 /**
  * What has become of the post.
@@ -31,6 +32,8 @@ const props = defineProps<{
   load: () => Promise<MailDashboard>
   /** Lifts a block by hand. Absent where nobody may. */
   lift?: (provider: string, domain: string) => Promise<void>
+  /** Puts left-behind mails back in the queue, one or all of them. Absent where nobody may. */
+  requeue?: (id?: number) => Promise<RequeuedMails>
 }>()
 
 const {t} = useI18n()
@@ -66,6 +69,22 @@ async function doLift(block: ProviderBlock) {
     error.value = t('common.error')
   } finally {
     lifting.value = null
+  }
+}
+
+const requeueing = ref(false)
+
+async function doRequeue(id?: number) {
+  if (!props.requeue) return
+  requeueing.value = true
+  try {
+    const result = await props.requeue(id)
+    showToast(t('mailDashboard.requeued', {count: result.requeued}), 'success')
+    await reload()
+  } catch {
+    error.value = t('common.error')
+  } finally {
+    requeueing.value = false
   }
 }
 
@@ -115,6 +134,29 @@ const visible = computed(() => {
       </div>
 
       <Alert v-if="data.stuck > 0" variant="error">{{ t('mailDashboard.stuckWarning', {count: data.stuck}) }}</Alert>
+
+      <template v-if="data.stuckMails.length > 0">
+        <div class="flex items-center justify-between gap-2 flex-wrap">
+          <SubHeader>{{ t('mailDashboard.stuckTitle') }}</SubHeader>
+          <SecondaryButton
+              v-if="props.requeue"
+              :icon="['fas', 'arrows-rotate']"
+              :disabled="requeueing"
+              @click="doRequeue()"
+          >
+            {{ t('mailDashboard.requeueAll') }}
+          </SecondaryButton>
+        </div>
+        <MutedText tag="p" size="sm">{{ t('mailDashboard.stuckHint') }}</MutedText>
+        <MailQueueRow v-for="entry in data.stuckMails" :key="entry.id" :entry="entry">
+          <template #action>
+            <SecondaryButton v-if="props.requeue" :disabled="requeueing" @click="doRequeue(entry.id)">
+              {{ t('mailDashboard.requeueOne') }}
+            </SecondaryButton>
+          </template>
+        </MailQueueRow>
+      </template>
+
       <MutedText v-if="data.oldestPendingAt" tag="p" size="sm">
         {{ t('mailDashboard.oldestPending', {when: new Date(data.oldestPendingAt).toLocaleString('de-DE')}) }}
       </MutedText>

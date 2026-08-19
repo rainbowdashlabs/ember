@@ -31,6 +31,7 @@ import dev.chojo.ember.feature.mail.route.MailFallbackPayload;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailDashboardService;
 import dev.chojo.ember.feature.mail.service.MailDashboardService.MailDashboard;
+import dev.chojo.ember.feature.mail.service.MailDashboardService.RequeuedMails;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.mail.service.MailTemplateRenderer;
 import dev.chojo.ember.feature.media.service.LogoFragmentService;
@@ -50,6 +51,7 @@ import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
 import io.javalin.openapi.OpenApiName;
+import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -268,6 +270,10 @@ public class AdminSettingsRoutes implements Routes {
                 InstancePermission.ADMINISTRATOR,
                 StepUpCategory.INSTANCE_CONFIG);
         routes.get(prefix + "/admin/config/mailing/dashboard", this::mailDashboard, InstancePermission.ADMINISTRATOR);
+        routes.post(
+                prefix + "/admin/config/mailing/stuck/requeue",
+                this::requeueStuckMails,
+                InstancePermission.ADMINISTRATOR);
         routes.delete(prefix + "/admin/config/mailing/blocks", this::liftMailBlock, InstancePermission.ADMINISTRATOR);
         routes.get(prefix + "/admin/monitoring/log", this::applicationLog, InstancePermission.ADMINISTRATOR);
         routes.get(
@@ -802,6 +808,25 @@ public class AdminSettingsRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MailDashboard.class)))
     private void mailDashboard(Context ctx) {
         ctx.json(dashboardService.forOwner(null));
+    }
+
+    /**
+     * Puts mails a dead worker left in sending back into the queue, either one named mail or all
+     * of them.
+     */
+    @OpenApi(
+            path = "/api/v1/admin/config/mailing/stuck/requeue",
+            methods = HttpMethod.POST,
+            summary = "Queue left-behind instance mails for another attempt",
+            tags = {"Settings"},
+            queryParams =
+                    @OpenApiParam(name = "id", type = Integer.class, description = "One mail, or all when absent"),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = RequeuedMails.class)))
+    private void requeueStuckMails(Context ctx) {
+        Integer id = ctx.queryParam("id") == null
+                ? null
+                : ctx.queryParamAsClass("id", Integer.class).get();
+        ctx.json(dashboardService.requeueStuck(null, id));
     }
 
     /**
