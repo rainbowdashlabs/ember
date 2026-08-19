@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.mail.service;
 
+import dev.chojo.ember.conf.file.elements.MailProviderEntry;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
 import dev.chojo.ember.feature.mail.repository.ProviderSecretRepository;
@@ -109,6 +110,52 @@ class MailChainServiceTest extends RepositoryTestBase {
         assertEquals(2, chain.size());
         assertEquals(MailProviderType.BREVO, chain.get(1).provider());
         assertEquals(1, chain.get(1).position());
+    }
+
+    /**
+     * An instance that has saved its list has nothing left in the fields a single provider used to
+     * live in. Anything asking those fields whether mail is configured therefore has to be asking
+     * the list instead, or it answers no while three providers are listed, and the queue stops
+     * fetching instance mail altogether.
+     */
+    @Test
+    void theInstanceListIsReadFromTheListRatherThanTheOldFields() {
+        var mailing = new Mailing();
+        var withList = new MailChainService(mailing, providers, new ProviderSecretRepository());
+
+        assertTrue(withList.forInstance().isEmpty(), "a bare configuration lists nothing");
+
+        setField(
+                mailing,
+                "providers",
+                List.of(new MailProviderEntry(
+                        MailProviderType.BREVO,
+                        "",
+                        587,
+                        false,
+                        "user",
+                        "secret",
+                        "key",
+                        "post@example",
+                        "Ember",
+                        2,
+                        0)));
+
+        var chain = withList.forInstance();
+
+        assertEquals(1, chain.size(), "the list is what counts");
+        assertEquals(MailProviderType.BREVO, chain.getFirst().provider());
+        assertEquals("post@example", chain.getFirst().senderAddress());
+    }
+
+    private static void setField(Object target, String field, Object value) {
+        try {
+            var declared = target.getClass().getDeclaredField(field);
+            declared.setAccessible(true);
+            declared.set(target, value);
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     @Test

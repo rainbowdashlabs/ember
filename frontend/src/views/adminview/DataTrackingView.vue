@@ -238,7 +238,7 @@ onMounted(async () => {
           :needs-review-count="needsReviewCount"
           :verified-pct="verifiedPct"
           :schema-hash="tracking?.schemaHash"/>
-      <StatusBreakdownGrid :summary="summary"/>
+      <StatusBreakdownGrid :summary="summary" class="mb-6"/>
       <DanglingRefAudit :refs="danglingMemberRefs"/>
       <SectionHeader>{{ t('adminDataTracking.tables') }}</SectionHeader>
       <TableFilterBar

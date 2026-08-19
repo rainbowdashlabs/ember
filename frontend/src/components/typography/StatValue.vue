@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 defineProps<{
-  color?: 'primary' | 'success' | 'error' | 'muted'
+  color?: 'primary' | 'success' | 'error' | 'muted' | 'info'
 }>()
 </script>
 
@@ -14,6 +14,7 @@ defineProps<{
     'text-primary': color === 'primary' || !color,
     'text-success': color === 'success',
     'text-error': color === 'error',
+    'text-info': color === 'info',
     'text-(--text-muted)': color === 'muted',
   }" class="text-2xl font-bold">
     <slot/>

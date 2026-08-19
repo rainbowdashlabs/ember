@@ -4,46 +4,37 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import StatValue from '@/components/typography/StatValue.vue'
+import StatTile from '@/components/statistic/StatTile.vue'
 
-defineProps<{
+const props = defineProps<{
   totalStations: number
   totalAccounts: number
   totalMembers: number
   activeSessions: number
   totalGroups: number
+  twoFactorAccounts: number
 }>()
 
 const {t} = useI18n()
+
+const tiles = computed(() => [
+  {key: 'stations', value: props.totalStations},
+  {key: 'accounts', value: props.totalAccounts},
+  {key: 'members', value: props.totalMembers},
+  {key: 'activeSessions', value: props.activeSessions},
+  {key: 'groups', value: props.totalGroups},
+  {key: 'twoFactorAccounts', value: props.twoFactorAccounts},
+])
 </script>
 
 <template>
-  <div class="contents">
+  <div class="space-y-4">
     <SubHeader>{{ t('adminStats.platformSection') }}</SubHeader>
-    <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-4">
-      <NeutralContainer class="text-center">
-        <StatValue>{{ totalStations }}</StatValue>
-        <p class="text-sm text-(--text-muted)">{{ t('adminStats.stations') }}</p>
-      </NeutralContainer>
-      <NeutralContainer class="text-center">
-        <StatValue>{{ totalAccounts }}</StatValue>
-        <p class="text-sm text-(--text-muted)">{{ t('adminStats.accounts') }}</p>
-      </NeutralContainer>
-      <NeutralContainer class="text-center">
-        <StatValue>{{ totalMembers }}</StatValue>
-        <p class="text-sm text-(--text-muted)">{{ t('adminStats.members') }}</p>
-      </NeutralContainer>
-      <NeutralContainer class="text-center">
-        <StatValue>{{ activeSessions }}</StatValue>
-        <p class="text-sm text-(--text-muted)">{{ t('adminStats.activeSessions') }}</p>
-      </NeutralContainer>
-      <NeutralContainer class="text-center">
-        <StatValue>{{ totalGroups }}</StatValue>
-        <p class="text-sm text-(--text-muted)">{{ t('adminStats.groups') }}</p>
-      </NeutralContainer>
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+      <StatTile v-for="tile in tiles" :key="tile.key" :label="t(`adminStats.${tile.key}`)" :value="tile.value"/>
     </div>
   </div>
 </template>

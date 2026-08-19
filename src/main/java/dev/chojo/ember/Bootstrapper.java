@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.legal.service.ConsentService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.TransferTimeoutWatchdog;
+import dev.chojo.ember.feature.system.service.ApplicationLogWriter;
 import dev.chojo.ember.feature.system.service.DataInitializer;
 import dev.chojo.ember.feature.system.service.DemoService;
 import dev.chojo.ember.util.service.CloudflareRangesService;
@@ -115,6 +116,9 @@ public class Bootstrapper {
         injector.getInstance(ConsentService.class).initialize();
 
         injector.getInstance(CloudflareRangesService.class).refreshAsync();
+
+        // After the schema is certain: in demo mode the migration runs in DemoService, not above.
+        injector.getInstance(ApplicationLogWriter.class).start();
 
         var apiServer = injector.getInstance(ApiServer.class);
         apiServer.start();

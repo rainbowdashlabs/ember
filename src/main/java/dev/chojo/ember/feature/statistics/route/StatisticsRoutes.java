@@ -137,6 +137,7 @@ public class StatisticsRoutes implements Routes {
                 SELECT day::text, count FROM email_daily_count ORDER BY day DESC LIMIT 30"""));
         data.put("emailByStatus", globalMapList("""
                 SELECT status, count(*) as cnt FROM email_queue GROUP BY status ORDER BY status"""));
+        data.put("mailProviderBlocks", globalInt("SELECT count(*) FROM mail_provider_block"));
 
         // Accounts & stations
         data.put("totalAccounts", globalInt("SELECT count(*) FROM account"));
@@ -169,6 +170,26 @@ public class StatisticsRoutes implements Routes {
                 "stationsSetupComplete",
                 globalInt("SELECT count(*) FROM station WHERE setup_completed_at IS NOT NULL"));
         data.put("stationsSetupPending", globalInt("SELECT count(*) FROM station WHERE setup_completed_at IS NULL"));
+        data.put("accountsWith2fa", globalInt("""
+                SELECT count(DISTINCT account_id) FROM account_2fa_factor WHERE disabled_at IS NULL"""));
+
+        // Events and registrations
+        data.put("eventsUpcoming", globalInt("SELECT count(*) FROM station_event WHERE start_time >= now()"));
+        data.put("totalEventRegistrations", globalInt("SELECT count(*) FROM event_registration"));
+
+        // Attendance outcome across every entry ever recorded
+        data.put("attendanceByStatus", globalMapList("""
+                SELECT status, count(*)::INT AS cnt
+                FROM attendance_entry
+                GROUP BY status ORDER BY status"""));
+
+        // Registration activity - last 30 days, zero-filled
+        data.put("registrationsByDay", globalMapList("""
+                SELECT to_char(d.day, 'YYYY-MM-DD') AS day,
+                       COALESCE(count(er.id), 0)::INT AS count
+                FROM generate_series(CURRENT_DATE - interval '29 days', CURRENT_DATE, interval '1 day') AS d(day)
+                LEFT JOIN event_registration er ON er.created_at::date = d.day
+                GROUP BY d.day ORDER BY d.day"""));
 
         // Session activity - last 30 days, zero-filled
         data.put("sessionsByDay", globalMapList("""

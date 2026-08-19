@@ -442,6 +442,9 @@ test.describe('Admin pages render', () => {
         await page.goto('/admin/dashboard/statistics')
         await expect(page.getByText('Systemweite Auswertungen')).toBeVisible()
         await expect(page.getByText('Plattform', {exact: true})).toBeVisible()
+        await expect(page.getByText('Mit Zwei-Faktor')).toBeVisible()
+        await expect(page.getByText('Kommende Termine')).toBeVisible()
+        await expect(page.getByText('Anmeldungen', {exact: true})).toBeVisible()
         await expect(page.getByText(ERROR_BANNER)).toHaveCount(0)
     })
 

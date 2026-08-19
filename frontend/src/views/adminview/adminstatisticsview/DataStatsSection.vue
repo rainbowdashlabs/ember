@@ -4,46 +4,41 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import StatValue from '@/components/typography/StatValue.vue'
+import StatTile from '@/components/statistic/StatTile.vue'
 
-defineProps<{
+const props = defineProps<{
   totalEvents: number
+  eventsUpcoming: number
+  totalEventRegistrations: number
   totalAttendanceSessions: number
+  sessionsThisMonth: number
   totalAttendanceEntries: number
   totalInventoryItems: number
   totalProfileFields: number
 }>()
 
 const {t} = useI18n()
+
+const tiles = computed(() => [
+  {key: 'events', value: props.totalEvents},
+  {key: 'eventsUpcoming', value: props.eventsUpcoming},
+  {key: 'eventRegistrations', value: props.totalEventRegistrations},
+  {key: 'attendanceSessions', value: props.totalAttendanceSessions},
+  {key: 'sessionsThisMonth', value: props.sessionsThisMonth},
+  {key: 'attendanceEntries', value: props.totalAttendanceEntries},
+  {key: 'inventoryItems', value: props.totalInventoryItems},
+  {key: 'profileFields', value: props.totalProfileFields},
+])
 </script>
 
 <template>
-  <div class="contents">
+  <div class="space-y-4">
     <SubHeader>{{ t('adminStats.dataSection') }}</SubHeader>
-    <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-4">
-      <NeutralContainer class="text-center">
-        <StatValue>{{ totalEvents }}</StatValue>
-        <p class="text-sm text-(--text-muted)">{{ t('adminStats.events') }}</p>
-      </NeutralContainer>
-      <NeutralContainer class="text-center">
-        <StatValue>{{ totalAttendanceSessions }}</StatValue>
-        <p class="text-sm text-(--text-muted)">{{ t('adminStats.attendanceSessions') }}</p>
-      </NeutralContainer>
-      <NeutralContainer class="text-center">
-        <StatValue>{{ totalAttendanceEntries }}</StatValue>
-        <p class="text-sm text-(--text-muted)">{{ t('adminStats.attendanceEntries') }}</p>
-      </NeutralContainer>
-      <NeutralContainer class="text-center">
-        <StatValue>{{ totalInventoryItems }}</StatValue>
-        <p class="text-sm text-(--text-muted)">{{ t('adminStats.inventoryItems') }}</p>
-      </NeutralContainer>
-      <NeutralContainer class="text-center">
-        <StatValue>{{ totalProfileFields }}</StatValue>
-        <p class="text-sm text-(--text-muted)">{{ t('adminStats.profileFields') }}</p>
-      </NeutralContainer>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <StatTile v-for="tile in tiles" :key="tile.key" :label="t(`adminStats.${tile.key}`)" :value="tile.value"/>
     </div>
   </div>
 </template>

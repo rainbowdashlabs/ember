@@ -10,15 +10,15 @@ import {use} from 'echarts/core'
 import {CanvasRenderer} from 'echarts/renderers'
 import {BarChart, LineChart, PieChart} from 'echarts/charts'
 import {GridComponent, LegendComponent, TitleComponent, TooltipComponent} from 'echarts/components'
-import VChart from 'vue-echarts'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import client from '@/api/client'
+import {cartesianGrid, chartTitle, DONUT_CENTER, DONUT_RADIUS} from '@/util/chartLayout'
 import EmailStatsSection from './adminstatisticsview/EmailStatsSection.vue'
 import PlatformStatsSection from './adminstatisticsview/PlatformStatsSection.vue'
+import GrowthStatsSection from './adminstatisticsview/GrowthStatsSection.vue'
+import HealthStatsSection from './adminstatisticsview/HealthStatsSection.vue'
 import DataStatsSection from './adminstatisticsview/DataStatsSection.vue'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 
@@ -69,6 +69,12 @@ interface AdminStats {
   stationsSetupPending: number
   sessionsByDay: Array<{ day: string; count: number }>
   topStationsByMembers: Array<{ name: string; member_count: number }>
+  mailProviderBlocks: number
+  accountsWith2fa: number
+  eventsUpcoming: number
+  totalEventRegistrations: number
+  attendanceByStatus: Array<{ status: string; cnt: number }>
+  registrationsByDay: Array<{ day: string; count: number }>
 }
 
 const statusColors: Record<string, string> = {
@@ -89,9 +95,9 @@ const emailByDayOption = computed(() => {
   if (!stats.value || !stats.value.emailByDay.length) return {}
   const days = [...stats.value.emailByDay].reverse()
   return {
-    title: {text: t('adminStats.emailHistory'), left: 'center', textStyle: {fontSize: 14, color: textColor.value}},
+    title: chartTitle(t('adminStats.emailHistory'), textColor.value),
     tooltip: {trigger: 'axis'},
-    grid: {left: 50, right: 20, top: 40, bottom: 20},
+    grid: cartesianGrid({title: true, rotatedLabels: true, left: 50}),
     xAxis: {type: 'category', data: days.map(d => d.day), axisLabel: {rotate: 45, fontSize: 10, color: mutedColor.value}, axisLine: {lineStyle: {color: mutedColor.value}}},
     yAxis: {type: 'value', minInterval: 1, axisLabel: {color: mutedColor.value}, axisLine: {lineStyle: {color: mutedColor.value}}, splitLine: {lineStyle: {color: isDark.value ? '#333' : '#e0e0e0'}}},
     series: [{type: 'bar', data: days.map(d => d.count), color: '#FF6421'}],
@@ -100,9 +106,9 @@ const emailByDayOption = computed(() => {
 
 function dailyLineOption(title: string, series: Array<{day: string; count: number}>, color: string) {
   return {
-    title: {text: title, left: 'center', textStyle: {fontSize: 14, color: textColor.value}},
+    title: chartTitle(title, textColor.value),
     tooltip: {trigger: 'axis'},
-    grid: {left: 50, right: 20, top: 40, bottom: 30},
+    grid: cartesianGrid({title: true, rotatedLabels: true, left: 50}),
     xAxis: {
       type: 'category',
       data: series.map(d => d.day),
@@ -134,13 +140,18 @@ const sessionsByDayOption = computed(() => {
   return dailyLineOption(t('adminStats.sessionsGrowth'), stats.value.sessionsByDay, '#00C507')
 })
 
+const registrationsByDayOption = computed(() => {
+  if (!stats.value) return {}
+  return dailyLineOption(t('adminStats.registrationsGrowth'), stats.value.registrationsByDay, '#3694FF')
+})
+
 const topStationsOption = computed(() => {
   if (!stats.value || stats.value.topStationsByMembers.length === 0) return {}
   const rows = [...stats.value.topStationsByMembers].reverse()
   return {
-    title: {text: t('adminStats.topStations'), left: 'center', textStyle: {fontSize: 14, color: textColor.value}},
+    title: chartTitle(t('adminStats.topStations'), textColor.value),
     tooltip: {trigger: 'axis', axisPointer: {type: 'shadow'}},
-    grid: {left: 120, right: 30, top: 40, bottom: 30},
+    grid: cartesianGrid({title: true, left: 120}),
     xAxis: {
       type: 'value',
       minInterval: 1,
@@ -162,54 +173,67 @@ const topStationsOption = computed(() => {
   }
 })
 
-const verifiedOption = computed(() => {
-  if (!stats.value) return {}
+function donut(title: string, data: unknown[]) {
   return {
-    title: {text: t('adminStats.verificationStatus'), left: 'center', textStyle: {fontSize: 14, color: textColor.value}},
+    title: chartTitle(title, textColor.value),
     tooltip: {trigger: 'item', formatter: '{b}: {c} ({d}%)'},
     series: [{
       type: 'pie',
-      radius: ['40%', '70%'],
+      radius: DONUT_RADIUS,
+      center: DONUT_CENTER,
       label: {color: mutedColor.value},
-      data: [
-        {name: t('adminStats.verified'), value: stats.value.accountsVerified, itemStyle: {color: '#00C507'}},
-        {name: t('adminStats.unverified'), value: stats.value.accountsUnverified, itemStyle: {color: '#ec2929'}},
-      ],
+      data,
     }],
   }
+}
+
+const verifiedOption = computed(() => {
+  if (!stats.value) return {}
+  return donut(t('adminStats.verificationStatus'), [
+    {name: t('adminStats.verified'), value: stats.value.accountsVerified, itemStyle: {color: '#00C507'}},
+    {name: t('adminStats.unverified'), value: stats.value.accountsUnverified, itemStyle: {color: '#ec2929'}},
+  ])
 })
 
 const setupOption = computed(() => {
   if (!stats.value) return {}
-  return {
-    title: {text: t('adminStats.setupStatus'), left: 'center', textStyle: {fontSize: 14, color: textColor.value}},
-    tooltip: {trigger: 'item', formatter: '{b}: {c} ({d}%)'},
-    series: [{
-      type: 'pie',
-      radius: ['40%', '70%'],
-      label: {color: mutedColor.value},
-      data: [
-        {name: t('adminStats.setupComplete'), value: stats.value.stationsSetupComplete, itemStyle: {color: '#00C507'}},
-        {name: t('adminStats.setupPending'), value: stats.value.stationsSetupPending, itemStyle: {color: '#ffdd1b'}},
-      ],
-    }],
-  }
+  return donut(t('adminStats.setupStatus'), [
+    {name: t('adminStats.setupComplete'), value: stats.value.stationsSetupComplete, itemStyle: {color: '#00C507'}},
+    {name: t('adminStats.setupPending'), value: stats.value.stationsSetupPending, itemStyle: {color: '#ffdd1b'}},
+  ])
+})
+
+const attendanceColors: Record<string, string> = {
+  PRESENT: '#00C507', ABSENT: '#ec2929', EXCUSED: '#ffdd1b', DECLINED: '#CFCFCF',
+}
+
+function attendanceLabel(status: string): string {
+  const key = `adminStats.attendanceStatusLabels.${status}`
+  return te(key) ? t(key) : status
+}
+
+const attendanceStatusOption = computed(() => {
+  if (!stats.value || !stats.value.attendanceByStatus.length) return {}
+  return donut(
+      t('adminStats.attendanceStatus'),
+      stats.value.attendanceByStatus.map(e => ({
+        name: attendanceLabel(e.status),
+        value: e.cnt,
+        itemStyle: {color: attendanceColors[e.status] ?? '#CFCFCF'},
+      })),
+  )
 })
 
 const emailStatusOption = computed(() => {
   if (!stats.value || !stats.value.emailByStatus.length) return {}
-  return {
-    title: {text: t('adminStats.emailStatus'), left: 'center', textStyle: {fontSize: 14, color: textColor.value}},
-    tooltip: {trigger: 'item', formatter: '{b}: {c} ({d}%)'},
-    series: [{
-      type: 'pie', radius: ['40%', '70%'],
-      label: {color: mutedColor.value},
-      data: stats.value.emailByStatus.map(e => ({
-        name: statusLabel(e.status), value: e.cnt,
+  return donut(
+      t('adminStats.emailStatus'),
+      stats.value.emailByStatus.map(e => ({
+        name: statusLabel(e.status),
+        value: e.cnt,
         itemStyle: {color: statusColors[e.status] ?? '#CFCFCF'},
       })),
-    }],
-  }
+  )
 })
 </script>
 
@@ -223,8 +247,10 @@ const emailStatusOption = computed(() => {
         <EmailStatsSection
             :email-sent-today="stats.emailSentToday"
             :email-pending="stats.emailPending"
+            :email-sending="stats.emailSending"
             :email-sent="stats.emailSent"
             :email-failed="stats.emailFailed"
+            :mail-provider-blocks="stats.mailProviderBlocks"
             :email-by-day-count="stats.emailByDay.length"
             :email-by-status-count="stats.emailByStatus.length"
             :email-by-day-option="emailByDayOption"
@@ -234,31 +260,29 @@ const emailStatusOption = computed(() => {
             :total-accounts="stats.totalAccounts"
             :total-members="stats.totalMembers"
             :active-sessions="stats.activeSessions"
-            :total-groups="stats.totalGroups"/>
+            :total-groups="stats.totalGroups"
+            :two-factor-accounts="stats.accountsWith2fa"/>
 
-        <SubHeader>{{ t('adminStats.growthSection') }}</SubHeader>
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <NeutralContainer>
-            <VChart v-if="stats.sessionsByDay.length > 0" :option="sessionsByDayOption" autoresize style="height: 260px"/>
-          </NeutralContainer>
-          <NeutralContainer>
-            <VChart v-if="stats.topStationsByMembers.length > 0" :option="topStationsOption" autoresize style="height: 260px"/>
-          </NeutralContainer>
-        </div>
-
-        <SubHeader>{{ t('adminStats.healthSection') }}</SubHeader>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <NeutralContainer>
-            <VChart v-if="stats.accountsVerified + stats.accountsUnverified > 0" :option="verifiedOption" autoresize style="height: 260px"/>
-          </NeutralContainer>
-          <NeutralContainer>
-            <VChart v-if="stats.stationsSetupComplete + stats.stationsSetupPending > 0" :option="setupOption" autoresize style="height: 260px"/>
-          </NeutralContainer>
-        </div>
-
+        <GrowthStatsSection
+            :sessions-by-day-count="stats.sessionsByDay.length"
+            :registrations-by-day-count="stats.registrationsByDay.length"
+            :top-stations-count="stats.topStationsByMembers.length"
+            :sessions-by-day-option="sessionsByDayOption"
+            :registrations-by-day-option="registrationsByDayOption"
+            :top-stations-option="topStationsOption"/>
+        <HealthStatsSection
+            :verified-count="stats.accountsVerified + stats.accountsUnverified"
+            :setup-count="stats.stationsSetupComplete + stats.stationsSetupPending"
+            :attendance-status-count="stats.attendanceByStatus.length"
+            :verified-option="verifiedOption"
+            :setup-option="setupOption"
+            :attendance-status-option="attendanceStatusOption"/>
         <DataStatsSection
             :total-events="stats.totalEvents"
+            :events-upcoming="stats.eventsUpcoming"
+            :total-event-registrations="stats.totalEventRegistrations"
             :total-attendance-sessions="stats.totalAttendanceSessions"
+            :sessions-this-month="stats.sessionsThisMonth"
             :total-attendance-entries="stats.totalAttendanceEntries"
             :total-inventory-items="stats.totalInventoryItems"
             :total-profile-fields="stats.totalProfileFields"/>

@@ -10,6 +10,7 @@ import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Database;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Federation;
+import dev.chojo.ember.conf.file.elements.Logging;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.conf.file.elements.Metrics;
 import dev.chojo.ember.conf.file.elements.Network;
@@ -33,6 +34,11 @@ public class File {
     private Metrics metrics = new Metrics();
     private Network network = new Network();
     private Federation federation = new Federation();
+    private Logging logging = new Logging();
+
+    public Logging logging() {
+        return logging;
+    }
 
     public Database database() {
         return database;

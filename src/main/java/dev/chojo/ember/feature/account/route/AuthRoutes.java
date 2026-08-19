@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.account.route;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
@@ -269,7 +270,8 @@ public class AuthRoutes implements Routes {
                 request.password(),
                 ctx.userAgent(),
                 ctx.header("CF-IPCountry"),
-                ctx.cookie("ember_2fa_trust"));
+                ctx.cookie("ember_2fa_trust"),
+                request.trustedDevice());
         if (!result.success()) {
             throw new UnauthorizedResponse(result.message());
         }
@@ -415,7 +417,13 @@ public class AuthRoutes implements Routes {
     /**
      * Request body for login with email and password.
      */
-    public record LoginRequest(String email, String password) {}
+    /**
+     * @param trustedDevice the box on the login screen. Ticked, the session lasts as long as the
+     *                      instance allows; left alone it lasts the short duration, which is what a
+     *                      borrowed or shared machine should get.
+     */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record LoginRequest(String email, String password, boolean trustedDevice) {}
 
     /**
      * Request body for the dev / demo {@code POST /demo/login} quick-login endpoint. Only an

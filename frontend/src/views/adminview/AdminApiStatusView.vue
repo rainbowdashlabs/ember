@@ -23,6 +23,7 @@ import {GridComponent, TooltipComponent, LegendComponent, DataZoomComponent} fro
 import * as apiStatus from '@/api/apiStatus'
 import type {EndpointStats, HourlyStats, StatusBreakdown} from '@/api/apiStatus'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {bottomLegend, cartesianGrid} from '@/util/chartLayout'
 import Td from '@/components/table/Td.vue'
 
 use([CanvasRenderer, BarChart, LineChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent])
@@ -66,8 +67,8 @@ const avgResponseTime = computed(() => {
 
 const requestVolumeOption = computed(() => ({
     tooltip: {trigger: 'axis'},
-    legend: {data: [t('apiStatus.requests'), t('apiStatus.errors')], textStyle: {color: textColor.value}},
-    grid: {left: 60, right: 20, bottom: 60},
+    legend: bottomLegend(textColor.value, [t('apiStatus.requests'), t('apiStatus.errors')]),
+    grid: cartesianGrid({legend: true, axisName: true, rotatedLabels: true}),
     xAxis: {type: 'category', data: hourly.value.map(h => h.hour.substring(11)), axisLabel: {color: textColor.value, rotate: 45}},
     yAxis: {type: 'value', name: t('apiStatus.count'), nameTextStyle: {color: textColor.value}, axisLabel: {color: textColor.value}},
     series: [
@@ -92,7 +93,7 @@ const requestVolumeOption = computed(() => ({
 
 const responseTimeOption = computed(() => ({
     tooltip: {trigger: 'axis'},
-    grid: {left: 60, right: 20, bottom: 60},
+    grid: cartesianGrid({axisName: true, rotatedLabels: true}),
     xAxis: {type: 'category', data: hourly.value.map(h => h.hour.substring(11)), axisLabel: {color: textColor.value, rotate: 45}},
     yAxis: {type: 'value', name: 'ms', nameTextStyle: {color: textColor.value}, axisLabel: {color: textColor.value}},
     series: [
@@ -114,7 +115,7 @@ const statusChartOption = computed(() => {
     }
     return {
         tooltip: {trigger: 'axis'},
-        grid: {left: 60, right: 20, bottom: 30},
+        grid: cartesianGrid(),
         xAxis: {type: 'category', data: Object.keys(grouped), axisLabel: {color: textColor.value}},
         yAxis: {type: 'value', axisLabel: {color: textColor.value}},
         series: [{

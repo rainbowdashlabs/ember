@@ -10,6 +10,12 @@ import type {MessageResponse} from './types'
 export interface LoginRequest {
     email?: string
     password?: string
+    /**
+     * Whether the person signing in vouches for this machine. Ticked, the session lasts as long as
+     * the instance allows; left alone it lasts the short duration meant for a borrowed or shared
+     * one. Says nothing about the second factor, which is a separate trust.
+     */
+    trustedDevice?: boolean
 }
 
 export interface LoginResponse {

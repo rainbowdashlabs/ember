@@ -298,6 +298,9 @@ export default {
         email: 'E-Mail',
         password: 'Passwort',
         submit: 'Anmelden',
+        trustedDevice: 'Auf diesem Gerät angemeldet bleiben',
+        trustedDeviceHint: 'Nur auf Geräten, die dir gehören. Ohne Häkchen endet die Anmeldung '
+            + 'deutlich früher, was für geteilte oder geliehene Rechner das Richtige ist.',
         forgotPassword: 'Passwort vergessen?',
         applyForStation: 'Neue Wache beantragen',
         storageDenied: 'Du musst der Speicherung zustimmen, um dich anzumelden.',
@@ -489,6 +492,8 @@ export default {
         storageDashboard: 'Speicher-Übersicht',
         monitoring: 'Monitoring',
         problemLog: 'Fehlerprotokoll',
+        mailLog: 'Mailprotokoll',
+        applicationLog: 'Anwendungslog',
         problemReports: 'Problemmeldungen',
         apiStatus: 'API-Status',
         feedMetrics: 'Feed-Telemetrie',
@@ -860,6 +865,14 @@ export default {
         'admin-problems': {
             title: 'System-Log',
             subtitle: 'Warnungen und Fehler der laufenden Instanz',
+        },
+        'admin-mail-log': {
+            title: 'Mailprotokoll',
+            subtitle: 'Was aus der Post geworden ist, und woran sie gerade steht',
+        },
+        'admin-log': {
+            title: 'Anwendungslog',
+            subtitle: 'Das Log der Instanz, durchsuchbar und nach Stufe filterbar',
         },
         'admin-problem-reports': {
             title: 'Problemmeldungen',
@@ -3506,6 +3519,57 @@ export default {
         home: 'Startseite',
         login: 'Anmelden',
     },
+    applicationLog: {
+        disabled: 'Das Log wird derzeit nicht in der Datenbank gespeichert, hier steht deshalb '
+            + 'nichts oder nur, was vor dem Abschalten anfiel. Einschalten lässt sich das unter '
+            + 'Einstellungen. Console und Logdatei auf dem Server enthalten unabhängig davon alles.',
+        dropped: '{count} Zeile(n) sind seit dem Start verworfen worden, weil sie schneller anfielen '
+            + 'als sie geschrieben werden konnten. Das Log hat also Lücken; in der Logdatei stehen sie.',
+        kept: 'Gespeichert wird ab {level}, {days} Tage lang.',
+        searchPlaceholder: 'In Nachricht oder Logger suchen',
+        doSearch: 'Suchen',
+        levels: 'Stufen',
+        filtered: 'Es sind nicht alle Stufen eingeschaltet, es fehlt also möglicherweise Kontext.',
+        empty: 'Keine Zeilen, auf die das passt.',
+        loadMore: 'Weiter zurück laden',
+        showTrace: 'Stacktrace anzeigen',
+    },
+    mailDashboard: {
+        title: 'Zustellung',
+        hint: 'Was aus der Post geworden ist: was noch wartet, an welchem Anbieter es wartet, und '
+            + 'was die Anbieter über die Mails zurückgemeldet haben, die sie übernommen haben.',
+        pending: 'Wartet',
+        sending: 'In Zustellung',
+        sent: 'Übergeben',
+        failed: 'Gescheitert',
+        stuck: 'Hängengeblieben',
+        stuckWarning: '{count} Mail(s) stehen seit über zehn Minuten in der Zustellung. Das '
+            + 'bedeutet, dass ein Arbeitsprozess während des Versands abgebrochen ist. Sie werden '
+            + 'von selbst nicht erneut versucht.',
+        oldestPending: 'Die längste wartende Mail wurde am {when} geschrieben.',
+        providersTitle: 'Anbieter heute',
+        noProviders: 'Kein Anbieter eingetragen, es kann also nichts versendet werden.',
+        waitingHere: '{count} warten hier',
+        exhausted: 'Tageslimit erreicht',
+        sentOfLimit: '{sent} von {limit} heute versendet',
+        sentNoLimit: '{sent} heute versendet, kein Limit',
+        attempts: '{count} Versuche je Mail',
+        recentTitle: 'Letzte Mails',
+        searchPlaceholder: 'Nach Empfänger oder Betreff suchen',
+        deliveryFilter: 'Nach Zustellstatus filtern',
+        allDeliveryStates: 'Alle Zustellstatus',
+        noMails: 'Keine Mails, auf die das passt.',
+        viaProvider: 'über {position}. Anbieter',
+        attemptsMade: '{count} Versuche',
+        unreachable: 'Kein Anbieter kann diese Mail derzeit zustellen. Sie wartet nicht, sie steckt fest.',
+        blocksTitle: 'Abgelehnte Anbieter',
+        blocksHint: 'Diese Empfängerdomains haben unseren Absendeserver abgelehnt, nicht die Nachricht. '
+            + 'Der betroffene Anbieter wird dort übersprungen, statt jedes Mal ein Kontingent zu '
+            + 'verbrauchen. Die Sperre läuft von selbst wieder ab.',
+        blockRow: '{provider} wird von {domain} abgelehnt',
+        blockUntil: 'Wird ab {when} wieder versucht.',
+        liftBlock: 'Jetzt wieder versuchen',
+    },
     mailChain: {
         title: 'Mailanbieter',
         hint: 'Mail wird von oben nach unten durch diese Liste versucht. Jeder Anbieter bekommt eine '
@@ -3534,7 +3598,11 @@ export default {
         providerName: 'Anzeigename für Mitglieder',
         providerUrl: 'Website des Anbieters',
         add: 'Anbieter hinzufügen',
+        clearAll: 'Alle entfernen',
+        cleared: 'Alle Anbieter entfernt. Bis ein neuer eingetragen ist, bleibt jede Mail liegen.',
         saved: 'Anbieter gespeichert.',
+        loadFailed: 'Die Anbieterliste konnte nicht geladen werden. Lade die Seite neu, bevor du '
+            + 'etwas speicherst, sonst würde eine leere Liste über die gespeicherte geschrieben.',
         test: 'Testmail senden',
         testRecipient: 'Testmail an',
         testHint: 'Geprüft wird der gespeicherte Stand dieses Anbieters, nicht das, was gerade im '
@@ -3574,8 +3642,27 @@ export default {
             verifyTokenHoursHint: 'Wie lange ein Link zur E-Mail-Bestätigung gültig bleibt.',
             passwordTokenHours: 'Gültigkeitsdauer Passwort-Reset-Token (Stunden)',
             passwordTokenHoursHint: 'Wie lange ein Link zum Zurücksetzen des Passworts gültig bleibt.',
-            sessionMinutes: 'Sitzungsdauer (Minuten)',
-            sessionMinutesHint: 'Wie lange ein angemeldeter Nutzer ohne Aktivität angemeldet bleibt.',
+            sessionMinutes: 'Sitzungsdauer auf vertrauten Geräten (Minuten)',
+            sessionMinutesHint: 'Gilt, wenn beim Anmelden „Auf diesem Gerät angemeldet bleiben" '
+                + 'angekreuzt wurde. Bis zu 30 Tage sind möglich: häufiges Anmelden frustriert mehr, '
+                + 'als es schützt.',
+            untrustedSessionMinutes: 'Sitzungsdauer sonst (Minuten)',
+            untrustedSessionMinutesHint: 'Gilt ohne dieses Häkchen, also auf geteilten oder '
+                + 'geliehenen Rechnern. Darf nicht länger sein als die Dauer für vertraute Geräte.',
+        },
+        logging: {
+            title: 'Log',
+            hint: 'Console und Logdatei auf dem Server bekommen immer alles. Hier wird entschieden, '
+                + 'was zusätzlich in die Datenbank geht, damit es unter Monitoring durchsucht werden '
+                + 'kann. In der Datenbank zu speichern ist nie die einzige Ablage: der Ausfall, den '
+                + 'sie nicht abdecken kann, ist ihr eigener.',
+            enabled: 'Log in der Datenbank speichern',
+            level: 'Ab welcher Stufe',
+            levelHint: 'Alles darunter erreicht weiterhin Console und Datei, wird aber nicht gespeichert.',
+            retentionDays: 'Aufbewahrung in Tagen',
+            retentionHint: 'Ältere Zeilen werden stündlich entfernt.',
+            stored: 'Derzeit sind {count} Zeilen gespeichert.',
+            saved: 'Log-Einstellungen gespeichert.',
         },
         mailing: {
             title: 'E-Mail',
@@ -3672,8 +3759,14 @@ export default {
             verifyTokenHoursHint: 'Gültigkeitsdauer des E-Mail-Verifizierungstokens (1–720).',
             passwordTokenHours: 'Passworttoken (Stunden)',
             passwordTokenHoursHint: 'Gültigkeitsdauer des Passwort-Reset-Tokens (1–720).',
-            sessionMinutes: 'Sitzungsdauer (Minuten)',
-            sessionMinutesHint: 'Dauer einer Sitzung in Minuten (5–1440).',
+            sessionMinutes: 'Sitzungsdauer auf vertrauten Geräten (Minuten)',
+            sessionMinutesHint: 'Gilt, wenn beim Anmelden „Auf diesem Gerät angemeldet bleiben" '
+                + 'angekreuzt wurde (5 bis 43200, also bis zu 30 Tage). Lange Sitzungen ersparen '
+                + 'häufiges Anmelden; wer sich abmeldet oder sein Passwort ändert, ist unabhängig '
+                + 'davon sofort ausgeloggt.',
+            untrustedSessionMinutes: 'Sitzungsdauer sonst (Minuten)',
+            untrustedSessionMinutesHint: 'Gilt ohne dieses Häkchen, also auf geteilten oder '
+                + 'geliehenen Rechnern. Darf nicht länger sein als die Dauer für vertraute Geräte.',
             pepper: {
                 title: 'Token-Pepper',
                 hint: 'Server-seitiges Geheimnis, das in den HMAC der gespeicherten Tokens einfließt. Ohne ihn kann ein reiner Datenbankleak Tokens nicht wiederherstellen.',
@@ -4299,8 +4392,10 @@ export default {
         emailSection: 'E-Mail System',
         sentToday: 'Heute gesendet',
         queued: 'Warteschlange',
+        sending: 'Wird gesendet',
         totalSent: 'Gesamt gesendet',
         failed: 'Fehlgeschlagen',
+        providerBlocks: 'Sperren',
         emailHistory: 'E-Mails pro Tag',
         emailStatus: 'E-Mail Status',
         platformSection: 'Plattform',
@@ -4309,9 +4404,13 @@ export default {
         members: 'Mitglieder',
         activeSessions: 'Aktive Sitzungen (7T)',
         groups: 'Gruppen',
+        twoFactorAccounts: 'Mit Zwei-Faktor',
         dataSection: 'Datenbestand',
         events: 'Termine',
+        eventsUpcoming: 'Kommende Termine',
+        eventRegistrations: 'Anmeldungen',
         attendanceSessions: 'Anwesenheiten',
+        sessionsThisMonth: 'Anwesenheiten (Monat)',
         attendanceEntries: 'Einträge',
         inventoryItems: 'Inventar Artikel',
         profileFields: 'Profilfelder',
@@ -4321,11 +4420,19 @@ export default {
             SENT: 'Gesendet',
             FAILED: 'Fehlgeschlagen',
         },
+        attendanceStatusLabels: {
+            PRESENT: 'Anwesend',
+            ABSENT: 'Abwesend',
+            EXCUSED: 'Entschuldigt',
+            DECLINED: 'Abgesagt',
+        },
         growthSection: 'Aktivität',
         sessionsGrowth: 'Neue Sitzungen pro Tag (30 T)',
+        registrationsGrowth: 'Neue Anmeldungen pro Tag (30 T)',
         topStations: 'Top-Wachen nach Mitglieder',
         healthSection: 'Status',
         verificationStatus: 'E-Mail-Bestätigung',
+        attendanceStatus: 'Anwesenheitsstatus',
         setupStatus: 'Einrichtungsstatus',
         verified: 'Bestätigt',
         unverified: 'Unbestätigt',

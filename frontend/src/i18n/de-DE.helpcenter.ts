@@ -2954,9 +2954,13 @@ volumes:
             subtitle: 'Systemweite Auswertungen und Zahlen.',
             whatShown: 'Was zeigen die Statistiken?',
             whatShownText: 'Hier siehst du Zahlen über die gesamte Plattform:',
-            emailSystem: 'E-Mail System - Wie viele E-Mails heute, insgesamt und in der Warteschlange sind.',
-            platform: 'Plattform - Anzahl der Wachen, Konten, Mitglieder, aktiven Sitzungen.',
-            dataStore: 'Datenbestand - Termine, Anwesenheiten, Inventar-Artikel, Profilfelder.',
+            emailSystem: 'E-Mail System - Wie viele E-Mails heute, insgesamt und in der Warteschlange sind, '
+                + 'und wie viele Zustell-Sperren aktuell hinterlegt sind.',
+            platform: 'Plattform - Anzahl der Wachen, Konten, Mitglieder, aktiven Sitzungen und Konten mit '
+                + 'Zwei-Faktor-Anmeldung.',
+            dataStore: 'Datenbestand - Termine, Anmeldungen, Anwesenheiten, Inventar-Artikel, Profilfelder.',
+            charts: 'Aktivität und Status - Verläufe der letzten 30 Tage sowie die Verteilung von '
+                + 'E-Mail-, Anwesenheits- und Einrichtungsstatus.',
             tip: 'Die Statistiken werden automatisch aktualisiert, wenn sich Daten ändern.',
         },
         notes: {
@@ -4055,6 +4059,66 @@ volumes:
             ackText: 'Erledigte Meldungen verschwinden aus der Liste, bleiben aber gespeichert. Gelöschte Meldungen sind endgültig weg. „Alle bestätigen" erledigt in einem Schritt alles Offene.',
             tip: 'Schau erst in die Details, bevor du eine Meldung erledigst - die letzten Aufrufe zeigen oft schon, woran es lag.',
         },
+        adminLog: {
+            title: 'Anwendungslog',
+            subtitle: 'Das Log der Instanz, durchsuchbar und nach Stufe filterbar',
+            whatIs: 'Wofür diese Seite da ist',
+            whatIsText: 'Hier steht das Log der laufenden Instanz, ohne dass du auf den Server musst. '
+                + 'Gesucht wird auf dem Server, nicht im Browser, damit auch Wochen an Zeilen in einem '
+                + 'Wimpernschlag durchsucht sind.',
+            consoleText: 'Console und Logdatei auf dem Server bekommen immer alles, unabhängig von '
+                + 'dieser Seite. Das ist Absicht: der Ausfall, den eine Ablage in der Datenbank nicht '
+                + 'abdecken kann, ist der Ausfall der Datenbank selbst.',
+            switchOnTitle: 'Einschalten und aufbewahren',
+            switchOnText: 'Unter Einstellungen wird festgelegt, ob überhaupt in die Datenbank '
+                + 'geschrieben wird und ab welcher Stufe. Ohne das bleibt diese Seite leer.',
+            retentionText: 'Die Aufbewahrung wird in Tagen angegeben und stündlich durchgesetzt. Je '
+                + 'niedriger die Stufe, desto mehr Zeilen fallen an; DEBUG bei einer belebten Instanz '
+                + 'sind zehntausende am Tag.',
+            searchTitle: 'Suchen und filtern',
+            searchText: 'Die Suche greift auf die Nachricht und den Namen des Loggers. Sie '
+                + 'unterscheidet keine Groß- und Kleinschreibung.',
+            levelsText: 'Die Stufen lassen sich einzeln zu- und abschalten. Ist nicht alles '
+                + 'eingeschaltet, wird darauf hingewiesen, denn eine gefilterte Ansicht sieht aus wie '
+                + 'eine ruhige.',
+            gapsTitle: 'Lücken',
+            gapsText: 'Fallen Zeilen schneller an, als sie geschrieben werden können, werden die '
+                + 'ältesten verworfen und gezählt. Die Seite sagt dann, wie viele. Vollständig sind '
+                + 'sie weiterhin in der Logdatei auf dem Server.',
+            privacyTitle: 'Was hier zu sehen ist',
+            privacyText: 'Ein Log enthält Adressen, Namen und Kennungen von Menschen. Diese Seite ist '
+                + 'deshalb der Instanzverwaltung vorbehalten. Wer sie öffnen darf, sieht mehr über die '
+                + 'Nutzung der Instanz als jede andere Seite.',
+            tip: 'Suchst du einem konkreten Vorfall nach, filtere zuerst auf WARN und ERROR und '
+                + 'schalte die übrigen Stufen erst dazu, wenn du die Stelle gefunden hast.',
+        },
+        adminMailLog: {
+            title: 'Mailprotokoll',
+            subtitle: 'Was aus der Post geworden ist, und woran sie gerade steht',
+            whatIs: 'Wofür diese Seite da ist',
+            whatIsText: 'Ein Anbieter bestätigt beim Versand nur, dass er die Mail übernommen hat. '
+                + 'Was danach passiert, entscheidet sich zwischen ihm und dem Empfängerserver. Diese '
+                + 'Seite zeigt beides nebeneinander: was Ember losgeworden ist, und was die Anbieter '
+                + 'darüber zurückgemeldet haben.',
+            statesTitle: 'Die Zustände',
+            statesText: '„Wartet" heißt, die Mail liegt in der Warteschlange. „In Zustellung" heißt, '
+                + 'ein Arbeitsprozess hat sie gerade in der Hand. „Übergeben" heißt, ein Anbieter hat '
+                + 'sie angenommen. „Gescheitert" heißt, jeder Anbieter der Liste hat sie abgelehnt.',
+            deliveryText: 'Der Zustellstatus daneben kommt vom Anbieter selbst und sagt, was danach '
+                + 'geschah: zugestellt, weich abgewiesen, hart abgewiesen, blockiert. Er erscheint nur, '
+                + 'wenn du beim Anbieter die Rückmeldeadresse eingetragen hast.',
+            stuckTitle: 'Hängengebliebene Mails',
+            stuckText: 'Steht eine Mail länger als zehn Minuten in der Zustellung, ist der '
+                + 'Arbeitsprozess dabei abgebrochen. Solche Mails werden von selbst nicht erneut '
+                + 'versucht und sind deshalb eigens gezählt.',
+            providersTitle: 'Anbieter heute',
+            providersText: 'Zu jedem Anbieter steht, wie viel er heute versendet hat, wie viel er '
+                + 'darf, und wie viele Mails gerade an ihm warten. Ist sein Tageslimit erreicht, '
+                + 'übernimmt der nächste, und der Anbieter ist entsprechend gekennzeichnet.',
+            tip: 'Häufen sich weiche Abweisungen bei einem Anbieter, liegt das meist nicht an der '
+                + 'Nachricht, sondern an seinem Absendeserver. Dann hilft ein weiterer Anbieter in '
+                + 'der Liste mehr als ein weiterer Versuch.',
+        },
         adminProblems: {
             title: 'Problemprotokoll',
             subtitle: 'Fehler und Warnungen aus dem Hintergrund einsehen.',
@@ -4088,7 +4152,7 @@ volumes:
             whatIs: 'Was finde ich hier?',
             whatIsText: 'Auf der Seite Tokens & Sitzungen steuerst du, wie lang neu erzeugte Tokens sind und wie lange sie gültig bleiben. Außerdem siehst du, ob der Server-seitige Token-Pepper konfiguriert ist.',
             fields: 'Die Felder',
-            fieldsText: 'Token-Bytes: Anzahl an Zufallsbytes pro Token (16–256, Standard 32). Sitzungsdauer: wie lange ein Login gültig bleibt (5–1440 Minuten). Verifizierungstoken / Passworttoken: wie lange ein Link aus einer E-Mail funktioniert (1–720 Stunden).',
+            fieldsText: 'Token-Bytes: Anzahl an Zufallsbytes pro Token (16–256, Standard 32). Sitzungsdauer: wie lange ein Login gültig bleibt (5 bis 43200 Minuten, also bis zu 30 Tage; lange Sitzungen ersparen den Mitgliedern häufiges Anmelden). Verifizierungstoken / Passworttoken: wie lange ein Link aus einer E-Mail funktioniert (1–720 Stunden).',
             pepper: 'Token-Pepper',
             pepperText: 'Der Pepper ist ein Server-Geheimnis, das in den HMAC der gespeicherten Tokens einfließt. Ohne ihn könnte ein reiner Datenbank-Leak die Tokens wiederherstellen. Wenn er fehlt, kannst du hier einen sicheren Wert generieren - eine Rotation ist absichtlich nicht möglich, weil sie alle bestehenden Sitzungen ungültig macht. Änderungen werden erst nach einem Anwendungsneustart wirksam.',
             tip: 'Setze den Pepper einmal beim Aufsetzen der Instanz und sichere ihn an einer separaten Stelle (z.B. Passwort-Manager). Geht er verloren, sind alle gespeicherten Tokens (Sitzungen, Reset-Links) unbrauchbar.',

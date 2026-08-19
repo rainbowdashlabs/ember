@@ -20,6 +20,7 @@ import FeedMetricsSummary from './adminfeedmetricsview/FeedMetricsSummary.vue'
 import FeedMetricsCharts from './adminfeedmetricsview/FeedMetricsCharts.vue'
 import FeedMetricsTables from './adminfeedmetricsview/FeedMetricsTables.vue'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {bottomLegend, cartesianGrid} from '@/util/chartLayout'
 
 use([CanvasRenderer, BarChart, LineChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent])
 
@@ -110,8 +111,8 @@ const statusBreakdown = computed(() => {
 
 const requestsChartOption = computed(() => ({
   tooltip: {trigger: 'axis'},
-  legend: {data: ['iCal', 'RSS', 'Atom'], textStyle: {color: textColor.value}},
-  grid: {left: 60, right: 20, bottom: 40},
+  legend: bottomLegend(textColor.value, ['iCal', 'RSS', 'Atom']),
+  grid: cartesianGrid({legend: true, axisName: true}),
   xAxis: {type: 'category', data: days.value, axisLabel: {color: textColor.value}},
   yAxis: {type: 'value', name: t('feedMetrics.requests'), nameTextStyle: {color: textColor.value}, axisLabel: {color: textColor.value}},
   series: [
@@ -123,7 +124,7 @@ const requestsChartOption = computed(() => ({
 
 const histogramChartOption = computed(() => ({
   tooltip: {trigger: 'axis'},
-  grid: {left: 60, right: 20, bottom: 40},
+  grid: cartesianGrid({axisName: true}),
   xAxis: {
     type: 'category',
     data: ['< 50ms', '50–200ms', '200ms–1s', '1–5s', '≥ 5s'],
@@ -146,7 +147,7 @@ const histogramChartOption = computed(() => ({
 
 const volumeChartOption = computed(() => ({
   tooltip: {trigger: 'axis'},
-  grid: {left: 60, right: 20, bottom: 40},
+  grid: cartesianGrid({axisName: true}),
   xAxis: {type: 'category', data: days.value, axisLabel: {color: textColor.value}},
   yAxis: {type: 'value', name: t('feedMetrics.requests'), nameTextStyle: {color: textColor.value}, axisLabel: {color: textColor.value}},
   series: [{
@@ -159,30 +160,32 @@ const volumeChartOption = computed(() => ({
 
 <template>
   <ViewContent :title="t('pages.admin-feed-metrics.title')" :subtitle="t('pages.admin-feed-metrics.subtitle')">
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <MutedText tag="p" size="sm">{{ t('feedMetrics.subtitle') }}</MutedText>
+    <div class="space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <MutedText tag="p" size="sm">{{ t('feedMetrics.subtitle') }}</MutedText>
+        </div>
+        <HelpCenterHint :to="{name: 'help-admin-feed-metrics'}">
+          {{ t('feedMetrics.help') }}
+        </HelpCenterHint>
       </div>
-      <HelpCenterHint :to="{name: 'help-admin-feed-metrics'}">
-        {{ t('feedMetrics.help') }}
-      </HelpCenterHint>
-    </div>
 
-    <Spinner v-if="loading"/>
-    <template v-else>
-      <FeedMetricsSummary
-          :total-requests="totalRequests"
-          :total-rendered="totalRendered"
-          :total-cache-hits="totalCacheHits"
-          :avg-duration-ms="avgDurationMs"/>
-      <FeedMetricsCharts
-          :has-data="days.length > 0"
-          :requests-chart-option="requestsChartOption"
-          :histogram-chart-option="histogramChartOption"
-          :volume-chart-option="volumeChartOption"/>
-      <FeedMetricsTables
-          :status-breakdown="statusBreakdown"
-          :user-agents="userAgents"/>
-    </template>
+      <Spinner v-if="loading"/>
+      <template v-else>
+        <FeedMetricsSummary
+            :total-requests="totalRequests"
+            :total-rendered="totalRendered"
+            :total-cache-hits="totalCacheHits"
+            :avg-duration-ms="avgDurationMs"/>
+        <FeedMetricsCharts
+            :has-data="days.length > 0"
+            :requests-chart-option="requestsChartOption"
+            :histogram-chart-option="histogramChartOption"
+            :volume-chart-option="volumeChartOption"/>
+        <FeedMetricsTables
+            :status-breakdown="statusBreakdown"
+            :user-agents="userAgents"/>
+      </template>
+    </div>
   </ViewContent>
 </template>

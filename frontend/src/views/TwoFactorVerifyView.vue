@@ -30,6 +30,8 @@ const route = useRoute()
 const {setActiveStation, clearActiveStation} = useStations()
 
 const preAuthToken = ref(route.query.token as string || '')
+/** Carried over from the login screen, so ticking the box there is not undone by the second factor. */
+const trustedDevice = ref(route.query.trusted === '1')
 const code = ref('')
 const useBackupCode = ref(false)
 
@@ -52,7 +54,7 @@ const {running: verifying, error: verifyError, run: runVerify, clearError: clear
   if (!code.value || !preAuthToken.value) return
   const factor = useBackupCode.value ? 'BACKUP_CODE' : 'TOTP'
   const days = rememberDevice.value ? trustedDeviceMaxDays.value : undefined
-  const result = await verify2fa(preAuthToken.value, factor, code.value, days)
+  const result = await verify2fa(preAuthToken.value, factor, code.value, days, trustedDevice.value)
   finalizeSession(result.token, result.expiresAt)
 }, {formatError: () => t('twoFactor.verify.invalidCode')})
 

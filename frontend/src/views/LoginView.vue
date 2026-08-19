@@ -45,6 +45,20 @@ const {
 
 const email = ref('')
 const password = ref('')
+/**
+ * Whether the person signing in vouches for this machine. Carried into the second factor as well,
+ * so ticking it is not undone by having two-factor enabled.
+ */
+const trustedDevice = ref(false)
+
+/**
+ * A sign-in form wants to be narrow; a consent text wants to be read. The gate carries the whole
+ * consent document, which at the width of a password field is a column of three words.
+ */
+const containerWidth = computed(() => {
+  if (consent.value === null) return 'max-w-5xl'
+  return isDemo.value || isDev.value ? 'max-w-2xl' : 'max-w-sm'
+})
 const registrationEnabled = ref(true)
 
 onMounted(async () => {
@@ -94,7 +108,11 @@ async function resolveStationAndRedirect() {
 const {running: loggingIn, error: loginError, run: handleLogin} = useAsyncAction(async () => {
   if (!email.value || !password.value) return
 
-  const result = await auth.login({email: email.value, password: password.value})
+  const result = await auth.login({
+    email: email.value,
+    password: password.value,
+    trustedDevice: trustedDevice.value,
+  })
 
   if (result.passwordChangeRequired && result.passwordChangeToken) {
     await navigateTo({path: '/set-password', query: {token: result.passwordChangeToken}})
@@ -103,6 +121,7 @@ const {running: loggingIn, error: loginError, run: handleLogin} = useAsyncAction
 
   if (result.twoFactorRequired && result.preAuthToken) {
     const query: Record<string, string> = {token: result.preAuthToken}
+    if (trustedDevice.value) query.trusted = '1'
     const redirect = route.query.redirect as string | undefined
     if (redirect) query.redirect = redirect
     await navigateTo({path: '/2fa-verify', query})
@@ -131,7 +150,7 @@ function topRoleLabel(account: DemoAccount): string {
 
 <template>
   <div class="flex min-h-screen items-center justify-center px-4 py-16">
-    <div :class="isDemo || isDev ? 'max-w-2xl' : 'max-w-sm'" class="w-full space-y-6">
+    <div :class="containerWidth" class="w-full space-y-6">
       <div v-if="!isDemo" class="text-center">
         <PageHeroIcon :icon="['fas', 'lock']"/>
         <PageHeader class="text-2xl font-bold">{{ t('login.title') }}</PageHeader>
@@ -165,6 +184,7 @@ function topRoleLabel(account: DemoAccount): string {
 
         <LoginForm v-if="consent === 'accepted'"
                    v-model:email="email" v-model:password="password"
+                   v-model:trustedDevice="trustedDevice"
                    :error="error" :loading="loading"
                    :registration-enabled="registrationEnabled"
                    @submit="handleLogin"/>

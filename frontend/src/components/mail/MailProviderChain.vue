@@ -9,7 +9,9 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
+import Spinner from '@/components/feedback/Spinner.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ErrorButton from '@/components/button/ErrorButton.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import MailProviderRow from '@/components/mail/MailProviderRow.vue'
 import {emptyMailProvider, type MailProvider} from '@/api/mailProviders'
@@ -28,12 +30,22 @@ const props = defineProps<{
   showDisplayFields?: boolean
   /** The address every test field starts with, usually the one of whoever is looking. */
   defaultRecipient?: string
+  /**
+   * Whether the list on screen is the stored one. Saving before it has arrived would write an
+   * empty list over a full one, which is not something anybody comes to this page to do.
+   */
+  ready?: boolean
+  /** Which entry is being tested right now, so only that row says so. */
+  testingPosition?: number | null
+  /** What the last test said, per entry, keyed by position. */
+  testResults?: Record<number, {ok: boolean; message: string}>
 }>()
 
 const providers = defineModel<MailProvider[]>('providers', {required: true})
 
 const emit = defineEmits<{
   test: [position: number, recipient: string]
+  clear: []
 }>()
 
 const {t} = useI18n()
@@ -66,7 +78,8 @@ function move(index: number, direction: number) {
     <SectionHeader>{{ t('mailChain.title') }}</SectionHeader>
     <MutedText tag="p" size="sm">{{ t('mailChain.hint') }}</MutedText>
 
-    <EmptyHint v-if="providers.length === 0">{{ t('mailChain.empty') }}</EmptyHint>
+    <Spinner v-if="props.ready === false" size="md"/>
+    <EmptyHint v-else-if="providers.length === 0">{{ t('mailChain.empty') }}</EmptyHint>
 
     <MailProviderRow
         v-for="(entry, index) in providers"
@@ -78,6 +91,8 @@ function move(index: number, direction: number) {
         :is-last="index === providers.length - 1"
         :show-display-fields="props.showDisplayFields"
         :default-recipient="props.defaultRecipient"
+        :testing="props.testingPosition === index"
+        :test-result="props.testResults?.[index] ?? null"
         @remove="remove(index)"
         @move="(direction: number) => move(index, direction)"
         @test="(recipient: string) => emit('test', index, recipient)"
@@ -88,8 +103,19 @@ function move(index: number, direction: number) {
     </MailProviderRow>
 
     <div class="flex justify-between gap-2 flex-wrap border-t border-(--border) pt-4">
-      <SecondaryButton :icon="['fas', 'plus']" @click="add">{{ t('mailChain.add') }}</SecondaryButton>
-      <SaveButton data-testid="mail-providers-save" :action="props.save"/>
+      <div class="flex gap-2">
+        <SecondaryButton :icon="['fas', 'plus']" :disabled="props.ready === false" @click="add">
+          {{ t('mailChain.add') }}
+        </SecondaryButton>
+        <ErrorButton
+            v-if="providers.length > 0"
+            :icon="['fas', 'trash']"
+            :disabled="props.ready === false"
+            @click="emit('clear')">
+          {{ t('mailChain.clearAll') }}
+        </ErrorButton>
+      </div>
+      <SaveButton data-testid="mail-providers-save" :disabled="props.ready === false" :action="props.save"/>
     </div>
   </NeutralContainer>
 </template>

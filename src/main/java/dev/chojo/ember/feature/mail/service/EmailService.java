@@ -10,6 +10,7 @@ import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
+import dev.chojo.ember.feature.mail.repository.MailProviderBlockRepository;
 import dev.chojo.ember.feature.mail.service.mail.MailProvider;
 import dev.chojo.ember.feature.mail.service.mail.SmtpMailProvider;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
@@ -68,6 +69,7 @@ public class EmailService {
     private final MailTemplateRenderer templateRenderer;
     private final StationReadOnlyGuard readOnlyGuard;
     private final MailChainService chainService;
+    private final MailProviderBlockRepository blockRepository;
 
     @Inject
     public EmailService(
@@ -77,23 +79,28 @@ public class EmailService {
             EmailQueueRepository queueRepository,
             MailTemplateRenderer templateRenderer,
             StationReadOnlyGuard readOnlyGuard,
-            MailChainService chainService) {
+            MailChainService chainService,
+            MailProviderBlockRepository blockRepository) {
         this.chainService = chainService;
+        this.blockRepository = blockRepository;
         this.mailing = mailing;
         this.api = api;
         this.demoConfig = demoConfig;
         this.queueRepository = queueRepository;
         this.templateRenderer = templateRenderer;
         this.readOnlyGuard = readOnlyGuard;
-        if (currentGlobalProvider() == null) {
+        var instanceChain = chainService.forInstance();
+        if (instanceChain.isEmpty()) {
             log.warn(
                     "Mail service starting without a global mail provider; transactional emails will not be delivered until one is configured");
         } else {
+            var first = instanceChain.getFirst();
             log.info(
-                    "Mail service initialized: provider={} sender={} dailyLimit={}",
-                    mailing.provider(),
-                    mailing.senderAddress(),
-                    mailing.dailySendLimit());
+                    "Mail service initialized: {} provider(s), first={} sender={} dailyLimit={}",
+                    instanceChain.size(),
+                    first.provider(),
+                    first.senderAddress(),
+                    first.dailySendLimit());
         }
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             var t = new Thread(r, "email-worker");
@@ -709,23 +716,17 @@ public class EmailService {
     }
 
     /**
-     * Builds a {@link MailProvider} from the live instance-wide mail settings. Re-evaluated on every
-     * call so runtime updates to the mailing config take effect without a restart.
+     * The first provider of the instance list, or null when the list is empty.
+     *
+     * <p>Read from the list rather than from the fields a single provider used to live in. Those
+     * fields are empty on an instance that has saved its list, so asking them said no provider was
+     * configured while three were, and the queue then never fetched an instance mail at all.
      */
     private MailProvider currentGlobalProvider() {
-        if (mailing.senderAddress().isBlank()) {
-            return null;
-        }
-        return buildProvider(
-                mailing.provider(),
-                mailing.smtp().host(),
-                mailing.smtp().port(),
-                mailing.smtp().ssl(),
-                mailing.user(),
-                mailing.password(),
-                mailing.apiKey(),
-                mailing.senderAddress(),
-                mailing.senderName());
+        return chainService.forInstance().stream()
+                .findFirst()
+                .map(EmailService::buildProvider)
+                .orElse(null);
     }
 
     // -- Queue --
@@ -793,21 +794,48 @@ public class EmailService {
      */
     private Optional<MailChainEntry> entryInTurn(List<MailChainEntry> chain, EmailQueueRepository.QueuedEmail email) {
         LocalDate today = LocalDate.now();
+        var blocked = blockRepository.blockedFor(email.stationId(), email.recipient());
         int position = email.providerPosition();
         while (position < chain.size()) {
             MailChainEntry entry = chain.get(position);
-            if (entry.hasRoomToday(queueRepository.getProviderDailyCount(today, email.stationId(), position))) {
+            if (blocked.contains(entry.provider())) {
+                log.info(
+                        "Provider {} is refused by the domain of {}; email {} moves to the next without trying",
+                        position,
+                        email.recipient(),
+                        email.id());
+            } else if (entry.hasRoomToday(queueRepository.getProviderDailyCount(today, email.stationId(), position))) {
                 return Optional.of(entry);
+            } else {
+                log.info(
+                        "Provider {} of the chain has sent its {} for today; email {} moves to the next",
+                        position,
+                        entry.dailySendLimit(),
+                        email.id());
             }
-            log.info(
-                    "Provider {} of the chain has sent its {} for today; email {} moves to the next",
-                    position,
-                    entry.dailySendLimit(),
-                    email.id());
             position++;
             queueRepository.advanceProvider(email.id());
         }
         return Optional.empty();
+    }
+
+    /**
+     * Whether anything in this owner's list could still carry a mail to this address today.
+     *
+     * <p>What the overview needs to say that a message is not merely waiting but stuck: every
+     * provider either refused by the receiving domain or out of allowance.
+     */
+    public boolean canReach(Integer stationId, String recipient) {
+        var chain = stationId == null ? chainService.forInstance() : chainService.forStation(stationId);
+        if (chain.isEmpty()) return false;
+        var blocked = blockRepository.blockedFor(stationId, recipient);
+        LocalDate today = LocalDate.now();
+        for (int position = 0; position < chain.size(); position++) {
+            var entry = chain.get(position);
+            if (blocked.contains(entry.provider())) continue;
+            if (entry.hasRoomToday(queueRepository.getProviderDailyCount(today, stationId, position))) return true;
+        }
+        return false;
     }
 
     /**

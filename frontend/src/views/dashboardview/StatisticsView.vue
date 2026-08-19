@@ -19,6 +19,7 @@ import {useConfigPanel} from '@/composables/useConfigPanel'
 import SummaryCards from '@/views/dashboardview/statisticsview/SummaryCards.vue'
 import ChartGrid from '@/views/dashboardview/statisticsview/ChartGrid.vue'
 import type {StatsData} from '@/views/dashboardview/statisticsview/statsData'
+import {bottomLegend, cartesianGrid, DONUT_CENTER, DONUT_RADIUS, chartTitle} from '@/util/chartLayout'
 
 use([CanvasRenderer, BarChart, PieChart, LineChart, TitleComponent, TooltipComponent, LegendComponent, GridComponent])
 
@@ -54,12 +55,13 @@ const groupPieOption = computed(() => {
   if (!stats.value) return {}
   const entries = Object.entries(stats.value.groupCounts)
   return {
-    title: {text: t('statistics.groupDistribution'), left: 'center', textStyle: {fontSize: 14, color: textColor.value}},
+    title: chartTitle(t('statistics.groupDistribution'), textColor.value),
     tooltip: {trigger: 'item', formatter: '{b}: {c} ({d}%)'},
-    legend: {bottom: 0, textStyle: {color: mutedColor.value}},
+    legend: bottomLegend(mutedColor.value),
     series: [{
       type: 'pie',
-      radius: ['40%', '70%'],
+      radius: DONUT_RADIUS,
+      center: DONUT_CENTER,
       data: entries.map(([name, value]) => ({name, value})),
       label: {color: mutedColor.value},
       emphasis: {itemStyle: {shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.2)'}},
@@ -72,10 +74,10 @@ const attendanceBarOption = computed(() => {
   if (!stats.value || stats.value.attendanceByMonth.length === 0) return {}
   const months = stats.value.attendanceByMonth.map(a => a.month)
   return {
-    title: {text: t('statistics.attendanceOverTime'), left: 'center', textStyle: {fontSize: 14, color: textColor.value}},
+    title: chartTitle(t('statistics.attendanceOverTime'), textColor.value),
     tooltip: {trigger: 'axis'},
-    legend: {bottom: 0, textStyle: {color: mutedColor.value}},
-    grid: {left: 50, right: 20, top: 40, bottom: 40},
+    legend: bottomLegend(mutedColor.value),
+    grid: cartesianGrid({legend: true, title: true, left: 50}),
     xAxis: {type: 'category', data: months, axisLabel: {color: mutedColor.value}, axisLine: {lineStyle: {color: mutedColor.value}}},
     yAxis: {type: 'value', axisLabel: {color: mutedColor.value}, axisLine: {lineStyle: {color: mutedColor.value}}, splitLine: {lineStyle: {color: isDark.value ? '#333' : '#e0e0e0'}}},
     series: [
@@ -108,9 +110,9 @@ const sessionsLineOption = computed(() => {
   if (!stats.value || stats.value.attendanceByMonth.length === 0) return {}
   const months = stats.value.attendanceByMonth.map(a => a.month)
   return {
-    title: {text: t('statistics.sessionsPerMonth'), left: 'center', textStyle: {fontSize: 14, color: textColor.value}},
+    title: chartTitle(t('statistics.sessionsPerMonth'), textColor.value),
     tooltip: {trigger: 'axis'},
-    grid: {left: 50, right: 20, top: 40, bottom: 20},
+    grid: cartesianGrid({title: true, left: 50}),
     xAxis: {type: 'category', data: months, axisLabel: {color: mutedColor.value}, axisLine: {lineStyle: {color: mutedColor.value}}},
     yAxis: {type: 'value', minInterval: 1, axisLabel: {color: mutedColor.value}, axisLine: {lineStyle: {color: mutedColor.value}}, splitLine: {lineStyle: {color: isDark.value ? '#333' : '#e0e0e0'}}},
     series: [{
@@ -126,10 +128,10 @@ const sessionsLineOption = computed(() => {
 const inventoryBarOption = computed(() => {
   if (!stats.value || stats.value.inventoryStatus.length === 0) return {}
   return {
-    title: {text: t('statistics.inventoryStatus'), left: 'center', textStyle: {fontSize: 14, color: textColor.value}},
+    title: chartTitle(t('statistics.inventoryStatus'), textColor.value),
     tooltip: {trigger: 'axis'},
-    legend: {bottom: 0, textStyle: {color: mutedColor.value}},
-    grid: {left: 100, right: 20, top: 40, bottom: 40},
+    legend: bottomLegend(mutedColor.value),
+    grid: cartesianGrid({legend: true, title: true, left: 100}),
     yAxis: {type: 'category', data: stats.value.inventoryStatus.map(i => i.name), axisLabel: {color: mutedColor.value}, axisLine: {lineStyle: {color: mutedColor.value}}},
     xAxis: {type: 'value', axisLabel: {color: mutedColor.value}, axisLine: {lineStyle: {color: mutedColor.value}}, splitLine: {lineStyle: {color: isDark.value ? '#333' : '#e0e0e0'}}},
     series: [
@@ -161,10 +163,10 @@ const inventoryBarOption = computed(() => {
 const registrationBarOption = computed(() => {
   if (!stats.value || stats.value.eventRegistrations.length === 0) return {}
   return {
-    title: {text: t('statistics.eventRegistrations'), left: 'center', textStyle: {fontSize: 14, color: textColor.value}},
+    title: chartTitle(t('statistics.eventRegistrations'), textColor.value),
     tooltip: {trigger: 'axis'},
-    legend: {bottom: 0, textStyle: {color: mutedColor.value}},
-    grid: {left: 150, right: 20, top: 40, bottom: 40},
+    legend: bottomLegend(mutedColor.value),
+    grid: cartesianGrid({legend: true, title: true, left: 150}),
     yAxis: {type: 'category', data: stats.value.eventRegistrations.map(e => e.name), axisLabel: {color: mutedColor.value}, axisLine: {lineStyle: {color: mutedColor.value}}},
     xAxis: {type: 'value', minInterval: 1, axisLabel: {color: mutedColor.value}, axisLine: {lineStyle: {color: mutedColor.value}}, splitLine: {lineStyle: {color: isDark.value ? '#333' : '#e0e0e0'}}},
     series: [

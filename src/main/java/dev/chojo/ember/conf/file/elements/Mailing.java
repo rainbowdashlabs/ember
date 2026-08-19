@@ -136,7 +136,12 @@ public class Mailing {
      */
     public List<MailProviderEntry> providers() {
         if (providers != null && !providers.isEmpty()) return providers;
-        if (provider == null || provider == MailProviderType.NONE) return Collections.emptyList();
+        // A bare configuration still names SMTP, so the sender address is what says whether anybody
+        // ever filled the old fields in. Without this an untouched instance claims a provider and
+        // tries to send through an empty host.
+        if (provider == null || provider == MailProviderType.NONE || senderAddress == null || senderAddress.isBlank()) {
+            return Collections.emptyList();
+        }
         List<MailProviderEntry> folded = new ArrayList<>();
         folded.add(new MailProviderEntry(
                 provider,

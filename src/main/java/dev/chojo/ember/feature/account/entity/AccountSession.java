@@ -33,7 +33,8 @@ public record AccountSession(
         String userAgent,
         Instant lastUsedAt,
         String location,
-        Instant twoFactorVerifiedAt) {
+        Instant twoFactorVerifiedAt,
+        boolean trustedDevice) {
 
     /**
      * Creates a row mapping for database result set conversion.
@@ -48,7 +49,8 @@ public record AccountSession(
                 row.getString("user_agent"),
                 row.get("last_used_at", INSTANT_TIMESTAMP),
                 row.getString("location"),
-                row.get("two_factor_verified_at", INSTANT_TIMESTAMP));
+                row.get("two_factor_verified_at", INSTANT_TIMESTAMP),
+                row.getBoolean("trusted_device"));
     }
 
     /**

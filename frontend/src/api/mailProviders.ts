@@ -75,6 +75,14 @@ export async function updateInstanceProviders(chain: MailProviderChain): Promise
     return res.data
 }
 
+/**
+ * Empties the station's list. The deliberate way to stop sending: a save can no longer do it by
+ * accident, so this is the only route that leaves nothing behind.
+ */
+export async function clearStationProviders(): Promise<void> {
+    await client.delete('/station/manage/mail')
+}
+
 export async function getStationProviders(): Promise<MailProvider[]> {
     const res = await client.get<MailProvider[]>('/station/manage/mail/providers')
     return res.data
@@ -113,6 +121,85 @@ export async function testInstanceProvider(position: number, recipient: string):
         `/admin/config/mailing/providers/${position}/test`,
         {recipient},
     )
+    return res.data
+}
+
+/** How one provider of the list stands today. */
+export interface ProviderStanding {
+    position: number
+    provider: string
+    senderAddress: string
+    attempts: number
+    dailySendLimit: number
+    sentToday: number
+    /** How many mails sit at this provider right now, which is what says who carries the next one. */
+    waiting: number
+    /** Whether its allowance is spent, so the next one is carrying the post. */
+    exhausted: boolean
+}
+
+/** One mail as the overview shows it. The body is deliberately absent. */
+export interface MailRecord {
+    id: number
+    recipient: string
+    subject: string
+    createdAt: string
+    sentAt: string | null
+    status: string
+    deliveryStatus: string
+    deliveryDetail: string | null
+    attempts: number
+    providerPosition: number
+    /**
+     * Whether anything in the list could still carry this one. False on a waiting mail means it is
+     * not merely queued but stuck.
+     */
+    reachable: boolean
+}
+
+/** A provider a receiving domain refuses outright. */
+export interface ProviderBlock {
+    provider: string
+    recipientDomain: string
+    reason: string | null
+    firstBlockedAt: string
+    lastBlockedAt: string
+    expiresAt: string
+}
+
+/** What has become of the post. */
+export interface MailDashboard {
+    pending: number
+    sending: number
+    sent: number
+    failed: number
+    /** Left in sending by a worker that died. Nothing retries these. */
+    stuck: number
+    oldestPendingAt: string | null
+    providers: ProviderStanding[]
+    recent: MailRecord[]
+    blocks: ProviderBlock[]
+}
+
+/**
+ * Lifts a block by hand, for when the relay is known to be off the list again and nobody wants to
+ * wait out the week the block would otherwise stand.
+ */
+export async function liftInstanceBlock(provider: string, domain: string): Promise<void> {
+    await client.delete('/admin/config/mailing/blocks', {params: {provider, domain}})
+}
+
+export async function liftStationBlock(provider: string, domain: string): Promise<void> {
+    await client.delete('/station/manage/mail/blocks', {params: {provider, domain}})
+}
+
+export async function getInstanceMailDashboard(): Promise<MailDashboard> {
+    const res = await client.get<MailDashboard>('/admin/config/mailing/dashboard')
+    return res.data
+}
+
+export async function getStationMailDashboard(): Promise<MailDashboard> {
+    const res = await client.get<MailDashboard>('/station/manage/mail/dashboard')
     return res.data
 }
 

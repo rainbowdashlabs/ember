@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import PasswordInput from '@/components/input/text/PasswordInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 
@@ -23,6 +24,7 @@ const emit = defineEmits<{
 
 const email = defineModel<string>('email', {required: true})
 const password = defineModel<string>('password', {required: true})
+const trustedDevice = defineModel<boolean>('trustedDevice', {default: false})
 
 const {t} = useI18n()
 </script>
@@ -42,6 +44,14 @@ const {t} = useI18n()
       <PasswordInput v-model="password"
                      :disabled="props.loading" :placeholder="t('login.password')"/>
     </div>
+
+    <label class="flex items-start gap-3">
+      <ToggleInput v-model="trustedDevice" :aria-label="t('login.trustedDevice')" :disabled="props.loading"/>
+      <span class="text-sm">
+        {{ t('login.trustedDevice') }}
+        <span class="block text-xs text-(--text-muted)">{{ t('login.trustedDeviceHint') }}</span>
+      </span>
+    </label>
 
     <PrimaryButton :disabled="props.loading || !email || !password" class="w-full" @click="emit('submit')">
       {{ props.loading ? t('common.loading') : t('login.submit') }}

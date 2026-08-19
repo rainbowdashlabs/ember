@@ -26,6 +26,8 @@ export interface TokensConfigResponse {
     verifyTokenHours: number
     passwordTokenHours: number
     sessionMinutes: number
+    /** How long a session lasts on a machine the person signing in did not vouch for. */
+    untrustedSessionMinutes: number
     tokenPepperConfigured: boolean
 }
 
@@ -34,6 +36,7 @@ export interface TokensConfigRequest {
     verifyTokenHours: number
     passwordTokenHours: number
     sessionMinutes: number
+    untrustedSessionMinutes: number
 }
 
 export interface HibpConfig {

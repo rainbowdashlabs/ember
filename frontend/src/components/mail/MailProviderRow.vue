@@ -14,6 +14,7 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
+import Alert from '@/components/feedback/Alert.vue'
 import MailProviderCredentialFields from '@/components/mail/MailProviderCredentialFields.vue'
 import {needsServerAddress, RELAY_PROVIDER_NAMES} from '@/util/mailProviders'
 import type {MailProvider} from '@/api/mailProviders'
@@ -37,6 +38,12 @@ const props = defineProps<{
   showDisplayFields?: boolean
   /** The address the test field starts with, usually the one of whoever is looking. */
   defaultRecipient?: string
+  testing?: boolean
+  /**
+   * What the last test of this entry said, shown here rather than at the top of the page: with a
+   * list of providers the answer belongs to the one that was asked.
+   */
+  testResult?: {ok: boolean; message: string} | null
 }>()
 
 const emit = defineEmits<{
@@ -174,11 +181,14 @@ const user = computed({
         <FieldLabel>{{ t('mailChain.testRecipient') }}</FieldLabel>
         <TextInput v-model="recipient" type="email" :aria-label="t('mailChain.testRecipient')"/>
       </div>
-      <SecondaryButton :icon="['fas', 'paper-plane']" @click="emit('test', recipient)">
-        {{ t('mailChain.test') }}
+      <SecondaryButton :icon="['fas', 'paper-plane']" :disabled="props.testing" @click="emit('test', recipient)">
+        {{ props.testing ? t('common.loading') : t('mailChain.test') }}
       </SecondaryButton>
     </div>
-    <p class="text-xs text-(--text-muted)">{{ t('mailChain.testHint') }}</p>
+    <Alert v-if="props.testResult" :variant="props.testResult.ok ? 'success' : 'error'">
+      {{ props.testResult.message }}
+    </Alert>
+    <p v-else class="text-xs text-(--text-muted)">{{ t('mailChain.testHint') }}</p>
 
     <slot name="webhook" :provider="entry.provider"/>
   </div>

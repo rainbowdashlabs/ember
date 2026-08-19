@@ -15,10 +15,13 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
+import dev.chojo.ember.feature.mail.repository.MailProviderBlockRepository;
 import dev.chojo.ember.feature.mail.repository.ProviderSecretRepository;
 import dev.chojo.ember.feature.mail.repository.StationMailProviderRepository;
 import dev.chojo.ember.feature.mail.route.MailFallbackPayload;
 import dev.chojo.ember.feature.mail.service.EmailService;
+import dev.chojo.ember.feature.mail.service.MailDashboardService;
+import dev.chojo.ember.feature.mail.service.MailDashboardService.MailDashboard;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
@@ -80,6 +83,8 @@ public class StationManageRoutes implements Routes {
     private final ProviderSecretRepository providerSecretRepository;
     private final Api apiConfig;
     private final EmailService emailService;
+    private final MailDashboardService dashboardService;
+    private final MailProviderBlockRepository blockRepository;
     private final AuthService authService;
     private final StationImportService importService;
     private final StationLocationService locationService;
@@ -96,6 +101,8 @@ public class StationManageRoutes implements Routes {
             ProviderSecretRepository providerSecretRepository,
             Api apiConfig,
             EmailService emailService,
+            MailDashboardService dashboardService,
+            MailProviderBlockRepository blockRepository,
             AuthService authService,
             StationImportService importService,
             StationLocationService locationService,
@@ -109,6 +116,8 @@ public class StationManageRoutes implements Routes {
         this.providerSecretRepository = providerSecretRepository;
         this.apiConfig = apiConfig;
         this.emailService = emailService;
+        this.dashboardService = dashboardService;
+        this.blockRepository = blockRepository;
         this.authService = authService;
         this.importService = importService;
         this.locationService = locationService;
@@ -146,6 +155,8 @@ public class StationManageRoutes implements Routes {
                 prefix + "/station/manage/mail/providers/{position}/test",
                 this::testMailProvider,
                 StationPermission.STATION_MAIL);
+        routes.get(prefix + "/station/manage/mail/dashboard", this::mailDashboard, StationPermission.STATION_MAIL);
+        routes.delete(prefix + "/station/manage/mail/blocks", this::liftMailBlock, StationPermission.STATION_MAIL);
         routes.post(prefix + "/station/manage/mail/test-mail", this::sendTestMail, StationPermission.STATION_MAIL);
         routes.get(prefix + "/station/manage/modules", this::getDisabledModules, StationPermission.STATION_MODULES);
         routes.put(prefix + "/station/manage/modules", this::setDisabledModules, StationPermission.STATION_MODULES);
@@ -519,6 +530,11 @@ public class StationManageRoutes implements Routes {
                     entry.providerName(),
                     entry.providerUrl()));
         }
+        // Emptying the list is what the delete route is for. A save that arrives empty is far more
+        // often a client that failed to load it than a station meaning to stop sending.
+        if (next.isEmpty() && !stored.isEmpty()) {
+            throw new BadRequestResponse("Refusing to replace the provider list with an empty one");
+        }
         mailProviderRepository.replace(session.stationId(), next);
         log.info("Station {} set {} mail fallback(s)", session.stationId(), next.size());
         getMailFallbacks(ctx);
@@ -870,6 +886,31 @@ public class StationManageRoutes implements Routes {
      *                  delivers is often a question about somebody else's mailbox
      */
     public record ProviderTestRequest(String recipient) {}
+
+    /**
+     * What has become of this station's post: the queue, how each of its providers stands today,
+     * and what those providers reported back about the mails they took.
+     */
+    @OpenApi(
+            path = "/api/v1/station/manage/mail/dashboard",
+            methods = HttpMethod.GET,
+            summary = "The state of the station mail queue and its providers",
+            tags = {"Station Manage"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MailDashboard.class)))
+    private void mailDashboard(Context ctx) {
+        ctx.json(dashboardService.forOwner(UserSession.from(ctx).stationId()));
+    }
+
+    /**
+     * Lifts a block by hand, for when the relay has been taken off the list and nobody wants to
+     * wait out the week.
+     */
+    private void liftMailBlock(Context ctx) {
+        var provider = MailProviderType.fromName(ctx.queryParam("provider"))
+                .orElseThrow(() -> new BadRequestResponse("Unknown mail provider: " + ctx.queryParam("provider")));
+        blockRepository.lift(UserSession.from(ctx).stationId(), provider, ctx.queryParam("domain"));
+        throw new NoContentResponse();
+    }
 
     /**
      * Response and request body for the set of disabled modules.

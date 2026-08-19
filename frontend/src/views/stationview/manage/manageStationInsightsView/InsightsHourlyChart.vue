@@ -12,6 +12,7 @@ import {CanvasRenderer} from 'echarts/renderers'
 import {BarChart} from 'echarts/charts'
 import {DataZoomComponent, GridComponent, LegendComponent, TooltipComponent} from 'echarts/components'
 import type {HourlyTotal} from '@/api/insights'
+import {bottomLegend, cartesianGrid, ZOOM_SLIDER_BOTTOM} from '@/util/chartLayout'
 
 use([CanvasRenderer, BarChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent])
 
@@ -43,11 +44,13 @@ const option = computed(() => ({
     trigger: 'axis',
     valueFormatter: (v: unknown) => typeof v === 'number' ? n(v) : String(v),
   },
-  legend: {
-    data: [t('insights.chart.hits')],
-    textStyle: {color: textColor.value},
-  },
-  grid: {left: 60, right: 20, bottom: 60, top: 40},
+  legend: bottomLegend(textColor.value, [t('insights.chart.hits')]),
+  grid: cartesianGrid({
+    legend: true,
+    axisName: true,
+    rotatedLabels: true,
+    zoom: props.rows.length > 24,
+  }),
   xAxis: {
     type: 'category',
     data: labels.value,
@@ -65,7 +68,7 @@ const option = computed(() => ({
     data: data.value,
     itemStyle: {color: '#FF6421'},
   }],
-  dataZoom: props.rows.length > 24 ? [{type: 'inside'}, {type: 'slider', bottom: 10}] : undefined,
+  dataZoom: props.rows.length > 24 ? [{type: 'inside'}, {type: 'slider', bottom: ZOOM_SLIDER_BOTTOM}] : undefined,
 }))
 </script>
 

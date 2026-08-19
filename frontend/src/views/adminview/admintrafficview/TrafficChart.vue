@@ -12,6 +12,7 @@ import {CanvasRenderer} from 'echarts/renderers'
 import {LineChart} from 'echarts/charts'
 import {DataZoomComponent, GridComponent, LegendComponent, TooltipComponent} from 'echarts/components'
 import {AuthBucket, type AuthBucketName, type HourlyTrafficRow} from '@/api/traffic'
+import {bottomLegend, cartesianGrid, ZOOM_SLIDER_BOTTOM} from '@/util/chartLayout'
 
 use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent])
 
@@ -135,11 +136,14 @@ const option = computed(() => ({
     trigger: 'axis',
     valueFormatter: (v: unknown) => typeof v === 'number' ? valueFormatter(v) : String(v),
   },
-  legend: {
-    data: series.value.map(s => s.name),
-    textStyle: {color: textColor.value},
-  },
-  grid: {left: 70, right: 20, bottom: 60, top: 40},
+  legend: bottomLegend(textColor.value, series.value.map(s => s.name)),
+  grid: cartesianGrid({
+    legend: true,
+    axisName: true,
+    rotatedLabels: true,
+    zoom: hours.value.length > 24,
+    left: 70,
+  }),
   xAxis: {
     type: 'category',
     boundaryGap: false,
@@ -156,7 +160,7 @@ const option = computed(() => ({
     },
   },
   series: series.value,
-  dataZoom: hours.value.length > 24 ? [{type: 'inside'}, {type: 'slider', bottom: 10}] : undefined,
+  dataZoom: hours.value.length > 24 ? [{type: 'inside'}, {type: 'slider', bottom: ZOOM_SLIDER_BOTTOM}] : undefined,
 }))
 </script>
 

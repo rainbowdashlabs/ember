@@ -4,15 +4,52 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import StatValue from '@/components/typography/StatValue.vue'
+import StatTile from '@/components/statistic/StatTile.vue'
 
 const {t} = useI18n()
+
+const emailTiles = computed(() => [
+  {key: 'sentToday', value: 12, color: 'success' as const},
+  {key: 'queued', value: 3, color: 'info' as const},
+  {key: 'sending', value: 1, color: 'info' as const},
+  {key: 'totalSent', value: 847},
+  {key: 'failed', value: 0, color: 'muted' as const},
+  {key: 'providerBlocks', value: 0, color: 'muted' as const},
+])
+
+const platformTiles = computed(() => [
+  {key: 'stations', value: 3},
+  {key: 'accounts', value: 45},
+  {key: 'members', value: 82},
+  {key: 'activeSessions', value: 7},
+  {key: 'groups', value: 12},
+  {key: 'twoFactorAccounts', value: 28},
+])
+
+const dataTiles = computed(() => [
+  {key: 'events', value: 18},
+  {key: 'eventsUpcoming', value: 5},
+  {key: 'eventRegistrations', value: 132},
+  {key: 'attendanceSessions', value: 64},
+  {key: 'sessionsThisMonth', value: 6},
+  {key: 'attendanceEntries', value: 1280},
+  {key: 'inventoryItems', value: 96},
+  {key: 'profileFields', value: 24},
+])
+
+const chartTiles = computed(() => [
+  {key: 'emailHistory', icon: 'chart-bar'},
+  {key: 'emailStatus', icon: 'chart-pie'},
+  {key: 'registrationsGrowth', icon: 'chart-line'},
+  {key: 'attendanceStatus', icon: 'chart-pie'},
+])
 </script>
 
 <template>
@@ -22,93 +59,33 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.adminStatistics.emailSystem') }}</p>
       <p>{{ t('helpCenter.adminStatistics.platform') }}</p>
       <p>{{ t('helpCenter.adminStatistics.dataStore') }}</p>
+      <p>{{ t('helpCenter.adminStatistics.charts') }}</p>
     </HelpSection>
 
-    <!-- Dummy: Email stats -->
     <SubHeader>{{ t('adminStats.emailSection') }}</SubHeader>
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-      <NeutralContainer class="text-center">
-        <StatValue color="success">12</StatValue>
-        <p class="text-sm text-(--text-muted)">{{ t('adminStats.sentToday') }}</p>
-      </NeutralContainer>
-      <NeutralContainer class="text-center">
-        <p class="text-2xl font-bold text-info">3</p>
-        <p class="text-sm text-(--text-muted)">{{ t('adminStats.queued') }}</p>
-      </NeutralContainer>
-      <NeutralContainer class="text-center">
-        <p class="text-2xl font-bold">847</p>
-        <p class="text-sm text-(--text-muted)">{{ t('adminStats.totalSent') }}</p>
-      </NeutralContainer>
-      <NeutralContainer class="text-center">
-        <p class="text-2xl font-bold">0</p>
-        <p class="text-sm text-(--text-muted)">{{ t('adminStats.failed') }}</p>
-      </NeutralContainer>
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+      <StatTile v-for="tile in emailTiles" :key="tile.key" :color="tile.color"
+                :label="t(`adminStats.${tile.key}`)" :value="tile.value"/>
     </div>
 
-    <!-- Dummy: Chart placeholders -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <NeutralContainer class="flex items-center justify-center" style="height: 200px">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <NeutralContainer v-for="chart in chartTiles" :key="chart.key" class="flex items-center justify-center"
+                        style="height: 200px">
         <div class="text-center text-(--text-muted)">
-          <font-awesome-icon :icon="['fas', 'chart-bar']" class="text-3xl mb-2"/>
-          <p class="text-sm">{{ t('adminStats.emailHistory') }}</p>
-        </div>
-      </NeutralContainer>
-      <NeutralContainer class="flex items-center justify-center" style="height: 200px">
-        <div class="text-center text-(--text-muted)">
-          <font-awesome-icon :icon="['fas', 'chart-pie']" class="text-3xl mb-2"/>
-          <p class="text-sm">{{ t('adminStats.emailStatus') }}</p>
+          <font-awesome-icon :icon="['fas', chart.icon]" class="text-3xl mb-2"/>
+          <p class="text-sm">{{ t(`adminStats.${chart.key}`) }}</p>
         </div>
       </NeutralContainer>
     </div>
 
-    <!-- Dummy: Platform stats -->
     <SubHeader>{{ t('adminStats.platformSection') }}</SubHeader>
-    <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-4">
-      <NeutralContainer class="text-center">
-        <StatValue>3</StatValue>
-        <p class="text-sm text-(--text-muted)">{{ t('adminStats.stations') }}</p>
-      </NeutralContainer>
-      <NeutralContainer class="text-center">
-        <StatValue>45</StatValue>
-        <p class="text-sm text-(--text-muted)">{{ t('adminStats.accounts') }}</p>
-      </NeutralContainer>
-      <NeutralContainer class="text-center">
-        <StatValue>82</StatValue>
-        <p class="text-sm text-(--text-muted)">{{ t('adminStats.members') }}</p>
-      </NeutralContainer>
-      <NeutralContainer class="text-center">
-        <StatValue>7</StatValue>
-        <p class="text-sm text-(--text-muted)">{{ t('adminStats.activeSessions') }}</p>
-      </NeutralContainer>
-      <NeutralContainer class="text-center">
-        <StatValue>12</StatValue>
-        <p class="text-sm text-(--text-muted)">{{ t('adminStats.groups') }}</p>
-      </NeutralContainer>
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+      <StatTile v-for="tile in platformTiles" :key="tile.key" :label="t(`adminStats.${tile.key}`)" :value="tile.value"/>
     </div>
 
-    <!-- Dummy: Data stats -->
     <SubHeader>{{ t('adminStats.dataSection') }}</SubHeader>
-    <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-4">
-      <NeutralContainer class="text-center">
-        <StatValue>18</StatValue>
-        <p class="text-sm text-(--text-muted)">{{ t('adminStats.events') }}</p>
-      </NeutralContainer>
-      <NeutralContainer class="text-center">
-        <StatValue>64</StatValue>
-        <p class="text-sm text-(--text-muted)">{{ t('adminStats.attendanceSessions') }}</p>
-      </NeutralContainer>
-      <NeutralContainer class="text-center">
-        <StatValue>1280</StatValue>
-        <p class="text-sm text-(--text-muted)">{{ t('adminStats.attendanceEntries') }}</p>
-      </NeutralContainer>
-      <NeutralContainer class="text-center">
-        <StatValue>96</StatValue>
-        <p class="text-sm text-(--text-muted)">{{ t('adminStats.inventoryItems') }}</p>
-      </NeutralContainer>
-      <NeutralContainer class="text-center">
-        <StatValue>24</StatValue>
-        <p class="text-sm text-(--text-muted)">{{ t('adminStats.profileFields') }}</p>
-      </NeutralContainer>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <StatTile v-for="tile in dataTiles" :key="tile.key" :label="t(`adminStats.${tile.key}`)" :value="tile.value"/>
     </div>
 
     <HelpTip>{{ t('helpCenter.adminStatistics.tip') }}</HelpTip>

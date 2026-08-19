@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.twofactor.route;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -309,7 +310,7 @@ public class TwoFactorRoutes implements Routes {
         accountRepository.deleteToken(request.preAuthToken());
         Integer deviceTrustId = issueTrustedDeviceIfRequested(ctx, accountId, request.rememberDeviceDays());
         LoginResult session = authService.createVerifiedSessionForAccount(
-                accountId, ctx.userAgent(), ctx.header("CF-IPCountry"), deviceTrustId);
+                accountId, ctx.userAgent(), ctx.header("CF-IPCountry"), deviceTrustId, request.trustedDevice());
         ctx.json(new LoginResultResponse(session.token(), session.expiresAt()));
     }
 
@@ -574,7 +575,15 @@ public class TwoFactorRoutes implements Routes {
 
     public record BackupCodesResponse(List<String> codes) {}
 
-    public record Verify2faRequest(String preAuthToken, String factor, String proof, Integer rememberDeviceDays) {}
+    /**
+     * @param trustedDevice the box from the login screen, carried through the second factor so
+     *                      somebody who ticked it does not end up with the short session anyway.
+     *                      Separate from {@code rememberDeviceDays}, which is about skipping the
+     *                      second factor next time.
+     */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record Verify2faRequest(
+            String preAuthToken, String factor, String proof, Integer rememberDeviceDays, boolean trustedDevice) {}
 
     public record StepUpRequest(String factor, String proof) {}
 

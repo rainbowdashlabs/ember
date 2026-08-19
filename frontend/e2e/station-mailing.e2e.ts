@@ -107,16 +107,34 @@ test.describe('Station mail providers', () => {
         await expect(page.getByText(/jemand\.anderes@example\.org|hat abgelehnt/)).toBeVisible()
     })
 
-    test('the list is emptied again', async ({managerPage: page}) => {
+    /**
+     * Emptying the list is its own act, not something a save can do. A save that arrives empty is
+     * far more often a client that failed to load the list than somebody meaning to stop sending,
+     * and the difference is not recoverable, so the server refuses it and this is the way through.
+     */
+    test('the list is emptied through the deliberate route', async ({managerPage: page}) => {
         await page.goto(MAILING)
 
-        for (const _ of [0, 1]) {
-            await page.getByRole('button', {name: 'Löschen'}).first().click()
-        }
-        await save(page)
+        await page.getByRole('button', {name: 'Alle entfernen'}).click()
+        await page.getByRole('button', {name: 'Alle Anbieter entfernen'}).click()
 
+        await expect(page.getByText(/Alle Anbieter entfernt/)).toBeVisible()
         await page.reload()
         await expect(page.getByText(/Noch kein Anbieter eingetragen/)).toBeVisible()
+    })
+
+    /**
+     * The queue was recorded from the start and could not be read. What matters is that the page
+     * says where the post stands, and which provider it is standing at.
+     */
+    test('the state of the queue is on the page', async ({managerPage: page}) => {
+        await page.goto(MAILING)
+
+        await expect(page.getByRole('heading', {name: 'Zustellung'})).toBeVisible()
+        await expect(page.getByText('Wartet', {exact: true})).toBeVisible()
+        await expect(page.getByText('Hängengeblieben', {exact: true})).toBeVisible()
+        await expect(page.getByLabel('Nach Empfänger oder Betreff suchen')).toBeVisible()
+        await expect(page.getByLabel('Nach Zustellstatus filtern')).toBeVisible()
     })
 
     test('a member reaches none of it', async ({memberPage: page}) => {

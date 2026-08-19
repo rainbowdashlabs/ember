@@ -5,10 +5,8 @@
  */
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
-import VChart from 'vue-echarts'
 import type {EChartsCoreOption} from 'echarts/core'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import ChartPanel from '@/components/chart/ChartPanel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 
 defineProps<{
@@ -22,24 +20,16 @@ const {t} = useI18n()
 </script>
 
 <template>
-  <div class="contents">
-    <NeutralContainer class="space-y-2">
-      <SectionHeader>{{ t('feedMetrics.requestsByType') }}</SectionHeader>
-      <VChart v-if="hasData" :option="requestsChartOption" autoresize style="height: 280px"/>
-      <MutedText v-else tag="div" size="sm">{{ t('feedMetrics.noData') }}</MutedText>
-    </NeutralContainer>
+  <div class="space-y-4">
+    <ChartPanel :empty-text="t('feedMetrics.noData')" :has-data="hasData" :option="requestsChartOption"
+                :title="t('feedMetrics.requestsByType')"/>
 
-    <NeutralContainer class="space-y-2">
-      <SectionHeader>{{ t('feedMetrics.latencyHistogram') }}</SectionHeader>
-      <MutedText tag="p" size="sm">{{ t('feedMetrics.latencyHistogramHint') }}</MutedText>
-      <VChart v-if="hasData" :option="histogramChartOption" autoresize style="height: 280px"/>
-      <MutedText v-else tag="div" size="sm">{{ t('feedMetrics.noData') }}</MutedText>
-    </NeutralContainer>
+    <ChartPanel :empty-text="t('feedMetrics.noData')" :has-data="hasData" :option="histogramChartOption"
+                :title="t('feedMetrics.latencyHistogram')">
+      <MutedText size="sm" tag="p">{{ t('feedMetrics.latencyHistogramHint') }}</MutedText>
+    </ChartPanel>
 
-    <NeutralContainer class="space-y-2">
-      <SectionHeader>{{ t('feedMetrics.dailyVolume') }}</SectionHeader>
-      <VChart v-if="hasData" :option="volumeChartOption" autoresize style="height: 240px"/>
-      <MutedText v-else tag="div" size="sm">{{ t('feedMetrics.noData') }}</MutedText>
-    </NeutralContainer>
+    <ChartPanel :empty-text="t('feedMetrics.noData')" :has-data="hasData" :height="240"
+                :option="volumeChartOption" :title="t('feedMetrics.dailyVolume')"/>
   </div>
 </template>
