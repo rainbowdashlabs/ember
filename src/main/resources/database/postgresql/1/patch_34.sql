@@ -68,3 +68,38 @@ ALTER TABLE ember_schema.account_session
 
 COMMENT ON COLUMN ember_schema.account_session.trusted_device
     IS 'Whether the person signing in vouched for this machine, which grants the long session length.';
+
+-- Which provider a receiving domain refuses outright.
+--
+-- Recorded only from a report of BLOCKED, which is the receiving side saying it refused our relay
+-- rather than our message. A hard bounce is not enough: that usually means the address does not
+-- exist, and shutting a provider out of a whole domain over one typo would cost far more than the
+-- attempt it saves.
+--
+-- Kept per provider rather than per entry of the list, because what is on the block list is the
+-- service and its addresses, not the position it happens to sit at.
+CREATE TABLE ember_schema.mail_provider_block
+(
+    id               SERIAL    PRIMARY KEY,
+    station_id       INTEGER   REFERENCES ember_schema.station (id) ON DELETE CASCADE,
+    provider         TEXT      NOT NULL,
+    recipient_domain TEXT      NOT NULL,
+    reason           TEXT,
+    first_blocked_at TIMESTAMP NOT NULL DEFAULT now(),
+    last_blocked_at  TIMESTAMP NOT NULL DEFAULT now(),
+    expires_at       TIMESTAMP NOT NULL
+);
+
+COMMENT ON TABLE ember_schema.mail_provider_block
+    IS 'Which mail provider a receiving domain has refused outright, so it is not tried there again.';
+COMMENT ON COLUMN ember_schema.mail_provider_block.id IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.mail_provider_block.station_id IS 'The station whose list this concerns, or null for the instance list.';
+COMMENT ON COLUMN ember_schema.mail_provider_block.provider IS 'Which provider was refused.';
+COMMENT ON COLUMN ember_schema.mail_provider_block.recipient_domain IS 'The receiving domain that refused it, lowercased.';
+COMMENT ON COLUMN ember_schema.mail_provider_block.reason IS 'What the receiving side gave as the reason, when it gave one.';
+COMMENT ON COLUMN ember_schema.mail_provider_block.first_blocked_at IS 'When this pairing was first refused.';
+COMMENT ON COLUMN ember_schema.mail_provider_block.last_blocked_at IS 'When it was last refused, which pushes the expiry out.';
+COMMENT ON COLUMN ember_schema.mail_provider_block.expires_at IS 'When the block lapses, because a block list entry is not forever.';
+
+CREATE UNIQUE INDEX uq_mail_provider_block
+    ON ember_schema.mail_provider_block (coalesce(station_id, 0), provider, recipient_domain);

@@ -28,9 +28,17 @@ const BAD = ['SOFT_BOUNCE', 'HARD_BOUNCE', 'BLOCKED', 'SPAM']
 const tone = computed(() => {
   if (BAD.includes(props.entry.deliveryStatus)) return 'border-(--error)'
   if (props.entry.status === 'FAILED') return 'border-(--error)'
+  if (stuck.value) return 'border-(--error)'
   if (props.entry.deliveryStatus === 'DELIVERED') return 'border-(--success)'
   return 'border-(--border)'
 })
+
+/**
+ * Waiting and unable to go anywhere. Worth saying outright: a queue that is merely busy looks the
+ * same as one that will never move, and only one of them needs somebody to act.
+ */
+const stuck = computed(() =>
+    ['PENDING', 'SENDING'].includes(props.entry.status) && !props.entry.reachable)
 
 const when = computed(() => new Date(props.entry.sentAt ?? props.entry.createdAt).toLocaleString('de-DE'))
 </script>
@@ -48,6 +56,7 @@ const when = computed(() => new Date(props.entry.sentAt ?? props.entry.createdAt
       <span>· {{ t('mailDashboard.viaProvider', {position: entry.providerPosition + 1}) }}</span>
       <span v-if="entry.attempts > 0">· {{ t('mailDashboard.attemptsMade', {count: entry.attempts}) }}</span>
     </div>
+    <div v-if="stuck" class="text-xs text-(--error)">{{ t('mailDashboard.unreachable') }}</div>
     <div v-if="entry.deliveryDetail" class="text-xs text-(--error) break-words">{{ entry.deliveryDetail }}</div>
   </div>
 </template>

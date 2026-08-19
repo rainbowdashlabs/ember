@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.mail.service;
 
 import dev.chojo.ember.feature.mail.entity.MailDeliveryStatus;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
+import dev.chojo.ember.feature.mail.repository.MailProviderBlockRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -28,11 +29,16 @@ public class MailDeliveryService {
 
     private final EmailQueueRepository queueRepository;
     private final MailChainService chainService;
+    private final MailProviderBlockRepository blockRepository;
 
     @Inject
-    public MailDeliveryService(EmailQueueRepository queueRepository, MailChainService chainService) {
+    public MailDeliveryService(
+            EmailQueueRepository queueRepository,
+            MailChainService chainService,
+            MailProviderBlockRepository blockRepository) {
         this.queueRepository = queueRepository;
         this.chainService = chainService;
+        this.blockRepository = blockRepository;
     }
 
     /**
@@ -85,7 +91,7 @@ public class MailDeliveryService {
                     event.recipient(),
                     event.status(),
                     event.detail() == null ? "no reason given" : event.detail());
-            retry(mail.get(), event.status());
+            retry(mail.get(), event.status(), event.detail());
         }
         return true;
     }
@@ -108,10 +114,17 @@ public class MailDeliveryService {
      * <p>When the chain has nothing left, the send loop finds no provider in turn and records the
      * mail as failed, which is where an operator sees it.
      */
-    private void retry(EmailQueueRepository.QueuedEmail mail, MailDeliveryStatus status) {
+    private void retry(EmailQueueRepository.QueuedEmail mail, MailDeliveryStatus status, String blockReason) {
         if (!status.worthRetrying()) return;
         var chain = mail.stationId() == null ? chainService.forInstance() : chainService.forStation(mail.stationId());
-        if (status == MailDeliveryStatus.BLOCKED) {
+        // A soft bounce that names our own sending address as the thing refused is a block wearing
+        // the wrong label: it will never pass, however often the same relay tries.
+        boolean relayRefused = status == MailDeliveryStatus.BLOCKED || RelayBlockDetector.blamesTheRelay(blockReason);
+        if (relayRefused) {
+            chainService
+                    .at(chain, mail.providerPosition())
+                    .ifPresent(entry ->
+                            blockRepository.block(mail.stationId(), entry.provider(), mail.recipient(), blockReason));
             queueRepository.advanceProvider(mail.id());
         } else {
             int allowed = chainService

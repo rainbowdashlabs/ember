@@ -150,6 +150,21 @@ export interface MailRecord {
     deliveryDetail: string | null
     attempts: number
     providerPosition: number
+    /**
+     * Whether anything in the list could still carry this one. False on a waiting mail means it is
+     * not merely queued but stuck.
+     */
+    reachable: boolean
+}
+
+/** A provider a receiving domain refuses outright. */
+export interface ProviderBlock {
+    provider: string
+    recipientDomain: string
+    reason: string | null
+    firstBlockedAt: string
+    lastBlockedAt: string
+    expiresAt: string
 }
 
 /** What has become of the post. */
@@ -163,6 +178,7 @@ export interface MailDashboard {
     oldestPendingAt: string | null
     providers: ProviderStanding[]
     recent: MailRecord[]
+    blocks: ProviderBlock[]
 }
 
 export async function getInstanceMailDashboard(): Promise<MailDashboard> {

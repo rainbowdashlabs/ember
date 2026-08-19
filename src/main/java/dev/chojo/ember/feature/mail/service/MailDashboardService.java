@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.mail.service;
 
 import dev.chojo.ember.feature.mail.entity.MailDeliveryStatus;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
+import dev.chojo.ember.feature.mail.repository.MailProviderBlockRepository;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -14,7 +15,11 @@ import jakarta.inject.Singleton;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * What has become of the post, gathered in one place.
@@ -31,11 +36,16 @@ public class MailDashboardService {
 
     private final EmailQueueRepository queueRepository;
     private final MailChainService chainService;
+    private final MailProviderBlockRepository blockRepository;
 
     @Inject
-    public MailDashboardService(EmailQueueRepository queueRepository, MailChainService chainService) {
+    public MailDashboardService(
+            EmailQueueRepository queueRepository,
+            MailChainService chainService,
+            MailProviderBlockRepository blockRepository) {
         this.queueRepository = queueRepository;
         this.chainService = chainService;
+        this.blockRepository = blockRepository;
     }
 
     /**
@@ -65,6 +75,11 @@ public class MailDashboardService {
     /**
      * One mail as the overview shows it.
      */
+    /**
+     * @param reachable whether anything in the list could still carry this one. False on a waiting
+     *                  mail means it is not merely queued but stuck: every provider is either
+     *                  refused by the receiving domain or out of allowance.
+     */
     public record MailRecord(
             int id,
             String recipient,
@@ -75,7 +90,8 @@ public class MailDashboardService {
             MailDeliveryStatus deliveryStatus,
             String deliveryDetail,
             int attempts,
-            int providerPosition) {}
+            int providerPosition,
+            boolean reachable) {}
 
     /**
      * The whole picture for one owner.
@@ -88,6 +104,7 @@ public class MailDashboardService {
      * @param oldestPendingAt when the longest-waiting mail was written, or null when none waits
      * @param providers       how each provider of the list stands today
      * @param recent          the most recent mails, newest first
+     * @param blocks          which provider a receiving domain refuses outright
      */
     public record MailDashboard(
             int pending,
@@ -97,7 +114,19 @@ public class MailDashboardService {
             int stuck,
             Instant oldestPendingAt,
             List<ProviderStanding> providers,
-            List<MailRecord> recent) {}
+            List<MailRecord> recent,
+            List<MailProviderBlockRepository.ProviderBlock> blocks) {}
+
+    /**
+     * Whether any provider could still carry a mail to this address, judged from the standings
+     * already gathered rather than by asking the database again for every line.
+     */
+    private static boolean reachable(
+            List<ProviderStanding> standings, Map<String, Set<MailProviderType>> refusedBy, String recipient) {
+        String domain = MailProviderBlockRepository.domainOf(recipient);
+        var refused = refusedBy.getOrDefault(domain, Set.of());
+        return standings.stream().anyMatch(standing -> !standing.exhausted() && !refused.contains(standing.provider()));
+    }
 
     /**
      * Gathers the overview.
@@ -125,6 +154,14 @@ public class MailDashboardService {
                     !entry.hasRoomToday(sentToday)));
         }
 
+        var blocks = blockRepository.list(stationId);
+        Map<String, Set<MailProviderType>> refusedBy = new HashMap<>();
+        for (var block : blocks) {
+            refusedBy
+                    .computeIfAbsent(block.recipientDomain(), key -> new HashSet<>())
+                    .add(block.provider());
+        }
+
         List<MailRecord> recent = queueRepository.recent(stationId, RECENT_LIMIT).stream()
                 .map(entry -> new MailRecord(
                         entry.id(),
@@ -136,7 +173,8 @@ public class MailDashboardService {
                         entry.deliveryStatus(),
                         entry.deliveryDetail(),
                         entry.attempts(),
-                        entry.providerPosition()))
+                        entry.providerPosition(),
+                        reachable(standings, refusedBy, entry.recipient())))
                 .toList();
 
         return new MailDashboard(
@@ -147,6 +185,7 @@ public class MailDashboardService {
                 summary.stuck(),
                 summary.oldestPendingAt(),
                 standings,
-                recent);
+                recent,
+                blocks);
     }
 }

@@ -106,6 +106,21 @@ const visible = computed(() => {
       <EmptyHint v-if="data.providers.length === 0">{{ t('mailDashboard.noProviders') }}</EmptyHint>
       <MailProviderStanding v-for="standing in data.providers" :key="standing.position" :standing="standing"/>
 
+      <template v-if="data.blocks.length > 0">
+        <SubHeader>{{ t('mailDashboard.blocksTitle') }}</SubHeader>
+        <MutedText tag="p" size="sm">{{ t('mailDashboard.blocksHint') }}</MutedText>
+        <div v-for="block in data.blocks" :key="`${block.provider}-${block.recipientDomain}`"
+             class="rounded-lg border border-(--error) p-3 space-y-1">
+          <div class="text-sm font-medium">
+            {{ t('mailDashboard.blockRow', {provider: block.provider, domain: block.recipientDomain}) }}
+          </div>
+          <div class="text-xs text-(--text-muted)">
+            {{ t('mailDashboard.blockUntil', {when: new Date(block.expiresAt).toLocaleString('de-DE')}) }}
+          </div>
+          <div v-if="block.reason" class="text-xs text-(--error) break-words">{{ block.reason }}</div>
+        </div>
+      </template>
+
       <SubHeader>{{ t('mailDashboard.recentTitle') }}</SubHeader>
       <div class="flex gap-2 flex-wrap">
         <TextInput

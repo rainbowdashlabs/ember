@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:15e6b911ca1cfcb0d8eb64beed233a4c77cef164a222bb13bb14359d2c5e9fa9",
-  "generatedAt" : "2026-08-18T23:52:53Z",
+  "schemaHash" : "sha256:545ecb4db11861c260c6eef584a150786f3d7be86e8a779694b63b5ed8d22dee",
+  "generatedAt" : "2026-08-19T00:50:23Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -8782,6 +8782,79 @@
         "reason" : "Lost-and-found items, not personal data"
       },
       "description" : "Lost items found at the station, waiting to be claimed."
+    },
+    "mail_provider_block" : {
+      "feature" : "mail",
+      "scope" : "STATION",
+      "tableHash" : "sha256:f57f3c017fc28012e2a35bdd75259985d48bf047e0950c50193774f7f8eac446",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The station whose list this concerns, or null for the instance list."
+      }, {
+        "name" : "provider",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Which provider was refused."
+      }, {
+        "name" : "recipient_domain",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The receiving domain that refused it, lowercased. A domain, never a person's address."
+      }, {
+        "name" : "reason",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "What the receiving side gave as the reason, when it gave one."
+      }, {
+        "name" : "first_blocked_at",
+        "type" : "timestamp",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When this pairing was first refused."
+      }, {
+        "name" : "last_blocked_at",
+        "type" : "timestamp",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When it was last refused, which pushes the expiry out."
+      }, {
+        "name" : "expires_at",
+        "type" : "timestamp",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the block lapses, because a block list entry is not forever."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "What one relay's addresses are refused by is a property of that relay, not of the station moving"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Holds a receiving domain, never a person or an address"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Holds a receiving domain, never a person or an address; entries lapse on their own"
+      },
+      "description" : "Which mail provider a receiving domain has refused outright, so it is not tried there again."
     },
     "member_absence" : {
       "feature" : "members",

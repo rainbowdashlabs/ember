@@ -10,6 +10,7 @@ import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
+import dev.chojo.ember.feature.mail.repository.MailProviderBlockRepository;
 import dev.chojo.ember.feature.mail.service.mail.MailProvider;
 import dev.chojo.ember.feature.mail.service.mail.SmtpMailProvider;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
@@ -68,6 +69,7 @@ public class EmailService {
     private final MailTemplateRenderer templateRenderer;
     private final StationReadOnlyGuard readOnlyGuard;
     private final MailChainService chainService;
+    private final MailProviderBlockRepository blockRepository;
 
     @Inject
     public EmailService(
@@ -77,8 +79,10 @@ public class EmailService {
             EmailQueueRepository queueRepository,
             MailTemplateRenderer templateRenderer,
             StationReadOnlyGuard readOnlyGuard,
-            MailChainService chainService) {
+            MailChainService chainService,
+            MailProviderBlockRepository blockRepository) {
         this.chainService = chainService;
+        this.blockRepository = blockRepository;
         this.mailing = mailing;
         this.api = api;
         this.demoConfig = demoConfig;
@@ -790,21 +794,48 @@ public class EmailService {
      */
     private Optional<MailChainEntry> entryInTurn(List<MailChainEntry> chain, EmailQueueRepository.QueuedEmail email) {
         LocalDate today = LocalDate.now();
+        var blocked = blockRepository.blockedFor(email.stationId(), email.recipient());
         int position = email.providerPosition();
         while (position < chain.size()) {
             MailChainEntry entry = chain.get(position);
-            if (entry.hasRoomToday(queueRepository.getProviderDailyCount(today, email.stationId(), position))) {
+            if (blocked.contains(entry.provider())) {
+                log.info(
+                        "Provider {} is refused by the domain of {}; email {} moves to the next without trying",
+                        position,
+                        email.recipient(),
+                        email.id());
+            } else if (entry.hasRoomToday(queueRepository.getProviderDailyCount(today, email.stationId(), position))) {
                 return Optional.of(entry);
+            } else {
+                log.info(
+                        "Provider {} of the chain has sent its {} for today; email {} moves to the next",
+                        position,
+                        entry.dailySendLimit(),
+                        email.id());
             }
-            log.info(
-                    "Provider {} of the chain has sent its {} for today; email {} moves to the next",
-                    position,
-                    entry.dailySendLimit(),
-                    email.id());
             position++;
             queueRepository.advanceProvider(email.id());
         }
         return Optional.empty();
+    }
+
+    /**
+     * Whether anything in this owner's list could still carry a mail to this address today.
+     *
+     * <p>What the overview needs to say that a message is not merely waiting but stuck: every
+     * provider either refused by the receiving domain or out of allowance.
+     */
+    public boolean canReach(Integer stationId, String recipient) {
+        var chain = stationId == null ? chainService.forInstance() : chainService.forStation(stationId);
+        if (chain.isEmpty()) return false;
+        var blocked = blockRepository.blockedFor(stationId, recipient);
+        LocalDate today = LocalDate.now();
+        for (int position = 0; position < chain.size(); position++) {
+            var entry = chain.get(position);
+            if (blocked.contains(entry.provider())) continue;
+            if (entry.hasRoomToday(queueRepository.getProviderDailyCount(today, stationId, position))) return true;
+        }
+        return false;
     }
 
     /**

@@ -3561,6 +3561,13 @@ export default {
         noMails: 'Keine Mails, auf die das passt.',
         viaProvider: 'über {position}. Anbieter',
         attemptsMade: '{count} Versuche',
+        unreachable: 'Kein Anbieter kann diese Mail derzeit zustellen. Sie wartet nicht, sie steckt fest.',
+        blocksTitle: 'Abgelehnte Anbieter',
+        blocksHint: 'Diese Empfängerdomains haben unseren Absendeserver abgelehnt, nicht die Nachricht. '
+            + 'Der betroffene Anbieter wird dort übersprungen, statt jedes Mal ein Kontingent zu '
+            + 'verbrauchen. Die Sperre läuft von selbst wieder ab.',
+        blockRow: '{provider} wird von {domain} abgelehnt',
+        blockUntil: 'Wird ab {when} wieder versucht.',
     },
     mailChain: {
         title: 'Mailanbieter',
