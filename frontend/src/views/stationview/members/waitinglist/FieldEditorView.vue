@@ -11,7 +11,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import type { WaitingList, WaitingListField } from '@/api/waitingList'
+import type { WaitingList, WaitingListField, WaitingListFieldConfig } from '@/api/waitingList'
 import { waitingList } from '@/api'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useAsyncAction } from '@/composables/useAsyncAction'
@@ -80,22 +80,13 @@ function openEditField(field: WaitingListField) {
   fieldType.value = field.fieldType
   fieldRequired.value = field.required
   fieldPublic.value = field.isPublic ?? true
-  const config = parseConfig(field.config)
-  fieldEnumOptions.value = Array.isArray(config.options) ? config.options.join(', ') : ''
+  fieldEnumOptions.value = field.config?.options?.join(', ') ?? ''
   showFieldModal.value = true
 }
 
-function parseConfig(configStr: string | undefined | null): Record<string, unknown> {
-  if (!configStr) return {}
-  try { return JSON.parse(configStr) } catch { return {} }
-}
-
-function buildConfig(): string {
-  const config: Record<string, unknown> = {}
-  if (fieldType.value === 'ENUM' && fieldEnumOptions.value.trim()) {
-    config.options = fieldEnumOptions.value.split(',').map(o => o.trim()).filter(o => o)
-  }
-  return JSON.stringify(config)
+function buildConfig(): WaitingListFieldConfig {
+  if (fieldType.value !== 'ENUM' || !fieldEnumOptions.value.trim()) return {}
+  return {options: fieldEnumOptions.value.split(',').map(o => o.trim()).filter(o => o)}
 }
 
 const { running: savingField, error: saveFieldError, run: saveField } = useAsyncAction(async () => {
@@ -143,7 +134,7 @@ async function moveField(index: number, direction: -1 | 1) {
       waitingList.updateField(listId.value, fieldA.id, {
         name: fieldA.name,
         fieldType: fieldA.fieldType,
-        config: fieldA.config ?? '{}',
+        config: fieldA.config ?? {},
         position: fieldB.position,
         required: fieldA.required,
         isPublic: fieldA.isPublic,
@@ -151,7 +142,7 @@ async function moveField(index: number, direction: -1 | 1) {
       waitingList.updateField(listId.value, fieldB.id, {
         name: fieldB.name,
         fieldType: fieldB.fieldType,
-        config: fieldB.config ?? '{}',
+        config: fieldB.config ?? {},
         position: fieldA.position,
         required: fieldB.required,
         isPublic: fieldB.isPublic,
@@ -187,7 +178,6 @@ function goBack() {
         :list-name="list.name"
         :fields="fields"
         :field-type-label="fieldTypeLabel"
-        :parse-config="parseConfig"
         @add="openAddField"
         @edit="openEditField"
         @delete="requestDelete"

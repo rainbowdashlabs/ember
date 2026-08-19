@@ -24,15 +24,7 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-const enumOptions = computed<string[]>(() => {
-  if (!props.field.config) return []
-  try {
-    const parsed = JSON.parse(props.field.config) as {options?: string[]}
-    return parsed.options ?? []
-  } catch {
-    return []
-  }
-})
+const enumOptions = computed<string[]>(() => props.field.config?.options ?? [])
 </script>
 
 <template>

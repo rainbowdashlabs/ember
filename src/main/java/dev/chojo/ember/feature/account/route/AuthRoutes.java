@@ -387,7 +387,7 @@ public class AuthRoutes implements Routes {
             tags = {"Auth"},
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = TokenRequest.class)),
             responses = {
-                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = EmailChangeResponse.class)),
                 @OpenApiResponse(status = "400")
             })
     private void confirmEmailChange(Context ctx) {
@@ -396,10 +396,11 @@ public class AuthRoutes implements Routes {
         if (isBlank(request.token())) throw new BadRequestResponse("token is required");
         var result = authService.confirmEmailChange(request.token());
         switch (result) {
-            case COMMITTED -> ctx.json(new MessageResponse("Email address updated"));
+            case COMMITTED -> ctx.json(new EmailChangeResponse("COMMITTED", "Email address updated"));
             case WAITING ->
                 ctx.json(
-                        new MessageResponse(
+                        new EmailChangeResponse(
+                                "WAITING",
                                 "Confirmation received. Waiting for the other address to confirm before the change takes effect."));
             case DUPLICATE -> throw new BadRequestResponse("Email already in use");
             case INVALID -> throw new BadRequestResponse("Invalid or expired token");
@@ -437,6 +438,15 @@ public class AuthRoutes implements Routes {
      * Request body containing a one-time token for verification, password set, refresh, or logout.
      */
     public record TokenRequest(String token) {}
+
+    /**
+     * Outcome of confirming one half of an email change.
+     *
+     * @param status COMMITTED once both addresses have confirmed, WAITING while the other one
+     *               still has to. The page tells the two apart by this rather than by the wording.
+     * @param message what to say about it
+     */
+    public record EmailChangeResponse(String status, String message) {}
 
     /**
      * Request body for changing a password while authenticated.

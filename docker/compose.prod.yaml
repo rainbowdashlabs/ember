@@ -39,6 +39,12 @@ services:
   frontend:
     container_name: ember-frontend
     image: ghcr.io/rainbowdashlabs/ember-frontend:${EMBER_TAG:-latest}
+    # Where the server render reaches the backend. The browser uses a relative path, which has an
+    # origin to resolve against; the server does not, and without this it falls back to its own
+    # localhost, where nothing answers. The pages that fetch while rendering - the legal documents -
+    # are the ones that fail, and only when opened directly rather than navigated to.
+    environment:
+      NUXT_BACKEND_URL: http://ember:8080
     depends_on:
       - ember
     labels:

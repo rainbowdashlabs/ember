@@ -11,7 +11,6 @@ import DateInput from '@/components/input/datetime/DateInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import { parseFieldConfig } from '@/api/profileFields'
 import type { WaitingListField } from '@/api/waitingList'
 
 const props = defineProps<{
@@ -64,7 +63,7 @@ function asBoolean(): boolean {
     >
       <option value="" disabled>{{ t('waitingList.selectOption') }}</option>
       <option
-        v-for="opt in (parseFieldConfig(props.field.config).options as string[] ?? [])"
+        v-for="opt in (props.field.config?.options ?? [])"
         :key="opt"
         :value="opt"
       >{{ opt }}</option>

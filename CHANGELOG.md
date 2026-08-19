@@ -1,5 +1,18 @@
 # Changelog
 
+## v26.11.11
+
+### Improvements
+
+- **The log is narrowed by the class and the thread it came from.** Both are offered as lists with a count each, searchable so one that is too quiet to sit near the top can still be picked, and threads of the same pool count as one rather than as forty. A line's severity now carries its colour, and a line holding a stack trace says so before it is opened.
+
+### Fixes
+
+- **The link for changing your address opens a page.** Confirming a new email address leads somewhere that says what happened, and it says which of the two confirmations is still outstanding rather than reporting the change as done after the first one.
+- **A selection field shows the choices it was given.** The options of a waiting list field appear in the list, come back when it is edited, and fill the dropdown on the public form and on an entry.
+- **The scoring formula suggests the fields again.** Opening a bracket lists every field of the waiting list, the waiting-time values and the age function, instead of waiting for a letter that has to be guessed first.
+- **The legal pages open when the address is entered directly.** `/privacy`, `/terms` and `/imprint` load whether they are reached through a link or opened fresh, and they say so plainly if the text cannot be fetched instead of failing outright. The shipped deployment files now set `NUXT_BACKEND_URL`, which an installation with its own files must set too.
+
 ## v26.11.10
 
 ### New Features

@@ -20,11 +20,11 @@ function daysAgo(days: number): string {
 }
 
 const FIELDS: WaitingListField[] = [
-    {id: 1, listId: 1, name: 'Geburtsdatum', fieldType: 'DATE', config: '', position: 0,
+    {id: 1, listId: 1, name: 'Geburtsdatum', fieldType: 'DATE', config: {}, position: 0,
         required: true, isPublic: true},
-    {id: 2, listId: 1, name: 'Wohnort', fieldType: 'TEXT', config: '', position: 1,
+    {id: 2, listId: 1, name: 'Wohnort', fieldType: 'TEXT', config: {}, position: 1,
         required: false, isPublic: true},
-    {id: 3, listId: 1, name: 'Geschwister dabei', fieldType: 'BOOLEAN', config: '', position: 2,
+    {id: 3, listId: 1, name: 'Geschwister dabei', fieldType: 'BOOLEAN', config: {}, position: 2,
         required: false, isPublic: true},
 ]
 

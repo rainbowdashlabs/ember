@@ -20,7 +20,6 @@ const props = defineProps<{
   notes: string
   fields: WaitingListField[]
   fieldValues: Record<number, string>
-  parseConfig: (configStr: string | undefined | null) => Record<string, unknown>
 }>()
 
 const emit = defineEmits<{
@@ -55,7 +54,6 @@ const { t } = useI18n()
     <CustomFieldsSection
       :fields="fields"
       :values="fieldValues"
-      :parse-config="parseConfig"
       @update="(id, v) => emit('updateFieldValue', id, v)"
     />
 

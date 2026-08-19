@@ -431,7 +431,7 @@ public class WaitingListRoutes implements Routes {
                 listId,
                 request.name(),
                 request.fieldType(),
-                WaitingListFieldConfig.parse(request.config() != null ? request.config() : "{}"),
+                request.config() != null ? request.config() : WaitingListFieldConfig.EMPTY,
                 request.position(),
                 request.required(),
                 request.isPublic() == null || request.isPublic());
@@ -448,7 +448,7 @@ public class WaitingListRoutes implements Routes {
                         fieldId,
                         request.name(),
                         request.fieldType(),
-                        WaitingListFieldConfig.parse(request.config() != null ? request.config() : "{}"),
+                        request.config() != null ? request.config() : WaitingListFieldConfig.EMPTY,
                         request.position(),
                         request.required(),
                         request.isPublic() == null || request.isPublic())
@@ -801,10 +801,15 @@ public class WaitingListRoutes implements Routes {
     @OpenApiName("WaitingListListWithCount")
     public record ListWithCount(WaitingList list, int entryCount) {}
 
+    /**
+     * @param config the field's settings as an object, the same shape the field is read back in.
+     *               It used to be JSON text on the way in and an object on the way out, and the
+     *               two halves of that never agreed.
+     */
     public record FieldRequest(
             String name,
             WaitingListFieldType fieldType,
-            String config,
+            WaitingListFieldConfig config,
             int position,
             boolean required,
             Boolean isPublic) {}

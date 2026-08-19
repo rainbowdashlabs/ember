@@ -13,7 +13,6 @@ import CustomFieldInput from './CustomFieldInput.vue'
 const props = defineProps<{
   fields: WaitingListField[]
   values: Record<number, string>
-  parseConfig: (configStr: string | undefined | null) => Record<string, unknown>
 }>()
 
 const emit = defineEmits<{
@@ -31,7 +30,6 @@ const { t } = useI18n()
       <CustomFieldInput
         :field="field"
         :value="values[field.id] ?? ''"
-        :parse-config="parseConfig"
         @update="(v) => emit('update', field.id, v)"
       />
     </div>

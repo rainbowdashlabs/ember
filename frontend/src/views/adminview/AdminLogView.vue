@@ -12,10 +12,9 @@ import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import LogEntryRow from '@/components/log/LogEntryRow.vue'
-import LogLevelFilter from './adminlogview/LogLevelFilter.vue'
+import LogFilterBar from './adminlogview/LogFilterBar.vue'
 import {LOG_LEVELS, searchLog, type ApplicationLogPage, type LogEntry} from '@/api/applicationLog'
 
 /**
@@ -35,12 +34,21 @@ const error = ref('')
 
 const search = ref('')
 const levels = ref<string[]>([...LOG_LEVELS])
+const logger = ref('')
+const thread = ref('')
+
+const query = computed(() => ({
+  levels: levels.value,
+  search: search.value,
+  logger: logger.value,
+  thread: thread.value,
+}))
 
 async function reload() {
   loading.value = true
   error.value = ''
   try {
-    const result = await searchLog({levels: levels.value, search: search.value})
+    const result = await searchLog(query.value)
     page.value = result
     entries.value = result.entries
   } catch {
@@ -56,7 +64,7 @@ async function loadMore() {
   if (!oldest) return
   loadingMore.value = true
   try {
-    const result = await searchLog({levels: levels.value, search: search.value, before: oldest.id})
+    const result = await searchLog({...query.value, before: oldest.id})
     entries.value = [...entries.value, ...result.entries]
   } catch {
     error.value = t('common.error')
@@ -66,8 +74,6 @@ async function loadMore() {
 }
 
 onMounted(reload)
-
-const allLevelsChosen = computed(() => levels.value.length === LOG_LEVELS.length)
 </script>
 
 <template>
@@ -81,21 +87,15 @@ const allLevelsChosen = computed(() => levels.value.length === LOG_LEVELS.length
         {{ t('applicationLog.kept', {level: page.databaseLevel, days: page.retentionDays}) }}
       </MutedText>
 
-      <div class="flex gap-2 flex-wrap">
-        <TextInput
-            v-model="search"
-            class="flex-1 min-w-56"
-            :placeholder="t('applicationLog.searchPlaceholder')"
-            :aria-label="t('applicationLog.searchPlaceholder')"
-            @keyup.enter="reload"
-        />
-        <SecondaryButton :icon="['fas', 'magnifying-glass']" :disabled="loading" @click="reload">
-          {{ t('applicationLog.doSearch') }}
-        </SecondaryButton>
-      </div>
-
-      <LogLevelFilter v-model="levels" @change="reload"/>
-      <MutedText v-if="!allLevelsChosen" tag="p" size="sm">{{ t('applicationLog.filtered') }}</MutedText>
+      <LogFilterBar
+          v-model:levels="levels"
+          v-model:logger="logger"
+          v-model:search="search"
+          v-model:thread="thread"
+          :loading="loading"
+          :loggers="page?.loggers ?? []"
+          :threads="page?.threads ?? []"
+          @change="reload"/>
 
       <Spinner v-if="loading" size="md"/>
       <Alert v-else-if="error" variant="error">{{ error }}</Alert>

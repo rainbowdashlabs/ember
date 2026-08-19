@@ -304,6 +304,51 @@ jobs:
       - name: Check locale encoding
         run: ./gradlew spotlessFrontendLocalesCheck
 
+  # A database that has run a patch is never offered it again, so a patch may not change once it
+  # exists on main. Every test builds its database from nothing, which is the one path where such
+  # an edit is invisible: the from-nothing database runs the edited file and looks correct, while
+  # every running instance skips it and silently lacks whatever was added.
+  verify-migrations-frozen:
+    runs-on: ubuntu-latest
+    name: Verify Migrations Are Frozen
+    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Check that no existing migration was changed
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+        run: |
+          base=$(git merge-base "$BASE_SHA" HEAD)
+          touched=$(git diff --name-only --diff-filter=MDR "$base" HEAD -- \
+            'src/main/resources/database/postgresql/**/patch_*.sql' \
+            'src/main/resources/database/postgresql/**/setup.sql')
+
+          if [ -z "$touched" ]; then
+            echo "No existing migration was changed."
+            exit 0
+          fi
+
+          echo "These migrations already exist and were changed or removed:"
+          printf '  %s\n' $touched
+          echo
+
+          # Repairing a mistake in a patch that is already on main means changing that patch, so
+          # the rule needs a way to be set aside on purpose. A marker in a commit message is that
+          # acknowledgement, and it stays in the history next to the change it permits.
+          if git log "$base..HEAD" --format=%B | grep -qiF '[modify patch]'; then
+            echo "Acknowledged by [modify patch] in a commit on this branch."
+            exit 0
+          fi
+
+          echo "A database that has applied a patch is never offered it again, so a change to one"
+          echo "reaches new databases only. Restore the file and add a new patch instead, raising"
+          echo "src/main/resources/database/version to match."
+          echo
+          echo "When the change is the point, put [modify patch] in a commit message on this branch."
+          exit 1
+
   verify-docker:
     runs-on: ubuntu-latest
     name: Verify Docker Build

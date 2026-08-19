@@ -36,7 +36,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
     if (to.path.startsWith('/helpcenter')) return
 
     const publicPaths = [
-        '/forgot-password', '/set-password', '/reset-password',
+        '/forgot-password', '/set-password', '/reset-password', '/confirm-email-change',
         '/apply', '/waitlist', '/style', '/privacy', '/terms', '/imprint', '/patch-notes',
         '/discovery', '/public', '/waiting-list',
     ]

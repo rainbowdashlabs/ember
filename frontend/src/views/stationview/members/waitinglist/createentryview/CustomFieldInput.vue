@@ -15,7 +15,6 @@ import type { WaitingListField } from '@/api/waitingList'
 const props = defineProps<{
   field: WaitingListField
   value: string
-  parseConfig: (configStr: string | undefined | null) => Record<string, unknown>
 }>()
 
 const emit = defineEmits<{
@@ -39,7 +38,7 @@ const { t } = useI18n()
   <SelectInput v-else-if="field.fieldType === 'ENUM'" :model-value="value"
                @update:model-value="emit('update', String($event ?? ''))">
     <option value="">{{ t('waitingList.selectOption') }}</option>
-    <option v-for="opt in (parseConfig(field.config) as {options?: string[]}).options ?? []" :key="opt"
+    <option v-for="opt in (field.config?.options ?? [])" :key="opt"
             :value="opt">{{ opt }}
     </option>
   </SelectInput>

@@ -22,7 +22,7 @@ application {
 
 group = "dev.chojo"
 // CalVer as YY.MINOR.MICRO -> https://calver.org/
-version = "26.11.10"
+version = "26.11.11"
 
 repositories {
     mavenCentral()

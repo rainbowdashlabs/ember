@@ -3332,6 +3332,12 @@ export default {
         success: 'Deine E-Mail-Adresse wurde bestätigt. Dein Antrag wird nun von einem Administrator geprüft. Du erhältst eine E-Mail, sobald eine Entscheidung getroffen wurde.',
         error: 'Der Bestätigungslink ist ungültig oder wurde bereits verwendet.',
     },
+    confirmEmailChange: {
+        committed: 'Deine E-Mail-Adresse wurde geändert. Melde dich ab jetzt mit der neuen Adresse an.',
+        waiting: 'Diese Bestätigung ist angekommen. Die Änderung wird wirksam, sobald auch die andere Adresse bestätigt hat.',
+        error: 'Der Bestätigungslink ist ungültig, abgelaufen oder wurde bereits verwendet.',
+        backToLogin: 'Zur Anmeldung',
+    },
     adminDiscovery: {
         subtitle: 'Andere Ember-Instanzen finden und öffentliche Wachen aus dem Netzwerk anzeigen.',
         identity: 'Diese Instanz',
@@ -3533,6 +3539,13 @@ export default {
         empty: 'Keine Zeilen, auf die das passt.',
         loadMore: 'Weiter zurück laden',
         showTrace: 'Stacktrace anzeigen',
+        hasTrace: 'Stacktrace',
+        byLogger: 'Klasse',
+        byThread: 'Thread',
+        facetSearch: 'Suchen...',
+        facetEmpty: 'Nichts gefunden.',
+        narrowedTo: 'Eingegrenzt auf:',
+        clearNarrowing: 'Eingrenzung aufheben',
     },
     mailDashboard: {
         title: 'Zustellung',

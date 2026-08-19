@@ -20,10 +20,14 @@ const props = defineProps<{
  * Fetched during the server render rather than after mount, so the text arrives with the page.
  * These routes are public and indexed: a document that only appears once the browser has taken
  * over is a document no crawler and no link preview ever sees.
+ *
+ * A failure is swallowed on purpose. Rendering on the server means a backend that cannot be
+ * reached would otherwise take the whole page down with it, and only when the address is opened
+ * directly rather than navigated to, which is a confusing way for a public page to break.
  */
 const {data, status} = await useAsyncData(
     `legal-${props.document}`,
-    () => $fetch<{html: string}>(apiUrl(`/public/${props.document}`)),
+    () => $fetch<{html: string}>(apiUrl(`/public/${props.document}`)).catch(() => ({html: ''})),
     {default: () => ({html: ''})},
 )
 </script>

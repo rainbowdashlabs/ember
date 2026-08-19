@@ -6,7 +6,6 @@
 <script setup lang="ts">
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import type {LogEntry} from '@/api/applicationLog'
 
 /**
@@ -14,7 +13,8 @@ import type {LogEntry} from '@/api/applicationLog'
  *
  * The severity carries the colour because that is what a reader scans by. A stack trace is folded
  * away: it is the most useful thing on the line and the longest, and a list where every error opens
- * its trace is a list nobody can scroll.
+ * its trace is a list nobody can scroll. That it has one is said outright, so the lines worth
+ * opening can be picked out without opening any.
  */
 const props = defineProps<{
   entry: LogEntry
@@ -24,18 +24,22 @@ const {t} = useI18n()
 
 const expanded = ref(false)
 
-const tone = computed(() => {
-  switch (props.entry.level) {
-    case 'ERROR':
-      return 'border-(--error)'
-    case 'WARN':
-      return 'border-(--warning)'
-    case 'INFO':
-      return 'border-(--accent)'
-    default:
-      return 'border-(--border)'
-  }
-})
+interface Tone {
+  border: string
+  badge: string
+}
+
+const QUIET: Tone = {border: 'border-l-(--border)', badge: 'bg-(--bg-accent) text-(--text-muted)'}
+
+const LEVEL_TONES: Record<string, Tone> = {
+  ERROR: {border: 'border-l-(--error)', badge: 'bg-(--error) text-white'},
+  WARN: {border: 'border-l-(--warning)', badge: 'bg-(--warning) text-black'},
+  INFO: {border: 'border-l-(--accent)', badge: 'bg-(--accent) text-white'},
+  DEBUG: QUIET,
+  TRACE: QUIET,
+}
+
+const tone = computed<Tone>(() => LEVEL_TONES[props.entry.level] ?? QUIET)
 
 const when = computed(() => new Date(props.entry.loggedAt).toLocaleString('de-DE'))
 
@@ -44,18 +48,22 @@ const shortLogger = computed(() => props.entry.logger.split('.').pop() ?? props.
 </script>
 
 <template>
-  <div class="rounded-lg border border-l-4 border-(--border) p-2 space-y-1" :class="tone">
+  <div :class="tone.border" class="rounded-lg border border-l-4 border-(--border) p-2 space-y-1">
     <div class="flex items-baseline gap-2 flex-wrap text-xs text-(--text-muted)">
-      <span class="font-semibold">{{ entry.level }}</span>
+      <span :class="tone.badge" class="rounded px-1.5 py-0.5 font-semibold">{{ entry.level }}</span>
       <span>{{ when }}</span>
       <span :title="entry.logger">{{ shortLogger }}</span>
       <span class="font-mono">{{ entry.thread }}</span>
-      <MutedIconButton
+      <button
           v-if="entry.throwable"
-          :icon="['fas', expanded ? 'chevron-up' : 'chevron-down']"
-          :label="t('applicationLog.showTrace')"
-          hover="text"
-          @click="expanded = !expanded"/>
+          class="flex items-center gap-1 rounded border border-(--error) px-1.5 py-0.5 font-semibold text-(--error) hover:bg-(--error) hover:text-white"
+          type="button"
+          @click="expanded = !expanded"
+      >
+        <font-awesome-icon :icon="['fas', 'triangle-exclamation']"/>
+        {{ t('applicationLog.hasTrace') }}
+        <font-awesome-icon :icon="['fas', expanded ? 'chevron-up' : 'chevron-down']"/>
+      </button>
     </div>
     <div class="text-sm break-words whitespace-pre-wrap font-mono">{{ entry.message }}</div>
     <pre v-if="expanded && entry.throwable"

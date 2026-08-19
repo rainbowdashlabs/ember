@@ -42,6 +42,8 @@ services:
   frontend:
     container_name: ember_demo_frontend
     image: ghcr.io/rainbowdashlabs/ember-frontend:${EMBER_TAG:-latest}
+    environment:
+      NUXT_BACKEND_URL: http://ember:8080
     depends_on:
       - ember
     labels:
