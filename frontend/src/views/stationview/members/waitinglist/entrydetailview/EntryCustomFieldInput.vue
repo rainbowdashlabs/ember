@@ -21,11 +21,6 @@ defineProps<{
 
 const { t } = useI18n()
 
-function parseConfig(configStr: string | undefined | null): Record<string, unknown> {
-  if (!configStr) return {}
-  try { return JSON.parse(configStr) } catch { return {} }
-}
-
 function asNumber(): number {
   return value.value ? Number(value.value) : 0
 }
@@ -65,7 +60,7 @@ function asBoolean(): boolean {
     >
       <option value="" disabled>{{ t('waitingList.selectOption') }}</option>
       <option
-        v-for="opt in (parseConfig(field.config).options as string[] ?? [])"
+        v-for="opt in (field.config?.options ?? [])"
         :key="opt"
         :value="opt"
       >{{ opt }}</option>

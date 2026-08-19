@@ -41,12 +41,22 @@ export interface WaitingList {
     isPublic: boolean
 }
 
+/**
+ * What a field carries beyond its type: the choices of an ENUM, the hint of a text field.
+ *
+ * An object in both directions, so nothing ever parses it.
+ */
+export interface WaitingListFieldConfig {
+    options?: string[]
+    placeholder?: string
+}
+
 export interface WaitingListField {
     id: number
     listId: number
     name: string
     fieldType: WaitingListFieldTypeName
-    config: string
+    config: WaitingListFieldConfig
     position: number
     required: boolean
     isPublic: boolean
@@ -166,7 +176,7 @@ interface WaitingListRequest {
 interface FieldRequest {
     name: string
     fieldType: string
-    config?: string
+    config?: WaitingListFieldConfig
     position: number
     required: boolean
     isPublic?: boolean

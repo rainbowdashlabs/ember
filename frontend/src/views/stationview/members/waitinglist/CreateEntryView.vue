@@ -47,10 +47,6 @@ function setFieldValue(fieldId: number, value: string) {
   fieldValues.value = {...fieldValues.value, [fieldId]: value}
 }
 
-function parseConfig(configStr: string | undefined | null): Record<string, unknown> {
-  if (!configStr) return {}
-  try { return JSON.parse(configStr) } catch { return {} }
-}
 
 const canSave = computed(() =>
     firstname.value.trim() && guardians.value.some(g => g.email.trim()),
@@ -106,7 +102,6 @@ function goBack() {
           v-model:notes="notes"
           :fields="fields"
           :field-values="fieldValues"
-          :parse-config="parseConfig"
           @add-guardian="addGuardian"
           @remove-guardian="removeGuardian"
           @update-field-value="setFieldValue"

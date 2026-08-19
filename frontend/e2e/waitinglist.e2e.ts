@@ -80,4 +80,31 @@ test.describe('Waiting lists', () => {
         await page.goto(`/station/members/waiting-lists/${id}`)
         await expect(page.getByText(surname).first()).toBeVisible()
     })
+
+    /**
+     * A field offering a choice is only worth having if the choices come back. They are saved as
+     * an object and were read as though they were text, which left every such field looking empty
+     * everywhere it was shown while the answers sat in the database intact.
+     */
+    test('the choices of a selection field survive being saved', async ({managerPage: page}) => {
+        const fieldName = `Farbe-${Date.now()}`
+
+        await page.goto('/station/members/waiting-lists')
+        await page.getByText('Schnupperstunde').first().click()
+        await page.waitForURL(/\/station\/members\/waiting-lists\/(\d+)/)
+        const id = page.url().match(/waiting-lists\/(\d+)/)?.[1]
+
+        await page.goto(`/station/members/waiting-lists/${id}/fields`)
+        await page.getByRole('button', {name: 'Feld hinzufügen'}).click()
+        await page.getByPlaceholder('Name des Feldes').fill(fieldName)
+        await page.getByRole('combobox').first().selectOption('ENUM')
+        await page.getByPlaceholder('Option 1, Option 2, Option 3').fill('rot, blau, grün')
+        await page.getByRole('button', {name: 'Speichern'}).click()
+
+        await page.reload()
+        await expect(page.getByText('rot, blau, grün')).toBeVisible()
+
+        await page.getByRole('button', {name: 'Bearbeiten'}).last().click()
+        await expect(page.getByPlaceholder('Option 1, Option 2, Option 3')).toHaveValue('rot, blau, grün')
+    })
 })

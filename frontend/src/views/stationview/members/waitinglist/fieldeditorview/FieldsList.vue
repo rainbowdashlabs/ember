@@ -17,7 +17,6 @@ const props = defineProps<{
   listName: string
   fields: WaitingListField[]
   fieldTypeLabel: (type: string) => string
-  parseConfig: (configStr: string | undefined | null) => Record<string, unknown>
 }>()
 
 defineEmits<{
@@ -55,7 +54,6 @@ const sortedFields = computed(() =>
         :index="index"
         :total="sortedFields.length"
         :field-type-label="fieldTypeLabel"
-        :parse-config="parseConfig"
         @move="(i, d) => $emit('move', i, d)"
         @edit="(f) => $emit('edit', f)"
         @delete="(f) => $emit('delete', f)"

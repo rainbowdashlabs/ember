@@ -16,7 +16,6 @@ const props = defineProps<{
   index: number
   total: number
   fieldTypeLabel: (type: string) => string
-  parseConfig: (configStr: string | undefined | null) => Record<string, unknown>
 }>()
 
 defineEmits<{
@@ -52,7 +51,7 @@ const { t } = useI18n()
         <PrimaryBadge v-if="field.required">{{ t('waitingList.required') }}</PrimaryBadge>
       </div>
       <MutedText tag="div" class="mt-1" v-if="field.fieldType === 'ENUM'">
-        {{ t('waitingList.options') }}: {{ parseConfig(field.config).options ? (parseConfig(field.config).options as string[]).join(', ') : '-' }}
+        {{ t('waitingList.options') }}: {{ field.config?.options?.join(', ') || '-' }}
       </MutedText>
     </div>
 
