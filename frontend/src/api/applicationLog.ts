@@ -21,9 +21,17 @@ export interface LogEntry {
     throwable: string | null
 }
 
+/** A value the log can be narrowed to, and how many lines carry it under the current filter. */
+export interface LogFacet {
+    value: string
+    count: number
+}
+
 /** A page of the log, with what a reader needs to make sense of a short one. */
 export interface ApplicationLogPage {
     entries: LogEntry[]
+    loggers: LogFacet[]
+    threads: LogFacet[]
     /** Whether anything is being stored at all. A short log usually means this is off. */
     databaseEnabled: boolean
     databaseLevel: string
@@ -44,6 +52,10 @@ export interface LoggingConfig {
 export interface LogQuery {
     levels?: string[]
     search?: string
+    /** Only lines from this logger. */
+    logger?: string
+    /** Only lines from threads with this name once the numbering is taken out. */
+    thread?: string
     /** Read further back than this line. */
     before?: number
     limit?: number
@@ -54,8 +66,34 @@ export async function searchLog(query: LogQuery = {}): Promise<ApplicationLogPag
         params: {
             level: query.levels?.length ? query.levels.join(',') : undefined,
             search: query.search || undefined,
+            logger: query.logger || undefined,
+            thread: query.thread || undefined,
             before: query.before,
             limit: query.limit,
+        },
+    })
+    return res.data
+}
+
+/**
+ * Searches the loggers or threads the current filter matches.
+ *
+ * The page carries the busiest of them already; this reaches the ones below that cut-off, and
+ * costs nothing more than the list when nothing is typed.
+ */
+export async function searchFacets(
+    kind: 'logger' | 'thread',
+    name: string,
+    query: LogQuery = {},
+): Promise<LogFacet[]> {
+    const res = await client.get<LogFacet[]>('/admin/monitoring/log/facets', {
+        params: {
+            kind,
+            name: name || undefined,
+            level: query.levels?.length ? query.levels.join(',') : undefined,
+            search: query.search || undefined,
+            logger: kind === 'thread' ? query.logger || undefined : undefined,
+            thread: kind === 'logger' ? query.thread || undefined : undefined,
         },
     })
     return res.data

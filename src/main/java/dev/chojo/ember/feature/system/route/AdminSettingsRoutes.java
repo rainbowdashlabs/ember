@@ -270,6 +270,8 @@ public class AdminSettingsRoutes implements Routes {
         routes.get(prefix + "/admin/config/mailing/dashboard", this::mailDashboard, InstancePermission.ADMINISTRATOR);
         routes.delete(prefix + "/admin/config/mailing/blocks", this::liftMailBlock, InstancePermission.ADMINISTRATOR);
         routes.get(prefix + "/admin/monitoring/log", this::applicationLog, InstancePermission.ADMINISTRATOR);
+        routes.get(
+                prefix + "/admin/monitoring/log/facets", this::applicationLogFacets, InstancePermission.ADMINISTRATOR);
         routes.delete(prefix + "/admin/monitoring/log", this::clearApplicationLog, InstancePermission.ADMINISTRATOR);
         routes.get(prefix + "/admin/config/logging", this::getLoggingConfig, InstancePermission.ADMINISTRATOR);
         routes.put(
@@ -826,7 +828,25 @@ public class AdminSettingsRoutes implements Routes {
             tags = {"Monitoring"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ApplicationLogPage.class)))
     private void applicationLog(Context ctx) {
-        List<String> levels = Arrays.stream(ctx.queryParamAsClass("level", String.class)
+        List<String> levels = requestedLevels(ctx);
+        String search = ctx.queryParam("search");
+        String logger = ctx.queryParam("logger");
+        String thread = ctx.queryParam("thread");
+        Long before = parseLongOrNull(ctx.queryParam("before"));
+        int limit = Math.clamp(ctx.queryParamAsClass("limit", Integer.class).getOrDefault(200), 1, 500);
+        var entries = logRepository.search(levels, search, logger, thread, before, limit);
+        ctx.json(new ApplicationLogPage(
+                entries,
+                logRepository.loggerFacets(levels, search, thread, null, FACET_LIMIT),
+                logRepository.threadFacets(levels, search, logger, null, FACET_LIMIT),
+                conf.main().logging().databaseEnabled(),
+                conf.main().logging().databaseLevel(),
+                conf.main().logging().retentionDays(),
+                DatabaseLogAppender.dropped()));
+    }
+
+    private List<String> requestedLevels(Context ctx) {
+        return Arrays.stream(ctx.queryParamAsClass("level", String.class)
                         .getOrDefault("")
                         .split(","))
                 .map(String::trim)
@@ -834,16 +854,32 @@ public class AdminSettingsRoutes implements Routes {
                 .map(value -> value.toUpperCase(Locale.ROOT))
                 .filter(LOG_LEVELS::contains)
                 .toList();
+    }
+
+    /**
+     * The loggers or threads the current filter matches, searched by name.
+     *
+     * <p>Separate from the log itself so that typing in the list of loggers does not fetch the log
+     * again, and so that one below the top of the list can still be reached.
+     */
+    @OpenApi(
+            path = "/api/v1/admin/monitoring/log/facets",
+            methods = HttpMethod.GET,
+            summary = "Search the loggers or threads present in the log",
+            tags = {"Monitoring"},
+            responses = @OpenApiResponse(status = "200"))
+    private void applicationLogFacets(Context ctx) {
+        List<String> levels = requestedLevels(ctx);
         String search = ctx.queryParam("search");
-        Long before = parseLongOrNull(ctx.queryParam("before"));
-        int limit = Math.clamp(ctx.queryParamAsClass("limit", Integer.class).getOrDefault(200), 1, 500);
-        var entries = logRepository.search(levels, search, before, limit);
-        ctx.json(new ApplicationLogPage(
-                entries,
-                conf.main().logging().databaseEnabled(),
-                conf.main().logging().databaseLevel(),
-                conf.main().logging().retentionDays(),
-                DatabaseLogAppender.dropped()));
+        String logger = ctx.queryParam("logger");
+        String thread = ctx.queryParam("thread");
+        String name = ctx.queryParam("name");
+        int limit = Math.clamp(ctx.queryParamAsClass("limit", Integer.class).getOrDefault(FACET_LIMIT), 1, 200);
+        boolean threads = "thread".equalsIgnoreCase(ctx.queryParam("kind"));
+        ctx.json(
+                threads
+                        ? logRepository.threadFacets(levels, search, logger, name, limit)
+                        : logRepository.loggerFacets(levels, search, thread, name, limit));
     }
 
     /**
@@ -887,6 +923,9 @@ public class AdminSettingsRoutes implements Routes {
     /** The severities a client may ask for, so an unknown one is refused rather than ignored. */
     private static final Set<String> LOG_LEVELS = Set.of("TRACE", "DEBUG", "INFO", "WARN", "ERROR");
 
+    /** How many loggers and threads are offered to pick from. Beyond this the list stops helping. */
+    private static final int FACET_LIMIT = 20;
+
     /**
      * Reads the paging cursor. An unreadable one starts at the top rather than refusing: the cursor
      * is an optimisation for reading further back, not something worth an error.
@@ -910,8 +949,14 @@ public class AdminSettingsRoutes implements Routes {
      * @param dropped       how many lines were dropped since start because the queue was full,
      *                      which is what says the log is incomplete rather than quiet
      */
+    /**
+     * @param loggers the loggers the current filter matches, so a reader can narrow to one
+     * @param threads the same for threads, numbered off so a pool is one entry
+     */
     public record ApplicationLogPage(
             List<ApplicationLogRepository.LogEntry> entries,
+            List<ApplicationLogRepository.Facet> loggers,
+            List<ApplicationLogRepository.Facet> threads,
             boolean databaseEnabled,
             String databaseLevel,
             int retentionDays,

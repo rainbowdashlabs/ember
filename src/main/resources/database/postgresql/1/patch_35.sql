@@ -34,6 +34,18 @@ CREATE INDEX IF NOT EXISTS idx_application_log_level_id ON ember_schema.applicat
 
 CREATE INDEX IF NOT EXISTS idx_application_log_time ON ember_schema.application_log (logged_at);
 
+CREATE INDEX IF NOT EXISTS idx_application_log_logger_id
+    ON ember_schema.application_log (logger, id DESC);
+
+-- Threads are indexed under the name they are grouped by: a pool numbers its threads, so the raw
+-- name holds a hundred values nobody would think to ask for.
+CREATE INDEX IF NOT EXISTS idx_application_log_thread_group_id
+    ON ember_schema.application_log (regexp_replace(thread, '[0-9]+', '#', 'g'), id DESC);
+
+CREATE INDEX IF NOT EXISTS idx_application_log_throwable_id
+    ON ember_schema.application_log (id DESC)
+    WHERE throwable IS NOT NULL;
+
 ALTER TABLE ember_schema.account_session
     ADD COLUMN IF NOT EXISTS trusted_device BOOLEAN NOT NULL DEFAULT false;
 

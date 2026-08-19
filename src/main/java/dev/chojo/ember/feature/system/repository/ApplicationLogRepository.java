@@ -82,35 +82,129 @@ public class ApplicationLogRepository {
     }
 
     /**
-     * Searches the log, newest first.
-     *
-     * @param levels only these severities, or empty for all of them
-     * @param search a fragment to look for in the message or the logger name, or null for all
-     * @param before only lines older than this row, for paging further back; null starts at the top
-     * @param limit  how many lines at most
+     * How a thread is named once the numbering is taken out, so a pool is one entry rather than a
+     * hundred. Matches the expression the index is built on.
      */
-    public List<LogEntry> search(List<String> levels, String search, Long before, int limit) {
+    private static final String THREAD_GROUP = "regexp_replace(thread, '[0-9]+', '#', 'g')";
+
+    /**
+     * A value the log can be narrowed to, and how many lines carry it.
+     *
+     * @param value what to filter by, which is also what is shown
+     * @param count how many lines match it under the filter that produced this list
+     */
+    public record Facet(String value, int count) {}
+
+    private static final RowMapping<Facet> FACET = row -> new Facet(row.getString(1), row.getInt(2));
+
+    /**
+     * What the caller narrowed the log to, as a WHERE fragment and the values it binds. Shared so
+     * a facet count and the list it sits next to cannot come from different filters.
+     */
+    private record Filter(String sql, Call call) {}
+
+    private Filter filter(List<String> levels, String search, String logger, String threadGroup, Long before) {
         String term = pattern(search);
         var wanted = levels.stream().filter(KNOWN_LEVELS::contains).toList();
-        String levelFilter =
-                wanted.isEmpty() ? "" : wanted.stream().collect(Collectors.joining("', '", " AND level IN ('", "')"));
-        String beforeFilter = before == null ? "" : " AND id < :before";
-        String searchFilter = term == null ? "" : " AND (message ILIKE :search OR logger ILIKE :search)";
-        var callable = call().bind("limit", limit);
-        if (before != null) callable = callable.bind("before", before);
-        if (term != null) callable = callable.bind("search", term);
+        var sql = new StringBuilder();
+        var callable = call();
+        if (!wanted.isEmpty()) {
+            sql.append(wanted.stream().collect(Collectors.joining("', '", " AND level IN ('", "')")));
+        }
+        if (term != null) {
+            sql.append(" AND (message ILIKE :search OR logger ILIKE :search)");
+            callable = callable.bind("search", term);
+        }
+        if (logger != null && !logger.isBlank()) {
+            sql.append(" AND logger = :logger");
+            callable = callable.bind("logger", logger);
+        }
+        if (threadGroup != null && !threadGroup.isBlank()) {
+            sql.append(" AND ").append(THREAD_GROUP).append(" = :thread_group");
+            callable = callable.bind("thread_group", threadGroup);
+        }
+        if (before != null) {
+            sql.append(" AND id < :before");
+            callable = callable.bind("before", before);
+        }
+        return new Filter(sql.toString(), callable);
+    }
+
+    /**
+     * Searches the log, newest first.
+     *
+     * @param levels      only these severities, or empty for all of them
+     * @param search      a fragment to look for in the message or the logger name, or null for all
+     * @param logger      only lines from this logger, or null for all
+     * @param threadGroup only lines from threads with this name once numbered off, or null for all
+     * @param before      only lines older than this row, for paging further back; null starts at the top
+     * @param limit       how many lines at most
+     */
+    public List<LogEntry> search(
+            List<String> levels, String search, String logger, String threadGroup, Long before, int limit) {
+        var filter = filter(levels, search, logger, threadGroup, before);
         return query("""
                         SELECT
                             id, logged_at, level, logger, thread, message, throwable
                         FROM
                             application_log
                         WHERE
-                            1 = 1 %s %s %s
+                            1 = 1 %s
                         ORDER BY
                             id DESC
-                        LIMIT :limit;""", levelFilter, beforeFilter, searchFilter)
-                .single(callable)
+                        LIMIT :limit;""", filter.sql())
+                .single(filter.call().bind("limit", limit))
                 .map(LOG_ENTRY)
+                .all();
+    }
+
+    /**
+     * The loggers present under the current filter, busiest first, counted over everything the
+     * filter matches rather than over the page on screen.
+     *
+     * @param nameSearch a fragment of the logger name, which is how one below the limit is reached
+     */
+    public List<Facet> loggerFacets(
+            List<String> levels, String search, String threadGroup, String nameSearch, int limit) {
+        return facets("logger", levels, search, null, threadGroup, nameSearch, limit);
+    }
+
+    /**
+     * The threads present under the current filter, busiest first, numbered off.
+     *
+     * @param nameSearch a fragment of the thread name, matched against the numbered-off form
+     */
+    public List<Facet> threadFacets(List<String> levels, String search, String logger, String nameSearch, int limit) {
+        return facets(THREAD_GROUP, levels, search, logger, null, nameSearch, limit);
+    }
+
+    private List<Facet> facets(
+            String expression,
+            List<String> levels,
+            String search,
+            String logger,
+            String threadGroup,
+            String nameSearch,
+            int limit) {
+        var filter = filter(levels, search, logger, threadGroup, null);
+        String term = pattern(nameSearch);
+        String nameFilter = term == null ? "" : " AND %s ILIKE :facet_search".formatted(expression);
+        var callable = filter.call().bind("limit", limit);
+        if (term != null) callable = callable.bind("facet_search", term);
+        return query("""
+                        SELECT
+                            %s AS value, count(*)::INT AS cnt
+                        FROM
+                            application_log
+                        WHERE
+                            1 = 1 %s %s
+                        GROUP BY
+                            1
+                        ORDER BY
+                            cnt DESC, 1
+                        LIMIT :limit;""", expression, filter.sql(), nameFilter)
+                .single(callable)
+                .map(FACET)
                 .all();
     }
 

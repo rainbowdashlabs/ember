@@ -3539,6 +3539,13 @@ export default {
         empty: 'Keine Zeilen, auf die das passt.',
         loadMore: 'Weiter zurück laden',
         showTrace: 'Stacktrace anzeigen',
+        hasTrace: 'Stacktrace',
+        byLogger: 'Klasse',
+        byThread: 'Thread',
+        facetSearch: 'Suchen...',
+        facetEmpty: 'Nichts gefunden.',
+        narrowedTo: 'Eingegrenzt auf:',
+        clearNarrowing: 'Eingrenzung aufheben',
     },
     mailDashboard: {
         title: 'Zustellung',

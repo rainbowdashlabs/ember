@@ -43,6 +43,20 @@ test.describe('Application log', () => {
         await expect(page.getByLabel('Ab welcher Stufe')).toBeVisible()
     })
 
+    /**
+     * The lists of loggers and threads are cut off at what fits, so each carries its own search.
+     * Without it a logger quiet enough to fall below the busiest of them cannot be reached at all,
+     * which is the case where narrowing the log would have helped most.
+     */
+    test('the log can be narrowed by class and by thread', async ({adminPage: page}) => {
+        await page.goto(LOG)
+
+        await expect(page.getByText('Klasse', {exact: true})).toBeVisible()
+        await expect(page.getByText('Thread', {exact: true})).toBeVisible()
+        await expect(page.getByLabel('Klasse')).toBeVisible()
+        await expect(page.getByLabel('Thread')).toBeVisible()
+    })
+
     test('a station manager reaches none of it', async ({managerPage: page}) => {
         await page.goto(LOG)
 

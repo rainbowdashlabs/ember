@@ -81,7 +81,7 @@ class ApplicationLogWriterTest extends RepositoryTestBase {
             writer.stop();
         }
 
-        var stored = repository.search(List.of(), null, null, 10);
+        var stored = repository.search(List.of(), null, null, null, null, 10);
         assertEquals(1, stored.size());
         assertEquals("it happened", stored.getFirst().message());
     }
@@ -111,7 +111,7 @@ class ApplicationLogWriterTest extends RepositoryTestBase {
             writer.stop();
         }
 
-        assertTrue(repository.search(List.of(), null, null, 10).isEmpty());
+        assertTrue(repository.search(List.of(), null, null, null, null, 10).isEmpty());
         assertTrue(DatabaseLogAppender.drain(10).isEmpty(), "and the queue is emptied rather than grown");
     }
 
@@ -128,7 +128,7 @@ class ApplicationLogWriterTest extends RepositoryTestBase {
             writer.stop();
         }
 
-        var stored = repository.search(List.of(), null, null, 10);
+        var stored = repository.search(List.of(), null, null, null, null, 10);
         assertEquals(1, stored.size());
         assertEquals("trouble", stored.getFirst().message());
     }

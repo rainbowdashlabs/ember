@@ -2,6 +2,10 @@
 
 ## v26.11.11
 
+### Improvements
+
+- **The log is narrowed by the class and the thread it came from.** Both are offered as lists with a count each, searchable so one that is too quiet to sit near the top can still be picked, and threads of the same pool count as one rather than as forty. A line's severity now carries its colour, and a line holding a stack trace says so before it is opened.
+
 ### Fixes
 
 - **The link for changing your address opens a page.** Confirming a new email address leads somewhere that says what happened, and it says which of the two confirmations is still outstanding rather than reporting the change as done after the first one.
