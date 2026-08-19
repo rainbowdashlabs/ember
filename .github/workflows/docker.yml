@@ -4,15 +4,19 @@ on:
   release:
     types:
       - published
-  push:
-    branches:
-      - main
-      - 'feature/**'
+  workflow_run:
+    workflows: ["Verify"]
+    types:
+      - completed
 
 jobs:
   docker-build:
     runs-on: ubuntu-latest
     name: Deploy Docker Images (${{ matrix.name }})
+    if: github.event_name == 'release' || github.event.workflow_run.conclusion == 'success'
+    env:
+      REF_NAME: ${{ github.event.workflow_run.head_branch || github.ref_name }}
+      BUILD_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
     strategy:
       matrix:
         include:
@@ -24,27 +28,20 @@ jobs:
             image: ghcr.io/rainbowdashlabs/ember-frontend
 
     steps:
-      - name: Wait for checks to succeed
-        uses: lewagon/wait-on-check-action@master
-        with:
-          ref: ${{ github.ref }}
-          check-regexp: "Verify.*"
-          ignore-checks: "Verify Docker Build"
-          running-workflow-name: 'Deploy Docker Images (${{ matrix.name }})'
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          allowed-conclusions: success,skipped
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.BUILD_SHA }}
       - uses: gradle/actions/wrapper-validation@v6
         if: matrix.name == 'backend'
       - name: Build Image
         run: >
           docker build .
           --build-arg GITHUB_ACTIONS=true
-          --build-arg GITHUB_REF_TYPE=${{ github.ref_type }}
-          --build-arg GITHUB_REF_NAME=${{ github.ref_name }}
-          --build-arg GITHUB_SHA=${{ github.sha }}
+          --build-arg GITHUB_REF_TYPE=${{ github.event_name == 'release' && 'tag' || 'branch' }}
+          --build-arg GITHUB_REF_NAME=${{ env.REF_NAME }}
+          --build-arg GITHUB_SHA=${{ env.BUILD_SHA }}
           -f ${{ matrix.file }}
-          -t ${{ matrix.image }}:${{ github.sha }}
+          -t ${{ matrix.image }}:${{ env.BUILD_SHA }}
       - name: Login to Registry
         run: echo ${{ secrets.GITHUB_TOKEN }} | docker login -u $ --password-stdin ghcr.io
       - name: Push image
@@ -52,26 +49,26 @@ jobs:
         with:
           timeout_minutes: 10
           max_attempts: 3
-          command: docker push ${{ matrix.image }}:${{ github.sha }}
+          command: docker push ${{ matrix.image }}:${{ env.BUILD_SHA }}
       - name: Tag & Push dev image
-        if: github.ref_name == 'main' && github.event_name == 'push'
+        if: env.REF_NAME == 'main' && github.event_name == 'workflow_run'
         uses: nick-fields/retry@v4
         with:
           timeout_minutes: 10
           max_attempts: 3
           command: |
-            docker image tag ${{ matrix.image }}:${{ github.sha }} ${{ matrix.image }}:dev
+            docker image tag ${{ matrix.image }}:${{ env.BUILD_SHA }} ${{ matrix.image }}:dev
             docker push ${{ matrix.image }}:dev
       - name: Tag & Push feature branch image
-        if: startsWith(github.ref_name, 'feature/')
+        if: startsWith(env.REF_NAME, 'feature/')
         uses: nick-fields/retry@v4
         with:
           timeout_minutes: 10
           max_attempts: 3
           command: |
-            BRANCH_TAG=$(echo "${{ github.ref_name }}" | sed 's|feature/||' | sed 's|[^a-zA-Z0-9._-]|-|g')
-            docker image tag "${{ matrix.image }}:${{ github.sha }}" "${{ matrix.image }}:snapshot"
-            docker image tag "${{ matrix.image }}:${{ github.sha }}" "${{ matrix.image }}:$BRANCH_TAG"
+            BRANCH_TAG=$(echo "${{ env.REF_NAME }}" | sed 's|feature/||' | sed 's|[^a-zA-Z0-9._-]|-|g')
+            docker image tag "${{ matrix.image }}:${{ env.BUILD_SHA }}" "${{ matrix.image }}:snapshot"
+            docker image tag "${{ matrix.image }}:${{ env.BUILD_SHA }}" "${{ matrix.image }}:$BRANCH_TAG"
             docker push "${{ matrix.image }}:snapshot"
             docker push "${{ matrix.image }}:$BRANCH_TAG"
       - name: Tag & Push release images
@@ -81,15 +78,15 @@ jobs:
           timeout_minutes: 10
           max_attempts: 3
           command: |
-            VERSION="${{ github.ref_name }}"
+            VERSION="${{ env.REF_NAME }}"
             VERSION="${VERSION#v}"
             MAJOR="${VERSION%%.*}"
             MINOR="${VERSION#*.}"
             MINOR="${MINOR%%.*}"
-            docker image tag "${{ matrix.image }}:${{ github.sha }}" "${{ matrix.image }}:latest"
-            docker image tag "${{ matrix.image }}:${{ github.sha }}" "${{ matrix.image }}:v$MAJOR"
-            docker image tag "${{ matrix.image }}:${{ github.sha }}" "${{ matrix.image }}:v$MAJOR.$MINOR"
-            docker image tag "${{ matrix.image }}:${{ github.sha }}" "${{ matrix.image }}:v$VERSION"
+            docker image tag "${{ matrix.image }}:${{ env.BUILD_SHA }}" "${{ matrix.image }}:latest"
+            docker image tag "${{ matrix.image }}:${{ env.BUILD_SHA }}" "${{ matrix.image }}:v$MAJOR"
+            docker image tag "${{ matrix.image }}:${{ env.BUILD_SHA }}" "${{ matrix.image }}:v$MAJOR.$MINOR"
+            docker image tag "${{ matrix.image }}:${{ env.BUILD_SHA }}" "${{ matrix.image }}:v$VERSION"
             docker push "${{ matrix.image }}:latest"
             docker push "${{ matrix.image }}:v$MAJOR"
             docker push "${{ matrix.image }}:v$MAJOR.$MINOR"
