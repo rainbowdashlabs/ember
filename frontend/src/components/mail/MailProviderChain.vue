@@ -35,6 +35,10 @@ const props = defineProps<{
    * empty list over a full one, which is not something anybody comes to this page to do.
    */
   ready?: boolean
+  /** Which entry is being tested right now, so only that row says so. */
+  testingPosition?: number | null
+  /** What the last test said, per entry, keyed by position. */
+  testResults?: Record<number, {ok: boolean; message: string}>
 }>()
 
 const providers = defineModel<MailProvider[]>('providers', {required: true})
@@ -87,6 +91,8 @@ function move(index: number, direction: number) {
         :is-last="index === providers.length - 1"
         :show-display-fields="props.showDisplayFields"
         :default-recipient="props.defaultRecipient"
+        :testing="props.testingPosition === index"
+        :test-result="props.testResults?.[index] ?? null"
         @remove="remove(index)"
         @move="(direction: number) => move(index, direction)"
         @test="(recipient: string) => emit('test', index, recipient)"

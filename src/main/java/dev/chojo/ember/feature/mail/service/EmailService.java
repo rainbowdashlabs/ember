@@ -85,15 +85,18 @@ public class EmailService {
         this.queueRepository = queueRepository;
         this.templateRenderer = templateRenderer;
         this.readOnlyGuard = readOnlyGuard;
-        if (currentGlobalProvider() == null) {
+        var instanceChain = chainService.forInstance();
+        if (instanceChain.isEmpty()) {
             log.warn(
                     "Mail service starting without a global mail provider; transactional emails will not be delivered until one is configured");
         } else {
+            var first = instanceChain.getFirst();
             log.info(
-                    "Mail service initialized: provider={} sender={} dailyLimit={}",
-                    mailing.provider(),
-                    mailing.senderAddress(),
-                    mailing.dailySendLimit());
+                    "Mail service initialized: {} provider(s), first={} sender={} dailyLimit={}",
+                    instanceChain.size(),
+                    first.provider(),
+                    first.senderAddress(),
+                    first.dailySendLimit());
         }
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             var t = new Thread(r, "email-worker");
@@ -709,23 +712,17 @@ public class EmailService {
     }
 
     /**
-     * Builds a {@link MailProvider} from the live instance-wide mail settings. Re-evaluated on every
-     * call so runtime updates to the mailing config take effect without a restart.
+     * The first provider of the instance list, or null when the list is empty.
+     *
+     * <p>Read from the list rather than from the fields a single provider used to live in. Those
+     * fields are empty on an instance that has saved its list, so asking them said no provider was
+     * configured while three were, and the queue then never fetched an instance mail at all.
      */
     private MailProvider currentGlobalProvider() {
-        if (mailing.senderAddress().isBlank()) {
-            return null;
-        }
-        return buildProvider(
-                mailing.provider(),
-                mailing.smtp().host(),
-                mailing.smtp().port(),
-                mailing.smtp().ssl(),
-                mailing.user(),
-                mailing.password(),
-                mailing.apiKey(),
-                mailing.senderAddress(),
-                mailing.senderName());
+        return chainService.forInstance().stream()
+                .findFirst()
+                .map(EmailService::buildProvider)
+                .orElse(null);
     }
 
     // -- Queue --

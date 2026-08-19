@@ -97,13 +97,23 @@ async function saveProviders() {
  * Tries the stored provider rather than what is on screen, so the result says something about what
  * would actually carry the post. Anything unsaved has to be saved first to be tried.
  */
+const testingPosition = ref<number | null>(null)
+const testResults = ref<Record<number, {ok: boolean; message: string}>>({})
+
 async function test(position: number, recipient: string) {
+  testingPosition.value = position
   try {
     const result = await testStationProvider(position, recipient)
-    if (result.success) handleSuccess(t('mailChain.testOk', {position: position + 1, recipient}))
-    else handleError(t('mailChain.testFailed', {position: position + 1, error: result.error ?? ''}))
+    testResults.value = {
+      ...testResults.value,
+      [position]: result.success
+          ? {ok: true, message: t('mailChain.testOk', {position: position + 1, recipient})}
+          : {ok: false, message: t('mailChain.testFailed', {position: position + 1, error: result.error ?? ''})},
+    }
   } catch {
-    handleError(t('common.error'))
+    testResults.value = {...testResults.value, [position]: {ok: false, message: t('common.error')}}
+  } finally {
+    testingPosition.value = null
   }
 }
 </script>
@@ -121,6 +131,8 @@ async function test(position: number, recipient: string) {
           :save="saveProviders"
           :default-recipient="ownAddress"
           :ready="providersLoaded"
+          :testing-position="testingPosition"
+          :test-results="testResults"
           show-display-fields
           @test="test"
           @clear="showClearModal = true"

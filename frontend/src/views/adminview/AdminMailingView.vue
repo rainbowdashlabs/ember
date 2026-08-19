@@ -42,7 +42,8 @@ const {config: mailingConfig, loading, error: panelError, runWith, reload} = use
 
 const showClearModal = ref(false)
 const testMailSent = ref(false)
-const testResult = ref('')
+/** Only the list failing to load, which is a page-level problem rather than one entry's. */
+const loadError = ref('')
 
 const {sessionInfo} = useSession()
 const ownAddress = computed(() => sessionInfo.value?.account?.email ?? '')
@@ -55,15 +56,23 @@ const providersLoaded = ref(false)
  * Tries the stored provider rather than what is on screen, so the result says something about what
  * would actually carry the post. Anything unsaved has to be saved first to be tried.
  */
+const testingPosition = ref<number | null>(null)
+const testResults = ref<Record<number, {ok: boolean; message: string}>>({})
+
 async function test(position: number, recipient: string) {
-  testResult.value = ''
+  testingPosition.value = position
   try {
     const result = await testInstanceProvider(position, recipient)
-    testResult.value = result.success
-        ? t('mailChain.testOk', {position: position + 1, recipient})
-        : t('mailChain.testFailed', {position: position + 1, error: result.error ?? ''})
+    testResults.value = {
+      ...testResults.value,
+      [position]: result.success
+          ? {ok: true, message: t('mailChain.testOk', {position: position + 1, recipient})}
+          : {ok: false, message: t('mailChain.testFailed', {position: position + 1, error: result.error ?? ''})},
+    }
   } catch {
-    testResult.value = t('common.error')
+    testResults.value = {...testResults.value, [position]: {ok: false, message: t('common.error')}}
+  } finally {
+    testingPosition.value = null
   }
 }
 
@@ -73,7 +82,7 @@ onMounted(async () => {
     providers.value = chain.fallbacks ?? []
     providersLoaded.value = true
   } catch {
-    testResult.value = t('mailChain.loadFailed')
+    loadError.value = t('mailChain.loadFailed')
   }
 })
 
@@ -110,13 +119,15 @@ const error = computed(() => panelError.value || testMailError.value || clearErr
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <template v-if="!loading">
-        <Alert v-if="testResult" variant="info">{{ testResult }}</Alert>
+        <Alert v-if="loadError" variant="error">{{ loadError }}</Alert>
 
         <MailProviderChain
             v-model:providers="providers"
             :save="saveProviders"
             :default-recipient="ownAddress"
             :ready="providersLoaded"
+            :testing-position="testingPosition"
+            :test-results="testResults"
             @test="test"
             @clear="showClearModal = true"
         >
