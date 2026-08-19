@@ -4,8 +4,12 @@
 -- another. They are separate from patch 34 because patch 34 has shipped: a database that has
 -- already run it is never offered it again, so anything added to it after the fact would reach a
 -- fresh database and no existing one.
+--
+-- Every statement tolerates the object already being there. They were briefly carried by patch 34
+-- instead, so an instance may have been repaired by hand while still recording patch 34, and would
+-- otherwise refuse to start the moment this one is offered to it.
 
-CREATE TABLE ember_schema.application_log
+CREATE TABLE IF NOT EXISTS ember_schema.application_log
 (
     id        BIGSERIAL PRIMARY KEY,
     logged_at TIMESTAMP NOT NULL,
@@ -26,12 +30,12 @@ COMMENT ON COLUMN ember_schema.application_log.thread IS 'The thread the line wa
 COMMENT ON COLUMN ember_schema.application_log.message IS 'The line itself, already formatted.';
 COMMENT ON COLUMN ember_schema.application_log.throwable IS 'The stack trace, when the line carried one.';
 
-CREATE INDEX idx_application_log_level_id ON ember_schema.application_log (level, id DESC);
+CREATE INDEX IF NOT EXISTS idx_application_log_level_id ON ember_schema.application_log (level, id DESC);
 
-CREATE INDEX idx_application_log_time ON ember_schema.application_log (logged_at);
+CREATE INDEX IF NOT EXISTS idx_application_log_time ON ember_schema.application_log (logged_at);
 
 ALTER TABLE ember_schema.account_session
-    ADD COLUMN trusted_device BOOLEAN NOT NULL DEFAULT false;
+    ADD COLUMN IF NOT EXISTS trusted_device BOOLEAN NOT NULL DEFAULT false;
 
 COMMENT ON COLUMN ember_schema.account_session.trusted_device
     IS 'Whether the person signing in vouched for this machine, which grants the long session length.';
@@ -45,7 +49,7 @@ COMMENT ON COLUMN ember_schema.account_session.trusted_device
 --
 -- Kept per provider rather than per entry of the list, because what is on the block list is the
 -- service and its addresses, not the position it happens to sit at.
-CREATE TABLE ember_schema.mail_provider_block
+CREATE TABLE IF NOT EXISTS ember_schema.mail_provider_block
 (
     id               SERIAL    PRIMARY KEY,
     station_id       INTEGER   REFERENCES ember_schema.station (id) ON DELETE CASCADE,
@@ -68,5 +72,5 @@ COMMENT ON COLUMN ember_schema.mail_provider_block.first_blocked_at IS 'When thi
 COMMENT ON COLUMN ember_schema.mail_provider_block.last_blocked_at IS 'When it was last refused, which pushes the expiry out.';
 COMMENT ON COLUMN ember_schema.mail_provider_block.expires_at IS 'When the block lapses, because a block list entry is not forever.';
 
-CREATE UNIQUE INDEX uq_mail_provider_block
+CREATE UNIQUE INDEX IF NOT EXISTS uq_mail_provider_block
     ON ember_schema.mail_provider_block (coalesce(station_id, 0), provider, recipient_domain);
