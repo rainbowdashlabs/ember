@@ -1,5 +1,12 @@
 # Changelog
 
+## v26.11.12
+
+### New Features
+
+- **Ember installs itself in one command.** `curl -fsSL https://ember-panel.de/install.sh | bash` asks the handful of things that differ between installations, writes the compose file, starts everything and shows the login it created. It offers a port on the machine, which is what a VPN or a local instance wants, or an existing Traefik; PostgreSQL is brought along or joined where it already runs; and the directories for the configuration, the files and the database are chosen rather than assumed.
+- **An installation can be clicked together beforehand.** Under `/install` the same questions are answered in the browser, which gives back a six-character code. The command carries only that code, so what has to reach the server is short enough to read out. The code lasts two hours, and the database password is never part of it.
+
 ## v26.11.11
 
 ### Improvements

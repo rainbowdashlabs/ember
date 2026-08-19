@@ -516,6 +516,14 @@ export default {
                 subtitle: 'Technische Anleitung zum Hosting einer eigenen Ember-Instanz.',
                 whatNeeded: 'Was wird benötigt?',
                 whatNeededText: 'Um Ember selbst zu betreiben, brauchst du:',
+                installer: 'In einem Befehl installieren',
+                installerText: 'Das Installationsskript fragt die Handvoll Dinge ab, die sich zwischen '
+                    + 'Installationen unterscheiden, schreibt die Compose-Datei, startet alles und zeigt am '
+                    + 'Ende die Zugangsdaten des angelegten Administrators:',
+                installerPageText: 'Wer lieber klickt als tippt, stellt die Installation vorher zusammen und '
+                    + 'nimmt nur einen kurzen Code mit auf den Server.',
+                installerPageTitle: 'Installation zusammenstellen',
+                installerPageHint: 'Erzeugt einen Code, den das Skript einlöst',
                 req: {
                     server: {
                         name: 'Server mit Docker',
