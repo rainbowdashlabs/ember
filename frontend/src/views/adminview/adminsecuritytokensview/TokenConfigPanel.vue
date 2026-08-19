@@ -38,6 +38,13 @@ defineProps<{
         <MutedText class="mt-1" size="sm" tag="div">{{ t('adminSecurity.tokens.sessionMinutesHint') }}</MutedText>
       </div>
       <div>
+        <FieldLabel class="mb-1">{{ t('adminSecurity.tokens.untrustedSessionMinutes') }}</FieldLabel>
+        <NumberInput v-model="config.untrustedSessionMinutes"/>
+        <MutedText class="mt-1" size="sm" tag="div">
+          {{ t('adminSecurity.tokens.untrustedSessionMinutesHint') }}
+        </MutedText>
+      </div>
+      <div>
         <FieldLabel class="mb-1">{{ t('adminSecurity.tokens.verifyTokenHours') }}</FieldLabel>
         <NumberInput v-model="config.verifyTokenHours"/>
         <MutedText class="mt-1" size="sm" tag="div">{{ t('adminSecurity.tokens.verifyTokenHoursHint') }}</MutedText>

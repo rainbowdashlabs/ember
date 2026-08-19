@@ -47,7 +47,7 @@ public class AccountRepository {
     private static final String TOKEN_COLUMNS =
             "id, account_id, token_hash, token_type, metadata, expires_at, created_at, confirmed_at";
     private static final String SESSION_COLUMNS =
-            "id, account_id, token_hash, expires_at, created_at, user_agent, last_used_at, location, two_factor_verified_at";
+            "id, account_id, token_hash, expires_at, created_at, user_agent, last_used_at, location, two_factor_verified_at, trusted_device";
 
     private final TokenHasher tokenHasher;
 
@@ -758,21 +758,40 @@ public class AccountRepository {
             String location,
             Instant twoFactorVerifiedAt,
             Integer deviceTrustId) {
+        return createSession(
+                accountId, token, expiresAt, userAgent, location, twoFactorVerifiedAt, deviceTrustId, false);
+    }
+
+    /**
+     * The same, recording whether the person signing in vouched for the machine. Remembered rather
+     * than recomputed, because refreshing mints a new session and the long duration would otherwise
+     * quietly become the short one.
+     */
+    public InsertionResult createSession(
+            int accountId,
+            String token,
+            Instant expiresAt,
+            String userAgent,
+            String location,
+            Instant twoFactorVerifiedAt,
+            Integer deviceTrustId,
+            boolean trustedDevice) {
         return query("""
                 INSERT
                 INTO
                     account_session(account_id, token_hash, expires_at, user_agent, location,
-                                    two_factor_verified_at, device_trust_id)
+                                    two_factor_verified_at, device_trust_id, trusted_device)
                 VALUES
                     (:account_id, :token_hash, :expires_at, :user_agent, :location,
-                     :two_factor_verified_at, :device_trust_id);""")
+                     :two_factor_verified_at, :device_trust_id, :trusted_device);""")
                 .single(call().bind("account_id", accountId)
                         .bind("token_hash", tokenHasher.hash(token))
                         .bind("expires_at", expiresAt, INSTANT_TIMESTAMP)
                         .bind("user_agent", userAgent)
                         .bind("location", location)
                         .bind("two_factor_verified_at", twoFactorVerifiedAt, INSTANT_TIMESTAMP)
-                        .bind("device_trust_id", deviceTrustId))
+                        .bind("device_trust_id", deviceTrustId)
+                        .bind("trusted_device", trustedDevice))
                 .insert();
     }
 

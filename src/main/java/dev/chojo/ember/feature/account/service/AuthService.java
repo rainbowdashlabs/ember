@@ -431,6 +431,20 @@ public class AuthService {
      */
     public LoginResult login(
             String email, String password, String userAgent, String location, String trustedDeviceCookie) {
+        return login(email, password, userAgent, location, trustedDeviceCookie, false);
+    }
+
+    /**
+     * The same, with the box from the login screen that says this machine may keep the session for
+     * the long duration rather than the short one.
+     */
+    public LoginResult login(
+            String email,
+            String password,
+            String userAgent,
+            String location,
+            String trustedDeviceCookie,
+            boolean trustedDevice) {
         Optional<Account> accountOpt = accountRepository.findByEmail(email);
         Optional<AccountCredential> credOpt = accountOpt.flatMap(a -> accountRepository.findCredential(a.id()));
 
@@ -494,7 +508,8 @@ public class AuthService {
                             userAgent,
                             location,
                             Instant.now(),
-                            trusted.get().id());
+                            trusted.get().id(),
+                            trustedDevice);
                 }
             }
             log.info("Login for account {} ({}) requires 2FA verification", account.id(), email);
@@ -505,7 +520,7 @@ public class AuthService {
             return LoginResult.twoFactorRequired(token, expiresAt);
         }
 
-        return createSession(account.id(), userAgent, location);
+        return createSession(account.id(), userAgent, location, trustedDevice);
     }
 
     /**
@@ -532,7 +547,7 @@ public class AuthService {
 
         accountRepository.deleteSession(token);
         log.debug("Session refreshed for account {}", session.accountId());
-        return createSession(session.accountId(), userAgent, location);
+        return createSession(session.accountId(), userAgent, location, session.trustedDevice());
     }
 
     /**
@@ -751,7 +766,16 @@ public class AuthService {
      */
     public LoginResult createVerifiedSessionForAccount(
             int accountId, String userAgent, String location, Integer deviceTrustId) {
-        return createSession(accountId, userAgent, location, Instant.now(), deviceTrustId);
+        return createVerifiedSessionForAccount(accountId, userAgent, location, deviceTrustId, false);
+    }
+
+    /**
+     * The same, carrying the box from the login screen through the second factor. Without this a
+     * person with two-factor enabled would tick it and still get the short session.
+     */
+    public LoginResult createVerifiedSessionForAccount(
+            int accountId, String userAgent, String location, Integer deviceTrustId, boolean trustedDevice) {
+        return createSession(accountId, userAgent, location, Instant.now(), deviceTrustId, trustedDevice);
     }
 
     // -- Email change --
@@ -837,15 +861,30 @@ public class AuthService {
      * @return a successful login result with the session token
      */
     private LoginResult createSession(int accountId, String userAgent, String location) {
-        return createSession(accountId, userAgent, location, null, null);
+        return createSession(accountId, userAgent, location, null, null, false);
+    }
+
+    private LoginResult createSession(int accountId, String userAgent, String location, boolean trustedDevice) {
+        return createSession(accountId, userAgent, location, null, null, trustedDevice);
     }
 
     /**
      * Issues a session, optionally tagging it with a 2FA-verification timestamp and a trusted-device
      * link so step-up freshness checks pass without an immediate prompt.
+     *
+     * @param trustedDevice whether the person signing in vouched for this machine, which is what
+     *                      decides between the long session length and the short one. Deliberately
+     *                      separate from {@code deviceTrustId}: that one says the second factor may
+     *                      be skipped here, and nobody ticking a box to stay signed in means to say
+     *                      that as well.
      */
     private LoginResult createSession(
-            int accountId, String userAgent, String location, Instant twoFactorVerifiedAt, Integer deviceTrustId) {
+            int accountId,
+            String userAgent,
+            String location,
+            Instant twoFactorVerifiedAt,
+            Integer deviceTrustId,
+            boolean trustedDevice) {
         if (demo.dev() || demo.enabled()) {
             // In dev/demo mode, use the email as a stable session token so sessions survive restarts.
             // Signing the same account in twice therefore writes the same token twice, so the row is
@@ -861,9 +900,9 @@ public class AuthService {
         }
 
         String token = generateToken();
-        Instant expiresAt = Instant.now().plus(authConfig.sessionMinutes(), ChronoUnit.MINUTES);
+        Instant expiresAt = Instant.now().plus(authConfig.sessionMinutes(trustedDevice), ChronoUnit.MINUTES);
         accountRepository.createSession(
-                accountId, token, expiresAt, userAgent, location, twoFactorVerifiedAt, deviceTrustId);
+                accountId, token, expiresAt, userAgent, location, twoFactorVerifiedAt, deviceTrustId, trustedDevice);
         accountRepository.markSetupCompleted(accountId);
         log.info("Session created for account {}", accountId);
         return LoginResult.success(token, expiresAt);

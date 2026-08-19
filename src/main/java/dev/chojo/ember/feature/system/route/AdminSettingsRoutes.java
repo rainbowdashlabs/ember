@@ -491,12 +491,17 @@ public class AdminSettingsRoutes implements Routes {
         requireRange(request.verifyTokenHours(), 1, 720, "verifyTokenHours");
         requireRange(request.passwordTokenHours(), 1, 720, "passwordTokenHours");
         requireRange(request.sessionMinutes(), 5, 43200, "sessionMinutes");
+        requireRange(request.untrustedSessionMinutes(), 5, 43200, "untrustedSessionMinutes");
+        if (request.untrustedSessionMinutes() > request.sessionMinutes()) {
+            throw new BadRequestResponse("An untrusted device may not keep a session longer than a trusted one");
+        }
         var auth = conf.main().auth();
         try {
             setField(Auth.class, auth, "tokenBytes", request.tokenBytes());
             setField(Auth.class, auth, "verifyTokenHours", request.verifyTokenHours());
             setField(Auth.class, auth, "passwordTokenHours", request.passwordTokenHours());
             setField(Auth.class, auth, "sessionMinutes", request.sessionMinutes());
+            setField(Auth.class, auth, "untrustedSessionMinutes", request.untrustedSessionMinutes());
             conf.save();
             ctx.json(buildTokensResponse(auth));
         } catch (Exception e) {
@@ -531,6 +536,7 @@ public class AdminSettingsRoutes implements Routes {
                 auth.verifyTokenHours(),
                 auth.passwordTokenHours(),
                 auth.sessionMinutes(),
+                auth.untrustedSessionMinutes(),
                 auth.tokenPepper() != null && !auth.tokenPepper().isBlank());
     }
 
@@ -1328,15 +1334,25 @@ public class AdminSettingsRoutes implements Routes {
             String defaultMailLocale,
             List<String> availableMailLocales) {}
 
+    /**
+     * @param untrustedSessionMinutes how long a session lasts on a machine the person signing in
+     *                                did not vouch for
+     */
     public record TokensConfigResponse(
             int tokenBytes,
             int verifyTokenHours,
             int passwordTokenHours,
             int sessionMinutes,
+            int untrustedSessionMinutes,
             boolean tokenPepperConfigured) {}
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public record TokensConfigRequest(
-            int tokenBytes, int verifyTokenHours, int passwordTokenHours, int sessionMinutes) {}
+            int tokenBytes,
+            int verifyTokenHours,
+            int passwordTokenHours,
+            int sessionMinutes,
+            int untrustedSessionMinutes) {}
 
     public record HibpConfigResponse(boolean enabled, String endpoint, int staleAfterDays, int timeoutSeconds) {}
 

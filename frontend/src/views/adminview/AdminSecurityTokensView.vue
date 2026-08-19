@@ -23,6 +23,7 @@ const {config, loading, error, runWith} = useConfigPanel<TokensConfigResponse>({
     verifyTokenHours: 24,
     passwordTokenHours: 72,
     sessionMinutes: 30,
+    untrustedSessionMinutes: 60,
     tokenPepperConfigured: false,
   },
   fetch: () => adminSettings.getTokensConfig(),
@@ -35,6 +36,7 @@ async function save() {
       verifyTokenHours: config.value.verifyTokenHours,
       passwordTokenHours: config.value.passwordTokenHours,
       sessionMinutes: config.value.sessionMinutes,
+      untrustedSessionMinutes: config.value.untrustedSessionMinutes,
     }),
     {rethrow: true},
   )

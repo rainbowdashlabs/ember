@@ -70,17 +70,23 @@ export async function regenerateBackupCodes(): Promise<{ codes: string[] }> {
     return res.data
 }
 
+/**
+ * @param trustedDevice the box from the login screen, carried through so somebody who ticked it
+ *                      does not end up with the short session after the second factor.
+ */
 export async function verify2fa(
     preAuthToken: string,
     factor: string,
     proof: string,
     rememberDeviceDays?: number,
+    trustedDevice?: boolean,
 ): Promise<Verify2faResponse> {
     const res = await client.post<Verify2faResponse>('/auth/2fa', {
         preAuthToken,
         factor,
         proof,
         rememberDeviceDays,
+        trustedDevice,
     })
     return res.data
 }

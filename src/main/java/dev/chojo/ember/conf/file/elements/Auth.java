@@ -35,6 +35,15 @@ public class Auth {
     private int sessionMinutes = 30;
 
     /**
+     * How long a session lasts on a device the person signing in did not vouch for.
+     *
+     * <p>Kept short on purpose. The long duration is what somebody asks for by ticking the box on
+     * their own machine; a borrowed or shared one gets an hour whatever the instance allows.
+     */
+    @Overwrite(env = @Env)
+    private int untrustedSessionMinutes = 60;
+
+    /**
      * Server-side secret mixed into the HMAC used to hash session and recovery
      * tokens before they are stored in the database. Empty by default; the
      * application refuses to boot in production with a blank value. A
@@ -72,6 +81,19 @@ public class Auth {
 
     public int sessionMinutes() {
         return sessionMinutes;
+    }
+
+    public int untrustedSessionMinutes() {
+        return Math.max(5, untrustedSessionMinutes);
+    }
+
+    /**
+     * How long a session lasts on this kind of device.
+     *
+     * @param trustedDevice whether the person signing in vouched for the machine
+     */
+    public int sessionMinutes(boolean trustedDevice) {
+        return trustedDevice ? sessionMinutes : untrustedSessionMinutes();
     }
 
     /**

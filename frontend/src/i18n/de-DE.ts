@@ -298,6 +298,9 @@ export default {
         email: 'E-Mail',
         password: 'Passwort',
         submit: 'Anmelden',
+        trustedDevice: 'Auf diesem Gerät angemeldet bleiben',
+        trustedDeviceHint: 'Nur auf Geräten, die dir gehören. Ohne Häkchen endet die Anmeldung '
+            + 'deutlich früher, was für geteilte oder geliehene Rechner das Richtige ist.',
         forgotPassword: 'Passwort vergessen?',
         applyForStation: 'Neue Wache beantragen',
         storageDenied: 'Du musst der Speicherung zustimmen, um dich anzumelden.',
@@ -3631,9 +3634,13 @@ export default {
             verifyTokenHoursHint: 'Wie lange ein Link zur E-Mail-Bestätigung gültig bleibt.',
             passwordTokenHours: 'Gültigkeitsdauer Passwort-Reset-Token (Stunden)',
             passwordTokenHoursHint: 'Wie lange ein Link zum Zurücksetzen des Passworts gültig bleibt.',
-            sessionMinutes: 'Sitzungsdauer (Minuten)',
-            sessionMinutesHint: 'Wie lange ein angemeldeter Nutzer ohne Aktivität angemeldet bleibt. '
-                + 'Bis zu 30 Tage sind möglich: häufiges Anmelden frustriert mehr, als es schützt.',
+            sessionMinutes: 'Sitzungsdauer auf vertrauten Geräten (Minuten)',
+            sessionMinutesHint: 'Gilt, wenn beim Anmelden „Auf diesem Gerät angemeldet bleiben" '
+                + 'angekreuzt wurde. Bis zu 30 Tage sind möglich: häufiges Anmelden frustriert mehr, '
+                + 'als es schützt.',
+            untrustedSessionMinutes: 'Sitzungsdauer sonst (Minuten)',
+            untrustedSessionMinutesHint: 'Gilt ohne dieses Häkchen, also auf geteilten oder '
+                + 'geliehenen Rechnern. Darf nicht länger sein als die Dauer für vertraute Geräte.',
         },
         logging: {
             title: 'Log',
@@ -3744,10 +3751,14 @@ export default {
             verifyTokenHoursHint: 'Gültigkeitsdauer des E-Mail-Verifizierungstokens (1–720).',
             passwordTokenHours: 'Passworttoken (Stunden)',
             passwordTokenHoursHint: 'Gültigkeitsdauer des Passwort-Reset-Tokens (1–720).',
-            sessionMinutes: 'Sitzungsdauer (Minuten)',
-            sessionMinutesHint: 'Dauer einer Sitzung in Minuten (5 bis 43200, also bis zu 30 Tage). '
-                + 'Lange Sitzungen ersparen häufiges Anmelden; wer sich abmeldet oder sein Passwort '
-                + 'ändert, ist unabhängig davon sofort ausgeloggt.',
+            sessionMinutes: 'Sitzungsdauer auf vertrauten Geräten (Minuten)',
+            sessionMinutesHint: 'Gilt, wenn beim Anmelden „Auf diesem Gerät angemeldet bleiben" '
+                + 'angekreuzt wurde (5 bis 43200, also bis zu 30 Tage). Lange Sitzungen ersparen '
+                + 'häufiges Anmelden; wer sich abmeldet oder sein Passwort ändert, ist unabhängig '
+                + 'davon sofort ausgeloggt.',
+            untrustedSessionMinutes: 'Sitzungsdauer sonst (Minuten)',
+            untrustedSessionMinutesHint: 'Gilt ohne dieses Häkchen, also auf geteilten oder '
+                + 'geliehenen Rechnern. Darf nicht länger sein als die Dauer für vertraute Geräte.',
             pepper: {
                 title: 'Token-Pepper',
                 hint: 'Server-seitiges Geheimnis, das in den HMAC der gespeicherten Tokens einfließt. Ohne ihn kann ein reiner Datenbankleak Tokens nicht wiederherstellen.',

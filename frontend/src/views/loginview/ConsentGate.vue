@@ -37,7 +37,7 @@ const {t} = useI18n()
     <SectionHeader class="font-semibold text-lg">{{ t('storageConsent.title') }}</SectionHeader>
 
     <Spinner v-if="props.consentLoading" size="sm"/>
-    <div v-else-if="props.consentHtml" class="legal-content max-h-64 overflow-y-auto text-sm border border-(--border) rounded-lg p-3" v-html="props.consentHtml"/>
+    <div v-else-if="props.consentHtml" class="legal-content max-h-[60vh] overflow-y-auto text-sm border border-(--border) rounded-lg p-4" v-html="props.consentHtml"/>
     <p v-else class="text-sm text-(--text-muted)">{{ t('storageConsent.description') }}</p>
 
     <StorageScopeChoice v-model="scopes"/>
