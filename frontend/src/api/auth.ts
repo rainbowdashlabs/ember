@@ -53,6 +53,18 @@ export interface EmailRequest {
     email?: string
 }
 
+export const EmailChangeStatus = {
+    COMMITTED: 'COMMITTED',
+    WAITING: 'WAITING',
+} as const
+
+export type EmailChangeStatusName = (typeof EmailChangeStatus)[keyof typeof EmailChangeStatus]
+
+export interface EmailChangeResponse {
+    status: EmailChangeStatusName
+    message: string
+}
+
 export interface SetPasswordRequest {
     token?: string
     password?: string
@@ -77,6 +89,11 @@ export async function register(data: RegisterRequest): Promise<RegisterResponse>
 
 export async function verifyEmail(data: TokenRequest): Promise<MessageResponse> {
     const res = await client.post<MessageResponse>('/auth/verify-email', data)
+    return res.data
+}
+
+export async function confirmEmailChange(data: TokenRequest): Promise<EmailChangeResponse> {
+    const res = await client.post<EmailChangeResponse>('/auth/confirm-email-change', data)
     return res.data
 }
 

@@ -40,6 +40,20 @@ test.describe('Account & session', () => {
         await expect(page).toHaveURL(/\/login/)
     })
 
+    /**
+     * The link in a change-of-address mail points here, and the page has to exist without a
+     * session: whoever clicks it is reading their mail, not sitting in the application.
+     */
+    test('the change-of-address link lands on a page rather than a 404', async ({page}) => {
+        await page.goto('/login')
+        await page.evaluate(() => window.localStorage.clear())
+
+        await page.goto('/confirm-email-change?token=not-a-real-token')
+
+        await expect(page).toHaveURL(/\/confirm-email-change/)
+        await expect(page.getByText(/ungültig, abgelaufen oder wurde bereits verwendet/)).toBeVisible()
+    })
+
     test('logging out ends the session', async ({browser, request}) => {
         const {member} = await stationPeers(request)
         const page = await pageAsThrowaway(browser, request, [member.email])
