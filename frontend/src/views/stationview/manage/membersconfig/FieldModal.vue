@@ -15,7 +15,10 @@ import FieldDefaultValueSection from '@/components/input/FieldDefaultValueSectio
 import BehaviorToggles from './fieldmodal/BehaviorToggles.vue'
 import PositionField from './fieldmodal/PositionField.vue'
 import ModalActions from './fieldmodal/ModalActions.vue'
-import {DATE_FIELD_TYPES, FieldTypes, parseFieldConfig, type ProfileField} from '@/api/profileFields'
+import {
+    DATE_FIELD_TYPES, FieldTypes, parseFieldConfig,
+    type ProfileField, type ProfileFieldConfig, type ProfileFieldRequest,
+} from '@/api/profileFields'
 
 const {t} = useI18n()
 
@@ -39,7 +42,7 @@ const birthDateAvailable = computed(() =>
     !props.birthDateField || props.birthDateField.id === props.field?.id)
 
 const emit = defineEmits<{
-  save: [data: { name: string; fieldType: string; config: string; position: number; scope: string; keepOnArchive: boolean }]
+  save: [data: ProfileFieldRequest & { scope: string }]
 }>()
 
 const fieldName = ref('')
@@ -106,8 +109,8 @@ watch(modelValue, (open) => {
   }
 })
 
-function buildConfig(): string {
-  const cfg: Record<string, unknown> = {}
+function buildConfig(): ProfileFieldConfig {
+  const cfg: ProfileFieldConfig = {}
   if (fieldRequired.value) cfg.required = true
   if (fieldReadonly.value) cfg.readonly = true
   if (fieldNotifyOnChange.value) cfg.notifyOnChange = true
@@ -133,7 +136,7 @@ function buildConfig(): string {
   if (props.scope === 'GROUP' && props.groupId) {
     cfg.groupId = Number(props.groupId)
   }
-  return JSON.stringify(cfg)
+  return cfg
 }
 
 function submit() {

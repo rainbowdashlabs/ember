@@ -18,7 +18,10 @@ import GroupSelect from './membersconfig/GroupSelect.vue'
 import FieldsPanel from './membersconfig/FieldsPanel.vue'
 import UnassignedGroupFields from './membersconfig/UnassignedGroupFields.vue'
 import type {FieldTemplate} from './membersconfig/fieldTemplates'
-import {DATE_FIELD_TYPES, FieldTypes, parseFieldConfig, type ProfileField} from '@/api/profileFields'
+import {
+    DATE_FIELD_TYPES, FieldTypes, parseFieldConfig,
+    type ProfileField, type ProfileFieldRequest,
+} from '@/api/profileFields'
 import type {MemberGroup} from '@/api/types'
 import {memberGroups, profileFields} from '@/api'
 
@@ -86,7 +89,7 @@ function openEditField(field: ProfileField) {
   showFieldModal.value = true
 }
 
-async function saveField(data: { name: string; fieldType: string; config: string; position: number; scope: string; keepOnArchive: boolean }) {
+async function saveField(data: ProfileFieldRequest & { scope: string }) {
   error.value = ''
   try {
     if (editingField.value) {
@@ -106,19 +109,18 @@ function updateFieldLocally(fieldId: number, patch: Partial<ProfileField>) {
 }
 
 async function toggleFieldConfig(field: ProfileField, key: string, value: boolean) {
-  const cfg = parseFieldConfig(field.config)
+  const cfg = {...parseFieldConfig(field.config)}
   if (value) {
-    (cfg as Record<string, unknown>)[key] = true
+    cfg[key] = true
   } else {
-    delete (cfg as Record<string, unknown>)[key]
+    delete cfg[key]
   }
-  const newConfig = JSON.stringify(cfg)
-  updateFieldLocally(field.id, { config: newConfig })
+  updateFieldLocally(field.id, { config: cfg })
   try {
     await profileFields.updateField(field.id, {
       name: field.name ?? '',
       fieldType: field.fieldType ?? '',
-      config: newConfig,
+      config: cfg,
       position: field.position,
       keepOnArchive: field.keepOnArchive,
     })
@@ -134,7 +136,7 @@ async function toggleKeepOnArchive(field: ProfileField, value: boolean) {
     await profileFields.updateField(field.id, {
       name: field.name ?? '',
       fieldType: field.fieldType ?? '',
-      config: typeof field.config === 'string' ? field.config : JSON.stringify(field.config ?? {}),
+      config: parseFieldConfig(field.config),
       position: field.position,
       keepOnArchive: value,
     })
@@ -165,7 +167,7 @@ async function onReorder(fromIndex: number, toIndex: number) {
       await profileFields.updateField(field.id, {
         name: field.name ?? '',
         fieldType: field.fieldType ?? '',
-        config: typeof field.config === 'string' ? field.config : JSON.stringify(field.config ?? {}),
+        config: parseFieldConfig(field.config),
         position: i,
       })
     }

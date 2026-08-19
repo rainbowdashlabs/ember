@@ -21,27 +21,33 @@ export const DATE_FIELD_TYPES: readonly string[] = [FieldTypes.DATE, FieldTypes.
 
 export type FieldTypeName = (typeof FieldTypes)[keyof typeof FieldTypes]
 
+/**
+ * A field's settings. They travel as an object in both directions: as JSON text on the way in they
+ * were parsed against a shape that named only some of them, and everything else was dropped without
+ * a word.
+ */
+export type ProfileFieldConfig = Record<string, unknown>
+
 export interface ProfileField {
     id: number
     stationId: string
     name?: string
     fieldType?: string
-    config?: string | Record<string, unknown>
+    config?: ProfileFieldConfig
     position: number
     scope?: string
     keepOnArchive?: boolean
 }
 
-export function parseFieldConfig(config: string | Record<string, unknown> | undefined | null): Record<string, unknown> {
-    if (!config) return {}
-    if (typeof config === 'object') return config
-    try { return JSON.parse(config) } catch { return {} }
+/** The settings of a field that names none, so a reader never has to check for their absence. */
+export function parseFieldConfig(config: ProfileFieldConfig | undefined | null): ProfileFieldConfig {
+    return config ?? {}
 }
 
 export interface ProfileFieldRequest {
     name?: string
     fieldType?: string
-    config?: string
+    config?: ProfileFieldConfig
     position: number
     scope?: string
     keepOnArchive?: boolean

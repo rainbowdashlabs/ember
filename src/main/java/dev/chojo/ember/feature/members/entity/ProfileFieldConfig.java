@@ -46,6 +46,13 @@ public record ProfileFieldConfig(
             new ProfileFieldConfig(false, false, false, false, null, null, false, null, null, null);
 
     /**
+     * The settings of a field that names none.
+     */
+    public static ProfileFieldConfig empty() {
+        return EMPTY;
+    }
+
+    /**
      * Parses a JSON string into a {@link ProfileFieldConfig}, returning a default empty config on failure.
      *
      * @param json the JSON configuration string, may be null or blank
