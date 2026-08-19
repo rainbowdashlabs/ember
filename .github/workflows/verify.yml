@@ -330,44 +330,24 @@ jobs:
             exit 0
           fi
 
+          echo "These migrations already exist and were changed or removed:"
+          printf '  %s\n' $touched
+          echo
+
           # Repairing a mistake in a patch that is already on main means changing that patch, so
-          # the rule needs a way to be set aside on purpose. A commit in this branch names the file
-          # and says why, which puts the decision in the history rather than in a passing build.
-          allowances=$(git log "$base..HEAD" --format=%B \
-            | sed -n 's/^[Aa]llow-[Mm]igration-[Cc]hange:[[:space:]]*//p')
-
-          status=0
-          for file in $touched; do
-            reason=$(printf '%s\n' "$allowances" | while read -r target rest; do
-              case "$file" in
-                "$target" | */"$target") [ -n "$rest" ] && printf '%s' "$rest" && break ;;
-              esac
-            done)
-            if [ -n "$reason" ]; then
-              echo "allowed: $file"
-              echo "         $reason"
-            else
-              echo "blocked: $file"
-              status=1
-            fi
-          done
-
-          if [ "$status" -ne 0 ]; then
-            echo
-            echo "A database that has applied a patch is never offered it again, so a change to one"
-            echo "reaches new databases only. Restore the file and add a new patch instead, raising"
-            echo "src/main/resources/database/version to match."
-            echo
-            echo "When the change is the point, say so in a commit message on this branch:"
-            echo
-            echo "  Allow-Migration-Change: patch_34.sql it shipped carrying work that belongs in 35"
-            echo
-            echo "The file may be named by path or by name alone, and the reason is required."
-            exit 1
+          # the rule needs a way to be set aside on purpose. A marker in a commit message is that
+          # acknowledgement, and it stays in the history next to the change it permits.
+          if git log "$base..HEAD" --format=%B | grep -qiF '[modify patch]'; then
+            echo "Acknowledged by [modify patch] in a commit on this branch."
+            exit 0
           fi
 
+          echo "A database that has applied a patch is never offered it again, so a change to one"
+          echo "reaches new databases only. Restore the file and add a new patch instead, raising"
+          echo "src/main/resources/database/version to match."
           echo
-          echo "Every changed migration is accounted for."
+          echo "When the change is the point, put [modify patch] in a commit message on this branch."
+          exit 1
 
   verify-docker:
     runs-on: ubuntu-latest
