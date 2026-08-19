@@ -34,19 +34,26 @@ const allSuggestions = computed(() => {
   return [...fieldSuggestions, ...builtIn, ...ageFunctions]
 })
 
-const currentPartial = ref('')
+/** What has been typed inside the open bracket, or null when the cursor is not in one. */
+const currentPartial = ref<string | null>(null)
 
 const filteredSuggestions = computed(() => {
-  const partial = currentPartial.value.toLowerCase()
-  if (!partial) return []
-  return allSuggestions.value.filter(s => s.label.toLowerCase().includes(partial))
+  const partial = currentPartial.value
+  if (partial === null) return []
+  const term = partial.toLowerCase()
+  if (!term) return allSuggestions.value
+  return allSuggestions.value.filter(s => s.label.toLowerCase().includes(term))
 })
 
-function extractPartial(text: string, pos: number): string {
+/**
+ * An open bracket with nothing typed yet is the moment somebody who does not remember the field
+ * names needs them, so it reads as an empty term rather than as no bracket at all.
+ */
+function extractPartial(text: string, pos: number): string | null {
   const bracketStart = text.lastIndexOf('[', pos - 1)
-  if (bracketStart === -1) return ''
+  if (bracketStart === -1) return null
   const closeBracket = text.indexOf(']', bracketStart)
-  if (closeBracket !== -1 && closeBracket < pos) return ''
+  if (closeBracket !== -1 && closeBracket < pos) return null
   return text.substring(bracketStart + 1, pos)
 }
 
@@ -56,7 +63,7 @@ function onInput(event: Event) {
   cursorPos.value = pos
   currentPartial.value = extractPartial(input.value, pos)
   modelValue.value = input.value
-  showSuggestions.value = currentPartial.value.length > 0
+  showSuggestions.value = currentPartial.value !== null
   selectedIndex.value = 0
 }
 
@@ -105,7 +112,7 @@ function applySuggestion(suggestion: { label: string; wrap: 'bracket' | 'none' }
 
   modelValue.value = newValue
   showSuggestions.value = false
-  currentPartial.value = ''
+  currentPartial.value = null
   nextTick(() => {
     if (inputRef.value) {
       inputRef.value.setSelectionRange(newPos, newPos)
@@ -119,7 +126,7 @@ function onClick() {
     const pos = inputRef.value.selectionStart ?? 0
     cursorPos.value = pos
     currentPartial.value = extractPartial(inputRef.value.value, pos)
-    showSuggestions.value = currentPartial.value.length > 0
+    showSuggestions.value = currentPartial.value !== null
   }
 }
 
