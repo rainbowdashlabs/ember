@@ -19,7 +19,9 @@ import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
 import dev.chojo.ember.feature.inventory.entity.InventoryRequirement;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
+import dev.chojo.ember.feature.inventory.entity.MemberInventoryEntry;
 import dev.chojo.ember.feature.inventory.service.InventoryCheckService;
 import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryExportService;
@@ -180,33 +182,9 @@ public class InventoryRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Inventory[].class)))
     private void myItems(Context ctx) {
         UserSession session = UserSession.from(ctx);
-        var items = inventoryService.findItemsByMember(session.member().id());
-        var result = items.stream()
-                .map(item -> {
-                    String inventoryName = inventoryService
-                            .findById(item.inventoryId())
-                            .map(Inventory::name)
-                            .orElse("");
-                    String sizeName = null;
-                    if (item.sizeId() != null) {
-                        sizeName = inventoryService.findSizes(item.inventoryId()).stream()
-                                .filter(s -> s.id() == item.sizeId())
-                                .map(InventorySize::label)
-                                .findFirst()
-                                .orElse(null);
-                    }
-                    return new MyInventoryItem(
-                            item.id(),
-                            item.inventoryId(),
-                            item.name(),
-                            item.internalId(),
-                            inventoryName,
-                            item.sizeId(),
-                            sizeName,
-                            item.lostAt());
-                })
-                .toList();
-        ctx.json(result);
+        ctx.json(inventoryService.findMemberEntries(session.member().id()).stream()
+                .map(this::toMyItem)
+                .toList());
     }
 
     @OpenApi(
@@ -235,37 +213,46 @@ public class InventoryRoutes implements Routes {
     private void memberItems(Context ctx) {
         UserSession session = UserSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
-        var items = inventoryService.findItemsByMember(memberId).stream()
-                .filter(item -> inventoryService
-                        .findById(item.inventoryId())
+        ctx.json(inventoryService.findMemberEntries(memberId).stream()
+                .filter(entry -> inventoryService
+                        .findById(entry.item().inventoryId())
                         .map(inv -> inv.stationId() == session.stationId())
                         .orElse(false))
-                .toList();
-        ctx.json(items.stream()
-                .map(item -> {
-                    String inventoryName = inventoryService
-                            .findById(item.inventoryId())
-                            .map(Inventory::name)
-                            .orElse("");
-                    String sizeName = null;
-                    if (item.sizeId() != null) {
-                        sizeName = inventoryService.findSizes(item.inventoryId()).stream()
-                                .filter(s -> s.id() == item.sizeId())
-                                .map(InventorySize::label)
-                                .findFirst()
-                                .orElse(null);
-                    }
-                    return new MyInventoryItem(
-                            item.id(),
-                            item.inventoryId(),
-                            item.name(),
-                            item.internalId(),
-                            inventoryName,
-                            item.sizeId(),
-                            sizeName,
-                            item.lostAt());
-                })
+                .map(this::toMyItem)
                 .toList());
+    }
+
+    /**
+     * Renders one line of a member's own inventory, carrying the step of whatever movement the item
+     * is on so the member can watch an exchange happen rather than watch their jacket vanish.
+     */
+    private MyInventoryItem toMyItem(MemberInventoryEntry entry) {
+        var item = entry.item();
+        String inventoryName = inventoryService
+                .findById(item.inventoryId())
+                .map(Inventory::name)
+                .orElse("");
+        String sizeName = null;
+        if (item.sizeId() != null) {
+            sizeName = inventoryService.findSizes(item.inventoryId()).stream()
+                    .filter(s -> s.id() == item.sizeId())
+                    .map(InventorySize::label)
+                    .findFirst()
+                    .orElse(null);
+        }
+        return new MyInventoryItem(
+                item.id(),
+                item.inventoryId(),
+                item.name(),
+                item.internalId(),
+                inventoryName,
+                item.sizeId(),
+                sizeName,
+                item.lostAt(),
+                item.custody(),
+                entry.movementId(),
+                entry.movementStep(),
+                entry.movementIncoming());
     }
 
     @OpenApi(
@@ -902,7 +889,11 @@ public class InventoryRoutes implements Routes {
             String inventoryName,
             Integer sizeId,
             String sizeName,
-            Instant lostAt) {}
+            Instant lostAt,
+            ItemCustody custody,
+            Integer movementId,
+            String movementStep,
+            boolean movementIncoming) {}
 
     public record MyRequirement(int inventoryId, String inventoryName, int requiredQuantity) {}
 

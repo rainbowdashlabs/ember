@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventorySummary;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
+import dev.chojo.ember.feature.inventory.entity.MemberInventoryEntry;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -199,6 +200,18 @@ public class InventoryService {
      */
     public List<InventoryItem> findItemsByMember(int memberId) {
         return inventoryRepository.findItemsByMember(memberId);
+    }
+
+    /**
+     * A member's own inventory, which is what they hold plus whatever is on its way to or from them.
+     * Use this wherever a member reads their own list; {@link #findItemsByMember(int)} answers the
+     * narrower question of what is actually in their hands.
+     *
+     * @param memberId the member
+     * @return their items, each with the movement it is on when there is one
+     */
+    public List<MemberInventoryEntry> findMemberEntries(int memberId) {
+        return inventoryRepository.findMemberEntries(memberId);
     }
 
     public int countItemsByMember(int memberId) {

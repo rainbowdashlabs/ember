@@ -1557,6 +1557,8 @@ export default {
         myInventorySelf: 'Mein Inventar',
         noInventory: 'Dir ist aktuell kein Inventar zugewiesen.',
         lostSince: 'Verloren seit',
+        movementIncoming: 'Ist für dich unterwegs',
+        movementOutgoing: 'Ist gerade im Tausch',
         requestExchange: 'Tausch anfragen',
         exchangeReasonPlaceholder: 'Grund für den Tausch...',
         submitExchange: 'Tausch anfragen',

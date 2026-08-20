@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.inventory.entity.InventorySummary;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
+import dev.chojo.ember.feature.inventory.entity.MemberInventoryEntry;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
@@ -330,6 +331,37 @@ public class InventoryRepository {
                 SELECT %s FROM inventory_item WHERE assigned_to = :member_id;""", INVENTORY_ITEM_COLUMNS)
                 .single(call().bind("member_id", memberId))
                 .map(InventoryItem.map())
+                .all();
+    }
+
+    /**
+     * A member's own inventory: what they hold, plus whatever is on its way to or from them.
+     *
+     * <p>An item taken back for an exchange is nobody's until the replacement is handed over, so
+     * reading the assignment alone makes a member's jacket disappear for exactly the stretch they
+     * most want to watch. The open movement puts it back on the list with the step it is standing
+     * on, and the distinct keeps an item that somehow reached two movements to one line.
+     *
+     * @param memberId the member
+     * @return their items, each with the movement it is on when there is one
+     */
+    public List<MemberInventoryEntry> findMemberEntries(int memberId) {
+        return query("""
+                SELECT DISTINCT ON (ii.id)
+                    %s,
+                    m.id AS movement_id,
+                    s.label AS movement_step,
+                    coalesce(m.incoming_item_id = ii.id, FALSE) AS movement_incoming
+                FROM inventory_item ii
+                LEFT JOIN item_movement m
+                       ON m.state = 'OPEN'
+                      AND m.member_id = :member_id
+                      AND (m.outgoing_item_id = ii.id OR m.incoming_item_id = ii.id)
+                LEFT JOIN movement_flow_step s ON s.id = m.current_step_id
+                WHERE ii.assigned_to = :member_id OR m.id IS NOT NULL
+                ORDER BY ii.id, m.id;""", SqlSupport.alias("ii", INVENTORY_ITEM_COLUMNS))
+                .single(call().bind("member_id", memberId))
+                .map(MemberInventoryEntry.map())
                 .all();
     }
 

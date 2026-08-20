@@ -60,14 +60,30 @@ public class ItemMovementService {
     }
 
     /**
-     * Who is asking, in the only two terms the service needs: which member they are, and whether
-     * they may act for the station. Which of those matters depends on the step the movement is
-     * standing on, which is why the check lives here rather than on the route.
+     * Who is asking, in the terms the service needs: which member they are, and which parties they
+     * may act as. Which of those matters depends on the step the movement is standing on, which is
+     * why the check lives here rather than on the route.
+     *
+     * <p>The two rights are separate because a step can be answered by the party it belongs to or
+     * merely covered by somebody standing in for them, and the record has to be able to tell those
+     * apart. Nobody signs in on the owner's side yet, so {@code ownerRights} is false everywhere
+     * today and the station covers every owner step.
      *
      * @param memberId      the member acting
      * @param stationRights whether they may act on the station's behalf
+     * @param ownerRights   whether they may act on behalf of the body above the station
      */
-    public record Actor(int memberId, boolean stationRights) {}
+    public record Actor(int memberId, boolean stationRights, boolean ownerRights) {
+        /**
+         * Somebody acting for the station and nobody else, which is every caller today.
+         *
+         * @param memberId      the member acting
+         * @param stationRights whether they may act on the station's behalf
+         */
+        public Actor(int memberId, boolean stationRights) {
+            this(memberId, stationRights, false);
+        }
+    }
 
     /**
      * Starts a movement and acknowledges its first step, because starting one is that step: a member
@@ -315,17 +331,20 @@ public class ItemMovementService {
     /**
      * Checks that it is the caller's turn and reports how the acknowledgement should be recorded.
      *
-     * <p>An owner's step is confirmed when that owner runs on this instance and can press the button
-     * itself. When it does not, the station stands in and the log says the step was asserted rather
-     * than confirmed, which is what makes the gap in the chain visible as a gap.
+     * <p>Confirmed means the party the step belongs to said so itself, so it follows from who
+     * pressed the button and never from whether the item names a body above the station. Reading it
+     * off the item would stamp an owner's confirmation on a click the station made, which is the one
+     * thing this distinction exists to prevent.
+     *
+     * <p>Nobody signs in on the owner's side yet, so every owner step is covered by the station and
+     * asserted. The day a cluster's people can act, they arrive here carrying owner rights and the
+     * same steps start reading as confirmed with nothing else changing.
      */
     private AckKind requireTurn(ItemMovement movement, MovementFlowStep step, Actor actor) {
         if (!mayAct(movement, step, actor)) {
             throw new ForbiddenResponse("This step belongs to the %s".formatted(step.actor()));
         }
-        return step.actor() == StepActor.OWNER && !ownerIsOnThisInstance(movement)
-                ? AckKind.ASSERTED
-                : AckKind.CONFIRMED;
+        return step.actor() == StepActor.OWNER && !actor.ownerRights() ? AckKind.ASSERTED : AckKind.CONFIRMED;
     }
 
     private boolean mayAct(ItemMovement movement, MovementFlowStep step, Actor actor) {
@@ -333,23 +352,9 @@ public class ItemMovementService {
             case MEMBER ->
                 movement.memberId() != null && (movement.memberId() == actor.memberId() || actor.stationRights());
             case STATION -> actor.stationRights();
-            // Nobody from the owner's side can sign in yet, so its steps are the station's to assert
-            case OWNER -> actor.stationRights();
+            // The owner answers for itself where it can, and the station covers it where it cannot
+            case OWNER -> actor.ownerRights() || actor.stationRights();
         };
-    }
-
-    /**
-     * Whether the body above the station runs on this instance, which decides whether its steps are
-     * confirmed by its own people or asserted by the station. No such body exists yet, so this is
-     * always false and every owner step is asserted.
-     */
-    private boolean ownerIsOnThisInstance(ItemMovement movement) {
-        if (movement.outgoingItemId() == null && movement.incomingItemId() == null) return false;
-        Integer itemId = movement.outgoingItemId() != null ? movement.outgoingItemId() : movement.incomingItemId();
-        return inventoryRepository
-                .findItemById(itemId)
-                .map(item -> item.ownerClusterId() != null)
-                .orElse(false);
     }
 
     /**

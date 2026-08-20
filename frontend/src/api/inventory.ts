@@ -153,6 +153,13 @@ export interface MyInventoryItem {
     sizeId?: number | null
     sizeName?: string | null
     lostAt?: string | null
+    custody?: ItemCustodyName | null
+    /** The open movement this item is on, when it is on its way to or from the member. */
+    movementId?: number | null
+    /** The step that movement is standing on, in the words the flow gives it. */
+    movementStep?: string | null
+    /** Whether it is the item coming to the member rather than the one leaving them. */
+    movementIncoming?: boolean
 }
 
 export interface MyRequirement {

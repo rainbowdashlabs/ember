@@ -143,7 +143,7 @@ class ItemMovementServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    void anOwnerThatDoesNotUseEmberHasItsStepsAssertedForIt() {
+    void theStationStandingInForTheOwnerIsRecordedAsStandingIn() {
         int old = itemWithMember(ItemOwner.CLUSTER);
         ItemMovement movement = walkToEnd(announceExchange(old), item(ItemOwner.CLUSTER));
 
@@ -155,6 +155,45 @@ class ItemMovementServiceTest extends RepositoryTestBase {
                     expected, entries.get(i).ackKind(), "step " + steps.get(i).label());
             assertEquals(steps.get(i).label(), entries.get(i).stepLabel());
         }
+    }
+
+    @Test
+    void namingABodyAboveTheStationDoesNotMakeItsStepsItsOwnAnswer() {
+        // The owning body is named, but nobody from its side can press anything, so the station is
+        // still standing in and the record has to say so
+        int itemId = inventoryRepo
+                .createItem(mixedInventoryId, "M-" + CODES.incrementAndGet(), "Glove", null, null, ItemOwner.CLUSTER, 7)
+                .id();
+        assertEquals(7, inventoryRepo.findItemById(itemId).orElseThrow().ownerClusterId());
+        itemCustodyService.assignToMember(itemId, member.id(), "Move Ment");
+
+        ItemMovement movement = walkToEnd(announceExchange(itemId), item(ItemOwner.CLUSTER));
+
+        var entries = itemMovementService.findLogs(movement.id());
+        var steps = itemMovementService.stepsOf(movement);
+        for (int i = 0; i < steps.size(); i++) {
+            if (steps.get(i).actor() != StepActor.OWNER) continue;
+            assertEquals(
+                    AckKind.ASSERTED, entries.get(i).ackKind(), steps.get(i).label());
+        }
+    }
+
+    @Test
+    void anOwnerAnsweringForItselfIsRecordedAsConfirming() {
+        // Nobody carries owner rights today. The day the body above the station has people who can
+        // press its own steps, they arrive here as this actor and the same chain reads as confirmed
+        var owner = new ItemMovementService.Actor(member.id(), true, true);
+        int old = itemWithMember(ItemOwner.CLUSTER);
+
+        ItemMovement movement = announceExchange(old);
+        int guard = 10;
+        while (guard-- > 0 && movement.state() == MovementState.OPEN && movement.currentStepId() != null) {
+            movement = itemMovementService.acknowledge(
+                    movement.id(), movement.currentStepId(), owner, "", item(ItemOwner.CLUSTER));
+        }
+
+        var entries = itemMovementService.findLogs(movement.id());
+        assertTrue(entries.stream().allMatch(e -> e.ackKind() == AckKind.CONFIRMED));
     }
 
     @Test
@@ -172,6 +211,41 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         assertNull(movement.currentStepId());
         assertEquals("Kein Ersatz auf Lager", movement.closeReason());
         assertEquals(ItemCustody.WITH_MEMBER, custodyOf(old), "the member has their own item again");
+    }
+
+    @Test
+    void aMemberKeepsSeeingTheirGearWhileItIsBeingExchanged() {
+        int old = itemWithMember(ItemOwner.CLUSTER);
+        int replacement = item(ItemOwner.CLUSTER);
+        ItemMovement movement = announceExchange(old);
+
+        // Taken back, then put in the post: the member holds nothing at all any more
+        movement = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", null);
+        movement = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", null);
+        assertFalse(
+                inventoryRepo.findItemsByMember(member.id()).stream().anyMatch(i -> i.id() == old),
+                "it is nobody's while it is in the post");
+
+        // Their own list still shows it, saying which step it is standing on
+        var entry = inventoryRepo.findMemberEntries(member.id()).stream()
+                .filter(e -> e.item().id() == old)
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("gear on the way should stay on the member's list"));
+        assertEquals(movement.id(), entry.movementId());
+        assertFalse(entry.movementIncoming());
+        assertNotNull(entry.movementStep());
+        assertEquals(ItemCustody.IN_TRANSIT, entry.item().custody());
+
+        // And once the replacement is named it appears too, marked as the one on its way to them
+        movement = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", null);
+        movement = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", replacement);
+        var incoming = inventoryRepo.findMemberEntries(member.id()).stream()
+                .filter(e -> e.item().id() == replacement)
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("the replacement should be visible on its way"));
+        assertTrue(incoming.movementIncoming());
+
+        walkToEnd(movement, replacement);
     }
 
     @Test
