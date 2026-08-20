@@ -10,7 +10,7 @@ import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
-import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
+import dev.chojo.ember.feature.inventory.entity.StepActor;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.notifications.entity.Notification;
@@ -444,7 +444,7 @@ class NotificationServiceTest extends RepositoryTestBase {
         service.acknowledgeAll(member1.id());
         // Exchange types
         var exchStatus = NotificationData.of(
-                new NotificationParams.ExchangeStatusChange(ExchangeStatus.RECEIVED, "Helmet", "all good"),
+                new NotificationParams.ExchangeStatusChange("Altes Teil zurückgenommen", "Helmet", StepActor.STATION),
                 new NotificationData.NotificationLink("inventory-exchanges"));
         service.notify(member1.id(), NotificationType.EXCHANGE_STATUS_CHANGE, exchStatus);
 
@@ -735,11 +735,11 @@ class NotificationServiceTest extends RepositoryTestBase {
         assertEquals("Preview", service.resolveDetail(ncNotif));
 
         var esc = NotificationData.of(
-                new NotificationParams.ExchangeStatusChange(ExchangeStatus.DONE, "Inv", "Reason"),
+                new NotificationParams.ExchangeStatusChange("Ersatz ausgegeben", "Inv", null),
                 new NotificationData.NotificationLink("dashboard-overview"));
         var escNotif =
                 new Notification(21, member1.id(), NotificationType.EXCHANGE_STATUS_CHANGE, esc, Instant.now(), null);
-        assertEquals("Reason", service.resolveDetail(escNotif));
+        assertEquals("Ersatz ausgegeben", service.resolveDetail(escNotif));
 
         var enr = NotificationData.of(
                 new NotificationParams.ExchangeNewRequest("Name", "Inv", "Why"),
@@ -812,13 +812,13 @@ class NotificationServiceTest extends RepositoryTestBase {
                 new Notification(35, member1.id(), NotificationType.EXCHANGE_NEW_REQUEST, enr, Instant.now(), null);
         assertTrue(service.resolveFeedBody("en", enrNotif).contains("Need it"));
 
-        // EXCHANGE_STATUS_CHANGE - labelled reason
+        // EXCHANGE_STATUS_CHANGE - the step's own words, since a station names its chain itself
         var esc = NotificationData.of(
-                new NotificationParams.ExchangeStatusChange(ExchangeStatus.DONE, "Inv", "Approved"),
+                new NotificationParams.ExchangeStatusChange("Ersatz ausgegeben", "Inv", null),
                 new NotificationData.NotificationLink("dashboard-overview"));
         var escNotif =
                 new Notification(36, member1.id(), NotificationType.EXCHANGE_STATUS_CHANGE, esc, Instant.now(), null);
-        assertTrue(service.resolveFeedBody("en", escNotif).contains("Approved"));
+        assertTrue(service.resolveFeedBody("en", escNotif).contains("Ersatz ausgegeben"));
 
         // LOST_AND_FOUND_NEW - appends description
         var lf = NotificationData.of(

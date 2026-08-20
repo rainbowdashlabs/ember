@@ -5,7 +5,12 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.MovementAdvanced;
+import dev.chojo.ember.event.events.MovementDeclined;
+import dev.chojo.ember.event.events.MovementStarted;
 import dev.chojo.ember.feature.inventory.entity.AckKind;
+import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
@@ -46,17 +51,20 @@ public class ItemMovementService {
     private final MovementFlowService flowService;
     private final InventoryRepository inventoryRepository;
     private final ItemCustodyService custodyService;
+    private final DomainEventBus eventBus;
 
     @Inject
     public ItemMovementService(
             ItemMovementRepository movementRepository,
             MovementFlowService flowService,
             InventoryRepository inventoryRepository,
-            ItemCustodyService custodyService) {
+            ItemCustodyService custodyService,
+            DomainEventBus eventBus) {
         this.movementRepository = movementRepository;
         this.flowService = flowService;
         this.inventoryRepository = inventoryRepository;
         this.custodyService = custodyService;
+        this.eventBus = eventBus;
     }
 
     /**
@@ -92,6 +100,7 @@ public class ItemMovementService {
      * @param stationId    the station running the movement
      * @param purpose      what the movement is for
      * @param memberId     the member it concerns, or {@code null} for one with no member at either end
+     * @param memberName   that member's name, carried to the notification rather than looked up again
      * @param outgoingItemId the item leaving, or {@code null}
      * @param inventoryId  the inventory it is about
      * @param oldSizeId    the size being replaced, or {@code null}
@@ -105,6 +114,7 @@ public class ItemMovementService {
             int stationId,
             MovementPurpose purpose,
             Integer memberId,
+            String memberName,
             Integer outgoingItemId,
             Integer inventoryId,
             Integer oldSizeId,
@@ -139,7 +149,18 @@ public class ItemMovementService {
                 stationId,
                 memberId,
                 outgoingItemId);
-        return acknowledge(movement.id(), first.id(), actor, "", pickedItemId);
+        ItemMovement started = acknowledge(movement.id(), first.id(), actor, "", pickedItemId);
+        eventBus.publish(new MovementStarted(
+                stationId,
+                started.id(),
+                memberId,
+                memberName,
+                inventoryId,
+                inventoryName(inventoryId),
+                started.reason(),
+                actor.memberId(),
+                actorOfCurrentStep(started)));
+        return started;
     }
 
     public Optional<ItemMovement> findById(int id) {
@@ -245,7 +266,17 @@ public class ItemMovementService {
                 movementId,
                 actor.memberId(),
                 ackKind);
-        return movementRepository.findById(movementId).orElseThrow();
+        ItemMovement walked = movementRepository.findById(movementId).orElseThrow();
+        eventBus.publish(new MovementAdvanced(
+                walked.stationId(),
+                walked.id(),
+                walked.memberId(),
+                walked.inventoryId(),
+                inventoryName(walked.inventoryId()),
+                step.label(),
+                actor.memberId(),
+                actorOfCurrentStep(walked)));
+        return walked;
     }
 
     /**
@@ -256,7 +287,16 @@ public class ItemMovementService {
         ItemMovement movement = requireOpen(movementId);
         MovementFlowStep step = currentStep(movement);
         if (step != null) requireTurn(movement, step, actor);
-        return close(movement, MovementState.DECLINED, reason);
+        ItemMovement declined = close(movement, MovementState.DECLINED, reason);
+        eventBus.publish(new MovementDeclined(
+                declined.stationId(),
+                declined.id(),
+                declined.memberId(),
+                declined.inventoryId(),
+                inventoryName(declined.inventoryId()),
+                reason,
+                actor.memberId()));
+        return declined;
     }
 
     /**
@@ -322,6 +362,20 @@ public class ItemMovementService {
                     .filter(item -> item.custody() == ItemCustody.IN_TRANSIT)
                     .ifPresent(item -> custodyService.applyStepCustody(item.id(), ItemCustody.WITH_OWNER, null, null));
         }
+    }
+
+    /**
+     * The party a movement is now waiting on, or {@code null} once the chain has ended. It is what
+     * decides who hears about the step that was just walked.
+     */
+    private StepActor actorOfCurrentStep(ItemMovement movement) {
+        MovementFlowStep step = currentStep(movement);
+        return step != null ? step.actor() : null;
+    }
+
+    private String inventoryName(Integer inventoryId) {
+        if (inventoryId == null) return "";
+        return inventoryRepository.findById(inventoryId).map(Inventory::name).orElse("");
     }
 
     private ItemMovement requireOpen(int movementId) {

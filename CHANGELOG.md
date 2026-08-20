@@ -12,6 +12,7 @@
 ### Improvements
 
 - **An exchange opens as the chain it is walking.** The history button now leads to the whole run rather than a list of status changes: every step with the party it belongs to, the ones behind it stamped with who acknowledged them and how, and on the current one either the single button you may press or the sentence naming who is being waited on.
+- **A movement tells whoever's turn it is, not always the station.** When a step is acknowledged, the message goes to the party the next step belongs to and to nobody else, so its arrival is itself the signal that something is waiting. A refused movement tells both ends, with the reason where the member asked.
 - **Mail left behind by a stopped delivery can be sent again.** The overview no longer only counts them: it lists each one and offers to put it back in the queue, singly or all at once. Mail that is being sent right now stays untouched.
 - **The waiting list shows the date of birth in its own column and sorts by any of them.** Every column heading sorts, the list still opens on the highest score, and a column picked afterwards starts at the top of its own order.
 

@@ -8,7 +8,7 @@ package dev.chojo.ember.feature.notifications.entity;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
-import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
+import dev.chojo.ember.feature.inventory.entity.StepActor;
 
 import java.time.LocalDate;
 
@@ -38,8 +38,15 @@ public sealed interface NotificationParams {
 
     record ExchangeNewRequest(String memberName, String inventoryName, String reason) implements NotificationParams {}
 
-    record ExchangeStatusChange(ExchangeStatus status, String inventoryName, String reason)
+    /**
+     * A movement has moved on. The step label is the flow's own words rather than a fixed status,
+     * because the chain a station walks is its own to name, and the next actor says whose turn it
+     * is now: this notification is only ever sent to that party, so its presence is the signal.
+     */
+    record ExchangeStatusChange(String stepLabel, String inventoryName, StepActor nextActor)
             implements NotificationParams {}
+
+    record MovementDeclined(String inventoryName, String reason) implements NotificationParams {}
 
     record MemberAddedToGroup(String groupName, String addedByName) implements NotificationParams {}
 

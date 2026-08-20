@@ -152,6 +152,7 @@ public class MovementRoutes implements Routes {
                 session.stationId(),
                 request.purpose(),
                 memberId,
+                memberName(memberId),
                 request.outgoingItemId(),
                 request.inventoryId(),
                 request.oldSizeId(),

@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
@@ -20,8 +19,6 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -38,7 +35,7 @@ class ExchangeServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         var inventoryService = new InventoryService(inventoryRepo, itemCustodyService);
-        service = new ExchangeService(itemMovementService, inventoryRepo, new DomainEventBus(Set.of()));
+        service = new ExchangeService(itemMovementService, inventoryRepo);
         station = stationRepo.create("ExchStation");
         account = accountRepo.create("exch-svc@test.com", "Exch", "Tester");
         member = stationMemberRepo.create(station.id(), account.id());

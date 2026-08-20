@@ -166,6 +166,7 @@ class MovementFlowServiceTest extends RepositoryTestBase {
                 station.id(),
                 MovementPurpose.RETURN,
                 null,
+                null,
                 itemId,
                 inventoryId,
                 null,

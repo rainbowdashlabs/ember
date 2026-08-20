@@ -5,13 +5,9 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
-import dev.chojo.ember.event.DomainEventBus;
-import dev.chojo.ember.event.events.ExchangeRequested;
-import dev.chojo.ember.event.events.ExchangeStatusChanged;
 import dev.chojo.ember.feature.inventory.entity.ExchangeLog;
 import dev.chojo.ember.feature.inventory.entity.ExchangeRequest;
 import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
-import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemMovement;
 import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
@@ -44,14 +40,11 @@ public class ExchangeService {
 
     private final ItemMovementService movementService;
     private final InventoryRepository inventoryRepository;
-    private final DomainEventBus eventBus;
 
     @Inject
-    public ExchangeService(
-            ItemMovementService movementService, InventoryRepository inventoryRepository, DomainEventBus eventBus) {
+    public ExchangeService(ItemMovementService movementService, InventoryRepository inventoryRepository) {
         this.movementService = movementService;
         this.inventoryRepository = inventoryRepository;
-        this.eventBus = eventBus;
     }
 
     /**
@@ -83,6 +76,7 @@ public class ExchangeService {
                 stationId,
                 MovementPurpose.EXCHANGE,
                 memberId,
+                memberName,
                 itemId,
                 inventoryId,
                 oldSizeId,
@@ -90,10 +84,6 @@ public class ExchangeService {
                 reason,
                 actor,
                 null);
-        String inventoryName =
-                inventoryRepository.findById(inventoryId).map(Inventory::name).orElse("?");
-        eventBus.publish(new ExchangeRequested(
-                stationId, movement.id(), memberId, memberName, inventoryId, inventoryName, reason));
         return toRequest(movement);
     }
 
@@ -148,20 +138,7 @@ public class ExchangeService {
                     movementService.acknowledge(movement.id(), movement.currentStepId(), actor, note, exchangedItemId);
         }
 
-        String inventoryName = movement.inventoryId() == null
-                ? "?"
-                : inventoryRepository
-                        .findById(movement.inventoryId())
-                        .map(Inventory::name)
-                        .orElse("?");
-        eventBus.publish(new ExchangeStatusChanged(
-                movement.stationId(),
-                movement.id(),
-                movement.memberId() != null ? movement.memberId() : 0,
-                null,
-                movement.inventoryId() != null ? movement.inventoryId() : 0,
-                inventoryName,
-                deriveStatus(movement)));
+        // Notifying is the movement service's job, since that is where every step actually happens
         log.info("Exchange {} walked to {} by member {}", id, newStatus, changedBy);
         return toRequest(movement);
     }

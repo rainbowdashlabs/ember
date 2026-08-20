@@ -11,7 +11,6 @@ import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.federation.entity.LendingRequest;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.service.LendingService;
-import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -279,8 +278,7 @@ public class DemoNotificationSeeder implements DemoSeeder {
                 memberId,
                 NotificationType.EXCHANGE_STATUS_CHANGE,
                 NotificationData.of(
-                        new NotificationParams.ExchangeStatusChange(
-                                ExchangeStatus.DONE, "Blouson Größe 152", "Neuer Blouson Größe 158 ausgegeben"),
+                        new NotificationParams.ExchangeStatusChange("Ersatz ausgegeben", "Blouson Größe 152", null),
                         exchangeLink));
 
         notificationRepository.create(

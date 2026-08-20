@@ -552,7 +552,7 @@ public class NotificationService {
             case NEW_NEWS -> params instanceof NotificationParams.NewNews p ? p.preview() : null;
             case NEWS_COMMENT -> params instanceof NotificationParams.NewsComment p ? p.preview() : null;
             case EXCHANGE_STATUS_CHANGE ->
-                params instanceof NotificationParams.ExchangeStatusChange p ? p.reason() : null;
+                params instanceof NotificationParams.ExchangeStatusChange p ? p.stepLabel() : null;
             case EXCHANGE_NEW_REQUEST -> params instanceof NotificationParams.ExchangeNewRequest p ? p.reason() : null;
             case EVENT_REGISTRATION_STATUS ->
                 params instanceof NotificationParams.EventRegistrationStatus p ? p.eventDescription() : null;
@@ -608,11 +608,6 @@ public class NotificationService {
             }
             case EXCHANGE_NEW_REQUEST -> {
                 if (params instanceof NotificationParams.ExchangeNewRequest p && notBlank(p.reason())) {
-                    lines.add(feedKv(locale, "reason", p.reason()));
-                }
-            }
-            case EXCHANGE_STATUS_CHANGE -> {
-                if (params instanceof NotificationParams.ExchangeStatusChange p && notBlank(p.reason())) {
                     lines.add(feedKv(locale, "reason", p.reason()));
                 }
             }
@@ -863,8 +858,6 @@ public class NotificationService {
     private void augmentTitleParams(String locale, Notification n, Map<String, String> params) {
         var orig = n.data().params();
         if (orig instanceof NotificationParams.EventRegistrationStatus p) {
-            params.put("statusLabel", resolveStatusWithSymbol(locale, p.status().name()));
-        } else if (orig instanceof NotificationParams.ExchangeStatusChange p) {
             params.put("statusLabel", resolveStatusWithSymbol(locale, p.status().name()));
         } else if (orig instanceof NotificationParams.LendingStatusChange p) {
             params.put("statusLabel", resolveStatusWithSymbol(locale, p.status().name()));

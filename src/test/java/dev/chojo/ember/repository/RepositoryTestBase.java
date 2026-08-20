@@ -268,9 +268,9 @@ public abstract class RepositoryTestBase {
         movementFlowRepo = new MovementFlowRepository();
         itemMovementRepo = new ItemMovementRepository();
         movementFlowService = new MovementFlowService(movementFlowRepo, itemMovementRepo);
-        itemMovementService =
-                new ItemMovementService(itemMovementRepo, movementFlowService, inventoryRepo, itemCustodyService);
-        exchangeService = new ExchangeService(itemMovementService, inventoryRepo, new DomainEventBus(Set.of()));
+        itemMovementService = new ItemMovementService(
+                itemMovementRepo, movementFlowService, inventoryRepo, itemCustodyService, new DomainEventBus(Set.of()));
+        exchangeService = new ExchangeService(itemMovementService, inventoryRepo);
         memberGroupRepo = new MemberGroupRepository();
         profileFieldRepo = new ProfileFieldRepository();
         registrationCodeRepo = new RegistrationCodeRepository();

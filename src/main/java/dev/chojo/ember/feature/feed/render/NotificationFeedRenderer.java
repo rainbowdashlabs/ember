@@ -23,8 +23,8 @@ import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.service.LendingService;
-import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.StepActor;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
 import dev.chojo.ember.feature.notifications.entity.Notification;
@@ -474,15 +474,12 @@ public class NotificationFeedRenderer {
                 if (params
                         instanceof
                         NotificationParams.ExchangeStatusChange(
-                                ExchangeStatus status,
+                                String stepLabel,
                                 String inventoryName,
-                                String reason)) {
-                    putIfPresent(
-                            details,
-                            label(ctx, "status", "Status"),
-                            notificationService.resolveStatusWithSymbol(ctx.locale(), status.name()));
+                                StepActor nextActor)) {
+                    // The step's own words, because a station names its chain itself
+                    putIfPresent(details, label(ctx, "status", "Status"), stepLabel);
                     putIfPresent(details, label(ctx, "inventory", "Inventory"), inventoryName);
-                    putIfPresent(details, label(ctx, "reason"), reason);
                     enrichWithInventoryContext(details, notification, ctx);
                 }
             }

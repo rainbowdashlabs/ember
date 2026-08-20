@@ -15,8 +15,6 @@ import dev.chojo.ember.event.events.EventCreated;
 import dev.chojo.ember.event.events.EventDeleted;
 import dev.chojo.ember.event.events.EventRegistrationStatusChanged;
 import dev.chojo.ember.event.events.EventsBatchCreated;
-import dev.chojo.ember.event.events.ExchangeRequested;
-import dev.chojo.ember.event.events.ExchangeStatusChanged;
 import dev.chojo.ember.event.events.FormDeleted;
 import dev.chojo.ember.event.events.FormPublished;
 import dev.chojo.ember.event.events.LendingMessageSent;
@@ -24,6 +22,9 @@ import dev.chojo.ember.event.events.LendingRequested;
 import dev.chojo.ember.event.events.LendingStatusChanged;
 import dev.chojo.ember.event.events.MembersAddedToGroup;
 import dev.chojo.ember.event.events.MentionedInComment;
+import dev.chojo.ember.event.events.MovementAdvanced;
+import dev.chojo.ember.event.events.MovementDeclined;
+import dev.chojo.ember.event.events.MovementStarted;
 import dev.chojo.ember.event.events.NewsCreated;
 import dev.chojo.ember.event.events.NewsDeleted;
 import dev.chojo.ember.event.events.ProcurementCreated;
@@ -39,8 +40,6 @@ import dev.chojo.ember.event.handlers.EventCreatedHandler;
 import dev.chojo.ember.event.handlers.EventDeletedHandler;
 import dev.chojo.ember.event.handlers.EventRegistrationStatusHandler;
 import dev.chojo.ember.event.handlers.EventsBatchCreatedHandler;
-import dev.chojo.ember.event.handlers.ExchangeRequestedHandler;
-import dev.chojo.ember.event.handlers.ExchangeStatusChangedHandler;
 import dev.chojo.ember.event.handlers.FormDeletedHandler;
 import dev.chojo.ember.event.handlers.FormPublishedHandler;
 import dev.chojo.ember.event.handlers.LendingMessageSentHandler;
@@ -48,6 +47,9 @@ import dev.chojo.ember.event.handlers.LendingRequestedHandler;
 import dev.chojo.ember.event.handlers.LendingStatusChangedHandler;
 import dev.chojo.ember.event.handlers.MembersAddedToGroupHandler;
 import dev.chojo.ember.event.handlers.MentionedInCommentHandler;
+import dev.chojo.ember.event.handlers.MovementAdvancedHandler;
+import dev.chojo.ember.event.handlers.MovementDeclinedHandler;
+import dev.chojo.ember.event.handlers.MovementStartedHandler;
 import dev.chojo.ember.event.handlers.NewsCreatedHandler;
 import dev.chojo.ember.event.handlers.NewsDeletedHandler;
 import dev.chojo.ember.event.handlers.ProcurementCreatedHandler;
@@ -63,7 +65,7 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
-import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
+import dev.chojo.ember.feature.inventory.entity.StepActor;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -752,17 +754,18 @@ class DomainEventHandlerTest {
                         .equals(data.link().route())));
     }
 
-    // -- ExchangeRequestedHandler --
+    // -- MovementStartedHandler --
 
     @Test
-    void exchangeRequestedNotifiesInventoryManagers() {
-        var handler = new ExchangeRequestedHandler(notificationService, memberRepository);
-        assertEquals(ExchangeRequested.class, handler.eventType());
+    void movementStartedTellsWhoeverTheChainWaitsOn() {
+        var handler = new MovementStartedHandler(notificationService, memberRepository);
+        assertEquals(MovementStarted.class, handler.eventType());
 
         when(memberRepository.findMembersWithPermission(STATION_ID, StationPermission.INVENTORY_MANAGER))
                 .thenReturn(List.of(member(30), member(31)));
 
-        handler.handle(new ExchangeRequested(STATION_ID, 1, MEMBER_ID, "Max", 99, "Helm", "Kaputt"));
+        handler.handle(new MovementStarted(
+                STATION_ID, 1, MEMBER_ID, "Max", 99, "Helm", "Kaputt", MEMBER_ID, StepActor.STATION));
 
         verify(notificationService)
                 .notifyMembersIfAbsent(
@@ -772,26 +775,97 @@ class DomainEventHandlerTest {
                         eq(MEMBER_ID));
     }
 
-    // -- ExchangeStatusChangedHandler --
+    // -- MovementAdvancedHandler --
 
     @Test
-    void exchangeStatusChangedNotifiesMemberAndManagers() {
-        var handler = new ExchangeStatusChangedHandler(notificationService, memberRepository);
-        assertEquals(ExchangeStatusChanged.class, handler.eventType());
+    void movementAdvancedTellsTheStationWhenItsStepIsNext() {
+        var handler = new MovementAdvancedHandler(notificationService, memberRepository);
+        assertEquals(MovementAdvanced.class, handler.eventType());
 
         when(memberRepository.findMembersWithPermission(STATION_ID, StationPermission.INVENTORY_MANAGER))
                 .thenReturn(List.of(member(30)));
 
-        handler.handle(new ExchangeStatusChanged(STATION_ID, 1, MEMBER_ID, "Max", 99, "Helm", ExchangeStatus.RECEIVED));
+        handler.handle(new MovementAdvanced(
+                STATION_ID, 1, MEMBER_ID, 99, "Helm", "Tausch angekündigt", MEMBER_ID, StepActor.STATION));
 
-        verify(notificationService)
-                .notify(eq(MEMBER_ID), eq(NotificationType.EXCHANGE_STATUS_CHANGE), any(NotificationData.class));
         verify(notificationService)
                 .notifyMembersIfAbsent(
                         eq(List.of(30)),
                         eq(NotificationType.EXCHANGE_STATUS_CHANGE),
                         any(NotificationData.class),
                         eq(MEMBER_ID));
+    }
+
+    @Test
+    void movementAdvancedTellsTheMemberWhenTheirStepIsNext() {
+        var handler = new MovementAdvancedHandler(notificationService, memberRepository);
+
+        handler.handle(
+                new MovementAdvanced(STATION_ID, 1, MEMBER_ID, 99, "Helm", "Ersatz erhalten", 30, StepActor.MEMBER));
+
+        verify(notificationService)
+                .notifyMembersIfAbsent(
+                        eq(List.of(MEMBER_ID)),
+                        eq(NotificationType.EXCHANGE_STATUS_CHANGE),
+                        any(NotificationData.class),
+                        eq(30));
+        verify(memberRepository, never()).findMembersWithPermission(anyInt(), any());
+    }
+
+    @Test
+    void aChainThatHasEndedTellsTheMemberItConcerned() {
+        var handler = new MovementAdvancedHandler(notificationService, memberRepository);
+
+        handler.handle(new MovementAdvanced(STATION_ID, 1, MEMBER_ID, 99, "Helm", "Ersatz ausgegeben", 30, null));
+
+        verify(notificationService)
+                .notifyMembersIfAbsent(
+                        eq(List.of(MEMBER_ID)),
+                        eq(NotificationType.EXCHANGE_STATUS_CHANGE),
+                        any(NotificationData.class),
+                        eq(30));
+    }
+
+    /**
+     * An owner that does not run here cannot be told anything, so the station that stands in for it
+     * is who hears. Nothing is addressed to a party that could never receive it.
+     */
+    @Test
+    void anOwnerStepIsAnnouncedToTheStationStandingInForIt() {
+        var handler = new MovementAdvancedHandler(notificationService, memberRepository);
+
+        when(memberRepository.findMembersWithPermission(STATION_ID, StationPermission.INVENTORY_MANAGER))
+                .thenReturn(List.of(member(30)));
+
+        handler.handle(new MovementAdvanced(
+                STATION_ID, 1, MEMBER_ID, 99, "Helm", "An den Träger geschickt", MEMBER_ID, StepActor.OWNER));
+
+        verify(notificationService)
+                .notifyMembersIfAbsent(
+                        eq(List.of(30)),
+                        eq(NotificationType.EXCHANGE_STATUS_CHANGE),
+                        any(NotificationData.class),
+                        eq(MEMBER_ID));
+    }
+
+    // -- MovementDeclinedHandler --
+
+    @Test
+    void movementDeclinedTellsBothEnds() {
+        var handler = new MovementDeclinedHandler(notificationService, memberRepository);
+        assertEquals(MovementDeclined.class, handler.eventType());
+
+        when(memberRepository.findMembersWithPermission(STATION_ID, StationPermission.INVENTORY_MANAGER))
+                .thenReturn(List.of(member(30)));
+
+        handler.handle(new MovementDeclined(STATION_ID, 1, MEMBER_ID, 99, "Helm", "Kein Ersatz", 30));
+
+        verify(notificationService)
+                .notifyMembersIfAbsent(
+                        eq(List.of(30, MEMBER_ID)),
+                        eq(NotificationType.MOVEMENT_DECLINED),
+                        any(NotificationData.class),
+                        eq(30));
     }
 
     // -- ProcurementCreatedHandler --

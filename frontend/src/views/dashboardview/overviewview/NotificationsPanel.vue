@@ -35,6 +35,7 @@ const typeIcons: Record<string, string> = {
   EVENT_REGISTRATION_STATUS: 'calendar-days',
   EXCHANGE_STATUS_CHANGE: 'rotate',
   EXCHANGE_NEW_REQUEST: 'rotate',
+  MOVEMENT_DECLINED: 'ban',
   NEW_EVENT: 'calendar-plus',
   NEW_EVENTS_BATCH: 'calendar-plus',
   MEMBER_ADDED_TO_GROUP: 'layer-group',
@@ -66,8 +67,10 @@ function renderMessage(n: NotificationEntry): string {
   if (n.type === 'EVENT_REGISTRATION_STATUS' && params.status) {
     params.status = t(`dashboard.registrationStatus.${params.status}`)
   }
-  if (n.type === 'EXCHANGE_STATUS_CHANGE' && params.status) {
-    params.status = t(`dashboard.exchangeStatus.${params.status}`)
+  // A movement's step carries the words its own flow gives it, so there is nothing to look up.
+  // The party it is waiting on is an enum and does need one.
+  if (n.type === 'EXCHANGE_STATUS_CHANGE' && params.nextActor) {
+    params.nextActor = t(`movements.actor.${params.nextActor}`)
   }
   if (n.type === 'LENDING_STATUS_CHANGE' && params.status) {
     params.status = t(`dashboard.lendingStatus.${params.status}`)
