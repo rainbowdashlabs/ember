@@ -12,6 +12,8 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.media.entity.StationFile;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
+import dev.chojo.ember.util.SafeContentDisposition;
+import dev.chojo.ember.util.SafeInlineMime;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.javalin.http.ForbiddenResponse;
@@ -74,6 +76,7 @@ public class MediaRoutes implements Routes {
     }
 
     private void registerLibrary(JavalinDefaultRoutingApi routes, String base) {
+        routes.get(base + "/file/{hash}", this::serveFile, StationPermission.LOGIN);
         routes.get(base + "/files", this::listFiles, StationPermission.LOGIN);
         routes.post(base + "/files", this::upload, StationPermission.LOGIN);
         routes.post(base + "/files/prune", this::pruneFiles, StationPermission.PAGE_MANAGER);
@@ -106,6 +109,41 @@ public class MediaRoutes implements Routes {
     private static int requireMember(UserSession session) {
         if (session.member() == null) throw new ForbiddenResponse("Not a station member");
         return session.member().id();
+    }
+
+    /**
+     * Serves a media file to a member of the station that holds it.
+     *
+     * <p>The public route addresses a file by hash and asks nothing else, which is right for a
+     * public page and wrong for an image inside an internal article: knowing the hash would be the
+     * only barrier. This is the session-checked twin, and the renderer picks between the two by
+     * where the content will be read.
+     */
+    private void serveFile(Context ctx) {
+        var session = UserSession.from(ctx);
+        String hash = ctx.pathParam("hash");
+        Integer width = parseOptionalWidth(ctx.queryParam("w"));
+        var fileData = media.readVariant(session.stationId(), hash, width, ctx.header("Accept"))
+                .orElseThrow(NotFoundResponse::new);
+        String stored = fileData.contentType();
+        ctx.contentType(SafeInlineMime.safeContentType(stored));
+        var disposition = SafeInlineMime.isInlineSafe(stored)
+                ? SafeContentDisposition.Disposition.INLINE
+                : SafeContentDisposition.Disposition.ATTACHMENT;
+        ctx.header("Content-Disposition", SafeContentDisposition.build(disposition, hash));
+        ctx.header("Cache-Control", "private, max-age=31536000, immutable");
+        ctx.header("Vary", "Accept");
+        ctx.result(fileData.data());
+    }
+
+    private static Integer parseOptionalWidth(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        try {
+            int value = Integer.parseInt(raw);
+            return value > 0 ? value : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     private void listFiles(Context ctx) {

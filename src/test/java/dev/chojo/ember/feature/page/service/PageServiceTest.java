@@ -9,14 +9,15 @@ import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AvatarService;
+import dev.chojo.ember.feature.content.entity.CellConfig;
+import dev.chojo.ember.feature.content.entity.CellContentType;
+import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.media.service.ImageVariantService;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.media.service.MediaReferenceRegistry;
 import dev.chojo.ember.feature.media.service.MediaStorageService;
 import dev.chojo.ember.feature.media.service.MediaVariantService;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.page.entity.CellConfig;
-import dev.chojo.ember.feature.page.entity.CellContentType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
@@ -44,6 +45,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class PageServiceTest extends RepositoryTestBase {
     private static PageService service;
     private static MediaLibraryService media;
+    private static ContentBlockService blocks;
     private static Station station;
     private static Account account;
     private static StationMember member;
@@ -62,14 +64,15 @@ class PageServiceTest extends RepositoryTestBase {
                 mediaMetaRepo,
                 storage,
                 new MediaVariantService(storage, storageConfig),
-                new MediaReferenceRegistry(pageRepo),
+                new MediaReferenceRegistry(contentContainerRepo),
                 new StorageQuotaService(
                         storageUsageRepo,
                         new StationStorageConfigRepository(),
                         storageConfig,
                         new DomainEventBus(Set.of())));
+        blocks = new ContentBlockService(contentContainerRepo);
         service = new PageService(
-                pageRepo, media, stationMemberRepo, new AvatarService(new ImageVariantService(storageService)));
+                pageRepo, blocks, media, stationMemberRepo, new AvatarService(new ImageVariantService(storageService)));
         station = stationRepo.create("PageServiceStation");
         account = accountRepo.create("page-svc@test.com", "Page", "Author");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -129,11 +132,12 @@ class PageServiceTest extends RepositoryTestBase {
     @Test
     @Order(6)
     void savePageWithContent() {
-        var rows = List.of(new PageService.RowData(
+        var rows = List.of(new ContentBlockService.RowData(
                 0,
                 List.of(
-                        new PageService.CellData(0, 60.0, CellContentType.MARKDOWN, "<h1>Hello</h1>", CellConfig.EMPTY),
-                        new PageService.CellData(
+                        new ContentBlockService.CellData(
+                                0, 60.0, CellContentType.MARKDOWN, "<h1>Hello</h1>", CellConfig.EMPTY),
+                        new ContentBlockService.CellData(
                                 1,
                                 40.0,
                                 CellContentType.IMAGE,
@@ -385,9 +389,9 @@ class PageServiceTest extends RepositoryTestBase {
         JsonNode src = mapper.readTree("{\"kind\":\"manual\",\"memberUids\":[]}");
         var memberListConfig = new CellConfig.MemberListConfig(
                 "Officers", src, CellConfig.MemberListSortBy.NAME, true, true, Map.of(), List.of(), List.of());
-        var rows = List.of(new PageService.RowData(
+        var rows = List.of(new ContentBlockService.RowData(
                 0,
-                List.of(new PageService.CellData(
+                List.of(new ContentBlockService.CellData(
                         0, 100.0, CellContentType.MEMBER_LIST_SPOTLIGHT, "", memberListConfig))));
         service.savePage(pageId, "Welcome", "welcome-page", null, null, null, rows);
         var rendered = service.getPageRendered(pageId).orElseThrow();
@@ -399,9 +403,9 @@ class PageServiceTest extends RepositoryTestBase {
     @Test
     @Order(45)
     void getPageRenderedMarkdownCell() {
-        var rows = List.of(new PageService.RowData(
+        var rows = List.of(new ContentBlockService.RowData(
                 0,
-                List.of(new PageService.CellData(
+                List.of(new ContentBlockService.CellData(
                         0, 100.0, CellContentType.MARKDOWN, "# Hello\n\nThis is **markdown**.", CellConfig.EMPTY))));
         service.savePage(pageId, "Welcome", "welcome-page", null, null, null, rows);
         var rendered = service.getPageRendered(pageId).orElseThrow();

@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-package dev.chojo.ember.feature.page.entity;
+package dev.chojo.ember.feature.content.entity;
 
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;

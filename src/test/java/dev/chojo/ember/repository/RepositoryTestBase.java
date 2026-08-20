@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.board.repository.FederatedBoardRepository;
 import dev.chojo.ember.feature.checklist.repository.ChecklistRepository;
 import dev.chojo.ember.feature.comment.repository.EventCommentRepository;
 import dev.chojo.ember.feature.comment.repository.NoteRepository;
+import dev.chojo.ember.feature.content.repository.ContentContainerRepository;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryBlocklistRepository;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPeerRepository;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPingRepository;
@@ -187,6 +188,7 @@ public abstract class RepositoryTestBase {
     protected static ChecklistRepository checklistRepo;
     protected static ProcedureRepository procedureRepo;
     protected static PageRepository pageRepo;
+    protected static ContentContainerRepository contentContainerRepo;
     protected static MediaFileRepository mediaFileRepo;
     protected static MediaMetaRepository mediaMetaRepo;
     protected static StorageUsageRepository storageUsageRepo;
@@ -309,6 +311,7 @@ public abstract class RepositoryTestBase {
         checklistRepo = new ChecklistRepository();
         procedureRepo = new ProcedureRepository();
         pageRepo = new PageRepository();
+        contentContainerRepo = new ContentContainerRepository();
         mediaFileRepo = new MediaFileRepository();
         mediaMetaRepo = new MediaMetaRepository();
         storageUsageRepo = new StorageUsageRepository();

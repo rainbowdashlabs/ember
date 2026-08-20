@@ -22,7 +22,6 @@ const content = defineModel<string>('content', {required: true})
 const config = defineModel<Record<string, unknown>>('config', {required: true})
 
 const props = defineProps<{
-    pageId: number
     stationUid: string
 }>()
 

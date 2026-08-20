@@ -8,9 +8,9 @@ package dev.chojo.ember.feature.media.service;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.content.entity.CellConfig;
+import dev.chojo.ember.feature.content.entity.CellContentType;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.page.entity.CellConfig;
-import dev.chojo.ember.feature.page.entity.CellContentType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
@@ -34,6 +34,7 @@ class MediaLibraryServiceTest extends RepositoryTestBase {
     private static StationMember member;
     private static StationMember otherMember;
     private static int pageId;
+    private static int containerId;
 
     @BeforeAll
     static void setup() {
@@ -46,7 +47,7 @@ class MediaLibraryServiceTest extends RepositoryTestBase {
                 mediaMetaRepo,
                 storage,
                 new MediaVariantService(storage, storageConfig),
-                new MediaReferenceRegistry(pageRepo),
+                new MediaReferenceRegistry(contentContainerRepo),
                 new StorageQuotaService(
                         storageUsageRepo,
                         new StationStorageConfigRepository(),
@@ -59,6 +60,8 @@ class MediaLibraryServiceTest extends RepositoryTestBase {
         otherMember = stationMemberRepo.create(station.id(), otherAccount.id());
         pageId = pageRepo.create(station.id(), "Media Page", "media-page", null, member.id())
                 .id();
+        containerId = contentContainerRepo.create(station.id()).id();
+        pageRepo.setContainer(pageId, containerId);
     }
 
     @AfterAll
@@ -145,13 +148,13 @@ class MediaLibraryServiceTest extends RepositoryTestBase {
     @Test
     void releasingAnUploadKeepsAFileThatIsStillUsed() throws Exception {
         var file = media.upload(station.id(), null, member.id(), "used.png", "image/png", bytes("used"));
-        int rowId = pageRepo.insertRow(pageId, 0);
-        pageRepo.insertCell(rowId, 0, 100.0, CellContentType.IMAGE, file.contentHash(), CellConfig.EMPTY);
+        int rowId = contentContainerRepo.insertRow(containerId, 0);
+        contentContainerRepo.insertCell(rowId, 0, 100.0, CellContentType.IMAGE, file.contentHash(), CellConfig.EMPTY);
         try {
             assertTrue(media.releaseUpload(file.id(), member.id()));
             assertTrue(media.findFile(file.id()).isPresent(), "a cell still points at it");
         } finally {
-            pageRepo.deleteRowsByPage(pageId);
+            contentContainerRepo.deleteRows(containerId);
             media.deleteFile(file.id());
         }
     }
@@ -186,12 +189,12 @@ class MediaLibraryServiceTest extends RepositoryTestBase {
     @Test
     void aReferencedFileIsNotUnused() throws Exception {
         var file = media.upload(station.id(), null, null, "cell.png", "image/png", bytes("cell"));
-        int rowId = pageRepo.insertRow(pageId, 0);
-        pageRepo.insertCell(rowId, 0, 100.0, CellContentType.IMAGE, file.contentHash(), CellConfig.EMPTY);
+        int rowId = contentContainerRepo.insertRow(containerId, 0);
+        contentContainerRepo.insertCell(rowId, 0, 100.0, CellContentType.IMAGE, file.contentHash(), CellConfig.EMPTY);
         try {
             assertFalse(media.findUnusedFileIds(station.id()).contains(file.id()));
         } finally {
-            pageRepo.deleteRowsByPage(pageId);
+            contentContainerRepo.deleteRows(containerId);
             media.deleteFile(file.id());
         }
     }

@@ -7,13 +7,13 @@ package dev.chojo.ember.feature.media;
 
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.feature.content.repository.ContentContainerRepository;
 import dev.chojo.ember.feature.media.repository.MediaFileRepository;
 import dev.chojo.ember.feature.media.repository.MediaMetaRepository;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.media.service.MediaReferenceRegistry;
 import dev.chojo.ember.feature.media.service.MediaStorageService;
 import dev.chojo.ember.feature.media.service.MediaVariantService;
-import dev.chojo.ember.feature.page.repository.PageRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
@@ -34,7 +34,7 @@ public final class MediaTestSupport {
 
     public static MediaLibraryService library(
             StationRepository stationRepository,
-            PageRepository pageRepository,
+            ContentContainerRepository containers,
             MediaFileRepository fileRepository,
             MediaMetaRepository metaRepository,
             StorageUsageRepository usageRepository) {
@@ -47,7 +47,7 @@ public final class MediaTestSupport {
                 metaRepository,
                 storage,
                 new MediaVariantService(storage, storageConfig),
-                new MediaReferenceRegistry(pageRepository),
+                new MediaReferenceRegistry(containers),
                 new StorageQuotaService(
                         usageRepository,
                         new StationStorageConfigRepository(),

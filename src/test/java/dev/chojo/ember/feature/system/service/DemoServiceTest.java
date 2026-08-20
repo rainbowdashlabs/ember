@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.board.service.FederatedBoardService;
 import dev.chojo.ember.feature.checklist.repository.ChecklistRepository;
 import dev.chojo.ember.feature.checklist.service.ChecklistService;
 import dev.chojo.ember.feature.comment.service.CommentService;
+import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
@@ -246,7 +247,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 newsService,
                 new NewsAttachmentService(
                         new NewsAttachmentRepository(),
-                        MediaTestSupport.library(stationRepo, pageRepo, mediaFileRepo, mediaMetaRepo, storageUsageRepo),
+                        MediaTestSupport.library(
+                                stationRepo, contentContainerRepo, mediaFileRepo, mediaMetaRepo, storageUsageRepo),
                         stationRepo,
                         new Api()),
                 eventFederationRepo,
@@ -353,12 +355,13 @@ class DemoServiceTest extends RepositoryTestBase {
         var pageSeeder = new DemoPageSeeder(
                 new PageService(
                         pageRepo,
+                        new ContentBlockService(contentContainerRepo),
                         new MediaLibraryService(
                                 mediaFileRepo,
                                 mediaMetaRepo,
                                 demoStorage,
                                 new MediaVariantService(demoStorage, demoStorageConfig),
-                                new MediaReferenceRegistry(pageRepo),
+                                new MediaReferenceRegistry(contentContainerRepo),
                                 new StorageQuotaService(
                                         storageUsageRepo,
                                         new StationStorageConfigRepository(),

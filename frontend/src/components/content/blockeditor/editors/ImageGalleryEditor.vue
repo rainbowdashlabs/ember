@@ -11,9 +11,9 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import CellImagePicker from '../CellImagePicker.vue'
 import {GalleryAspectMode, type GalleryItem} from '@/api/pageManage'
 import {useConfigPatch} from '@/composables/useConfigPatch'
-import type {CellEditorEmits, CellEditorPageProps} from '../cellTypes'
+import type {CellEditorEmits, CellEditorStationProps} from '../cellTypes'
 
-const props = defineProps<CellEditorPageProps>()
+const props = defineProps<CellEditorStationProps>()
 const emit = defineEmits<CellEditorEmits>()
 
 const {t} = useI18n()
@@ -44,7 +44,6 @@ const patch = useConfigPatch(() => props.config, emit)
     <CellImagePicker
         multi
         :items="config.items as GalleryItem[]"
-        :page-id="pageId"
         :station-uid="stationUid"
         @update:items="patch({items: $event})"
     />

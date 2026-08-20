@@ -6,9 +6,9 @@
 package dev.chojo.ember.feature.page.service;
 
 import dev.chojo.ember.feature.account.service.AvatarService;
+import dev.chojo.ember.feature.content.entity.CellConfig.MemberListSortBy;
+import dev.chojo.ember.feature.content.entity.CellConfig.ResolvedMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.page.entity.CellConfig.MemberListSortBy;
-import dev.chojo.ember.feature.page.entity.CellConfig.ResolvedMember;
 import tools.jackson.databind.JsonNode;
 
 import java.util.ArrayList;

@@ -7,16 +7,23 @@
 import {computed} from 'vue'
 import {marked} from 'marked'
 import {CellContentType, isLayoutKind, type ImageConfig, type LayoutKindName, type PageCell} from '@/api/pageManage'
-import {publicPageImageUrl} from '@/api/publicPages'
-import CellLayoutRender from '@/views/stationview/pages/pageeditorview/CellLayoutRender.vue'
-import CellImagePreview from '@/views/stationview/pages/pageeditorview/CellImagePreview.vue'
+import CellLayoutRender from '@/components/content/blockeditor/CellLayoutRender.vue'
+import CellImagePreview from '@/components/content/blockeditor/CellImagePreview.vue'
 import {enhancePageMarkdownImages} from '@/util/pageMarkdownImages'
 import {isYoutubeUrl, youtubeEmbedUrl as toYoutubeEmbedUrl} from '@/util/youtube'
+import type {ContentRenderContext} from '@/util/contentContext'
 
+/**
+ * One block, rendered.
+ *
+ * Every surface that shows authored blocks comes through here: the public page, the editor's
+ * preview, and an article inside the station. They differ only in the context they hand in, which
+ * is what keeps the preview honest - it shows what the reader sees because it is the same
+ * component, not because two files were kept in step by hand.
+ */
 const props = defineProps<{
     cell: PageCell
-    stationUid: string
-    pageTitle: string
+    context: ContentRenderContext
 }>()
 
 const markdownHtml = computed(() => {
@@ -25,11 +32,16 @@ const markdownHtml = computed(() => {
 })
 
 interface NestedRow { cells: PageCell[] }
+
 const nestedRows = computed<NestedRow[]>(() => {
     if (props.cell.contentType !== CellContentType.NESTED_ROWS) return []
     const raw = (props.cell.config as {rows?: NestedRow[]})?.rows
     return Array.isArray(raw) ? raw : []
 })
+
+const imageConfig = computed<ImageConfig>(() => (props.cell.config as ImageConfig) ?? {})
+
+const imageUrl = computed(() => props.cell.content ? props.context.fileUrl(props.cell.content) : '')
 
 function isYouTube(url: string): boolean {
     return isYoutubeUrl(url)
@@ -38,68 +50,51 @@ function isYouTube(url: string): boolean {
 function youtubeEmbedUrl(url: string): string | null {
     return toYoutubeEmbedUrl(url)
 }
-
-function imageConfig(cell: PageCell): ImageConfig {
-    return (cell.config as ImageConfig) ?? {}
-}
-
-function imageAlt(cell: PageCell): string {
-    return imageConfig(cell).altText ?? ''
-}
-
-function imageDescription(cell: PageCell): string {
-    return imageConfig(cell).description ?? ''
-}
 </script>
 
 <template>
-    <!-- MARKDOWN -->
     <div v-if="cell.contentType === CellContentType.MARKDOWN"
          v-html="markdownHtml"
          class="markdown-content"/>
 
-    <figure v-else-if="cell.contentType === CellContentType.IMAGE" class="space-y-1">
+    <figure v-else-if="cell.contentType === CellContentType.IMAGE && imageUrl" class="space-y-1">
         <CellImagePreview
-            :src="publicPageImageUrl(stationUid, cell.content)"
-            :alt="imageAlt(cell)"
-            :config="imageConfig(cell)"
-            :station-uid="stationUid"
+            :src="imageUrl"
+            :alt="imageConfig.altText ?? ''"
+            :config="imageConfig"
+            :station-uid="context.stationUid"
             :content-hash="cell.content"
-            :width-hint="2048"
+            :width-hint="context.widthHint"
         />
-        <figcaption v-if="imageDescription(cell)" class="text-xs text-(--text-muted) italic text-center">
-            {{ imageDescription(cell) }}
+        <figcaption v-if="imageConfig.description" class="text-xs text-(--text-muted) italic text-center">
+            {{ imageConfig.description }}
         </figcaption>
     </figure>
 
-    <!-- VIDEO -->
-    <template v-else-if="cell.contentType === CellContentType.VIDEO">
-        <!-- YouTube embed -->
+    <template v-else-if="cell.contentType === CellContentType.VIDEO && cell.content">
         <div v-if="isYouTube(cell.content)" class="relative pb-[56.25%] h-0">
             <iframe
                 :src="youtubeEmbedUrl(cell.content) ?? undefined"
                 class="absolute top-0 left-0 w-full h-full rounded"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowfullscreen
-                :title="pageTitle"
+                :title="context.title"
             />
         </div>
-        <!-- Direct video -->
         <video v-else controls class="w-full rounded">
             <source :src="cell.content"/>
         </video>
     </template>
 
-    <!-- Layout primitives -->
     <CellLayoutRender
         v-else-if="isLayoutKind(cell.contentType)"
         :kind="cell.contentType as LayoutKindName"
         :content="cell.content"
         :config="cell.config as Record<string, unknown>"
-        :station-uid="stationUid"
+        :station-uid="context.stationUid"
     />
 
-    <!-- Nested rows: recursively render each nested row as its own row of public cells. -->
+    <!-- Nested rows carry their cells inside the config, so the render recurses into them. -->
     <div v-else-if="cell.contentType === CellContentType.NESTED_ROWS" class="space-y-3">
         <div
             v-for="(row, ri) in nestedRows" :key="ri"
@@ -110,7 +105,7 @@ function imageDescription(cell: PageCell): string {
                 :style="{flex: `0 0 calc(${child.widthPercent}% - 0.5rem)`}"
                 class="min-w-0"
             >
-                <PublicPageCell :cell="child as PageCell" :station-uid="stationUid" :page-title="pageTitle"/>
+                <ContentCell :cell="child as PageCell" :context="context"/>
             </div>
         </div>
     </div>

@@ -16,7 +16,6 @@ import {CellContentType} from '@/api/pageManage'
 const rows = defineModel<RowEditData[]>('rows', {required: true})
 
 defineProps<{
-    pageId: number
     stationUid: string
     depth: number
 }>()
@@ -64,7 +63,7 @@ function insertRowAt(index: number) {
                 @click="insertRowAt(0)"/>
         </div>
         <template v-for="(row, ri) in rows" :key="row.id + '-' + ri">
-            <EditorRow :row="row" :page-id="pageId" :station-uid="stationUid" :preview="false"
+            <EditorRow :row="row" :station-uid="stationUid" :preview="false"
                 :is-first="ri === 0" :is-last="ri === rows.length - 1" :depth="depth + 1"
                 @update:row="updateRow(ri, $event)" @delete="deleteRow(ri)"
                 @move-up="moveRow(ri, -1)" @move-down="moveRow(ri, 1)"/>

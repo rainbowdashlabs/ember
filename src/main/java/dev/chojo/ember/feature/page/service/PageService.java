@@ -6,11 +6,12 @@
 package dev.chojo.ember.feature.page.service;
 
 import dev.chojo.ember.feature.account.service.AvatarService;
+import dev.chojo.ember.feature.content.entity.CellConfig;
+import dev.chojo.ember.feature.content.entity.CellContentType;
+import dev.chojo.ember.feature.content.entity.ContentCell;
+import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.page.entity.CellConfig;
-import dev.chojo.ember.feature.page.entity.CellContentType;
-import dev.chojo.ember.feature.page.entity.PageCell;
 import dev.chojo.ember.feature.page.entity.StationPage;
 import dev.chojo.ember.feature.page.repository.PageRepository;
 import dev.chojo.ember.util.HtmlSanitizer;
@@ -41,6 +42,7 @@ public class PageService {
     private static final int MAX_DEPTH = 3;
 
     private final PageRepository pageRepository;
+    private final ContentBlockService blocks;
     private final MediaLibraryService mediaLibrary;
     private final StationMemberRepository stationMemberRepository;
     private final AvatarService avatarService;
@@ -50,10 +52,12 @@ public class PageService {
     @Inject
     public PageService(
             PageRepository pageRepository,
+            ContentBlockService blocks,
             MediaLibraryService mediaLibrary,
             StationMemberRepository stationMemberRepository,
             AvatarService avatarService) {
         this.pageRepository = pageRepository;
+        this.blocks = blocks;
         this.mediaLibrary = mediaLibrary;
         this.stationMemberRepository = stationMemberRepository;
         this.avatarService = avatarService;
@@ -86,12 +90,23 @@ public class PageService {
         }
         String slug = generateUniqueSlug(stationId, title, 0);
         var page = pageRepository.create(stationId, title, slug, parentId, createdBy);
+        var container = blocks.create(stationId);
+        pageRepository.setContainer(page.id(), container.id());
         log.info("Page {} created in station {} by member {}", page.id(), stationId, createdBy);
-        return page;
+        return pageRepository.findById(page.id()).orElse(page);
     }
 
     public Optional<StationPage> getPage(int pageId) {
-        return pageRepository.findById(pageId).map(pageRepository::loadFullTree);
+        return pageRepository.findById(pageId).map(this::loadBlocks);
+    }
+
+    /**
+     * Fills the page in with the blocks of its container. A page created before containers existed
+     * was given one by the upgrade, so a page without one is a page nothing has been written into.
+     */
+    private StationPage loadBlocks(StationPage page) {
+        if (page.containerId() == null) return page;
+        return page.withRows(blocks.loadRows(page.containerId()));
     }
 
     public Optional<StationPage> getPageRendered(int pageId) {
@@ -145,7 +160,7 @@ public class PageService {
             found = page.get();
             parentId = found.id();
         }
-        return Optional.ofNullable(found).map(pageRepository::loadFullTree);
+        return Optional.ofNullable(found).map(this::loadBlocks);
     }
 
     public String getPagePath(StationPage page) {
@@ -168,7 +183,7 @@ public class PageService {
             Integer parentId,
             String metaDescription,
             Integer ogImageId,
-            List<RowData> rows) {
+            List<ContentBlockService.RowData> rows) {
         var page = pageRepository.findById(pageId).orElse(null);
         if (page == null) return false;
 
@@ -182,20 +197,9 @@ public class PageService {
 
         pageRepository.updateMeta(pageId, title, slug, parentId, metaDescription, ogImageId);
 
-        // Delete existing rows/cells and re-insert
-        pageRepository.deleteRowsByPage(pageId);
-        for (var row : rows) {
-            int rowId = pageRepository.insertRow(pageId, row.sortOrder());
-            for (var cell : row.cells()) {
-                pageRepository.insertCell(
-                        rowId,
-                        cell.sortOrder(),
-                        cell.widthPercent(),
-                        cell.contentType(),
-                        cell.content(),
-                        cell.config());
-            }
-        }
+        var container = blocks.ensure(page.stationId(), page.containerId());
+        if (page.containerId() == null) pageRepository.setContainer(pageId, container.id());
+        blocks.save(container.id(), rows, ContentBlockService.Scope.PAGE);
 
         log.info("Page {} saved in station {} ({} rows)", pageId, page.stationId(), rows.size());
         return true;
@@ -221,6 +225,8 @@ public class PageService {
         if (page == null) return false;
         boolean deleted = pageRepository.delete(pageId);
         if (deleted) {
+            // The container is the owned side, so nothing cleans it up for us.
+            blocks.delete(page.containerId());
             log.info("Page {} deleted from station {}", pageId, page.stationId());
         } else {
             log.warn("Page {} delete matched no rows", pageId);
@@ -229,27 +235,14 @@ public class PageService {
     }
 
     public StationPage duplicatePage(int pageId, int createdBy) {
-        var source = pageRepository
-                .findById(pageId)
-                .map(pageRepository::loadFullTree)
-                .orElseThrow();
+        var source = pageRepository.findById(pageId).map(this::loadBlocks).orElseThrow();
 
         String newSlug = generateUniqueSlug(source.stationId(), source.slug() + "-copy", 0);
         var copy = pageRepository.create(
                 source.stationId(), source.title() + " (Copy)", newSlug, source.parentId(), createdBy);
-
-        for (var row : source.rows()) {
-            int newRowId = pageRepository.insertRow(copy.id(), row.sortOrder());
-            for (var cell : row.cells()) {
-                pageRepository.insertCell(
-                        newRowId,
-                        cell.sortOrder(),
-                        cell.widthPercent(),
-                        cell.contentType(),
-                        cell.content(),
-                        cell.config());
-            }
-        }
+        var container = blocks.create(source.stationId());
+        pageRepository.setContainer(copy.id(), container.id());
+        if (source.containerId() != null) blocks.copyInto(source.containerId(), container.id());
 
         log.info(
                 "Page {} duplicated from page {} in station {} by member {}",
@@ -257,10 +250,7 @@ public class PageService {
                 pageId,
                 source.stationId(),
                 createdBy);
-        return pageRepository
-                .findById(copy.id())
-                .map(pageRepository::loadFullTree)
-                .orElseThrow();
+        return pageRepository.findById(copy.id()).map(this::loadBlocks).orElseThrow();
     }
 
     public void setLandingPage(int stationId, Integer pageId) {
@@ -288,7 +278,7 @@ public class PageService {
                 .getLandingPageId(stationId)
                 .flatMap(pageRepository::findById)
                 .filter(StationPage::published)
-                .map(pageRepository::loadFullTree)
+                .map(this::loadBlocks)
                 .map(this::renderMarkdownCells)
                 .map(this::resolveOgImageHash);
     }
@@ -332,9 +322,9 @@ public class PageService {
         return page.withRows(renderedRows);
     }
 
-    private PageCell renderCell(int stationId, PageCell cell) {
+    private ContentCell renderCell(int stationId, ContentCell cell) {
         if (cell.contentType() == CellContentType.MARKDOWN) {
-            return new PageCell(
+            return new ContentCell(
                     cell.id(),
                     cell.rowId(),
                     cell.sortOrder(),
@@ -353,7 +343,7 @@ public class PageService {
                     officers.sortBy(),
                     officers.memberDescriptions(),
                     officers.memberOrder());
-            return new PageCell(
+            return new ContentCell(
                     cell.id(),
                     cell.rowId(),
                     cell.sortOrder(),
@@ -403,9 +393,4 @@ public class PageService {
             throw new BadRequestResponse("Page hierarchy exceeds maximum depth of " + MAX_DEPTH);
         }
     }
-
-    public record RowData(int sortOrder, List<CellData> cells) {}
-
-    public record CellData(
-            int sortOrder, double widthPercent, CellContentType contentType, String content, CellConfig config) {}
 }

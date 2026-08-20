@@ -5,12 +5,11 @@
  */
 <script lang="ts" setup>
 import EditorRow from './EditorRow.vue'
-import PageEditorAddRowDivider from './PageEditorAddRowDivider.vue'
+import AddRowDivider from './AddRowDivider.vue'
 import type {RowEditData} from './EditorRow.vue'
 
 const props = defineProps<{
   rows: RowEditData[]
-  pageId: number
   stationUid: string
   preview: boolean
   hasClipboard: boolean
@@ -32,7 +31,6 @@ const emit = defineEmits<{
     <div v-for="(row, index) in props.rows" :key="row.id + '-' + index">
       <EditorRow
           :row="row"
-          :page-id="props.pageId"
           :station-uid="props.stationUid"
           :preview="props.preview"
           :is-first="index === 0"
@@ -42,7 +40,7 @@ const emit = defineEmits<{
           @move-up="emit('move-up', index)"
           @move-down="emit('move-down', index)"
       />
-      <PageEditorAddRowDivider
+      <AddRowDivider
           v-if="!props.preview"
           :has-clipboard="props.hasClipboard"
           :clipboard-type="props.clipboardType"

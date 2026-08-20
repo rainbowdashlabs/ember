@@ -13,7 +13,6 @@ import CellVideoEditor from './CellVideoEditor.vue'
 import CellLayoutEditors from './CellLayoutEditors.vue'
 import CellLayoutRender from './CellLayoutRender.vue'
 import CellActionsMenu from './CellActionsMenu.vue'
-import CellPreview from './CellPreview.vue'
 import CellEmptyChooser from './CellEmptyChooser.vue'
 import CellMarkdownInline from './CellMarkdownInline.vue'
 import CellNestedRowsEditor from './CellNestedRowsEditor.vue'
@@ -42,9 +41,7 @@ export interface CellEditData {
 const cell = defineModel<CellEditData>('cell', {required: true})
 
 const props = defineProps<{
-    pageId: number
     stationUid: string
-    preview: boolean
     canResize?: boolean
     /** Nesting depth (0 at top). Used to soft-warn at deep levels and shrink resize handles. */
     depth?: number
@@ -123,9 +120,7 @@ function wrapAndAddSibling(position: 'above' | 'below') {
 </script>
 
 <template>
-    <CellPreview v-if="preview" :cell="cell" :page-id="pageId" :station-uid="stationUid" :depth="depth"/>
-
-    <NeutralContainer v-else class="group relative w-full flex-1 flex flex-col">
+    <NeutralContainer class="group relative w-full flex-1 flex flex-col">
         <CellActionsMenu
             :label="cell.contentType === 'EMPTY' ? undefined : t(`stationPages.contentType.${cell.contentType.toLowerCase()}`)"
             :width-percent="cell.widthPercent"
@@ -168,7 +163,6 @@ function wrapAndAddSibling(position: 'above' | 'below') {
             v-else-if="cell.contentType === CellContentType.IMAGE"
             :content="cell.content"
             :config="cell.config"
-            :page-id="pageId"
             :station-uid="stationUid"
             @update:content="updateField('content', $event)"
             @update:config="updateField('config', $event)"
@@ -185,7 +179,6 @@ function wrapAndAddSibling(position: 'above' | 'below') {
         <CellNestedRowsEditor
             v-else-if="cell.contentType === CellContentType.NESTED_ROWS"
             :rows="nestedRows"
-            :page-id="pageId"
             :station-uid="stationUid"
             :depth="depth"
             @update:rows="updateField('config', {...cell.config, rows: $event})"
@@ -204,7 +197,6 @@ function wrapAndAddSibling(position: 'above' | 'below') {
                 :kind="cell.contentType as LayoutKindName"
                 :content="cell.content"
                 :config="cell.config"
-                :page-id="pageId"
                 :station-uid="stationUid"
                 @update:content="updateField('content', $event)"
                 @update:config="updateField('config', $event)"

@@ -91,7 +91,8 @@ class NewsFederationServiceTest extends RepositoryTestBase {
                 newsService,
                 new NewsAttachmentService(
                         new NewsAttachmentRepository(),
-                        MediaTestSupport.library(stationRepo, pageRepo, mediaFileRepo, mediaMetaRepo, storageUsageRepo),
+                        MediaTestSupport.library(
+                                stationRepo, contentContainerRepo, mediaFileRepo, mediaMetaRepo, storageUsageRepo),
                         stationRepo,
                         new Api()),
                 eventFederationRepo,

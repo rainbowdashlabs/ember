@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:e949f681449deb3d459af50809183aefa9655dabda4ca328475186ad02f825e4",
-  "generatedAt": "2026-08-20T14:29:03Z",
+  "schemaHash": "sha256:5216956ffab25e71fab821805dfce781e2c04e3f4a92642f6625cd23037b8599",
+  "generatedAt": "2026-08-20T16:57:51Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -3379,6 +3379,52 @@
         "status": "TRACKED"
       },
       "description": "Materialisation filter that resolved into the frozen member set at checklist creation. Exactly one of user_type, group_id, tag_id, member_id is set per row. Editing the filter does not refresh; refresh is explicit."
+    },
+    "content_container": {
+      "tableHash": "sha256:fc3e79a8c6735f967583cd6f45b809190fd996ba0dc51aa407f8b75317e37c6a",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "Belongs in station transfer alongside the rows and cells it owns; handler not yet implemented."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Authored content, not per-member."
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Authored content, not per-member."
+      },
+      "description": "The rows and cells of one piece of authored content. A page, a news entry or a knowledge-base article owns one; the container itself knows nothing about which.",
+      "feature": "content",
+      "scope": "STATION"
     },
     "discovery_blocklist": {
       "feature": "discovery",
@@ -9431,7 +9477,7 @@
     "kb_file": {
       "feature": "knowledgebase",
       "scope": "STATION",
-      "tableHash": "sha256:b03f289837c04af7f88061c97d7b2a1252dc74ab0312408311f4e703d2885a75",
+      "tableHash": "sha256:8d2c4f647d543ec36929a608eed71f957dd6c50f63a100120b8eca00d7b86440",
       "columns": [
         {
           "name": "id",
@@ -9571,9 +9617,29 @@
           "nullable": false,
           "verified": true,
           "description": "Stable opaque public identifier referenced from public page cells (KB_ARTICLE) and external deep-links."
+        },
+        {
+          "name": "container_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The blocks a rich article is built from. NULL for an article written as plain text."
+        },
+        {
+          "name": "content_mode",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "SIMPLE for an article written as text, RICH for one built from blocks. The stored text of a rich article is a projection of its blocks and is never edited directly."
         }
       ],
       "foreignKeys": [
+        {
+          "column": "container_id",
+          "refTable": "content_container",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
         {
           "column": "created_by",
           "refTable": "station_member",
@@ -11041,7 +11107,7 @@
     "news": {
       "feature": "news",
       "scope": "STATION",
-      "tableHash": "sha256:8591cd905f9040b29f1f4905b1515b626911eb87cb76ecd2f5daf4dfde9853f7",
+      "tableHash": "sha256:3516a9b40f32fbfda937bdc287ccef86fe923c9e3d95d5a3f224668263c08617",
       "columns": [
         {
           "name": "id",
@@ -11123,9 +11189,29 @@
           "nullable": false,
           "verified": true,
           "description": "Stable opaque public identifier. Used by public page cells (e.g. NEWS_TEASER) and any external link that should survive station transfer without renumbering. The integer id stays internal."
+        },
+        {
+          "name": "container_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The blocks a rich entry is built from. NULL for an entry written as plain text."
+        },
+        {
+          "name": "content_mode",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "SIMPLE for an entry written as text, RICH for one built from blocks. The stored text of a rich entry is a projection of its blocks and is never edited directly."
         }
       ],
       "foreignKeys": [
+        {
+          "column": "container_id",
+          "refTable": "content_container",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
         {
           "column": "station_id",
           "refTable": "station",
@@ -11217,6 +11303,8 @@
       "description": "Tracks which members have read a news article."
     },
     "news_attachment": {
+      "feature": "news",
+      "scope": "STATION",
       "tableHash": "sha256:c99fa399131b2dd2ee36d2c9eda412555779209148b5213abf022bdcfdaf5ea7",
       "columns": [
         {
@@ -11284,9 +11372,7 @@
         "status": "IGNORED",
         "reason": "Names a file an entry hands out, not a member."
       },
-      "description": "A file a news entry hands over, pointing at the station media library rather than holding bytes of its own.",
-      "feature": "news",
-      "scope": "STATION"
+      "description": "A file a news entry hands over, pointing at the station media library rather than holding bytes of its own."
     },
     "news_comment": {
       "feature": "news",
@@ -11866,16 +11952,10 @@
     "page_row": {
       "feature": "page",
       "scope": "STATION",
-      "tableHash": "sha256:c215230cac5dc5a891553c89438324335cb56353bc21d81d6be3ad27967066b0",
+      "tableHash": "sha256:39eee525e62ea7795f909062154938d482ba8c0b57497ec5d7153970e60fc0c8",
       "columns": [
         {
           "name": "id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true
-        },
-        {
-          "name": "page_id",
           "type": "int4",
           "nullable": false,
           "verified": true
@@ -11885,12 +11965,19 @@
           "type": "int4",
           "nullable": false,
           "verified": true
+        },
+        {
+          "name": "container_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The container these blocks belong to."
         }
       ],
       "foreignKeys": [
         {
-          "column": "page_id",
-          "refTable": "station_page",
+          "column": "container_id",
+          "refTable": "content_container",
           "refColumn": "id",
           "onDelete": "CASCADE"
         }
@@ -14952,6 +15039,8 @@
       "description": "Date ranges during which recurring events are suspended (e.g. holidays)."
     },
     "station_file": {
+      "feature": "media",
+      "scope": "STATION",
       "tableHash": "sha256:0b7495ab354fd455c40b8d89de06fdb7b0a39d8008e227a5c88f3af272f5e1fc",
       "columns": [
         {
@@ -15059,11 +15148,11 @@
         "status": "IGNORED",
         "reason": "Station media, not per-member"
       },
-      "description": "The media library of a station. Every file the station has uploaded for any of its content lives here once, keyed by the hash of its bytes.",
-      "feature": "media",
-      "scope": "STATION"
+      "description": "The media library of a station. Every file the station has uploaded for any of its content lives here once, keyed by the hash of its bytes."
     },
     "station_file_folder": {
+      "feature": "media",
+      "scope": "STATION",
       "tableHash": "sha256:67d7b9c326681b9daf44dbb470ff2e8dad9ec1fc9aa75c6d2d74dbb6d48e6d71",
       "columns": [
         {
@@ -15129,11 +15218,11 @@
         "status": "IGNORED",
         "reason": "Folder names are organizational metadata, not per-member."
       },
-      "description": "Hierarchical folder tree per station for organising media. Each folder is scoped to one station; parent_id forms the tree (NULL = top level).",
-      "feature": "media",
-      "scope": "STATION"
+      "description": "Hierarchical folder tree per station for organising media. Each folder is scoped to one station; parent_id forms the tree (NULL = top level)."
     },
     "station_file_tag": {
+      "feature": "media",
+      "scope": "STATION",
       "tableHash": "sha256:f10a1a9689ed3f8fbf7bc399bc7d2628a7af958b53f80a4b7f8ce9322beb9bc8",
       "columns": [
         {
@@ -15181,11 +15270,11 @@
         "status": "IGNORED",
         "reason": "Tags are organizational metadata, not per-member."
       },
-      "description": "Free-form labels attached to media files. Unique per (station, name) so duplicates inside a single station are not possible.",
-      "feature": "media",
-      "scope": "STATION"
+      "description": "Free-form labels attached to media files. Unique per (station, name) so duplicates inside a single station are not possible."
     },
     "station_file_tag_assignment": {
+      "feature": "media",
+      "scope": "STATION",
       "tableHash": "sha256:3414466d2f913f248e27d73fc605eea4de61566c16d458c74a1587b01cc798ea",
       "columns": [
         {
@@ -15227,11 +15316,11 @@
         "status": "IGNORED",
         "reason": "Join table for file-tag relationships, no per-member data."
       },
-      "description": "Many-to-many join between media files and tags.",
-      "feature": "media",
-      "scope": "STATION"
+      "description": "Many-to-many join between media files and tags."
     },
     "station_file_uploader": {
+      "feature": "media",
+      "scope": "STATION",
       "tableHash": "sha256:a39a56a864522a58e4d47098fa3d428386788193fb81e16aec52f42bb9d60899",
       "columns": [
         {
@@ -15273,16 +15362,12 @@
         "rationale": "Belongs in station transfer alongside station_file; handler not yet implemented."
       },
       "gdprExport": {
-        "status": "TRACKED",
-        "rationale": "Records that a member uploaded a file; belongs in a member export alongside their other contributions."
+        "status": "TRACKED"
       },
       "gdprDeletion": {
-        "status": "TRACKED",
-        "rationale": "Cascades with station_member, which takes the uploader row with the membership."
+        "status": "TRACKED"
       },
-      "description": "The members who uploaded a file. A set rather than a column, because identical bytes are stored once and may be brought in by several people.",
-      "feature": "media",
-      "scope": "STATION"
+      "description": "The members who uploaded a file. A set rather than a column, because identical bytes are stored once and may be brought in by several people."
     },
     "station_mail_provider": {
       "feature": "mail",
@@ -15635,7 +15720,7 @@
     "station_page": {
       "feature": "page",
       "scope": "STATION",
-      "tableHash": "sha256:2310fcf2f59ffafbe7e2c6b868cc20832f5520b6cd830bdd524d73634cd9e42f",
+      "tableHash": "sha256:9692c08d61cf598650ed4145f56cce98565a305a9ccabc775e76f920a5cb9125",
       "columns": [
         {
           "name": "id",
@@ -15715,9 +15800,22 @@
           "nullable": false,
           "verified": true,
           "description": "Stable opaque public identifier referenced from public page cells (PAGE_LINK) and external deep-links."
+        },
+        {
+          "name": "container_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The blocks this page is built from."
         }
       ],
       "foreignKeys": [
+        {
+          "column": "container_id",
+          "refTable": "content_container",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
         {
           "column": "created_by",
           "refTable": "station_member",

@@ -8,10 +8,10 @@ package dev.chojo.ember.feature.media.service;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
+import dev.chojo.ember.feature.content.entity.CellConfig;
+import dev.chojo.ember.feature.content.entity.CellContentType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.page.entity.CellConfig;
-import dev.chojo.ember.feature.page.entity.CellContentType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -30,6 +30,7 @@ class MediaReferenceRegistryTest extends RepositoryTestBase {
     private static Account account;
     private static StationMember member;
     private static int pageId;
+    private static int containerId;
 
     /**
      * A media file is addressed by the hash of its bytes, so a body references one by carrying
@@ -45,12 +46,14 @@ class MediaReferenceRegistryTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        registry = new MediaReferenceRegistry(pageRepo);
+        registry = new MediaReferenceRegistry(contentContainerRepo);
         station = stationRepo.create("MediaReferenceStation");
         account = accountRepo.create("media-ref@test.com", "Media", "Reference");
         member = stationMemberRepo.create(station.id(), account.id());
         pageId = pageRepo.create(station.id(), "Reference Page", "reference-page", null, member.id())
                 .id();
+        containerId = contentContainerRepo.create(station.id()).id();
+        pageRepo.setContainer(pageId, containerId);
     }
 
     @AfterAll
@@ -65,8 +68,8 @@ class MediaReferenceRegistryTest extends RepositoryTestBase {
 
     @Test
     void everyRegisteredBodyContributesItsReferences() {
-        int rowId = pageRepo.insertRow(pageId, 0);
-        pageRepo.insertCell(rowId, 0, 100.0, CellContentType.IMAGE, CELL_HASH, CellConfig.EMPTY);
+        int rowId = contentContainerRepo.insertRow(containerId, 0);
+        contentContainerRepo.insertCell(rowId, 0, 100.0, CellContentType.IMAGE, CELL_HASH, CellConfig.EMPTY);
 
         var news = newsRepo.create(
                 station.id(), "Mit Bild", url(NEWS_HASH), "<p></p>", new MemberIdentity(station.uid(), member.uid()));
@@ -103,7 +106,7 @@ class MediaReferenceRegistryTest extends RepositoryTestBase {
             boardTicketRepo.deleteTicket(ticket.id());
             boardRepo.delete(board.id());
             newsRepo.delete(news.id());
-            pageRepo.deleteRowsByPage(pageId);
+            contentContainerRepo.deleteRows(containerId);
         }
     }
 

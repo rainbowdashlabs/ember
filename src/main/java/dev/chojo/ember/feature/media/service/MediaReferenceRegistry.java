@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.media.service;
 
-import dev.chojo.ember.feature.page.entity.CellConfig;
-import dev.chojo.ember.feature.page.entity.CellContentType;
-import dev.chojo.ember.feature.page.repository.PageRepository;
+import dev.chojo.ember.feature.content.entity.CellConfig;
+import dev.chojo.ember.feature.content.entity.CellContentType;
+import dev.chojo.ember.feature.content.repository.ContentContainerRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -28,7 +28,8 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  *
  * <p>Three kinds of reference exist and all three are collected here:
  * <ul>
- *   <li><b>Cells</b> of the station's pages, which name a file in their content or their config.</li>
+ *   <li><b>Cells</b> of the station's containers, which name a file in their content or their
+ *       config. That reaches a rich article exactly as it reaches a page.</li>
  *   <li><b>Text bodies</b> that a member may drop an image into. An inline image carries the
  *       content hash in its URL, so a body contributes its references by having 64-character hex
  *       tokens pulled out of it.</li>
@@ -87,11 +88,11 @@ public class MediaReferenceRegistry {
             JOIN station_file f ON f.id = p.og_image_id
             WHERE p.station_id = :station_id;""");
 
-    private final PageRepository pageRepository;
+    private final ContentContainerRepository containers;
 
     @Inject
-    public MediaReferenceRegistry(PageRepository pageRepository) {
-        this.pageRepository = pageRepository;
+    public MediaReferenceRegistry(ContentContainerRepository containers) {
+        this.containers = containers;
     }
 
     /**
@@ -100,7 +101,7 @@ public class MediaReferenceRegistry {
      */
     public Set<String> collect(int stationId) {
         Set<String> out = new HashSet<>();
-        for (var cell : pageRepository.findAllCellsByStation(stationId)) {
+        for (var cell : containers.findAllCellsByStation(stationId)) {
             collectFromCell(cell.contentType(), cell.content(), cell.config(), out);
         }
         for (String sql : TEXT_BODIES) {

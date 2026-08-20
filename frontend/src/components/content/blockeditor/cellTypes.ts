@@ -41,14 +41,6 @@ export type CellEditorContentStationProps = CellEditorContentProps & {
 }
 
 /**
- * Prop shape for cell editors that work with page-scoped resources (gallery images, hero
- * backgrounds) and therefore need the page id together with the station UID.
- */
-export type CellEditorPageProps = CellEditorStationProps & {
-    pageId: number
-}
-
-/**
  * Emit shape every cell editor uses to push config changes back to the parent.
  */
 export type CellEditorEmits = {

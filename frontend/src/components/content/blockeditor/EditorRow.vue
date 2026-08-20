@@ -10,7 +10,8 @@ import EditorCell from './EditorCell.vue'
 import EditorFloatButton from './EditorFloatButton.vue'
 import ColumnGutter from './ColumnGutter.vue'
 import RowActionsMenu from './RowActionsMenu.vue'
-import PublicPageRow from '@/views/public/publicpageview/PublicPageRow.vue'
+import ContentRow from '@/components/content/ContentRow.vue'
+import {publicContentContext} from '@/util/contentContext'
 import type {CellEditData} from './EditorCell.vue'
 import {CellContentType, type PageRow} from '@/api/pageManage'
 import {usePageClipboard} from '@/composables/usePageClipboard'
@@ -24,7 +25,6 @@ export interface RowEditData {
 const row = defineModel<RowEditData>('row', {required: true})
 
 const props = withDefaults(defineProps<{
-    pageId: number
     stationUid: string
     preview: boolean
     isFirst: boolean
@@ -163,11 +163,10 @@ function onPasteCell() {
 </script>
 
 <template>
-    <PublicPageRow
+    <ContentRow
         v-if="preview"
         :row="(row as unknown as PageRow)"
-        :station-uid="stationUid"
-        :page-title="''"
+        :context="publicContentContext(stationUid)"
     />
 
     <!-- Edit mode -->
@@ -196,9 +195,7 @@ function onPasteCell() {
                 <div :style="{width: `${cell.widthPercent}%`}" class="min-w-0 flex flex-col">
                     <EditorCell
                         :cell="cell"
-                        :page-id="pageId"
                         :station-uid="stationUid"
-                        :preview="false"
                         :can-resize="row.cells.length > 1"
                         :depth="depth"
                         @update:cell="updateCell(ci, $event)"

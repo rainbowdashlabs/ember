@@ -10,6 +10,9 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.service.AvatarService;
+import dev.chojo.ember.feature.content.entity.CellConfig;
+import dev.chojo.ember.feature.content.entity.CellContentType;
+import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler;
@@ -17,8 +20,6 @@ import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.media.route.MediaRoutes;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.page.entity.CellConfig;
-import dev.chojo.ember.feature.page.entity.CellContentType;
 import dev.chojo.ember.feature.page.entity.StationPage;
 import dev.chojo.ember.feature.page.service.MemberListResolver;
 import dev.chojo.ember.feature.page.service.PageService;
@@ -269,15 +270,15 @@ public class PageRoutes implements Routes {
             throw new BadRequestResponse("slug is required");
         }
 
-        List<PageService.RowData> rows = request.rows() == null
+        List<ContentBlockService.RowData> rows = request.rows() == null
                 ? List.of()
                 : request.rows().stream()
-                        .map(r -> new PageService.RowData(
+                        .map(r -> new ContentBlockService.RowData(
                                 r.sortOrder(),
                                 r.cells() == null
                                         ? List.of()
                                         : r.cells().stream()
-                                                .map(c -> new PageService.CellData(
+                                                .map(c -> new ContentBlockService.CellData(
                                                         c.sortOrder(),
                                                         c.widthPercent() != null ? c.widthPercent() : 100.0,
                                                         CellContentType.valueOf(c.contentType()),

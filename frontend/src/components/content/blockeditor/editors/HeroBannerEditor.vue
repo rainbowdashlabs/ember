@@ -10,9 +10,9 @@ import LinkSearchInput from '@/components/input/text/LinkSearchInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import CellImagePicker from '../CellImagePicker.vue'
 import {useConfigPatch} from '@/composables/useConfigPatch'
-import type {CellEditorEmits, CellEditorPageProps} from '../cellTypes'
+import type {CellEditorEmits, CellEditorStationProps} from '../cellTypes'
 
-const props = defineProps<CellEditorPageProps>()
+const props = defineProps<CellEditorStationProps>()
 const emit = defineEmits<CellEditorEmits>()
 
 const {t} = useI18n()
@@ -25,7 +25,6 @@ const patch = useConfigPatch(() => props.config, emit)
     <FieldLabel hint class="mb-1">{{ TS('heroImage') }}</FieldLabel>
     <CellImagePicker
         :image-hash="(config.imageHash as string) ?? null"
-        :page-id="pageId"
         :station-uid="stationUid"
         @update:image-hash="patch({imageHash: $event})"
     />

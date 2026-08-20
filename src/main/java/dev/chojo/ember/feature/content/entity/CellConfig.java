@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-package dev.chojo.ember.feature.page.entity;
+package dev.chojo.ember.feature.content.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -407,7 +407,7 @@ public sealed interface CellConfig {
 
     /**
      * Cell that contains nested rows. The rows are stored opaquely as JSON nodes so the existing
-     * PageRow shape (rows of cells of … nested rows) round-trips without a dedicated record type.
+     * ContentRow shape (rows of cells of … nested rows) round-trips without a dedicated record type.
      * The frontend treats this as a recursive RowEditData[].
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)

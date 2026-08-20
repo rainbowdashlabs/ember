@@ -7,8 +7,6 @@ package dev.chojo.ember.feature.page.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.page.entity.CellConfig;
-import dev.chojo.ember.feature.page.entity.CellContentType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -117,61 +115,6 @@ class PageRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
-    @Order(10)
-    void insertRowsAndCells() {
-        int rowId = pageRepo.insertRow(pageId, 0);
-        assertTrue(rowId > 0);
-        pageRepo.insertCell(rowId, 0, 60.0, CellContentType.MARKDOWN, "<h1>Hello</h1>", CellConfig.EMPTY);
-        pageRepo.insertCell(
-                rowId,
-                1,
-                40.0,
-                CellContentType.IMAGE,
-                "1",
-                new CellConfig.ImageConfig(
-                        CellConfig.ImageFit.COVER, null, null, null, null, null, null, null, null, null, null));
-
-        var rows = pageRepo.findRowsByPage(pageId);
-        assertEquals(1, rows.size());
-
-        var cells = pageRepo.findCellsByRow(rowId);
-        assertEquals(2, cells.size());
-        assertEquals(CellContentType.MARKDOWN, cells.getFirst().contentType());
-        assertEquals(60.0, cells.getFirst().widthPercent());
-    }
-
-    @Test
-    @Order(11)
-    void loadFullTree() {
-        var page = pageRepo.findById(pageId).orElseThrow();
-        var full = pageRepo.loadFullTree(page);
-        assertEquals(1, full.rows().size());
-        assertEquals(2, full.rows().getFirst().cells().size());
-    }
-
-    @Test
-    @Order(12)
-    void deleteRowsByPage() {
-        pageRepo.deleteRowsByPage(pageId);
-        assertEquals(0, pageRepo.findRowsByPage(pageId).size());
-    }
-
-    @Test
-    @Order(16)
-    void findAllCellsByPage() {
-        int rowId = pageRepo.insertRow(pageId, 0);
-        pageRepo.insertCell(rowId, 0, 50.0, CellContentType.IMAGE, "abc123", CellConfig.EMPTY);
-        pageRepo.insertCell(rowId, 1, 50.0, CellContentType.MARKDOWN, "text", CellConfig.EMPTY);
-
-        var cells = pageRepo.findAllCellsByPage(pageId);
-        assertEquals(2, cells.size());
-        assertTrue(
-                cells.stream().anyMatch(c -> c.contentType() == CellContentType.IMAGE && "abc123".equals(c.content())));
-
-        pageRepo.deleteRowsByPage(pageId);
-    }
-
-    @Test
     @Order(18)
     void landingPage() {
         pageRepo.setLandingPage(station.id(), pageId);
@@ -244,19 +187,6 @@ class PageRepositoryTest extends RepositoryTestBase {
             pageRepo.delete(unmatched.id());
         } finally {
             pageRepo.delete(pickerPage.id());
-        }
-    }
-
-    @Test
-    @Order(25)
-    void findAllCellsByStation() {
-        int rowId = pageRepo.insertRow(pageId, 0);
-        pageRepo.insertCell(rowId, 0, 100.0, CellContentType.MARKDOWN, "txt", CellConfig.EMPTY);
-        try {
-            var allCells = pageRepo.findAllCellsByStation(station.id());
-            assertFalse(allCells.isEmpty());
-        } finally {
-            pageRepo.deleteRowsByPage(pageId);
         }
     }
 

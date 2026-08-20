@@ -5,13 +5,14 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import dev.chojo.ember.feature.content.entity.CellConfig;
+import dev.chojo.ember.feature.content.entity.CellContentType;
+import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.repository.FormRepository;
-import dev.chojo.ember.feature.page.entity.CellConfig;
-import dev.chojo.ember.feature.page.entity.CellContentType;
 import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
@@ -42,8 +43,10 @@ public class DemoPageSeeder implements DemoSeeder {
         this.quizCatalogRepository = quizCatalogRepository;
     }
 
-    private static PageService.RowData row(int sortOrder, CellContentType type, String content, CellConfig config) {
-        return new PageService.RowData(sortOrder, List.of(new PageService.CellData(0, 100, type, content, config)));
+    private static ContentBlockService.RowData row(
+            int sortOrder, CellContentType type, String content, CellConfig config) {
+        return new ContentBlockService.RowData(
+                sortOrder, List.of(new ContentBlockService.CellData(0, 100, type, content, config)));
     }
 
     /**
@@ -71,9 +74,9 @@ public class DemoPageSeeder implements DemoSeeder {
                 "Willkommen bei der Jugendfeuerwehr Musterstadt",
                 null,
                 List.of(
-                        new PageService.RowData(
+                        new ContentBlockService.RowData(
                                 0,
-                                List.of(new PageService.CellData(
+                                List.of(new ContentBlockService.CellData(
                                         0, 100, CellContentType.MARKDOWN, """
                                         # Willkommen bei der Jugendfeuerwehr Musterstadt
 
@@ -87,16 +90,16 @@ public class DemoPageSeeder implements DemoSeeder {
                                         - Zeltlager und Ausflüge
                                         - Erste-Hilfe-Kurse
                                         - Kameradschaft und Teamarbeit""", CellConfig.EMPTY))),
-                        new PageService.RowData(
+                        new ContentBlockService.RowData(
                                 1,
                                 List.of(
-                                        new PageService.CellData(
+                                        new ContentBlockService.CellData(
                                                 0,
                                                 50,
                                                 CellContentType.MARKDOWN,
                                                 "## Übungszeiten\n\n**Freitags** von 17:30 bis 19:00 Uhr\n\nGerätehaus Musterstadt\nFeuerwehrstraße 1\n12345 Musterstadt",
                                                 CellConfig.EMPTY),
-                                        new PageService.CellData(
+                                        new ContentBlockService.CellData(
                                                 1,
                                                 50,
                                                 CellContentType.MARKDOWN,
@@ -114,9 +117,10 @@ public class DemoPageSeeder implements DemoSeeder {
                 null,
                 "Erfahre mehr über unsere Jugendfeuerwehr",
                 null,
-                List.of(new PageService.RowData(
+                List.of(new ContentBlockService.RowData(
                         0,
-                        List.of(new PageService.CellData(0, 100, CellContentType.MARKDOWN, """
+                        List.of(new ContentBlockService.CellData(
+                                0, 100, CellContentType.MARKDOWN, """
                                 # Über uns
 
                                 Die Jugendfeuerwehr Musterstadt wurde 1985 gegründet und ist seitdem fester Bestandteil der Freiwilligen Feuerwehr Musterstadt. \
@@ -137,9 +141,10 @@ public class DemoPageSeeder implements DemoSeeder {
                 about.id(),
                 null,
                 null,
-                List.of(new PageService.RowData(
+                List.of(new ContentBlockService.RowData(
                         0,
-                        List.of(new PageService.CellData(0, 100, CellContentType.MARKDOWN, """
+                        List.of(new ContentBlockService.CellData(
+                                0, 100, CellContentType.MARKDOWN, """
                                 # Unser Team
 
                                 ## Jugendfeuerwehrwart
@@ -163,9 +168,10 @@ public class DemoPageSeeder implements DemoSeeder {
                 about.id(),
                 null,
                 null,
-                List.of(new PageService.RowData(
+                List.of(new ContentBlockService.RowData(
                         0,
-                        List.of(new PageService.CellData(0, 100, CellContentType.MARKDOWN, """
+                        List.of(new ContentBlockService.CellData(
+                                0, 100, CellContentType.MARKDOWN, """
                                 # Ausrüstung
 
                                 Jedes Mitglied erhält bei Eintritt:
@@ -188,9 +194,9 @@ public class DemoPageSeeder implements DemoSeeder {
                 "So kannst du bei uns mitmachen",
                 null,
                 List.of(
-                        new PageService.RowData(
+                        new ContentBlockService.RowData(
                                 0,
-                                List.of(new PageService.CellData(
+                                List.of(new ContentBlockService.CellData(
                                         0, 100, CellContentType.MARKDOWN, """
                                         # Mitmachen
 
@@ -204,10 +210,10 @@ public class DemoPageSeeder implements DemoSeeder {
                                         4. Anmeldeformular ausfüllen - fertig!
 
                                         **Wichtig:** Du brauchst keine Vorkenntnisse. Wir bringen dir alles bei!""", CellConfig.EMPTY))),
-                        new PageService.RowData(
+                        new ContentBlockService.RowData(
                                 1,
                                 List.of(
-                                        new PageService.CellData(
+                                        new ContentBlockService.CellData(
                                                 0, 60, CellContentType.MARKDOWN, """
                                                 ## Was du mitbringen solltest
 
@@ -216,7 +222,7 @@ public class DemoPageSeeder implements DemoSeeder {
                                                 - Feste Schuhe für die ersten Übungen
 
                                                 Alles andere stellen wir!""", CellConfig.EMPTY),
-                                        new PageService.CellData(
+                                        new ContentBlockService.CellData(
                                                 1, 40, CellContentType.MARKDOWN, """
                                                 ## Häufige Fragen
 
@@ -241,7 +247,7 @@ public class DemoPageSeeder implements DemoSeeder {
         UUID pollUid = seedDemoPoll(stationId, memberId);
         UUID contactUid = seedDemoContactForm(stationId, memberId);
         var page = pageService.create(stationId, "Komponenten-Schaukasten", null, memberId);
-        var rows = new ArrayList<PageService.RowData>();
+        var rows = new ArrayList<ContentBlockService.RowData>();
         int sort = 0;
 
         rows.add(row(sort++, CellContentType.MARKDOWN, """

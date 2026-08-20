@@ -17,7 +17,6 @@ const imageHashModel = defineModel<string | null>('imageHash')
 
 const props = withDefaults(defineProps<{
     multi?: boolean
-    pageId: number
     stationUid: string
 }>(), {
     multi: false,
