@@ -46,7 +46,7 @@ function asBoolean(): boolean {
       @update:model-value="value = String($event ?? 0)"
     />
     <DateInput
-      v-else-if="field.fieldType === 'DATE'"
+      v-else-if="field.fieldType === 'DATE' || field.fieldType === 'BIRTH_DATE'"
       v-model="value"
     />
     <ToggleInput

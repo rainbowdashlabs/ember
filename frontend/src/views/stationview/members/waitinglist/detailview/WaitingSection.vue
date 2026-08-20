@@ -38,12 +38,15 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-const visibleFields = computed(() => props.fields.filter(f => props.visibleFieldIds.has(f.id)))
 const expandedId = ref<number | null>(null)
 
 /** The list has at most one, and it earns a column of its own rather than one of the toggles. */
 const birthDateField = computed(() =>
     props.fields.find(f => f.fieldType === WaitingListFieldTypes.BIRTH_DATE) ?? null)
+
+/** Its own column is where the date of birth is, so it is neither offered nor shown a second time. */
+const toggleableFields = computed(() => props.fields.filter(f => f.id !== birthDateField.value?.id))
+const visibleFields = computed(() => toggleableFields.value.filter(f => props.visibleFieldIds.has(f.id)))
 
 const anyBelowJoinAge = computed(() => props.entries.some(e => e.belowJoinAge))
 const hideBelowJoinAge = ref(false)
@@ -94,7 +97,7 @@ function toggleExpand(entryId: number) {
   <NeutralContainer class="space-y-4">
     <WaitingSectionToolbar
       :entries-count="entries.length"
-      :fields="fields"
+      :fields="toggleableFields"
       :visible-field-ids="visibleFieldIds"
       :is-mobile="isMobile"
       :show-field-toggle="showFieldToggle"

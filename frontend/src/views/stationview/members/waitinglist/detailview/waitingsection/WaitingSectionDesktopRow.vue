@@ -10,6 +10,7 @@ import WaitingSectionActions from './WaitingSectionActions.vue'
 import WaitingSectionGuardians from './WaitingSectionGuardians.vue'
 import type { WaitingListEntryWithScore, WaitingListField } from '@/api/waitingList'
 import { formatDate } from '@/util/format'
+import { displayFieldValue } from '../fieldDisplay'
 import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{
@@ -55,7 +56,7 @@ function getEntryFieldValue(item: WaitingListEntryWithScore, fieldId: number): s
       </span>
       <span v-else>–</span>
     </td>
-    <td v-for="vf in props.visibleFields" :key="vf.id" class="py-2 px-2 text-(--text-muted)">{{ getEntryFieldValue(props.item, vf.id) || '–' }}</td>
+    <td v-for="vf in props.visibleFields" :key="vf.id" class="py-2 px-2 text-(--text-muted)">{{ displayFieldValue(vf, getEntryFieldValue(props.item, vf.id), t) || '–' }}</td>
     <td class="py-2 px-2 whitespace-nowrap">
       <WaitingListStatusBadge :status="props.item.entry.status" />
       <span v-if="props.item.belowJoinAge" :title="t('waitingList.belowJoinAgeHint')"

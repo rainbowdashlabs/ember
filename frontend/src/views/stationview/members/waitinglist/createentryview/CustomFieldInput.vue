@@ -30,7 +30,7 @@ const { t } = useI18n()
   <NumberInput v-else-if="field.fieldType === 'NUMBER'"
                :model-value="Number(value) || 0"
                @update:model-value="emit('update', String($event))"/>
-  <DateInput v-else-if="field.fieldType === 'DATE'" :model-value="value"
+  <DateInput v-else-if="field.fieldType === 'DATE' || field.fieldType === 'BIRTH_DATE'" :model-value="value"
              @update:model-value="emit('update', $event ?? '')"/>
   <ToggleInput v-else-if="field.fieldType === 'BOOLEAN'"
                :model-value="value === 'true'"

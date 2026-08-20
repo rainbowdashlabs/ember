@@ -47,7 +47,7 @@ function asBoolean(): boolean {
       @update:model-value="value = String($event ?? 0)"
     />
     <DateInput
-      v-else-if="props.field.fieldType === 'DATE'"
+      v-else-if="props.field.fieldType === 'DATE' || props.field.fieldType === 'BIRTH_DATE'"
       v-model="value"
     />
     <div v-else-if="props.field.fieldType === 'BOOLEAN'" class="flex items-center gap-2 pt-1">
