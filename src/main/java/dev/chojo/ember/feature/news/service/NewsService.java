@@ -62,6 +62,13 @@ public class NewsService {
 
     private final NewsRepository newsRepository;
     private final ContentBlockService blocks;
+    /**
+     * What a system entry is shown as having been written by. The instance is not a member of any
+     * station, so there is no identity to resolve and no avatar to draw: the product's own name
+     * stands in, and the badge beside it says the rest.
+     */
+    public static final String SYSTEM_AUTHOR_NAME = "Ember";
+
     private final StationRepository stationRepository;
     private final RestrictionService restrictionService;
     private final DomainEventBus eventBus;
@@ -158,6 +165,86 @@ public class NewsService {
         eventBus.publish(new NewsCreated(stationId, news.id(), title, authorName, previewOf(contentMarkdown)));
         log.info("Created news {} on station {}", news.id(), stationId);
         return news;
+    }
+
+    /**
+     * Publishes an entry from the instance to every station at once.
+     *
+     * <p>It carries no author and no station: it is shown as coming from the instance itself. The
+     * restrictions it takes are user types alone, because groups, tags and single members are
+     * things one station has and the entry is read in all of them.
+     *
+     * <p>Notifying is asked for rather than assumed. Most of what an instance has to say is a
+     * notice people meet when they next look, and waking every member of every station for it would
+     * teach them to ignore the ones that matter.
+     *
+     * @param title           entry title
+     * @param contentMarkdown entry body in Markdown
+     * @param contentHtml     entry body as HTML
+     * @param userTypes       the user types that may read it, or empty for everyone
+     * @param publish         whether it is published straight away
+     * @param notify          whether members are notified of it
+     * @return the newly created entry
+     */
+    public News createSystem(
+            String title,
+            String contentMarkdown,
+            String contentHtml,
+            List<StationUserType> userTypes,
+            boolean publish,
+            boolean notify) {
+        var news = newsRepository.createSystem(title, contentMarkdown, contentHtml, publish);
+        setRestrictions(news.id(), new RestrictionSelection(userTypes, List.of(), List.of(), List.of(), null));
+        if (publish && notify) {
+            notifySystemEntry(news, title, contentMarkdown);
+        }
+        log.info("Created system news {}", news.id());
+        return news;
+    }
+
+    /**
+     * Tells every station about a system entry, one station at a time, because that is what a
+     * notification is addressed to. The entry itself is still the single row they all read.
+     */
+    private void notifySystemEntry(News news, String title, String contentMarkdown) {
+        for (var station : stationRepository.findAll()) {
+            eventBus.publish(
+                    new NewsCreated(station.id(), news.id(), title, SYSTEM_AUTHOR_NAME, previewOf(contentMarkdown)));
+        }
+    }
+
+    /**
+     * The entries the instance has published, newest first.
+     *
+     * @param offset pagination offset
+     * @param limit  maximum number of results
+     * @return the system entries
+     */
+    public List<News> findSystem(int offset, int limit) {
+        return newsRepository.findSystem(offset, limit);
+    }
+
+    /**
+     * Whether one member may read one entry, restrictions and all.
+     *
+     * @param newsId   the news article ID
+     * @param memberId the member reading it
+     * @return {@code true} if the entry is visible to that member
+     */
+    public boolean isVisibleForMember(int newsId, int memberId) {
+        return newsRepository.isVisibleForMember(newsId, memberId);
+    }
+
+    /**
+     * The comments on an entry that were written from one station. A station reads its own part of
+     * the conversation under a system entry; the instance reads all of it.
+     *
+     * @param newsId     the news article ID
+     * @param stationUid the station whose comments to return
+     * @return the comments written from that station
+     */
+    public List<NewsComment> findCommentsForStation(int newsId, UUID stationUid) {
+        return newsRepository.findCommentsByNewsForStation(newsId, stationUid);
     }
 
     /**

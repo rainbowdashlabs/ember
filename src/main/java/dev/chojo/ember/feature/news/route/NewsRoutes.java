@@ -182,14 +182,32 @@ public class NewsRoutes implements Routes {
         int id = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
         int memberId = session.member().id();
-        newsService
-                .findById(id)
-                .ifPresentOrElse(
-                        news -> ctx.json(
-                                toResponse(news, session.hasPermission(StationPermission.NEWS_MANAGER), memberId)),
-                        () -> {
-                            throw new NotFoundResponse();
-                        });
+        var news = requireReadable(ctx, id);
+        ctx.json(toResponse(news, session.hasPermission(StationPermission.NEWS_MANAGER), memberId));
+    }
+
+    /**
+     * The entry behind an id, if the caller may read it, and a 404 otherwise.
+     *
+     * <p>Two things have to hold. It has to be theirs to read at all: an entry belongs to one
+     * station, or to none at all when the instance published it to everyone, and a member of
+     * another station is no more entitled to it than a stranger. And it has to be addressed to
+     * them: an entry restricted to a user type is restricted however it is asked for, not only when
+     * it comes back from a listing.
+     *
+     * <p>Both refusals are a 404 rather than a 403, because saying "not for you" about an entry
+     * still tells the asker it exists.
+     */
+    private News requireReadable(Context ctx, int id) {
+        UserSession session = UserSession.from(ctx);
+        var news = newsService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (!news.systemEntry() && news.stationId() != session.stationId()) {
+            throw new NotFoundResponse();
+        }
+        if (!newsService.isVisibleForMember(id, session.member().id())) {
+            throw new NotFoundResponse();
+        }
+        return news;
     }
 
     @OpenApi(
@@ -450,7 +468,14 @@ public class NewsRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CommentResponse[].class)))
     private void listComments(Context ctx) {
         int newsId = pathInt(ctx, "id");
-        var comments = newsService.findComments(newsId);
+        UserSession session = UserSession.from(ctx);
+        var news = requireReadable(ctx, newsId);
+        // Under a system entry every station is talking at once, and what one station says is its
+        // own business: a station is shown its own part of the conversation. A station entry is
+        // read by that station alone, so there is nothing to separate.
+        var comments = news.systemEntry()
+                ? newsService.findCommentsForStation(newsId, session.stationUid())
+                : newsService.findComments(newsId);
         ctx.json(comments.stream().map(this::toCommentResponse).toList());
     }
 
@@ -465,6 +490,7 @@ public class NewsRoutes implements Routes {
     private void createComment(Context ctx) {
         int newsId = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
+        requireReadable(ctx, newsId);
         var request = ctx.bodyAsClass(CommentRequest.class);
         if (request.content() == null || request.content().isBlank()) {
             throw new BadRequestResponse("content is required");
