@@ -21,8 +21,6 @@ const rows = defineModel<RowEditData[]>('rows', {required: true})
 defineProps<{
   mode: ContentModeName
   stationUid: string
-  /** False for an entry that has not been created yet, which has nothing to switch. */
-  canSwitch: boolean
 }>()
 
 const emit = defineEmits<{
@@ -48,7 +46,7 @@ const {t} = useI18n()
 
       <template v-else>
         <MarkdownEditor v-model="contentMarkdown" :placeholder="t('news.contentPlaceholder')"/>
-        <div v-if="canSwitch" class="flex flex-col sm:flex-row sm:items-center gap-2 pt-2">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-2 pt-2">
           <SecondaryButton :icon="['fas', 'table-columns']" @click="emit('enable-blocks')">
             {{ t('news.enableBlocks') }}
           </SecondaryButton>

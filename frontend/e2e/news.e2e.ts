@@ -163,6 +163,42 @@ test.describe('News', () => {
         await expect(page.getByRole('button', {name: 'Mit dem Seiten-Editor schreiben'})).toHaveCount(0)
     })
 
+    /**
+     * The editor is offered while the entry is still being written, not only once it has been
+     * saved. An author who knows they are writing a long piece should not have to write it plain,
+     * save it, and convert it: whether an entry happens to exist yet is not a reason to withhold
+     * the editor. The story switches before saving and reads the entry back, where the text has to
+     * have survived a switch the server was told about only afterwards.
+     */
+    test('an article is switched to the page editor before it is saved', async ({managerPage: page}) => {
+        const article = unique('Langbericht')
+        const written = 'Vor dem Speichern geschrieben.'
+
+        await page.goto('/station/news')
+        await page.getByRole('button', {name: 'Neuigkeit erstellen'}).click()
+        await page.waitForURL(/\/station\/news\/create/)
+
+        await page.getByPlaceholder('Titel der Neuigkeit').fill(article)
+        const body = page.locator('[contenteditable="true"]').first()
+        await body.click()
+        await page.keyboard.type(written)
+
+        await page.getByRole('button', {name: 'Mit dem Seiten-Editor schreiben'}).click()
+        await expect(page.getByText(written).first()).toBeVisible()
+
+        await page.getByRole('button', {name: /Speichern|Veröffentlichen|Erstellen/}).last().click()
+        await page.waitForURL(/\/station\/news$/)
+
+        await page.getByText(article).first().click()
+        await page.waitForURL(/\/station\/news\/\d+/)
+        await expect(page.getByText(written).first()).toBeVisible()
+
+        // The entry is a block one now, so it no longer offers to become one.
+        await page.goto(`${page.url()}/edit`)
+        await expect(page.getByText(written).first()).toBeVisible()
+        await expect(page.getByRole('button', {name: 'Mit dem Seiten-Editor schreiben'})).toHaveCount(0)
+    })
+
     test('a member reads the news of their station', async ({memberPage: page}) => {
         await page.goto('/station/news')
 

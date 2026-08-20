@@ -20,7 +20,7 @@ import { news, memberGroups, userTags, federation } from '@/api'
 import ContentPanel from './editview/ContentPanel.vue'
 import {ContentMode, type ContentModeName} from '@/api/news'
 import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
-import type {PageRow, SaveRowRequest, SaveCellRequest} from '@/api/pageManage'
+import {CellContentType, type PageRow, type SaveRowRequest, type SaveCellRequest} from '@/api/pageManage'
 import AttachmentsPanel from './editview/AttachmentsPanel.vue'
 import {useNewsAttachments} from './editview/useNewsAttachments'
 import AudiencePanels from './editview/AudiencePanels.vue'
@@ -93,8 +93,33 @@ function toSaveRows(): SaveRowRequest[] {
     }))
 }
 
+/**
+ * Switches the entry being written to the block editor.
+ *
+ * <p>An entry that already exists is switched by the server, which is what records the change and
+ * hands back the text as a first block. One that does not exist yet cannot be: there is nothing to
+ * address. It is switched here instead, to the same shape the server would have produced, and the
+ * save below tells the server about it as soon as the entry has an id. Either way the author sees
+ * the same thing, which is the point: whether an entry happens to be saved yet is not a reason to
+ * withhold the editor from them.
+ */
 async function enableBlocks() {
-    if (!newsId.value) return
+    if (!newsId.value) {
+        rows.value = [{
+            id: 0,
+            sortOrder: 0,
+            cells: [{
+                id: 0,
+                sortOrder: 0,
+                widthPercent: 100,
+                contentType: CellContentType.MARKDOWN,
+                content: contentMarkdown.value,
+                config: {},
+            }],
+        }]
+        contentMode.value = ContentMode.RICH
+        return
+    }
     const updated = await news.enableNewsBlocks(newsId.value)
     contentMode.value = updated.contentMode
     rows.value = toEditRows(updated.rows ?? [])
@@ -170,6 +195,10 @@ async function save() {
     } else {
       const created = await news.createNews(data)
       savedId = created.id
+      // An entry switched before it existed is created plain, so the switch is made here, now
+      // that there is something to address. Saving the blocks alone would leave the entry
+      // claiming to be a plain one that happens to have blocks hanging off it.
+      if (contentMode.value === ContentMode.RICH) await news.enableNewsBlocks(savedId)
     }
 
     if (contentMode.value === ContentMode.RICH) {
@@ -222,7 +251,6 @@ watch(loaded, (isLoaded) => {
             v-model:rows="rows"
             :mode="contentMode"
             :station-uid="stationUid"
-            :can-switch="isEdit"
             @enable-blocks="enableBlocks"
         />
         <AttachmentsPanel
