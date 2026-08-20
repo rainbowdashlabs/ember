@@ -8,8 +8,8 @@
 
 ### Fixes
 
-- **Rights stay whole.** A member manager holds everything a member manager may do, every time, rather than occasionally a part of it until the next restart. Pages that refused to open on those grounds open.
-- **A field template on the group tab lands in the chosen group.** The fields it adds belong to the group being configured and need no assigning afterwards.
+- **Rights stay whole.** In some cases it could happen that a member held only part of what their role allows, so pages they are entitled to refused to open until the instance was restarted. A role now hands out all of its rights or none, whenever it is asked.
+- **A field template on the group tab lands in the chosen group.** Fields added from a template belonged to no group at all and had to be assigned by hand afterwards. A template now takes the group that is being configured.
 
 ## v26.11.12
 
