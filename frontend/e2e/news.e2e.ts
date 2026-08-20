@@ -199,6 +199,35 @@ test.describe('News', () => {
         await expect(page.getByRole('button', {name: 'Mit dem Seiten-Editor schreiben'})).toHaveCount(0)
     })
 
+    /**
+     * The switch is the first thing an author reaches for when they know the entry is going to be
+     * a built one, so nothing is typed in the plain field at all. Such an entry has no written text
+     * of its own: what it reads as is derived from its blocks, and those are stored once it has an
+     * id to hang them off. Creating it was refused for having no text, which is the case the story
+     * above misses, because it types before it switches.
+     */
+    test('an entry begun in the page editor is created without typing in the plain field',
+        async ({managerPage: page}) => {
+            const article = unique('Aufbau')
+
+            await page.goto('/station/news')
+            await page.getByRole('button', {name: 'Neuigkeit erstellen'}).click()
+            await page.waitForURL(/\/station\/news\/create/)
+
+            await page.getByPlaceholder('Titel der Neuigkeit').fill(article)
+            await page.getByRole('button', {name: 'Mit dem Seiten-Editor schreiben'}).click()
+            await page.getByRole('button', {name: /Speichern|Veröffentlichen|Erstellen/}).last().click()
+
+            await page.waitForURL(/\/station\/news$/)
+            await expect(page.getByText(article).first()).toBeVisible()
+
+            // It was created as a block entry, so it does not offer to become one.
+            await page.getByText(article).first().click()
+            await page.waitForURL(/\/station\/news\/\d+/)
+            await page.goto(`${page.url()}/edit`)
+            await expect(page.getByRole('button', {name: 'Mit dem Seiten-Editor schreiben'})).toHaveCount(0)
+        })
+
     test('a member reads the news of their station', async ({memberPage: page}) => {
         await page.goto('/station/news')
 

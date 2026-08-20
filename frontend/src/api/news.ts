@@ -71,6 +71,8 @@ export interface NewsRequest {
     tagIds: number[]
     memberIds: number[]
     publicBlog?: boolean
+    /** Set when creating an entry that is built from blocks, which brings no written markdown. */
+    contentMode?: ContentModeName
 }
 
 export interface PublicBlogEntry {

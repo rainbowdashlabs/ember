@@ -187,18 +187,18 @@ async function save() {
       tagIds: selectedTagIds.value,
       memberIds: [] as number[],
       publicBlog: publicBlog.value,
+      contentMode: contentMode.value,
     }
     let savedId: number
     if (newsId.value) {
       await news.updateNews(newsId.value, data)
       savedId = newsId.value
     } else {
+      // The mode goes along with the entry, so one switched before it existed is created as a
+      // block entry outright. Creating it plain and switching after would leave a moment where
+      // the entry claims to be something it is not.
       const created = await news.createNews(data)
       savedId = created.id
-      // An entry switched before it existed is created plain, so the switch is made here, now
-      // that there is something to address. Saving the blocks alone would leave the entry
-      // claiming to be a plain one that happens to have blocks hanging off it.
-      if (contentMode.value === ContentMode.RICH) await news.enableNewsBlocks(savedId)
     }
 
     if (contentMode.value === ContentMode.RICH) {

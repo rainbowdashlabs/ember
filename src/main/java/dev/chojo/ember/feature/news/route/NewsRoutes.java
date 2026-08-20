@@ -205,7 +205,12 @@ public class NewsRoutes implements Routes {
         if (request.title() == null || request.title().isBlank()) {
             throw new BadRequestResponse("title is required");
         }
-        if (request.contentMarkdown() == null || request.contentMarkdown().isBlank()) {
+        // An entry built from blocks has no written markdown to give: what it reads as is derived
+        // from the blocks, and those are saved once the entry has an id to hang them off.
+        boolean rich = request.contentMode() == ContentMode.RICH;
+        if (!rich
+                && (request.contentMarkdown() == null
+                        || request.contentMarkdown().isBlank())) {
             throw new BadRequestResponse("contentMarkdown is required");
         }
         var authorIdentity = memberIdentityFactory.fromMemberId(session.member().id());
@@ -219,6 +224,9 @@ public class NewsRoutes implements Routes {
                 request.groupIds() != null ? request.groupIds() : List.of(),
                 request.tagIds() != null ? request.tagIds() : List.of(),
                 request.memberIds() != null ? request.memberIds() : List.of());
+        if (rich) {
+            newsService.switchToRich(news.id());
+        }
         if (request.publicBlog() != null) {
             newsService.updatePublicBlog(news.id(), request.publicBlog());
         }
@@ -789,7 +797,8 @@ public class NewsRoutes implements Routes {
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds,
-            Boolean publicBlog) {}
+            Boolean publicBlog,
+            ContentMode contentMode) {}
 
     /**
      * API response representing a news article with resolved author information.

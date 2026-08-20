@@ -204,6 +204,28 @@ test.describe('Knowledge base', () => {
         })
 
     /**
+     * The same path as a news entry begun in the page editor: switch first, having typed nothing.
+     * A news entry could not be created that way, because creating one demanded written text that
+     * a block article does not have. An article here has an id before it is ever written in, so
+     * the switch is stored there and then and there is nothing left to save, which is why the
+     * article survives a reload without a save at all. The story holds that apart from the news
+     * one rather than assuming the two behave alike.
+     */
+    test('an empty article is switched to the page editor and stays switched',
+        async ({managerPage: page}) => {
+            await createFileInFolder(page)
+            const fileUrl = page.url()
+
+            await page.getByRole('button', {name: 'Bearbeiten', exact: true}).first().click()
+            await page.getByRole('button', {name: 'Mit dem Seiten-Editor schreiben'}).click()
+
+            await page.goto(fileUrl)
+            await expect(page.getByRole('button', {name: 'Mit dem Seiten-Editor schreiben'})).toHaveCount(0)
+            await page.getByRole('button', {name: 'Bearbeiten', exact: true}).first().click()
+            await expect(page.getByRole('button', {name: 'Mit dem Seiten-Editor schreiben'})).toHaveCount(0)
+        })
+
+    /**
      * The listing offers what the reader may actually do: a member who may only read gets the
      * search and the entries, and no create menu - the same rule the server enforces, so nothing
      * is offered that would be refused.
