@@ -6,10 +6,12 @@
 
 - **Ember installs itself in one command.** `curl -fsSL https://ember-panel.de/install.sh | bash` asks the handful of things that differ between installations, writes the compose file, starts everything and shows the login it created. It offers a port on the machine, which is what a VPN or a local instance wants, or an existing Traefik; PostgreSQL is brought along or joined where it already runs; and the directories for the configuration, the files and the database are chosen rather than assumed.
 - **An installation can be clicked together beforehand.** Under `/install` the same questions are answered in the browser, which gives back a six-character code. The command carries only that code, so what has to reach the server is short enough to read out. The code lasts two hours, and the database password is never part of it.
+- **A station decides how gear moves between it and the body above.** Under Inventory → Configuration the chain an exchange, a return or an issue walks is edited step by step: what each one is called, who confirms it, which of the two items it is about and where that item is afterwards. Which chain applies follows the owner of the gear, so one inventory holding both can reach different chains for different rows.
 - **A waiting list can work with ages.** A date field set to the type date of birth gives the list an age to go by: it can refuse a registration below a minimum age, and it marks everyone still under the age for joining so they are told apart from those merely waiting their turn. Those entries can be hidden while the list is worked through. An existing date field becomes the date of birth without losing the answers already given.
 
 ### Improvements
 
+- **An exchange opens as the chain it is walking.** The history button now leads to the whole run rather than a list of status changes: every step with the party it belongs to, the ones behind it stamped with who acknowledged them and how, and on the current one either the single button you may press or the sentence naming who is being waited on.
 - **Mail left behind by a stopped delivery can be sent again.** The overview no longer only counts them: it lists each one and offers to put it back in the queue, singly or all at once. Mail that is being sent right now stays untouched.
 - **The waiting list shows the date of birth in its own column and sorts by any of them.** Every column heading sorts, the list still opens on the highest score, and a column picked afterwards starts at the top of its own order.
 

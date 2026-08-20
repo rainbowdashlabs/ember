@@ -116,6 +116,8 @@ import dev.chojo.ember.feature.inventory.route.InventoryCheckRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryContainerRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryFieldDefinitionRoutes;
 import dev.chojo.ember.feature.inventory.route.InventoryRoutes;
+import dev.chojo.ember.feature.inventory.route.MovementFlowRoutes;
+import dev.chojo.ember.feature.inventory.route.MovementRoutes;
 import dev.chojo.ember.feature.inventory.route.ProcurementRoutes;
 import dev.chojo.ember.feature.knowledgebase.route.FederatedKnowledgeBaseRoutes;
 import dev.chojo.ember.feature.knowledgebase.route.KnowledgeBaseAccessRoutes;
@@ -288,6 +290,8 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(MailWebhookRoutes.class);
         routesBinder.addBinding().to(UserSettingsRoutes.class);
         routesBinder.addBinding().to(ExchangeRoutes.class);
+        routesBinder.addBinding().to(MovementRoutes.class);
+        routesBinder.addBinding().to(MovementFlowRoutes.class);
         routesBinder.addBinding().to(ProcurementRoutes.class);
         routesBinder.addBinding().to(InventoryContainerRoutes.class);
         routesBinder.addBinding().to(InventoryFieldDefinitionRoutes.class);

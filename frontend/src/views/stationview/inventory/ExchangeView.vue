@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
@@ -27,6 +28,7 @@ import { useExport } from '@/composables/useExport'
 import { saveBlob } from '@/util/downloadAuthed'
 
 const { t } = useI18n()
+const router = useRouter()
 const { canManageExchanges, isGuardian, sessionInfo, loaded } = useSession()
 const { activeStation } = useStations()
 
@@ -140,9 +142,13 @@ async function deleteRequest(id: number) {
   } catch { error.value = t('common.error') }
 }
 
+/**
+ * Opens the movement the exchange runs on. The chain with its steps, who acknowledged each and the
+ * button for whoever's turn it is lives there; an exchange and its movement share an id, because an
+ * exchange is one purpose a movement can have.
+ */
 function openLog(id: number) {
-  logExchangeId.value = id
-  showLogModal.value = true
+  void router.push({name: 'inventory-movement-detail', params: {id}})
 }
 
 async function enterExportMode() {

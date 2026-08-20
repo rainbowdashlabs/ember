@@ -180,6 +180,10 @@ public class MovementFlowService {
         return flowRepository.findFlowById(flowId);
     }
 
+    public Optional<MovementFlowStep> findStep(int stepId) {
+        return flowRepository.findStepById(stepId);
+    }
+
     public List<MovementFlowStep> findActiveSteps(int flowId) {
         return flowRepository.findActiveSteps(flowId);
     }

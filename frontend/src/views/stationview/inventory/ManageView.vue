@@ -20,6 +20,7 @@ import {useConfigPanel} from '@/composables/useConfigPanel'
 import ScannerPanel from './manageview/ScannerPanel.vue'
 import InventorySummaryCard from './manageview/InventorySummaryCard.vue'
 import CreateInventoryModal from './manageview/CreateInventoryModal.vue'
+import MovementFlowPanel from './manageview/MovementFlowPanel.vue'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -89,6 +90,8 @@ function onError() {
             @remove="requestDelete"
           />
         </div>
+
+        <MovementFlowPanel />
       </template>
 
       <CreateInventoryModal
