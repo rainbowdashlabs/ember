@@ -16,6 +16,7 @@
 ### Fixes
 
 - **A profile field made for a group stays with that group.** It appears under its group and can be filled in there. Fields that ended up without a group are offered for assignment at the top of the group tab under Members → Configuration.
+- **Answers in the waiting list read the way they were given.** A date appears as a date and a yes as a yes, in every column a list has been set to show.
 
 ## v26.11.11
 
