@@ -198,6 +198,7 @@ public class ProfileFieldService {
         }
 
         for (var field : allFields) {
+            if (!field.fieldType().holdsValue()) continue;
             if (field.scope() == ProfileFieldScope.GROUP) continue;
             if (!scopes.contains(field.scope())) continue;
             var config = field.config();

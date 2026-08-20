@@ -30,6 +30,7 @@ const fieldTypeOptions = [
   {value: FieldTypes.BOOLEAN, label: 'Ja/Nein'},
   {value: FieldTypes.ENUM, label: 'Auswahl'},
   {value: FieldTypes.AGE, label: 'Alter (berechnet)'},
+  {value: FieldTypes.SECTION, label: 'Überschrift'},
 ]
 
 const availableOptions = computed(() => fieldTypeOptions.filter((option) => {

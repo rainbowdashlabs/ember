@@ -1324,6 +1324,15 @@ volumes:
             typeBoolean: 'Ja/Nein - Schalter.',
             typeEnum: 'Auswahl - Auswahl aus vorgegebenen Werten.',
             typeAge: 'Alter - Wird automatisch aus einem Datumsfeld berechnet.',
+            typeSection: 'Überschrift - Kein Feld, sondern eine Zwischenüberschrift. Sie wird nach '
+                + 'nichts gefragt und steht in keinem Export.',
+            layoutTitle: 'Felder anordnen',
+            layoutText: 'Jedes Feld hat eine Breite: ganze, halbe oder Drittel-Zeile. Schmale Felder '
+                + 'stehen nebeneinander, solange eine Zeile sie fasst, sonst rutschen sie in die '
+                + 'nächste. Auf schmalen Bildschirmen steht ohnehin jedes Feld für sich. Zusammen '
+                + 'mit Überschriften wird aus einer langen Liste eine gegliederte Maske.',
+            layoutPreview: 'Unter der Feldliste siehst du eine Vorschau, wie die Felder beim '
+                + 'Ausfüllen aussehen. Die Reihenfolge änderst du weiterhin über die Liste.',
             templatesTitle: 'Feld-Vorlagen',
             templatesText: 'Wenn du noch keine Felder angelegt hast, kannst du aus 11 vordefinierten Vorlagen wählen. Jede Vorlage erstellt ein oder mehrere Felder mit sinnvollen Voreinstellungen - zum Beispiel Adresse, Geburtsdatum, Notfallkontakt oder Jugendflamme.',
             tip: 'Überlege dir vorher gut, welche Felder du brauchst. Du kannst die Reihenfolge per Drag & Drop ändern.',

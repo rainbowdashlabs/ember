@@ -212,6 +212,27 @@ test.describe('Members', () => {
     })
 
     /**
+     * A heading is not a field: it is asked of nobody and holds no answer. It earns its place by
+     * appearing among the fields where the station put it, which is what turns a long list into
+     * something that reads.
+     */
+    test('a heading is placed among the fields and asks for nothing', async ({managerPage: page}) => {
+        const heading = unique('Abschnitt')
+
+        await page.goto('/station/members/config')
+        await page.getByRole('button', {name: 'Feld hinzufügen'}).first().click()
+        const dialog = page.getByRole('dialog')
+        await dialog.getByPlaceholder('Name des Feldes').fill(heading)
+        await dialog.getByRole('combobox').first().selectOption('SECTION')
+
+        await expect(dialog.getByText('Pflichtfeld')).toHaveCount(0)
+
+        await dialog.getByRole('button', {name: 'Speichern'}).click()
+
+        await expect(page.getByText(heading).first()).toBeVisible()
+    })
+
+    /**
      * A field of group scope is listed at its group and nowhere else, so the group it was made for
      * has to survive being saved. It travels as one opaque lump of configuration, which no type on
      * either side describes, so only walking both ends says whether it arrived.

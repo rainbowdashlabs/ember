@@ -19,6 +19,7 @@ import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import AccountCard from './indexview/AccountCard.vue'
 import IncompleteFieldsAlert from './indexview/IncompleteFieldsAlert.vue'
 import ProfileFieldsForm from './indexview/ProfileFieldsForm.vue'
+import {valueFields} from '@/components/profilefields/fieldLayout'
 
 function getUserScopes(userType?: string): string[] {
   const scopes: string[] = []
@@ -92,7 +93,7 @@ async function saveProfile() {
   if (!memberId.value) return
   error.value = ''
   try {
-    const entries = editableFields.value
+    const entries = valueFields(editableFields.value)
       .filter(f => !parseFieldConfig(f.config).readonly)
       .map(f => ({ fieldId: f.id, value: JSON.stringify(getValue(f.id)) }))
     await profileFields.setValues(memberId.value, { values: entries })

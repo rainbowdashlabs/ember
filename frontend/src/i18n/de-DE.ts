@@ -2099,6 +2099,13 @@ export default {
         selectGroupPlaceholder: 'Gruppe auswählen',
         unassignedGroupFields: 'Diese Felder gehören zu keiner Gruppe. Öffne eines und speichere es, '
             + 'um es der oben gewählten Gruppe zuzuordnen.',
+        fieldWidth: 'Breite',
+        fieldWidthHint: 'Schmale Felder stehen nebeneinander, solange eine Zeile sie fasst.',
+        widthFull: 'Ganze Zeile',
+        widthHalf: 'Halbe Zeile',
+        widthThird: 'Drittel Zeile',
+        previewTitle: 'Vorschau',
+        previewHint: 'So sehen die Felder beim Ausfüllen aus.',
         fields: 'Profilfelder',
         addField: 'Feld hinzufügen',
         memberHint: 'Diese Felder werden im Profil aller Mitglieder angezeigt.',
