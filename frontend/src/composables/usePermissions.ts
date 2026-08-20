@@ -65,6 +65,14 @@ function hasPermission(permission: string): boolean {
     return sessionInfo.value?.permissions?.includes(permission) ?? false
 }
 
+/**
+ * Whether the caller holds a permission at the cluster they are acting for. Separate from the station check
+ * because the two sets are separate: one person can hold everything at a cluster and nothing at its stations.
+ */
+function hasClusterPermission(permission: string): boolean {
+    return sessionInfo.value?.clusterPermissions?.includes(permission) ?? false
+}
+
 function hasAny(group: PermissionGroup): boolean {
     return PERMISSION_GROUPS[group].some(permission => hasPermission(permission))
 }
@@ -85,6 +93,7 @@ function isModuleEnabled(module: string): boolean {
 export function usePermissions() {
     return {
         hasPermission,
+        hasClusterPermission,
         isAdmin,
         isModuleEnabled,
         isManager: () => hasAny('stationManagement'),

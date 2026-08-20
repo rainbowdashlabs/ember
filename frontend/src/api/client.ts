@@ -55,6 +55,11 @@ function applyAuthHeaders(config: InternalAxiosRequestConfig) {
     if (stationId) {
         config.headers['X-Station-Id'] = stationId
     }
+    // A request may carry both: one person can be a cluster manager and a member of one of its stations
+    const clusterId = getItem('cluster_id')
+    if (clusterId) {
+        config.headers['X-Cluster-Id'] = clusterId
+    }
 }
 
 function waitForRefresh(config: InternalAxiosRequestConfig): Promise<InternalAxiosRequestConfig> {
@@ -134,6 +139,7 @@ client.interceptors.response.use(
             if (token && !refreshing && !isStepUp) {
                 removeItem('session_token')
                 removeItem('station_id')
+                removeItem('cluster_id')
                 const currentPath = window.location.pathname
                 const isPublicPath = currentPath === '/'
                     || currentPath === '/login'

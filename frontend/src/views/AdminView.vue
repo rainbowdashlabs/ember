@@ -11,6 +11,7 @@ import SidebarGroup from '@/components/navigation/SidebarGroup.vue'
 import SidebarLink from '@/components/navigation/SidebarLink.vue'
 import AccountMenuButton from '@/components/layout/AccountMenuButton.vue'
 import SmartStationButton from '@/components/layout/SmartStationButton.vue'
+import ClusterPanelButton from '@/components/layout/ClusterPanelButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import {useSession} from '@/composables/useSession'
 import HelpCenterLink from '@/components/navigation/HelpCenterLink.vue'
@@ -57,6 +58,12 @@ onMounted(() => {
         <SidebarLink :icon="['fas', 'clipboard-list']" name="admin-station-applications"
                      to="/admin/stations/applications" @navigate="close">
           {{ t('sidebar.applications') }}
+        </SidebarLink>
+      </SidebarGroup>
+
+      <SidebarGroup :icon="['fas', 'sitemap']" :label="t('sidebar.clusters')" prefix="/admin/clusters">
+        <SidebarLink :icon="['fas', 'sitemap']" name="admin-clusters" to="/admin/clusters" @navigate="close">
+          {{ t('sidebar.manageClusters') }}
         </SidebarLink>
       </SidebarGroup>
 
@@ -147,6 +154,7 @@ onMounted(() => {
     <template #header>
       <QuickSearchTrigger scope="admin" @open="openQuickSearch"/>
       <HelpCenterLink/>
+      <ClusterPanelButton/>
       <SmartStationButton/>
       <AccountMenuButton/>
     </template>

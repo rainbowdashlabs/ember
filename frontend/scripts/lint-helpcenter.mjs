@@ -29,7 +29,7 @@ const KNOWN_SHARED_HELP_COMPONENTS = new Set([])
 const panels = [
     {
         label: 'Station',
-        appFilter: (r) => !['help-', 'admin-', 'account-', 'login', 'forgot', 'set-password', 'station-select',
+        appFilter: (r) => !['help-', 'admin-', 'cluster-', 'account-', 'login', 'forgot', 'set-password', 'station-select',
             'cross-station-dashboard', '2fa-verify', 'apply', 'waitlist-', 'waiting-list', 'home', 'privacy', 'terms', 'reconsent', 'imprint',
             'patch-notes', 'reset-password', 'confirm-email-change', 'install', 'public-', 'not-found', 'style', 'helpcenter-', 'requirements',
             'pitch']

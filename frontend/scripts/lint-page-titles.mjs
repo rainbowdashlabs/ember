@@ -41,6 +41,8 @@ const CHROME_LAYOUTS = new Set([
     'account',
     'helpcenter',
     'helpcenter-admin',
+    'helpcenter-cluster',
+    'cluster',
     'public-station',
 ])
 
@@ -53,6 +55,8 @@ const LAYOUT_ROOTS = new Set([
     'AccountView.vue',
     'HelpCenterAdminView.vue',
     'HelpCenterStationView.vue',
+    'HelpCenterClusterView.vue',
+    'ClusterView.vue',
 ])
 
 // Wrapper components that never carry meaningful page content by themselves.

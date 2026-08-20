@@ -13,6 +13,7 @@ import {useStations} from '@/composables/useStations'
 import AccountMenuButton from '@/components/layout/AccountMenuButton.vue'
 import SmartStationButton from '@/components/layout/SmartStationButton.vue'
 import AdminPanelButton from '@/components/layout/AdminPanelButton.vue'
+import ClusterPanelButton from '@/components/layout/ClusterPanelButton.vue'
 import PrideText from '@/components/display/PrideText.vue'
 import LayeredEmberLogo from '@/components/display/LayeredEmberLogo.vue'
 import {usePride} from '@/composables/usePride'
@@ -46,6 +47,7 @@ onMounted(() => {
 
     <div v-if="loaded && sessionInfo?.account" class="flex items-center gap-3">
       <AdminPanelButton variant="primary"/>
+      <ClusterPanelButton variant="primary"/>
       <SmartStationButton variant="primary"/>
       <AccountMenuButton/>
     </div>

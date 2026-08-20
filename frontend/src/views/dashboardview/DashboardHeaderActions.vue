@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import StationSwitcher from '@/components/navigation/StationSwitcher.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import AccountMenuButton from '@/components/layout/AccountMenuButton.vue'
+import ClusterPanelButton from '@/components/layout/ClusterPanelButton.vue'
 import HelpCenterLink from '@/components/navigation/HelpCenterLink.vue'
 import QuickSearchTrigger from '@/components/quicksearch/QuickSearchTrigger.vue'
 import {useQuickSearch} from '@/composables/useQuickSearch'
@@ -29,6 +30,8 @@ const {open: openQuickSearch} = useQuickSearch()
       <span class="hidden sm:inline ml-1">{{ t('header.adminPanel') }}</span>
     </SecondaryButton>
   </router-link>
+
+  <ClusterPanelButton/>
 
   <AccountMenuButton/>
 </template>

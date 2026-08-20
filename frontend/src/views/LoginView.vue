@@ -11,10 +11,11 @@ import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import PageHeroIcon from '@/components/typography/PageHeroIcon.vue'
-import {auth, session, adminSettings} from '@/api'
+import {auth, session, adminSettings, clusters} from '@/api'
 import {StorageDeniedError} from '@/api/auth'
 import {acceptStorage, getItem} from '@/api/storage'
 import {useStations} from '@/composables/useStations'
+import {useCluster} from '@/composables/useCluster'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useDemoAccounts, type DemoAccount} from '@/composables/useDemoAccounts'
 import {useLoginConsent} from '@/composables/useLoginConsent'
@@ -29,6 +30,7 @@ import {apiErrorMessage} from '@/util/apiError'
 const {t} = useI18n()
 const route = useRoute()
 const {setActiveStation, clearActiveStation} = useStations()
+const {setActiveCluster, clearActiveCluster} = useCluster()
 
 const demo = useDemoAccounts()
 const {
@@ -88,9 +90,11 @@ onMounted(async () => {
 async function resolveStationAndRedirect() {
   const redirectPath = route.query.redirect as string | undefined
   clearActiveStation()
-  const [stations, info] = await Promise.all([
+  clearActiveCluster()
+  const [stations, info, myClusters] = await Promise.all([
     session.getStations(),
     session.getSessionInfo().catch(() => null),
+    clusters.listMine().catch(() => []),
   ])
   const [onlyStation] = stations
   if (stations.length === 1 && onlyStation) {
@@ -100,6 +104,11 @@ async function resolveStationAndRedirect() {
     await navigateTo(redirectPath || '/cross-station')
   } else if (info?.instanceUserType === 'ADMINISTRATOR') {
     await navigateTo(redirectPath || '/admin/dashboard/overview')
+  } else if (myClusters.length > 0) {
+    // Somebody who manages a cluster and belongs to no station has the cluster as their whole reason to be here
+    const [onlyCluster] = myClusters
+    if (myClusters.length === 1 && onlyCluster) setActiveCluster(onlyCluster.uid)
+    await navigateTo(redirectPath || '/cluster')
   } else {
     await navigateTo(redirectPath || '/account')
   }

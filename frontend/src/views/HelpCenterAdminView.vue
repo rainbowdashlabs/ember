@@ -56,6 +56,13 @@ watch(
         </SidebarLink>
       </SidebarGroup>
 
+      <SidebarGroup :icon="['fas', 'sitemap']" :label="t('sidebar.clusters')" prefix="/helpcenter/admin/clusters">
+        <SidebarLink :icon="['fas', 'sitemap']" name="help-admin-clusters"
+                     to="/helpcenter/admin/clusters" @navigate="close">
+          {{ t('sidebar.manageClusters') }}
+        </SidebarLink>
+      </SidebarGroup>
+
       <SidebarGroup :icon="['fas', 'gear']" :label="t('sidebar.settings')" prefix="/helpcenter/admin/settings">
         <SidebarLink :icon="['fas', 'sliders']" name="help-admin-settings"
                      to="/helpcenter/admin/settings" @navigate="close">

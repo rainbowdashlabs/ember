@@ -139,6 +139,15 @@
       }
     },
     {
+      "key": "cluster_id",
+      "necessity": "REQUIRED",
+      "retention": "UNTIL_LOGOUT",
+      "purpose": {
+        "de": "Der von Ihnen gewählte Verband. Er bestimmt, für welchen Verband die Verbandsseiten geladen werden, wenn Sie mehreren Verbänden angehören.",
+        "en": "The cluster you selected. It determines which cluster the cluster pages are loaded for if you belong to more than one cluster."
+      }
+    },
+    {
       "key": "ai_provider",
       "necessity": "FUNCTIONAL",
       "retention": "UNTIL_CLEARED",

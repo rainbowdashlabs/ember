@@ -11,6 +11,7 @@ import SidebarLink from '@/components/navigation/SidebarLink.vue'
 import AccountMenuButton from '@/components/layout/AccountMenuButton.vue'
 import SmartStationButton from '@/components/layout/SmartStationButton.vue'
 import AdminPanelButton from '@/components/layout/AdminPanelButton.vue'
+import ClusterPanelButton from '@/components/layout/ClusterPanelButton.vue'
 import HelpCenterLink from '@/components/navigation/HelpCenterLink.vue'
 import {useSession} from '@/composables/useSession'
 import {usePageHeader} from '@/composables/usePageHeader'
@@ -49,6 +50,7 @@ onMounted(() => {
     <template #header>
       <HelpCenterLink/>
       <AdminPanelButton/>
+      <ClusterPanelButton/>
       <SmartStationButton/>
       <AccountMenuButton/>
     </template>

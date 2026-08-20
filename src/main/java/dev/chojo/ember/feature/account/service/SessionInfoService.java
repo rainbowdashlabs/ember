@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.account.service;
 
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.auth.ClusterUserType;
 import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.File;
@@ -145,7 +146,10 @@ public class SessionInfoService {
                 disabledModules,
                 resolveTheme(session, currentStation),
                 currentStation != null ? currentStation.publicKbMode() : null,
-                currentStation != null ? currentStation.setupCompletedAt() : null);
+                currentStation != null ? currentStation.setupCompletedAt() : null,
+                session.clusterUid() != null ? session.clusterUid().toString() : null,
+                session.clusterUserType(),
+                session.clusterPermissions().stream().map(Enum::name).sorted().toList());
     }
 
     private ManagedMemberInfo toManagedMemberInfo(StationMember member) {
@@ -238,7 +242,10 @@ public class SessionInfoService {
             Set<StationModule> disabledModules,
             ThemeInfo theme,
             PublicKbMode publicKbMode,
-            Instant setupCompletedAt) {}
+            Instant setupCompletedAt,
+            String clusterId,
+            ClusterUserType clusterUserType,
+            List<String> clusterPermissions) {}
 
     public record ThemeInfo(
             String instanceDefaultTheme,

@@ -179,6 +179,11 @@ export interface SessionInfo {
     publicKbMode?: string
     /** ISO timestamp at which the station setup wizard was finished, or null while it still applies. */
     setupCompletedAt?: string | null
+    /** The cluster this request is acting for, when the header named one. */
+    clusterId?: string | null
+    clusterUserType?: string | null
+    /** What the caller may do at that cluster, which is a separate set from the station's. */
+    clusterPermissions?: string[]
 }
 
 export interface ThemeSessionInfo {
