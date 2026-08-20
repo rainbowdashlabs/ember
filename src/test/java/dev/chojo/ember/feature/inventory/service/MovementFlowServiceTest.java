@@ -190,7 +190,7 @@ class MovementFlowServiceTest extends RepositoryTestBase {
                 () -> movementFlowService.updateStep(
                         step.id(),
                         "Beim Träger angekommen",
-                        StepActor.STATION,
+                        StepActor.MEMBER,
                         step.subject(),
                         step.custodyAfter(),
                         step.picksItem()));

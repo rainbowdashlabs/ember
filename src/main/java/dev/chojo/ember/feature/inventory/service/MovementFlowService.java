@@ -37,6 +37,17 @@ public class MovementFlowService {
     /**
      * The presets a station starts with. Kept next to the seeding that writes them rather than in
      * the migration alone, because a station created after that migration needs them too.
+     *
+     * <p>None of them has a step belonging to the body above the station, and that is the point. A
+     * station whose umbrella organisation does not use Ember knows two things about the parcel it
+     * posted: that it sent it, and that something came back. Asking it to tick "arrived at the
+     * owner" and "replacement dispatched" would be asking it to invent both, and a record of an
+     * invention is worse than no record. What it posted and never saw again settles with its owner
+     * when the movement ends, which is the last thing the station honestly knows.
+     *
+     * <p>Owner steps are not gone from the model: a body that runs on this instance can answer for
+     * itself, and its own flow is where those steps belong. A station that wants to track the
+     * owner's leg anyway can add the steps to its own flow and they will read as asserted.
      */
     private static final List<Preset> PRESETS = List.of(
             new Preset(
@@ -86,23 +97,11 @@ public class MovementFlowService {
                                     ItemCustody.IN_TRANSIT,
                                     false),
                             new PresetStep(
-                                    "Beim Träger eingetroffen",
-                                    StepActor.OWNER,
-                                    StepSubject.OUTGOING,
-                                    ItemCustody.WITH_OWNER,
-                                    false),
-                            new PresetStep(
-                                    "Ersatz verschickt",
-                                    StepActor.OWNER,
-                                    StepSubject.INCOMING,
-                                    ItemCustody.IN_TRANSIT,
-                                    true),
-                            new PresetStep(
                                     "Ersatz erhalten",
                                     StepActor.STATION,
                                     StepSubject.INCOMING,
                                     ItemCustody.AT_STATION,
-                                    false),
+                                    true),
                             new PresetStep(
                                     "Ersatz ausgegeben",
                                     StepActor.STATION,
@@ -125,30 +124,17 @@ public class MovementFlowService {
                                     StepActor.STATION,
                                     StepSubject.OUTGOING,
                                     ItemCustody.IN_TRANSIT,
-                                    false),
-                            new PresetStep(
-                                    "Beim Träger eingetroffen",
-                                    StepActor.OWNER,
-                                    StepSubject.OUTGOING,
-                                    ItemCustody.WITH_OWNER,
                                     false))),
             new Preset(
                     "Ausgabe durch den Träger",
                     MovementPurpose.ISSUE,
                     ItemOwner.CLUSTER,
-                    List.of(
-                            new PresetStep(
-                                    "Vom Träger verschickt",
-                                    StepActor.OWNER,
-                                    StepSubject.INCOMING,
-                                    ItemCustody.IN_TRANSIT,
-                                    true),
-                            new PresetStep(
-                                    "Bei der Wache eingetroffen",
-                                    StepActor.STATION,
-                                    StepSubject.INCOMING,
-                                    ItemCustody.AT_STATION,
-                                    false))));
+                    List.of(new PresetStep(
+                            "Vom Träger erhalten",
+                            StepActor.STATION,
+                            StepSubject.INCOMING,
+                            ItemCustody.AT_STATION,
+                            true))));
 
     private final MovementFlowRepository flowRepository;
     private final ItemMovementRepository movementRepository;
@@ -208,11 +194,17 @@ public class MovementFlowService {
     }
 
     /**
-     * Which flow a movement walks, resolved once at creation.
+     * Which flow a movement walks, resolved once at creation and pinned on it.
      *
-     * <p>An item owned by a cluster that runs on this instance would walk that cluster's flow,
-     * because the owner sets its own terms and the station does not override it. No cluster runs on
-     * this instance yet, so every item currently falls through to the station's own binding.
+     * <p>The station's own binding is the answer in every case but one: gear owned by a body that
+     * runs on this instance <em>and</em> keeps its inventory here walks that body's flow, because an
+     * owner that is present sets its own terms. Both halves of that condition matter. A body that is
+     * on the instance but does not use the inventory module has nobody to acknowledge anything, so
+     * its stations behave exactly as if there were no body above them at all, and fall through to
+     * the station flows below, which carry no owner steps for precisely that reason.
+     *
+     * <p>Neither half can be true yet: nothing on this instance can own gear, so every movement
+     * falls through today. When that changes, this is the only method that has to learn about it.
      *
      * @param stationId   the station running the movement
      * @param inventoryId the inventory the movement is about

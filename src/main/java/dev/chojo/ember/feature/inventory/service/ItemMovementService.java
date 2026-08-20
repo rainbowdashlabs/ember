@@ -233,6 +233,7 @@ public class ItemMovementService {
 
         MovementFlowStep next = nextStepAfter(movement.flowId(), step.position());
         if (next == null) {
+            settleInTransit(movementRepository.findById(movementId).orElseThrow());
             movementRepository.close(movementId, MovementState.DONE, null);
             log.info("Movement {} reached the end of its flow", movementId);
         } else {
@@ -279,6 +280,7 @@ public class ItemMovementService {
 
     private ItemMovement close(ItemMovement movement, MovementState state, String reason) {
         restoreOutgoingItem(movement);
+        settleInTransit(movementRepository.findById(movement.id()).orElseThrow());
         movementRepository.close(movement.id(), state, reason);
         log.info("Movement {} closed as {} ({})", movement.id(), state, reason);
         return movementRepository.findById(movement.id()).orElseThrow();
@@ -298,6 +300,27 @@ public class ItemMovementService {
                     movement.outgoingItemId(), ItemCustody.WITH_MEMBER, movement.memberId(), null);
         } else {
             custodyService.takeBack(movement.outgoingItemId());
+        }
+    }
+
+    /**
+     * Settles anything still in the post when a movement ends.
+     *
+     * <p>An item pointing at a finished movement while claiming to be between two parties is a state
+     * nobody can act on, and it is the state a chain without the owner's steps would otherwise leave
+     * behind. It settles with its owner, which is the last thing anybody honestly knows about it: the
+     * station posted it, never got it back, and is not the one holding it.
+     *
+     * @param movement the movement as it stands at the moment it ends
+     */
+    private void settleInTransit(ItemMovement movement) {
+        for (StepSubject subject : StepSubject.values()) {
+            Integer itemId = movement.itemFor(subject);
+            if (itemId == null) continue;
+            inventoryRepository
+                    .findItemById(itemId)
+                    .filter(item -> item.custody() == ItemCustody.IN_TRANSIT)
+                    .ifPresent(item -> custodyService.applyStepCustody(item.id(), ItemCustody.WITH_OWNER, null, null));
         }
     }
 

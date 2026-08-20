@@ -120,7 +120,7 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         int replacement = item(ItemOwner.CLUSTER);
 
         ItemMovement movement = announceExchange(old);
-        assertEquals(7, itemMovementService.stepsOf(movement).size());
+        assertEquals(5, itemMovementService.stepsOf(movement).size(), "no step the station would have to invent");
 
         // Step 2 takes it back to the station, which does not own it
         movement = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", null);
@@ -138,44 +138,108 @@ class ItemMovementServiceTest extends RepositoryTestBase {
 
         movement = walkToEnd(movement, replacement);
         assertEquals(MovementState.DONE, movement.state());
-        assertEquals(ItemCustody.WITH_OWNER, custodyOf(old), "the old one ends up with the body above");
+        assertEquals(
+                ItemCustody.WITH_OWNER,
+                custodyOf(old),
+                "posted away and never seen again, so it settles with the body above rather than in the post");
+        assertNull(inventoryRepo.findItemById(old).orElseThrow().custodyMovementId());
         assertEquals(ItemCustody.WITH_MEMBER, custodyOf(replacement));
     }
 
     @Test
-    void theStationStandingInForTheOwnerIsRecordedAsStandingIn() {
+    void everyStepOfThePresetsIsOneTheStationActuallySaw() {
         int old = itemWithMember(ItemOwner.CLUSTER);
         ItemMovement movement = walkToEnd(announceExchange(old), item(ItemOwner.CLUSTER));
 
         var entries = itemMovementService.findLogs(movement.id());
         var steps = itemMovementService.stepsOf(movement);
         for (int i = 0; i < steps.size(); i++) {
-            AckKind expected = steps.get(i).actor() == StepActor.OWNER ? AckKind.ASSERTED : AckKind.CONFIRMED;
+            assertNotEquals(
+                    StepActor.OWNER,
+                    steps.get(i).actor(),
+                    "a station with nobody above it on Ember is never asked to invent a step");
             assertEquals(
-                    expected, entries.get(i).ackKind(), "step " + steps.get(i).label());
+                    AckKind.CONFIRMED,
+                    entries.get(i).ackKind(),
+                    "step " + steps.get(i).label());
             assertEquals(steps.get(i).label(), entries.get(i).stepLabel());
         }
+    }
+
+    /**
+     * A station that does want the owner's leg on the record adds those steps to its own flow. They
+     * read as asserted, because the station is standing in for somebody who cannot answer.
+     */
+    @Test
+    void aStationThatAddsTheOwnersLegAnywayHasItRecordedAsStandingIn() {
+        var flow = movementFlowService.createFlow(station.id(), "Mit Trägerbein", MovementPurpose.RETURN);
+        movementFlowService.addStep(
+                flow.id(), "Verschickt", StepActor.STATION, StepSubject.OUTGOING, ItemCustody.IN_TRANSIT, false);
+        movementFlowService.addStep(
+                flow.id(),
+                "Beim Träger angekommen",
+                StepActor.OWNER,
+                StepSubject.OUTGOING,
+                ItemCustody.WITH_OWNER,
+                false);
+        movementFlowService.bind(station.id(), null, ItemOwner.CLUSTER, MovementPurpose.RETURN, flow.id());
+
+        int gear = item(ItemOwner.CLUSTER);
+        ItemMovement movement = walkToEnd(
+                itemMovementService.create(
+                        station.id(),
+                        MovementPurpose.RETURN,
+                        null,
+                        gear,
+                        mixedInventoryId,
+                        null,
+                        null,
+                        "Nicht mehr gebraucht",
+                        team,
+                        null),
+                null);
+
+        var entries = itemMovementService.findLogs(movement.id());
+        assertEquals(AckKind.CONFIRMED, entries.get(0).ackKind());
+        assertEquals(AckKind.ASSERTED, entries.get(1).ackKind(), "the station cannot confirm what it did not see");
+        assertEquals(ItemCustody.WITH_OWNER, custodyOf(gear));
     }
 
     @Test
     void namingABodyAboveTheStationDoesNotMakeItsStepsItsOwnAnswer() {
         // The owning body is named, but nobody from its side can press anything, so the station is
         // still standing in and the record has to say so
+        var flow = movementFlowService.createFlow(station.id(), "Benanntes Trägerbein", MovementPurpose.ISSUE);
+        movementFlowService.addStep(
+                flow.id(),
+                "Vom Träger verschickt",
+                StepActor.OWNER,
+                StepSubject.INCOMING,
+                ItemCustody.AT_STATION,
+                true);
+        movementFlowService.bind(station.id(), null, ItemOwner.CLUSTER, MovementPurpose.ISSUE, flow.id());
+
         int itemId = inventoryRepo
                 .createItem(mixedInventoryId, "M-" + CODES.incrementAndGet(), "Glove", null, null, ItemOwner.CLUSTER, 7)
                 .id();
         assertEquals(7, inventoryRepo.findItemById(itemId).orElseThrow().ownerClusterId());
-        itemCustodyService.assignToMember(itemId, member.id(), "Move Ment");
 
-        ItemMovement movement = walkToEnd(announceExchange(itemId), item(ItemOwner.CLUSTER));
+        ItemMovement movement = itemMovementService.create(
+                station.id(),
+                MovementPurpose.ISSUE,
+                null,
+                null,
+                mixedInventoryId,
+                null,
+                null,
+                "Nachschub",
+                team,
+                itemId);
 
-        var entries = itemMovementService.findLogs(movement.id());
-        var steps = itemMovementService.stepsOf(movement);
-        for (int i = 0; i < steps.size(); i++) {
-            if (steps.get(i).actor() != StepActor.OWNER) continue;
-            assertEquals(
-                    AckKind.ASSERTED, entries.get(i).ackKind(), steps.get(i).label());
-        }
+        assertEquals(
+                AckKind.ASSERTED,
+                itemMovementService.findLogs(movement.id()).getFirst().ackKind(),
+                "naming the body above does not make the station's click its answer");
     }
 
     @Test
@@ -225,6 +289,7 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         assertFalse(
                 inventoryRepo.findItemsByMember(member.id()).stream().anyMatch(i -> i.id() == old),
                 "it is nobody's while it is in the post");
+        assertEquals(ItemCustody.IN_TRANSIT, custodyOf(old));
 
         // Their own list still shows it, saying which step it is standing on
         var entry = inventoryRepo.findMemberEntries(member.id()).stream()
@@ -237,7 +302,6 @@ class ItemMovementServiceTest extends RepositoryTestBase {
         assertEquals(ItemCustody.IN_TRANSIT, entry.item().custody());
 
         // And once the replacement is named it appears too, marked as the one on its way to them
-        movement = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", null);
         movement = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", replacement);
         var incoming = inventoryRepo.findMemberEntries(member.id()).stream()
                 .filter(e -> e.item().id() == replacement)
@@ -264,7 +328,7 @@ class ItemMovementServiceTest extends RepositoryTestBase {
                 "Nicht mehr gebraucht",
                 team,
                 null);
-        assertEquals(3, itemMovementService.stepsOf(movement).size());
+        assertEquals(2, itemMovementService.stepsOf(movement).size(), "announced, then posted; nothing invented");
 
         movement = walkToEnd(movement, null);
 
@@ -367,20 +431,24 @@ class ItemMovementServiceTest extends RepositoryTestBase {
 
     @Test
     void aFlowKeepsItsPresetsAndTheBindingsThatPointAtThem() {
-        var flows = movementFlowService.findFlows(station.id());
+        // Its own station, because the tests above bind flows of their own to the shared one
+        var pristine = stationRepo.create("MovementPresetStation");
+        var flows = movementFlowService.findFlows(pristine.id());
         assertEquals(4, flows.size());
         assertTrue(flows.stream().anyMatch(f -> f.purpose() == MovementPurpose.ISSUE));
         assertTrue(flows.stream().anyMatch(f -> f.purpose() == MovementPurpose.RETURN));
-        assertEquals(4, movementFlowService.findBindings(station.id()).size());
+        assertEquals(4, movementFlowService.findBindings(pristine.id()).size());
 
         var issue = flows.stream()
                 .filter(f -> f.purpose() == MovementPurpose.ISSUE)
                 .findFirst()
                 .orElseThrow();
         var steps = movementFlowService.findActiveSteps(issue.id());
-        assertEquals(2, steps.size(), "the owner sends and the station receives, with no member at either end");
-        assertEquals(StepActor.OWNER, steps.getFirst().actor());
+        assertEquals(1, steps.size(), "the station records what arrived; the sending is not its to witness");
+        assertEquals(StepActor.STATION, steps.getFirst().actor());
         assertEquals(StepSubject.INCOMING, steps.getFirst().subject());
         assertTrue(steps.getFirst().picksItem());
+
+        stationRepo.delete(pristine.id());
     }
 }

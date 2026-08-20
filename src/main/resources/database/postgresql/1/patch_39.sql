@@ -297,9 +297,17 @@ CREATE INDEX IF NOT EXISTS idx_movement_flow_step_flow
 -- Presets, seeded and bound per station. A station edits, duplicates or adds to them; nothing below
 -- is special to the code, they are ordinary rows.
 --
--- The return preset is the station's half of the chain rather than all four steps of the exchange:
--- a return is started by the station deciding it no longer needs the gear, so its first step is the
--- station's, which is also what the flow validation asks for.
+-- Not one of them has a step belonging to the body above the station. These are the flows a station
+-- reaches when that body does not run on this instance, and such a station knows exactly two things
+-- about the parcel it posted: that it sent it, and that something came back. A step asking it to
+-- tick "arrived at the owner" would be asking it to invent the event, and a recorded invention is
+-- worse than no record at all. Gear posted away and never seen again settles with its owner when
+-- the movement ends.
+--
+-- A body that does run here answers for itself, and the steps for its side belong to its own flow.
+--
+-- The old status chain mapped onto seven steps, so the migration below maps onto whatever these
+-- presets actually contain rather than onto fixed positions.
 
 INSERT INTO ember_schema.movement_flow (station_id, name, purpose)
 SELECT s.id, v.name, v.purpose
@@ -328,10 +336,8 @@ CROSS JOIN (VALUES
     (0, 'Tausch angekündigt', 'MEMBER', 'OUTGOING', 'WITH_MEMBER', FALSE),
     (1, 'Altes Teil zurückgenommen', 'STATION', 'OUTGOING', 'AT_STATION', FALSE),
     (2, 'An den Träger geschickt', 'STATION', 'OUTGOING', 'IN_TRANSIT', FALSE),
-    (3, 'Beim Träger eingetroffen', 'OWNER', 'OUTGOING', 'WITH_OWNER', FALSE),
-    (4, 'Ersatz verschickt', 'OWNER', 'INCOMING', 'IN_TRANSIT', TRUE),
-    (5, 'Ersatz erhalten', 'STATION', 'INCOMING', 'AT_STATION', FALSE),
-    (6, 'Ersatz ausgegeben', 'STATION', 'INCOMING', 'WITH_MEMBER', FALSE)
+    (3, 'Ersatz erhalten', 'STATION', 'INCOMING', 'AT_STATION', TRUE),
+    (4, 'Ersatz ausgegeben', 'STATION', 'INCOMING', 'WITH_MEMBER', FALSE)
 ) AS v(position, label, actor, subject, custody_after, picks_item)
 WHERE f.station_id IS NOT NULL AND f.name = 'Tausch (Eigentum des Trägers)';
 
@@ -340,8 +346,7 @@ SELECT f.id, v.position, v.label, v.actor, v.subject, v.custody_after, v.picks_i
 FROM ember_schema.movement_flow f
 CROSS JOIN (VALUES
     (0, 'Rückgabe angekündigt', 'STATION', 'OUTGOING', 'AT_STATION', FALSE),
-    (1, 'An den Träger geschickt', 'STATION', 'OUTGOING', 'IN_TRANSIT', FALSE),
-    (2, 'Beim Träger eingetroffen', 'OWNER', 'OUTGOING', 'WITH_OWNER', FALSE)
+    (1, 'An den Träger geschickt', 'STATION', 'OUTGOING', 'IN_TRANSIT', FALSE)
 ) AS v(position, label, actor, subject, custody_after, picks_item)
 WHERE f.station_id IS NOT NULL AND f.name = 'Rückgabe an den Träger';
 
@@ -349,8 +354,7 @@ INSERT INTO ember_schema.movement_flow_step (flow_id, position, label, actor, su
 SELECT f.id, v.position, v.label, v.actor, v.subject, v.custody_after, v.picks_item
 FROM ember_schema.movement_flow f
 CROSS JOIN (VALUES
-    (0, 'Vom Träger verschickt', 'OWNER', 'INCOMING', 'IN_TRANSIT', TRUE),
-    (1, 'Bei der Wache eingetroffen', 'STATION', 'INCOMING', 'AT_STATION', FALSE)
+    (0, 'Vom Träger erhalten', 'STATION', 'INCOMING', 'AT_STATION', TRUE)
 ) AS v(position, label, actor, subject, custody_after, picks_item)
 WHERE f.station_id IS NOT NULL AND f.name = 'Ausgabe durch den Träger';
 
@@ -418,7 +422,7 @@ LEFT JOIN LATERAL (
                            WHEN len.n <= 3 THEN 1
                            WHEN r.status = 'RECEIVED' THEN 1
                            WHEN r.status = 'SHIPPED' THEN 2
-                           WHEN r.status = 'ARRIVED' THEN 5
+                           WHEN r.status = 'ARRIVED' THEN 3
                            ELSE 0
                        END
 ) step ON TRUE;
