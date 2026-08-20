@@ -1,12 +1,22 @@
 # Changelog
 
+## v26.11.13
+
+### New Features
+
+- **Profile fields can be arranged rather than only listed.** Each field takes a whole row, a half or a third, so the short ones stand beside each other, and a new field type is a plain heading that asks for nothing and appears in no export. Under Members → Configuration a preview shows the arrangement as it will be filled in.
+
+### Fixes
+
+- **Rights stay whole.** A member manager holds everything a member manager may do, every time, rather than occasionally a part of it until the next restart. Pages that refused to open on those grounds open.
+- **A field template on the group tab lands in the chosen group.** The fields it adds belong to the group being configured and need no assigning afterwards.
+
 ## v26.11.12
 
 ### New Features
 
 - **Ember installs itself in one command.** `curl -fsSL https://ember-panel.de/install.sh | bash` asks the handful of things that differ between installations, writes the compose file, starts everything and shows the login it created. It offers a port on the machine, which is what a VPN or a local instance wants, or an existing Traefik; PostgreSQL is brought along or joined where it already runs; and the directories for the configuration, the files and the database are chosen rather than assumed.
 - **An installation can be clicked together beforehand.** Under `/install` the same questions are answered in the browser, which gives back a six-character code. The command carries only that code, so what has to reach the server is short enough to read out. The code lasts two hours, and the database password is never part of it.
-- **Profile fields can be arranged rather than only listed.** Each field takes a whole row, a half or a third, so the short ones stand beside each other, and a new field type is a plain heading that asks for nothing and appears in no export. Under Members → Configuration a preview shows the arrangement as it will be filled in.
 - **A waiting list can work with ages.** A date field set to the type date of birth gives the list an age to go by: it can refuse a registration below a minimum age, and it marks everyone still under the age for joining so they are told apart from those merely waiting their turn. Those entries can be hidden while the list is worked through. An existing date field becomes the date of birth without losing the answers already given.
 
 ### Improvements
