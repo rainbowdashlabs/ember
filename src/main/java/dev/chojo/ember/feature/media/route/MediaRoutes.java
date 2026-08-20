@@ -35,12 +35,7 @@ import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
  * pages, news and the knowledge base. Anyone who may log in may upload and pick from what they
  * uploaded themselves, which is what lets a board ticket carry a picture. Deleting outright and
  * pruning stay with the page manager.
- *
- * <p>{@link #registerPageAliases} keeps the endpoints reachable under their former
- * {@code /pages/*} addresses for one release, so a frontend bundle that outlives the backend
- * restart does not break mid-deploy. Those aliases are registered from {@code PageRoutes} rather
- * than here, because they have to be declared ahead of the {@code /pages/{pid}} routes for
- * Javalin to read "files" as a literal segment instead of a page id.
+
  */
 @Singleton
 public class MediaRoutes implements Routes {
@@ -64,18 +59,7 @@ public class MediaRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        registerLibrary(routes, prefix + "/media");
-    }
-
-    /**
-     * Registers the library under the addresses it had before it was a library. Called from
-     * {@code PageRoutes} so the literal segments land ahead of {@code /pages/{pid}}.
-     */
-    public void registerPageAliases(JavalinDefaultRoutingApi routes, String prefix) {
-        registerLibrary(routes, prefix + "/pages");
-    }
-
-    private void registerLibrary(JavalinDefaultRoutingApi routes, String base) {
+        String base = prefix + "/media";
         routes.get(base + "/file/{hash}", this::serveFile, StationPermission.LOGIN);
         routes.get(base + "/files", this::listFiles, StationPermission.LOGIN);
         routes.post(base + "/files", this::upload, StationPermission.LOGIN);

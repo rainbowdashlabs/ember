@@ -17,7 +17,6 @@ import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler;
 import dev.chojo.ember.feature.form.service.FormService;
-import dev.chojo.ember.feature.media.route.MediaRoutes;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.page.entity.StationPage;
@@ -47,7 +46,6 @@ public class PageRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(PageRoutes.class);
 
     private final PageService pageService;
-    private final MediaRoutes mediaRoutes;
     private final MediaLibraryService media;
     private final FormService formService;
     private final FormAnalyticsAssembler formAnalyticsAssembler;
@@ -58,7 +56,6 @@ public class PageRoutes implements Routes {
     @Inject
     public PageRoutes(
             PageService pageService,
-            MediaRoutes mediaRoutes,
             MediaLibraryService media,
             FormService formService,
             FormAnalyticsAssembler formAnalyticsAssembler,
@@ -66,7 +63,6 @@ public class PageRoutes implements Routes {
             AvatarService avatarService,
             Api apiConfig) {
         this.pageService = pageService;
-        this.mediaRoutes = mediaRoutes;
         this.media = media;
         this.formService = formService;
         this.formAnalyticsAssembler = formAnalyticsAssembler;
@@ -88,11 +84,8 @@ public class PageRoutes implements Routes {
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/pages", this::list, StationPermission.PAGE_EDIT);
         routes.post(prefix + "/pages", this::create, StationPermission.PAGE_EDIT);
-        // Register the literal "/pages/files" and "/pages/landing" paths BEFORE the variable
-        // "/pages/{pid}" routes so Javalin matches them as literal segments instead of trying to
-        // parse "files"/"landing" as an int page id. The media library keeps its former addresses
-        // here for one release so a stale frontend bundle does not break mid-deploy.
-        mediaRoutes.registerPageAliases(routes, prefix);
+        // Register the literal "/pages/landing" path BEFORE the variable "/pages/{pid}" routes so
+        // Javalin matches it as a literal segment instead of trying to parse "landing" as a page id.
         routes.put(prefix + "/pages/landing", this::setLandingPage, StationPermission.PAGE_MANAGER);
         routes.get(prefix + "/pages/search", this::searchPicker, StationPermission.PAGE_EDIT);
         routes.post(prefix + "/pages/member-list/resolve", this::resolveMemberList, StationPermission.PAGE_EDIT);
