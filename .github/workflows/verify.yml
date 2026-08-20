@@ -25,6 +25,7 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
+          cache: gradle
       - uses: gradle/actions/wrapper-validation@v6
       - name: Build with Gradle
         run: ./gradlew --build-cache build -x test -x spotlessCheck -x javadoc
@@ -40,11 +41,13 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
+          cache: gradle
       - name: Run repository tests
         uses: nick-fields/retry@v4
         with:
           timeout_minutes: 15
           max_attempts: 2
+          retry_wait_seconds: 60
           command: ./gradlew --build-cache testRepositories
       - name: Upload coverage data
         uses: actions/upload-artifact@v7
@@ -67,6 +70,7 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
+          cache: gradle
       # The packages are large and come from mirrors that are occasionally slow: the same step has
       # taken twenty seconds and ten minutes on consecutive runs. Keeping the downloads means a run
       # that hits the cache does not reach for a mirror at all.
@@ -120,6 +124,7 @@ jobs:
         with:
           timeout_minutes: 15
           max_attempts: 2
+          retry_wait_seconds: 60
           command: ./gradlew --build-cache testServices
       - name: Upload coverage data
         uses: actions/upload-artifact@v7
@@ -138,6 +143,7 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
+          cache: gradle
       # Tracking tests enforce that data_tracking.json is in sync with the live PG schema -
       # every DB table is tracked, no stale entries, table hashes match the live columns/FKs,
       # no UNVERIFIED statuses remain, RETAIN strategies carry a legal basis, etc. They use a
@@ -147,6 +153,7 @@ jobs:
         with:
           timeout_minutes: 15
           max_attempts: 2
+          retry_wait_seconds: 60
           command: ./gradlew --build-cache testTracking
       - name: Upload coverage data
         if: always()
@@ -166,11 +173,13 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
+          cache: gradle
       - name: Run other tests
         uses: nick-fields/retry@v4
         with:
           timeout_minutes: 15
           max_attempts: 2
+          retry_wait_seconds: 60
           command: ./gradlew --build-cache testOther
       - name: Upload coverage data
         if: always()
@@ -190,6 +199,7 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
+          cache: gradle
       - name: Download coverage data
         uses: actions/download-artifact@v8
         with:
@@ -209,6 +219,7 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
+          cache: gradle
       - name: Generate Javadoc
         run: ./gradlew javadoc
 
@@ -332,6 +343,7 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
+          cache: gradle
       - name: Check formatting and license headers
         run: ./gradlew spotlessJavaCheck
 
@@ -345,6 +357,7 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
+          cache: gradle
       - name: Check formatting and license headers
         run: ./gradlew spotlessJavascriptCheck spotlessVueCheck
 
@@ -362,6 +375,7 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
+          cache: gradle
       - name: Check locale encoding
         run: ./gradlew spotlessFrontendLocalesCheck
 
