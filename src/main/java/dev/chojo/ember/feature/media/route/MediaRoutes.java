@@ -35,7 +35,6 @@ import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
  * pages, news and the knowledge base. Anyone who may log in may upload and pick from what they
  * uploaded themselves, which is what lets a board ticket carry a picture. Deleting outright and
  * pruning stay with the page manager.
-
  */
 @Singleton
 public class MediaRoutes implements Routes {

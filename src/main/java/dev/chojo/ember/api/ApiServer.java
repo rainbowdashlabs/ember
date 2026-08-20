@@ -117,7 +117,7 @@ public class ApiServer {
             "/api/v1/station/manage/import",
             "/api/v1/station/manage/logo",
             "/api/v1/station-applications",
-            "/api/v1/pages/files",
+            "/api/v1/media/files",
             "/api/v1/kb/files/upload",
             "/api/v1/kb/files/import-document",
             "/api/v1/station/storage/backend/probe",
