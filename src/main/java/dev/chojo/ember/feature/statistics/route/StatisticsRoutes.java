@@ -141,7 +141,9 @@ public class StatisticsRoutes implements Routes {
 
         // Accounts & stations
         data.put("totalAccounts", globalInt("SELECT count(*) FROM account"));
-        data.put("totalStations", globalInt("SELECT count(*) FROM station"));
+        // A cluster's home station is a shell, not a station anybody works in: counted as a cluster instead
+        data.put("totalStations", globalInt("SELECT count(*) FROM station WHERE station_kind = 'REGULAR'"));
+        data.put("totalClusters", globalInt("SELECT count(*) FROM cluster"));
         data.put("totalMembers", globalInt("SELECT count(*) FROM station_member"));
 
         // Active sessions (logged in within 7 days)

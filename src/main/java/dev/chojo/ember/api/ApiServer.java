@@ -579,7 +579,8 @@ public class ApiServer {
     }
 
     private void handleDemoAccounts(@NotNull Context ctx) {
-        var allStations = stationRepository.findAll();
+        // A cluster's home station has no members, so it would only ever be an empty group
+        var allStations = stationRepository.findAllRegular();
         var stationGroups = new ArrayList<DemoStationGroup>();
         for (var station : allStations) {
             var members = stationMemberRepository.findByStation(station.id());
@@ -841,6 +842,7 @@ public class ApiServer {
         // cross-version compatibility) will not accidentally regress this.
         ObjectMapper mapper = JsonMapper.builder()
                 .addModule(new StationIdModule(stationRepository))
+                .addModule(new ClusterIdModule(clusterRepository))
                 .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
                 .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
                 .defaultDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX"))

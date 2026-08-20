@@ -163,17 +163,62 @@ class ClusterServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    void deletingAClusterLeavesItsHomeStationBehind() {
+    void deletingAClusterTakesItsHomeStationWithIt() {
         var cluster = service.create("Kreisverband Kurzlebig", null);
         int homeId = cluster.homeStationId();
 
-        assertTrue(clusterRepo.delete(cluster.id()));
+        assertTrue(service.delete(cluster.id()));
 
         assertTrue(service.findById(cluster.id()).isEmpty());
-        assertTrue(
-                stationRepo.findById(homeId).isPresent(),
-                "the shell outlives the row that pointed at it, and is cleared up separately");
-        stationRepo.delete(homeId);
+        assertTrue(stationRepo.findById(homeId).isEmpty(), "the shell goes with what owned it");
+    }
+
+    @Test
+    void aClusterWithStationsIsNotDeletedOutFromUnderThem() {
+        var cluster = service.create("Kreisverband Voll", null);
+        var station = stationRepo.create("Wache im Verband");
+        clusterRepo.setStationCluster(station.id(), cluster.id());
+
+        var refused = assertThrows(BadRequestResponse.class, () -> service.delete(cluster.id()));
+        assertTrue(refused.getMessage().contains("Release them first"));
+        assertTrue(service.findById(cluster.id()).isPresent());
+
+        clusterRepo.setStationCluster(station.id(), null);
+        stationRepo.delete(station.id());
+        service.delete(cluster.id());
+    }
+
+    @Test
+    void aClusterThatIsNotThereCannotBeRenamedOrDeleted() {
+        assertThrows(BadRequestResponse.class, () -> service.rename(999_999, "Egal", null));
+        assertThrows(BadRequestResponse.class, () -> service.delete(999_999));
+    }
+
+    @Test
+    void theIdentityOnTheWireIsResolvedFromTheInternalOne() {
+        var cluster = service.create("Kreisverband Kennnummer", null);
+        assertEquals(cluster.uid(), clusterRepo.resolveUid(cluster.id()));
+        assertNull(clusterRepo.resolveUid(999_999));
+    }
+
+    /**
+     * Every permission of the enum is seeded by the migration, so granting each in turn is what catches the
+     * two drifting apart.
+     */
+    @Test
+    void everyPermissionTheCodeKnowsCanActuallyBeGranted() {
+        int clusterId = freshCluster();
+        var member = service.addMember(clusterId, freshAccount().id(), ClusterUserType.CLUSTER_USER);
+
+        for (ClusterPermission permission : ClusterPermission.values()) {
+            service.grant(member.id(), permission);
+        }
+
+        assertTrue(service.resolvePermissions(member).contains(ClusterPermission.CLUSTER_ADMINISTRATOR));
+        assertFalse(
+                service.revoke(member.id(), ClusterPermission.CLUSTER_STORAGE)
+                        && service.revoke(member.id(), ClusterPermission.CLUSTER_STORAGE),
+                "revoking twice takes nothing the second time");
     }
 
     @Test

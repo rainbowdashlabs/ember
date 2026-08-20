@@ -147,8 +147,11 @@ public class SitemapRoutes implements Routes {
         ctx.result(xml);
     }
 
+    /**
+     * A cluster's home station is left out: it is a shell nobody joins, with no public presence to point at.
+     */
     private List<Station> getPublicStations() {
-        return stationRepository.findAll().stream()
+        return stationRepository.findAllRegular().stream()
                 .filter(this::hasPublicContent)
                 .toList();
     }

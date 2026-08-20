@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.cluster.repository;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.ClusterUserType;
@@ -18,6 +20,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -32,6 +35,15 @@ public class ClusterRepository {
             id, uid, name, description, home_station_id, auto_federate, theme_locked, colors_locked, \
             feel_locked, logo_locked, storage_pool_bytes, created_at""";
     private static final String MEMBER_COLUMNS = "id, cluster_id, account_id, user_type";
+
+    /**
+     * Identities change only when a cluster is created or deleted, so holding them briefly saves a query on
+     * every serialised id without any risk of going stale in a way anybody notices.
+     */
+    private final Cache<Integer, UUID> uidCache = Caffeine.newBuilder()
+            .expireAfterAccess(5, TimeUnit.MINUTES)
+            .maximumSize(1_000)
+            .build();
 
     // -- Clusters --
 
@@ -57,6 +69,20 @@ public class ClusterRepository {
                 .single(call().bind("station_id", stationId))
                 .map(Cluster.map())
                 .first();
+    }
+
+    /**
+     * The public identity of a cluster, which is what leaves the backend on the wire.
+     *
+     * @param clusterId the internal id
+     * @return the identity, or {@code null} when no such cluster exists
+     */
+    public UUID resolveUid(int clusterId) {
+        return uidCache.get(clusterId, id -> query("SELECT uid FROM cluster WHERE id = :id;")
+                .single(call().bind("id", id))
+                .map(row -> row.get("uid", StandardValueConverter.UUID_STRING))
+                .first()
+                .orElse(null));
     }
 
     public List<Cluster> findAll() {

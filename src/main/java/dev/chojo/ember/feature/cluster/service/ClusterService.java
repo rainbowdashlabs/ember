@@ -85,6 +85,32 @@ public class ClusterService {
         return clusterRepository.rename(clusterId, name.trim(), description);
     }
 
+    /**
+     * Deletes a cluster and the shell it owns.
+     *
+     * <p>Refused while any station still answers to it: releasing them is a decision with consequences at
+     * each one, and doing it wholesale as a side effect of a delete would hide those.
+     *
+     * @param clusterId the cluster
+     * @return {@code true} when it was deleted
+     * @throws BadRequestResponse when stations still belong to it
+     */
+    public boolean delete(int clusterId) {
+        Cluster cluster =
+                clusterRepository.findById(clusterId).orElseThrow(() -> new BadRequestResponse("No such cluster"));
+        List<Integer> stations = clusterRepository.findStationIds(clusterId);
+        if (!stations.isEmpty()) {
+            throw new BadRequestResponse(
+                    "This cluster still has %d station(s). Release them first.".formatted(stations.size()));
+        }
+        boolean deleted = clusterRepository.delete(clusterId);
+        if (deleted) {
+            stationRepository.delete(cluster.homeStationId());
+            log.info("Deleted cluster {} and its home station {}", clusterId, cluster.homeStationId());
+        }
+        return deleted;
+    }
+
     public Optional<Cluster> findById(int id) {
         return clusterRepository.findById(id);
     }

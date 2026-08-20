@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.station.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.page.service.PageService;
@@ -105,15 +106,22 @@ public class PublicStationRoutes implements Routes {
                 station.customThemeColors()));
     }
 
+    /**
+     * A cluster's home station is refused here rather than answered: it has no public presence, and its public
+     * toggles are not editable, so anything it could serve would be an accident.
+     */
     private Station resolveStation(Context ctx) {
         String param = ctx.pathParam("stationUid");
+        Station station;
         try {
             UUID uid = UUID.fromString(param);
-            return stationRepository.findByUid(uid).orElseThrow(NotFoundResponse::new);
+            station = stationRepository.findByUid(uid).orElseThrow(NotFoundResponse::new);
         } catch (IllegalArgumentException e) {
             // Not a UUID - try as public slug
-            return stationRepository.findBySlug(param).orElseThrow(NotFoundResponse::new);
+            station = stationRepository.findBySlug(param).orElseThrow(NotFoundResponse::new);
         }
+        if (station.stationKind() == StationKind.CLUSTER_HOME) throw new NotFoundResponse();
+        return station;
     }
 
     public record PublicStationInfo(

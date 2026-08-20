@@ -564,6 +564,10 @@ public class StationRepository {
                 .all();
     }
 
+    /**
+     * The stations that may appear as a card of their own in discovery. A cluster's home station is not one:
+     * it contributes its name to its member stations' cards instead of standing next to them.
+     */
     public List<Station> findDiscoverable(int excludeStationId, DiscoveryVisibility visA, DiscoveryVisibility visB) {
         return query("""
                 SELECT
@@ -572,6 +576,7 @@ public class StationRepository {
                     station
                 WHERE id != :exclude_id
                   AND discovery_visibility IN (:vis_a, :vis_b)
+                  AND station_kind = 'REGULAR'
                 ORDER BY name;""", STATION_COLUMNS)
                 .single(call().bind("exclude_id", excludeStationId)
                         .bind("vis_a", visA)

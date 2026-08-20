@@ -81,6 +81,7 @@ import dev.chojo.ember.feature.board.route.RemoteBoardTicketLinkRoutes;
 import dev.chojo.ember.feature.board.route.RemoteBoardTicketRoutes;
 import dev.chojo.ember.feature.board.route.RemoteBoardWebhookRoutes;
 import dev.chojo.ember.feature.checklist.route.ChecklistRoutes;
+import dev.chojo.ember.feature.cluster.ClusterModule;
 import dev.chojo.ember.feature.comment.route.EventCommentRoutes;
 import dev.chojo.ember.feature.comment.route.NoteRoutes;
 import dev.chojo.ember.feature.discovery.route.AdminDiscoveryRoutes;
@@ -294,6 +295,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(ExchangeRoutes.class);
         routesBinder.addBinding().to(MovementRoutes.class);
         routesBinder.addBinding().to(MovementFlowRoutes.class);
+        install(new ClusterModule());
         routesBinder.addBinding().to(ProcurementRoutes.class);
         routesBinder.addBinding().to(InventoryContainerRoutes.class);
         routesBinder.addBinding().to(InventoryFieldDefinitionRoutes.class);
