@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.feed.render;
 
+import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
@@ -94,6 +95,8 @@ class IcalEventRendererTest {
                 null,
                 null,
                 null,
+                null,
+                StationKind.REGULAR,
                 null);
     }
 

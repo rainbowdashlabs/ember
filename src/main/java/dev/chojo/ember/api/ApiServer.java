@@ -15,6 +15,8 @@ import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.cluster.entity.Cluster;
+import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.insights.service.BotClassifier;
 import dev.chojo.ember.feature.insights.service.PageHitRecorder;
 import dev.chojo.ember.feature.insights.service.RefererDomainExtractor;
@@ -137,6 +139,7 @@ public class ApiServer {
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
     private final StationRepository stationRepository;
+    private final ClusterRepository clusterRepository;
     private final ProfileFieldService profileFieldService;
     private final MemberGroupRepository memberGroupRepository;
     private final UserTagRepository userTagRepository;
@@ -162,6 +165,7 @@ public class ApiServer {
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
             StationRepository stationRepository,
+            ClusterRepository clusterRepository,
             ProfileFieldService profileFieldService,
             MemberGroupRepository memberGroupRepository,
             UserTagRepository userTagRepository,
@@ -184,6 +188,7 @@ public class ApiServer {
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.stationRepository = stationRepository;
+        this.clusterRepository = clusterRepository;
         this.profileFieldService = profileFieldService;
         this.memberGroupRepository = memberGroupRepository;
         this.userTagRepository = userTagRepository;
@@ -696,8 +701,22 @@ public class ApiServer {
             }
         }
 
+        // A request may name a cluster as well as a station: one person can wear both hats at once
+        Cluster cluster = null;
+        String clusterIdHeader = ctx.header("X-Cluster-Id");
+        if (clusterIdHeader != null && !clusterIdHeader.isBlank()) {
+            try {
+                cluster = clusterRepository
+                        .findByUid(UUID.fromString(clusterIdHeader))
+                        .orElseThrow(() -> new UnauthorizedResponse("Unknown cluster"));
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid X-Cluster-Id header value", e);
+                throw new UnauthorizedResponse("Invalid X-Cluster-Id header");
+            }
+        }
+
         // Resolve user session with account info and roles
-        Optional<UserSession> sessionOpt = accessManager.resolveUserSession(token, station);
+        Optional<UserSession> sessionOpt = accessManager.resolveUserSession(token, station, cluster);
         if (sessionOpt.isEmpty()) {
             throw new UnauthorizedResponse("Invalid or expired session");
         }

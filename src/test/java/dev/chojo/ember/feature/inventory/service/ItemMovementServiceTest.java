@@ -221,10 +221,20 @@ class ItemMovementServiceTest extends RepositoryTestBase {
                 true);
         movementFlowService.bind(station.id(), null, ItemOwner.CLUSTER, MovementPurpose.ISSUE, flow.id());
 
+        // A real cluster, because the item's owning cluster is a foreign key now
+        var home = stationRepo.create("Träger " + CODES.incrementAndGet());
+        int clusterId = clusterRepo.create("Kreisverband", null, home.id()).id();
         int itemId = inventoryRepo
-                .createItem(mixedInventoryId, "M-" + CODES.incrementAndGet(), "Glove", null, null, ItemOwner.CLUSTER, 7)
+                .createItem(
+                        mixedInventoryId,
+                        "M-" + CODES.incrementAndGet(),
+                        "Glove",
+                        null,
+                        null,
+                        ItemOwner.CLUSTER,
+                        clusterId)
                 .id();
-        assertEquals(7, inventoryRepo.findItemById(itemId).orElseThrow().ownerClusterId());
+        assertEquals(clusterId, inventoryRepo.findItemById(itemId).orElseThrow().ownerClusterId());
 
         ItemMovement movement = itemMovementService.create(
                 station.id(),

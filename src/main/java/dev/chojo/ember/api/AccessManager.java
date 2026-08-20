@@ -5,12 +5,16 @@
  */
 package dev.chojo.ember.api;
 
+import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountSession;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.cluster.entity.Cluster;
+import dev.chojo.ember.feature.cluster.entity.ClusterMember;
+import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.federation.contract.FederationContractCatalog;
 import dev.chojo.ember.feature.federation.contract.FederationSurface;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
@@ -33,6 +37,7 @@ import org.slf4j.LoggerFactory;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -52,6 +57,7 @@ public class AccessManager {
     private final FederationSigningService signingService;
     private final FederationReplayCache replayCache;
     private final StationRepository stationRepository;
+    private final ClusterRepository clusterRepository;
     private final FederationContractRefreshService contractRefreshService;
 
     @Inject
@@ -63,6 +69,7 @@ public class AccessManager {
             FederationSigningService signingService,
             FederationReplayCache replayCache,
             StationRepository stationRepository,
+            ClusterRepository clusterRepository,
             FederationContractRefreshService contractRefreshService) {
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -71,6 +78,7 @@ public class AccessManager {
         this.signingService = signingService;
         this.replayCache = replayCache;
         this.stationRepository = stationRepository;
+        this.clusterRepository = clusterRepository;
         this.contractRefreshService = contractRefreshService;
     }
 
@@ -87,6 +95,21 @@ public class AccessManager {
     }
 
     public Optional<UserSession> resolveUserSession(String token, Station station) {
+        return resolveUserSession(token, station, null);
+    }
+
+    /**
+     * Resolves a session, optionally for a cluster the request named as well as a station.
+     *
+     * <p>Both contexts can be live at once: a cluster manager who is also a member of one of its stations is
+     * one person wearing two hats, and refusing to carry both would make them log out to switch.
+     *
+     * @param token   the session token
+     * @param station the station the request named, or {@code null}
+     * @param cluster the cluster the request named, or {@code null}
+     * @return the session, or empty when the token is no good
+     */
+    public Optional<UserSession> resolveUserSession(String token, Station station, Cluster cluster) {
         Optional<AccountSession> sessionOpt = resolveSession(token);
         if (sessionOpt.isEmpty()) {
             return Optional.empty();
@@ -112,29 +135,77 @@ public class AccessManager {
                 StationMember member = memberOpt.get();
                 Set<StationPermission> permissions = resolveExpandedMemberPermissions(member);
                 permissions.add(StationPermission.LOGIN);
-                return Optional.of(new UserSession(
-                        account,
-                        accountSession.id(),
-                        stationId,
-                        stationUid,
-                        member,
-                        permissions,
-                        instancePermissions,
-                        accountSession.twoFactorVerifiedAt()));
+                return Optional.of(withCluster(
+                        new UserSession(
+                                account,
+                                accountSession.id(),
+                                stationId,
+                                stationUid,
+                                member,
+                                permissions,
+                                instancePermissions,
+                                accountSession.twoFactorVerifiedAt()),
+                        cluster,
+                        accountId));
             }
         }
 
         Set<StationPermission> baseline = EnumSet.noneOf(StationPermission.class);
         baseline.add(StationPermission.LOGIN);
-        return Optional.of(new UserSession(
-                account,
-                accountSession.id(),
-                stationId,
-                stationUid,
-                null,
-                baseline,
-                instancePermissions,
-                accountSession.twoFactorVerifiedAt()));
+        return Optional.of(withCluster(
+                new UserSession(
+                        account,
+                        accountSession.id(),
+                        stationId,
+                        stationUid,
+                        null,
+                        baseline,
+                        instancePermissions,
+                        accountSession.twoFactorVerifiedAt()),
+                cluster,
+                accountId));
+    }
+
+    /**
+     * Hangs the cluster context on a session that already has its station context.
+     *
+     * <p>Naming a cluster the caller is not a member of leaves them with the cluster's identity and no
+     * permissions at all, rather than an error: the request is answered by whatever route roles apply, and
+     * every cluster route asks for a permission they will not have.
+     */
+    private UserSession withCluster(UserSession session, Cluster cluster, int accountId) {
+        if (cluster == null) return session;
+        var memberOpt = clusterRepository.findMember(cluster.id(), accountId);
+        Set<ClusterPermission> permissions = memberOpt
+                .map(this::resolveExpandedClusterPermissions)
+                .orElseGet(() -> EnumSet.noneOf(ClusterPermission.class));
+        return new UserSession(
+                session.account(),
+                session.sessionId(),
+                session.stationId(),
+                session.stationUid(),
+                session.member(),
+                session.permissions(),
+                session.instancePermissions(),
+                session.twoFactorVerifiedAt(),
+                cluster.id(),
+                cluster.uid(),
+                memberOpt.orElse(null),
+                permissions);
+    }
+
+    /**
+     * Everything a cluster member may do: their user type's defaults, their own grants and the grants of the
+     * groups they are in, expanded.
+     *
+     * @param member the cluster member
+     * @return every permission they hold
+     */
+    public Set<ClusterPermission> resolveExpandedClusterPermissions(ClusterMember member) {
+        Set<ClusterPermission> held = EnumSet.noneOf(ClusterPermission.class);
+        held.addAll(clusterRepository.findMemberPermissions(member.id()));
+        held.addAll(List.of(member.userType().defaultPermissions()));
+        return ClusterPermission.expand(held);
     }
 
     /**

@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.board.service.BoardTicketService;
 import dev.chojo.ember.feature.board.service.FederatedBoardService;
 import dev.chojo.ember.feature.checklist.repository.ChecklistRepository;
 import dev.chojo.ember.feature.checklist.service.ChecklistService;
+import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
@@ -304,6 +305,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 exchangeService,
                 procurementService,
                 itemCustodyService);
+        var clusterSeeder = new DemoClusterSeeder(new ClusterService(clusterRepo, stationRepo), clusterRepo);
         var formSeeder = new DemoFormSeeder(formRepo, restrictionService);
         var notificationSeeder = new DemoNotificationSeeder(
                 notificationRepo, inventoryRepo, boardService, boardTicketService, procedureService, lendingService);
@@ -399,6 +401,7 @@ class DemoServiceTest extends RepositoryTestBase {
                         lostAndFoundSeederLocal,
                         attendanceSeeder,
                         inventorySeeder,
+                        clusterSeeder,
                         formSeeder,
                         sessionSeeder,
                         waitingListSeeder,

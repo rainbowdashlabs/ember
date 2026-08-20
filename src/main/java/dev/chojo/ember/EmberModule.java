@@ -193,6 +193,7 @@ import dev.chojo.ember.feature.system.route.UtilRoutes;
 import dev.chojo.ember.feature.system.service.DemoAttendanceSeeder;
 import dev.chojo.ember.feature.system.service.DemoBoardSeeder;
 import dev.chojo.ember.feature.system.service.DemoChecklistSeeder;
+import dev.chojo.ember.feature.system.service.DemoClusterSeeder;
 import dev.chojo.ember.feature.system.service.DemoEventSeeder;
 import dev.chojo.ember.feature.system.service.DemoFederationSeeder;
 import dev.chojo.ember.feature.system.service.DemoFormSeeder;
@@ -388,6 +389,7 @@ public class EmberModule extends AbstractModule {
         demoSeederBinder.addBinding().to(DemoLostAndFoundSeeder.class);
         demoSeederBinder.addBinding().to(DemoAttendanceSeeder.class);
         demoSeederBinder.addBinding().to(DemoInventorySeeder.class);
+        demoSeederBinder.addBinding().to(DemoClusterSeeder.class);
         demoSeederBinder.addBinding().to(DemoFormSeeder.class);
         demoSeederBinder.addBinding().to(DemoSessionSeeder.class);
         demoSeederBinder.addBinding().to(DemoWaitingListSeeder.class);

@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.station.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 
 import java.math.BigDecimal;
@@ -29,6 +30,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param discoveryShowKb      whether to show a link to the public knowledge base in discovery
  * @param setupCompletedAt     timestamp at which an administrator first marked the station setup wizard
  *                             complete, or {@code null} while the wizard still runs for new administrators
+ * @param stationKind          whether this is a station somebody joins or the shell a cluster owns
+ * @param clusterId            the cluster this station belongs to, or {@code null} when it answers to nobody
  */
 public record Station(
         int id,
@@ -59,7 +62,9 @@ public record Station(
         String country,
         BigDecimal latitude,
         BigDecimal longitude,
-        Instant setupCompletedAt) {
+        Instant setupCompletedAt,
+        StationKind stationKind,
+        Integer clusterId) {
     public static RowMapping<Station> map() {
         return row -> new Station(
                 row.getInt("id"),
@@ -90,6 +95,8 @@ public record Station(
                 row.getString("country"),
                 row.getBigDecimal("latitude"),
                 row.getBigDecimal("longitude"),
-                row.get("setup_completed_at", INSTANT_TIMESTAMP));
+                row.get("setup_completed_at", INSTANT_TIMESTAMP),
+                row.getEnum("station_kind", StationKind.class),
+                row.getObject("cluster_id", Integer.class));
     }
 }
