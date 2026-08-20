@@ -192,9 +192,15 @@ public enum StationPermission implements RouteRole {
     MEMBER_MANAGE_TAGS,
 
     /**
+     * Allows putting documents on one's own profile. Reading them needs no permission at all: they
+     * are the member's own. Putting them on somebody else's profile is {@link #MEMBER_EDIT}.
+     */
+    MEMBER_SELF_UPLOAD,
+
+    /**
      * Allows editing and create members.
      */
-    MEMBER_EDIT(MEMBER_READ),
+    MEMBER_EDIT(MEMBER_READ, MEMBER_SELF_UPLOAD),
 
     /**
      * Allows configuring the member fields config.

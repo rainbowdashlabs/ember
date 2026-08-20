@@ -14,6 +14,7 @@ import ProfileTab from './ProfileTab.vue'
 import PermissionsTab from './PermissionsTab.vue'
 import GuardiansTab from './GuardiansTab.vue'
 import InventoryTab from './InventoryTab.vue'
+import MemberDocumentsPanel from '@/components/documents/MemberDocumentsPanel.vue'
 import type { ProfileFieldChange } from '@/api/profileFieldChanges'
 import type { ProfileField } from '@/api/profileFields'
 import type { StationMember, PermissionGrant, MemberGroup, UserTag } from '@/api/types'
@@ -36,6 +37,7 @@ defineProps<{
   showManagerSection: boolean
   managers: StationMember[]
   availableManagers: StationMember[]
+  allMembers: StationMember[]
   managerValues: Map<number, Map<number, string>>
   managerUserTypesAsRoleMap: Map<number, string[]>
   fields: ProfileField[]
@@ -106,6 +108,14 @@ const activeTab = ref('profile')
     @request-exchange="$emit('request-exchange', $event)"
     @unassign="$emit('unassign', $event)"
     @reassign="$emit('reassign', $event)"
+  />
+
+  <MemberDocumentsPanel
+    v-if="activeTab === 'documents'"
+    :member-id="memberId"
+    :can-upload="canEdit"
+    :can-edit="canEdit"
+    :all-members="allMembers"
   />
 
   <NeutralContainer v-if="activeTab === 'notes'">

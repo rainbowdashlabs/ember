@@ -231,6 +231,8 @@ public class StorageQuotaService {
                 quota.quotaImagesBytes() != null ? quota.quotaImagesBytes() : storageConfig.defaultImagesBytes();
             case PAGE_FILES, PAGE_IMAGES ->
                 quota.quotaPagesBytes() != null ? quota.quotaPagesBytes() : storageConfig.defaultPagesBytes();
+            case MEMBER_DOCUMENTS ->
+                quota.quotaKbBytes() != null ? quota.quotaKbBytes() : storageConfig.defaultKbBytes();
             case IMAGE_AVATAR, IMAGE_STATION_LOGO, DOCUMENT, DISCOVERY_KEY, MAP_TILE_CACHE, DEMO_AVATAR ->
                 Long.MAX_VALUE;
         };
