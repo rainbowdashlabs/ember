@@ -165,6 +165,45 @@ test.describe('Knowledge base', () => {
     })
 
     /**
+     * A training document with a diagram beside its explanation is not a short notice, so an article
+     * can be built with the page editor instead of the single text field. The switch carries what
+     * was already written into a block rather than parsing it, and it does not go back.
+     *
+     * <p>Restoring an old version is withheld afterwards, and the story asserts that where a reader
+     * meets it: what is stored is derived from the blocks, so putting an old body back would leave
+     * the article saying one thing and built from another. Reading an old version still works.
+     */
+    test('an article switched to the page editor keeps its text and stops offering a revert',
+        async ({managerPage: page}) => {
+            const written = unique('Vor dem Umschalten')
+
+            await createFileInFolder(page)
+            const fileUrl = page.url()
+
+            await page.getByRole('button', {name: 'Bearbeiten', exact: true}).first().click()
+            const body = page.locator('.markdown-editor-content')
+            await body.click()
+            await page.keyboard.press('ControlOrMeta+a')
+            await page.keyboard.type(written)
+            await page.getByRole('button', {name: 'Speichern'}).last().click()
+            await expect(page.getByText('Ungespeicherte Änderungen')).toHaveCount(0)
+
+            await page.getByRole('button', {name: 'Bearbeiten', exact: true}).first().click()
+            await page.getByRole('button', {name: 'Mit dem Seiten-Editor schreiben'}).click()
+
+            await expect(page.getByText(written).first()).toBeVisible()
+            await expect(page.getByRole('button', {name: 'Mit dem Seiten-Editor schreiben'})).toHaveCount(0)
+
+            await page.goto(fileUrl)
+            await expect(page.getByText(written).first()).toBeVisible()
+
+            await page.getByRole('button', {name: 'Versionen'}).click()
+            await page.waitForURL(/\/station\/knowledge\/file\/\d+\/versions/)
+            await expect(page.getByTestId('kb-version').first()).toBeVisible()
+            await expect(page.getByRole('button', {name: 'Zurücksetzen'})).toHaveCount(0)
+        })
+
+    /**
      * The listing offers what the reader may actually do: a member who may only read gets the
      * search and the entries, and no create menu - the same rule the server enforces, so nothing
      * is offered that would be refused.

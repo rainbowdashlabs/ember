@@ -63,8 +63,13 @@ test.describe('Pages', () => {
         await expect(page.getByText(/Deine Antwort wurde übermittelt|bereits ausgefüllt/)).toBeVisible()
     })
 
+    /**
+     * The files a page draws on no longer live under the pages: they are the station's media, and
+     * the story follows them to their own address. What a page does with them is asserted where
+     * the library is tested, in `media.e2e.ts`.
+     */
     test('the files behind the public pages are reachable', async ({managerPage: page}) => {
-        await page.goto('/station/pages/files')
+        await page.goto('/station/media')
 
         await expect(page.getByTestId('app-shell')).toBeVisible()
     })

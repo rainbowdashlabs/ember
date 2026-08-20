@@ -364,23 +364,22 @@ class DemoServiceTest extends RepositoryTestBase {
         var demoResolver = new StorageBackendResolver(demoBackend);
         var demoStorageSvc = new StorageService(demoResolver, demoBackend);
         var demoStorage = new MediaStorageService(demoStorageSvc, stationRepo, demoBackend);
+        var demoMediaLibrary = new MediaLibraryService(
+                mediaFileRepo,
+                mediaMetaRepo,
+                demoStorage,
+                new MediaVariantService(demoStorage, demoStorageConfig),
+                new MediaReferenceRegistry(contentContainerRepo),
+                new StorageQuotaService(
+                        storageUsageRepo, new StationStorageConfigRepository(), demoStorageConfig, noOpBus));
         var pageSeeder = new DemoPageSeeder(
                 new PageService(
                         pageRepo,
                         new ContentBlockService(contentContainerRepo),
-                        new MediaLibraryService(
-                                mediaFileRepo,
-                                mediaMetaRepo,
-                                demoStorage,
-                                new MediaVariantService(demoStorage, demoStorageConfig),
-                                new MediaReferenceRegistry(contentContainerRepo),
-                                new StorageQuotaService(
-                                        storageUsageRepo,
-                                        new StationStorageConfigRepository(),
-                                        demoStorageConfig,
-                                        noOpBus)),
+                        demoMediaLibrary,
                         stationMemberRepo,
                         avatarService),
+                demoMediaLibrary,
                 formRepo,
                 quizCatalogRepo);
         var newsSeeder = new DemoNewsSeeder(newsService, stationMemberRepo);

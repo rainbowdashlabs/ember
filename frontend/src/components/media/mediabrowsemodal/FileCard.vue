@@ -26,6 +26,7 @@ const {t} = useI18n()
 
 <template>
   <div
+      data-testid="media-file"
       class="group relative flex flex-col rounded-theme border overflow-hidden text-left"
       :class="props.entry.inUse ? 'border-(--border)' : 'border-error/50 bg-error/5'"
   >

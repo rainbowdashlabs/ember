@@ -48,7 +48,8 @@ function onCheckboxClick(e: MouseEvent) {
 </script>
 
 <template>
-    <div class="relative flex flex-col rounded-theme border overflow-hidden cursor-pointer hover:border-primary transition-colors"
+    <div data-testid="media-file"
+         class="relative flex flex-col rounded-theme border overflow-hidden cursor-pointer hover:border-primary transition-colors"
          :class="entry.inUse ? 'border-(--border)' : 'border-error/50 bg-error/5'"
          @click="emit('preview-file', entry.file)">
         <div v-if="multiSelect"

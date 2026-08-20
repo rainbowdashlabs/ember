@@ -3,8 +3,38 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect} from './fixtures/auth'
+import {test, expect, type Page} from './fixtures/auth'
 import {unique} from './fixtures/unique'
+
+/**
+ * A file the demo seeder puts in the station library. The stack these stories run against is a
+ * public demo, which does not take uploads from whoever walks in, so an attachment is picked out of
+ * the library rather than brought along.
+ */
+const SEEDED_FILE = 'fahrzeug.png'
+
+/**
+ * Writes an entry and leaves the browser on its edit page, which is where the stories below start.
+ * The list is the only place an entry can be opened from, so the walk goes through it.
+ */
+async function writeArticle(page: Page, title: string, body: string): Promise<string> {
+    await page.goto('/station/news')
+    await page.getByRole('button', {name: 'Neuigkeit erstellen'}).click()
+    await page.waitForURL(/\/station\/news\/create/)
+
+    await page.getByPlaceholder('Titel der Neuigkeit').fill(title)
+    const editor = page.locator('[contenteditable="true"]').first()
+    await editor.click()
+    await page.keyboard.type(body)
+    await page.getByRole('button', {name: /Speichern|Veröffentlichen|Erstellen/}).last().click()
+
+    await page.goto('/station/news')
+    await page.getByText(title).first().click()
+    await page.waitForURL(/\/station\/news\/\d+/)
+    const detailUrl = page.url()
+    await page.goto(`${detailUrl}/edit`)
+    return detailUrl
+}
 
 test.describe('News', () => {
     test('an article is written and appears in the list', async ({managerPage: page}) => {
@@ -85,6 +115,52 @@ test.describe('News', () => {
         await page.goto('/station/news')
         await expect(page.getByText(renamed).first()).toBeVisible()
         await expect(page.getByText(article)).toHaveCount(0)
+    })
+
+    /**
+     * An entry can hand a file over, which it could not before: authors used to paste a link to a
+     * file living somewhere else. The story attaches one out of the station library and reads the
+     * entry back as a member would, where the attachment is offered under the text rather than
+     * buried inside it.
+     */
+    test('a file attached to an article is offered under it', async ({managerPage: page}) => {
+        const article = unique('Protokoll')
+        const detailUrl = await writeArticle(page, article, 'Das Protokoll hängt an.')
+
+        await page.getByRole('button', {name: 'Datei anhängen'}).click()
+        await page.getByTestId('media-file').filter({hasText: SEEDED_FILE}).first().click()
+
+        await expect(page.getByText(SEEDED_FILE).first()).toBeVisible()
+        await page.getByRole('button', {name: /Speichern/}).last().click()
+
+        // The attachment is written after the entry itself, and the editor leaves for the list only
+        // once both are through. Reading the entry before that races the attachment being stored.
+        await page.waitForURL(/\/station\/news$/)
+
+        await page.goto(detailUrl)
+        const download = page.getByRole('link', {name: new RegExp(SEEDED_FILE)})
+        await expect(download).toBeVisible()
+        await expect(download).toHaveAttribute('href', /\/api\/v1\/public\/media\//)
+    })
+
+    /**
+     * A longer entry can be built with the page editor instead of the single text field. The switch
+     * carries the text already written into a block rather than parsing it, and it does not go
+     * back, so the story asserts both: the text survives, and the offer to switch is gone.
+     */
+    test('an article switched to the page editor keeps its text', async ({managerPage: page}) => {
+        const article = unique('Bericht')
+        const written = 'Vor dem Umschalten geschrieben.'
+        await writeArticle(page, article, written)
+
+        await page.getByRole('button', {name: 'Mit dem Seiten-Editor schreiben'}).click()
+
+        await expect(page.getByText(written).first()).toBeVisible()
+        await expect(page.getByRole('button', {name: 'Mit dem Seiten-Editor schreiben'})).toHaveCount(0)
+
+        await page.reload()
+        await expect(page.getByText(written).first()).toBeVisible()
+        await expect(page.getByRole('button', {name: 'Mit dem Seiten-Editor schreiben'})).toHaveCount(0)
     })
 
     test('a member reads the news of their station', async ({memberPage: page}) => {
