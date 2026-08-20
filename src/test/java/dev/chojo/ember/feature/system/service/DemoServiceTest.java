@@ -170,7 +170,12 @@ class DemoServiceTest extends RepositoryTestBase {
         var kbCompression = new TextCompressionPolicy(kbStorageConfig);
         var kbFileStorage = new KbFileStorageService(kbStorageSvc, stationRepo, kbBackend, kbCompression);
         var kbSearchService = new KbSearchService(knowledgeBaseRepo, stationRepo);
-        var kbContentService = new KbContentService(knowledgeBaseRepo, kbFileStorage, kbSearchService);
+        var kbContentService = new KbContentService(
+                knowledgeBaseRepo,
+                new ContentBlockService(contentContainerRepo),
+                stationRepo,
+                kbFileStorage,
+                kbSearchService);
         var kbCommentService =
                 new KbCommentService(knowledgeBaseRepo, kbCommentRepo, memberIdentityFactory, memberSvc, noOpBus);
         var kbService = new KnowledgeBaseService(

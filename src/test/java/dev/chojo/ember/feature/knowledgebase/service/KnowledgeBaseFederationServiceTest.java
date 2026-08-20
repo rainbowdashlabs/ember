@@ -10,6 +10,7 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
+import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.FederationTestContracts;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
@@ -83,7 +84,12 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         var storageConfig = new Storage();
         var fileStorage = mock(KbFileStorageService.class);
         var searchService = new KbSearchService(knowledgeBaseRepo, stationRepo);
-        contentService = new KbContentService(knowledgeBaseRepo, fileStorage, searchService);
+        contentService = new KbContentService(
+                knowledgeBaseRepo,
+                new ContentBlockService(contentContainerRepo),
+                stationRepo,
+                fileStorage,
+                searchService);
         kbService = new KnowledgeBaseService(
                 knowledgeBaseRepo,
                 fileStorage,

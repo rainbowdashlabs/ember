@@ -2996,6 +2996,9 @@ volumes:
                 rawText: 'Mit dem Code-Button ganz rechts in der Werkzeugleiste kannst du den Roh-Markdown anzeigen und bearbeiten. So siehst du genau, was gespeichert wird.',
                 tip: 'Tipp: Du kannst die meisten Formatierungen auch mit Tastenkürzel machen - z.B. Strg+B für fett, Strg+I für kursiv.',
                 demoTitle: 'Beispiel: So sieht formatierter Text aus',
+                blocksTitle: 'Mit dem Seiten-Editor schreiben',
+                blocksText: 'Für längere Artikel kannst du einen Markdown-Artikel auf den Seiten-Editor umstellen: Zeilen und Spalten, Bilder neben dem Text, Hinweiskästen, Galerien, Code-Blöcke. Dein bisheriger Text wandert in einen einzelnen Textblock und geht nicht verloren.',
+                blocksKeepsText: 'Suche, PDF-Export und Versionsverlauf funktionieren weiter: gespeichert wird bei jedem Speichern der aus den Blöcken erzeugte Text. Alte Stände kannst du deshalb ansehen, aber nicht wiederherstellen, und der Weg zurück zum einfachen Textfeld ist nicht vorgesehen.',
             },
         },
         adminOverview: {
@@ -3822,6 +3825,8 @@ volumes:
             restoreTitle: 'Frühere Version wiederherstellen',
             restoreText: 'Mit dem Wiederherstellen-Button kannst du eine ältere Version wieder aktivieren. Die aktuelle Version bleibt dabei erhalten.',
             revertConfirmText: 'Vor dem Wiederherstellen wirst du in einem Dialog gefragt, ob du sicher bist.',
+            blocksTitle: 'Artikel aus Blöcken',
+            blocksText: 'Bei einem Artikel, der mit dem Seiten-Editor geschrieben wurde, kannst du alte Stände ansehen, aber nicht wiederherstellen. Gespeichert wird der aus den Blöcken erzeugte Text - nach dem Zurücksetzen würde der Artikel etwas anderes sagen, als seine Blöcke ergeben.',
             current: 'aktuell',
             tip: 'Der Versionsverlauf ist nur für Markdown-Dateien verfügbar, nicht für PDFs oder Bilder.',
         },
