@@ -3183,6 +3183,7 @@ export default {
     stationSelect: {
         title: 'Wache auswählen',
         subtitle: 'Bitte wähle eine Wache aus, um fortzufahren.',
+        clusterHint: 'Oder weiter zu einem Verband:',
     },
     stationSwitcher: {
         title: 'Wache wechseln',
@@ -3190,6 +3191,7 @@ export default {
         allStations: 'Alle Wachen',
     },
     crossStation: {
+        clusters: 'Verbände',
         title: 'Übersicht',
         subtitle: 'Alle Wachen auf einen Blick',
         notifications: 'Benachrichtigungen',
