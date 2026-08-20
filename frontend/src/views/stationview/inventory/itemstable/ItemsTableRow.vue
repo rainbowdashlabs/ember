@@ -12,7 +12,7 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import Td from '@/components/table/Td.vue'
 import TRow from '@/components/table/TRow.vue'
-import {ItemSource, type InventoryItem} from '@/api/inventory'
+import {ItemOwner, type InventoryItem} from '@/api/inventory'
 import type { MemberIdentity } from '@/api/types'
 import type { InventoryItemActionEmits } from '../itemEmits'
 import ItemActions from './ItemActions.vue'
@@ -60,8 +60,8 @@ const { t } = useI18n()
     <Td muted>{{ item.internalId || '–' }}</Td>
     <Td v-if="hasSizes"><SizeBadge v-if="sizeLabel" :lost="!!item.lostAt">{{ sizeLabel }}</SizeBadge></Td>
     <Td v-if="isMixed">
-      <PrimaryBadge v-if="item.itemSource === ItemSource.INTERNAL">{{ t('inventory.edit.sourceInternal') }}</PrimaryBadge>
-      <SecondaryBadge v-else-if="item.itemSource === ItemSource.EXTERNAL">{{ t('inventory.edit.sourceExternal') }}</SecondaryBadge>
+      <PrimaryBadge v-if="item.ownerKind === ItemOwner.STATION">{{ t('inventory.edit.ownerStation') }}</PrimaryBadge>
+      <SecondaryBadge v-else-if="item.ownerKind === ItemOwner.CLUSTER">{{ t('inventory.edit.ownerCluster') }}</SecondaryBadge>
       <span v-else class="text-(--text-muted)">–</span>
     </Td>
     <Td v-if="showAssigned">

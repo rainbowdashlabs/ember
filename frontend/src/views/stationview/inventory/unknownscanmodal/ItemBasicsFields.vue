@@ -8,16 +8,16 @@ import {useI18n} from 'vue-i18n'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import {ItemSource} from '@/api/inventory'
+import {ItemOwner, type ItemOwnerName} from '@/api/inventory'
 
 const itemName = defineModel<string>('itemName', {required: true})
 const pickedSize = defineModel<string>('pickedSize', {required: true})
-const itemSource = defineModel<'INTERNAL' | 'EXTERNAL'>('itemSource', {required: true})
+const ownerKind = defineModel<ItemOwnerName>('ownerKind', {required: true})
 
 defineProps<{
   showSizePicker: boolean
   sizeLabels: string[]
-  showSourcePicker: boolean
+  showOwnerPicker: boolean
 }>()
 
 const {t} = useI18n()
@@ -43,14 +43,14 @@ const {t} = useI18n()
     </SelectInput>
   </div>
 
-  <div v-if="showSourcePicker" class="space-y-1">
-    <FieldLabel>{{ t('inventory.unknownScan.itemSource') }}</FieldLabel>
+  <div v-if="showOwnerPicker" class="space-y-1">
+    <FieldLabel>{{ t('inventory.unknownScan.itemOwner') }}</FieldLabel>
     <SelectInput
-        :model-value="itemSource"
-        @update:model-value="(v: string | number | null | undefined) => itemSource = String(v ?? '') as 'INTERNAL' | 'EXTERNAL'"
+        :model-value="ownerKind"
+        @update:model-value="(v: string | number | null | undefined) => ownerKind = String(v ?? '') as ItemOwnerName"
     >
-      <option :value="ItemSource.INTERNAL">{{ t('inventory.unknownScan.sources.INTERNAL') }}</option>
-      <option :value="ItemSource.EXTERNAL">{{ t('inventory.unknownScan.sources.EXTERNAL') }}</option>
+      <option :value="ItemOwner.STATION">{{ t('inventory.unknownScan.owners.STATION') }}</option>
+      <option :value="ItemOwner.CLUSTER">{{ t('inventory.unknownScan.owners.CLUSTER') }}</option>
     </SelectInput>
   </div>
 </template>

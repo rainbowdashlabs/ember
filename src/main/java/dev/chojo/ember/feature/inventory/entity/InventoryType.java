@@ -6,19 +6,20 @@
 package dev.chojo.ember.feature.inventory.entity;
 
 /**
- * Defines the ownership model for items in an inventory.
+ * Says which owners may appear in an inventory. It is never consulted to decide what happens to an
+ * item: what happens to an item follows from that item's own {@link ItemOwner}.
  */
 public enum InventoryType {
     /**
-     * All items are owned by the organization.
+     * Only items the station owns itself.
      */
     INTERNAL,
     /**
-     * All items are owned by individual members.
+     * Only items the body above the station owns.
      */
     EXTERNAL,
     /**
-     * Items may be owned by the organization or individual members.
+     * Both owners may appear side by side.
      */
     MIXED
 }

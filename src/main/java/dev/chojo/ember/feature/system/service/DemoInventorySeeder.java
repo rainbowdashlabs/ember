@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemFieldValues;
+import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.repository.ExchangeRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
@@ -305,67 +306,73 @@ public class DemoInventorySeeder implements DemoSeeder {
         for (var member : allKids) {
             int idx = allKids.indexOf(member);
 
-            // Helm (MIXED, no size) - station-provided = INTERNAL
+            // Helm (mixed inventory, no size) - provided by the station itself
             var helmItem = inventoryRepository.createItem(
                     helm.id(),
                     "H-" + String.format("%03d", itemCounter++),
                     "Helm",
                     null,
                     null,
-                    InventoryItem.ItemSource.INTERNAL);
+                    ItemOwner.STATION,
+                    null);
             inventoryRepository.assignItem(helmItem.id(), member.id());
 
-            // Blouson (EXTERNAL)
+            // Blouson (provided by the body above the station)
             var blousonItem = inventoryRepository.createItem(
                     blouson.id(),
                     "BL-" + String.format("%03d", itemCounter++),
                     "Blouson",
                     blousonSizeList.get(idx % blousonSizeList.size()).id(),
                     null,
-                    InventoryItem.ItemSource.EXTERNAL);
+                    ItemOwner.CLUSTER,
+                    null);
             inventoryRepository.assignItem(blousonItem.id(), member.id());
 
-            // Parka (EXTERNAL)
+            // Parka (provided by the body above the station)
             var parkaItem = inventoryRepository.createItem(
                     parka.id(),
                     "PA-" + String.format("%03d", itemCounter++),
                     "Parka",
                     parkaSizeList.get(idx % parkaSizeList.size()).id(),
                     null,
-                    InventoryItem.ItemSource.EXTERNAL);
+                    ItemOwner.CLUSTER,
+                    null);
             inventoryRepository.assignItem(parkaItem.id(), member.id());
 
-            // Latzhose (EXTERNAL)
+            // Latzhose (provided by the body above the station)
             var latzItem = inventoryRepository.createItem(
                     latzhose.id(),
                     "LH-" + String.format("%03d", itemCounter++),
                     "Latzhose",
                     latzhoseSizeList.get(idx % latzhoseSizeList.size()).id(),
                     null,
-                    InventoryItem.ItemSource.EXTERNAL);
+                    ItemOwner.CLUSTER,
+                    null);
             inventoryRepository.assignItem(latzItem.id(), member.id());
 
-            // Handschuhe (MIXED) - station-provided = INTERNAL
+            // Handschuhe (mixed inventory) - provided by the station itself
             var handschuhItem = inventoryRepository.createItem(
                     handschuhe.id(),
                     "HS-" + String.format("%03d", itemCounter++),
                     "Handschuhe",
                     handschuheSizeList.get(idx % handschuheSizeList.size()).id(),
                     null,
-                    InventoryItem.ItemSource.INTERNAL);
+                    ItemOwner.STATION,
+                    null);
             inventoryRepository.assignItem(handschuhItem.id(), member.id());
 
-            // Stiefel (INTERNAL)
+            // Stiefel (station-owned)
             var stiefelItem = inventoryRepository.createItem(
                     stiefel.id(),
                     "ST-" + String.format("%03d", itemCounter++),
                     "Stiefel",
                     stiefelSizeList.get(idx % stiefelSizeList.size()).id(),
                     null,
-                    InventoryItem.ItemSource.INTERNAL);
+                    ItemOwner.STATION,
+                    null);
             inventoryRepository.assignItem(stiefelItem.id(), member.id());
 
-            // T-Shirt (INTERNAL, 2 per member)
+            // T-Shirt (station-owned, 2 per member)
             for (int t = 0; t < 2; t++) {
                 var tshirtItem = inventoryRepository.createItem(
                         tshirt.id(),
@@ -373,11 +380,12 @@ public class DemoInventorySeeder implements DemoSeeder {
                         "T-Shirt",
                         tshirtSizeList.get(idx % tshirtSizeList.size()).id(),
                         null,
-                        InventoryItem.ItemSource.INTERNAL);
+                        ItemOwner.STATION,
+                        null);
                 inventoryRepository.assignItem(tshirtItem.id(), member.id());
             }
 
-            // Sporttasche (INTERNAL, ~70% get one, rest need procurement)
+            // Sporttasche (station-owned, ~70% get one, rest need procurement)
             if (rng.nextInt(10) < 7) {
                 var tasche = inventoryRepository.createItem(
                         sporttasche.id(),
@@ -385,12 +393,13 @@ public class DemoInventorySeeder implements DemoSeeder {
                         "Sporttasche",
                         null,
                         null,
-                        InventoryItem.ItemSource.INTERNAL);
+                        ItemOwner.STATION,
+                        null);
                 inventoryRepository.assignItem(tasche.id(), member.id());
             }
         }
 
-        // Add some unassigned spare items (INTERNAL)
+        // Add some unassigned spare items, all station-owned
         for (int i = 0; i < 5; i++) {
             inventoryRepository.createItem(
                     helm.id(),
@@ -398,7 +407,8 @@ public class DemoInventorySeeder implements DemoSeeder {
                     "Helm Ersatz",
                     null,
                     null,
-                    InventoryItem.ItemSource.INTERNAL);
+                    ItemOwner.STATION,
+                    null);
         }
         for (int i = 0; i < 3; i++) {
             inventoryRepository.createItem(
@@ -407,20 +417,22 @@ public class DemoInventorySeeder implements DemoSeeder {
                     "Sporttasche Ersatz",
                     null,
                     null,
-                    InventoryItem.ItemSource.INTERNAL);
+                    ItemOwner.STATION,
+                    null);
         }
 
-        // Add one personally owned Handschuh per size (MIXED → EXTERNAL = personally owned)
+        // One glove per size provided by the body above the station, in the same mixed inventory
         var handschuhSizeListOwned = inventoryRepository.findSizes(handschuhe.id());
         for (var size : handschuhSizeListOwned) {
             var kid = allKids.get(rng.nextInt(allKids.size()));
             var ownedGlove = inventoryRepository.createItem(
                     handschuhe.id(),
                     "HS-" + String.format("%03d", itemCounter++),
-                    "Handschuhe (eigen) " + size.label(),
+                    "Handschuhe (Kreisverband) " + size.label(),
                     size.id(),
-                    new InventoryItemMetadata(true),
-                    InventoryItem.ItemSource.EXTERNAL);
+                    null,
+                    ItemOwner.CLUSTER,
+                    null);
             inventoryRepository.assignItem(ownedGlove.id(), kid.id());
         }
 
@@ -639,7 +651,7 @@ public class DemoInventorySeeder implements DemoSeeder {
                     item.internalId(),
                     item.name(),
                     item.sizeId(),
-                    new InventoryItemMetadata(false, new ItemFieldValues(values)));
+                    new InventoryItemMetadata(new ItemFieldValues(values)));
             idx++;
         }
         log.info("Demo: Seeded custom fields and storage containers for inventories {} and {}", stiefelId, helmId);

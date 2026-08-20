@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.inventory.entity.InventoryRequirement;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventorySummary;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
@@ -34,7 +35,7 @@ public class InventoryRepository {
     private static final String INVENTORY_COLUMNS = "id, station_id, name, inventory_type, has_sizes";
     private static final String INVENTORY_SIZE_COLUMNS = "id, inventory_id, label, position, note";
     private static final String INVENTORY_ITEM_COLUMNS =
-            "id, inventory_id, internal_id, name, size_id, metadata, assigned_to, lost_at, item_source, container_id";
+            "id, inventory_id, internal_id, name, size_id, metadata, assigned_to, lost_at, owner_kind, owner_cluster_id, container_id";
     private static final String INVENTORY_ITEM_HISTORY_COLUMNS =
             "id, item_id, member_id, member_name, given_out, returned";
     private static final String INVENTORY_REQUIREMENT_COLUMNS =
@@ -321,7 +322,7 @@ public class InventoryRepository {
     }
 
     /**
-     * Creates a new inventory item with the default item source.
+     * Creates a new inventory item owned by the station running the inventory.
      *
      * @param inventoryId the inventory ID
      * @param internalId  the internal identifier
@@ -332,18 +333,20 @@ public class InventoryRepository {
      */
     public InventoryItem createItem(
             int inventoryId, String internalId, String name, Integer sizeId, InventoryItemMetadata metadata) {
-        return createItem(inventoryId, internalId, name, sizeId, metadata, null);
+        return createItem(inventoryId, internalId, name, sizeId, metadata, ItemOwner.STATION, null);
     }
 
     /**
-     * Creates a new inventory item with a specified item source.
+     * Creates a new inventory item with a named owner.
      *
-     * @param inventoryId the inventory ID
-     * @param internalId  the internal identifier
-     * @param name        the item name
-     * @param sizeId      the size ID, or {@code null}
-     * @param metadata    JSON metadata
-     * @param itemSource  the item source (internal or external), or {@code null} for default
+     * @param inventoryId    the inventory ID
+     * @param internalId     the internal identifier
+     * @param name           the item name
+     * @param sizeId         the size ID, or {@code null}
+     * @param metadata       JSON metadata
+     * @param ownerKind      who owns the item, or {@code null} for the station
+     * @param ownerClusterId the owning body when it runs on this instance, only ever set for
+     *                       {@link ItemOwner#CLUSTER}
      * @return the created item
      */
     public InventoryItem createItem(
@@ -352,18 +355,21 @@ public class InventoryRepository {
             String name,
             Integer sizeId,
             InventoryItemMetadata metadata,
-            InventoryItem.ItemSource itemSource) {
+            ItemOwner ownerKind,
+            Integer ownerClusterId) {
+        ItemOwner owner = ownerKind != null ? ownerKind : ItemOwner.STATION;
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO inventory_item(inventory_id, internal_id, name, size_id, metadata, item_source)
-                VALUES (:inventory_id, :internal_id, :name, :size_id, :metadata::JSONB, :item_source)
+                INSERT INTO inventory_item(inventory_id, internal_id, name, size_id, metadata, owner_kind, owner_cluster_id)
+                VALUES (:inventory_id, :internal_id, :name, :size_id, :metadata::JSONB, :owner_kind, :owner_cluster_id)
                 RETURNING %s;""",
                 call().bind("inventory_id", inventoryId)
                         .bind("internal_id", internalId)
                         .bind("name", name)
                         .bind("size_id", sizeId)
                         .bind("metadata", (metadata != null ? metadata : InventoryItemMetadata.empty()).toJson())
-                        .bind("item_source", itemSource),
+                        .bind("owner_kind", owner)
+                        .bind("owner_cluster_id", owner == ItemOwner.CLUSTER ? ownerClusterId : null),
                 InventoryItem.map(),
                 INVENTORY_ITEM_COLUMNS);
     }

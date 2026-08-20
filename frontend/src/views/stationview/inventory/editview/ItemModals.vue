@@ -19,7 +19,7 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
-import {ItemSource, type InventoryDetail, type InventoryItem, type InventoryItemHistory} from '@/api/inventory'
+import {ItemOwner, type InventoryDetail, type InventoryItem, type InventoryItemHistory} from '@/api/inventory'
 import type {StationMember} from '@/api/types'
 import {inventory, inventoryFields} from '@/api'
 import {useModalTarget} from '@/composables/useModalTarget'
@@ -89,7 +89,7 @@ const {running: itemSaving, run: saveItem} = useAsyncAction(async () => {
       name: itemName.value,
       internalId: normalisedInternalId || undefined,
       sizeId: itemSizeId.value ? Number(itemSizeId.value) : undefined,
-      metadata: buildItemMetadata(fieldDefs.value, fieldValues.value, false),
+      metadata: buildItemMetadata(fieldDefs.value, fieldValues.value),
     }
     const count = Math.max(1, Math.min(itemQuantity.value, 100))
     for (let i = 0; i < count; i++) {
@@ -136,8 +136,8 @@ async function submitQuickAssign() {
     const item = await inventory.createItem(props.detail.id, {
       name: props.detail.name ?? '',
       sizeId,
-      metadata: {owned: false, fields: {}},
-      itemSource: ItemSource.EXTERNAL,
+      metadata: {fields: {}},
+      ownerKind: ItemOwner.CLUSTER,
     })
     await inventory.assignItem(item.id, {memberId, memberName})
     showQuickAssignModal.value = false

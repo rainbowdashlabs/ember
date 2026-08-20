@@ -13,8 +13,13 @@
 - **Mail left behind by a stopped delivery can be sent again.** The overview no longer only counts them: it lists each one and offers to put it back in the queue, singly or all at once. Mail that is being sent right now stays untouched.
 - **The waiting list shows the date of birth in its own column and sorts by any of them.** Every column heading sorts, the list still opens on the highest score, and a column picked afterwards starts at the top of its own order.
 
+### Changes
+
+- **An item says who owns it.** Every piece of gear is recorded as belonging either to the station itself or to the body above it, the municipality or the district association, in place of the internal and external labels it carried before. Members are no longer offered as owners, because gear a member bought was never tracked here.
+
 ### Fixes
 
+- **Exchanged gear the station does not own.** In an inventory holding gear of both owners, completing an exchange put the returned item into the station's free stock even when the station had never owned it. The exchange now follows the owner recorded on the item.
 - **A profile field made for a group stays with that group.** It appears under its group and can be filled in there. Fields that ended up without a group are offered for assignment at the top of the group tab under Members → Configuration.
 - **Answers in the waiting list read the way they were given.** A date appears as a date and a yes as a yes, in every column a list has been set to show.
 

@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:cabd3062f8f7644a545d48b15165fa6dd6d5d2db23df7bbd7bb176a5f2c285c0",
-  "generatedAt" : "2026-08-19T20:23:26Z",
+  "schemaHash" : "sha256:937fe26899cf02db0012630a70b7a72f7b231616f2395f3ac5b257448bb4dac7",
+  "generatedAt" : "2026-08-20T16:47:18Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -7535,7 +7535,7 @@
     "inventory_item" : {
       "feature" : "inventory",
       "scope" : "STATION",
-      "tableHash" : "sha256:6d56720e904d63cf3e1aebf87247c8004b2cce2b7eb0b1cf67913506d4ea8b63",
+      "tableHash" : "sha256:72272b2015f14a52987e31c511413ffb07048ebd5900162cebd6fffa7929a778",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -7585,17 +7585,23 @@
         "verified" : true,
         "description" : "When the item was marked as lost. NULL if not lost."
       }, {
-        "name" : "item_source",
-        "type" : "text",
-        "nullable" : true,
-        "verified" : true,
-        "description" : "Where the item came from (e.g. purchased, donated)."
-      }, {
         "name" : "container_id",
         "type" : "int4",
         "nullable" : true,
         "verified" : true,
         "description" : "Optional reference to the container that physically holds this item. NULL means unlocated. An item with a container is not assigned to a member; the two states are mutually exclusive via the inventory_item_assigned_xor_in_container CHECK. ON DELETE SET NULL keeps the item even if the container is deleted."
+      }, {
+        "name" : "owner_kind",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Who owns the item: STATION for the station running its inventory, CLUSTER for the one body above that station."
+      }, {
+        "name" : "owner_cluster_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The owning body when it runs on this instance, null when it owns the item without using Ember. Only ever set for CLUSTER."
       } ],
       "foreignKeys" : [ {
         "column" : "assigned_to",

@@ -10,7 +10,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SizeBadge from '@/components/badge/SizeBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
-import {InventoryTypes, ItemSource, type InventoryItem, type InventorySize} from '@/api/inventory'
+import {InventoryTypes, ItemOwner, type InventoryItem, type InventorySize} from '@/api/inventory'
 import type { StationMember } from '@/api/types'
 import type { LentOutItem } from '@/api/lending'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
@@ -97,8 +97,8 @@ function getMemberIdentity(memberId: number | null | undefined) {
       <div class="grid grid-cols-1 gap-1 text-xs">
         <div v-if="item.internalId" class="text-(--text-muted)">{{ t('inventory.edit.colId') }}: {{ item.internalId }}</div>
         <div v-if="isMixed">
-          <PrimaryBadge v-if="item.itemSource === ItemSource.INTERNAL">{{ t('inventory.edit.sourceInternal') }}</PrimaryBadge>
-          <SecondaryBadge v-else-if="item.itemSource === ItemSource.EXTERNAL">{{ t('inventory.edit.sourceExternal') }}</SecondaryBadge>
+          <PrimaryBadge v-if="item.ownerKind === ItemOwner.STATION">{{ t('inventory.edit.ownerStation') }}</PrimaryBadge>
+          <SecondaryBadge v-else-if="item.ownerKind === ItemOwner.CLUSTER">{{ t('inventory.edit.ownerCluster') }}</SecondaryBadge>
         </div>
         <div v-if="item.assignedTo">
           <span class="text-(--text-muted)">{{ t('inventory.edit.colAssigned') }}:</span>

@@ -15,12 +15,16 @@ export const InventoryTypes = {
 
 export type InventoryTypeName = (typeof InventoryTypes)[keyof typeof InventoryTypes]
 
-export const ItemSource = {
-    INTERNAL: 'INTERNAL',
-    EXTERNAL: 'EXTERNAL',
+/**
+ * Who owns an item: the station running its inventory, or the one body above that station.
+ * Members never own tracked items.
+ */
+export const ItemOwner = {
+    STATION: 'STATION',
+    CLUSTER: 'CLUSTER',
 } as const
 
-export type ItemSourceName = (typeof ItemSource)[keyof typeof ItemSource]
+export type ItemOwnerName = (typeof ItemOwner)[keyof typeof ItemOwner]
 
 export interface Inventory {
     id: number
@@ -68,12 +72,12 @@ export interface InventoryItem {
     metadata?: string | ItemMetadata | null
     assignedTo?: number | null
     lostAt?: string | null
-    itemSource?: string | null
+    ownerKind?: ItemOwnerName | null
+    ownerClusterId?: number | null
     containerId?: number | null
 }
 
 export interface ItemMetadata {
-    owned: boolean
     fields: Record<string, {kind: string; value: unknown}>
 }
 
@@ -82,7 +86,8 @@ export interface ItemRequest {
     name?: string
     sizeId?: number
     metadata?: ItemMetadata
-    itemSource?: string
+    ownerKind?: ItemOwnerName
+    ownerClusterId?: number | null
 }
 
 export interface AssignRequest {

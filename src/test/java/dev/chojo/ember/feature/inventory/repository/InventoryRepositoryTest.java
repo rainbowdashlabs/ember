@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.inventory.entity.InventoryItemHistory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
 import dev.chojo.ember.feature.inventory.entity.InventoryRequirement;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -151,7 +152,7 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(23)
     void updateItem() {
-        assertTrue(inventoryRepo.updateItem(itemId, "H-002", "Blue Helmet", sizeId, new InventoryItemMetadata(true)));
+        assertTrue(inventoryRepo.updateItem(itemId, "H-002", "Blue Helmet", sizeId, InventoryItemMetadata.empty()));
         InventoryItem updated = inventoryRepo.findItemById(itemId).orElseThrow();
         assertEquals("H-002", updated.internalId());
         assertEquals("Blue Helmet", updated.name());
@@ -314,15 +315,36 @@ class InventoryRepositoryTest extends RepositoryTestBase {
         inventoryRepo.deleteItem(item.id());
     }
 
-    // -- createItem with ItemSource --
+    // -- createItem with an owner --
 
     @Test
     @Order(49)
-    void createItemWithItemSource() {
-        InventoryItem item = inventoryRepo.createItem(
-                inventoryId, "SRC-001", "Sourced Item", null, null, InventoryItem.ItemSource.EXTERNAL);
+    void createItemWithOwner() {
+        InventoryItem item =
+                inventoryRepo.createItem(inventoryId, "SRC-001", "Owned Item", null, null, ItemOwner.CLUSTER, null);
         assertNotNull(item);
-        assertEquals(InventoryItem.ItemSource.EXTERNAL, item.itemSource());
+        assertEquals(ItemOwner.CLUSTER, item.ownerKind());
+        assertNull(item.ownerClusterId());
+        assertFalse(item.ownedByStation());
+        inventoryRepo.deleteItem(item.id());
+    }
+
+    @Test
+    @Order(50)
+    void createItemDefaultsToTheStation() {
+        InventoryItem item = inventoryRepo.createItem(inventoryId, "SRC-002", "Station Item", null, null);
+        assertEquals(ItemOwner.STATION, item.ownerKind());
+        assertNull(item.ownerClusterId());
+        assertTrue(item.ownedByStation());
+        inventoryRepo.deleteItem(item.id());
+    }
+
+    @Test
+    @Order(51)
+    void stationOwnedItemNeverCarriesACluster() {
+        InventoryItem item =
+                inventoryRepo.createItem(inventoryId, "SRC-003", "Station Item", null, null, ItemOwner.STATION, 7);
+        assertNull(item.ownerClusterId());
         inventoryRepo.deleteItem(item.id());
     }
 

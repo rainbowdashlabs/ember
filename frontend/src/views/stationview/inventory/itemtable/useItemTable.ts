@@ -6,7 +6,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {listFields, type InventoryFieldDefinition} from '@/api/inventoryFields'
-import {ItemSource, type InventoryItem} from '@/api/inventory'
+import {ItemOwner, type InventoryItem} from '@/api/inventory'
 import type { ColumnPickerOption } from '@/components/table/columns'
 import { byValue, useSortable } from '@/composables/useSortable'
 import { formatDate } from '@/util/format'
@@ -57,7 +57,7 @@ export function useItemTable(options: ItemTableOptions) {
     { key: 'name', label: t('inventory.edit.colName') },
     { key: 'internalId', label: t('inventory.edit.colId') },
     ...(options.hasSizes() ? [{ key: 'size', label: t('inventory.edit.colSize') }] : []),
-    ...(options.isMixed() ? [{ key: 'source', label: t('inventory.edit.colSource') }] : []),
+    ...(options.isMixed() ? [{ key: 'owner', label: t('inventory.edit.colOwner') }] : []),
     { key: 'assigned', label: t('inventory.edit.colAssigned') },
   ])
 
@@ -112,9 +112,9 @@ export function useItemTable(options: ItemTableOptions) {
     }
   }
 
-  function sourceLabel(item: InventoryItem): string {
-    if (item.itemSource === ItemSource.INTERNAL) return t('inventory.edit.sourceInternal')
-    if (item.itemSource === ItemSource.EXTERNAL) return t('inventory.edit.sourceExternal')
+  function ownerLabel(item: InventoryItem): string {
+    if (item.ownerKind === ItemOwner.STATION) return t('inventory.edit.ownerStation')
+    if (item.ownerKind === ItemOwner.CLUSTER) return t('inventory.edit.ownerCluster')
     return ''
   }
 
@@ -123,7 +123,7 @@ export function useItemTable(options: ItemTableOptions) {
       case 'name': return item.name ?? ''
       case 'internalId': return item.internalId ?? ''
       case 'size': return options.sizeLabel(item)
-      case 'source': return sourceLabel(item)
+      case 'owner': return ownerLabel(item)
       case 'assigned': return item.assignedTo ? options.assignedName(item) : ''
       default: return fieldValue(item, key.slice(FIELD_PREFIX.length))
     }

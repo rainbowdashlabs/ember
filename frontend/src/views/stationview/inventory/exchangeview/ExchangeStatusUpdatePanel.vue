@@ -11,7 +11,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import {ExchangeStatus, type ExchangeRequestEntry, type ExchangeStatusName} from '@/api/exchanges'
-import {InventoryTypes, ItemSource, type InventoryItem} from '@/api/inventory'
+import {InventoryTypes, ItemOwner, type InventoryItem} from '@/api/inventory'
 import { exchanges, inventory, procurement } from '@/api'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -48,7 +48,7 @@ const {running: updateSaving, run: runStatusUpdate} = useAsyncAction(async () =>
       name: newItemName.value.trim(),
       internalId: '',
       sizeId: props.request.newSizeId ?? props.request.oldSizeId ?? undefined,
-      itemSource: ItemSource.EXTERNAL,
+      ownerKind: ItemOwner.CLUSTER,
     })
     exchangedItemId = newItem.id
   }

@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
 import dev.chojo.ember.feature.inventory.entity.InventoryRequirement;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.service.InventoryCheckService;
 import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryExportService;
@@ -520,14 +521,13 @@ public class InventoryRoutes implements Routes {
         if (isBlank(request.name())) {
             throw new BadRequestResponse("name is required");
         }
-        InventoryItem.ItemSource source =
-                request.itemSource() != null ? request.itemSource() : InventoryItem.ItemSource.INTERNAL;
-        StationPermission required = source == InventoryItem.ItemSource.EXTERNAL
+        ItemOwner owner = request.ownerKind() != null ? request.ownerKind() : ItemOwner.STATION;
+        StationPermission required = owner == ItemOwner.CLUSTER
                 ? StationPermission.INVENTORY_CREATE_EXTERNAL
                 : StationPermission.INVENTORY_CREATE_INTERNAL;
         if (!session.hasPermission(required)) {
-            throw new ForbiddenResponse("Missing permission " + required.name() + " to create "
-                    + source.name().toLowerCase() + " items");
+            throw new ForbiddenResponse("Missing permission " + required.name() + " to create items owned by "
+                    + owner.name().toLowerCase());
         }
         ctx.status(HttpStatus.CREATED)
                 .json(inventoryService.createItem(
@@ -536,7 +536,8 @@ public class InventoryRoutes implements Routes {
                         request.name(),
                         request.sizeId(),
                         request.metadata(),
-                        source));
+                        owner,
+                        request.ownerClusterId()));
     }
 
     @OpenApi(
@@ -922,7 +923,8 @@ public class InventoryRoutes implements Routes {
             String name,
             Integer sizeId,
             InventoryItemMetadata metadata,
-            InventoryItem.ItemSource itemSource) {}
+            ItemOwner ownerKind,
+            Integer ownerClusterId) {}
 
     public record AssignRequest(Integer memberId, String memberName) {}
 

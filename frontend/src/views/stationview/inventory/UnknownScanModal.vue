@@ -14,7 +14,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import UnknownScanForm from '@/views/stationview/inventory/unknownscanmodal/UnknownScanForm.vue'
 import {buildItemMetadata} from '@/views/stationview/inventory/detailview/itemMetadata'
-import {InventoryTypes, ItemSource, type Inventory, type InventoryItem, type InventorySize, type ItemMetadata} from '@/api/inventory'
+import {InventoryTypes, ItemOwner, type Inventory, type InventoryItem, type InventorySize, type ItemMetadata, type ItemOwnerName} from '@/api/inventory'
 import {inventory, inventoryFields} from '@/api'
 import type {InventoryFieldDefinition} from '@/api/inventoryFields'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -44,7 +44,7 @@ const newInventoryHasSizes = ref(false)
 const newInventorySizes = ref<string[]>([''])
 
 const itemName = ref('')
-const itemSource = ref<'INTERNAL' | 'EXTERNAL'>(ItemSource.INTERNAL)
+const ownerKind = ref<ItemOwnerName>(ItemOwner.STATION)
 
 const availableSizes = ref<InventorySize[]>([])
 const pickedSizeLabel = ref<string>('')
@@ -67,7 +67,7 @@ const sizeOptionLabels = computed(() => {
   if (isCreatingInventory.value) return cleanedNewSizes.value
   return availableSizes.value.map(s => s.label).filter((l): l is string => !!l)
 })
-const showSourcePicker = computed(() => {
+const showOwnerPicker = computed(() => {
   if (isCreatingInventory.value) return newInventoryType.value === InventoryTypes.MIXED
   return selectedInventory.value?.inventoryType === InventoryTypes.MIXED
 })
@@ -98,8 +98,8 @@ watch(selectedInventory, async (inv) => {
   fieldDefs.value = []
   if (!inv) return
   itemName.value = inv.name ?? ''
-  if (inv.inventoryType === InventoryTypes.EXTERNAL) itemSource.value = ItemSource.EXTERNAL
-  else if (inv.inventoryType === InventoryTypes.INTERNAL) itemSource.value = ItemSource.INTERNAL
+  if (inv.inventoryType === InventoryTypes.EXTERNAL) ownerKind.value = ItemOwner.CLUSTER
+  else if (inv.inventoryType === InventoryTypes.INTERNAL) ownerKind.value = ItemOwner.STATION
   try {
     const [sizes, defs] = await Promise.all([
       inv.hasSizes ? inventory.listSizes(inv.id) : Promise.resolve([] as InventorySize[]),
@@ -143,7 +143,7 @@ function removeNewSizeRow(index: number) {
 
 function buildMetadata(): ItemMetadata | undefined {
   if (fieldDefs.value.length === 0) return undefined
-  const built = buildItemMetadata(fieldDefs.value, fieldValues.value, false)
+  const built = buildItemMetadata(fieldDefs.value, fieldValues.value)
   return Object.keys(built.fields).length === 0 ? undefined : built
 }
 
@@ -213,7 +213,7 @@ const {running: submitting, error: submitError, run: runSubmit} = useAsyncAction
   const item = await inventory.createItem(inventoryId, {
     internalId: props.scannedCode,
     name: itemName.value.trim(),
-    itemSource: itemSource.value,
+    ownerKind: ownerKind.value,
     sizeId,
     metadata: buildMetadata(),
   })
@@ -263,13 +263,13 @@ load()
         v-model:newInventorySizes="newInventorySizes"
         v-model:itemName="itemName"
         v-model:pickedSizeLabel="pickedSizeLabel"
-        v-model:itemSource="itemSource"
+        v-model:ownerKind="ownerKind"
         v-model:fieldValues="fieldValues"
         :sortedInventories="sortedInventories"
         :isCreatingInventory="isCreatingInventory"
         :effectiveHasSizes="effectiveHasSizes"
         :sizeOptionLabels="sizeOptionLabels"
-        :showSourcePicker="showSourcePicker"
+        :showOwnerPicker="showOwnerPicker"
         :fieldDefs="fieldDefs"
         @addNewSize="addNewSizeRow"
         @removeNewSize="removeNewSizeRow"

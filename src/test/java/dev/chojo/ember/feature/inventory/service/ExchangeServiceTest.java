@@ -9,6 +9,7 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -142,6 +143,47 @@ class ExchangeServiceTest extends RepositoryTestBase {
                 station.id(), member.id(), "Exch Tester", null, inventoryId, sizeM.id(), null, "Delete test", null);
         assertTrue(service.delete(exchange.id()));
         assertTrue(service.findById(exchange.id()).isEmpty());
+    }
+
+    @Test
+    @Order(21)
+    void completingAnExchangeOfOwnerOwnedGearDoesNotMakeItTheStations() {
+        var mixed = inventoryRepo.create(station.id(), "Handschuhe", InventoryType.MIXED, false);
+        var ownerItem = inventoryRepo.createItem(mixed.id(), "HS-C", "Glove", null, null, ItemOwner.CLUSTER, null);
+        inventoryRepo.assignItem(ownerItem.id(), member.id());
+        var replacement = inventoryRepo.createItem(mixed.id(), "HS-C2", "Glove", null, null, ItemOwner.CLUSTER, null);
+
+        var exchange = service.create(
+                station.id(), member.id(), "Exch Tester", ownerItem.id(), mixed.id(), null, null, "Worn", null);
+        service.updateStatus(exchange.id(), ExchangeStatus.DONE, member.id(), "Completed", replacement.id());
+
+        // The old item leaves the station's stock rather than turning up unassigned in it
+        assertTrue(inventoryRepo.findItemById(ownerItem.id()).isEmpty());
+        assertFalse(inventoryRepo.findUnassignedItems(mixed.id()).stream().anyMatch(i -> i.id() == ownerItem.id()));
+        assertEquals(
+                member.id(),
+                inventoryRepo.findItemById(replacement.id()).orElseThrow().assignedTo());
+
+        inventoryRepo.delete(mixed.id());
+    }
+
+    @Test
+    @Order(22)
+    void completingAnExchangeOfStationOwnedGearReturnsItToTheFreePool() {
+        var mixed = inventoryRepo.create(station.id(), "Handschuhe", InventoryType.MIXED, false);
+        var ownItem = inventoryRepo.createItem(mixed.id(), "HS-S", "Glove", null, null, ItemOwner.STATION, null);
+        inventoryRepo.assignItem(ownItem.id(), member.id());
+        var replacement = inventoryRepo.createItem(mixed.id(), "HS-S2", "Glove", null, null, ItemOwner.STATION, null);
+
+        var exchange = service.create(
+                station.id(), member.id(), "Exch Tester", ownItem.id(), mixed.id(), null, null, "Worn", null);
+        service.updateStatus(exchange.id(), ExchangeStatus.DONE, member.id(), "Completed", replacement.id());
+
+        var old = inventoryRepo.findItemById(ownItem.id()).orElseThrow();
+        assertNull(old.assignedTo());
+        assertTrue(inventoryRepo.findUnassignedItems(mixed.id()).stream().anyMatch(i -> i.id() == ownItem.id()));
+
+        inventoryRepo.delete(mixed.id());
     }
 
     @Test

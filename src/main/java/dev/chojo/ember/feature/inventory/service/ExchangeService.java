@@ -12,7 +12,6 @@ import dev.chojo.ember.feature.inventory.entity.ExchangeLog;
 import dev.chojo.ember.feature.inventory.entity.ExchangeRequest;
 import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
-import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.repository.ExchangeRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import io.javalin.http.BadRequestResponse;
@@ -210,26 +209,25 @@ public class ExchangeService {
     }
 
     /**
-     * Completes an exchange by handling old item disposal (delete for external, unassign for internal)
-     * and assigning the replacement item to the member.
+     * Completes an exchange by disposing of the old item and assigning the replacement to the member.
+     *
+     * <p>What happens to the old item follows from that item's own owner, never from the type of the
+     * inventory it sits in. An inventory may hold both owners at once, and reading the inventory
+     * instead of the item is how gear the station does not own used to end up in the station's free
+     * pool.
      *
      * @param request         the exchange request being completed
      * @param exchangedItemId the replacement item ID, or {@code null}
      */
     private void completeExchange(ExchangeRequest request, Integer exchangedItemId) {
-        var inventory = inventoryRepository.findById(request.inventoryId()).orElse(null);
-        if (inventory == null) return;
-
-        var type = inventory.inventoryType();
-
-        // Handle old item
         if (request.itemId() != null) {
-            if (type == InventoryType.EXTERNAL) {
-                // External: delete old item
-                inventoryRepository.deleteItem(request.itemId());
-            } else {
-                // Internal/Mixed: unassign old item (returns to free pool, with history)
-                inventoryService.assignItem(request.itemId(), null, "");
+            var item = inventoryRepository.findItemById(request.itemId()).orElse(null);
+            if (item != null && !item.ownedByStation()) {
+                // Owned by the body above the station: it leaves this station's stock entirely
+                inventoryRepository.deleteItem(item.id());
+            } else if (item != null) {
+                // Station-owned: unassign the old item, which returns it to the free pool with history
+                inventoryService.assignItem(item.id(), null, "");
             }
         }
 

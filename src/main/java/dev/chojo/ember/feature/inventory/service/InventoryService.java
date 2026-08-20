@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.inventory.entity.InventoryRequirement;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventorySummary;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -250,14 +251,15 @@ public class InventoryService {
     }
 
     /**
-     * Creates a new inventory item with a specified item source.
+     * Creates a new inventory item with a named owner.
      *
-     * @param inventoryId the inventory ID
-     * @param internalId  the internal identifier
-     * @param name        the item name
-     * @param sizeId      the size ID, or {@code null}
-     * @param metadata    JSON metadata
-     * @param itemSource  the item source
+     * @param inventoryId    the inventory ID
+     * @param internalId     the internal identifier
+     * @param name           the item name
+     * @param sizeId         the size ID, or {@code null}
+     * @param metadata       JSON metadata
+     * @param ownerKind      who owns the item
+     * @param ownerClusterId the owning body when it runs on this instance, or {@code null} when it does not
      * @return the created item
      */
     public InventoryItem createItem(
@@ -266,16 +268,18 @@ public class InventoryService {
             String name,
             Integer sizeId,
             InventoryItemMetadata metadata,
-            InventoryItem.ItemSource itemSource) {
-        InventoryItem item =
-                inventoryRepository.createItem(inventoryId, internalId, name, sizeId, metadata, itemSource);
+            ItemOwner ownerKind,
+            Integer ownerClusterId) {
+        InventoryItem item = inventoryRepository.createItem(
+                inventoryId, internalId, name, sizeId, metadata, ownerKind, ownerClusterId);
         log.info(
-                "Created item {} (name='{}', internalId='{}', sizeId={}, source={}) in inventory {}",
+                "Created item {} (name='{}', internalId='{}', sizeId={}, owner={}, ownerClusterId={}) in inventory {}",
                 item.id(),
                 name,
                 internalId,
                 sizeId,
-                itemSource,
+                ownerKind,
+                ownerClusterId,
                 inventoryId);
         return item;
     }

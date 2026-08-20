@@ -7,9 +7,9 @@ package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
-import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -154,7 +154,7 @@ class InventoryServiceTest extends RepositoryTestBase {
     void updateItem() {
         var inv = service.create(station.id(), "UpdateItem Inv", InventoryType.INTERNAL, false);
         var item = service.createItem(inv.id(), "UI-001", "Original Name", null, null);
-        var updated = service.updateItem(item.id(), "UI-002", "Updated Name", null, new InventoryItemMetadata(true));
+        var updated = service.updateItem(item.id(), "UI-002", "Updated Name", null, InventoryItemMetadata.empty());
         assertTrue(updated.isPresent());
         assertEquals("Updated Name", updated.get().name());
         assertEquals("UI-002", updated.get().internalId());
@@ -274,10 +274,15 @@ class InventoryServiceTest extends RepositoryTestBase {
 
     @Test
     @Order(70)
-    void createItemWithSource() {
-        var inv = service.create(station.id(), "Source Inv", InventoryType.INTERNAL, false);
-        var item = service.createItem(inv.id(), "SI-001", "Source Item", null, null, InventoryItem.ItemSource.EXTERNAL);
+    void createItemWithOwner() {
+        var inv = service.create(station.id(), "Owner Inv", InventoryType.MIXED, false);
+        var item = service.createItem(inv.id(), "SI-001", "Owner Item", null, null, ItemOwner.CLUSTER, null);
         assertNotNull(item);
+        assertEquals(ItemOwner.CLUSTER, item.ownerKind());
+        assertFalse(item.ownedByStation());
+
+        var own = service.createItem(inv.id(), "SI-002", "Station Item", null, null, ItemOwner.STATION, null);
+        assertTrue(own.ownedByStation());
         service.delete(inv.id());
     }
 

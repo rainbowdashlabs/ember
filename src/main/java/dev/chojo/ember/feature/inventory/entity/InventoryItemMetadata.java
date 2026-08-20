@@ -14,26 +14,18 @@ import static org.slf4j.LoggerFactory.getLogger;
 /**
  * Structured metadata associated with an inventory item, persisted as JSONB.
  *
- * @param owned  whether the item is personally owned by the assigned member (for MIXED inventories)
  * @param fields per-inventory custom field values keyed by field key; never {@code null}
  */
-public record InventoryItemMetadata(boolean owned, ItemFieldValues fields) {
+public record InventoryItemMetadata(ItemFieldValues fields) {
     private static final Logger log = getLogger(InventoryItemMetadata.class);
     private static final ObjectMapper MAPPER = Json.CONFIG_MAPPER;
-    private static final InventoryItemMetadata EMPTY = new InventoryItemMetadata(false, ItemFieldValues.empty());
+    private static final InventoryItemMetadata EMPTY = new InventoryItemMetadata(ItemFieldValues.empty());
 
     /**
      * Normalises a {@code null} field-values container to {@link ItemFieldValues#empty()}.
      */
     public InventoryItemMetadata {
         fields = fields == null ? ItemFieldValues.empty() : fields;
-    }
-
-    /**
-     * Backwards-compatible single-argument constructor for the {@code owned} flag.
-     */
-    public InventoryItemMetadata(boolean owned) {
-        this(owned, ItemFieldValues.empty());
     }
 
     public static InventoryItemMetadata empty() {
