@@ -13,9 +13,9 @@ import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
 import dev.chojo.ember.feature.media.service.ImageVariantService;
+import dev.chojo.ember.feature.media.service.MediaStorageService;
+import dev.chojo.ember.feature.media.service.MediaVariantService;
 import dev.chojo.ember.feature.members.route.TransferRoutes;
-import dev.chojo.ember.feature.page.service.PageFileStorageService;
-import dev.chojo.ember.feature.page.service.PageImageVariantService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.service.StationExportService;
 import dev.chojo.ember.feature.station.service.StationImportService;
@@ -87,8 +87,8 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
     private static Path sharedDataRoot;
     private static StorageService storageService;
     private static AvatarService avatarService;
-    private static PageFileStorageService pageFileStorageService;
-    private static PageImageVariantService pageImageVariantService;
+    private static MediaStorageService mediaStorageService;
+    private static MediaVariantService mediaVariantService;
     private static StationStorageConfigRepository configRepo;
     private static CredentialCipher credentialCipher;
 
@@ -106,8 +106,8 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         storageService = new StorageService(resolver, sharedBackend);
         var imageVariantService = new ImageVariantService(storageService);
         avatarService = new AvatarService(imageVariantService);
-        pageFileStorageService = new PageFileStorageService(storageService, stationRepo, sharedBackend);
-        pageImageVariantService = new PageImageVariantService(pageFileStorageService, new Storage());
+        mediaStorageService = new MediaStorageService(storageService, stationRepo, sharedBackend);
+        mediaVariantService = new MediaVariantService(mediaStorageService, new Storage());
 
         configRepo = new StationStorageConfigRepository();
         credentialCipher = new CredentialCipher(Base64.getEncoder().encodeToString(new byte[32]));
@@ -116,7 +116,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
 
         exportService = new StationExportService(stationRepo, new Api());
         var fileImporter = new TransferFileImporter(
-                storageService, avatarService, imageVariantService, pageFileStorageService, pageImageVariantService);
+                storageService, avatarService, imageVariantService, mediaStorageService, mediaVariantService);
         var stationImporter = new StationTableImporter(stationRepo);
         importService = new StationImportService(
                 stationRepo,
@@ -166,8 +166,8 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
     void localTransferCopiesFiles() throws Exception {
         Station source = stationRepo.create("Source LOCAL");
         byte[] fileBytes = "hello world".getBytes(StandardCharsets.UTF_8);
-        String contentHash = PageFileStorageService.hash(fileBytes);
-        pageFileStorageService.store(source.id(), contentHash, fileBytes, "text/plain");
+        String contentHash = MediaStorageService.hash(fileBytes);
+        mediaStorageService.store(source.id(), contentHash, fileBytes, "text/plain");
 
         String token = rawToken(exportService.createTransferToken(source.id()));
 
@@ -175,7 +175,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         waitForImport(importResult.stationId());
 
         int destinationId = importResult.stationId();
-        var carried = pageFileStorageService.read(destinationId, contentHash);
+        var carried = mediaStorageService.read(destinationId, contentHash);
         assertTrue(carried.isPresent(), "destination should carry the file");
         assertArrayEquals(fileBytes, carried.get().data(), "bytes round-trip unchanged");
 
@@ -310,17 +310,17 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         Assumptions.assumeTrue(WebpEncoder.isAvailable(), "cwebp not available - skipping image-transfer regen check");
         Station source = stationRepo.create("Source IMAGE");
         byte[] png = pngBytes(800, 600);
-        String contentHash = PageFileStorageService.hash(png);
-        pageFileStorageService.store(source.id(), contentHash, png, "image/png");
-        pageImageVariantService.generateVariants(source.id(), contentHash, png, "image/png");
+        String contentHash = MediaStorageService.hash(png);
+        mediaStorageService.store(source.id(), contentHash, png, "image/png");
+        mediaVariantService.generateVariants(source.id(), contentHash, png, "image/png");
 
         var sourceScope = new StorageScope.Station(source.id(), source.uid());
-        List<String> sourceKeys = storageService.listKeys(sourceScope, StorageCategory.PAGE_FILES, "");
+        List<String> sourceKeys = storageService.listKeys(sourceScope, StorageCategory.MEDIA_FILES, "");
         assertTrue(
                 sourceKeys.stream().anyMatch(k -> k.endsWith("/w128.webp")),
                 "source must have actually generated WebP variants (test precondition)");
 
-        List<String> filtered = StationTransferAssetRoutes.originalsOnly(StorageCategory.PAGE_FILES, sourceKeys);
+        List<String> filtered = StationTransferAssetRoutes.originalsOnly(StorageCategory.MEDIA_FILES, sourceKeys);
         assertEquals(List.of(contentHash + "/orig.png"), filtered, "wire payload must be the original only");
 
         String token = rawToken(exportService.createTransferToken(source.id()));
@@ -328,14 +328,14 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         waitForImport(importResult.stationId());
 
         int destinationId = importResult.stationId();
-        var carried = pageFileStorageService.read(destinationId, contentHash);
+        var carried = mediaStorageService.read(destinationId, contentHash);
         assertTrue(carried.isPresent(), "destination should carry the original");
         assertEquals("image/png", carried.get().contentType());
 
         Station destination =
                 stationRepo.findById(destinationId).orElseThrow(() -> new AssertionError("destination missing"));
         var destinationScope = new StorageScope.Station(destinationId, destination.uid());
-        List<String> destinationKeys = storageService.listKeys(destinationScope, StorageCategory.PAGE_FILES, "");
+        List<String> destinationKeys = storageService.listKeys(destinationScope, StorageCategory.MEDIA_FILES, "");
         assertTrue(
                 destinationKeys.stream().anyMatch(k -> k.endsWith("/w128.webp")),
                 "destination must have regenerated WebP variants from the transferred original");

@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.news.route;
 
 import com.rometools.rome.feed.synd.SyndContent;
 import com.rometools.rome.feed.synd.SyndContentImpl;
+import com.rometools.rome.feed.synd.SyndEnclosure;
+import com.rometools.rome.feed.synd.SyndEnclosureImpl;
 import com.rometools.rome.feed.synd.SyndEntry;
 import com.rometools.rome.feed.synd.SyndEntryImpl;
 import com.rometools.rome.feed.synd.SyndFeed;
@@ -25,9 +27,11 @@ import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.news.entity.News;
+import dev.chojo.ember.feature.news.entity.NewsAttachment;
 import dev.chojo.ember.feature.news.entity.NewsComment;
 import dev.chojo.ember.feature.news.entity.NewsViewer;
 import dev.chojo.ember.feature.news.entity.NewsVisibilityRole;
+import dev.chojo.ember.feature.news.service.NewsAttachmentService;
 import dev.chojo.ember.feature.news.service.NewsFederationService;
 import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -66,6 +70,7 @@ import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 @Singleton
 public class NewsRoutes implements Routes {
     private final NewsService newsService;
+    private final NewsAttachmentService attachmentService;
     private final NewsFederationService newsFederationService;
     private final StationRepository stationRepository;
     private final MemberNameResolver memberNameResolver;
@@ -75,12 +80,14 @@ public class NewsRoutes implements Routes {
     @Inject
     public NewsRoutes(
             NewsService newsService,
+            NewsAttachmentService attachmentService,
             NewsFederationService newsFederationService,
             StationRepository stationRepository,
             MemberNameResolver memberNameResolver,
             MemberIdentityFactory memberIdentityFactory,
             EmailService emailService) {
         this.newsService = newsService;
+        this.attachmentService = attachmentService;
         this.newsFederationService = newsFederationService;
         this.stationRepository = stationRepository;
         this.memberNameResolver = memberNameResolver;
@@ -106,6 +113,14 @@ public class NewsRoutes implements Routes {
         routes.post(prefix + "/news/{id}/comments", this::createComment, StationPermission.LOGIN);
         routes.put(prefix + "/news/comments/{commentId}", this::updateComment, StationPermission.LOGIN);
         routes.delete(prefix + "/news/comments/{commentId}", this::deleteComment, StationPermission.LOGIN);
+
+        routes.post(
+                prefix + "/news/attachments/{attachmentId}/label",
+                this::relabelAttachment,
+                StationPermission.NEWS_EDIT);
+        routes.delete(prefix + "/news/attachments/{attachmentId}", this::detachAttachment, StationPermission.NEWS_EDIT);
+        routes.post(prefix + "/news/{id}/attachments", this::attachFile, StationPermission.NEWS_EDIT);
+        routes.put(prefix + "/news/{id}/attachments/order", this::reorderAttachments, StationPermission.NEWS_EDIT);
 
         routes.post(prefix + "/news/{id}/view", this::recordView, StationPermission.LOGIN);
         routes.get(prefix + "/news/{id}/view-count", this::getViewCount, StationPermission.NEWS_EDIT);
@@ -263,6 +278,49 @@ public class NewsRoutes implements Routes {
     }
 
     /**
+     * Resolves an attachment and asserts the entry it hangs off belongs to the caller's station,
+     * so an attachment id from one station cannot be relabelled or detached from another.
+     */
+    private NewsAttachment requireOwnedAttachment(Context ctx, int attachmentId) {
+        var attachment = attachmentService.find(attachmentId).orElseThrow(NotFoundResponse::new);
+        requireOwnedOrNotFound(ctx, attachment.newsId(), newsService::findById, News::stationId);
+        return attachment;
+    }
+
+    private void attachFile(Context ctx) {
+        int id = pathInt(ctx, "id");
+        var session = UserSession.from(ctx);
+        requireOwnedOrNotFound(ctx, id, newsService::findById, News::stationId);
+        var request = ctx.bodyAsClass(AttachmentRequest.class);
+        if (request.fileId() == null) throw new BadRequestResponse("fileId is required");
+        ctx.status(HttpStatus.CREATED)
+                .json(attachmentService.attach(id, session.stationId(), request.fileId(), request.label()));
+    }
+
+    private void relabelAttachment(Context ctx) {
+        int attachmentId = pathInt(ctx, "attachmentId");
+        requireOwnedAttachment(ctx, attachmentId);
+        var request = ctx.bodyAsClass(AttachmentRequest.class);
+        if (!attachmentService.relabel(attachmentId, request.label())) throw new NotFoundResponse();
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    private void reorderAttachments(Context ctx) {
+        int id = pathInt(ctx, "id");
+        requireOwnedOrNotFound(ctx, id, newsService::findById, News::stationId);
+        var request = ctx.bodyAsClass(AttachmentOrderRequest.class);
+        attachmentService.reorder(id, request.attachmentIds() != null ? request.attachmentIds() : List.of());
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    private void detachAttachment(Context ctx) {
+        int attachmentId = pathInt(ctx, "attachmentId");
+        requireOwnedAttachment(ctx, attachmentId);
+        if (!attachmentService.detach(attachmentId)) throw new NotFoundResponse();
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /**
      * Converts a {@link News} entity to an API response, resolving the author name, comment
      * count, and view stats for the requesting member.
      *
@@ -287,6 +345,7 @@ public class NewsRoutes implements Routes {
         }
         int commentCount = newsService.countComments(news.id());
         int viewCount = newsService.countViews(news.id());
+        var attachments = attachmentService.list(news.id());
         boolean viewedByMe = newsService.hasViewed(news.id(), viewerMemberId);
         return new NewsResponse(
                 news.id(),
@@ -305,7 +364,8 @@ public class NewsRoutes implements Routes {
                 commentCount,
                 news.publicBlog(),
                 viewCount,
-                viewedByMe);
+                viewedByMe,
+                attachments);
     }
 
     @OpenApi(
@@ -564,6 +624,8 @@ public class NewsRoutes implements Routes {
         int offset = ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0);
         int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(20);
         var entries = newsService.findPublicBlogEntries(stationId, offset, limit);
+        var attachmentsByNews =
+                attachmentService.listFor(entries.stream().map(News::id).toList());
         ctx.json(entries.stream()
                 .map(n -> new PublicBlogEntry(
                         n.id(),
@@ -573,7 +635,8 @@ public class NewsRoutes implements Routes {
                         n.author() != null
                                 ? memberNameResolver.resolveDisplay(n.author()).name()
                                 : "",
-                        n.publishedAt()))
+                        n.publishedAt(),
+                        attachmentsByNews.getOrDefault(n.id(), List.of())))
                 .toList());
     }
 
@@ -620,6 +683,17 @@ public class NewsRoutes implements Routes {
             content.setType("text/html");
             content.setValue(post.contentHtml());
             entry.setContents(List.of(content));
+            // One enclosure per attachment, which is what a feed reader expects to be handed a
+            // file. The body stays what the author wrote.
+            var enclosures = new ArrayList<SyndEnclosure>();
+            for (var attachment : attachmentService.list(post.id())) {
+                SyndEnclosure enclosure = new SyndEnclosureImpl();
+                enclosure.setUrl(attachmentService.absoluteUrl(stationId, attachment));
+                enclosure.setType(attachment.mimeType());
+                enclosure.setLength(attachment.fileSize());
+                enclosures.add(enclosure);
+            }
+            if (!enclosures.isEmpty()) entry.setEnclosures(enclosures);
             entries.add(entry);
         }
         feed.setEntries(entries);
@@ -648,7 +722,13 @@ public class NewsRoutes implements Routes {
                 ? memberNameResolver.resolveDisplay(news.author()).name()
                 : "";
         ctx.json(new PublicBlogEntry(
-                news.id(), news.publicUid(), news.title(), news.contentHtml(), authorName, news.publishedAt()));
+                news.id(),
+                news.publicUid(),
+                news.title(),
+                news.contentHtml(),
+                authorName,
+                news.publishedAt(),
+                attachmentService.list(news.id())));
     }
 
     /**
@@ -684,7 +764,8 @@ public class NewsRoutes implements Routes {
             int commentCount,
             boolean publicBlog,
             int viewCount,
-            boolean viewedByMe) {}
+            boolean viewedByMe,
+            List<NewsAttachment> attachments) {}
 
     /**
      * Request body for creating or updating a comment.
@@ -701,7 +782,23 @@ public class NewsRoutes implements Routes {
             ShareScope scope, NewsVisibilityRole visibilityRole, List<Integer> partnerIds) {}
 
     public record PublicBlogEntry(
-            int id, UUID publicUid, String title, String contentHtml, String authorName, Instant publishedAt) {}
+            int id,
+            UUID publicUid,
+            String title,
+            String contentHtml,
+            String authorName,
+            Instant publishedAt,
+            List<NewsAttachment> attachments) {}
+
+    /**
+     * Request body for attaching a file to an entry, or for renaming what a reader sees.
+     */
+    public record AttachmentRequest(Integer fileId, String label) {}
+
+    /**
+     * Request body for writing the order the author put the attachments in.
+     */
+    public record AttachmentOrderRequest(List<Integer> attachmentIds) {}
 
     /**
      * Response shape for {@code GET /api/v1/news/{id}/views} (editors only).

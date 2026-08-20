@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.news.entity.NewsComment;
 import dev.chojo.ember.feature.news.entity.NewsVisibilityRole;
+import dev.chojo.ember.feature.news.service.NewsAttachmentService;
 import dev.chojo.ember.feature.news.service.NewsFederationService;
 import dev.chojo.ember.feature.news.service.NewsService;
 import io.javalin.http.BadRequestResponse;
@@ -69,6 +70,7 @@ public class RemoteNewsRoutes implements Routes {
             List.of(LIST_NEWS, GET_NEWS, LIST_COMMENTS, CREATE_COMMENT, UPDATE_COMMENT, DELETE_COMMENT);
 
     private final NewsService newsService;
+    private final NewsAttachmentService attachmentService;
     private final NewsFederationService newsFederationService;
     private final EventFederationRepository eventFederationRepository;
     private final MemberNameResolver memberNameResolver;
@@ -76,10 +78,12 @@ public class RemoteNewsRoutes implements Routes {
     @Inject
     public RemoteNewsRoutes(
             NewsService newsService,
+            NewsAttachmentService attachmentService,
             NewsFederationService newsFederationService,
             EventFederationRepository eventFederationRepository,
             MemberNameResolver memberNameResolver) {
         this.newsService = newsService;
+        this.attachmentService = attachmentService;
         this.newsFederationService = newsFederationService;
         this.eventFederationRepository = eventFederationRepository;
         this.memberNameResolver = memberNameResolver;
@@ -111,7 +115,8 @@ public class RemoteNewsRoutes implements Routes {
                     return new RemoteNewsSummary(
                             n.id(),
                             n.title(),
-                            n.contentHtml() != null ? n.contentHtml() : "",
+                            attachmentService.withAttachmentLinksHtml(
+                                    n.contentHtml() != null ? n.contentHtml() : "", n.id(), n.stationId()),
                             authorName,
                             n.publishedAt() != null ? n.publishedAt().toString() : "",
                             newsService.countComments(n.id()),
@@ -133,8 +138,10 @@ public class RemoteNewsRoutes implements Routes {
         ctx.json(new RemoteNewsDetail(
                 news.id(),
                 news.title(),
-                news.contentMarkdown() != null ? news.contentMarkdown() : "",
-                news.contentHtml() != null ? news.contentHtml() : "",
+                attachmentService.withAttachmentLinks(
+                        news.contentMarkdown() != null ? news.contentMarkdown() : "", news.id(), news.stationId()),
+                attachmentService.withAttachmentLinksHtml(
+                        news.contentHtml() != null ? news.contentHtml() : "", news.id(), news.stationId()),
                 authorName,
                 news.publishedAt() != null ? news.publishedAt().toString() : "",
                 newsService.countComments(newsId),

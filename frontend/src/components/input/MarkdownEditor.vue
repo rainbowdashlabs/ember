@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, onBeforeUnmount, watch, nextTick, onMounted } from 'vue'
+import { computed, ref, onBeforeUnmount, watch, nextTick, onMounted } from 'vue'
 import {EditorContent, useEditor} from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
@@ -19,7 +19,8 @@ import { Youtube } from '@tiptap/extension-youtube'
 import { Color } from '@tiptap/extension-color'
 import { TextStyle } from '@tiptap/extension-text-style'
 import { marked } from 'marked'
-import { uploadKbImage, kbImageUrl } from '@/api/knowledgeBase'
+import { useSession } from '@/composables/useSession'
+import MediaBrowseModal from '@/components/media/MediaBrowseModal.vue'
 import { createMarkdownTurndown } from './markdowneditor/markdownTurndown'
 import { ResizableImage } from './markdowneditor/resizableImage'
 import { isYoutubeUrl, videoEmbedUrl } from '@/util/youtube'
@@ -34,8 +35,10 @@ const modelValue = defineModel<string>({required: true})
 
 const props = defineProps<{
   placeholder?: string
-  fileId?: number
 }>()
+
+const { sessionInfo } = useSession()
+const stationUid = computed(() => sessionInfo.value?.stationId ?? '')
 
 const turndown = createMarkdownTurndown()
 
@@ -55,6 +58,8 @@ const linkInitialUrl = ref('')
 
 const showImageDialog = ref(false)
 const imageDialogPos = ref({ top: 0, left: 0 })
+const showMediaBrowser = ref(false)
+const pendingImageAlt = ref('')
 
 const showVideoDialog = ref(false)
 const videoDialogPos = ref({ top: 0, left: 0 })
@@ -185,13 +190,20 @@ function insertImageUrl(url: string, alt: string) {
   showImageDialog.value = false
 }
 
-async function uploadImage(file: File, alt: string) {
-  if (!props.fileId || !editor.value) return
-  try {
-    const res = await uploadKbImage(props.fileId, file)
-    editor.value.chain().focus().setImage({ src: kbImageUrl(res.imageId), alt }).run()
-  } catch { /* failed */ }
+/**
+ * Hands over to the station media library: browse what is already there, search it, upload into
+ * it, insert. Members without a content permission see only their own uploads, which is what lets
+ * anyone put a picture into a ticket without opening the station's website assets to them.
+ */
+function browseMedia(alt: string) {
+  pendingImageAlt.value = alt
   showImageDialog.value = false
+  showMediaBrowser.value = true
+}
+
+function insertFromMedia(payload: { url: string }) {
+  editor.value?.chain().focus().setImage({ src: payload.url, alt: pendingImageAlt.value }).run()
+  pendingImageAlt.value = ''
 }
 
 function openVideoDialog() { videoDialogPos.value = cursorPos(); showVideoDialog.value = true }
@@ -213,7 +225,6 @@ function applyVideo(url: string) {
   <div ref="editorContainer" class="markdown-editor rounded-lg border border-[var(--border)] bg-[var(--bg)] relative">
     <EditorToolbar
       :editor="editor"
-      :file-id="fileId"
       @open-link="openLinkDialog"
       @open-image="openImageDialog"
       @open-video="openVideoDialog"
@@ -234,11 +245,17 @@ function applyVideo(url: string) {
 
     <EditorImageDialog
       v-if="showImageDialog"
-      :file-id="fileId"
       :position="imageDialogPos"
       @insert-url="insertImageUrl"
-      @upload-file="uploadImage"
+      @browse="browseMedia"
       @cancel="showImageDialog = false; editor?.chain().focus().run()"
+    />
+
+    <MediaBrowseModal
+      v-model:open="showMediaBrowser"
+      :station-uid="stationUid"
+      mime-prefix="image/"
+      @pick="insertFromMedia"
     />
 
     <EditorVideoDialog

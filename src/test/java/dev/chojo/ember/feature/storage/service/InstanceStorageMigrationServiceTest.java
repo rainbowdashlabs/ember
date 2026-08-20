@@ -105,13 +105,13 @@ class InstanceStorageMigrationServiceTest extends RepositoryTestBase {
         byte[] betaBytes = "beta-payload".getBytes(StandardCharsets.UTF_8);
         storageService.store(
                 new StorageScope.Station(alpha.id(), alpha.uid()),
-                StorageCategory.PAGE_FILES,
+                StorageCategory.MEDIA_FILES,
                 "alpha.txt",
                 alphaBytes,
                 "text/plain");
         storageService.store(
                 new StorageScope.Station(beta.id(), beta.uid()),
-                StorageCategory.PAGE_FILES,
+                StorageCategory.MEDIA_FILES,
                 "beta.txt",
                 betaBytes,
                 "text/plain");
@@ -144,7 +144,7 @@ class InstanceStorageMigrationServiceTest extends RepositoryTestBase {
         Station station = stationRepo.create("Gamma");
         byte[] payload = "gamma-payload".getBytes(StandardCharsets.UTF_8);
         var scope = new StorageScope.Station(station.id(), station.uid());
-        storageService.store(scope, StorageCategory.PAGE_FILES, "doc.txt", payload, "text/plain");
+        storageService.store(scope, StorageCategory.MEDIA_FILES, "doc.txt", payload, "text/plain");
 
         StorageBackendSettings targetSettings = newLocalSettings(targetRoot.toString());
         var firstRun = migrationService.commit(migrationService.prepare(targetSettings), true);
@@ -190,13 +190,13 @@ class InstanceStorageMigrationServiceTest extends RepositoryTestBase {
         var inheritedScope = new StorageScope.Station(inherited.id(), inherited.uid());
         storageService.store(
                 overriddenScope,
-                StorageCategory.PAGE_FILES,
+                StorageCategory.MEDIA_FILES,
                 "ignored.txt",
                 "x".getBytes(StandardCharsets.UTF_8),
                 "text/plain");
         storageService.store(
                 inheritedScope,
-                StorageCategory.PAGE_FILES,
+                StorageCategory.MEDIA_FILES,
                 "carry.txt",
                 "y".getBytes(StandardCharsets.UTF_8),
                 "text/plain");
@@ -330,8 +330,8 @@ class InstanceStorageMigrationServiceTest extends RepositoryTestBase {
         Station station = stationRepo.create("Hashless Target");
         byte[] payload = "hashless-payload".getBytes(StandardCharsets.UTF_8);
         var scope = new StorageScope.Station(station.id(), station.uid());
-        storageService.store(scope, StorageCategory.PAGE_FILES, "doc.txt", payload, "text/plain");
-        String fullKey = scope.prefix() + "/" + StorageCategory.PAGE_FILES.prefix() + "/doc.txt";
+        storageService.store(scope, StorageCategory.MEDIA_FILES, "doc.txt", payload, "text/plain");
+        String fullKey = scope.prefix() + "/" + StorageCategory.MEDIA_FILES.prefix() + "/doc.txt";
         targetBackend.store(
                 fullKey, new ByteArrayInputStream(payload), payload.length, ObjectMetadata.of("text/plain"));
 
@@ -350,7 +350,7 @@ class InstanceStorageMigrationServiceTest extends RepositoryTestBase {
         Station station = stationRepo.create("Verify Failure Station");
         var scope = new StorageScope.Station(station.id(), station.uid());
         storageService.store(
-                scope, StorageCategory.PAGE_FILES, "doc.txt", "verify".getBytes(StandardCharsets.UTF_8), "text/plain");
+                scope, StorageCategory.MEDIA_FILES, "doc.txt", "verify".getBytes(StandardCharsets.UTF_8), "text/plain");
         factory.instanceTarget = new LocalStorageBackend(targetRoot) {
             @Override
             public boolean exists(String fullKey) {
@@ -376,7 +376,7 @@ class InstanceStorageMigrationServiceTest extends RepositoryTestBase {
         var scope = new StorageScope.Station(station.id(), station.uid());
         storageService.store(
                 scope,
-                StorageCategory.PAGE_FILES,
+                StorageCategory.MEDIA_FILES,
                 "doc.txt",
                 "stubborn".getBytes(StandardCharsets.UTF_8),
                 "text/plain");
@@ -480,7 +480,7 @@ class InstanceStorageMigrationServiceTest extends RepositoryTestBase {
     }
 
     private static byte[] readKey(LocalStorageBackend backend, String stationUid, String key) {
-        String fullKey = "station/" + stationUid + "/page-files/" + key;
+        String fullKey = "station/" + stationUid + "/" + StorageCategory.MEDIA_FILES.prefix() + "/" + key;
         try (var stream = backend.read(fullKey).orElseThrow()) {
             return stream.body().readAllBytes();
         } catch (IOException e) {

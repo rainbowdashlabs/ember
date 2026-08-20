@@ -511,7 +511,7 @@ export default {
         procedures: 'Abläufe',
         procedureTemplates: 'Vorlagen',
         pages: 'Öffentliche Seiten',
-        pagesFiles: 'Dateien',
+        media: 'Medien',
         pagesForms: 'Kontaktformulare',
         pagesPolls: 'Umfragen',
         storageBackend: 'Speicher-Backend',
@@ -1315,9 +1315,9 @@ export default {
             title: 'Seiten',
             subtitle: 'Öffentliche Seiten verwalten',
         },
-        'pages-files': {
-            title: 'Dateien',
-            subtitle: 'Öffentliche Dateien verwalten',
+        'station-media': {
+            title: 'Medien',
+            subtitle: 'Bilder und Dateien der Wache verwalten',
         },
         'pages-forms': {
             title: 'Formulare',
@@ -4584,6 +4584,12 @@ export default {
         partnerNews: 'Partner-Neuigkeiten',
         publicBlog: 'Blog-Beitrag',
         publicBlogHint: 'Wenn aktiviert, wird diese Neuigkeit auf der öffentlichen Seite als Blog-Beitrag angezeigt.',
+        attachments: 'Anhänge',
+        attachmentsHint: 'Dateien, die die Neuigkeit mitgibt - das Protokoll, das Formular, der Flyer. Sie stehen unter dem Text und reisen in Feeds und zu Partnerwachen mit.',
+        attachmentsEmpty: 'Noch keine Anhänge.',
+        attachmentAdd: 'Datei anhängen',
+        attachmentRemove: 'Anhang entfernen',
+        attachmentLabelPlaceholder: 'Anzeigename (optional)',
         publicBlogBadge: 'Blog',
     },
     publicForm: {

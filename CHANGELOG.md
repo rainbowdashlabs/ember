@@ -1,5 +1,22 @@
 # Changelog
 
+## v26.13.0
+
+### New Features
+
+- **The station has a media library.** Everything the station has uploaded lives in one place at `/station/media`, with folders, tags and a search, and every editor reaches into it. Anyone who may log in can upload and insert what they uploaded themselves, so a picture belongs in a board ticket as readily as on a public page.
+- **News entries can hand a file over.** An entry carries attachments picked from the library, named and ordered as the author likes, and they appear as downloads under the text rather than inside it. They travel with the blog feed and to partner stations, so a reader elsewhere is handed the same file.
+
+### Improvements
+
+- **Every text editor can insert a picture.** Where an editor only accepted a pasted address before, it now opens the media library to browse, search, upload and insert. News, board tickets, event descriptions, the knowledge base and the page editor all gain it at once.
+- **Clearing out unused files leaves what members brought in.** A file nothing points at is still offered for removal, but one somebody uploaded themselves is kept: a picture can outlive the first place it was used.
+
+### Changes
+
+- **Files move out from under Pages.** What was Pages → Files is now Media in the sidebar, at `/station/media`. It is the same library with the same contents; it simply belongs to the station rather than to its website.
+- **Station media moves to a new place on disk.** On the first start after the upgrade each station's media is moved into its new folder, one station at a time, and that station is read-only while its own move runs. An interrupted move picks up where it stopped on the next start, so nothing has to be repeated by hand.
+
 ## v26.12.0
 
 ### New Features

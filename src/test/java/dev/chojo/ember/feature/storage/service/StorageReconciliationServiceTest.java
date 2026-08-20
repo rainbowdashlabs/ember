@@ -61,29 +61,29 @@ class StorageReconciliationServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    void reconciliationRemovesOrphanPageFileHashes() {
-        var station = stationRepo.create("Orphan Cleanup PAGE_FILES");
+    void reconciliationRemovesOrphanMediaHashes() {
+        var station = stationRepo.create("Orphan Cleanup MEDIA_FILES");
         try {
             var scope = new StorageScope.Station(station.id(), station.uid());
 
-            // Live page-file row with hash "live-hash" - file under that hash must survive.
+            // Live media row with hash "live-hash" - file under that hash must survive.
             String liveHash = "a".repeat(64);
-            pageRepo.createFile(null, station.id(), liveHash, "live.txt", "text/plain", 5);
+            mediaFileRepo.create(null, station.id(), liveHash, "live.txt", "text/plain", 5);
             storageService.store(
-                    scope, StorageCategory.PAGE_FILES, liveHash + "/orig.txt", "alive".getBytes(), "text/plain");
+                    scope, StorageCategory.MEDIA_FILES, liveHash + "/orig.txt", "alive".getBytes(), "text/plain");
 
             // Orphan hash with no DB row - file under that hash must be deleted.
             String orphanHash = "b".repeat(64);
             storageService.store(
-                    scope, StorageCategory.PAGE_FILES, orphanHash + "/orig.txt", "dead".getBytes(), "text/plain");
+                    scope, StorageCategory.MEDIA_FILES, orphanHash + "/orig.txt", "dead".getBytes(), "text/plain");
 
             reconciliation.reconcileStation(station.id());
 
             assertTrue(
-                    storageService.exists(scope, StorageCategory.PAGE_FILES, liveHash + "/orig.txt"),
+                    storageService.exists(scope, StorageCategory.MEDIA_FILES, liveHash + "/orig.txt"),
                     "live hash file must survive reconciliation");
             assertFalse(
-                    storageService.exists(scope, StorageCategory.PAGE_FILES, orphanHash + "/orig.txt"),
+                    storageService.exists(scope, StorageCategory.MEDIA_FILES, orphanHash + "/orig.txt"),
                     "orphan hash file must be deleted by reconciliation");
         } finally {
             stationRepo.delete(station.id());

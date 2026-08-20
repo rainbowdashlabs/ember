@@ -229,7 +229,7 @@ public class StorageQuotaService {
                 quota.quotaBoardBytes() != null ? quota.quotaBoardBytes() : storageConfig.defaultBoardBytes();
             case IMAGE_LOST_AND_FOUND, IMAGE_QUIZ_QUESTION, IMAGE_KB_ICON, IMAGE_KB_IMAGE, IMAGE_LOGO_FRAGMENT ->
                 quota.quotaImagesBytes() != null ? quota.quotaImagesBytes() : storageConfig.defaultImagesBytes();
-            case PAGE_FILES, PAGE_IMAGES ->
+            case MEDIA_FILES, MEDIA_IMAGES ->
                 quota.quotaPagesBytes() != null ? quota.quotaPagesBytes() : storageConfig.defaultPagesBytes();
             case MEMBER_DOCUMENTS ->
                 quota.quotaKbBytes() != null ? quota.quotaKbBytes() : storageConfig.defaultKbBytes();

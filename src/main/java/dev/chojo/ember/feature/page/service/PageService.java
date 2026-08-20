@@ -6,18 +6,13 @@
 package dev.chojo.ember.feature.page.service;
 
 import dev.chojo.ember.feature.account.service.AvatarService;
+import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.page.entity.CellConfig;
 import dev.chojo.ember.feature.page.entity.CellContentType;
 import dev.chojo.ember.feature.page.entity.PageCell;
-import dev.chojo.ember.feature.page.entity.PageFile;
-import dev.chojo.ember.feature.page.entity.PageFileFolder;
-import dev.chojo.ember.feature.page.entity.PageFileTag;
 import dev.chojo.ember.feature.page.entity.StationPage;
-import dev.chojo.ember.feature.page.repository.PageFileMetaRepository;
 import dev.chojo.ember.feature.page.repository.PageRepository;
-import dev.chojo.ember.feature.storage.entity.StorageCategory;
-import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import dev.chojo.ember.util.HtmlSanitizer;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
@@ -31,15 +26,12 @@ import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.HtmlRenderer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tools.jackson.databind.JsonNode;
 
-import java.io.IOException;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -49,10 +41,7 @@ public class PageService {
     private static final int MAX_DEPTH = 3;
 
     private final PageRepository pageRepository;
-    private final PageFileMetaRepository metaRepository;
-    private final PageFileStorageService imageStorage;
-    private final PageImageVariantService variantService;
-    private final StorageQuotaService quotaService;
+    private final MediaLibraryService mediaLibrary;
     private final StationMemberRepository stationMemberRepository;
     private final AvatarService avatarService;
     private final Parser markdownParser;
@@ -61,17 +50,11 @@ public class PageService {
     @Inject
     public PageService(
             PageRepository pageRepository,
-            PageFileMetaRepository metaRepository,
-            PageFileStorageService imageStorage,
-            PageImageVariantService variantService,
-            StorageQuotaService quotaService,
+            MediaLibraryService mediaLibrary,
             StationMemberRepository stationMemberRepository,
             AvatarService avatarService) {
         this.pageRepository = pageRepository;
-        this.metaRepository = metaRepository;
-        this.imageStorage = imageStorage;
-        this.variantService = variantService;
-        this.quotaService = quotaService;
+        this.mediaLibrary = mediaLibrary;
         this.stationMemberRepository = stationMemberRepository;
         this.avatarService = avatarService;
         List<Extension> extensions = List.of(
@@ -116,12 +99,12 @@ public class PageService {
     }
 
     /**
-     * Fills in the content hash of the page's social preview image. Page files are served by hash,
+     * Fills in the content hash of the page's social preview image. Media files are served by hash,
      * so a client holding only {@code ogImageId} cannot build the image URL.
      */
     private StationPage resolveOgImageHash(StationPage page) {
         if (page.ogImageId() == null) return page;
-        return pageRepository
+        return mediaLibrary
                 .findFile(page.ogImageId())
                 .map(file -> page.withOgImageHash(file.contentHash()))
                 .orElse(page);
@@ -245,8 +228,6 @@ public class PageService {
         return deleted;
     }
 
-    // --- Landing page ---
-
     public StationPage duplicatePage(int pageId, int createdBy) {
         var source = pageRepository
                 .findById(pageId)
@@ -300,7 +281,7 @@ public class PageService {
         log.info("Landing page for station {} set to page {}", stationId, pageId);
     }
 
-    // --- Images ---
+    // --- Landing page ---
 
     public Optional<StationPage> getLandingPage(int stationId) {
         return pageRepository
@@ -310,169 +291,6 @@ public class PageService {
                 .map(pageRepository::loadFullTree)
                 .map(this::renderMarkdownCells)
                 .map(this::resolveOgImageHash);
-    }
-
-    public PageFile uploadPageFile(int pageId, String fileName, String mimeType, byte[] data) throws IOException {
-        var page = pageRepository
-                .findById(pageId)
-                .orElseThrow(() -> new IllegalArgumentException("Unknown page id: " + pageId));
-        return uploadFile(page.stationId(), pageId, fileName, mimeType, data);
-    }
-
-    /**
-     * Uploads a file scoped to the station (no owning page). Used by the station-wide browser.
-     */
-    public PageFile uploadStationFile(int stationId, String fileName, String mimeType, byte[] data) throws IOException {
-        return uploadFile(stationId, null, fileName, mimeType, data);
-    }
-
-    /**
-     * Returns the best-fit variant of an uploaded page file for the given (requested width,
-     * {@code Accept} header). Non-image files always return the original. Used by the public
-     * file-serving route to swap in WebP and resized variants transparently.
-     */
-    public Optional<PageFileStorageService.FileData> readFileVariant(
-            int stationId, String contentHash, Integer requestedWidth, String acceptHeader) {
-        return variantService.readBest(stationId, contentHash, requestedWidth, acceptHeader);
-    }
-
-    public Optional<PageFile> findFile(int fileId) {
-        return pageRepository.findFile(fileId);
-    }
-
-    public boolean deleteFile(int fileId) {
-        var image = pageRepository.findFile(fileId).orElse(null);
-        if (image == null) return false;
-        boolean deleted = pageRepository.deleteFile(fileId);
-        if (deleted) {
-            if (image.contentHash() != null) {
-                imageStorage.delete(image.stationId(), image.contentHash());
-            }
-            quotaService.onFileDeleted(image.stationId(), StorageCategory.PAGE_FILES, image.fileSize());
-            log.info("Page file {} deleted from station {}", fileId, image.stationId());
-        }
-        return deleted;
-    }
-
-    /**
-     * Lists files in the station with usage + tag-ids.
-     */
-    public List<FileListing> listFilesWithUsage(int stationId) {
-        var files = pageRepository.findFilesByStation(stationId);
-        Set<Integer> unused = findUnusedFileIds(stationId);
-        var tagAssignments = metaRepository.findTagAssignments(
-                files.stream().map(PageFile::id).toList());
-        return files.stream()
-                .map(f -> new FileListing(f, !unused.contains(f.id()), tagAssignments.getOrDefault(f.id(), Set.of())))
-                .toList();
-    }
-
-    // --- Folder + tag delegations ---
-
-    public PageFileFolder createFolder(int stationId, Integer parentId, String name, int sortOrder) {
-        var folder = metaRepository.createFolder(stationId, parentId, name, sortOrder);
-        log.info("Page file folder {} created in station {}", folder.id(), stationId);
-        return folder;
-    }
-
-    public List<PageFileFolder> listFolders(int stationId) {
-        return metaRepository.findFoldersByStation(stationId);
-    }
-
-    public boolean updateFolder(int stationId, int folderId, Integer parentId, String name, int sortOrder) {
-        var folder = metaRepository.findFolder(folderId).orElse(null);
-        if (folder == null || folder.stationId() != stationId) return false;
-        boolean updated = metaRepository.updateFolder(folderId, parentId, name, sortOrder);
-        if (updated) {
-            log.info("Page file folder {} updated in station {}", folderId, stationId);
-        }
-        return updated;
-    }
-
-    public boolean deleteFolder(int stationId, int folderId) {
-        var folder = metaRepository.findFolder(folderId).orElse(null);
-        if (folder == null || folder.stationId() != stationId) return false;
-        boolean deleted = metaRepository.deleteFolder(folderId);
-        if (deleted) {
-            log.info("Page file folder {} deleted from station {}", folderId, stationId);
-        }
-        return deleted;
-    }
-
-    public PageFileTag createTag(int stationId, String name, String color) {
-        var tag = metaRepository.createTag(stationId, name, color);
-        log.info("Page file tag {} created in station {}", tag.id(), stationId);
-        return tag;
-    }
-
-    public List<PageFileTag> listTags(int stationId) {
-        return metaRepository.findTagsByStation(stationId);
-    }
-
-    public boolean updateTag(int stationId, int tagId, String name, String color) {
-        var tag = metaRepository.findTag(tagId).orElse(null);
-        if (tag == null || tag.stationId() != stationId) return false;
-        boolean updated = metaRepository.updateTag(tagId, name, color);
-        if (updated) {
-            log.info("Page file tag {} updated in station {}", tagId, stationId);
-        }
-        return updated;
-    }
-
-    public boolean deleteTag(int stationId, int tagId) {
-        var tag = metaRepository.findTag(tagId).orElse(null);
-        if (tag == null || tag.stationId() != stationId) return false;
-        boolean deleted = metaRepository.deleteTag(tagId);
-        if (deleted) {
-            log.info("Page file tag {} deleted from station {}", tagId, stationId);
-        }
-        return deleted;
-    }
-
-    public boolean assignTag(int stationId, int fileId, int tagId) {
-        var file = pageRepository.findFile(fileId).orElse(null);
-        var tag = metaRepository.findTag(tagId).orElse(null);
-        if (file == null || file.stationId() != stationId || tag == null || tag.stationId() != stationId) return false;
-        metaRepository.assignTag(fileId, tagId);
-        return true;
-    }
-
-    public boolean unassignTag(int stationId, int fileId, int tagId) {
-        var file = pageRepository.findFile(fileId).orElse(null);
-        if (file == null || file.stationId() != stationId) return false;
-        return metaRepository.unassignTag(fileId, tagId);
-    }
-
-    public boolean updateFileMeta(int stationId, int fileId, String altText, String description) {
-        var existing = pageRepository.findFile(fileId).orElse(null);
-        if (existing == null || existing.stationId() != stationId) return false;
-        return pageRepository.updateFileMeta(fileId, altText, description);
-    }
-
-    public boolean moveFileToFolder(int stationId, int fileId, Integer folderId) {
-        var file = pageRepository.findFile(fileId).orElse(null);
-        if (file == null || file.stationId() != stationId) return false;
-        boolean moved = metaRepository.moveFileToFolder(fileId, folderId);
-        if (moved) {
-            log.info("Page file {} moved to folder {} in station {}", fileId, folderId, stationId);
-        }
-        return moved;
-    }
-
-    public Optional<PageFileStorageService.FileData> readFileById(int fileId) {
-        var image = pageRepository.findFile(fileId).orElse(null);
-        if (image == null || image.contentHash() == null) return Optional.empty();
-        return imageStorage.read(image.stationId(), image.contentHash());
-    }
-
-    /**
-     * Reads a file by station + content hash. Used by the public hash-keyed delivery route.
-     */
-    public Optional<PageFileStorageService.FileData> readFile(int stationId, String contentHash) {
-        if (contentHash == null || contentHash.isBlank()) return Optional.empty();
-        var file = pageRepository.findByStationAndHash(stationId, contentHash).orElse(null);
-        if (file == null) return Optional.empty();
-        return imageStorage.read(stationId, contentHash);
     }
 
     public boolean hasPublishedPages(int stationId) {
@@ -491,45 +309,6 @@ public class PageService {
                 .map(StationPage::slug);
     }
 
-    /**
-     * Returns the ids of files in the station that no cell currently references. Used by the
-     * listing endpoint to flag candidates for pruning in the file browser.
-     */
-    public Set<Integer> findUnusedFileIds(int stationId) {
-        Set<String> referenced = collectFileReferences(stationId);
-        Set<Integer> unused = new HashSet<>();
-        for (var file : pageRepository.findFilesByStation(stationId)) {
-            boolean inUse = (file.contentHash() != null && referenced.contains(file.contentHash()))
-                    || referenced.contains(String.valueOf(file.id()));
-            if (!inUse) unused.add(file.id());
-        }
-        return unused;
-    }
-
-    // --- Markdown rendering ---
-
-    /**
-     * Deletes every page file in the station that is no longer referenced from any cell.
-     * Returns the number of files removed. Only invoked when the user explicitly asks to prune.
-     */
-    public int pruneUnusedFiles(int stationId) {
-        Set<String> referenced = collectFileReferences(stationId);
-        int removed = 0;
-        for (var file : pageRepository.findFilesByStation(stationId)) {
-            boolean inUse = (file.contentHash() != null && referenced.contains(file.contentHash()))
-                    || referenced.contains(String.valueOf(file.id()));
-            if (inUse) continue;
-            if (file.contentHash() != null) {
-                imageStorage.delete(file.stationId(), file.contentHash());
-            }
-            pageRepository.deleteFile(file.id());
-            quotaService.onFileDeleted(stationId, StorageCategory.PAGE_FILES, file.fileSize());
-            removed++;
-        }
-        log.info("Pruned {} unused page files from station {}", removed, stationId);
-        return removed;
-    }
-
     String generateUniqueSlug(int stationId, String base, int excludePageId) {
         String slug = toSlug(base);
         if (slug.isBlank()) slug = "page";
@@ -541,35 +320,7 @@ public class PageService {
         throw new IllegalStateException("Could not generate unique slug");
     }
 
-    private PageFile uploadFile(int stationId, Integer pageId, String fileName, String mimeType, byte[] data)
-            throws IOException {
-        boolean isImage = mimeType != null && mimeType.startsWith("image/");
-        if (isImage) {
-            quotaService.checkImageSize(stationId, data.length);
-        } else {
-            quotaService.checkFileSize(stationId, data.length);
-        }
-        String contentHash = PageFileStorageService.hash(data);
-        // Per-station dedup: if the same bytes were already uploaded for this station, reuse the
-        // existing row + on-disk file instead of creating a duplicate. Cells just reference the
-        // existing image id.
-        var existing = pageRepository.findByStationAndHash(stationId, contentHash);
-        if (existing.isPresent()) {
-            // Make sure the file is still on disk (defensive: a crashed migration could have left
-            // the row orphaned). store() is idempotent for identical bytes.
-            imageStorage.store(stationId, contentHash, data, mimeType);
-            return existing.get();
-        }
-        quotaService.checkQuota(stationId, StorageCategory.PAGE_FILES, data.length);
-        var image = pageRepository.createFile(pageId, stationId, contentHash, fileName, mimeType, data.length);
-        imageStorage.store(stationId, contentHash, data, mimeType);
-        if (isImage) {
-            variantService.generateVariants(stationId, contentHash, data, mimeType);
-        }
-        quotaService.trackDelta(stationId, StorageCategory.PAGE_FILES, data.length, 1);
-        log.info("Page file {} uploaded to station {} (page {}, {} bytes)", image.id(), stationId, pageId, data.length);
-        return image;
-    }
+    // --- Markdown rendering ---
 
     private StationPage renderMarkdownCells(StationPage page) {
         int stationId = page.stationId();
@@ -631,60 +382,6 @@ public class PageService {
         return HtmlSanitizer.sanitize(html, HtmlSanitizer.Policy.RICH);
     }
 
-    /**
-     * Collects every page-file reference used anywhere in the station: IMAGE cell contents
-     * (which may be a content hash or a legacy numeric id) plus any {@code imageId} /
-     * {@code imageIds} fields inside cell config, including those buried inside NESTED_ROWS
-     * sub-cells.
-     */
-    private Set<String> collectFileReferences(int stationId) {
-        Set<String> out = new HashSet<>();
-        for (var cell : pageRepository.findAllCellsByStation(stationId)) {
-            collectFromCell(cell.contentType(), cell.content(), cell.config(), out);
-        }
-        return out;
-    }
-
-    private void collectFromCell(CellContentType type, String content, CellConfig config, Set<String> out) {
-        if (type == CellContentType.IMAGE && content != null && !content.isBlank()) {
-            out.add(content.trim());
-        }
-        if (config == null) return;
-        try {
-            var json = CellConfig.MAPPER.valueToTree(config);
-            walkJsonForImageRefs(json, out);
-        } catch (Exception e) {
-            log.debug("Failed to walk cell config for file refs", e);
-        }
-    }
-
-    private void walkJsonForImageRefs(JsonNode node, Set<String> out) {
-        if (node == null || node.isNull()) return;
-        if (node.isObject()) {
-            var typeNode = node.get("contentType");
-            if (typeNode != null && "IMAGE".equals(typeNode.asString())) {
-                var contentNode = node.get("content");
-                if (contentNode != null && !contentNode.isNull()) {
-                    String v = contentNode.asString();
-                    if (v != null && !v.isBlank()) out.add(v.trim());
-                }
-            }
-            for (Map.Entry<String, JsonNode> entry : node.properties()) {
-                String name = entry.getKey();
-                var value = entry.getValue();
-                if (("imageHash".equals(name) || "ogImageId".equals(name)) && value != null && !value.isNull()) {
-                    out.add(value.asString());
-                } else if ("imageHashes".equals(name) && value != null && value.isArray()) {
-                    value.forEach(v -> out.add(v.asString()));
-                } else {
-                    walkJsonForImageRefs(value, out);
-                }
-            }
-        } else if (node.isArray()) {
-            node.forEach(child -> walkJsonForImageRefs(child, out));
-        }
-    }
-
     private int maxChildDepth(int pageId) {
         var children =
                 pageRepository
@@ -706,8 +403,6 @@ public class PageService {
             throw new BadRequestResponse("Page hierarchy exceeds maximum depth of " + MAX_DEPTH);
         }
     }
-
-    public record FileListing(PageFile file, boolean inUse, Set<Integer> tagIds) {}
 
     public record RowData(int sortOrder, List<CellData> cells) {}
 

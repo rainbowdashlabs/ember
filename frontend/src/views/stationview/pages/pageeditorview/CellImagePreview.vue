@@ -5,7 +5,8 @@
  */
 <script lang="ts" setup>
 import {computed, onBeforeUnmount, onMounted, ref, watch, type CSSProperties} from 'vue'
-import {ImageFit, pageImageSrcset, type ImageConfig, type ImageFitName} from '@/api/pageManage'
+import {ImageFit, type ImageConfig, type ImageFitName} from '@/api/pageManage'
+import {mediaImageSrcset} from '@/api/media'
 
 const OBJECT_FIT_BY_IMAGE_FIT: Record<ImageFitName, CSSProperties['objectFit']> = {
     COVER: 'cover',
@@ -145,7 +146,7 @@ const frameStyle = computed(() => {
 
 const responsiveSrcset = computed(() => {
     if (!props.stationUid || !props.contentHash || !props.widthHint) return undefined
-    return pageImageSrcset(props.stationUid, props.contentHash, props.widthHint)
+    return mediaImageSrcset(props.stationUid, props.contentHash, props.widthHint)
 })
 
 const responsiveSizes = computed(() => {

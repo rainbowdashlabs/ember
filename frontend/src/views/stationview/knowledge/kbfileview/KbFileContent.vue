@@ -47,7 +47,6 @@ async function downloadOther() {
     <MarkdownEditor
         v-if="editing"
         v-model="editContent"
-        :file-id="file.id"
         @update:model-value="emit('contentInput')"
     />
     <NeutralContainer v-else>

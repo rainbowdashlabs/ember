@@ -7,13 +7,14 @@
 import {onMounted, ref, watch} from 'vue'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import {listStationPageFiles, type FileDownloadConfig, type PageFile} from '@/api/pageManage'
+import {type FileDownloadConfig} from '@/api/pageManage'
+import {listMediaFiles, type StationFile} from '@/api/media'
 
 const props = defineProps<{
     config: FileDownloadConfig
 }>()
 
-const fileResolved = ref<PageFile | null>(null)
+const fileResolved = ref<StationFile | null>(null)
 
 async function resolveFileDownload() {
     fileResolved.value = null
@@ -22,7 +23,7 @@ async function resolveFileDownload() {
     if (!m) return
     const hash = m[1]
     try {
-        const listing = await listStationPageFiles()
+        const listing = await listMediaFiles()
         fileResolved.value = listing.find(l => l.file.contentHash === hash)?.file ?? null
     } catch { fileResolved.value = null }
 }

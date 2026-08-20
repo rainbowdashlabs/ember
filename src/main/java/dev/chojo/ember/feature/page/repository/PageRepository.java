@@ -9,7 +9,6 @@ import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.page.entity.CellConfig;
 import dev.chojo.ember.feature.page.entity.CellContentType;
 import dev.chojo.ember.feature.page.entity.PageCell;
-import dev.chojo.ember.feature.page.entity.PageFile;
 import dev.chojo.ember.feature.page.entity.PageRow;
 import dev.chojo.ember.feature.page.entity.StationPage;
 import dev.chojo.ember.util.sql.SqlSupport;
@@ -30,8 +29,6 @@ public class PageRepository {
 
     private static final String STATION_PAGE_COLUMNS =
             "id, public_uid, station_id, parent_id, title, slug, published, sort_order, meta_description, og_image_id, created_by, created_at, updated_at";
-    private static final String PAGE_FILE_COLUMNS =
-            "id, page_id, station_id, content_hash, file_name, mime_type, file_size, uploaded_at, default_alt_text, default_description, folder_id";
 
     // --- Page CRUD ---
 
@@ -258,75 +255,6 @@ public class PageRepository {
                 .map(r -> r.withCells(findCellsByRow(r.id())))
                 .toList();
         return page.withRows(rows);
-    }
-
-    public PageFile createFile(
-            Integer pageId, int stationId, String contentHash, String fileName, String mimeType, long fileSize) {
-        return SqlSupport.insertReturning(
-                """
-                INSERT
-                INTO
-                    page_file(
-                        page_id, station_id, content_hash, file_name, mime_type, file_size,
-                        default_alt_text, default_description, folder_id)
-                VALUES
-                    (:page_id, :station_id, :content_hash, :file_name, :mime_type, :file_size, NULL, NULL, NULL)
-                RETURNING %s;""",
-                call().bind("page_id", pageId)
-                        .bind("station_id", stationId)
-                        .bind("content_hash", contentHash)
-                        .bind("file_name", fileName)
-                        .bind("mime_type", mimeType)
-                        .bind("file_size", fileSize),
-                PageFile.map(),
-                PAGE_FILE_COLUMNS);
-    }
-
-    // --- Image operations ---
-
-    public Optional<PageFile> findFile(int fileId) {
-        return SqlSupport.findById("page_file", PAGE_FILE_COLUMNS, fileId, PageFile.map());
-    }
-
-    public Optional<PageFile> findByStationAndHash(int stationId, String contentHash) {
-        return query("""
-                SELECT %s
-                FROM page_file
-                WHERE station_id = :station_id AND content_hash = :content_hash
-                LIMIT 1;""", PAGE_FILE_COLUMNS)
-                .single(call().bind("station_id", stationId).bind("content_hash", contentHash))
-                .map(PageFile.map())
-                .first();
-    }
-
-    public List<PageFile> findFilesByPage(int pageId) {
-        return query("SELECT %s FROM page_file WHERE page_id = :page_id;", PAGE_FILE_COLUMNS)
-                .single(call().bind("page_id", pageId))
-                .map(PageFile.map())
-                .all();
-    }
-
-    public List<PageFile> findFilesByStation(int stationId) {
-        return query(
-                        "SELECT %s FROM page_file WHERE station_id = :station_id ORDER BY uploaded_at DESC;",
-                        PAGE_FILE_COLUMNS)
-                .single(call().bind("station_id", stationId))
-                .map(PageFile.map())
-                .all();
-    }
-
-    public boolean deleteFile(int fileId) {
-        return SqlSupport.deleteById("page_file", fileId);
-    }
-
-    public boolean updateFileMeta(int fileId, String altText, String description) {
-        return query("""
-                UPDATE page_file
-                SET default_alt_text = :alt, default_description = :description
-                WHERE id = :id;""")
-                .single(call().bind("id", fileId).bind("alt", altText).bind("description", description))
-                .update()
-                .changed();
     }
 
     public List<PageCell> findAllCellsByPage(int pageId) {

@@ -129,6 +129,8 @@ import dev.chojo.ember.feature.lostandfound.route.LostAndFoundRoutes;
 import dev.chojo.ember.feature.mail.route.MailWebhookRoutes;
 import dev.chojo.ember.feature.maps.route.AdminMapsRoutes;
 import dev.chojo.ember.feature.maps.route.PublicMapsRoutes;
+import dev.chojo.ember.feature.media.route.MediaRoutes;
+import dev.chojo.ember.feature.media.route.PublicMediaRoutes;
 import dev.chojo.ember.feature.members.route.ManagedMemberRoutes;
 import dev.chojo.ember.feature.members.route.MemberDocumentRoutes;
 import dev.chojo.ember.feature.members.route.MemberGroupRoutes;
@@ -285,6 +287,8 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(NewsRoutes.class);
         routesBinder.addBinding().to(FederatedNewsRoutes.class);
         routesBinder.addBinding().to(RemoteNewsRoutes.class);
+        routesBinder.addBinding().to(MediaRoutes.class);
+        routesBinder.addBinding().to(PublicMediaRoutes.class);
         routesBinder.addBinding().to(PageRoutes.class);
         routesBinder.addBinding().to(PublicPageRoutes.class);
         routesBinder.addBinding().to(MailWebhookRoutes.class);

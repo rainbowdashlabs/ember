@@ -19,9 +19,11 @@ import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
 import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.media.MediaTestSupport;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsVisibilityRole;
+import dev.chojo.ember.feature.news.repository.NewsAttachmentRepository;
 import dev.chojo.ember.feature.news.repository.NewsFederationRepository;
 import dev.chojo.ember.feature.news.service.NewsFederationService.FederatedCommentAuthor;
 import dev.chojo.ember.feature.news.service.NewsFederationService.FederatedNewsData;
@@ -87,6 +89,11 @@ class NewsFederationServiceTest extends RepositoryTestBase {
                 httpClient,
                 stationRepo,
                 newsService,
+                new NewsAttachmentService(
+                        new NewsAttachmentRepository(),
+                        MediaTestSupport.library(stationRepo, pageRepo, mediaFileRepo, mediaMetaRepo, storageUsageRepo),
+                        stationRepo,
+                        new Api()),
                 eventFederationRepo,
                 memberNameResolver,
                 new FederationFanout(),

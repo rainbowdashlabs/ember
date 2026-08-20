@@ -7,6 +7,23 @@ import client from './client'
 import { createCrudResource, createScopedCrudResource, pageParams } from './crud'
 import type { MemberIdentity } from './types'
 
+/**
+ * A file a news entry hands over. It points at the station media library rather than holding
+ * bytes of its own, so the same flyer attached to three entries is stored once.
+ */
+export interface NewsAttachment {
+    id: number
+    newsId: number
+    fileId: number
+    label: string | null
+    sortOrder: number
+    createdAt: string
+    fileName: string
+    mimeType: string
+    fileSize: number
+    contentHash: string
+}
+
 export interface NewsEntry {
     id: number
     stationId: string
@@ -26,6 +43,7 @@ export interface NewsEntry {
     publicBlog?: boolean
     viewCount: number
     viewedByMe: boolean
+    attachments: NewsAttachment[]
 }
 
 export interface NewsRequest {
@@ -47,6 +65,7 @@ export interface PublicBlogEntry {
     contentHtml: string
     authorName: string
     publishedAt: string
+    attachments: NewsAttachment[]
 }
 
 export interface NewsComment {
@@ -214,6 +233,25 @@ export interface NewsViewerEntry {
 export interface NewsViewsResponse {
     seen: NewsViewerEntry[]
     unseen: NewsViewerEntry[]
+}
+
+// -- Attachments --
+
+export async function attachNewsFile(newsId: number, fileId: number, label?: string | null): Promise<NewsAttachment> {
+    const res = await client.post<NewsAttachment>(`/news/${newsId}/attachments`, {fileId, label: label ?? null})
+    return res.data
+}
+
+export async function relabelNewsAttachment(attachmentId: number, label: string | null): Promise<void> {
+    await client.post(`/news/attachments/${attachmentId}/label`, {label})
+}
+
+export async function reorderNewsAttachments(newsId: number, attachmentIds: number[]): Promise<void> {
+    await client.put(`/news/${newsId}/attachments/order`, {attachmentIds})
+}
+
+export async function detachNewsAttachment(attachmentId: number): Promise<void> {
+    await client.delete(`/news/attachments/${attachmentId}`)
 }
 
 export async function recordNewsView(newsId: number): Promise<void> {

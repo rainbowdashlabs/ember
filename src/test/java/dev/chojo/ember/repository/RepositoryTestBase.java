@@ -61,6 +61,8 @@ import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
 import dev.chojo.ember.feature.lostandfound.repository.LostAndFoundRepository;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
 import dev.chojo.ember.feature.mail.repository.StationMailProviderRepository;
+import dev.chojo.ember.feature.media.repository.MediaFileRepository;
+import dev.chojo.ember.feature.media.repository.MediaMetaRepository;
 import dev.chojo.ember.feature.members.repository.MemberDocumentRepository;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
@@ -185,6 +187,8 @@ public abstract class RepositoryTestBase {
     protected static ChecklistRepository checklistRepo;
     protected static ProcedureRepository procedureRepo;
     protected static PageRepository pageRepo;
+    protected static MediaFileRepository mediaFileRepo;
+    protected static MediaMetaRepository mediaMetaRepo;
     protected static StorageUsageRepository storageUsageRepo;
     protected static StorageQuotaPresetRepository storagePresetRepo;
     protected static StorageBackendAuditRepository storageBackendAuditRepo;
@@ -305,6 +309,8 @@ public abstract class RepositoryTestBase {
         checklistRepo = new ChecklistRepository();
         procedureRepo = new ProcedureRepository();
         pageRepo = new PageRepository();
+        mediaFileRepo = new MediaFileRepository();
+        mediaMetaRepo = new MediaMetaRepository();
         storageUsageRepo = new StorageUsageRepository();
         storagePresetRepo = new StorageQuotaPresetRepository();
         storageBackendAuditRepo = new StorageBackendAuditRepository();

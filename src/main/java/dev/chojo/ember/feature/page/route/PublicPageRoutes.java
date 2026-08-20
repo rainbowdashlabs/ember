@@ -14,8 +14,6 @@ import dev.chojo.ember.feature.page.entity.StationPage;
 import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
-import dev.chojo.ember.util.SafeContentDisposition;
-import dev.chojo.ember.util.SafeInlineMime;
 import io.javalin.http.Context;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -47,21 +45,10 @@ public class PublicPageRoutes implements Routes {
         this.discoveryCacheRepository = discoveryCacheRepository;
     }
 
-    private static Integer parseOptionalWidth(String raw) {
-        if (raw == null || raw.isBlank()) return null;
-        try {
-            int value = Integer.parseInt(raw);
-            return value > 0 ? value : null;
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
-
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/public/pages/{stationUid}", this::listPages);
         routes.get(prefix + "/public/pages/{stationUid}/landing", this::getLandingPage);
-        routes.get(prefix + "/public/pages/{stationUid}/files/{hash}", this::serveFile);
         routes.get(prefix + "/public/pages/{stationUid}/page/<pagePath>", this::getPage);
         routes.get(prefix + "/public/pages/{stationUid}/partners", this::listPartners);
     }
@@ -140,24 +127,6 @@ public class PublicPageRoutes implements Routes {
         var page = pageService.getLandingPage(stationId).orElseThrow(NotFoundResponse::new);
         ctx.attribute(PageHitRecorder.ATTR_PAGE_HIT_PAGE_ID, page.id());
         ctx.json(page);
-    }
-
-    private void serveFile(Context ctx) {
-        int stationId = resolveStation(ctx);
-        String hash = ctx.pathParam("hash");
-        Integer width = parseOptionalWidth(ctx.queryParam("w"));
-        String accept = ctx.header("Accept");
-        var fileData =
-                pageService.readFileVariant(stationId, hash, width, accept).orElseThrow(NotFoundResponse::new);
-        String stored = fileData.contentType();
-        ctx.contentType(SafeInlineMime.safeContentType(stored));
-        var disposition = SafeInlineMime.isInlineSafe(stored)
-                ? SafeContentDisposition.Disposition.INLINE
-                : SafeContentDisposition.Disposition.ATTACHMENT;
-        ctx.header("Content-Disposition", SafeContentDisposition.build(disposition, hash));
-        ctx.header("Cache-Control", "public, max-age=31536000, immutable");
-        ctx.header("Vary", "Accept");
-        ctx.result(fileData.data());
     }
 
     private int resolveStation(Context ctx) {

@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {pageImageUrl, type HeroBannerConfig} from '@/api/pageManage'
+import {type HeroBannerConfig} from '@/api/pageManage'
+import {mediaFileUrl} from '@/api/media'
 
 defineProps<{
     config: HeroBannerConfig
@@ -14,7 +15,7 @@ defineProps<{
 
 <template>
     <div class="relative w-full rounded-theme overflow-hidden">
-        <img v-if="config.imageHash && stationUid" :src="pageImageUrl(stationUid, config.imageHash)" alt="" class="w-full h-64 object-cover"/>
+        <img v-if="config.imageHash && stationUid" :src="mediaFileUrl(stationUid, config.imageHash)" alt="" class="w-full h-64 object-cover"/>
         <div v-else class="w-full h-64 bg-gradient-to-br from-primary/40 to-primary-accent/40"/>
         <div class="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-center text-white p-6">
             <div v-if="config.headline" class="text-3xl sm:text-4xl font-bold">{{ config.headline }}</div>

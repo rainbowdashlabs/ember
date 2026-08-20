@@ -9,17 +9,14 @@ import {useI18n} from 'vue-i18n'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import PageFileBrowseButton from './PageFileBrowseButton.vue'
+import MediaBrowseButton from '@/components/media/MediaBrowseButton.vue'
 import CellImagePreview from './CellImagePreview.vue'
 import ImageDisplaySection from './cellimageeditor/ImageDisplaySection.vue'
 import ImageCropSection from './cellimageeditor/ImageCropSection.vue'
 import ImageStyleSection from './cellimageeditor/ImageStyleSection.vue'
 import ImageTextSection from './cellimageeditor/ImageTextSection.vue'
-import {
-    pageImageUrl,
-    type ImageConfig,
-    type PageFile,
-} from '@/api/pageManage'
+import {type ImageConfig} from '@/api/pageManage'
+import {mediaFileUrl, type StationFile} from '@/api/media'
 
 const content = defineModel<string>('content', {required: true})
 const config = defineModel<Record<string, unknown>>('config', {required: true})
@@ -32,7 +29,7 @@ const props = defineProps<{
 const {t} = useI18n()
 const settingsOpen = ref(false)
 
-function onPick(p: {file: PageFile; url: string}) {
+function onPick(p: {file: StationFile; url: string}) {
     content.value = p.file.contentHash ?? ''
 }
 
@@ -40,7 +37,7 @@ const imageConfig = computed<ImageConfig>(() => (config.value as ImageConfig) ??
 
 const imageUrl = computed(() => {
     if (!content.value) return ''
-    return pageImageUrl(props.stationUid, content.value)
+    return mediaFileUrl(props.stationUid, content.value)
 })
 
 function updateConfig(patch: Record<string, unknown>) {
@@ -64,7 +61,7 @@ function updateConfig(patch: Record<string, unknown>) {
             </p>
         </div>
         <div class="flex items-center gap-2">
-            <PageFileBrowseButton
+            <MediaBrowseButton
                 :station-uid="stationUid"
                 mime-prefix="image/"
                 @pick="onPick"

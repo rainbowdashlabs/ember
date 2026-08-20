@@ -21,12 +21,12 @@ import java.util.List;
  * </ul>
  *
  * <p>{@code MIME_ANY} is the sentinel that disables MIME validation for categories that
- * accept arbitrary uploads (page files, KB files, board attachments).
+ * accept arbitrary uploads (media files, KB files, board attachments).
  */
 public enum StorageCategory {
-    PAGE_FILES("page-files", StorageScope.Kind.STATION, true, QuotaMode.ENFORCED, MimeLists.ANY, false, false, null),
-    PAGE_IMAGES(
-            "page-images",
+    MEDIA_FILES("media/files", StorageScope.Kind.STATION, true, QuotaMode.ENFORCED, MimeLists.ANY, false, false, null),
+    MEDIA_IMAGES(
+            "media/images",
             StorageScope.Kind.STATION,
             true,
             QuotaMode.ENFORCED,
@@ -183,7 +183,7 @@ public enum StorageCategory {
 
     /**
      * Returns the path prefix this category contributes (without leading or trailing slash).
-     * E.g. {@code "page-files"} for {@link #PAGE_FILES}.
+     * E.g. {@code "media/files"} for {@link #MEDIA_FILES}.
      */
     public String prefix() {
         return prefix;
@@ -199,7 +199,7 @@ public enum StorageCategory {
 
     /**
      * Whether the resolver may bind this category to a non-local backend. {@code true} for
-     * movable categories (page files, attachments, …); {@code false} for local-pinned
+     * movable categories (media files, attachments, …); {@code false} for local-pinned
      * categories (documents, discovery key, tile cache, demo avatars).
      */
     public boolean isMovable() {

@@ -10,14 +10,8 @@ import CellImagePreview from './CellImagePreview.vue'
 import CellLayoutRender from './CellLayoutRender.vue'
 import EditorRow, {type RowEditData} from './EditorRow.vue'
 import type {CellEditData} from './EditorCell.vue'
-import {
-    CellContentType,
-    isLayoutKind,
-    pageImageUrl,
-    type ImageConfig,
-    type LayoutKindName,
-    type VideoConfig,
-} from '@/api/pageManage'
+import {CellContentType, isLayoutKind, type ImageConfig, type LayoutKindName, type VideoConfig} from '@/api/pageManage'
+import {mediaFileUrl} from '@/api/media'
 import {enhancePageMarkdownImages} from '@/util/pageMarkdownImages'
 import {isYoutubeUrl, youtubeEmbedUrl as toYoutubeEmbedUrl} from '@/util/youtube'
 
@@ -38,7 +32,7 @@ const videoConfig = computed<VideoConfig>(() => (props.cell.config as VideoConfi
 
 const imageUrl = computed(() => {
     if (props.cell.contentType !== CellContentType.IMAGE || !props.cell.content) return ''
-    return pageImageUrl(props.stationUid, props.cell.content)
+    return mediaFileUrl(props.stationUid, props.cell.content)
 })
 
 const renderedHtml = computed(() => {

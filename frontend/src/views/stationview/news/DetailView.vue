@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {nextTick, ref, watch} from 'vue'
+import {computed, nextTick, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -21,6 +21,7 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import NewsCommentSection from '@/components/comment/NewsCommentSection.vue'
 import NewsViewBadge from './newsshared/NewsViewBadge.vue'
+import AttachmentList from './newsshared/AttachmentList.vue'
 import type {NewsEntry} from '@/api/news'
 import {news} from '@/api'
 import {useSession} from '@/composables/useSession'
@@ -31,7 +32,8 @@ import ProseContent from '@/components/display/ProseContent.vue'
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
-const {canManageNews} = useSession()
+const {canManageNews, sessionInfo} = useSession()
+const stationUid = computed(() => sessionInfo.value?.stationId ?? '')
 
 const entry = ref<NewsEntry | null>(null)
 const highlightCommentId = ref<number | null>(null)
@@ -122,6 +124,8 @@ watch(loading, (isLoading) => {
         </div>
 
         <ProseContent v-html="entry.contentHtml"/>
+
+        <AttachmentList :attachments="entry.attachments ?? []" :station-uid="stationUid"/>
 
         <div class="pt-3 border-t border-bg-light-accent dark:border-bg-dark-accent">
           <NewsCommentSection :news-id="entry.id" :highlight-comment-id="highlightCommentId"/>

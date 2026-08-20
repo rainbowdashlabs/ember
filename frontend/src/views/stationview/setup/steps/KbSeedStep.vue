@@ -80,7 +80,7 @@ function save() {
     </div>
     <div class="space-y-1">
       <FieldLabel>{{ t('setup.steps.kb-seed.pageContent') }}</FieldLabel>
-      <MarkdownEditor v-model="pageContent" :file-id="createdFileId ?? undefined"/>
+      <MarkdownEditor v-model="pageContent"/>
     </div>
   </SetupLayout>
 </template>

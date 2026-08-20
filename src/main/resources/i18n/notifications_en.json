@@ -89,7 +89,8 @@
   "storageCategory": {
     "KB_FILES": "Knowledge base",
     "BOARD_ATTACHMENTS": "Board attachments",
-    "PAGE_IMAGES": "Page images",
+    "MEDIA_FILES": "Media files",
+    "MEDIA_IMAGES": "Media images",
     "AVATARS": "Avatars",
     "IMAGES": "Other images"
   },

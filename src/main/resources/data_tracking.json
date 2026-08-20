@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:b27bb328600a2d6f253abd150b7213bcef81861ead9961dd020e92ec5d4cb09c",
-  "generatedAt": "2026-08-20T10:48:34Z",
+  "schemaHash": "sha256:e949f681449deb3d459af50809183aefa9655dabda4ca328475186ad02f825e4",
+  "generatedAt": "2026-08-20T14:29:03Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -10489,6 +10489,8 @@
       "description": "Planned absences for station members."
     },
     "member_document": {
+      "feature": "members",
+      "scope": "STATION",
       "tableHash": "sha256:21fdcae3fc8f19085eab1294c274052b2f13ced859f063dd85237da9b673233d",
       "columns": [
         {
@@ -10605,11 +10607,11 @@
           }
         ]
       },
-      "description": "Files kept for the members they concern.",
-      "feature": "members",
-      "scope": "STATION"
+      "description": "A file kept for one or more members of a station."
     },
     "member_document_member": {
+      "feature": "members",
+      "scope": "STATION",
       "tableHash": "sha256:24625b5ca0710028da2eeb605554e69865d56a6e7cafaa3bdb0e15caca0d2b2f",
       "columns": [
         {
@@ -10663,11 +10665,11 @@
           }
         ]
       },
-      "description": "Which members a document is bound to.",
-      "feature": "members",
-      "scope": "STATION"
+      "description": "Which members a document is bound to. A document with no member left is deleted with the last one."
     },
     "member_document_search": {
+      "feature": "members",
+      "scope": "STATION",
       "tableHash": "sha256:ce2051eb12aef50fe455505a24b7548ba2fefab7a8d04ddfcb4f8351bd9b7169",
       "columns": [
         {
@@ -10710,11 +10712,11 @@
           }
         ]
       },
-      "description": "What can be read out of a document, for searching it.",
-      "feature": "members",
-      "scope": "STATION"
+      "description": "What can be read out of a document, so a store of hundreds can be searched rather than scrolled."
     },
     "member_document_tag": {
+      "feature": "members",
+      "scope": "STATION",
       "tableHash": "sha256:6c35399eb2b973693c735b696b4c66ad485cbe27d14a7cc98df51ec81cf21bf4",
       "columns": [
         {
@@ -10758,11 +10760,11 @@
         "status": "IGNORED",
         "reason": "Labels of a station, with nobody in them."
       },
-      "description": "Free-text labels a station files its documents under.",
-      "feature": "members",
-      "scope": "STATION"
+      "description": "Words a station sorts its documents by. Written as they are needed rather than set up in advance."
     },
     "member_document_tag_entry": {
+      "feature": "members",
+      "scope": "STATION",
       "tableHash": "sha256:8e78e6278126f8cf6eda409e6f0aebcdbe43a55ed8975e5e2cd8bf4ddfae2f28",
       "columns": [
         {
@@ -10804,10 +10806,7 @@
       "gdprDeletion": {
         "status": "IGNORED",
         "reason": "Joins a document to a label, with nobody in it."
-      },
-      "feature": "members",
-      "scope": "STATION",
-      "description": "Which labels a document carries."
+      }
     },
     "member_group": {
       "feature": "members",
@@ -11216,6 +11215,78 @@
         "reason": "News federation/acknowledgement metadata — pending detailed review"
       },
       "description": "Tracks which members have read a news article."
+    },
+    "news_attachment": {
+      "tableHash": "sha256:c99fa399131b2dd2ee36d2c9eda412555779209148b5213abf022bdcfdaf5ea7",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "news_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "file_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "label",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "What a reader sees instead of the file name, for the cases where the file name is not what should be read."
+        },
+        {
+          "name": "sort_order",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The order the author put the attachments in, which is the order they are handed out and travel in."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "file_id",
+          "refTable": "station_file",
+          "refColumn": "id",
+          "onDelete": "RESTRICT"
+        },
+        {
+          "column": "news_id",
+          "refTable": "news",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "Belongs in station transfer alongside news and station_file; handler not yet implemented."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Names a file an entry hands out, not a member."
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Names a file an entry hands out, not a member."
+      },
+      "description": "A file a news entry hands over, pointing at the station media library rather than holding bytes of its own.",
+      "feature": "news",
+      "scope": "STATION"
     },
     "news_comment": {
       "feature": "news",
@@ -11721,285 +11792,6 @@
         "status": "IGNORED",
         "reason": "Public page content, not per-member"
       }
-    },
-    "page_file": {
-      "feature": "page",
-      "scope": "STATION",
-      "tableHash": "sha256:c1c192d3bc032e0bc2754cc8d1a6c90ff4258ab35ebecd9005eec816cee6790a",
-      "columns": [
-        {
-          "name": "id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true
-        },
-        {
-          "name": "page_id",
-          "type": "int4",
-          "nullable": true,
-          "verified": true,
-          "description": "The page that originally owned this file. Nullable so a row survives the deletion of its owning page when other pages in the same station reference the same file via dedup."
-        },
-        {
-          "name": "file_name",
-          "type": "text",
-          "nullable": false,
-          "verified": true
-        },
-        {
-          "name": "mime_type",
-          "type": "text",
-          "nullable": false,
-          "verified": true
-        },
-        {
-          "name": "file_size",
-          "type": "int8",
-          "nullable": false,
-          "verified": true
-        },
-        {
-          "name": "uploaded_at",
-          "type": "timestamptz",
-          "nullable": false,
-          "verified": true
-        },
-        {
-          "name": "station_id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true,
-          "description": "Owning station. Mirrors station_page.station_id; lets the storage layer build paths and enforce per-station dedup without joining."
-        },
-        {
-          "name": "content_hash",
-          "type": "text",
-          "nullable": true,
-          "verified": true,
-          "description": "Lowercase hex SHA-256 of the file bytes. Combined with station_id forms the on-disk filename."
-        },
-        {
-          "name": "default_alt_text",
-          "type": "text",
-          "nullable": true,
-          "verified": true,
-          "description": "Default alt text applied to gallery / image cells that pick this file unless the user overrides it."
-        },
-        {
-          "name": "default_description",
-          "type": "text",
-          "nullable": true,
-          "verified": true,
-          "description": "Default caption / description applied to gallery / image cells that pick this file unless the user overrides it."
-        },
-        {
-          "name": "folder_id",
-          "type": "int4",
-          "nullable": true,
-          "verified": true,
-          "description": "Optional folder this file lives in. NULL means the file sits at the station-level root."
-        }
-      ],
-      "foreignKeys": [
-        {
-          "column": "folder_id",
-          "refTable": "page_file_folder",
-          "refColumn": "id",
-          "onDelete": "SET NULL"
-        },
-        {
-          "column": "page_id",
-          "refTable": "station_page",
-          "refColumn": "id",
-          "onDelete": "SET NULL"
-        },
-        {
-          "column": "station_id",
-          "refTable": "station",
-          "refColumn": "id",
-          "onDelete": "CASCADE"
-        }
-      ],
-      "stationTransfer": {
-        "status": "TRACKED",
-        "rationale": "Belongs in station transfer; handler in StationExportService/StationImportService not yet implemented"
-      },
-      "gdprExport": {
-        "status": "IGNORED",
-        "reason": "Public page content, not per-member"
-      },
-      "gdprDeletion": {
-        "status": "IGNORED",
-        "reason": "Public page content, not per-member"
-      }
-    },
-    "page_file_folder": {
-      "feature": "page",
-      "scope": "STATION",
-      "tableHash": "sha256:c7b34e464e8ff6e4b846b3b333e793786ca08a2ad36202583f032877eb4731ab",
-      "columns": [
-        {
-          "name": "id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true
-        },
-        {
-          "name": "station_id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true
-        },
-        {
-          "name": "parent_id",
-          "type": "int4",
-          "nullable": true,
-          "verified": true
-        },
-        {
-          "name": "name",
-          "type": "text",
-          "nullable": false,
-          "verified": true
-        },
-        {
-          "name": "sort_order",
-          "type": "int4",
-          "nullable": false,
-          "verified": true
-        },
-        {
-          "name": "created_at",
-          "type": "timestamptz",
-          "nullable": false,
-          "verified": true
-        }
-      ],
-      "foreignKeys": [
-        {
-          "column": "parent_id",
-          "refTable": "page_file_folder",
-          "refColumn": "id",
-          "onDelete": "CASCADE"
-        },
-        {
-          "column": "station_id",
-          "refTable": "station",
-          "refColumn": "id",
-          "onDelete": "CASCADE"
-        }
-      ],
-      "stationTransfer": {
-        "status": "TRACKED",
-        "rationale": "Folder hierarchy is per-station; transfer handler not yet implemented."
-      },
-      "gdprExport": {
-        "status": "IGNORED",
-        "reason": "Folder names are organizational metadata, not per-member."
-      },
-      "gdprDeletion": {
-        "status": "IGNORED",
-        "reason": "Folder names are organizational metadata, not per-member."
-      },
-      "description": "Hierarchical folder tree per station for organising page files. Each folder is scoped to one station; parent_id forms the tree (NULL = top level)."
-    },
-    "page_file_tag": {
-      "feature": "page",
-      "scope": "STATION",
-      "tableHash": "sha256:f10a1a9689ed3f8fbf7bc399bc7d2628a7af958b53f80a4b7f8ce9322beb9bc8",
-      "columns": [
-        {
-          "name": "id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true
-        },
-        {
-          "name": "station_id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true
-        },
-        {
-          "name": "name",
-          "type": "text",
-          "nullable": false,
-          "verified": true
-        },
-        {
-          "name": "color",
-          "type": "text",
-          "nullable": true,
-          "verified": true
-        }
-      ],
-      "foreignKeys": [
-        {
-          "column": "station_id",
-          "refTable": "station",
-          "refColumn": "id",
-          "onDelete": "CASCADE"
-        }
-      ],
-      "stationTransfer": {
-        "status": "TRACKED",
-        "rationale": "Tag definitions are per-station; transfer handler not yet implemented."
-      },
-      "gdprExport": {
-        "status": "IGNORED",
-        "reason": "Tags are organizational metadata, not per-member."
-      },
-      "gdprDeletion": {
-        "status": "IGNORED",
-        "reason": "Tags are organizational metadata, not per-member."
-      },
-      "description": "Free-form labels attached to page files. Unique per (station, name) so duplicates inside a single station are not possible."
-    },
-    "page_file_tag_assignment": {
-      "feature": "page",
-      "scope": "STATION",
-      "tableHash": "sha256:da06d9c4983364ff3f76444144e26efb3cd1f59e5f57de923c9e12da4bfda3bb",
-      "columns": [
-        {
-          "name": "file_id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true
-        },
-        {
-          "name": "tag_id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true
-        }
-      ],
-      "foreignKeys": [
-        {
-          "column": "file_id",
-          "refTable": "page_file",
-          "refColumn": "id",
-          "onDelete": "CASCADE"
-        },
-        {
-          "column": "tag_id",
-          "refTable": "page_file_tag",
-          "refColumn": "id",
-          "onDelete": "CASCADE"
-        }
-      ],
-      "stationTransfer": {
-        "status": "TRACKED",
-        "rationale": "Belongs in station transfer alongside page_file and page_file_tag; handler not yet implemented."
-      },
-      "gdprExport": {
-        "status": "IGNORED",
-        "reason": "Join table for file-tag relationships, no per-member data."
-      },
-      "gdprDeletion": {
-        "status": "IGNORED",
-        "reason": "Join table for file-tag relationships, no per-member data."
-      },
-      "description": "Many-to-many join between page files and tags."
     },
     "page_hit_hourly": {
       "feature": "insights",
@@ -15159,6 +14951,339 @@
       },
       "description": "Date ranges during which recurring events are suspended (e.g. holidays)."
     },
+    "station_file": {
+      "tableHash": "sha256:0b7495ab354fd455c40b8d89de06fdb7b0a39d8008e227a5c88f3af272f5e1fc",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "page_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The page a file was first uploaded for, kept for the history it records. Nullable, because most files are not brought in by a page at all."
+        },
+        {
+          "name": "file_name",
+          "type": "text",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "mime_type",
+          "type": "text",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "file_size",
+          "type": "int8",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "uploaded_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Owning station. Mirrors station_page.station_id; lets the storage layer build paths and enforce per-station dedup without joining."
+        },
+        {
+          "name": "content_hash",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Lowercase hex SHA-256 of the file bytes. Combined with station_id forms the on-disk filename."
+        },
+        {
+          "name": "default_alt_text",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Default alt text applied to gallery / image cells that pick this file unless the user overrides it."
+        },
+        {
+          "name": "default_description",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Default caption / description applied to gallery / image cells that pick this file unless the user overrides it."
+        },
+        {
+          "name": "folder_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Optional folder this file lives in. NULL means the file sits at the station-level root."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "folder_id",
+          "refTable": "station_file_folder",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "page_id",
+          "refTable": "station_page",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "Belongs in station transfer; handler in StationExportService/StationImportService not yet implemented"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Station media, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Station media, not per-member"
+      },
+      "description": "The media library of a station. Every file the station has uploaded for any of its content lives here once, keyed by the hash of its bytes.",
+      "feature": "media",
+      "scope": "STATION"
+    },
+    "station_file_folder": {
+      "tableHash": "sha256:67d7b9c326681b9daf44dbb470ff2e8dad9ec1fc9aa75c6d2d74dbb6d48e6d71",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "parent_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "sort_order",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "parent_id",
+          "refTable": "station_file_folder",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "Folder hierarchy is per-station; transfer handler not yet implemented."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Folder names are organizational metadata, not per-member."
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Folder names are organizational metadata, not per-member."
+      },
+      "description": "Hierarchical folder tree per station for organising media. Each folder is scoped to one station; parent_id forms the tree (NULL = top level).",
+      "feature": "media",
+      "scope": "STATION"
+    },
+    "station_file_tag": {
+      "tableHash": "sha256:f10a1a9689ed3f8fbf7bc399bc7d2628a7af958b53f80a4b7f8ce9322beb9bc8",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "color",
+          "type": "text",
+          "nullable": true,
+          "verified": true
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "Tag definitions are per-station; transfer handler not yet implemented."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Tags are organizational metadata, not per-member."
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Tags are organizational metadata, not per-member."
+      },
+      "description": "Free-form labels attached to media files. Unique per (station, name) so duplicates inside a single station are not possible.",
+      "feature": "media",
+      "scope": "STATION"
+    },
+    "station_file_tag_assignment": {
+      "tableHash": "sha256:3414466d2f913f248e27d73fc605eea4de61566c16d458c74a1587b01cc798ea",
+      "columns": [
+        {
+          "name": "file_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "tag_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "file_id",
+          "refTable": "station_file",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "tag_id",
+          "refTable": "station_file_tag",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "Belongs in station transfer alongside station_file and station_file_tag; handler not yet implemented."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Join table for file-tag relationships, no per-member data."
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Join table for file-tag relationships, no per-member data."
+      },
+      "description": "Many-to-many join between media files and tags.",
+      "feature": "media",
+      "scope": "STATION"
+    },
+    "station_file_uploader": {
+      "tableHash": "sha256:a39a56a864522a58e4d47098fa3d428386788193fb81e16aec52f42bb9d60899",
+      "columns": [
+        {
+          "name": "file_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "uploaded_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When this member uploaded the file. The earliest row is who first brought it into the station."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "file_id",
+          "refTable": "station_file",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "Belongs in station transfer alongside station_file; handler not yet implemented."
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "rationale": "Records that a member uploaded a file; belongs in a member export alongside their other contributions."
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "rationale": "Cascades with station_member, which takes the uploader row with the membership."
+      },
+      "description": "The members who uploaded a file. A set rather than a column, because identical bytes are stored once and may be brought in by several people.",
+      "feature": "media",
+      "scope": "STATION"
+    },
     "station_mail_provider": {
       "feature": "mail",
       "scope": "STATION",
@@ -15510,7 +15635,7 @@
     "station_page": {
       "feature": "page",
       "scope": "STATION",
-      "tableHash": "sha256:13a415f3ec31caa54eec78f6a4c08b5eccf73d14e64ab051a7dc4a90cd08ebf3",
+      "tableHash": "sha256:2310fcf2f59ffafbe7e2c6b868cc20832f5520b6cd830bdd524d73634cd9e42f",
       "columns": [
         {
           "name": "id",
@@ -15601,7 +15726,7 @@
         },
         {
           "column": "og_image_id",
-          "refTable": "page_file",
+          "refTable": "station_file",
           "refColumn": "id",
           "onDelete": "SET NULL"
         },

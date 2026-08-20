@@ -18,6 +18,8 @@ import {StationPermission, type MemberGroup, type UserTag} from '@/api/types'
 import type { PartnerResponse } from '@/api/federation'
 import { news, memberGroups, userTags, federation } from '@/api'
 import ContentPanel from './editview/ContentPanel.vue'
+import AttachmentsPanel from './editview/AttachmentsPanel.vue'
+import {useNewsAttachments} from './editview/useNewsAttachments'
 import PublicBlogPanel from './editview/PublicBlogPanel.vue'
 import RestrictionsPanel from './editview/RestrictionsPanel.vue'
 import FederationPanel from './editview/FederationPanel.vue'
@@ -26,7 +28,7 @@ import { useSession } from '@/composables/useSession'
 const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
-const { loaded, hasPermission } = useSession()
+const { loaded, hasPermission, sessionInfo } = useSession()
 const canFederateNews = () => hasPermission(StationPermission.NEWS_FEDERATE)
 
 const isEdit = computed(() => !!route.params.id)
@@ -48,6 +50,9 @@ const federationScope = ref('ALL_PARTNERS')
 const federationVisibilityRole = ref('MEMBER')
 const federationPartnerIds = ref<number[]>([])
 const partners = ref<PartnerResponse[]>([])
+
+const stationUid = computed(() => sessionInfo.value?.stationId ?? '')
+const {attachments, load: loadAttachments, add: addAttachment, remove: removeAttachment, move: moveAttachment, persist: persistAttachments} = useNewsAttachments()
 
 const contentHtml = computed(() => {
   try {
@@ -76,6 +81,7 @@ const { loading, error, reload } = useAsyncLoader(async () => {
     selectedGroupIds.value = entry.groupIds ?? []
     selectedTagIds.value = entry.tagIds ?? []
     publicBlog.value = entry.publicBlog ?? false
+    loadAttachments(entry.attachments ?? [])
 
     if (canFederateNews()) {
       const fedShare = await news.getFederationShare(newsId.value)
@@ -111,6 +117,8 @@ async function save() {
       const created = await news.createNews(data)
       savedId = created.id
     }
+
+    await persistAttachments(savedId)
 
     if (canFederateNews()) {
       if (federationShared.value) {
@@ -150,6 +158,13 @@ watch(loaded, (isLoaded) => {
 
       <template v-if="!loading">
         <ContentPanel v-model:title="title" v-model:content-markdown="contentMarkdown"/>
+        <AttachmentsPanel
+            v-model:attachments="attachments"
+            :station-uid="stationUid"
+            @add="addAttachment"
+            @remove="removeAttachment"
+            @move="moveAttachment"
+        />
         <PublicBlogPanel v-model:public-blog="publicBlog"/>
         <RestrictionsPanel
             v-model:selected-user-types="selectedUserTypes"

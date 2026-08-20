@@ -14,10 +14,11 @@ import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.service.FormAnalyticsAssembler;
 import dev.chojo.ember.feature.form.service.FormService;
+import dev.chojo.ember.feature.media.route.MediaRoutes;
+import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.page.entity.CellConfig;
 import dev.chojo.ember.feature.page.entity.CellContentType;
-import dev.chojo.ember.feature.page.entity.PageFile;
 import dev.chojo.ember.feature.page.entity.StationPage;
 import dev.chojo.ember.feature.page.service.MemberListResolver;
 import dev.chojo.ember.feature.page.service.PageService;
@@ -45,6 +46,8 @@ public class PageRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(PageRoutes.class);
 
     private final PageService pageService;
+    private final MediaRoutes mediaRoutes;
+    private final MediaLibraryService media;
     private final FormService formService;
     private final FormAnalyticsAssembler formAnalyticsAssembler;
     private final StationMemberRepository stationMemberRepository;
@@ -54,12 +57,16 @@ public class PageRoutes implements Routes {
     @Inject
     public PageRoutes(
             PageService pageService,
+            MediaRoutes mediaRoutes,
+            MediaLibraryService media,
             FormService formService,
             FormAnalyticsAssembler formAnalyticsAssembler,
             StationMemberRepository stationMemberRepository,
             AvatarService avatarService,
             Api apiConfig) {
         this.pageService = pageService;
+        this.mediaRoutes = mediaRoutes;
+        this.media = media;
         this.formService = formService;
         this.formAnalyticsAssembler = formAnalyticsAssembler;
         this.stationMemberRepository = stationMemberRepository;
@@ -82,23 +89,9 @@ public class PageRoutes implements Routes {
         routes.post(prefix + "/pages", this::create, StationPermission.PAGE_EDIT);
         // Register the literal "/pages/files" and "/pages/landing" paths BEFORE the variable
         // "/pages/{pid}" routes so Javalin matches them as literal segments instead of trying to
-        // parse "files"/"landing" as an int page id.
-        routes.get(prefix + "/pages/files", this::listFiles, StationPermission.PAGE_EDIT);
-        routes.post(prefix + "/pages/files", this::uploadStationFile, StationPermission.PAGE_EDIT);
-        routes.post(prefix + "/pages/files/prune", this::pruneFiles, StationPermission.PAGE_MANAGER);
-        routes.put(prefix + "/pages/files/{fileId}", this::updateFileMeta, StationPermission.PAGE_EDIT);
-        routes.delete(prefix + "/pages/files/{fileId}", this::deleteFile, StationPermission.PAGE_MANAGER);
-        routes.put(prefix + "/pages/files/{fileId}/folder", this::moveFileFolder, StationPermission.PAGE_EDIT);
-        routes.post(prefix + "/pages/files/{fileId}/tags/{tagId}", this::assignTag, StationPermission.PAGE_EDIT);
-        routes.delete(prefix + "/pages/files/{fileId}/tags/{tagId}", this::unassignTag, StationPermission.PAGE_EDIT);
-        routes.get(prefix + "/pages/folders", this::listFolders, StationPermission.PAGE_EDIT);
-        routes.post(prefix + "/pages/folders", this::createFolder, StationPermission.PAGE_EDIT);
-        routes.put(prefix + "/pages/folders/{folderId}", this::updateFolder, StationPermission.PAGE_EDIT);
-        routes.delete(prefix + "/pages/folders/{folderId}", this::deleteFolder, StationPermission.PAGE_EDIT);
-        routes.get(prefix + "/pages/tags", this::listTags, StationPermission.PAGE_EDIT);
-        routes.post(prefix + "/pages/tags", this::createTag, StationPermission.PAGE_EDIT);
-        routes.put(prefix + "/pages/tags/{tagId}", this::updateTag, StationPermission.PAGE_EDIT);
-        routes.delete(prefix + "/pages/tags/{tagId}", this::deleteTag, StationPermission.PAGE_EDIT);
+        // parse "files"/"landing" as an int page id. The media library keeps its former addresses
+        // here for one release so a stale frontend bundle does not break mid-deploy.
+        mediaRoutes.registerPageAliases(routes, prefix);
         routes.put(prefix + "/pages/landing", this::setLandingPage, StationPermission.PAGE_MANAGER);
         routes.get(prefix + "/pages/search", this::searchPicker, StationPermission.PAGE_EDIT);
         routes.post(prefix + "/pages/member-list/resolve", this::resolveMemberList, StationPermission.PAGE_EDIT);
@@ -132,7 +125,6 @@ public class PageRoutes implements Routes {
         routes.delete(prefix + "/pages/{pid}", this::delete, StationPermission.PAGE_MANAGER);
         routes.put(prefix + "/pages/{pid}/publish", this::togglePublish, StationPermission.PAGE_MANAGER);
         routes.post(prefix + "/pages/{pid}/files", this::uploadPageFile, StationPermission.PAGE_EDIT);
-        routes.delete(prefix + "/pages/{pid}/files/{fileId}", this::deleteFile, StationPermission.PAGE_EDIT);
     }
 
     private void list(Context ctx) {
@@ -353,7 +345,12 @@ public class PageRoutes implements Routes {
         }
     }
 
+    /**
+     * Uploads a file from the page editor. It lands in the station media library like any other
+     * upload; the page is recorded only as where it first came from.
+     */
     private void uploadPageFile(Context ctx) {
+        var session = UserSession.from(ctx);
         int pid = ctx.pathParamAsClass("pid", Integer.class).get();
         requireOwnedPage(ctx, pid);
         var file = ctx.uploadedFile("file");
@@ -362,163 +359,21 @@ public class PageRoutes implements Routes {
 
         try (var content = file.content()) {
             byte[] data = content.readAllBytes();
-            var image = pageService.uploadPageFile(pid, file.filename(), file.contentType(), data);
-            ctx.status(HttpStatus.CREATED).json(image);
-        } catch (StorageQuotaService.StorageQuotaExceededException | IllegalArgumentException e) {
-            throw new BadRequestResponse(e.getMessage());
-        } catch (Exception e) {
-            log.warn("Failed to upload page image", e);
-            throw new BadRequestResponse("Failed to upload image");
-        }
-    }
-
-    private void deleteFile(Context ctx) {
-        int fileId = pathInt(ctx, "fileId");
-        requireOwnedOrNotFound(ctx, fileId, pageService::findFile, PageFile::stationId);
-        if (!pageService.deleteFile(fileId)) {
-            throw new NotFoundResponse();
-        }
-        ctx.status(HttpStatus.NO_CONTENT);
-    }
-
-    private void listFiles(Context ctx) {
-        var session = UserSession.from(ctx);
-        ctx.json(pageService.listFilesWithUsage(session.stationId()));
-    }
-
-    private void pruneFiles(Context ctx) {
-        var session = UserSession.from(ctx);
-        int removed = pageService.pruneUnusedFiles(session.stationId());
-        ctx.json(new PruneResult(removed));
-    }
-
-    private void updateFileMeta(Context ctx) {
-        var session = UserSession.from(ctx);
-        int fileId = ctx.pathParamAsClass("fileId", Integer.class).get();
-        var body = ctx.bodyAsClass(FileMetaRequest.class);
-        if (!pageService.updateFileMeta(session.stationId(), fileId, body.altText(), body.description())) {
-            throw new NotFoundResponse();
-        }
-        ctx.status(HttpStatus.NO_CONTENT);
-    }
-
-    private void moveFileFolder(Context ctx) {
-        var session = UserSession.from(ctx);
-        int fileId = ctx.pathParamAsClass("fileId", Integer.class).get();
-        var body = ctx.bodyAsClass(MoveFileRequest.class);
-        if (!pageService.moveFileToFolder(session.stationId(), fileId, body.folderId())) {
-            throw new NotFoundResponse();
-        }
-        ctx.status(HttpStatus.NO_CONTENT);
-    }
-
-    private void listFolders(Context ctx) {
-        var session = UserSession.from(ctx);
-        ctx.json(pageService.listFolders(session.stationId()));
-    }
-
-    private void createFolder(Context ctx) {
-        var session = UserSession.from(ctx);
-        var body = ctx.bodyAsClass(FolderRequest.class);
-        if (body.name() == null || body.name().isBlank()) throw new BadRequestResponse("name is required");
-        var folder = pageService.createFolder(
-                session.stationId(), body.parentId(), body.name(), body.sortOrder() != null ? body.sortOrder() : 0);
-        ctx.status(HttpStatus.CREATED).json(folder);
-    }
-
-    private void updateFolder(Context ctx) {
-        var session = UserSession.from(ctx);
-        int folderId = ctx.pathParamAsClass("folderId", Integer.class).get();
-        var body = ctx.bodyAsClass(FolderRequest.class);
-        if (!pageService.updateFolder(
-                session.stationId(),
-                folderId,
-                body.parentId(),
-                body.name(),
-                body.sortOrder() != null ? body.sortOrder() : 0)) {
-            throw new NotFoundResponse();
-        }
-        ctx.status(HttpStatus.NO_CONTENT);
-    }
-
-    private void deleteFolder(Context ctx) {
-        var session = UserSession.from(ctx);
-        int folderId = ctx.pathParamAsClass("folderId", Integer.class).get();
-        if (!pageService.deleteFolder(session.stationId(), folderId)) throw new NotFoundResponse();
-        ctx.status(HttpStatus.NO_CONTENT);
-    }
-
-    private void listTags(Context ctx) {
-        var session = UserSession.from(ctx);
-        ctx.json(pageService.listTags(session.stationId()));
-    }
-
-    private void createTag(Context ctx) {
-        var session = UserSession.from(ctx);
-        var body = ctx.bodyAsClass(TagRequest.class);
-        if (body.name() == null || body.name().isBlank()) throw new BadRequestResponse("name is required");
-        ctx.status(HttpStatus.CREATED).json(pageService.createTag(session.stationId(), body.name(), body.color()));
-    }
-
-    private void updateTag(Context ctx) {
-        var session = UserSession.from(ctx);
-        int tagId = ctx.pathParamAsClass("tagId", Integer.class).get();
-        var body = ctx.bodyAsClass(TagRequest.class);
-        if (!pageService.updateTag(session.stationId(), tagId, body.name(), body.color())) {
-            throw new NotFoundResponse();
-        }
-        ctx.status(HttpStatus.NO_CONTENT);
-    }
-
-    private void deleteTag(Context ctx) {
-        var session = UserSession.from(ctx);
-        int tagId = ctx.pathParamAsClass("tagId", Integer.class).get();
-        if (!pageService.deleteTag(session.stationId(), tagId)) throw new NotFoundResponse();
-        ctx.status(HttpStatus.NO_CONTENT);
-    }
-
-    private void assignTag(Context ctx) {
-        var session = UserSession.from(ctx);
-        int fileId = ctx.pathParamAsClass("fileId", Integer.class).get();
-        int tagId = ctx.pathParamAsClass("tagId", Integer.class).get();
-        if (!pageService.assignTag(session.stationId(), fileId, tagId)) throw new NotFoundResponse();
-        ctx.status(HttpStatus.NO_CONTENT);
-    }
-
-    private void unassignTag(Context ctx) {
-        var session = UserSession.from(ctx);
-        int fileId = ctx.pathParamAsClass("fileId", Integer.class).get();
-        int tagId = ctx.pathParamAsClass("tagId", Integer.class).get();
-        if (!pageService.unassignTag(session.stationId(), fileId, tagId)) throw new NotFoundResponse();
-        ctx.status(HttpStatus.NO_CONTENT);
-    }
-
-    private void uploadStationFile(Context ctx) {
-        var session = UserSession.from(ctx);
-        var file = ctx.uploadedFile("file");
-        if (file == null) throw new BadRequestResponse("file is required");
-        if (file.size() > apiConfig.maxUploadSizeBytes()) throw new BadRequestResponse("File too large");
-        try (var content = file.content()) {
-            byte[] data = content.readAllBytes();
-            var stored = pageService.uploadStationFile(session.stationId(), file.filename(), file.contentType(), data);
+            var stored = media.upload(
+                    session.stationId(),
+                    pid,
+                    session.member() != null ? session.member().id() : null,
+                    file.filename(),
+                    file.contentType(),
+                    data);
             ctx.status(HttpStatus.CREATED).json(stored);
         } catch (StorageQuotaService.StorageQuotaExceededException | IllegalArgumentException e) {
             throw new BadRequestResponse(e.getMessage());
         } catch (Exception e) {
-            log.warn("Failed to upload station file", e);
+            log.warn("Failed to upload page file", e);
             throw new BadRequestResponse("Failed to upload file");
         }
     }
-
-    record PruneResult(int removed) {}
-
-    record FileMetaRequest(String altText, String description) {}
-
-    record FolderRequest(Integer parentId, String name, Integer sortOrder) {}
-
-    record TagRequest(String name, String color) {}
-
-    record MoveFileRequest(Integer folderId) {}
 
     // Response records
     record PagesListResponse(List<StationPage> pages, Integer landingPageId) {}

@@ -17,6 +17,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import {news} from '@/api'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {formatDateLong} from '@/util/format'
+import AttachmentList from '@/views/stationview/news/newsshared/AttachmentList.vue'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -53,6 +54,8 @@ function goBack() {
       </div>
       <NeutralContainer>
         <div class="prose dark:prose-invert max-w-none" v-html="entry.contentHtml"/>
+
+        <AttachmentList :attachments="entry.attachments ?? []" :station-uid="stationUid"/>
       </NeutralContainer>
     </template>
   </div>

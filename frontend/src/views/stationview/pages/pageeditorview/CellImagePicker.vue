@@ -7,9 +7,10 @@
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
-import PageFileBrowseButton from './PageFileBrowseButton.vue'
+import MediaBrowseButton from '@/components/media/MediaBrowseButton.vue'
 import CellImagePickerMultiItem from './cellimagepicker/CellImagePickerMultiItem.vue'
-import {pageImageUrl, type GalleryItem, type PageFile} from '@/api/pageManage'
+import {type GalleryItem} from '@/api/pageManage'
+import {mediaFileUrl, type StationFile} from '@/api/media'
 
 const itemsModel = defineModel<GalleryItem[] | null>('items')
 const imageHashModel = defineModel<string | null>('imageHash')
@@ -30,12 +31,12 @@ const items = computed<GalleryItem[]>(() => {
     return imageHashModel.value ? [{imageHash: imageHashModel.value}] : []
 })
 
-function newItemFromFile(f: PageFile): GalleryItem | null {
+function newItemFromFile(f: StationFile): GalleryItem | null {
     if (!f.contentHash) return null
     return {imageHash: f.contentHash, altText: f.defaultAltText ?? '', subtext: f.defaultDescription ?? ''}
 }
 
-function pick(p: {file: PageFile}) {
+function pick(p: {file: StationFile}) {
     if (!p.file.contentHash) return
     if (props.multi) {
         const item = newItemFromFile(p.file)
@@ -45,7 +46,7 @@ function pick(p: {file: PageFile}) {
     }
 }
 
-function pickMany(payloads: Array<{file: PageFile}>) {
+function pickMany(payloads: Array<{file: StationFile}>) {
     if (!props.multi) return
     const added: GalleryItem[] = []
     for (const p of payloads) {
@@ -76,7 +77,7 @@ function updateField(i: number, field: 'altText' | 'subtext', value: string) {
     itemsModel.value = items.value.map((it, idx) => idx === i ? {...it, [field]: value} : it)
 }
 
-function swapAt(i: number, payload: {file: PageFile}) {
+function swapAt(i: number, payload: {file: StationFile}) {
     if (!payload.file.contentHash) return
     if (props.multi) {
         itemsModel.value = items.value.map(
@@ -135,10 +136,10 @@ function onDrop(target: number) {
 
         <!-- Single-mode: one image preview -->
         <div v-if="!multi && items.length > 0" class="flex items-start gap-2">
-            <img :src="pageImageUrl(stationUid, items[0]?.imageHash ?? '')" alt=""
+            <img :src="mediaFileUrl(stationUid, items[0]?.imageHash ?? '')" alt=""
                  class="w-32 h-32 object-cover rounded-theme border border-(--border)"/>
             <div class="flex flex-col gap-1">
-                <PageFileBrowseButton
+                <MediaBrowseButton
                     :station-uid="stationUid"
                     mime-prefix="image/"
                     :label="t('stationPages.editor.replaceImage')"
@@ -152,7 +153,7 @@ function onDrop(target: number) {
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
-            <PageFileBrowseButton
+            <MediaBrowseButton
                 :station-uid="stationUid"
                 mime-prefix="image/"
                 :multiple="multi"

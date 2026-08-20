@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.board.service.DueDateReminderChecker;
 import dev.chojo.ember.feature.events.service.RegistrationDeadlineChecker;
 import dev.chojo.ember.feature.legal.service.ConsentService;
+import dev.chojo.ember.feature.media.service.MediaPrefixMigrationService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.TransferTimeoutWatchdog;
@@ -116,6 +117,11 @@ public class Bootstrapper {
         injector.getInstance(ConsentService.class).initialize();
 
         injector.getInstance(CloudflareRangesService.class).refreshAsync();
+
+        // Media moved from the page-files prefix onto media/. The move is per station and
+        // resumable, so it runs off the boot path and picks up where it left off after a crash.
+        var mediaMigration = injector.getInstance(MediaPrefixMigrationService.class);
+        Thread.ofPlatform().daemon().name("media-prefix-migration").start(mediaMigration::migrateAll);
 
         // After the schema is certain: in demo mode the migration runs in DemoService, not above.
         injector.getInstance(ApplicationLogWriter.class).start();

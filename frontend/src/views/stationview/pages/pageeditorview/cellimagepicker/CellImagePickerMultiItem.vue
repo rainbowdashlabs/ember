@@ -7,8 +7,9 @@
 import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
-import PageFileBrowseButton from '../PageFileBrowseButton.vue'
-import {pageImageUrl, type GalleryItem, type PageFile} from '@/api/pageManage'
+import MediaBrowseButton from '@/components/media/MediaBrowseButton.vue'
+import {type GalleryItem} from '@/api/pageManage'
+import {mediaFileUrl, type StationFile} from '@/api/media'
 
 defineProps<{
     item: GalleryItem
@@ -23,7 +24,7 @@ defineEmits<{
     'move-down': []
     'remove': []
     'update-field': [field: 'altText' | 'subtext', value: string]
-    'swap-image': [payload: {file: PageFile}]
+    'swap-image': [payload: {file: StationFile}]
     'drag-start': [ev: DragEvent]
     'drag-over': [ev: DragEvent]
     'drop': []
@@ -51,7 +52,7 @@ const {t} = useI18n()
                 :disabled="isLast" @click="$emit('move-down')"
             />
         </div>
-        <img :src="pageImageUrl(stationUid, item.imageHash)" alt=""
+        <img :src="mediaFileUrl(stationUid, item.imageHash)" alt=""
              class="w-24 h-24 object-cover rounded shrink-0"/>
         <div class="flex-1 flex flex-col gap-1 min-w-0">
             <TextInput
@@ -65,7 +66,7 @@ const {t} = useI18n()
                 @update:model-value="$emit('update-field', 'subtext', $event ?? '')"
             />
         </div>
-        <PageFileBrowseButton
+        <MediaBrowseButton
             :station-uid="stationUid"
             mime-prefix="image/"
             :label="t('stationPages.editor.replaceImage')"
