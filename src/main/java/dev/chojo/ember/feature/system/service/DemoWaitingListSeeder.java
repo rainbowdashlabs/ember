@@ -78,7 +78,9 @@ public class DemoWaitingListSeeder implements DemoSeeder {
                 gaesteGroup.id(),
                 joinGroupId,
                 5,
-                true);
+                true,
+                null,
+                null);
 
         var birthdayField = waitingListRepository.createField(
                 list.id(), "Geburtsdatum", WaitingListFieldType.DATE, WaitingListFieldConfig.EMPTY, 0, true, true);
@@ -101,7 +103,9 @@ public class DemoWaitingListSeeder implements DemoSeeder {
                 null,
                 null,
                 0,
-                true);
+                true,
+                null,
+                null);
         waitingListRepository.createField(
                 kinderList.id(),
                 "Name des Kindes",
@@ -133,7 +137,9 @@ public class DemoWaitingListSeeder implements DemoSeeder {
                 null,
                 null,
                 0,
-                true);
+                true,
+                null,
+                null);
 
         // Create invite codes
         waitingListRepository.createInvite(list.id(), "demo-invite-active", 5, null);

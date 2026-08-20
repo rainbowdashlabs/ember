@@ -41,6 +41,8 @@ const editTestingGroupId = ref<number | null>(null)
 const editJoinGroupId = ref<number | null>(null)
 const editAttendanceThreshold = ref(5)
 const editIsPublic = ref(false)
+const editMinAgeRegister = ref<number | null>(null)
+const editMinAgeJoin = ref<number | null>(null)
 
 const canSave = computed(() => !!editName.value.trim())
 
@@ -53,6 +55,8 @@ function startEditing() {
   editJoinGroupId.value = props.list.joinGroupId ?? null
   editAttendanceThreshold.value = props.list.attendanceThreshold ?? 5
   editIsPublic.value = props.list.isPublic ?? false
+  editMinAgeRegister.value = props.list.minAgeRegister ?? null
+  editMinAgeJoin.value = props.list.minAgeJoin ?? null
   editing.value = true
 }
 
@@ -72,6 +76,8 @@ async function saveEditing() {
       joinGroupId: editJoinGroupId.value,
       attendanceThreshold: editAttendanceThreshold.value,
       isPublic: editIsPublic.value,
+      minAgeRegister: editMinAgeRegister.value,
+      minAgeJoin: editMinAgeJoin.value,
     })
     editing.value = false
     emit('updated', updated)
@@ -142,6 +148,8 @@ function groupName(groupId: number | null | undefined): string {
         v-model:testing-group-id="editTestingGroupId"
         v-model:join-group-id="editJoinGroupId"
         v-model:attendance-threshold="editAttendanceThreshold"
+        v-model:min-age-join="editMinAgeJoin"
+        v-model:min-age-register="editMinAgeRegister"
         :fields="fields"
         :groups="groups"
       />

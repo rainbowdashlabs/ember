@@ -54,12 +54,13 @@ function entry(id: number, firstname: string, lastname: string,
     }
 }
 
-function withScore(base: WaitingListEntry, score: number,
+function withScore(base: WaitingListEntry,
+                   score: number,
                    values: {fieldId: number; value: unknown}[] = [],
                    guardians: {firstname: string; lastname: string; email: string; phone: string}[] = [],
 ): WaitingListEntryWithScore {
     return {
-        entry: base, score,
+        entry: base, score, belowJoinAge: false,
         values: values.map(value => ({entryId: base.id, ...value})),
         guardians: guardians.map((guardian, index) => ({
             id: index + 1, entryId: base.id, position: index, ...guardian,

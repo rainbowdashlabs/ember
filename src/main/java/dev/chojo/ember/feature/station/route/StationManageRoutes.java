@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.mail.route.MailFallbackPayload;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailDashboardService;
 import dev.chojo.ember.feature.mail.service.MailDashboardService.MailDashboard;
+import dev.chojo.ember.feature.mail.service.MailDashboardService.RequeuedMails;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
@@ -156,6 +157,8 @@ public class StationManageRoutes implements Routes {
                 this::testMailProvider,
                 StationPermission.STATION_MAIL);
         routes.get(prefix + "/station/manage/mail/dashboard", this::mailDashboard, StationPermission.STATION_MAIL);
+        routes.post(
+                prefix + "/station/manage/mail/stuck/requeue", this::requeueStuckMails, StationPermission.STATION_MAIL);
         routes.delete(prefix + "/station/manage/mail/blocks", this::liftMailBlock, StationPermission.STATION_MAIL);
         routes.post(prefix + "/station/manage/mail/test-mail", this::sendTestMail, StationPermission.STATION_MAIL);
         routes.get(prefix + "/station/manage/modules", this::getDisabledModules, StationPermission.STATION_MODULES);
@@ -899,6 +902,25 @@ public class StationManageRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MailDashboard.class)))
     private void mailDashboard(Context ctx) {
         ctx.json(dashboardService.forOwner(UserSession.from(ctx).stationId()));
+    }
+
+    /**
+     * Puts mails a dead worker left in sending back into the queue, either one named mail or all
+     * of this station's.
+     */
+    @OpenApi(
+            path = "/api/v1/station/manage/mail/stuck/requeue",
+            methods = HttpMethod.POST,
+            summary = "Queue left-behind station mails for another attempt",
+            tags = {"Station Manage"},
+            queryParams =
+                    @OpenApiParam(name = "id", type = Integer.class, description = "One mail, or all when absent"),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = RequeuedMails.class)))
+    private void requeueStuckMails(Context ctx) {
+        Integer id = ctx.queryParam("id") == null
+                ? null
+                : ctx.queryParamAsClass("id", Integer.class).get();
+        ctx.json(dashboardService.requeueStuck(UserSession.from(ctx).stationId(), id));
     }
 
     /**

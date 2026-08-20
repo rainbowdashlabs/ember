@@ -348,7 +348,9 @@ public class WaitingListRoutes implements Routes {
                 request.testingGroupId(),
                 request.joinGroupId(),
                 request.attendanceThreshold() != null ? request.attendanceThreshold() : 5,
-                request.isPublic() != null && request.isPublic());
+                request.isPublic() != null && request.isPublic(),
+                request.minAgeRegister(),
+                request.minAgeJoin());
         ctx.status(HttpStatus.CREATED).json(list);
     }
 
@@ -389,7 +391,9 @@ public class WaitingListRoutes implements Routes {
                         request.testingGroupId(),
                         request.joinGroupId(),
                         request.attendanceThreshold() != null ? request.attendanceThreshold() : 5,
-                        request.isPublic() != null && request.isPublic())
+                        request.isPublic() != null && request.isPublic(),
+                        request.minAgeRegister(),
+                        request.minAgeJoin())
                 .orElseThrow(NotFoundResponse::new);
         ctx.json(updated);
     }
@@ -520,7 +524,9 @@ public class WaitingListRoutes implements Routes {
                     var values = service.findEntryValues(entry.id());
                     double score = service.evaluateScore(entry, values, fields, list.scoringFormula());
                     var entryGuardians = guardianMap.getOrDefault(entry.id(), List.of());
-                    return new EntryWithScore(entry, values, score, entryGuardians);
+                    var age = service.ageOf(listId, values);
+                    return new EntryWithScore(
+                            entry, values, score, entryGuardians, age.orElse(null), service.belowJoinAge(list, age));
                 })
                 .toList();
         ctx.json(result);
@@ -706,6 +712,7 @@ public class WaitingListRoutes implements Routes {
         if (request.email() == null || request.email().isBlank()) {
             throw new BadRequestResponse("email is required");
         }
+        service.requireOldEnoughToRegister(list, request.values() != null ? request.values() : Map.of());
         var consent = consentService.requireAcceptance(
                 ctx, request.consentVersion(), request.privacyVersion(), request.tosVersion());
         var guardianInputs = request.guardians() != null
@@ -796,7 +803,9 @@ public class WaitingListRoutes implements Routes {
             Integer testingGroupId,
             Integer joinGroupId,
             Integer attendanceThreshold,
-            Boolean isPublic) {}
+            Boolean isPublic,
+            Integer minAgeRegister,
+            Integer minAgeJoin) {}
 
     @OpenApiName("WaitingListListWithCount")
     public record ListWithCount(WaitingList list, int entryCount) {}
@@ -833,12 +842,19 @@ public class WaitingListRoutes implements Routes {
 
     public record InviteInfoResponse(String listName, String listDescription, List<WaitingListField> fields) {}
 
+    /**
+     * @param age          how old they are today, from the birth date field; null when the list has
+     *                     none or the entry left it unanswered
+     * @param belowJoinAge whether they are waiting for their age rather than for their turn
+     */
     @OpenApiName("WaitingListEntryWithScore")
     public record EntryWithScore(
             WaitingListEntry entry,
             List<WaitingListEntryValue> values,
             double score,
-            List<WaitingListEntryGuardian> guardians) {}
+            List<WaitingListEntryGuardian> guardians,
+            Integer age,
+            boolean belowJoinAge) {}
 
     public record GuardianRequest(String firstname, String lastname, String email, String phone) {}
 

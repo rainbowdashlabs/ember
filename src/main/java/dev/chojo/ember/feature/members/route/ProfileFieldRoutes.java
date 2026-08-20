@@ -137,7 +137,7 @@ public class ProfileFieldRoutes implements Routes {
                         session.stationId(),
                         request.name(),
                         request.fieldType(),
-                        request.parsedConfig(),
+                        configOf(request),
                         request.position(),
                         request.scope()));
     }
@@ -180,7 +180,7 @@ public class ProfileFieldRoutes implements Routes {
                         id,
                         request.name(),
                         request.fieldType(),
-                        request.parsedConfig(),
+                        configOf(request),
                         request.position(),
                         request.keepOnArchive() != null ? request.keepOnArchive() : false)
                 .ifPresentOrElse(ctx::json, () -> {
@@ -265,20 +265,26 @@ public class ProfileFieldRoutes implements Routes {
                 memberId, entries, session.member().id()));
     }
 
+    /** A request naming no settings gets the empty ones rather than none at all. */
+    private static ProfileFieldConfig configOf(ProfileFieldRequest request) {
+        return request.config() != null ? request.config() : ProfileFieldConfig.empty();
+    }
+
     // -- Request records --
 
+    /**
+     * @param config the field's settings as an object, the same shape the field is read back in.
+     *               It used to be JSON text on the way in and an object on the way out, and the two
+     *               halves of that never agreed: a setting the record did not name was dropped
+     *               without a word, which is how a field of group scope lost its group.
+     */
     public record ProfileFieldRequest(
             String name,
             ProfileFieldType fieldType,
-            String config,
+            ProfileFieldConfig config,
             int position,
             ProfileFieldScope scope,
-            Boolean keepOnArchive) {
-
-        public ProfileFieldConfig parsedConfig() {
-            return ProfileFieldConfig.parse(config);
-        }
-    }
+            Boolean keepOnArchive) {}
 
     public record SetValuesRequest(List<FieldValueEntry> values) {}
 }

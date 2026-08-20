@@ -25,6 +25,7 @@ group = "dev.chojo"
 version = "26.11.11"
 
 repositories {
+    maven("https://eldonexus.de/repository/maven-proxies/")
     mavenCentral()
 }
 

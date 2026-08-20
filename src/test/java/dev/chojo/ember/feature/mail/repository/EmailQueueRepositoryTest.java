@@ -16,6 +16,8 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import java.time.LocalDate;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -180,5 +182,71 @@ class EmailQueueRepositoryTest extends RepositoryTestBase {
         assertEquals("Station", recent.getFirst().subject());
         assertNotNull(recent.getFirst().createdAt());
         assertTrue(emailQueueRepo.recent(station.id(), 10).size() <= 10, "the limit is honoured");
+    }
+
+    /**
+     * Puts a mail in the state a worker leaves behind when it dies: handed out and never answered
+     * for. Nothing in the application can produce that on purpose, which is why it is written here.
+     */
+    private static void leaveBehind(String recipient, String age) {
+        query("UPDATE email_queue SET status = 'SENDING', created_at = now() - CAST(:age AS interval) "
+                        + "WHERE recipient = :recipient;")
+                .single(call().bind("recipient", recipient).bind("age", age))
+                .update();
+    }
+
+    private static String statusOf(String recipient) {
+        return query("SELECT status FROM email_queue WHERE recipient = :recipient;")
+                .single(call().bind("recipient", recipient))
+                .map(row -> row.getString("status"))
+                .first()
+                .orElseThrow();
+    }
+
+    @Test
+    @Order(16)
+    void stuckNamesTheMailsADeadWorkerLeftBehind() {
+        emailQueueRepo.enqueue("left@example.com", "Left behind", "Body", station.id());
+        leaveBehind("left@example.com", "30 minutes");
+
+        var stuck = emailQueueRepo.stuck(station.id(), 10);
+
+        assertEquals(1, stuck.size(), "the one left behind is named");
+        assertEquals("left@example.com", stuck.getFirst().recipient());
+        assertEquals(1, emailQueueRepo.summary(station.id()).stuck(), "and counted the same way");
+        assertTrue(
+                emailQueueRepo.stuck(null, 10).stream()
+                        .noneMatch(entry -> "left@example.com".equals(entry.recipient())),
+                "the instance does not see the station's post");
+    }
+
+    @Test
+    @Order(17)
+    void requeueStuckSparesTheMailsAWorkerStillHolds() {
+        emailQueueRepo.enqueue("busy@example.com", "Still going", "Body", station.id());
+        leaveBehind("busy@example.com", "1 minute");
+
+        assertEquals(1, emailQueueRepo.requeueStuck(station.id(), null), "only the left-behind one moves");
+
+        assertEquals("PENDING", statusOf("left@example.com"), "the left-behind mail waits again");
+        assertEquals("SENDING", statusOf("busy@example.com"), "a mail still being sent is untouched");
+        assertEquals(0, emailQueueRepo.summary(station.id()).stuck(), "nothing is left behind any more");
+    }
+
+    @Test
+    @Order(18)
+    void requeueStuckTakesOneMailWhenNamed() {
+        leaveBehind("left@example.com", "30 minutes");
+        leaveBehind("busy@example.com", "30 minutes");
+        int other = emailQueueRepo.stuck(station.id(), 10).stream()
+                .filter(entry -> "busy@example.com".equals(entry.recipient()))
+                .findFirst()
+                .orElseThrow()
+                .id();
+
+        assertEquals(1, emailQueueRepo.requeueStuck(station.id(), other), "the named mail alone");
+
+        assertEquals("PENDING", statusOf("busy@example.com"));
+        assertEquals("SENDING", statusOf("left@example.com"), "the other stays where it was");
     }
 }

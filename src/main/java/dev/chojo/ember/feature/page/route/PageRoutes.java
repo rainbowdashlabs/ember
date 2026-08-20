@@ -536,15 +536,14 @@ public class PageRoutes implements Routes {
 
     record RowRequest(int sortOrder, List<CellRequest> cells) {}
 
-    record CellRequest(int sortOrder, Double widthPercent, String contentType, String content, Object config) {
+    /**
+     * @param config the cell's settings as an object. Which record they are follows from the content
+     *               type beside them, so they are bound once that is known rather than while the
+     *               request is read.
+     */
+    record CellRequest(int sortOrder, Double widthPercent, String contentType, String content, JsonNode config) {
         CellConfig parsedConfig() {
-            if (config == null) return CellContentType.valueOf(contentType).emptyConfig();
-            try {
-                String json = CellConfig.MAPPER.writeValueAsString(config);
-                return CellConfig.parse(CellContentType.valueOf(contentType), json);
-            } catch (Exception e) {
-                return CellContentType.valueOf(contentType).emptyConfig();
-            }
+            return CellConfig.parse(CellContentType.valueOf(contentType), config);
         }
     }
 

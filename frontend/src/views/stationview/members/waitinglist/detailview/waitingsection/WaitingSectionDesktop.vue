@@ -7,17 +7,22 @@
 import { useI18n } from 'vue-i18n'
 import DataTable from '@/components/table/DataTable.vue'
 import Th from '@/components/table/Th.vue'
+import SortableHeader from '@/components/table/SortableHeader.vue'
 import WaitingSectionDesktopRow from './WaitingSectionDesktopRow.vue'
 import type { WaitingListEntryWithScore, WaitingListField } from '@/api/waitingList'
 
 const props = defineProps<{
   entries: WaitingListEntryWithScore[]
   visibleFields: WaitingListField[]
+  birthDateField: WaitingListField | null
+  sortKey: string
+  direction: 'asc' | 'desc'
   expandedId: number | null
   readonly?: boolean
 }>()
 
 const emit = defineEmits<{
+  sort: [key: string]
   toggleExpand: [entryId: number]
   invite: [entryId: number]
   moveToTesting: [entryId: number]
@@ -32,12 +37,29 @@ const { t } = useI18n()
   <DataTable plain>
     <template #head>
       <Th class="\!px-2">#</Th>
-      <Th class="\!px-2">{{ t('waitingList.firstname') }}</Th>
-      <Th class="\!px-2">{{ t('waitingList.lastname') }}</Th>
-      <Th class="px-2! whitespace-nowrap">{{ t('waitingList.createdAt') }}</Th>
-      <Th class="px-2!" v-for="vf in props.visibleFields" :key="vf.id">{{ vf.name }}</Th>
-      <Th class="px-2!">{{ t('waitingList.status') }}</Th>
-      <Th class="px-2! text-right">{{ t('waitingList.score') }}</Th>
+      <SortableHeader
+          :active-key="props.sortKey" :direction="props.direction" :label="t('waitingList.firstname')"
+          class="px-2!" sort-key="firstname" @sort="(k) => emit('sort', String(k))"/>
+      <SortableHeader
+          :active-key="props.sortKey" :direction="props.direction" :label="t('waitingList.lastname')"
+          class="px-2!" sort-key="lastname" @sort="(k) => emit('sort', String(k))"/>
+      <SortableHeader
+          :active-key="props.sortKey" :direction="props.direction" :label="t('waitingList.createdAt')"
+          class="px-2! whitespace-nowrap" sort-key="createdAt" @sort="(k) => emit('sort', String(k))"/>
+      <SortableHeader
+          v-if="props.birthDateField"
+          :active-key="props.sortKey" :direction="props.direction" :label="props.birthDateField.name"
+          class="px-2! whitespace-nowrap" sort-key="birthDate" @sort="(k) => emit('sort', String(k))"/>
+      <SortableHeader
+          v-for="vf in props.visibleFields" :key="vf.id"
+          :active-key="props.sortKey" :direction="props.direction" :label="vf.name"
+          :sort-key="`field-${vf.id}`" class="px-2!" @sort="(k) => emit('sort', String(k))"/>
+      <SortableHeader
+          :active-key="props.sortKey" :direction="props.direction" :label="t('waitingList.status')"
+          class="px-2!" sort-key="status" @sort="(k) => emit('sort', String(k))"/>
+      <SortableHeader
+          :active-key="props.sortKey" :direction="props.direction" :label="t('waitingList.score')"
+          align="right" class="px-2!" sort-key="score" @sort="(k) => emit('sort', String(k))"/>
       <Th v-if="!props.readonly" class="px-2! text-right">{{ t('waitingList.actions') }}</Th>
     </template>
     <WaitingSectionDesktopRow
@@ -45,6 +67,7 @@ const { t } = useI18n()
       :key="item.entry.id"
       :item="item"
       :index="index"
+      :birth-date-field="props.birthDateField"
       :visible-fields="props.visibleFields"
       :expanded="props.expandedId === item.entry.id"
       :readonly="props.readonly"

@@ -25,7 +25,7 @@ const { t } = useI18n()
     <FieldLabel>{{ t('waitingList.guardians') }} <span class="text-error">*</span></FieldLabel>
     <div v-for="(g, i) in props.guardians" :key="i" class="space-y-2 rounded-lg border border-bg-light-accent dark:border-bg-dark-accent p-3">
       <div class="flex items-center justify-between">
-        <span class="text-sm font-medium">{{ t('waitingList.guardian') }} {{ i + 1 }}</span>
+        <span class="text-sm font-medium">{{ t('waitingList.guardian') }}</span>
         <DeleteButton v-if="props.guardians.length > 1" @click="emit('remove', i)" />
       </div>
       <TextInput v-model="g.firstname" :placeholder="t('waitingList.firstnamePlaceholder')" />

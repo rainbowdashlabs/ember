@@ -40,7 +40,8 @@ public class WaitingListRepository {
 
     private static final String WAITING_LIST_COLUMNS = """
             id, station_id, name, description, scoring_formula, confirm_interval_days, created_at, \
-            visible_fields, testing_group_id, join_group_id, join_user_type, attendance_threshold, public""";
+            visible_fields, testing_group_id, join_group_id, join_user_type, attendance_threshold, public, \
+            min_age_register, min_age_join""";
     private static final String WAITING_LIST_FIELD_COLUMNS =
             "id, list_id, name, field_type, config, position, required, public";
     private static final String WAITING_LIST_INVITE_COLUMNS =
@@ -87,17 +88,21 @@ public class WaitingListRepository {
             Integer testingGroupId,
             Integer joinGroupId,
             int attendanceThreshold,
-            boolean isPublic) {
+            boolean isPublic,
+            Integer minAgeRegister,
+            Integer minAgeJoin) {
         return insertReturning(
                 """
                 INSERT
                 INTO
                     waiting_list
                     (station_id, name, description, scoring_formula, confirm_interval_days,
-                     testing_group_id, join_group_id, attendance_threshold, public)
+                     testing_group_id, join_group_id, attendance_threshold, public,
+                     min_age_register, min_age_join)
                 VALUES
                     (:station_id, :name, :description, :scoring_formula, :confirm_interval_days,
-                     :testing_group_id, :join_group_id, :attendance_threshold, :public)
+                     :testing_group_id, :join_group_id, :attendance_threshold, :public,
+                     :min_age_register, :min_age_join)
                 RETURNING %s;""",
                 call().bind("station_id", stationId)
                         .bind("name", name)
@@ -107,7 +112,9 @@ public class WaitingListRepository {
                         .bind("testing_group_id", testingGroupId)
                         .bind("join_group_id", joinGroupId)
                         .bind("attendance_threshold", attendanceThreshold)
-                        .bind("public", isPublic),
+                        .bind("public", isPublic)
+                        .bind("min_age_register", minAgeRegister)
+                        .bind("min_age_join", minAgeJoin),
                 WaitingList.map(),
                 WAITING_LIST_COLUMNS);
     }
@@ -121,7 +128,9 @@ public class WaitingListRepository {
             Integer testingGroupId,
             Integer joinGroupId,
             int attendanceThreshold,
-            boolean isPublic) {
+            boolean isPublic,
+            Integer minAgeRegister,
+            Integer minAgeJoin) {
         return query("""
                 UPDATE waiting_list
                 SET
@@ -132,7 +141,9 @@ public class WaitingListRepository {
                     testing_group_id      = :testing_group_id,
                     join_group_id         = :join_group_id,
                     attendance_threshold  = :attendance_threshold,
-                    public                = :public
+                    public                = :public,
+                    min_age_register      = :min_age_register,
+                    min_age_join          = :min_age_join
                 WHERE id = :id
                 RETURNING %s;""", WAITING_LIST_COLUMNS)
                 .single(call().bind("id", id)
@@ -143,7 +154,9 @@ public class WaitingListRepository {
                         .bind("testing_group_id", testingGroupId)
                         .bind("join_group_id", joinGroupId)
                         .bind("attendance_threshold", attendanceThreshold)
-                        .bind("public", isPublic))
+                        .bind("public", isPublic)
+                        .bind("min_age_register", minAgeRegister)
+                        .bind("min_age_join", minAgeJoin))
                 .map(WaitingList.map())
                 .first();
     }
@@ -162,6 +175,10 @@ public class WaitingListRepository {
     }
 
     // --- Fields ---
+
+    public Optional<WaitingListField> findFieldById(int id) {
+        return SqlSupport.findById("waiting_list_field", WAITING_LIST_FIELD_COLUMNS, id, WaitingListField.map());
+    }
 
     public List<WaitingListField> findFieldsByList(int listId) {
         return query(

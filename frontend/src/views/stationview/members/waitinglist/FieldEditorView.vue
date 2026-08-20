@@ -37,7 +37,7 @@ const fieldRequired = ref(false)
 const fieldPublic = ref(true)
 const fieldEnumOptions = ref('')
 
-const fieldTypes = ['TEXT', 'NUMBER', 'DATE', 'BOOLEAN', 'ENUM'] as const
+const fieldTypes = ['TEXT', 'NUMBER', 'DATE', 'BIRTH_DATE', 'BOOLEAN', 'ENUM'] as const
 
 const fieldTypeLabels: Record<string, string> = {
   TEXT: t('waitingList.typeText'),
@@ -45,6 +45,7 @@ const fieldTypeLabels: Record<string, string> = {
   DATE: t('waitingList.typeDate'),
   BOOLEAN: t('waitingList.typeBoolean'),
   ENUM: t('waitingList.typeEnum'),
+  BIRTH_DATE: t('waitingList.typeBirthDate'),
 }
 
 function fieldTypeLabel(ft: string): string {

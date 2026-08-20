@@ -22,6 +22,12 @@ export const WaitingListFieldTypes = {
     DATE: 'DATE',
     BOOLEAN: 'BOOLEAN',
     ENUM: 'ENUM',
+    /**
+     * A date field carrying the date of birth. A list has at most one, which is what lets it work
+     * out an age without being told where to look. Stored exactly like a DATE field, so an ordinary
+     * date field becomes one without losing the answers already given.
+     */
+    BIRTH_DATE: 'BIRTH_DATE',
 } as const
 
 export type WaitingListFieldTypeName = (typeof WaitingListFieldTypes)[keyof typeof WaitingListFieldTypes]
@@ -39,6 +45,10 @@ export interface WaitingList {
     joinGroupId?: number | null
     attendanceThreshold: number
     isPublic: boolean
+    /** How old somebody must be to put themselves on the list; null for no limit. */
+    minAgeRegister?: number | null
+    /** How old they must be to join from it. Younger entries are marked rather than hidden. */
+    minAgeJoin?: number | null
 }
 
 /**
@@ -114,6 +124,10 @@ export interface WaitingListEntryWithScore {
     values: WaitingListEntryValue[]
     score: number
     guardians: WaitingListEntryGuardian[]
+    /** How old they are today, or null when the list has no birth date field or it went unanswered. */
+    age?: number | null
+    /** Whether they are waiting for their age rather than for their turn. */
+    belowJoinAge: boolean
 }
 
 export interface WaitingListWithCount {
@@ -171,6 +185,8 @@ interface WaitingListRequest {
     joinGroupId?: number | null
     attendanceThreshold?: number
     isPublic?: boolean
+    minAgeRegister?: number | null
+    minAgeJoin?: number | null
 }
 
 interface FieldRequest {

@@ -28,7 +28,9 @@ public record WaitingList(
         Integer joinGroupId,
         StationUserType joinUserType,
         int attendanceThreshold,
-        boolean isPublic) {
+        boolean isPublic,
+        Integer minAgeRegister,
+        Integer minAgeJoin) {
 
     public static RowMapping<WaitingList> map() {
         return row -> new WaitingList(
@@ -44,7 +46,9 @@ public record WaitingList(
                 row.getObject("join_group_id", Integer.class),
                 row.getEnum("join_user_type", StationUserType.class),
                 row.getInt("attendance_threshold"),
-                row.getBoolean("public"));
+                row.getBoolean("public"),
+                row.getObject("min_age_register", Integer.class),
+                row.getObject("min_age_join", Integer.class));
     }
 
     private static List<Integer> parseVisibleFields(String json) {

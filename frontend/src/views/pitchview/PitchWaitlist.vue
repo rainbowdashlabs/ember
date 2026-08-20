@@ -31,5 +31,8 @@ defineProps<{
                   :attendance-threshold="waitlist.list.attendanceThreshold"/>
 
   <WaitingSectionDesktop v-else :entries="waitlist.waiting" :visible-fields="waitlist.fields.slice(0, 2)"
-                         :expanded-id="null" readonly/>
+                         :birth-date-field="null"
+      :direction="'desc'"
+      :sort-key="'score'"
+      :expanded-id="null" readonly/>
 </template>

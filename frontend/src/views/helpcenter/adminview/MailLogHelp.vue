@@ -25,6 +25,7 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.adminMailLog.stuckTitle')">
       <p>{{ t('helpCenter.adminMailLog.stuckText') }}</p>
+      <p>{{ t('helpCenter.adminMailLog.requeueText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.adminMailLog.providersTitle')">

@@ -177,8 +177,31 @@ export interface MailDashboard {
     stuck: number
     oldestPendingAt: string | null
     providers: ProviderStanding[]
+    /** The left-behind mails themselves, oldest first, so they can be named rather than counted. */
+    stuckMails: MailRecord[]
     recent: MailRecord[]
     blocks: ProviderBlock[]
+}
+
+/** How many left-behind mails went back into the queue. */
+export interface RequeuedMails {
+    requeued: number
+}
+
+/**
+ * Puts mails a dead worker left in sending back into the queue. Without an id every left-behind
+ * mail of that owner goes back.
+ */
+export async function requeueInstanceStuckMails(id?: number): Promise<RequeuedMails> {
+    const res = await client.post<RequeuedMails>('/admin/config/mailing/stuck/requeue', null,
+        {params: id === undefined ? {} : {id}})
+    return res.data
+}
+
+export async function requeueStationStuckMails(id?: number): Promise<RequeuedMails> {
+    const res = await client.post<RequeuedMails>('/station/manage/mail/stuck/requeue', null,
+        {params: id === undefined ? {} : {id}})
+    return res.data
 }
 
 /**

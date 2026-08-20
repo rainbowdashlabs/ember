@@ -68,13 +68,15 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @BeforeEach
     void createList() {
-        var list = service.create(station.id(), "Test " + UUID.randomUUID(), "", null, 180, null, null, 5, false);
+        var list = service.create(
+                station.id(), "Test " + UUID.randomUUID(), "", null, 180, null, null, 5, false, null, null);
         listId = list.id();
     }
 
     @Test
     void createAndFindList() {
-        var list = service.create(station.id(), "New List", "Description", "[age] * 2", 90, null, null, 5, false);
+        var list = service.create(
+                station.id(), "New List", "Description", "[age] * 2", 90, null, null, 5, false, null, null);
         var found = service.findById(list.id());
         assertTrue(found.isPresent());
         assertEquals("New List", found.get().name());
@@ -83,7 +85,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @Test
     void updateList() {
-        var updated = service.update(listId, "Updated", "New desc", "[a]", 60, null, null, 5, false);
+        var updated = service.update(listId, "Updated", "New desc", "[a]", 60, null, null, 5, false, null, null);
         assertTrue(updated.isPresent());
         assertEquals("Updated", updated.get().name());
     }
@@ -219,7 +221,9 @@ class WaitingListServiceTest extends RepositoryTestBase {
                         null,
                         null,
                         5,
-                        false)
+                        false,
+                        null,
+                        null)
                 .orElseThrow();
 
         var entry = service.createEntry(
@@ -327,7 +331,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @Test
     void inviteEntryLifecycle() {
-        var list = service.create(station.id(), "Invite Lifecycle", "", null, 180, null, null, 5, false);
+        var list = service.create(station.id(), "Invite Lifecycle", "", null, 180, null, null, 5, false, null, null);
         var entry = service.createEntry(
                 list.id(), "InviteeFirst", "InviteeLast", guardians("Parent", "invite@test.com"), Map.of(), "");
 
@@ -368,7 +372,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @Test
     void withdrawEntry() {
-        var list = service.create(station.id(), "Withdraw Test", "", null, 180, null, null, 5, false);
+        var list = service.create(station.id(), "Withdraw Test", "", null, 180, null, null, 5, false, null, null);
         var entry = service.createEntry(list.id(), "Withdrawer", "", guardians("", "wd@test.com"), Map.of(), "");
         service.withdrawEntry(entry.id());
         assertTrue(service.findEntryById(entry.id()).isEmpty());
@@ -400,7 +404,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
     void scoreEvaluationWithAgeFunction() {
         var dobField = service.createField(
                 listId, "Geburtsdatum", WaitingListFieldType.DATE, WaitingListFieldConfig.parse("{}"), 0, true, true);
-        var list = service.update(listId, "AgeScored", "", "age([Geburtsdatum])", 180, null, null, 5, false)
+        var list = service.update(listId, "AgeScored", "", "age([Geburtsdatum])", 180, null, null, 5, false, null, null)
                 .orElseThrow();
 
         var entry = service.createEntry(
@@ -419,7 +423,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @Test
     void scoreEvaluationWithWaitingTime() {
-        var list = service.update(listId, "WaitScored", "", "wartezeit_tage", 180, null, null, 5, false)
+        var list = service.update(listId, "WaitScored", "", "wartezeit_tage", 180, null, null, 5, false, null, null)
                 .orElseThrow();
 
         var entry = service.createEntry(listId, "Max", "", guardians("", "test@test.com"), Map.of(), "");
@@ -431,7 +435,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @Test
     void withdrawInvitedEntryDeletesMember() {
-        var list = service.create(station.id(), "Withdraw Invited", "", null, 180, null, null, 5, false);
+        var list = service.create(station.id(), "Withdraw Invited", "", null, 180, null, null, 5, false, null, null);
         var entry = service.createEntry(
                 list.id(), "InvToWithdraw", "Last", guardians("Parent", "invwd@test.com"), Map.of(), "");
         var invited = service.inviteEntry(entry.id());
@@ -508,7 +512,9 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 testingGroup.id(),
                 joinGroup.id(),
                 5,
-                false);
+                false,
+                null,
+                null);
         var entry = service.createEntry(
                 list.id(), "InviteeFirst2", "InviteeLast2", guardians("Parent", "inv2@test.com"), Map.of(), "");
 
@@ -532,8 +538,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @Test
     void moveToJoinedCreatesGuardianAccounts() {
-        var list =
-                service.create(station.id(), "GuardianAcct " + UUID.randomUUID(), "", null, 180, null, null, 5, false);
+        var list = service.create(
+                station.id(), "GuardianAcct " + UUID.randomUUID(), "", null, 180, null, null, 5, false, null, null);
         var entry = service.createEntry(
                 list.id(),
                 "Child",
@@ -556,8 +562,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var existingAccount = accountRepo.create("existing-guardian@test.com", "Existing", "Guardian");
         var existingMember = stationMemberRepo.create(station.id(), existingAccount.id());
 
-        var list =
-                service.create(station.id(), "ExistGuardian " + UUID.randomUUID(), "", null, 180, null, null, 5, false);
+        var list = service.create(
+                station.id(), "ExistGuardian " + UUID.randomUUID(), "", null, 180, null, null, 5, false, null, null);
         var entry = service.createEntry(
                 list.id(),
                 "Child2",
@@ -578,8 +584,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @Test
     void moveToJoinedGuardianWithBlankEmail() {
-        var list =
-                service.create(station.id(), "BlankGuardian " + UUID.randomUUID(), "", null, 180, null, null, 5, false);
+        var list = service.create(
+                station.id(), "BlankGuardian " + UUID.randomUUID(), "", null, 180, null, null, 5, false, null, null);
         var entry = service.createEntry(
                 list.id(), "Child3", "Name", List.of(new GuardianInput("NoEmail", "Guardian", "", "")), Map.of(), "");
 
@@ -601,7 +607,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         // age() function with an invalid date string - should not throw, age = 0
         var dobField = service.createField(
                 listId, "BadDate", WaitingListFieldType.DATE, WaitingListFieldConfig.parse("{}"), 0, false, true);
-        var list = service.update(listId, "BadDateScored", "", "age([BadDate])", 180, null, null, 5, false)
+        var list = service.update(listId, "BadDateScored", "", "age([BadDate])", 180, null, null, 5, false, null, null)
                 .orElseThrow();
         var entry = service.createEntry(
                 listId, "A", "", guardians("", "t@t.com"), Map.of(dobField.id(), StringNode.valueOf("not-a-date")), "");
@@ -614,7 +620,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @Test
     void moveToJoinedWithNullMemberId() {
         // Create an entry in TESTING status that has no linked member (null memberId)
-        var list = service.create(station.id(), "NullMember " + UUID.randomUUID(), "", null, 180, null, null, 5, false);
+        var list = service.create(
+                station.id(), "NullMember " + UUID.randomUUID(), "", null, 180, null, null, 5, false, null, null);
         var entry = service.createEntry(list.id(), "NoMem", "X", guardians("", "nomem@test.com"), Map.of(), "");
         // Manually set to TESTING status
         service.updateEntryStatus(entry.id(), WaitingListEntryStatus.TESTING);
@@ -628,8 +635,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @Test
     void findPublicByStation() {
         // listId is created with isPublic=false in @BeforeEach
-        var publicList =
-                service.create(station.id(), "Public " + UUID.randomUUID(), "", null, 180, null, null, 5, true);
+        var publicList = service.create(
+                station.id(), "Public " + UUID.randomUUID(), "", null, 180, null, null, 5, true, null, null);
         var publicLists = service.findPublicByStation(station.id());
         assertTrue(publicLists.stream().anyMatch(l -> l.id() == publicList.id()));
         assertTrue(publicLists.stream().noneMatch(l -> l.id() == listId));
@@ -640,7 +647,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
         // Use a fresh station so no prior public lists interfere
         var freshStation = stationRepo.create("HasPublicTest " + UUID.randomUUID());
         assertFalse(service.hasPublicWaitlists(freshStation.id()));
-        service.create(freshStation.id(), "PublicHas " + UUID.randomUUID(), "", null, 180, null, null, 5, true);
+        service.create(
+                freshStation.id(), "PublicHas " + UUID.randomUUID(), "", null, 180, null, null, 5, true, null, null);
         assertTrue(service.hasPublicWaitlists(freshStation.id()));
     }
 
@@ -657,8 +665,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @Test
     void submitAndVerifyPublicRegistration() {
-        var publicList =
-                service.create(station.id(), "PubReg " + UUID.randomUUID(), "", null, 180, null, null, 5, true);
+        var publicList = service.create(
+                station.id(), "PubReg " + UUID.randomUUID(), "", null, 180, null, null, 5, true, null, null);
         service.createField(
                 publicList.id(), "Age", WaitingListFieldType.NUMBER, WaitingListFieldConfig.parse("{}"), 0, true, true);
 
@@ -698,8 +706,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @Test
     void approvePendingEntry() {
-        var publicList =
-                service.create(station.id(), "Approve " + UUID.randomUUID(), "", null, 180, null, null, 5, true);
+        var publicList = service.create(
+                station.id(), "Approve " + UUID.randomUUID(), "", null, 180, null, null, 5, true, null, null);
         // Create a PENDING entry directly
         var entry = waitingListRepo.createEntryWithStatus(
                 publicList.id(),
@@ -718,8 +726,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     @Test
     void rejectPendingEntry() {
-        var publicList =
-                service.create(station.id(), "Reject " + UUID.randomUUID(), "", null, 180, null, null, 5, true);
+        var publicList = service.create(
+                station.id(), "Reject " + UUID.randomUUID(), "", null, 180, null, null, 5, true, null, null);
         var entry = waitingListRepo.createEntryWithStatus(
                 publicList.id(),
                 "Reject",
@@ -788,7 +796,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
     void editsToVanishedListsAndFieldsChangeNothing() {
         int gone = 99_999_999;
 
-        assertTrue(service.update(gone, "Ghost", "", null, 180, null, null, 5, false)
+        assertTrue(service.update(gone, "Ghost", "", null, 180, null, null, 5, false, null, null)
                 .isEmpty());
         assertTrue(service.updateVisibleFields(gone, "[]").isEmpty());
         assertTrue(service.updateField(
@@ -804,7 +812,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
     void waitingPositionRanksByScoreHighestFirst() {
         var ageField = service.createField(
                 listId, "Alter", WaitingListFieldType.NUMBER, WaitingListFieldConfig.parse("{}"), 0, true, true);
-        service.update(listId, "Ranked", "", "[Alter]", 180, null, null, 5, false)
+        service.update(listId, "Ranked", "", "[Alter]", 180, null, null, 5, false, null, null)
                 .orElseThrow();
 
         var youngest = service.createEntry(
@@ -838,7 +846,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
      */
     @Test
     void waitingPositionIsZeroOnceAnEntryLeavesTheQueue() {
-        var list = service.create(station.id(), "Position Exit", "", null, 180, null, null, 5, false);
+        var list = service.create(station.id(), "Position Exit", "", null, 180, null, null, 5, false, null, null);
         var entry = service.createEntry(list.id(), "Leaver", "", guardians("Parent", "leaver@test.com"), Map.of(), "");
         assertEquals(1, service.findWaitingPositionByScore(entry));
 
@@ -855,7 +863,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
      */
     @Test
     void expiredConfirmationSweepRemindsWarnsAndWithdraws() {
-        var list = service.create(station.id(), "Sweep", "", null, 0, null, null, 5, false);
+        var list = service.create(station.id(), "Sweep", "", null, 0, null, null, 5, false, null, null);
 
         var stale = service.createEntry(list.id(), "Stale", "", guardians("P", "stale@test.com"), Map.of(), "");
         waitingListRepo.updateConfirmedAt(stale.id(), Instant.now().minus(Duration.ofDays(2)));
@@ -886,7 +894,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
      */
     @Test
     void expiredConfirmationSweepLeavesAFreshListAlone() {
-        var list = service.create(station.id(), "Quiet Sweep", "", null, 180, null, null, 5, false);
+        var list = service.create(station.id(), "Quiet Sweep", "", null, 180, null, null, 5, false, null, null);
         var entry = service.createEntry(list.id(), "Fresh", "", guardians("P", "fresh@test.com"), Map.of(), "");
 
         service.checkExpiredConfirmations(service.findById(list.id()).orElseThrow());
@@ -894,5 +902,130 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var after = service.findEntryById(entry.id()).orElseThrow();
         assertEquals(WaitingListEntryStatus.WAITING, after.status());
         assertNull(after.reminderSentAt());
+    }
+    // --- Age ---
+
+    private int birthDateListWith(Integer minRegister, Integer minJoin) {
+        return service.create(
+                        station.id(),
+                        "Ages " + UUID.randomUUID(),
+                        "",
+                        null,
+                        180,
+                        null,
+                        null,
+                        5,
+                        true,
+                        minRegister,
+                        minJoin)
+                .id();
+    }
+
+    private static java.util.Map<Integer, tools.jackson.databind.JsonNode> bornYearsAgo(int fieldId, int years) {
+        var born = java.time.LocalDate.now().minusYears(years).plusDays(1);
+        return java.util.Map.of(fieldId, tools.jackson.databind.node.StringNode.valueOf(born.toString()));
+    }
+
+    @Test
+    void aListReadsTheAgeFromWhicheverFieldIsTheBirthDate() {
+        int list = birthDateListWith(null, null);
+        var field = service.createField(
+                list,
+                "Wann geboren",
+                WaitingListFieldType.BIRTH_DATE,
+                WaitingListFieldConfig.parse("{}"),
+                0,
+                true,
+                true);
+
+        var age = service.ageFromSubmitted(list, bornYearsAgo(field.id(), 11));
+
+        assertEquals(10, age.orElseThrow(), "eleven years minus a day is still ten");
+    }
+
+    @Test
+    void aListWithoutABirthDateFieldWorksOutNoAge() {
+        int list = birthDateListWith(null, null);
+        var field = service.createField(
+                list, "Irgendein Datum", WaitingListFieldType.DATE, WaitingListFieldConfig.parse("{}"), 0, true, true);
+
+        assertTrue(service.ageFromSubmitted(list, bornYearsAgo(field.id(), 11)).isEmpty());
+    }
+
+    @Test
+    void aSecondBirthDateFieldIsRefused() {
+        int list = birthDateListWith(null, null);
+        service.createField(
+                list, "Geburtstag", WaitingListFieldType.BIRTH_DATE, WaitingListFieldConfig.parse("{}"), 0, true, true);
+
+        assertThrows(
+                io.javalin.http.BadRequestResponse.class,
+                () -> service.createField(
+                        list,
+                        "Noch ein Geburtstag",
+                        WaitingListFieldType.BIRTH_DATE,
+                        WaitingListFieldConfig.parse("{}"),
+                        1,
+                        true,
+                        true));
+    }
+
+    /** Declaring the one that is already the birth date to be the birth date is not a clash. */
+    @Test
+    void theBirthDateFieldMayBeUpdatedWithoutClashingWithItself() {
+        int list = birthDateListWith(null, null);
+        var field = service.createField(
+                list, "Geburtstag", WaitingListFieldType.BIRTH_DATE, WaitingListFieldConfig.parse("{}"), 0, true, true);
+
+        assertDoesNotThrow(() -> service.updateField(
+                field.id(),
+                "Geburtsdatum",
+                WaitingListFieldType.BIRTH_DATE,
+                WaitingListFieldConfig.parse("{}"),
+                0,
+                true,
+                true));
+    }
+
+    @Test
+    void somebodyTooYoungIsTurnedAwayAtRegistration() {
+        int list = birthDateListWith(12, null);
+        var field = service.createField(
+                list, "Geburtstag", WaitingListFieldType.BIRTH_DATE, WaitingListFieldConfig.parse("{}"), 0, true, true);
+        var actual = service.findById(list).orElseThrow();
+
+        assertThrows(
+                io.javalin.http.BadRequestResponse.class,
+                () -> service.requireOldEnoughToRegister(actual, bornYearsAgo(field.id(), 10)));
+        assertDoesNotThrow(() -> service.requireOldEnoughToRegister(actual, bornYearsAgo(field.id(), 13)));
+    }
+
+    /** A form that asks for a birth date and does not get one is a gap, not a person to turn away. */
+    @Test
+    void anUnansweredBirthDateDoesNotTurnAnybodyAway() {
+        int list = birthDateListWith(12, null);
+        service.createField(
+                list, "Geburtstag", WaitingListFieldType.BIRTH_DATE, WaitingListFieldConfig.parse("{}"), 0, true, true);
+        var actual = service.findById(list).orElseThrow();
+
+        assertDoesNotThrow(() -> service.requireOldEnoughToRegister(actual, java.util.Map.of()));
+    }
+
+    @Test
+    void anEntryUnderTheJoiningAgeIsMarked() {
+        int list = birthDateListWith(null, 12);
+        var actual = service.findById(list).orElseThrow();
+
+        assertTrue(service.belowJoinAge(actual, java.util.Optional.of(10)));
+        assertFalse(service.belowJoinAge(actual, java.util.Optional.of(12)));
+        assertFalse(service.belowJoinAge(actual, java.util.Optional.empty()), "an unknown age is not held back");
+    }
+
+    @Test
+    void aListWithoutAJoiningAgeMarksNobody() {
+        int list = birthDateListWith(null, null);
+        var actual = service.findById(list).orElseThrow();
+
+        assertFalse(service.belowJoinAge(actual, java.util.Optional.of(3)));
     }
 }

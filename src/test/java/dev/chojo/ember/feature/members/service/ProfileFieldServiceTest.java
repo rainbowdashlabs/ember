@@ -404,6 +404,27 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
         service.delete(groupField.id());
     }
 
+    /**
+     * A field of group scope is only ever shown at its group, so the group it names has to survive
+     * being stored. Dropping it silently leaves a field that belongs nowhere and is shown nowhere.
+     */
+    @Test
+    @Order(24)
+    void groupFieldKeepsTheGroupItNames() {
+        var groupField = service.create(
+                station.id(),
+                "GroupOwned",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.parse("{\"groupId\":7}"),
+                33,
+                ProfileFieldScope.GROUP);
+
+        assertEquals(7, groupField.config().groupId(), "the group survives being written");
+        assertEquals(7, service.findById(groupField.id()).orElseThrow().config().groupId(), "and reading it back");
+
+        service.delete(groupField.id());
+    }
+
     // -- acknowledgeAll with changes --
 
     @Test

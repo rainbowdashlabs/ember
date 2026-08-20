@@ -11,6 +11,7 @@ import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FormulaInput from '@/components/input/FormulaInput.vue'
+import OverviewAgeFields from './OverviewAgeFields.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import type { WaitingListField } from '@/api/waitingList'
 import type { MemberGroup } from '@/api/types'
@@ -22,6 +23,8 @@ const confirmInterval = defineModel<number>('confirmInterval', { required: true 
 const testingGroupId = defineModel<number | null>('testingGroupId', { required: true })
 const joinGroupId = defineModel<number | null>('joinGroupId', { required: true })
 const attendanceThreshold = defineModel<number>('attendanceThreshold', { required: true })
+const minAgeRegister = defineModel<number | null>('minAgeRegister', { required: true })
+const minAgeJoin = defineModel<number | null>('minAgeJoin', { required: true })
 
 const props = defineProps<{
   fields: WaitingListField[]
@@ -52,6 +55,7 @@ const fieldInfos = computed(() => props.fields.map(f => ({ name: f.name, type: f
       />
       <p class="text-xs text-(--text-muted)">{{ t('waitingList.scoringFormulaHint') }}</p>
     </div>
+    <OverviewAgeFields v-model:min-age-join="minAgeJoin" v-model:min-age-register="minAgeRegister"/>
     <div class="space-y-1">
       <FieldLabel>{{ t('waitingList.confirmInterval') }}</FieldLabel>
       <NumberInput :model-value="confirmInterval" @update:model-value="confirmInterval = $event ?? 0" />

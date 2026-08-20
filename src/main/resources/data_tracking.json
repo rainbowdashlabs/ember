@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:545ecb4db11861c260c6eef584a150786f3d7be86e8a779694b63b5ed8d22dee",
-  "generatedAt" : "2026-08-19T00:50:23Z",
+  "schemaHash" : "sha256:cabd3062f8f7644a545d48b15165fa6dd6d5d2db23df7bbd7bb176a5f2c285c0",
+  "generatedAt" : "2026-08-19T20:23:26Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -14511,7 +14511,7 @@
     "waiting_list" : {
       "feature" : "waitinglist",
       "scope" : "STATION",
-      "tableHash" : "sha256:1e9203ba62ae024669f20e3605bfc2ccc3d9e7e6a035d230538bb51d2de60f43",
+      "tableHash" : "sha256:8b1fa6cfa3aeafd75ee9f334726485334b8e5b5755b71c1f9e5dac823bbe12ee",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -14588,6 +14588,18 @@
         "type" : "bool",
         "nullable" : false,
         "verified" : true
+      }, {
+        "name" : "min_age_register",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "How old somebody must be to put themselves on the list at all; null for no limit."
+      }, {
+        "name" : "min_age_join",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "How old somebody must be to join the station from the list. Entries below it are marked as waiting for their age rather than for their turn; null for no limit."
       } ],
       "foreignKeys" : [ {
         "column" : "join_group_id",

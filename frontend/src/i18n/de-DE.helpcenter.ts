@@ -516,6 +516,14 @@ export default {
                 subtitle: 'Technische Anleitung zum Hosting einer eigenen Ember-Instanz.',
                 whatNeeded: 'Was wird benötigt?',
                 whatNeededText: 'Um Ember selbst zu betreiben, brauchst du:',
+                installer: 'In einem Befehl installieren',
+                installerText: 'Das Installationsskript fragt die Handvoll Dinge ab, die sich zwischen '
+                    + 'Installationen unterscheiden, schreibt die Compose-Datei, startet alles und zeigt am '
+                    + 'Ende die Zugangsdaten des angelegten Administrators:',
+                installerPageText: 'Wer lieber klickt als tippt, stellt die Installation vorher zusammen und '
+                    + 'nimmt nur einen kurzen Code mit auf den Server.',
+                installerPageTitle: 'Installation zusammenstellen',
+                installerPageHint: 'Erzeugt einen Code, den das Skript einlöst',
                 req: {
                     server: {
                         name: 'Server mit Docker',
@@ -2206,6 +2214,12 @@ volumes:
             title: 'Wartelisten',
             subtitle: 'Wartelisten für neue Mitglieder verwalten.',
             whatIs: 'Was sind Wartelisten?',
+            agesTitle: 'Alter',
+            agesText: 'Eine Warteliste kann mit dem Alter arbeiten, sobald sie weiss, wo das Geburtsdatum steht:',
+            agesField: 'Ein Datumsfeld wird auf den Typ Geburtsdatum gestellt. Pro Liste gibt es genau eines.',
+            agesRegister: 'Mindestalter zur Anmeldung: Wer jünger ist, wird beim öffentlichen Formular abgewiesen.',
+            agesJoin: 'Alter für den Beitritt: Wer jünger ist, bleibt auf der Liste, wird aber gekennzeichnet und lässt sich ausblenden.',
+            agesConvert: 'Ein bestehendes Datumsfeld lässt sich jederzeit zum Geburtsdatum machen. Die bereits gegebenen Antworten bleiben dabei erhalten.',
             whatIsText: 'Mit Wartelisten kannst du Anmeldungen von Interessenten sammeln, z.B. von Eltern, die ihr Kind anmelden möchten. Jede Warteliste hat eigene Felder und eine optionale Bewertungsformel.',
             howTo: 'So funktioniert es',
             step1: '1. Erstelle eine neue Warteliste mit Name und Beschreibung.',
@@ -4111,6 +4125,11 @@ volumes:
             stuckText: 'Steht eine Mail länger als zehn Minuten in der Zustellung, ist der '
                 + 'Arbeitsprozess dabei abgebrochen. Solche Mails werden von selbst nicht erneut '
                 + 'versucht und sind deshalb eigens gezählt.',
+            requeueText: 'Sie stehen unter der Warnung einzeln aufgelistet. Über „Wieder einreihen" '
+                + 'geht eine davon zurück in die Warteschlange, über „Alle wieder einreihen" alle '
+                + 'zusammen. Hatte der Anbieter eine Mail schon angenommen, bevor der Prozess '
+                + 'abbrach, kommt sie dadurch doppelt an, weshalb das niemand von selbst tut. Mails, '
+                + 'die gerade wirklich versendet werden, bleiben unangetastet.',
             providersTitle: 'Anbieter heute',
             providersText: 'Zu jedem Anbieter steht, wie viel er heute versendet hat, wie viel er '
                 + 'darf, und wie viele Mails gerade an ihm warten. Ist sein Tageslimit erreicht, '

@@ -1,5 +1,23 @@
 # Changelog
 
+## v26.11.12
+
+### New Features
+
+- **Ember installs itself in one command.** `curl -fsSL https://ember-panel.de/install.sh | bash` asks the handful of things that differ between installations, writes the compose file, starts everything and shows the login it created. It offers a port on the machine, which is what a VPN or a local instance wants, or an existing Traefik; PostgreSQL is brought along or joined where it already runs; and the directories for the configuration, the files and the database are chosen rather than assumed.
+- **An installation can be clicked together beforehand.** Under `/install` the same questions are answered in the browser, which gives back a six-character code. The command carries only that code, so what has to reach the server is short enough to read out. The code lasts two hours, and the database password is never part of it.
+- **A waiting list can work with ages.** A date field set to the type date of birth gives the list an age to go by: it can refuse a registration below a minimum age, and it marks everyone still under the age for joining so they are told apart from those merely waiting their turn. Those entries can be hidden while the list is worked through. An existing date field becomes the date of birth without losing the answers already given.
+
+### Improvements
+
+- **Mail left behind by a stopped delivery can be sent again.** The overview no longer only counts them: it lists each one and offers to put it back in the queue, singly or all at once. Mail that is being sent right now stays untouched.
+- **The waiting list shows the date of birth in its own column and sorts by any of them.** Every column heading sorts, the list still opens on the highest score, and a column picked afterwards starts at the top of its own order.
+
+### Fixes
+
+- **A profile field made for a group stays with that group.** It appears under its group and can be filled in there. Fields that ended up without a group are offered for assignment at the top of the group tab under Members → Configuration.
+- **Answers in the waiting list read the way they were given.** A date appears as a date and a yes as a yes, in every column a list has been set to show.
+
 ## v26.11.11
 
 ### Improvements

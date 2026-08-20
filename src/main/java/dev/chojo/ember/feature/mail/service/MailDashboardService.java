@@ -103,6 +103,8 @@ public class MailDashboardService {
      * @param stuck           mails left in sending by a worker that died, which nothing retries
      * @param oldestPendingAt when the longest-waiting mail was written, or null when none waits
      * @param providers       how each provider of the list stands today
+     * @param stuckMails      the left-behind mails themselves, oldest first, so they can be named
+     *                        and put back rather than only counted
      * @param recent          the most recent mails, newest first
      * @param blocks          which provider a receiving domain refuses outright
      */
@@ -114,6 +116,7 @@ public class MailDashboardService {
             int stuck,
             Instant oldestPendingAt,
             List<ProviderStanding> providers,
+            List<MailRecord> stuckMails,
             List<MailRecord> recent,
             List<MailProviderBlockRepository.ProviderBlock> blocks) {}
 
@@ -162,7 +165,27 @@ public class MailDashboardService {
                     .add(block.provider());
         }
 
-        List<MailRecord> recent = queueRepository.recent(stationId, RECENT_LIMIT).stream()
+        List<MailRecord> recent = records(queueRepository.recent(stationId, RECENT_LIMIT), standings, refusedBy);
+        List<MailRecord> stuckMails = records(queueRepository.stuck(stationId, RECENT_LIMIT), standings, refusedBy);
+
+        return new MailDashboard(
+                summary.pending(),
+                summary.sending(),
+                summary.sent(),
+                summary.failed(),
+                summary.stuck(),
+                summary.oldestPendingAt(),
+                standings,
+                stuckMails,
+                recent,
+                blocks);
+    }
+
+    private static List<MailRecord> records(
+            List<EmailQueueRepository.QueueEntry> entries,
+            List<ProviderStanding> standings,
+            Map<String, Set<MailProviderType>> refusedBy) {
+        return entries.stream()
                 .map(entry -> new MailRecord(
                         entry.id(),
                         entry.recipient(),
@@ -176,16 +199,24 @@ public class MailDashboardService {
                         entry.providerPosition(),
                         reachable(standings, refusedBy, entry.recipient())))
                 .toList();
-
-        return new MailDashboard(
-                summary.pending(),
-                summary.sending(),
-                summary.sent(),
-                summary.failed(),
-                summary.stuck(),
-                summary.oldestPendingAt(),
-                standings,
-                recent,
-                blocks);
     }
+
+    /**
+     * Puts mails a dead worker left in sending back into the queue.
+     *
+     * <p>A mail can only be left behind, never taken from a worker still at it, so the worst this
+     * can do is send one twice: the process may have died after the provider had already accepted
+     * it. That is the trade an operator makes knowingly, which is why nothing does it by itself.
+     *
+     * @param stationId the station whose post is meant, or null for the instance's
+     * @param id        the one mail meant, or null for every stuck one
+     */
+    public RequeuedMails requeueStuck(Integer stationId, Integer id) {
+        return new RequeuedMails(queueRepository.requeueStuck(stationId, id));
+    }
+
+    /**
+     * @param requeued how many left-behind mails went back into the queue
+     */
+    public record RequeuedMails(int requeued) {}
 }

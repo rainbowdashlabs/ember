@@ -2097,6 +2097,8 @@ export default {
         tabGroup: 'Gruppenspezifisch',
         selectGroup: 'Gruppe',
         selectGroupPlaceholder: 'Gruppe auswählen',
+        unassignedGroupFields: 'Diese Felder gehören zu keiner Gruppe. Öffne eines und speichere es, '
+            + 'um es der oben gewählten Gruppe zuzuordnen.',
         fields: 'Profilfelder',
         addField: 'Feld hinzufügen',
         memberHint: 'Diese Felder werden im Profil aller Mitglieder angezeigt.',
@@ -3559,6 +3561,12 @@ export default {
         stuckWarning: '{count} Mail(s) stehen seit über zehn Minuten in der Zustellung. Das '
             + 'bedeutet, dass ein Arbeitsprozess während des Versands abgebrochen ist. Sie werden '
             + 'von selbst nicht erneut versucht.',
+        stuckTitle: 'Hängengebliebene Mails',
+        stuckHint: 'Diese Mails hat niemand mehr in der Hand. Wieder einreihen versendet sie erneut. '
+            + 'Hatte der Anbieter sie schon angenommen, bevor der Prozess abbrach, kommt sie doppelt an.',
+        requeueAll: 'Alle wieder einreihen',
+        requeueOne: 'Wieder einreihen',
+        requeued: '{count} Mail(s) wieder eingereiht.',
         oldestPending: 'Die längste wartende Mail wurde am {when} geschrieben.',
         providersTitle: 'Anbieter heute',
         noProviders: 'Kein Anbieter eingetragen, es kann also nichts versendet werden.',
@@ -3949,6 +3957,14 @@ export default {
         typeDate: 'Datum',
         typeBoolean: 'Ja/Nein',
         typeEnum: 'Auswahl',
+        typeBirthDate: 'Geburtsdatum',
+        minAgeRegister: 'Mindestalter zur Anmeldung',
+        minAgeRegisterHint: 'Leer lassen für keine Grenze. Wirkt nur, wenn die Liste ein Geburtsdatumsfeld hat.',
+        minAgeJoin: 'Alter für den Beitritt',
+        minAgeJoinHint: 'Wer jünger ist, bleibt auf der Liste und wird gekennzeichnet.',
+        belowJoinAge: 'Zu jung',
+        belowJoinAgeHint: 'Wartet auf das Beitrittsalter, nicht auf den Platz.',
+        hideBelowJoinAge: 'Einträge unter dem Beitrittsalter ausblenden',
         position: 'Position',
         confirmedAt: 'Bestätigt am',
         createdAt: 'Eingetragen am',

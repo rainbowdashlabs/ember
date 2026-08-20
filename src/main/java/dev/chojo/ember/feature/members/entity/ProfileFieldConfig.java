@@ -25,6 +25,9 @@ import static org.slf4j.LoggerFactory.getLogger;
  * @param computed       whether this field is computed from another field
  * @param sourceField    the source field name for computed fields
  * @param ageMode        the age calculation mode (e.g. for AGE-type fields)
+ * @param groupId        the group a field of GROUP scope belongs to, null for every other scope.
+ *                       A field of that scope is only ever shown at its group, so without this it
+ *                       belongs nowhere and appears nowhere.
  */
 public record ProfileFieldConfig(
         boolean required,
@@ -35,11 +38,19 @@ public record ProfileFieldConfig(
         Object defaultValue,
         boolean computed,
         String sourceField,
-        String ageMode) {
+        String ageMode,
+        Integer groupId) {
     private static final Logger log = getLogger(ProfileFieldConfig.class);
     private static final ObjectMapper MAPPER = Json.CONFIG_MAPPER;
     private static final ProfileFieldConfig EMPTY =
-            new ProfileFieldConfig(false, false, false, false, null, null, false, null, null);
+            new ProfileFieldConfig(false, false, false, false, null, null, false, null, null, null);
+
+    /**
+     * The settings of a field that names none.
+     */
+    public static ProfileFieldConfig empty() {
+        return EMPTY;
+    }
 
     /**
      * Parses a JSON string into a {@link ProfileFieldConfig}, returning a default empty config on failure.

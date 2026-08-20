@@ -36,6 +36,23 @@ public sealed interface CellConfig {
         }
     }
 
+    /**
+     * Binds settings that arrived as an object rather than as text.
+     *
+     * <p>Which record they are depends on the content type standing next to them, so they cannot be
+     * bound while the request is read. Carrying them this far as a tree rather than as JSON text
+     * spares them a trip through the serialiser and back that could only lose something.
+     */
+    static CellConfig parse(CellContentType type, JsonNode node) {
+        if (node == null || node.isNull() || node.isEmpty()) return type.emptyConfig();
+        try {
+            return MAPPER.treeToValue(node, type.configClass());
+        } catch (Exception e) {
+            log.error("Failed to read CellConfig for type {}: {}", type, node, e);
+            return type.emptyConfig();
+        }
+    }
+
     default String toJson() {
         try {
             return MAPPER.writeValueAsString(this);
