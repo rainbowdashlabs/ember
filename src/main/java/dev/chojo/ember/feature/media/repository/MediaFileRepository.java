@@ -37,8 +37,12 @@ public class MediaFileRepository {
      */
     private static final String ALIASED_FILE_COLUMNS = "f." + FILE_COLUMNS.replace(", ", ", f.");
 
+    /**
+     * @param stationId the station whose library holds the file, or null for one the instance holds
+     *                  and every station can be served
+     */
     public StationFile create(
-            Integer pageId, int stationId, String contentHash, String fileName, String mimeType, long fileSize) {
+            Integer pageId, Integer stationId, String contentHash, String fileName, String mimeType, long fileSize) {
         return SqlSupport.insertReturning(
                 """
                 INSERT
@@ -63,11 +67,22 @@ public class MediaFileRepository {
         return SqlSupport.findById("station_file", FILE_COLUMNS, fileId, StationFile.map());
     }
 
-    public Optional<StationFile> findByStationAndHash(int stationId, String contentHash) {
+    /**
+     * The file with these bytes in one library, which is how the same picture uploaded twice stays
+     * one file.
+     *
+     * <p>The station is compared with {@code IS NOT DISTINCT FROM} rather than {@code =}, so that
+     * the instance library, whose files have no station, is looked up by the same query as a
+     * station's. Plain equality is never true of a null and would have stored a second copy every
+     * time.
+     *
+     * @param stationId the station whose library to look in, or null for the instance's
+     */
+    public Optional<StationFile> findByStationAndHash(Integer stationId, String contentHash) {
         return query("""
                 SELECT %s
                 FROM station_file
-                WHERE station_id = :station_id AND content_hash = :content_hash
+                WHERE station_id IS NOT DISTINCT FROM :station_id AND content_hash = :content_hash
                 LIMIT 1;""", FILE_COLUMNS)
                 .single(call().bind("station_id", stationId).bind("content_hash", contentHash))
                 .map(StationFile.map())
@@ -81,10 +96,16 @@ public class MediaFileRepository {
                 .all();
     }
 
-    public List<StationFile> findByStation(int stationId) {
-        return query(
-                        "SELECT %s FROM station_file WHERE station_id = :station_id ORDER BY uploaded_at DESC;",
-                        FILE_COLUMNS)
+    /**
+     * Every file in one library, newest first.
+     *
+     * @param stationId the station whose library to list, or null for the instance's
+     */
+    public List<StationFile> findByStation(Integer stationId) {
+        return query("""
+                        SELECT %s FROM station_file
+                        WHERE station_id IS NOT DISTINCT FROM :station_id
+                        ORDER BY uploaded_at DESC;""", FILE_COLUMNS)
                 .single(call().bind("station_id", stationId))
                 .map(StationFile.map())
                 .all();

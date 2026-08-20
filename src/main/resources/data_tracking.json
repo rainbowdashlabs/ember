@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:3eb1fce6de900ad151536aa282a7c218d7d39c0cf97a0c862c212cff4b3f3add",
-  "generatedAt" : "2026-08-20T22:13:49Z",
+  "schemaHash" : "sha256:7a13d65c8e051267fa9bc5a975528488669eb985c03b134062a38e5cd0fb7713",
+  "generatedAt" : "2026-08-20T23:14:30Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -12813,7 +12813,7 @@
     "station_file" : {
       "feature" : "media",
       "scope" : "STATION",
-      "tableHash" : "sha256:0b7495ab354fd455c40b8d89de06fdb7b0a39d8008e227a5c88f3af272f5e1fc",
+      "tableHash" : "sha256:744d5e9a2855b8fc676ec09e4a013a43d211c8c8e8fdba8a93047e688c65b923",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -12848,9 +12848,9 @@
       }, {
         "name" : "station_id",
         "type" : "int4",
-        "nullable" : false,
+        "nullable" : true,
         "verified" : true,
-        "description" : "Owning station. Mirrors station_page.station_id; lets the storage layer build paths and enforce per-station dedup without joining."
+        "description" : "The station whose library holds the file. Null for a file the instance holds, which every station can be served."
       }, {
         "name" : "content_hash",
         "type" : "text",

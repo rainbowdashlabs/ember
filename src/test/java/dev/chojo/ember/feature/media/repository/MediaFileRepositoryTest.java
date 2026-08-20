@@ -122,4 +122,35 @@ class MediaFileRepositoryTest extends RepositoryTestBase {
         assertTrue(mediaFileRepo.findFirstUploaders(null).isEmpty());
         assertTrue(mediaFileRepo.findFirstUploaders(List.of()).isEmpty());
     }
+
+    /**
+     * The library the instance holds.
+     *
+     * <p>Its files have no station, and the same bytes uploaded twice are still one file. That
+     * second part is not free: the unique index counts two nulls as different values unless it is
+     * told otherwise, so without the index being declared NULLS NOT DISTINCT the instance would
+     * store a fresh copy every time somebody uploaded the same picture.
+     */
+    @Test
+    void aFileTheInstanceHoldsBelongsToNoStationAndIsStoredOnce() {
+        var first = mediaFileRepo.create(null, null, "instance-hash", "hinweis.png", "image/png", 12);
+        try {
+            assertNull(first.stationId(), "it belongs to no station");
+            assertEquals(
+                    first.id(),
+                    mediaFileRepo
+                            .findByStationAndHash(null, "instance-hash")
+                            .orElseThrow()
+                            .id(),
+                    "the instance library is looked up by the same query a station's is");
+            assertTrue(
+                    mediaFileRepo.findByStation(null).stream().anyMatch(f -> f.id() == first.id()),
+                    "it is listed in the instance library");
+            assertTrue(
+                    mediaFileRepo.findByStation(station.id()).stream().noneMatch(f -> f.id() == first.id()),
+                    "and in no station's");
+        } finally {
+            mediaFileRepo.delete(first.id());
+        }
+    }
 }

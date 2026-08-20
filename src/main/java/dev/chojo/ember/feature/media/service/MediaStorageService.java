@@ -104,18 +104,18 @@ public class MediaStorageService {
      * Persists the original bytes for a (station, hash) pair. Idempotent - calling twice with
      * the same hash is a semantic no-op because the bytes are identical by definition.
      */
-    public void store(int stationId, String contentHash, byte[] data, String contentType) throws IOException {
-        StorageScope.Station scope = stationScope(stationId);
+    public void store(Integer stationId, String contentHash, byte[] data, String contentType) throws IOException {
+        StorageScope scope = stationScope(stationId);
         cleanupLegacyOriginals(scope, contentHash, ORIG_PREFIX);
         String filename = ORIG_PREFIX + "." + extensionFor(contentType);
-        storage.store(scope, StorageCategory.MEDIA_FILES, contentHash, new Variant(filename), data, contentType);
+        storage.store(scope, categoryFor(stationId), contentHash, new Variant(filename), data, contentType);
     }
 
     /**
      * Reads the original bytes + MIME type for a (station, hash). Returns
      * {@link Optional#empty()} when no original is present.
      */
-    public Optional<FileData> read(int stationId, String contentHash) {
+    public Optional<FileData> read(Integer stationId, String contentHash) {
         return readVariant(stationId, contentHash, ORIG_PREFIX, null);
     }
 
@@ -127,12 +127,11 @@ public class MediaStorageService {
      * {@code "jpg"}, …) - pass {@code null} to accept any extension, which is the right
      * choice when reading the original whose on-disk format is whatever the user uploaded.
      */
-    public Optional<FileData> readVariant(int stationId, String contentHash, String baseName, String extension) {
-        StorageScope.Station scope = stationScope(stationId);
+    public Optional<FileData> readVariant(Integer stationId, String contentHash, String baseName, String extension) {
+        StorageScope scope = stationScope(stationId);
         String filename = pickVariantFilename(scope, contentHash, baseName, extension);
         if (filename == null) return Optional.empty();
-        Optional<StoredStream> opt =
-                storage.read(scope, StorageCategory.MEDIA_FILES, contentHash, new Variant(filename));
+        Optional<StoredStream> opt = storage.read(scope, categoryFor(stationId), contentHash, new Variant(filename));
         if (opt.isEmpty()) return Optional.empty();
         try (StoredStream s = opt.get()) {
             byte[] data = s.body().readAllBytes();
@@ -154,16 +153,11 @@ public class MediaStorageService {
      * Writes a single variant blob into the (station, hash) directory under
      * {@code <variantName>.<extension>}.
      */
-    public void storeVariant(int stationId, String contentHash, String variantName, String extension, byte[] data) {
+    public void storeVariant(Integer stationId, String contentHash, String variantName, String extension, byte[] data) {
         String filename = variantName + "." + extension;
         String contentType = mimeForExtension(extension);
         storage.store(
-                stationScope(stationId),
-                StorageCategory.MEDIA_FILES,
-                contentHash,
-                new Variant(filename),
-                data,
-                contentType);
+                stationScope(stationId), categoryFor(stationId), contentHash, new Variant(filename), data, contentType);
     }
 
     /**
@@ -171,8 +165,8 @@ public class MediaStorageService {
      * Caller is responsible for ensuring no other DB rows reference the same hash within the
      * same station.
      */
-    public void delete(int stationId, String contentHash) {
-        storage.deletePrefix(stationScope(stationId), StorageCategory.MEDIA_FILES, contentHash);
+    public void delete(Integer stationId, String contentHash) {
+        storage.deletePrefix(stationScope(stationId), categoryFor(stationId), contentHash);
     }
 
     /**
@@ -180,13 +174,36 @@ public class MediaStorageService {
      * the original and every variant for a given (station, hash). Returns a path even when
      * the directory does not yet exist on disk.
      */
-    public Path hashDir(int stationId, String contentHash) {
-        String full =
-                storage.fullKey(stationScope(stationId), StorageCategory.MEDIA_FILES, contentHash, Variant.ORIGINAL);
+    public Path hashDir(Integer stationId, String contentHash) {
+        String full = storage.fullKey(stationScope(stationId), categoryFor(stationId), contentHash, Variant.ORIGINAL);
         return localBackend.resolve(full);
     }
 
-    private StorageScope.Station stationScope(int stationId) {
+    /**
+     * Where a file's bytes live.
+     *
+     * <p>A file belongs to a station's library or to the instance's own, and the instance's has no
+     * station to name a folder after. Null means the instance, the same way it does in the column
+     * the file is read from.
+     */
+    /**
+     * The category a file's bytes live under. It follows the scope: the same folder name, declared
+     * once for a station and once for the instance, because the storage layer checks that a
+     * category is used at the scope it was declared for.
+     */
+    private StorageCategory categoryFor(Integer stationId) {
+        return stationId == null ? StorageCategory.INSTANCE_MEDIA_FILES : StorageCategory.MEDIA_FILES;
+    }
+
+    /** The same choice made from the scope, for the helpers that hold one rather than a station. */
+    private StorageCategory categoryFor(StorageScope scope) {
+        return scope instanceof StorageScope.Instance
+                ? StorageCategory.INSTANCE_MEDIA_FILES
+                : StorageCategory.MEDIA_FILES;
+    }
+
+    private StorageScope stationScope(Integer stationId) {
+        if (stationId == null) return new StorageScope.Instance();
         UUID uid = stationRepository.resolveUid(stationId);
         return new StorageScope.Station(stationId, uid);
     }
@@ -203,16 +220,15 @@ public class MediaStorageService {
         return new KeyParts(filename, base);
     }
 
-    private String pickVariantFilename(
-            StorageScope.Station scope, String contentHash, String baseName, String extension) {
+    private String pickVariantFilename(StorageScope scope, String contentHash, String baseName, String extension) {
         if (extension != null && !extension.isEmpty()) {
             String candidate = baseName + "." + extension;
-            if (storage.exists(scope, StorageCategory.MEDIA_FILES, contentHash, new Variant(candidate))) {
+            if (storage.exists(scope, categoryFor(scope), contentHash, new Variant(candidate))) {
                 return candidate;
             }
             return null;
         }
-        List<String> keys = storage.listKeys(scope, StorageCategory.MEDIA_FILES, contentHash);
+        List<String> keys = storage.listKeys(scope, categoryFor(scope), contentHash);
         String fallback = null;
         for (String key : keys) {
             var name = splitKey(key);
@@ -223,11 +239,11 @@ public class MediaStorageService {
         return fallback;
     }
 
-    private void cleanupLegacyOriginals(StorageScope.Station scope, String contentHash, String keepBase) {
-        for (String key : storage.listKeys(scope, StorageCategory.MEDIA_FILES, contentHash)) {
+    private void cleanupLegacyOriginals(StorageScope scope, String contentHash, String keepBase) {
+        for (String key : storage.listKeys(scope, categoryFor(scope), contentHash)) {
             var name = splitKey(key);
             if (name.base().equals(keepBase)) {
-                storage.delete(scope, StorageCategory.MEDIA_FILES, contentHash, new Variant(name.filename()));
+                storage.delete(scope, categoryFor(scope), contentHash, new Variant(name.filename()));
             }
         }
     }

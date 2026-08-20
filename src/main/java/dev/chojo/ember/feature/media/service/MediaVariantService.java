@@ -68,7 +68,7 @@ public class MediaVariantService {
      * stored original already is a WebP and resized copies would just duplicate it at a smaller
      * footprint that the consuming page rarely needs.
      */
-    public void generateVariants(int stationId, String contentHash, byte[] originalBytes, String mimeType) {
+    public void generateVariants(Integer stationId, String contentHash, byte[] originalBytes, String mimeType) {
         if (!storageConfig.imageVariantsEnabled()) return;
         if (mimeType == null || !mimeType.startsWith("image/")) return;
         if (mimeType.equalsIgnoreCase("image/svg+xml") || mimeType.equalsIgnoreCase("image/gif")) return;
@@ -118,7 +118,7 @@ public class MediaVariantService {
      *                       client supports WebP
      */
     public Optional<MediaStorageService.FileData> readBest(
-            int stationId, String contentHash, Integer requestedWidth, String acceptHeader) {
+            Integer stationId, String contentHash, Integer requestedWidth, String acceptHeader) {
         boolean acceptsWebp =
                 acceptHeader != null && acceptHeader.toLowerCase(Locale.ROOT).contains("image/webp");
         String chosenVariant = chooseVariantName(requestedWidth);

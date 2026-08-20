@@ -103,6 +103,27 @@ const tags = createCrudResource<
 export const listMediaFiles = files.list
 
 /**
+ * Lists the library the instance holds: files with no station, which every station can be served
+ * and which a system notice draws on. Only an instance administrator may read it.
+ */
+export async function listInstanceMediaFiles(): Promise<StationFileListing[]> {
+    const res = await client.get<StationFileListing[]>('/admin/media/files')
+    return res.data
+}
+
+/** Takes a file into the library the instance holds. */
+export async function uploadInstanceMediaFile(file: File): Promise<StationFile> {
+    return uploadFile<StationFile>('/admin/media/files', {file})
+}
+
+/**
+ * What stands in for a station identifier when a file belongs to the instance. The delivery route
+ * takes it literally, so a picture from the instance library is addressed the same way a station's
+ * is and nothing downstream needs to know the difference.
+ */
+export const INSTANCE_MEDIA_SCOPE = 'instance'
+
+/**
  * Removes a file. A manager takes it away outright; anyone else only withdraws their own upload,
  * which takes the file with it once nobody claims it and nothing points at it.
  */

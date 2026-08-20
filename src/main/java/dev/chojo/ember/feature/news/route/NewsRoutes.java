@@ -221,14 +221,8 @@ public class NewsRoutes implements Routes {
         if (request.title() == null || request.title().isBlank()) {
             throw new BadRequestResponse("title is required");
         }
-        // An entry built from blocks has no written markdown to give: what it reads as is derived
-        // from the blocks, and those are saved once the entry has an id to hang them off.
         boolean rich = request.contentMode() == ContentMode.RICH;
-        if (!rich
-                && (request.contentMarkdown() == null
-                        || request.contentMarkdown().isBlank())) {
-            throw new BadRequestResponse("contentMarkdown is required");
-        }
+        requireBody(rich, request.contentMarkdown());
         var authorIdentity = memberIdentityFactory.fromMemberId(session.member().id());
         var news = newsService.create(
                 session.stationId(),
@@ -583,7 +577,9 @@ public class NewsRoutes implements Routes {
     private void recordView(Context ctx) {
         int id = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
-        requireOwnedOrNotFound(ctx, id, newsService::findById, News::stationId);
+        // Whatever a member may read, they may be recorded as having read, which includes what the
+        // instance published to every station.
+        requireReadable(ctx, id);
         newsService.recordView(id, session.member().id());
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -623,7 +619,7 @@ public class NewsRoutes implements Routes {
             })
     private void getViewCount(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedOrNotFound(ctx, id, newsService::findById, News::stationId);
+        requireReadable(ctx, id);
         ctx.json(new NewsViewCountResponse(newsService.countViews(id)));
     }
 
@@ -819,6 +815,19 @@ public class NewsRoutes implements Routes {
     /**
      * Request body for creating or updating a news article.
      */
+    /**
+     * Refuses an entry with nothing in it, unless it is built from blocks.
+     *
+     * <p>A block entry has no written markdown to give: what it reads as is derived from the
+     * blocks, and those are saved once the entry has an id to hang them off. Both the station's
+     * entries and the instance's are created this way, so the rule is written down once.
+     */
+    static void requireBody(boolean rich, String contentMarkdown) {
+        if (!rich && (contentMarkdown == null || contentMarkdown.isBlank())) {
+            throw new BadRequestResponse("contentMarkdown is required");
+        }
+    }
+
     public record NewsRequest(
             String title,
             String contentMarkdown,

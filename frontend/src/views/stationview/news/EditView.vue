@@ -20,7 +20,8 @@ import { news, memberGroups, userTags, federation } from '@/api'
 import ContentPanel from './editview/ContentPanel.vue'
 import {ContentMode, type ContentModeName} from '@/api/news'
 import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
-import {CellContentType, type PageRow, type SaveRowRequest, type SaveCellRequest} from '@/api/pageManage'
+import type {PageRow, SaveRowRequest, SaveCellRequest} from '@/api/pageManage'
+import {markdownAsSingleBlock} from '@/util/blockSwitch'
 import AttachmentsPanel from './editview/AttachmentsPanel.vue'
 import {useNewsAttachments} from './editview/useNewsAttachments'
 import AudiencePanels from './editview/AudiencePanels.vue'
@@ -105,18 +106,7 @@ function toSaveRows(): SaveRowRequest[] {
  */
 async function enableBlocks() {
     if (!newsId.value) {
-        rows.value = [{
-            id: 0,
-            sortOrder: 0,
-            cells: [{
-                id: 0,
-                sortOrder: 0,
-                widthPercent: 100,
-                contentType: CellContentType.MARKDOWN,
-                content: contentMarkdown.value,
-                config: {},
-            }],
-        }]
+        rows.value = markdownAsSingleBlock(contentMarkdown.value)
         contentMode.value = ContentMode.RICH
         return
     }

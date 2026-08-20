@@ -17,6 +17,8 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import {StationUserType, StationUserTypeLabels, type StationUserTypeName} from '@/api/types'
 import {ContentMode, type ContentModeName} from '@/api/news'
+import {INSTANCE_MEDIA_SCOPE} from '@/api/media'
+import {markdownAsSingleBlock} from '@/util/blockSwitch'
 import type {SystemNewsEntry} from '@/api/adminNews'
 import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
 
@@ -92,18 +94,7 @@ function toggleUserType(userType: string) {
  */
 function enableBlocks() {
   if (contentMode.value === ContentMode.RICH) return
-  rows.value = [{
-    id: 0,
-    sortOrder: 0,
-    cells: [{
-      id: 0,
-      sortOrder: 0,
-      widthPercent: 100,
-      contentType: 'MARKDOWN',
-      content: contentMarkdown.value,
-      config: {},
-    }],
-  }]
+  rows.value = markdownAsSingleBlock(contentMarkdown.value)
   contentMode.value = ContentMode.RICH
 }
 
@@ -136,10 +127,16 @@ function label(userType: string): string {
     <div class="space-y-1">
       <FieldLabel>{{ t('adminNews.content') }}</FieldLabel>
       <template v-if="contentMode === ContentMode.RICH">
-        <ContentBlockEditor v-model:rows="rows" station-uid=""/>
+        <!-- The instance's own library: a system notice is read in every station, so its pictures
+             cannot come out of one of them. -->
+        <ContentBlockEditor v-model:rows="rows" :station-uid="INSTANCE_MEDIA_SCOPE"/>
       </template>
       <template v-else>
-        <MarkdownEditor v-model="contentMarkdown" :placeholder="t('adminNews.contentPlaceholder')"/>
+        <MarkdownEditor
+            v-model="contentMarkdown"
+            :media-scope="INSTANCE_MEDIA_SCOPE"
+            :placeholder="t('adminNews.contentPlaceholder')"
+        />
         <div class="flex flex-col gap-2 pt-2 sm:flex-row sm:items-center">
           <SecondaryButton :icon="['fas', 'table-columns']" @click="enableBlocks">
             {{ t('adminNews.enableBlocks') }}

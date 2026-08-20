@@ -6,6 +6,12 @@
 import {test, expect} from './fixtures/auth'
 import {unique} from './fixtures/unique'
 
+/** A one-pixel PNG, seeded per story so the library stores each as its own file. */
+const PNG = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+    'base64',
+)
+
 /**
  * What the instance says to every station at once.
  *
@@ -35,6 +41,38 @@ test.describe('System news', () => {
         await managerPage.goto('/station/news')
         await expect(managerPage.getByText(notice).first()).toBeVisible()
         await expect(managerPage.getByText('Ember').first()).toBeVisible()
+    })
+
+    /**
+     * A notice can carry a picture, and the picture cannot come out of one station's library: that
+     * station pruning its unused files would break the notice everywhere else. The instance keeps
+     * its own, and the story reads the notice back as a member of a station, where the picture has
+     * to load for somebody who has nothing to do with the administration.
+     */
+    test('a picture from the instance library is shown in every station', async ({adminPage, managerPage}) => {
+        const notice = unique('Mit Bild')
+
+        await adminPage.goto('/admin/news')
+        await adminPage.getByRole('button', {name: 'Systemmeldung schreiben'}).click()
+        await adminPage.getByPlaceholder('Titel der Systemmeldung').fill(notice)
+        await adminPage.locator('[contenteditable="true"]').first().click()
+        await adminPage.keyboard.type('Siehe Bild.')
+
+        await adminPage.getByRole('button', {name: 'Image'}).click()
+        await adminPage.getByRole('button', {name: 'Medien'}).click()
+        await adminPage.locator('input[type="file"]').first().setInputFiles({
+            name: `${unique('instanz')}.png`,
+            mimeType: 'image/png',
+            buffer: Buffer.concat([PNG, Buffer.from(notice, 'utf8')]),
+        })
+
+        await expect(adminPage.locator('img[src*="/api/v1/public/media/instance/"]').first()).toBeVisible()
+        await adminPage.getByRole('button', {name: 'Veröffentlichen'}).click()
+        await expect(adminPage.getByText(notice).first()).toBeVisible()
+
+        await managerPage.goto('/station/news')
+        await managerPage.getByText(notice).first().click()
+        await expect(managerPage.locator('img[src*="/api/v1/public/media/instance/"]').first()).toBeVisible()
     })
 
     /**

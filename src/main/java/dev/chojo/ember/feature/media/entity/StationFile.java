@@ -22,7 +22,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public record StationFile(
         int id,
         int pageId,
-        int stationId,
+        Integer stationId,
         String contentHash,
         String fileName,
         String mimeType,
@@ -36,7 +36,9 @@ public record StationFile(
         return row -> new StationFile(
                 row.getInt("id"),
                 row.getInt("page_id"),
-                row.getInt("station_id"),
+                // Null for a file the instance holds. Read as an object rather than an int, so
+                // that "no station" arrives as no station rather than as station zero.
+                (Integer) row.getObject("station_id"),
                 row.getString("content_hash"),
                 row.getString("file_name"),
                 row.getString("mime_type"),

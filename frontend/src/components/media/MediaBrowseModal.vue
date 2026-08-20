@@ -13,7 +13,7 @@ import SearchToolbar from './mediabrowsemodal/SearchToolbar.vue'
 import FilterBar from './mediabrowsemodal/FilterBar.vue'
 import FilesGrid from './mediabrowsemodal/FilesGrid.vue'
 import MediaFileEditModal from '@/components/media/MediaFileEditModal.vue'
-import {mediaFileUrl, pruneMediaFiles, updateMediaFileMeta, uploadMediaFile, type StationFile} from '@/api/media'
+import {INSTANCE_MEDIA_SCOPE, mediaFileUrl, pruneMediaFiles, updateMediaFileMeta, uploadInstanceMediaFile, uploadMediaFile, type StationFile} from '@/api/media'
 import {useMediaLibrary} from '@/composables/useMediaLibrary'
 import type {AxiosError} from 'axios'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -24,6 +24,11 @@ import {formatSize} from '@/util/format'
 const open = defineModel<boolean>('open', {default: false})
 
 const props = defineProps<{
+    /**
+     * The station whose library is being browsed, or `INSTANCE_MEDIA_SCOPE` for the one the
+     * instance holds. It is also what addresses the files, so the pictures a system notice uses
+     * are reached the same way a station's are.
+     */
     stationUid: string
     mimePrefix?: string
     multiple?: boolean
@@ -36,17 +41,18 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 const {hasPermission} = useSession()
-const {entries, folders, tags, loading, load} = useMediaLibrary()
+const instance = computed(() => props.stationUid === INSTANCE_MEDIA_SCOPE)
+const {entries, folders, tags, loading, load} = useMediaLibrary(props.stationUid === INSTANCE_MEDIA_SCOPE)
 
 /**
  * A member who authors none of the station's content sees only their own uploads, and organising
  * station media is not theirs to do. Same component either way: the backend decides which set
  * comes back, and these two flags decide which controls come with it.
  */
-const organises = computed(() => hasPermission(StationPermission.PAGE_EDIT)
+const organises = computed(() => !instance.value && (hasPermission(StationPermission.PAGE_EDIT)
     || hasPermission(StationPermission.NEWS_EDIT)
-    || hasPermission(StationPermission.KNOWLEDGE_EDIT))
-const mayPrune = computed(() => hasPermission(StationPermission.PAGE_MANAGER))
+    || hasPermission(StationPermission.KNOWLEDGE_EDIT)))
+const mayPrune = computed(() => !instance.value && hasPermission(StationPermission.PAGE_MANAGER))
 
 const uploadError = ref<string | null>(null)
 const search = ref('')
@@ -126,7 +132,7 @@ const {running: uploading, run: uploadBatch} = useAsyncAction(async (picked: Fil
     let lastErr: unknown = null
     for (const f of accepted) {
         try {
-            const s = await uploadMediaFile(f)
+            const s = instance.value ? await uploadInstanceMediaFile(f) : await uploadMediaFile(f)
             stored.push(s)
             entries.value = [{file: s, inUse: false, tagIds: [], uploadedBy: null}, ...entries.value.filter(e => e.file.id !== s.id)]
         } catch (err) {

@@ -5,6 +5,7 @@
  */
 <script lang="ts" setup>
 import {ref} from 'vue'
+import {marked} from 'marked'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -22,6 +23,14 @@ import SystemNewsList from './adminnewsview/SystemNewsList.vue'
 import SystemNewsEditor from './adminnewsview/SystemNewsEditor.vue'
 
 const {t} = useI18n()
+
+function renderMarkdown(markdown: string): string {
+  try {
+    return marked.parse(markdown) as string
+  } catch {
+    return ''
+  }
+}
 
 const {config: entries, loading, error, runWith} = useConfigPanel<SystemNewsEntry[]>({
   initial: [],
@@ -69,7 +78,9 @@ async function save(payload: EditorPayload) {
     const data: SystemNewsRequest = {
       title: payload.title,
       contentMarkdown: payload.contentMarkdown,
-      contentHtml: '',
+      // What a reader is shown is the rendered body, not the markdown. Sending nothing here left
+      // the notice blank for everyone it reached.
+      contentHtml: renderMarkdown(payload.contentMarkdown),
       userTypes: payload.userTypes,
       publish: true,
       notifyMembers: payload.notifyMembers,

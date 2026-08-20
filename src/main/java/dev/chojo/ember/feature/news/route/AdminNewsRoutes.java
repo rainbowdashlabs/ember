@@ -9,8 +9,10 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.content.entity.ContentMode;
 import dev.chojo.ember.feature.content.entity.ContentRow;
+import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsComment;
@@ -28,6 +30,8 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.List;
@@ -48,13 +52,20 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
  */
 @Singleton
 public class AdminNewsRoutes implements Routes {
+    private static final Logger log = LoggerFactory.getLogger(AdminNewsRoutes.class);
+
     private final NewsService newsService;
     private final MemberNameResolver memberNameResolver;
+    private final MediaLibraryService media;
+    private final Api apiConfig;
 
     @Inject
-    public AdminNewsRoutes(NewsService newsService, MemberNameResolver memberNameResolver) {
+    public AdminNewsRoutes(
+            NewsService newsService, MemberNameResolver memberNameResolver, MediaLibraryService media, Api apiConfig) {
         this.newsService = newsService;
         this.memberNameResolver = memberNameResolver;
+        this.media = media;
+        this.apiConfig = apiConfig;
     }
 
     @Override
@@ -67,6 +78,10 @@ public class AdminNewsRoutes implements Routes {
         routes.put(prefix + "/admin/news/{id}/blocks", this::saveBlocks, InstancePermission.ADMINISTRATOR);
         routes.post(prefix + "/admin/news/{id}/blocks/enable", this::enableBlocks, InstancePermission.ADMINISTRATOR);
         routes.get(prefix + "/admin/news/{id}/comments", this::listComments, InstancePermission.ADMINISTRATOR);
+        routes.get(prefix + "/admin/media/files", this::listInstanceFiles, InstancePermission.ADMINISTRATOR);
+        routes.post(prefix + "/admin/media/files", this::uploadInstanceFile, InstancePermission.ADMINISTRATOR);
+        routes.delete(
+                prefix + "/admin/media/files/{fileId}", this::deleteInstanceFile, InstancePermission.ADMINISTRATOR);
     }
 
     @OpenApi(
@@ -112,14 +127,8 @@ public class AdminNewsRoutes implements Routes {
         if (request.title() == null || request.title().isBlank()) {
             throw new BadRequestResponse("title is required");
         }
-        // An entry built from blocks has no written text of its own: what it reads as is derived
-        // from the blocks, which are saved once the entry has an id to hang them off.
         boolean rich = request.contentMode() == ContentMode.RICH;
-        if (!rich
-                && (request.contentMarkdown() == null
-                        || request.contentMarkdown().isBlank())) {
-            throw new BadRequestResponse("contentMarkdown is required");
-        }
+        NewsRoutes.requireBody(rich, request.contentMarkdown());
         var news = newsService.createSystem(
                 request.title(),
                 request.contentMarkdown() != null ? request.contentMarkdown() : "",
@@ -217,6 +226,60 @@ public class AdminNewsRoutes implements Routes {
         ctx.json(newsService.findComments(id).stream()
                 .map(this::toCommentResponse)
                 .toList());
+    }
+
+    @OpenApi(
+            path = "/api/v1/admin/media/files",
+            methods = HttpMethod.GET,
+            summary = "List the files the instance holds",
+            tags = {"Admin"},
+            responses = @OpenApiResponse(status = "200"))
+    private void listInstanceFiles(Context ctx) {
+        ctx.json(media.listLibrary(null));
+    }
+
+    @OpenApi(
+            path = "/api/v1/admin/media/files",
+            methods = HttpMethod.POST,
+            summary = "Take a file into the library the instance holds",
+            tags = {"Admin"},
+            responses = @OpenApiResponse(status = "201"))
+    private void uploadInstanceFile(Context ctx) {
+        var file = ctx.uploadedFile("file");
+        if (file == null) throw new BadRequestResponse("file is required");
+        if (file.size() > apiConfig.maxUploadSizeBytes()) throw new BadRequestResponse("File too large");
+        try (var content = file.content()) {
+            byte[] data = content.readAllBytes();
+            // No station and no member: the file belongs to the instance, and an administrator is
+            // not a member of anything to record as its uploader.
+            ctx.status(HttpStatus.CREATED)
+                    .json(media.upload(null, null, null, file.filename(), file.contentType(), data));
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestResponse(e.getMessage());
+        } catch (Exception e) {
+            log.warn("Failed to upload an instance media file", e);
+            throw new BadRequestResponse("Failed to upload file");
+        }
+    }
+
+    @OpenApi(
+            path = "/api/v1/admin/media/files/{fileId}",
+            methods = HttpMethod.DELETE,
+            summary = "Remove a file the instance holds",
+            tags = {"Admin"},
+            pathParams = @OpenApiParam(name = "fileId", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "204"))
+    private void deleteInstanceFile(Context ctx) {
+        int fileId = pathInt(ctx, "fileId");
+        var file = media.findFile(fileId).orElseThrow(NotFoundResponse::new);
+        // A station's file is that station's business, however much of the instance one holds.
+        if (file.stationId() != null) {
+            throw new NotFoundResponse();
+        }
+        if (!media.deleteFile(fileId)) {
+            throw new NotFoundResponse();
+        }
+        ctx.status(HttpStatus.NO_CONTENT);
     }
 
     /**

@@ -35,10 +35,16 @@ const modelValue = defineModel<string>({required: true})
 
 const props = defineProps<{
   placeholder?: string
+  /**
+   * Which library the picture picker reaches into. Defaults to the station being worked in; the
+   * administration passes `INSTANCE_MEDIA_SCOPE`, because a system notice is read in every station
+   * and its pictures cannot come out of one of them.
+   */
+  mediaScope?: string
 }>()
 
 const { sessionInfo } = useSession()
-const stationUid = computed(() => sessionInfo.value?.stationId ?? '')
+const stationUid = computed(() => props.mediaScope ?? sessionInfo.value?.stationId ?? '')
 
 const turndown = createMarkdownTurndown()
 

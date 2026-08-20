@@ -130,12 +130,24 @@ public class MediaRoutes implements Routes {
     }
 
     private void listFiles(Context ctx) {
-        var session = UserSession.from(ctx);
+        var session = requireStation(UserSession.from(ctx));
         if (browsesWholeLibrary(session)) {
             ctx.json(media.listLibrary(session.stationId()));
             return;
         }
         ctx.json(media.listOwnUploads(session.stationId(), requireMember(session)));
+    }
+
+    /**
+     * The library these routes serve belongs to a station, and an instance administrator browsing
+     * with no station chosen has not named one. Saying so is the answer; reaching for a station
+     * that is not there was a crash.
+     */
+    private UserSession requireStation(UserSession session) {
+        if (session.stationId() == null) {
+            throw new BadRequestResponse("No station selected");
+        }
+        return session;
     }
 
     private void upload(Context ctx) {

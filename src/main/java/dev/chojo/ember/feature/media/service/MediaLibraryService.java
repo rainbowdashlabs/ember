@@ -75,18 +75,23 @@ public class MediaLibraryService {
      * identical. Either way {@code memberId} is recorded as an uploader, so a dedup hit still
      * puts the file into that member's own list.
      *
-     * @param pageId   the page the upload came from, or {@code null} for a station-wide upload
-     * @param memberId the member uploading, or {@code null} when no member is in play (imports,
-     *                 seeding)
+     * @param stationId the station whose library takes it, or {@code null} for the instance's own.
+     *                  An instance file counts against no station's quota, because there is no
+     *                  station to count it against
+     * @param pageId    the page the upload came from, or {@code null} for a station-wide upload
+     * @param memberId  the member uploading, or {@code null} when no member is in play (imports,
+     *                  seeding, and anything the instance uploads)
      */
     public StationFile upload(
-            int stationId, Integer pageId, Integer memberId, String fileName, String mimeType, byte[] data)
+            Integer stationId, Integer pageId, Integer memberId, String fileName, String mimeType, byte[] data)
             throws IOException {
         boolean isImage = mimeType != null && mimeType.startsWith("image/");
-        if (isImage) {
-            quotaService.checkImageSize(stationId, data.length);
-        } else {
-            quotaService.checkFileSize(stationId, data.length);
+        if (stationId != null) {
+            if (isImage) {
+                quotaService.checkImageSize(stationId, data.length);
+            } else {
+                quotaService.checkFileSize(stationId, data.length);
+            }
         }
         String contentHash = MediaStorageService.hash(data);
 
@@ -99,13 +104,17 @@ public class MediaLibraryService {
             return existing.get();
         }
 
-        quotaService.checkQuota(stationId, StorageCategory.MEDIA_FILES, data.length);
+        if (stationId != null) {
+            quotaService.checkQuota(stationId, StorageCategory.MEDIA_FILES, data.length);
+        }
         var file = fileRepository.create(pageId, stationId, contentHash, fileName, mimeType, data.length);
         storage.store(stationId, contentHash, data, mimeType);
         if (isImage) {
             variantService.generateVariants(stationId, contentHash, data, mimeType);
         }
-        quotaService.trackDelta(stationId, StorageCategory.MEDIA_FILES, data.length, 1);
+        if (stationId != null) {
+            quotaService.trackDelta(stationId, StorageCategory.MEDIA_FILES, data.length, 1);
+        }
         recordUploader(file.id(), memberId);
         log.info("Media file {} uploaded to station {} ({} bytes)", file.id(), stationId, data.length);
         return file;
@@ -116,14 +125,14 @@ public class MediaLibraryService {
      * Non-image files always return the original.
      */
     public Optional<MediaStorageService.FileData> readVariant(
-            int stationId, String contentHash, Integer requestedWidth, String acceptHeader) {
+            Integer stationId, String contentHash, Integer requestedWidth, String acceptHeader) {
         return variantService.readBest(stationId, contentHash, requestedWidth, acceptHeader);
     }
 
     /**
      * Reads a file by station and content hash, which is how the delivery routes address it.
      */
-    public Optional<MediaStorageService.FileData> read(int stationId, String contentHash) {
+    public Optional<MediaStorageService.FileData> read(Integer stationId, String contentHash) {
         if (contentHash == null || contentHash.isBlank()) return Optional.empty();
         if (fileRepository.findByStationAndHash(stationId, contentHash).isEmpty()) return Optional.empty();
         return storage.read(stationId, contentHash);
@@ -147,8 +156,10 @@ public class MediaLibraryService {
 
     /**
      * The whole library, for a member who holds one of the content permissions.
+     *
+     * @param stationId the station whose library to list, or null for the instance's own
      */
-    public List<FileListing> listLibrary(int stationId) {
+    public List<FileListing> listLibrary(Integer stationId) {
         return decorate(stationId, fileRepository.findByStation(stationId));
     }
 
@@ -161,8 +172,12 @@ public class MediaLibraryService {
         return decorate(stationId, fileRepository.findByUploader(stationId, memberId));
     }
 
-    private List<FileListing> decorate(int stationId, List<StationFile> files) {
-        Set<Integer> unused = findUnusedFileIds(stationId);
+    private List<FileListing> decorate(Integer stationId, List<StationFile> files) {
+        // Which files nothing points at is worked out by reading a station's content. The instance
+        // has none of that to read, so its files are listed without the claim rather than with a
+        // guess: saying "unused" about a file nobody has looked for would be worse than saying
+        // nothing.
+        Set<Integer> unused = stationId == null ? Set.of() : findUnusedFileIds(stationId);
         var ids = files.stream().map(StationFile::id).toList();
         var tagAssignments = metaRepository.findTagAssignments(ids);
         var uploaders = fileRepository.findFirstUploaders(ids);
@@ -198,7 +213,9 @@ public class MediaLibraryService {
             if (file.contentHash() != null) {
                 storage.delete(file.stationId(), file.contentHash());
             }
-            quotaService.onFileDeleted(file.stationId(), StorageCategory.MEDIA_FILES, file.fileSize());
+            if (file.stationId() != null) {
+                quotaService.onFileDeleted(file.stationId(), StorageCategory.MEDIA_FILES, file.fileSize());
+            }
             log.info("Media file {} deleted from station {}", fileId, file.stationId());
         }
         return deleted;
@@ -217,7 +234,9 @@ public class MediaLibraryService {
         if (file == null) return false;
         if (!fileRepository.removeUploader(fileId, memberId)) return false;
         if (fileRepository.hasAnyUploader(fileId)) return true;
-        if (isReferenced(file, references.collect(file.stationId()))) return true;
+        // An instance file has no station whose content could point at it, and no member uploaded
+        // it either, so this path is never walked for one.
+        if (file.stationId() != null && isReferenced(file, references.collect(file.stationId()))) return true;
         deleteFile(fileId);
         return true;
     }
@@ -273,13 +292,13 @@ public class MediaLibraryService {
 
     public boolean updateFileMeta(int stationId, int fileId, String altText, String description) {
         var existing = fileRepository.findById(fileId).orElse(null);
-        if (existing == null || existing.stationId() != stationId) return false;
+        if (existing == null || !Integer.valueOf(stationId).equals(existing.stationId())) return false;
         return fileRepository.updateMeta(fileId, altText, description);
     }
 
     public boolean moveFileToFolder(int stationId, int fileId, Integer folderId) {
         var file = fileRepository.findById(fileId).orElse(null);
-        if (file == null || file.stationId() != stationId) return false;
+        if (file == null || !Integer.valueOf(stationId).equals(file.stationId())) return false;
         boolean moved = metaRepository.moveFileToFolder(fileId, folderId);
         if (moved) {
             log.info("Media file {} moved to folder {} in station {}", fileId, folderId, stationId);

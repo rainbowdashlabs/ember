@@ -4,13 +4,18 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {ref} from 'vue'
-import {listMediaFolders, listMediaTags, listMediaFiles, type StationFileFolder, type StationFileListing, type StationFileTag} from '@/api/media'
+import {listMediaFolders, listMediaTags, listMediaFiles, listInstanceMediaFiles, type StationFileFolder, type StationFileListing, type StationFileTag} from '@/api/media'
 
 /**
  * Owns the three server-backed collections the file library renders: the files themselves,
  * the folder records and the tag records.
+ *
+ * @param instance reads the library the instance holds rather than a station's. Those files have
+ *                 no station, and no folders or tags either: organising them is a station's
+ *                 business, and what the instance keeps is the handful of pictures its own notices
+ *                 use.
  */
-export function useMediaLibrary() {
+export function useMediaLibrary(instance = false) {
     const entries = ref<StationFileListing[]>([])
     const folders = ref<StationFileFolder[]>([])
     const tags = ref<StationFileTag[]>([])
@@ -19,6 +24,12 @@ export function useMediaLibrary() {
     async function load() {
         loading.value = true
         try {
+            if (instance) {
+                entries.value = await listInstanceMediaFiles()
+                folders.value = []
+                tags.value = []
+                return
+            }
             const [files, fs, ts] = await Promise.all([listMediaFiles(), listMediaFolders(), listMediaTags()])
             entries.value = files
             folders.value = fs

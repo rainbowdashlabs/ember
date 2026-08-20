@@ -53,12 +53,24 @@ public class PublicMediaRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
+        // The instance's own library, served to everyone: a system notice is read in every
+        // station, so the picture in it cannot be addressed through one of them. The literal path
+        // is registered first, or "instance" would be read as a station's identifier.
+        routes.get(prefix + "/public/media/instance/{hash}", this::serveInstanceFile);
         routes.get(prefix + "/public/media/{stationUid}/{hash}", this::serveFile);
         routes.get(prefix + "/public/pages/{stationUid}/files/{hash}", this::serveFile);
     }
 
     private void serveFile(Context ctx) {
-        int stationId = resolveStation(ctx);
+        serve(ctx, resolveStation(ctx));
+    }
+
+    /** A file the instance holds, which belongs to no station and is served to every one of them. */
+    private void serveInstanceFile(Context ctx) {
+        serve(ctx, null);
+    }
+
+    private void serve(Context ctx, Integer stationId) {
         String hash = ctx.pathParam("hash");
         Integer width = parseOptionalWidth(ctx.queryParam("w"));
         var fileData =

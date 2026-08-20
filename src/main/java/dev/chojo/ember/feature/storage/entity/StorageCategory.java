@@ -25,6 +25,12 @@ import java.util.List;
  */
 public enum StorageCategory {
     MEDIA_FILES("media/files", StorageScope.Kind.STATION, true, QuotaMode.ENFORCED, MimeLists.ANY, false, false, null),
+    /**
+     * The library the instance holds, which every station is served from. Untracked because a
+     * quota is a limit on what one station may keep, and this belongs to the instance running them.
+     */
+    INSTANCE_MEDIA_FILES(
+            "media/files", StorageScope.Kind.INSTANCE, true, QuotaMode.UNTRACKED, MimeLists.ANY, false, false, null),
     MEDIA_IMAGES(
             "media/images",
             StorageScope.Kind.STATION,
