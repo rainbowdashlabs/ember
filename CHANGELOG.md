@@ -19,6 +19,10 @@
 - **Files move out from under Pages.** What was Pages → Files is now Media in the sidebar, at `/station/media`. It is the same library with the same contents; it simply belongs to the station rather than to its website.
 - **Station media moves to a new place on disk.** On the first start after the upgrade each station's media is moved into its new folder, one station at a time, and that station is read-only while its own move runs. An interrupted move picks up where it stopped on the next start, so nothing has to be repeated by hand.
 
+### Fixes
+
+- **A demo instance showed no station logo and an empty file library.** The rule that stops uploads on a demo was also refusing to hand back what was already stored there. Reading works again, while uploading stays disabled.
+
 ## v26.12.0
 
 ### New Features

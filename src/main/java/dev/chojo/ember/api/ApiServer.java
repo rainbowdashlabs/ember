@@ -110,14 +110,11 @@ public class ApiServer {
             "/api/v1/auth/set-password",
             "/api/v1/session/account",
             "/api/v1/session/gdpr-export",
-            "/api/v1/session/avatar",
             "/api/v1/station/manage/mail/test",
             "/api/v1/station/manage/mail/test-mail",
             "/api/v1/station/manage/request-delete",
             "/api/v1/station/manage/import",
-            "/api/v1/station/manage/logo",
             "/api/v1/station-applications",
-            "/api/v1/media/files",
             "/api/v1/kb/files/upload",
             "/api/v1/kb/files/import-document",
             "/api/v1/station/storage/backend/probe",
@@ -128,6 +125,18 @@ public class ApiServer {
             "/api/v1/admin/storage/backend/apply",
             "/api/v1/ai/generate",
             "/api/v1/ai/generate-questions");
+
+    /**
+     * Paths where the write is disabled but the read is not, because the same address answers both.
+     * A demo that blocked the whole address would show no avatar, no station logo and an empty media
+     * library, which is not protection: it is the demo failing to demonstrate anything.
+     *
+     * <p>Blocking by address alone is only safe where every method on it changes something, so a
+     * path belongs here rather than in {@link #DEMO_BLOCKED_PATHS} as soon as it serves a GET. Note
+     * that the reverse is not automatic: the data export is a GET and stays blocked outright.
+     */
+    private static final Set<String> DEMO_BLOCKED_WRITE_PATHS =
+            Set.of("/api/v1/session/avatar", "/api/v1/station/manage/logo", "/api/v1/media/files");
 
     private final Set<Routes> routes;
     private final Api apiConfig;
@@ -484,8 +493,11 @@ public class ApiServer {
      * <ol>
      *   <li>Exact-match path blocks via {@link #DEMO_BLOCKED_PATHS} - password changes, account
      *       deletion, GDPR export, mail-relay test (sends real SMTP), station-deletion request,
-     *       station data import, public station-application submission, page-editor and
-     *       knowledge-base file uploads.</li>
+     *       station data import, public station-application submission and knowledge-base file
+     *       uploads.</li>
+     *   <li>Exact-match path blocks for writes only via {@link #DEMO_BLOCKED_WRITE_PATHS} - the
+     *       avatar, the station logo and the media library, each of which answers reads at the
+     *       same address it takes uploads on.</li>
      *   <li>Method + prefix blocks for the admin-station create/delete and role-change PUTs.</li>
      *   <li>Method + regex blocks for parameterised paths - public invite acceptance (avoids a
      *       leaked token turning the demo into a real account), public waitlist registration
@@ -499,6 +511,10 @@ public class ApiServer {
         var method = ctx.method();
 
         if (DEMO_BLOCKED_PATHS.contains(path)) {
+            throw new BadRequestResponse("This action is disabled in demo mode");
+        }
+
+        if (method != HandlerType.GET && DEMO_BLOCKED_WRITE_PATHS.contains(path)) {
             throw new BadRequestResponse("This action is disabled in demo mode");
         }
 

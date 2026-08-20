@@ -120,6 +120,9 @@ public class NewsRoutes implements Routes {
         routes.put(prefix + "/news/comments/{commentId}", this::updateComment, StationPermission.LOGIN);
         routes.delete(prefix + "/news/comments/{commentId}", this::deleteComment, StationPermission.LOGIN);
 
+        routes.put(prefix + "/news/{id}/blocks", this::saveBlocks, StationPermission.NEWS_EDIT);
+        routes.post(prefix + "/news/{id}/blocks/enable", this::enableBlocks, StationPermission.NEWS_EDIT);
+
         routes.post(
                 prefix + "/news/attachments/{attachmentId}/label",
                 this::relabelAttachment,
