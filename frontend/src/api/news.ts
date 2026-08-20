@@ -60,6 +60,11 @@ export interface NewsEntry {
     contentMode: ContentModeName
     /** The blocks of a rich entry. Empty for a plain one, and on list responses. */
     rows: PageRow[]
+    /**
+     * Whether the instance published this to every station at once. Such an entry belongs to no
+     * station, carries no author, and is shown as coming from Ember itself.
+     */
+    systemEntry: boolean
 }
 
 export interface NewsRequest {

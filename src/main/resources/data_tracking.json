@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:5216956ffab25e71fab821805dfce781e2c04e3f4a92642f6625cd23037b8599",
-  "generatedAt" : "2026-08-20T18:44:14Z",
+  "schemaHash" : "sha256:3eb1fce6de900ad151536aa282a7c218d7d39c0cf97a0c862c212cff4b3f3add",
+  "generatedAt" : "2026-08-20T22:13:49Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -9461,7 +9461,7 @@
     "news" : {
       "feature" : "news",
       "scope" : "STATION",
-      "tableHash" : "sha256:3516a9b40f32fbfda937bdc287ccef86fe923c9e3d95d5a3f224668263c08617",
+      "tableHash" : "sha256:db95fb76dbadd874e1e1466d571047646d6d4053cb4e62e6811bffe43487a219",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -9471,9 +9471,9 @@
       }, {
         "name" : "station_id",
         "type" : "int4",
-        "nullable" : false,
+        "nullable" : true,
         "verified" : true,
-        "description" : "References the station."
+        "description" : "The station that published the entry. Null for a system entry, which the instance publishes to every station at once."
       }, {
         "name" : "title",
         "type" : "text",
