@@ -11,7 +11,7 @@ import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type { ExchangeLogEntry, ExchangeStatusName } from '@/api/exchanges'
+import { AckKind, type ExchangeLogEntry } from '@/api/exchanges'
 import { exchanges } from '@/api'
 import { formatDate } from '@/util/format'
 
@@ -30,8 +30,12 @@ const emit = defineEmits<{
 const logEntries = ref<ExchangeLogEntry[]>([])
 const logLoading = ref(false)
 
-function statusLabel(status: ExchangeStatusName): string {
-  return t(`exchanges.status.${status}`)
+/**
+ * How the step was acknowledged. A step the station asserted on behalf of an owner that does not use
+ * Ember reads differently from one that owner confirmed itself, which is the point of recording it.
+ */
+function ackLabel(kind: string): string {
+  return t(`exchanges.ack.${kind}`)
 }
 
 watch(model, async (open) => {
@@ -63,9 +67,10 @@ watch(model, async (open) => {
         <div class="space-y-2">
           <NeutralContainer v-for="entry in logEntries" :key="entry.id" class="text-sm space-y-1">
             <div class="flex items-center gap-2 flex-wrap">
-              <span class="font-medium">{{ statusLabel(entry.oldStatus as ExchangeStatusName) }}</span>
-              <font-awesome-icon :icon="['fas', 'arrow-right']" class="text-(--text-muted)" />
-              <span class="font-medium">{{ statusLabel(entry.newStatus as ExchangeStatusName) }}</span>
+              <span class="font-medium">{{ entry.stepLabel }}</span>
+              <span v-if="entry.ackKind !== AckKind.CONFIRMED" class="text-xs text-(--text-muted)">
+                {{ ackLabel(entry.ackKind) }}
+              </span>
             </div>
             <div class="text-(--text-muted)">
               {{ entry.changedByName }} &mdash; {{ formatDate(entry.changedAt) }}

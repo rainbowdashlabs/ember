@@ -4951,6 +4951,11 @@ export default {
         logTitle: 'Statusverlauf',
         noLogs: 'Keine Einträge vorhanden.',
         newStatus: 'Neuer Status',
+        ack: {
+            CONFIRMED: 'bestätigt',
+            ASSERTED: 'von der Wache vermerkt',
+            FORCED: 'erzwungen',
+        },
         selectStatus: 'Status auswählen',
         note: 'Notiz',
         notePlaceholder: 'Optionale Notiz',

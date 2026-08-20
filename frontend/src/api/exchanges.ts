@@ -37,10 +37,19 @@ export interface ExchangeRequestEntry {
     memberIdentity?: MemberIdentity | null
 }
 
+/** How a step of a movement came to be acknowledged. */
+export const AckKind = {
+    CONFIRMED: 'CONFIRMED',
+    ASSERTED: 'ASSERTED',
+    FORCED: 'FORCED',
+} as const
+
+export type AckKindName = (typeof AckKind)[keyof typeof AckKind]
+
 export interface ExchangeLogEntry {
     id: number
-    oldStatus: string
-    newStatus: string
+    stepLabel: string
+    ackKind: AckKindName
     changedBy: number
     changedByName: string
     changedAt: string

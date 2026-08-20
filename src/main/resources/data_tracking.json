@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:facaed16fd10300fc44e687e6819828a4bcfe60fd98f2aaca22d619c8d39bd6d",
-  "generatedAt" : "2026-08-20T18:15:28Z",
+  "schemaHash" : "sha256:5199ff01d7c54a4509149edc6b095e754ba7fba04942ef756cee072844468a7f",
+  "generatedAt" : "2026-08-20T19:30:01Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -3377,225 +3377,6 @@
         } ]
       },
       "description" : "Version history for entity notes (diff-based)."
-    },
-    "equipment_exchange_log" : {
-      "feature" : "inventory",
-      "scope" : "STATION",
-      "tableHash" : "sha256:e5084b8ed39c4a350bad800598811350162ec5044d6dcfabda1c990144bb5e78",
-      "columns" : [ {
-        "name" : "id",
-        "type" : "int4",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Auto-generated primary key."
-      }, {
-        "name" : "request_id",
-        "type" : "int4",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "References the exchange request."
-      }, {
-        "name" : "old_status",
-        "type" : "text",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Previous status."
-      }, {
-        "name" : "new_status",
-        "type" : "text",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "New status."
-      }, {
-        "name" : "changed_by",
-        "type" : "int4",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Member who changed the status."
-      }, {
-        "name" : "changed_at",
-        "type" : "timestamp",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "When the status was changed."
-      }, {
-        "name" : "note",
-        "type" : "text",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Optional note about the status change."
-      } ],
-      "foreignKeys" : [ {
-        "column" : "changed_by",
-        "refTable" : "station_member",
-        "refColumn" : "id",
-        "onDelete" : "CASCADE"
-      }, {
-        "column" : "request_id",
-        "refTable" : "equipment_exchange_request",
-        "refColumn" : "id",
-        "onDelete" : "CASCADE"
-      } ],
-      "stationTransfer" : {
-        "status" : "TRACKED"
-      },
-      "gdprExport" : {
-        "status" : "TRACKED",
-        "identityColumns" : [ {
-          "type" : "MEMBER_ID",
-          "column" : "changed_by"
-        } ]
-      },
-      "gdprDeletion" : {
-        "status" : "IGNORED",
-        "reason" : "Audit log of exchanges, cascades from request deletion"
-      },
-      "description" : "Status change history for equipment exchange requests."
-    },
-    "equipment_exchange_request" : {
-      "feature" : "inventory",
-      "scope" : "STATION",
-      "tableHash" : "sha256:678a773ba9d5ae79e0d8ecd1b0a34f9732d9639fd35b5812236fdc76b3e80724",
-      "columns" : [ {
-        "name" : "id",
-        "type" : "int4",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Auto-generated primary key."
-      }, {
-        "name" : "station_id",
-        "type" : "int4",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "References the station."
-      }, {
-        "name" : "member_id",
-        "type" : "int4",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Member requesting the exchange."
-      }, {
-        "name" : "item_id",
-        "type" : "int4",
-        "nullable" : true,
-        "verified" : true,
-        "description" : "Current item to be exchanged. NULL if item was deleted."
-      }, {
-        "name" : "inventory_id",
-        "type" : "int4",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "References the inventory the exchange is for."
-      }, {
-        "name" : "old_size_id",
-        "type" : "int4",
-        "nullable" : true,
-        "verified" : true,
-        "description" : "Current size of the item."
-      }, {
-        "name" : "new_size_id",
-        "type" : "int4",
-        "nullable" : true,
-        "verified" : true,
-        "description" : "Requested new size."
-      }, {
-        "name" : "exchanged_item_id",
-        "type" : "int4",
-        "nullable" : true,
-        "verified" : true,
-        "description" : "The replacement item after exchange is fulfilled."
-      }, {
-        "name" : "status",
-        "type" : "text",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Request status: ANNOUNCED, APPROVED, FULFILLED, REJECTED."
-      }, {
-        "name" : "reason",
-        "type" : "text",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "Reason for the exchange request."
-      }, {
-        "name" : "created_by",
-        "type" : "int4",
-        "nullable" : true,
-        "verified" : true,
-        "description" : "Member who created the request (may differ from member_id)."
-      }, {
-        "name" : "created_at",
-        "type" : "timestamp",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "When the request was created."
-      }, {
-        "name" : "updated_at",
-        "type" : "timestamp",
-        "nullable" : false,
-        "verified" : true,
-        "description" : "When the request was last updated."
-      } ],
-      "foreignKeys" : [ {
-        "column" : "created_by",
-        "refTable" : "station_member",
-        "refColumn" : "id",
-        "onDelete" : "SET NULL"
-      }, {
-        "column" : "exchanged_item_id",
-        "refTable" : "inventory_item",
-        "refColumn" : "id",
-        "onDelete" : "SET NULL"
-      }, {
-        "column" : "inventory_id",
-        "refTable" : "inventory",
-        "refColumn" : "id",
-        "onDelete" : "CASCADE"
-      }, {
-        "column" : "item_id",
-        "refTable" : "inventory_item",
-        "refColumn" : "id",
-        "onDelete" : "SET NULL"
-      }, {
-        "column" : "member_id",
-        "refTable" : "station_member",
-        "refColumn" : "id",
-        "onDelete" : "CASCADE"
-      }, {
-        "column" : "new_size_id",
-        "refTable" : "inventory_size",
-        "refColumn" : "id",
-        "onDelete" : "SET NULL"
-      }, {
-        "column" : "old_size_id",
-        "refTable" : "inventory_size",
-        "refColumn" : "id",
-        "onDelete" : "SET NULL"
-      }, {
-        "column" : "station_id",
-        "refTable" : "station",
-        "refColumn" : "id",
-        "onDelete" : "CASCADE"
-      } ],
-      "stationTransfer" : {
-        "status" : "TRACKED",
-        "ignoredColumns" : [ "station_id" ]
-      },
-      "gdprExport" : {
-        "status" : "TRACKED",
-        "identityColumns" : [ {
-          "type" : "MEMBER_ID",
-          "column" : "member_id"
-        } ]
-      },
-      "gdprDeletion" : {
-        "status" : "TRACKED",
-        "strategies" : [ {
-          "column" : "member_id",
-          "strategy" : "CASCADE",
-          "reason" : "FK ON DELETE CASCADE on member delete"
-        } ]
-      },
-      "description" : "Requests for exchanging inventory items (e.g. size change)."
     },
     "equipment_procurement" : {
       "feature" : "inventory",
@@ -7535,7 +7316,7 @@
     "inventory_item" : {
       "feature" : "inventory",
       "scope" : "STATION",
-      "tableHash" : "sha256:8de0eca91791d40db8cd5f9ef48ced91876e23017c4d5a4afdd151f53701e150",
+      "tableHash" : "sha256:90c8c349aa0a94c25f30271c21ac8f39ed35eda4476a39399cab90fe6c66ad3c",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -7629,6 +7410,11 @@
       }, {
         "column" : "container_id",
         "refTable" : "inventory_container",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "custody_movement_id",
+        "refTable" : "item_movement",
         "refColumn" : "id",
         "onDelete" : "SET NULL"
       }, {
@@ -7856,6 +7642,274 @@
         "reason" : "Inventory structure/config, not per-member"
       },
       "description" : "Size options for inventories that have sizes enabled."
+    },
+    "item_movement" : {
+      "feature" : "inventory",
+      "scope" : "STATION",
+      "tableHash" : "sha256:71d69a82d02ddb18dd441eb36e718eeddad3f4039f306a5216337e5c3c3986db",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The station the movement runs at."
+      }, {
+        "name" : "purpose",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "What the movement is for: ISSUE, RETURN or EXCHANGE."
+      }, {
+        "name" : "flow_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The flow this movement walks, resolved once at creation and pinned here."
+      }, {
+        "name" : "current_step_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The step the movement is standing on, or null once it is closed."
+      }, {
+        "name" : "member_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The member the movement starts or ends at, if any."
+      }, {
+        "name" : "outgoing_item_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The item leaving, if any."
+      }, {
+        "name" : "incoming_item_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The item arriving, once somebody has named it."
+      }, {
+        "name" : "inventory_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The inventory the movement is about."
+      }, {
+        "name" : "old_size_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The size being replaced, if any."
+      }, {
+        "name" : "new_size_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The size asked for, if any."
+      }, {
+        "name" : "state",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "OPEN, DONE, DECLINED or CANCELLED."
+      }, {
+        "name" : "reason",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Why the movement was started, in the words of whoever started it."
+      }, {
+        "name" : "created_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Who started it, when that is somebody other than the member it concerns."
+      }, {
+        "name" : "created_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When it was started."
+      }, {
+        "name" : "closed_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "When it reached its end, however it ended."
+      }, {
+        "name" : "close_reason",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Why it was declined or cancelled, in the words of whoever ended it."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "created_by",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "current_step_id",
+        "refTable" : "movement_flow_step",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "flow_id",
+        "refTable" : "movement_flow",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "incoming_item_id",
+        "refTable" : "inventory_item",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "inventory_id",
+        "refTable" : "inventory",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "member_id",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "new_size_id",
+        "refTable" : "inventory_size",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "old_size_id",
+        "refTable" : "inventory_size",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "outgoing_item_id",
+        "refTable" : "inventory_item",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED",
+        "ignoredColumns" : [ "station_id" ]
+      },
+      "gdprExport" : {
+        "status" : "TRACKED",
+        "identityColumns" : [ {
+          "type" : "MEMBER_ID",
+          "column" : "member_id"
+        } ]
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED",
+        "strategies" : [ {
+          "column" : "member_id",
+          "strategy" : "NULL",
+          "reason" : "Movement kept as a record of the gear, member unlinked"
+        }, {
+          "column" : "created_by",
+          "strategy" : "NULL",
+          "reason" : "Movement kept as a record of the gear, member unlinked"
+        } ]
+      },
+      "description" : "One movement of gear between two parties, walking the flow pinned on it. Replaces the equipment exchange request, which could only ever be an exchange."
+    },
+    "item_movement_log" : {
+      "feature" : "inventory",
+      "scope" : "STATION",
+      "tableHash" : "sha256:8b7781a491b1bb1b78893a0eae1a364aa3715a350ac9dd5c3b0cde3ad52d6d64",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "movement_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The movement this entry belongs to."
+      }, {
+        "name" : "step_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The step acknowledged, or null once that step is gone."
+      }, {
+        "name" : "step_label",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The words the step carried at the time, kept so a finished movement still reads the way it was walked."
+      }, {
+        "name" : "ack_kind",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "CONFIRMED when the party that owns the step said so itself, ASSERTED when the station said so for an owner that does not use Ember, FORCED when the flow owner overrode a party that could have answered and did not."
+      }, {
+        "name" : "changed_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "Who pressed the button."
+      }, {
+        "name" : "changed_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When they pressed it."
+      }, {
+        "name" : "note",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "What they wrote alongside. Mandatory when the step was forced."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "changed_by",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "movement_id",
+        "refTable" : "item_movement",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "step_id",
+        "refTable" : "movement_flow_step",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED"
+      },
+      "gdprExport" : {
+        "status" : "TRACKED",
+        "identityColumns" : [ {
+          "type" : "MEMBER_ID",
+          "column" : "changed_by"
+        } ]
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Audit log of movements, cascades from movement deletion"
+      },
+      "description" : "What was acknowledged on a movement, when, by whom and on whose behalf."
     },
     "kb_access_grant" : {
       "feature" : "knowledgebase",
@@ -8839,7 +8893,7 @@
         "type" : "text",
         "nullable" : false,
         "verified" : true,
-        "description" : "The receiving domain that refused it, lowercased. A domain, never a person's address."
+        "description" : "The receiving domain that refused it, lowercased."
       }, {
         "name" : "reason",
         "type" : "text",
@@ -9157,6 +9211,210 @@
         } ]
       },
       "description" : "Member-manages-member relationships (e.g. legal guardian manages a minor)."
+    },
+    "movement_flow" : {
+      "feature" : "inventory",
+      "scope" : "STATION",
+      "tableHash" : "sha256:dcfe5e1f3effb951ddb2f6cb139e13c3553cdb422a2e20c1c977c636c729eab0",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The station whose flow this is, or null when the body above owns it."
+      }, {
+        "name" : "cluster_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The body above whose flow this is, once such a body runs on this instance. No reference yet, because that table does not exist."
+      }, {
+        "name" : "name",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "What the flow is called where it is configured."
+      }, {
+        "name" : "purpose",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "What kind of movement this flow is for: ISSUE, RETURN or EXCHANGE."
+      }, {
+        "name" : "archived",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Whether the flow is retired. Retired flows are not offered to new movements and still render in the history of the ones that walked them."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED",
+        "ignoredColumns" : [ "station_id" ]
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Station configuration, holds no personal data"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Station configuration, holds no personal data"
+      },
+      "description" : "A named chain of steps a movement between two parties walks. Owned by the station or by the body above it."
+    },
+    "movement_flow_binding" : {
+      "feature" : "inventory",
+      "scope" : "STATION",
+      "tableHash" : "sha256:887fb6f8f1101c3e909d856f35a760cc563ee046b836412b560958d42a4d23db",
+      "columns" : [ {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The station the binding belongs to."
+      }, {
+        "name" : "inventory_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The inventory this binding is for, or null for the station-wide one."
+      }, {
+        "name" : "owner_kind",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Which owner the binding applies to: STATION or CLUSTER."
+      }, {
+        "name" : "purpose",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Which purpose the binding applies to: ISSUE, RETURN or EXCHANGE."
+      }, {
+        "name" : "flow_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The flow to walk."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "flow_id",
+        "refTable" : "movement_flow",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "inventory_id",
+        "refTable" : "inventory",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED",
+        "ignoredColumns" : [ "station_id" ]
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Station configuration, holds no personal data"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Station configuration, holds no personal data"
+      },
+      "description" : "Which flow a station uses for a given owner and purpose, per inventory when one is set and station-wide otherwise."
+    },
+    "movement_flow_step" : {
+      "feature" : "inventory",
+      "scope" : "STATION",
+      "tableHash" : "sha256:90323b2c3fed139b1eb0f7a741c74e01be0df03940eb99f3ba65c34418f512a3",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "flow_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The flow this step belongs to."
+      }, {
+        "name" : "position",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Where in the chain the step sits, counted from zero."
+      }, {
+        "name" : "label",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "What the step is called. Free text: the behaviour hangs off the custody and the subject, never off the words."
+      }, {
+        "name" : "actor",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Who acknowledges this step: MEMBER, STATION or OWNER."
+      }, {
+        "name" : "subject",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Which item the step is about: the OUTGOING one or the INCOMING one."
+      }, {
+        "name" : "custody_after",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The custody the subject item is in once the step is acknowledged."
+      }, {
+        "name" : "picks_item",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Whether the acknowledger names the replacement at this step. At most one incoming step per flow does."
+      }, {
+        "name" : "archived",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Whether the step is retired. A step in use is archived rather than deleted so finished movements still read with the words they were walked under."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "flow_id",
+        "refTable" : "movement_flow",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "TRACKED"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Station configuration, holds no personal data"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Station configuration, holds no personal data"
+      },
+      "description" : "One step of a flow: who acknowledges it, which item it is about, and what custody that item is in afterwards."
     },
     "news" : {
       "feature" : "news",

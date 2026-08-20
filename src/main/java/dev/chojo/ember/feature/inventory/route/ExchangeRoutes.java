@@ -12,6 +12,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.inventory.entity.AckKind;
 import dev.chojo.ember.feature.inventory.entity.ExchangeLog;
 import dev.chojo.ember.feature.inventory.entity.ExchangeRequest;
 import dev.chojo.ember.feature.inventory.entity.ExchangeStatus;
@@ -332,13 +333,7 @@ public class ExchangeRoutes implements Routes {
                 .map(a -> (a.firstName() + " " + a.lastName()).trim())
                 .orElse("");
         return new LogResponse(
-                log.id(),
-                log.oldStatus(),
-                log.newStatus(),
-                log.changedBy(),
-                changedByName,
-                log.changedAt(),
-                log.note());
+                log.id(), log.stepLabel(), log.ackKind(), log.changedBy(), changedByName, log.changedAt(), log.note());
     }
 
     public record ExportRequest(List<Integer> exchangeIds, List<Integer> extraFieldIds) {}
@@ -364,8 +359,8 @@ public class ExchangeRoutes implements Routes {
 
     public record LogResponse(
             int id,
-            ExchangeStatus oldStatus,
-            ExchangeStatus newStatus,
+            String stepLabel,
+            AckKind ackKind,
             int changedBy,
             String changedByName,
             Instant changedAt,

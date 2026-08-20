@@ -267,7 +267,7 @@ public class InventoryRepository {
         return query("""
                 SELECT %s FROM inventory_item
                 WHERE inventory_id = :inventory_id
-                  AND custody IN ('WITH_OWNER', 'AT_STATION')
+                  AND %s
                   AND id NOT IN (
                       SELECT li.assigned_item_id FROM federation_lending_request_item li
                       JOIN federation_lending_request lr ON lr.id = li.request_id
@@ -276,7 +276,7 @@ public class InventoryRepository {
                         AND lr.requested_date_from <= :date_to
                         AND (lr.requested_date_to IS NULL OR lr.requested_date_to >= :date_from)
                   )
-                ORDER BY id;""", INVENTORY_ITEM_COLUMNS)
+                ORDER BY id;""", INVENTORY_ITEM_COLUMNS, ItemCustodySql.freeStock("inventory_item"))
                 .single(call().bind("inventory_id", inventoryId)
                         .bind("date_from", dateFrom)
                         .bind("date_to", dateTo))
@@ -349,8 +349,8 @@ public class InventoryRepository {
         return query("""
                 SELECT %s FROM inventory_item
                 WHERE inventory_id = :inventory_id
-                  AND custody IN ('WITH_OWNER', 'AT_STATION')
-                ORDER BY name;""", INVENTORY_ITEM_COLUMNS)
+                  AND %s
+                ORDER BY name;""", INVENTORY_ITEM_COLUMNS, ItemCustodySql.freeStock("inventory_item"))
                 .single(call().bind("inventory_id", inventoryId))
                 .map(InventoryItem.map())
                 .all();

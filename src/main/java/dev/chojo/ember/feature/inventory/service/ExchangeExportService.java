@@ -9,7 +9,6 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.ExchangeRequest;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
-import dev.chojo.ember.feature.inventory.repository.ExchangeRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.media.service.ImageVariantService.ImageData;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
@@ -46,7 +45,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 public class ExchangeExportService {
     private static final Logger log = getLogger(ExchangeExportService.class);
     private static final DateTimeFormatter DATE_TIME_FMT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
-    private final ExchangeRepository exchangeRepository;
+    private final ExchangeService exchangeService;
     private final InventoryRepository inventoryRepository;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
@@ -57,7 +56,7 @@ public class ExchangeExportService {
 
     @Inject
     public ExchangeExportService(
-            ExchangeRepository exchangeRepository,
+            ExchangeService exchangeService,
             InventoryRepository inventoryRepository,
             StationMemberRepository stationMemberRepository,
             AccountRepository accountRepository,
@@ -65,7 +64,7 @@ public class ExchangeExportService {
             ProfileFieldRepository profileFieldRepository,
             StationLogoService logoService,
             Api apiConfig) {
-        this.exchangeRepository = exchangeRepository;
+        this.exchangeService = exchangeService;
         this.inventoryRepository = inventoryRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
@@ -91,7 +90,7 @@ public class ExchangeExportService {
         if (station == null) return Optional.empty();
 
         // Load selected exchanges
-        var allExchanges = exchangeRepository.findByStation(stationId);
+        var allExchanges = exchangeService.findByStation(stationId);
         var selectedExchanges = exchangeIds.isEmpty()
                 ? allExchanges
                 : allExchanges.stream()

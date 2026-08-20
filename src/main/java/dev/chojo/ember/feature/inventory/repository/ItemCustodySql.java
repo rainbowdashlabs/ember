@@ -27,11 +27,6 @@ package dev.chojo.ember.feature.inventory.repository;
  * <p>The first case is the only one that reads the inventory rather than the item: an item resting
  * with its owner names no station, because for a station's own gear the owner is the station.
  *
- * <p>The in-transit case is named in that list and is not written below, because there is no
- * movement table for it to reach into yet. Nothing can currently be in transit, so the predicate is
- * complete for the data that exists; the clause belongs here rather than in any caller, and is
- * added by the change that creates movements.
- *
  * <p>Every expression here is a compile-time constant. The station always travels as a named bind.
  */
 public final class ItemCustodySql {
@@ -58,6 +53,9 @@ public final class ItemCustodySql {
                     (%1$s.custody = 'WITH_OWNER' AND %1$s.owner_kind = 'STATION' AND %2$s.station_id = :%3$s)
                     OR (%1$s.custody IN ('AT_STATION', 'WITH_MEMBER', 'WITH_PARTNER', 'LOST')
                         AND %1$s.custody_station_id = :%3$s)
+                    OR (%1$s.custody = 'IN_TRANSIT' AND EXISTS(
+                        SELECT 1 FROM item_movement mv
+                        WHERE mv.id = %1$s.custody_movement_id AND mv.station_id = :%3$s))
                 )""".formatted(itemAlias, inventoryAlias, STATION_BIND);
     }
 
@@ -71,5 +69,22 @@ public final class ItemCustodySql {
      */
     public static String joinInventory(String itemAlias, String inventoryAlias) {
         return "JOIN inventory %2$s ON %2$s.id = %1$s.inventory_id".formatted(itemAlias, inventoryAlias);
+    }
+
+    /**
+     * A predicate matching the free stock of the station an inventory belongs to: the items that
+     * station holds and that nobody has.
+     *
+     * <p>Resting with the owner only counts when the station is the owner. Gear the body above owns
+     * that has gone back to it is resting too, and it is not the station's to hand out. Gear in the
+     * post, gear a partner has and gear nobody can find are out for the same reason, which is the
+     * whole point of storing custody rather than reading it off the assignment.
+     *
+     * @param itemAlias the alias of {@code inventory_item}, or the bare table name
+     * @return the SQL predicate, needing no bind of its own
+     */
+    public static String freeStock(String itemAlias) {
+        return "(%1$s.custody = 'AT_STATION' OR (%1$s.custody = 'WITH_OWNER' AND %1$s.owner_kind = 'STATION'))"
+                .formatted(itemAlias);
     }
 }

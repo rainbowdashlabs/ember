@@ -17,6 +17,7 @@
 
 - **An item says who owns it.** Every piece of gear is recorded as belonging either to the station itself or to the body above it, the municipality or the district association, in place of the internal and external labels it carried before. Members are no longer offered as owners, because gear a member bought was never tracked here.
 - **An item also says who has it.** Alongside its owner, a piece of gear now records where it actually is: in its owner's store, at the station, with a member, lent to a partner or missing. An item's page shows both, and the lists of what a station holds follow what it has rather than what it owns.
+- **An exchange records who acknowledged each step.** Gear moving between a station and the body above it walks a named chain of steps instead of five fixed statuses, and every step says which side it belongs to. A step the station ticks on behalf of a body that does not use Ember is marked as such in the history, so it reads differently from one that body confirmed itself.
 
 ### Fixes
 

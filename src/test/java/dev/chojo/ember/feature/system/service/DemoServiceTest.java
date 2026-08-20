@@ -144,7 +144,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var newsService = new NewsService(
                 newsRepo, restrictionService, noOpBus, stationMemberRepo, memberLookupService, accountRepo);
         var inventoryService = new InventoryService(inventoryRepo, itemCustodyService);
-        var exchangeService = new ExchangeService(exchangeRepo, inventoryRepo, inventoryService, noOpBus);
+        var exchangeService = new ExchangeService(itemMovementService, inventoryRepo, noOpBus);
         var procurementService = new ProcurementService(procurementRepo, inventoryService, inventoryRepo, noOpBus);
         var eventTemplateService = new EventTemplateService(eventTemplateRepo);
         var feedTokenService = new FeedTokenService(feedTokenRepo);
@@ -302,7 +302,6 @@ class DemoServiceTest extends RepositoryTestBase {
                 containerSvc,
                 fieldDefSvc,
                 exchangeService,
-                exchangeRepo,
                 procurementService,
                 itemCustodyService);
         var formSeeder = new DemoFormSeeder(formRepo, restrictionService);

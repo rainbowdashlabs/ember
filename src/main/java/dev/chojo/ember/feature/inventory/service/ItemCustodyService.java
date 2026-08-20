@@ -56,11 +56,22 @@ public class ItemCustodyService {
                     .formatted(itemId, item.custody().name()));
         }
 
+        return writeAssignment(item, memberId, memberName);
+    }
+
+    /**
+     * Hands an item to a member without asking whether it was available.
+     *
+     * <p>The availability check on {@link #assignToMember} is there to stop somebody handing out
+     * gear that is in the post or with a partner. A movement putting its own item back is the thing
+     * that ends "in the post", so it is not the check's business.
+     */
+    private Optional<InventoryItem> writeAssignment(InventoryItem item, int memberId, String memberName) {
         closeCurrentSpell(item);
-        inventoryRepository.updateCustody(itemId, ItemCustody.WITH_MEMBER, stationOf(item), memberId, null);
-        inventoryRepository.createHistory(itemId, memberId, memberName != null ? memberName : "");
-        log.info("Item {} handed to member {} ('{}')", itemId, memberId, memberName);
-        return inventoryRepository.findItemById(itemId);
+        inventoryRepository.updateCustody(item.id(), ItemCustody.WITH_MEMBER, stationOf(item), memberId, null);
+        inventoryRepository.createHistory(item.id(), memberId, memberName != null ? memberName : "");
+        log.info("Item {} handed to member {} ('{}')", item.id(), memberId, memberName);
+        return inventoryRepository.findItemById(item.id());
     }
 
     /**
@@ -184,6 +195,41 @@ public class ItemCustodyService {
         if (found.isEmpty() || found.get().custody() != ItemCustody.WITH_PARTNER) return Optional.empty();
         writeResting(found.get());
         log.info("Item {} returned from a federation partner", itemId);
+        return inventoryRepository.findItemById(itemId);
+    }
+
+    /**
+     * Puts an item into the custody a movement step names.
+     *
+     * <p>The step says what custody its subject item is in once it is acknowledged, and this is
+     * where that sentence becomes a row. Which custody is legal for a step is settled when the step
+     * is written, so anything arriving here is a custody a flow may ask for.
+     *
+     * @param itemId     the item the step is about
+     * @param custody    the custody the step names
+     * @param memberId   the movement's member, needed only when the step hands the item to them
+     * @param movementId the movement, needed only when the step puts the item in the post
+     * @return the updated item, or empty if the item was not found
+     * @throws BadRequestResponse if the step hands an item to a member the movement does not name
+     */
+    public Optional<InventoryItem> applyStepCustody(
+            int itemId, ItemCustody custody, Integer memberId, Integer movementId) {
+        var found = inventoryRepository.findItemById(itemId);
+        if (found.isEmpty()) {
+            log.warn("Step custody skipped: item {} not found", itemId);
+            return Optional.empty();
+        }
+        var item = found.get();
+        if (custody == ItemCustody.WITH_MEMBER) {
+            if (memberId == null) throw new BadRequestResponse("This step hands the item to a member, but names none");
+            return writeAssignment(item, memberId, "");
+        }
+
+        closeCurrentSpell(item);
+        Integer stationId = custody == ItemCustody.AT_STATION ? stationOf(item) : null;
+        Integer movement = custody == ItemCustody.IN_TRANSIT ? movementId : null;
+        inventoryRepository.updateCustody(itemId, custody, stationId, null, movement);
+        log.info("Item {} moved to {} by a movement step (was {})", itemId, custody, item.custody());
         return inventoryRepository.findItemById(itemId);
     }
 

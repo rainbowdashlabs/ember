@@ -19,7 +19,6 @@ import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemFieldValues;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
-import dev.chojo.ember.feature.inventory.repository.ExchangeRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.service.ExchangeService;
@@ -73,7 +72,6 @@ public class DemoInventorySeeder implements DemoSeeder {
     private final InventoryContainerService containerService;
     private final InventoryFieldDefinitionService fieldDefinitionService;
     private final ExchangeService exchangeService;
-    private final ExchangeRepository exchangeRepository;
     private final ProcurementService procurementService;
     private final ItemCustodyService custodyService;
 
@@ -85,7 +83,6 @@ public class DemoInventorySeeder implements DemoSeeder {
             InventoryContainerService containerService,
             InventoryFieldDefinitionService fieldDefinitionService,
             ExchangeService exchangeService,
-            ExchangeRepository exchangeRepository,
             ProcurementService procurementService,
             ItemCustodyService custodyService) {
         this.inventoryRepository = inventoryRepository;
@@ -94,7 +91,6 @@ public class DemoInventorySeeder implements DemoSeeder {
         this.containerService = containerService;
         this.fieldDefinitionService = fieldDefinitionService;
         this.exchangeService = exchangeService;
-        this.exchangeRepository = exchangeRepository;
         this.procurementService = procurementService;
         this.custodyService = custodyService;
     }
@@ -188,10 +184,8 @@ public class DemoInventorySeeder implements DemoSeeder {
                     null);
             var targetStatus = EXCHANGE_STATUSES.get(rng.nextInt(EXCHANGE_STATUSES.size()));
             if (targetStatus != ExchangeStatus.ANNOUNCED) {
-                exchangeRepository.updateStatus(exchange.id(), ExchangeStatus.RECEIVED);
-                exchangeRepository.createLog(
+                exchangeService.updateStatus(
                         exchange.id(),
-                        ExchangeStatus.ANNOUNCED,
                         ExchangeStatus.RECEIVED,
                         betreuerMembers.get(rng.nextInt(betreuerMembers.size())).id(),
                         "In Bearbeitung");
