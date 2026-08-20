@@ -7,8 +7,12 @@ package dev.chojo.ember.api.auth;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -77,5 +81,54 @@ class PermissionsTest {
         Set<StationPermission> expanded = StationPermission.expand(EnumSet.of(StationPermission.USER));
         assertTrue(expanded.contains(StationPermission.USER));
         assertEquals(1, expanded.size(), "USER should only contain itself");
+    }
+
+    /**
+     * Every permission has to answer with all of its children, whoever asks and whenever they ask.
+     * The answer used to be gathered into the very set that was handed out, so anybody asking
+     * during that moment was told a manager holds two of their seven rights, and the session built
+     * from it looked exactly like rights that had been taken away.
+     */
+    @Test
+    void everyPermissionAnswersTheSameUnderManyThreadsAtOnce() throws Exception {
+        var expected = new EnumMap<StationPermission, Set<StationPermission>>(StationPermission.class);
+        for (StationPermission permission : StationPermission.values()) {
+            expected.put(permission, childrenOf(permission));
+        }
+
+        int threads = 32;
+        var start = new CountDownLatch(1);
+        var wrong = new ConcurrentLinkedQueue<String>();
+        try (var pool = Executors.newFixedThreadPool(threads)) {
+            for (int i = 0; i < threads; i++) {
+                pool.execute(() -> {
+                    try {
+                        start.await();
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        return;
+                    }
+                    for (StationPermission permission : StationPermission.values()) {
+                        Set<StationPermission> answer = Set.copyOf(permission.allChildren());
+                        if (!answer.equals(expected.get(permission))) {
+                            wrong.add(permission + " answered " + answer);
+                        }
+                    }
+                });
+            }
+            start.countDown();
+        }
+
+        assertTrue(wrong.isEmpty(), "half-built answers: " + wrong);
+    }
+
+    /** What a permission's children are, worked out without asking the cache being tested. */
+    private static Set<StationPermission> childrenOf(StationPermission permission) {
+        Set<StationPermission> collected = EnumSet.noneOf(StationPermission.class);
+        for (StationPermission child : permission.getChildren()) {
+            collected.add(child);
+            collected.addAll(childrenOf(child));
+        }
+        return collected;
     }
 }
