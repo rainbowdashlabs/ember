@@ -145,6 +145,7 @@ import dev.chojo.ember.feature.members.route.StationMemberRoutes;
 import dev.chojo.ember.feature.members.route.TransferRoutes;
 import dev.chojo.ember.feature.members.route.UserSettingsRoutes;
 import dev.chojo.ember.feature.members.route.UserTagRoutes;
+import dev.chojo.ember.feature.news.route.AdminNewsRoutes;
 import dev.chojo.ember.feature.news.route.FederatedNewsRoutes;
 import dev.chojo.ember.feature.news.route.NewsRoutes;
 import dev.chojo.ember.feature.news.route.RemoteNewsRoutes;
@@ -285,6 +286,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(StatisticsRoutes.class);
         routesBinder.addBinding().to(MemberImportRoutes.class);
         routesBinder.addBinding().to(NewsRoutes.class);
+        routesBinder.addBinding().to(AdminNewsRoutes.class);
         routesBinder.addBinding().to(FederatedNewsRoutes.class);
         routesBinder.addBinding().to(RemoteNewsRoutes.class);
         routesBinder.addBinding().to(MediaRoutes.class);

@@ -189,11 +189,12 @@ public class NewsRoutes implements Routes {
     /**
      * The entry behind an id, if the caller may read it, and a 404 otherwise.
      *
-     * <p>Two things have to hold. It has to be theirs to read at all: an entry belongs to one
-     * station, or to none at all when the instance published it to everyone, and a member of
-     * another station is no more entitled to it than a stranger. And it has to be addressed to
-     * them: an entry restricted to a user type is restricted however it is asked for, not only when
-     * it comes back from a listing.
+     * <p>Two things have to hold, and one question asks both. It has to be theirs to read at all:
+     * an entry belongs to one station, or to none at all when the instance published it to
+     * everyone, and a member of another station is no more entitled to it than a stranger. And it
+     * has to be addressed to them: an entry restricted to a user type is restricted however it is
+     * asked for, not only when it comes back from a listing. That is the same question the listings
+     * ask of every row they return, so it is asked in the same place rather than restated here.
      *
      * <p>Both refusals are a 404 rather than a 403, because saying "not for you" about an entry
      * still tells the asker it exists.
@@ -201,9 +202,6 @@ public class NewsRoutes implements Routes {
     private News requireReadable(Context ctx, int id) {
         UserSession session = UserSession.from(ctx);
         var news = newsService.findById(id).orElseThrow(NotFoundResponse::new);
-        if (!news.systemEntry() && news.stationId() != session.stationId()) {
-            throw new NotFoundResponse();
-        }
         if (!newsService.isVisibleForMember(id, session.member().id())) {
             throw new NotFoundResponse();
         }
@@ -397,6 +395,11 @@ public class NewsRoutes implements Routes {
     private NewsResponse toResponse(News news, boolean includeRestrictions, int viewerMemberId, boolean withBlocks) {
         var resolved = news.author() != null ? memberNameResolver.resolveDisplay(news.author()) : null;
         String authorName = resolved != null && resolved.name() != null ? resolved.name() : "";
+        // The instance is nobody's member, so there is no identity to resolve and no avatar to
+        // draw. Its own name stands in, and the badge beside it says where the entry came from.
+        if (news.systemEntry()) {
+            authorName = NewsService.SYSTEM_AUTHOR_NAME;
+        }
         List<StationUserType> userTypes = List.of();
         List<Integer> groupIds = List.of();
         List<Integer> tagIds = List.of();
@@ -434,7 +437,8 @@ public class NewsRoutes implements Routes {
                 viewedByMe,
                 attachments,
                 news.contentMode(),
-                rows);
+                rows,
+                news.systemEntry());
     }
 
     @OpenApi(
@@ -849,7 +853,8 @@ public class NewsRoutes implements Routes {
             boolean viewedByMe,
             List<NewsAttachment> attachments,
             ContentMode contentMode,
-            List<ContentRow> rows) {}
+            List<ContentRow> rows,
+            boolean systemEntry) {}
 
     /**
      * Request body for creating or updating a comment.

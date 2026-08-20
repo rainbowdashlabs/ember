@@ -64,6 +64,8 @@ public record News(
             return new News(
                     row.getInt("id"),
                     row.get("public_uid", StandardValueConverter.UUID_STRING),
+                    // NULL reads as 0, which is NO_STATION: no station carries that id, so a system
+                    // entry can never be mistaken for one station's own.
                     row.getInt("station_id"),
                     row.getString("title"),
                     row.getString("content_markdown"),
@@ -77,5 +79,22 @@ public record News(
                     row.getEnum("content_mode", ContentMode.class),
                     row.getObject("container_id") != null ? row.getInt("container_id") : null);
         };
+    }
+
+    /**
+     * What {@link #stationId()} reads as for an entry that belongs to no station.
+     *
+     * <p>Station ids begin at one, so nothing is ever owned by this one. That matters for more than
+     * tidiness: every ownership check compares the entry's station with the caller's, so a system
+     * entry fails all of them, and a station manager cannot edit or delete what the instance said.
+     */
+    public static final int NO_STATION = 0;
+
+    /**
+     * Whether the instance published this entry to every station at once, rather than a station
+     * publishing it to its own members.
+     */
+    public boolean systemEntry() {
+        return stationId == NO_STATION;
     }
 }
