@@ -147,7 +147,14 @@ class DemoServiceTest extends RepositoryTestBase {
 
         var eventServices = newEventServices(noOpBus);
         var newsService = new NewsService(
-                newsRepo, restrictionService, noOpBus, stationMemberRepo, memberLookupService, accountRepo);
+                newsRepo,
+                new ContentBlockService(contentContainerRepo),
+                stationRepo,
+                restrictionService,
+                noOpBus,
+                stationMemberRepo,
+                memberLookupService,
+                accountRepo);
         var inventoryService = new InventoryService(inventoryRepo);
         var exchangeService = new ExchangeService(exchangeRepo, inventoryRepo, inventoryService, noOpBus);
         var procurementService = new ProcurementService(procurementRepo, inventoryService, inventoryRepo, noOpBus);

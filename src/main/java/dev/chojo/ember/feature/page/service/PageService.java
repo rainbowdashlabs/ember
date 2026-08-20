@@ -14,17 +14,10 @@ import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.page.entity.StationPage;
 import dev.chojo.ember.feature.page.repository.PageRepository;
-import dev.chojo.ember.util.HtmlSanitizer;
+import dev.chojo.ember.util.Markdown;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import org.commonmark.Extension;
-import org.commonmark.ext.autolink.AutolinkExtension;
-import org.commonmark.ext.gfm.strikethrough.StrikethroughExtension;
-import org.commonmark.ext.gfm.tables.TablesExtension;
-import org.commonmark.ext.heading.anchor.HeadingAnchorExtension;
-import org.commonmark.parser.Parser;
-import org.commonmark.renderer.html.HtmlRenderer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,8 +39,6 @@ public class PageService {
     private final MediaLibraryService mediaLibrary;
     private final StationMemberRepository stationMemberRepository;
     private final AvatarService avatarService;
-    private final Parser markdownParser;
-    private final HtmlRenderer htmlRenderer;
 
     @Inject
     public PageService(
@@ -61,14 +52,6 @@ public class PageService {
         this.mediaLibrary = mediaLibrary;
         this.stationMemberRepository = stationMemberRepository;
         this.avatarService = avatarService;
-        List<Extension> extensions = List.of(
-                TablesExtension.create(),
-                HeadingAnchorExtension.create(),
-                AutolinkExtension.create(),
-                StrikethroughExtension.create());
-        this.markdownParser = Parser.builder().extensions(extensions).build();
-        this.htmlRenderer =
-                HtmlRenderer.builder().extensions(extensions).sanitizeUrls(true).build();
     }
 
     // --- Page CRUD ---
@@ -330,7 +313,7 @@ public class PageService {
                     cell.sortOrder(),
                     cell.widthPercent(),
                     cell.contentType(),
-                    renderMarkdown(cell.content()),
+                    Markdown.toHtml(cell.content()),
                     cell.config());
         }
         if (cell.contentType() == CellContentType.MEMBER_LIST_SPOTLIGHT
@@ -364,13 +347,6 @@ public class PageService {
     }
 
     // --- Internal helpers ---
-
-    private String renderMarkdown(String markdown) {
-        if (markdown == null || markdown.isBlank()) return "";
-        var document = markdownParser.parse(markdown);
-        String html = htmlRenderer.render(document);
-        return HtmlSanitizer.sanitize(html, HtmlSanitizer.Policy.RICH);
-    }
 
     private int maxChildDepth(int pageId) {
         var children =

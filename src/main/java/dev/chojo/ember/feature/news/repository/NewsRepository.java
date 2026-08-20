@@ -32,7 +32,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class NewsRepository {
 
     private static final String NEWS_COLUMNS =
-            "id, public_uid, station_id, title, content_markdown, content_html, author_station_uid, author_member_uid, published_at, created_at, restriction_mode, public_blog";
+            "id, public_uid, station_id, title, content_markdown, content_html, author_station_uid, author_member_uid, published_at, created_at, restriction_mode, public_blog, content_mode, container_id";
     private static final String NEWS_ALIASED = SqlSupport.alias("n", NEWS_COLUMNS);
     private static final String NEWS_RESTRICTED = RestrictionSql.restrictedFlag(RestrictionType.NEWS, "n.id");
     private static final String NEWS_UNRESTRICTED = RestrictionSql.unrestricted(RestrictionType.NEWS, "n.id");
@@ -151,6 +151,20 @@ public class NewsRepository {
      * @param contentHtml     new HTML content
      * @return {@code true} if a row was updated
      */
+    /**
+     * Turns a plain entry into one built from blocks. The existing text travels into the container
+     * as a single markdown block, so nothing is parsed and nothing is lost; the switch is one way,
+     * because the stored text of a rich entry is derived from its blocks from here on.
+     */
+    public boolean setRichMode(int id, int containerId) {
+        return query("""
+                UPDATE news SET content_mode = 'RICH', container_id = :container_id
+                WHERE id = :id AND content_mode = 'SIMPLE';""")
+                .single(call().bind("id", id).bind("container_id", containerId))
+                .update()
+                .changed();
+    }
+
     public boolean update(int id, String title, String contentMarkdown, String contentHtml) {
         return query("""
                 UPDATE news SET title = :title, content_markdown = :content_markdown, content_html = :content_html

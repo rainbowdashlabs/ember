@@ -4584,6 +4584,8 @@ export default {
         partnerNews: 'Partner-Neuigkeiten',
         publicBlog: 'Blog-Beitrag',
         publicBlogHint: 'Wenn aktiviert, wird diese Neuigkeit auf der öffentlichen Seite als Blog-Beitrag angezeigt.',
+        enableBlocks: 'Mit dem Seiten-Editor schreiben',
+        enableBlocksHint: 'Der Text wandert in einen Textblock, den du danach aufteilst. Zurück geht es nicht: der gespeicherte Text wird von da an aus den Blöcken erzeugt.',
         attachments: 'Anhänge',
         attachmentsHint: 'Dateien, die die Neuigkeit mitgibt - das Protokoll, das Formular, der Flyer. Sie stehen unter dem Text und reisen in Feeds und zu Partnerwachen mit.',
         attachmentsEmpty: 'Noch keine Anhänge.',

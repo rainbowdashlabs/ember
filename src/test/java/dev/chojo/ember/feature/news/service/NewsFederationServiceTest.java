@@ -10,6 +10,7 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
+import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.contract.FederationRequest;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
@@ -80,7 +81,14 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         httpClient = mock(FederationHttpClient.class);
         var eventBus = new DomainEventBus(Set.of());
         newsService = new NewsService(
-                newsRepo, restrictionService, eventBus, stationMemberRepo, memberLookupService, accountRepo);
+                newsRepo,
+                new ContentBlockService(contentContainerRepo),
+                stationRepo,
+                restrictionService,
+                eventBus,
+                stationMemberRepo,
+                memberLookupService,
+                accountRepo);
 
         service = new NewsFederationService(
                 fedRepo,

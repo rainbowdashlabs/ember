@@ -3492,6 +3492,12 @@ volumes:
             tagRestrictionsText: 'Neben Gruppen kannst du auch nach Tags einschränken. So erreichst du genau die richtigen Mitglieder.',
             federationTitle: 'Föderation',
             federationText: 'Wenn deine Wache Föderationspartner hat, kannst du Neuigkeiten auch an Partnerwachen teilen. Wähle aus, ob alle oder nur bestimmte Partner die Neuigkeit sehen.',
+            attachmentsTitle: 'Anhänge',
+            attachmentsText: 'Eine Neuigkeit kann Dateien mitgeben - das Protokoll, das Anmeldeformular, den Flyer. Du wählst sie aus den Medien der Wache, gibst ihnen bei Bedarf einen Anzeigenamen und bringst sie in die Reihenfolge, in der sie unter dem Text stehen sollen.',
+            attachmentsTravelText: 'Anhänge gehören zur Neuigkeit, nicht zum Text: sie stehen unter dem Beitrag, reisen im Blog-Feed mit und erscheinen auch bei Partnerwachen. Wer den Link kennt, kann die Datei laden - für wirklich vertrauliche Unterlagen ist ein Anhang deshalb nicht gedacht.',
+            blocksTitle: 'Mit dem Seiten-Editor schreiben',
+            blocksText: 'Für längere Beiträge kannst du eine Neuigkeit auf den Seiten-Editor umstellen: Zeilen und Spalten, Bilder neben dem Text, Hinweiskästen, Galerien, Code-Blöcke. Dein bisheriger Text wandert dabei in einen einzelnen Textblock und geht nicht verloren.',
+            blocksOneWayText: 'Der Weg zurück ist nicht vorgesehen. Der gespeicherte Text einer Block-Neuigkeit wird bei jedem Speichern aus den Blöcken erzeugt - davon leben Suche, Vorschau, Feed und Partnerwachen. Wer wieder einfach schreiben will, legt eine neue Neuigkeit an.',
             tip: 'Mitglieder mit aktivierten E-Mail-Benachrichtigungen werden automatisch informiert.',
         },
         eventEdit: {

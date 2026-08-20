@@ -22,6 +22,9 @@ import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import NewsCommentSection from '@/components/comment/NewsCommentSection.vue'
 import NewsViewBadge from './newsshared/NewsViewBadge.vue'
 import AttachmentList from './newsshared/AttachmentList.vue'
+import NewsBody from './newsshared/NewsBody.vue'
+import NewsEntryHeader from './newsshared/NewsEntryHeader.vue'
+import {internalContentContext} from '@/util/contentContext'
 import type {NewsEntry} from '@/api/news'
 import {news} from '@/api'
 import {useSession} from '@/composables/useSession'
@@ -102,28 +105,20 @@ watch(loading, (isLoading) => {
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <NeutralContainer v-if="entry" class="space-y-3">
-        <div class="flex items-start justify-between gap-3">
-          <div class="flex items-center gap-2">
-            <UserAvatar :identity="entry.author" :name="entry.author?.name ?? entry.authorName" size="md"/>
-            <div>
-              <SubHeader class="flex items-center gap-1">
-                {{ entry.title }}
-                <font-awesome-icon v-if="entry.restricted" :icon="['fas', 'lock']"
-                                   class="ml-1 h-3 w-3 text-[var(--text-muted)]"/>
-              </SubHeader>
-              <p class="text-xs text-(--text-muted)">
-                {{ entry.author?.name ?? entry.authorName }} &middot; {{ formatDateTime(entry.publishedAt) }}
-              </p>
-            </div>
-          </div>
-          <div v-if="canManageNews()" class="flex items-center gap-1 shrink-0">
+        <NewsEntryHeader :entry="entry" :can-manage="canManageNews()">
+          <template #actions>
             <NewsViewBadge ref="viewBadge" :news-id="entry.id" :initial-count="entry.viewCount ?? 0" :news-title="entry.title"/>
             <EditButton @click="router.push({name: 'news-edit', params: {id: entry.id}})"/>
             <DeleteButton @click="requestDelete(entry)"/>
-          </div>
-        </div>
+          </template>
+        </NewsEntryHeader>
 
-        <ProseContent v-html="entry.contentHtml"/>
+        <NewsBody
+            :mode="entry.contentMode"
+            :rows="entry.rows ?? []"
+            :html="entry.contentHtml"
+            :context="internalContentContext(stationUid, entry.title)"
+        />
 
         <AttachmentList :attachments="entry.attachments ?? []" :station-uid="stationUid"/>
 

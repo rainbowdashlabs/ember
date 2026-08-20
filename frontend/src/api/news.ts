@@ -6,6 +6,7 @@
 import client from './client'
 import { createCrudResource, createScopedCrudResource, pageParams } from './crud'
 import type { MemberIdentity } from './types'
+import type { PageRow, SaveRowRequest } from './pageManage'
 
 /**
  * A file a news entry hands over. It points at the station media library rather than holding
@@ -23,6 +24,18 @@ export interface NewsAttachment {
     fileSize: number
     contentHash: string
 }
+
+/**
+ * How an entry was written. A plain entry is one markdown field, which is the right tool for a
+ * short notice; a rich entry is built from blocks with the page editor. The switch only goes one
+ * way, because the stored text of a rich entry is derived from its blocks.
+ */
+export const ContentMode = {
+    SIMPLE: 'SIMPLE',
+    RICH: 'RICH',
+} as const
+
+export type ContentModeName = (typeof ContentMode)[keyof typeof ContentMode]
 
 export interface NewsEntry {
     id: number
@@ -44,6 +57,9 @@ export interface NewsEntry {
     viewCount: number
     viewedByMe: boolean
     attachments: NewsAttachment[]
+    contentMode: ContentModeName
+    /** The blocks of a rich entry. Empty for a plain one, and on list responses. */
+    rows: PageRow[]
 }
 
 export interface NewsRequest {
@@ -66,6 +82,8 @@ export interface PublicBlogEntry {
     authorName: string
     publishedAt: string
     attachments: NewsAttachment[]
+    contentMode: ContentModeName
+    rows: PageRow[]
 }
 
 export interface NewsComment {
@@ -233,6 +251,26 @@ export interface NewsViewerEntry {
 export interface NewsViewsResponse {
     seen: NewsViewerEntry[]
     unseen: NewsViewerEntry[]
+}
+
+// -- Blocks --
+
+/**
+ * Turns a plain entry into one built from blocks. What the author already wrote becomes a single
+ * markdown block, which they then split up as they like.
+ */
+export async function enableNewsBlocks(newsId: number): Promise<NewsEntry> {
+    const res = await client.post<NewsEntry>(`/news/${newsId}/blocks/enable`)
+    return res.data
+}
+
+/**
+ * Saves the blocks of a rich entry. The stored text is rewritten from them on every save, which is
+ * what keeps the search summary, the feed and the federation payload current.
+ */
+export async function saveNewsBlocks(newsId: number, rows: SaveRowRequest[]): Promise<NewsEntry> {
+    const res = await client.put<NewsEntry>(`/news/${newsId}/blocks`, {rows})
+    return res.data
 }
 
 // -- Attachments --

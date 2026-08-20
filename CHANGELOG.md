@@ -6,6 +6,7 @@
 
 - **The station has a media library.** Everything the station has uploaded lives in one place at `/station/media`, with folders, tags and a search, and every editor reaches into it. Anyone who may log in can upload and insert what they uploaded themselves, so a picture belongs in a board ticket as readily as on a public page.
 - **News entries can hand a file over.** An entry carries attachments picked from the library, named and ordered as the author likes, and they appear as downloads under the text rather than inside it. They travel with the blog feed and to partner stations, so a reader elsewhere is handed the same file.
+- **A news entry can be written with the page editor.** An entry can be switched from the plain text field to rows and columns, with images beside the text, callouts, galleries and code blocks. The switch is one way: the text already written moves into a single block and nothing is lost, but an author who wants the plain field back writes a new entry.
 
 ### Improvements
 

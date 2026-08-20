@@ -22,6 +22,11 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
+import dev.chojo.ember.feature.content.entity.CellConfig;
+import dev.chojo.ember.feature.content.entity.CellContentType;
+import dev.chojo.ember.feature.content.entity.ContentMode;
+import dev.chojo.ember.feature.content.entity.ContentRow;
+import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
@@ -50,6 +55,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import tools.jackson.databind.JsonNode;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -155,7 +161,7 @@ public class NewsRoutes implements Routes {
         }
         int memberId = session.member().id();
         ctx.json(newsList.stream()
-                .map(n -> toResponse(n, session.hasPermission(StationPermission.NEWS_MANAGER), memberId))
+                .map(n -> toResponse(n, session.hasPermission(StationPermission.NEWS_MANAGER), memberId, false))
                 .toList());
     }
 
@@ -277,6 +283,27 @@ public class NewsRoutes implements Routes {
         }
     }
 
+    private void saveBlocks(Context ctx) {
+        int id = pathInt(ctx, "id");
+        requireOwnedOrNotFound(ctx, id, newsService::findById, News::stationId);
+        var request = ctx.bodyAsClass(SaveBlocksRequest.class);
+        var session = UserSession.from(ctx);
+        var saved = newsService.saveBlocks(id, request.toRowData()).orElseThrow(NotFoundResponse::new);
+        ctx.json(toResponse(saved, true, session.member().id()));
+    }
+
+    /**
+     * Turns a plain entry into one built from blocks. What the author already wrote becomes a
+     * single markdown block, which they then split up as they like.
+     */
+    private void enableBlocks(Context ctx) {
+        int id = pathInt(ctx, "id");
+        var session = UserSession.from(ctx);
+        requireOwnedOrNotFound(ctx, id, newsService::findById, News::stationId);
+        var switched = newsService.switchToRich(id).orElseThrow(NotFoundResponse::new);
+        ctx.json(toResponse(switched, true, session.member().id()));
+    }
+
     /**
      * Resolves an attachment and asserts the entry it hangs off belongs to the caller's station,
      * so an attachment id from one station cannot be relabelled or detached from another.
@@ -330,6 +357,15 @@ public class NewsRoutes implements Routes {
      * @return the news response DTO
      */
     private NewsResponse toResponse(News news, boolean includeRestrictions, int viewerMemberId) {
+        return toResponse(news, includeRestrictions, viewerMemberId, true);
+    }
+
+    /**
+     * @param withBlocks whether to load the blocks of a rich entry. A listing leaves them out: a
+     *                   list row shows a summary, and loading every entry's blocks to build one
+     *                   would ask the database once per row for something nobody reads.
+     */
+    private NewsResponse toResponse(News news, boolean includeRestrictions, int viewerMemberId, boolean withBlocks) {
         var resolved = news.author() != null ? memberNameResolver.resolveDisplay(news.author()) : null;
         String authorName = resolved != null && resolved.name() != null ? resolved.name() : "";
         List<StationUserType> userTypes = List.of();
@@ -346,6 +382,8 @@ public class NewsRoutes implements Routes {
         int commentCount = newsService.countComments(news.id());
         int viewCount = newsService.countViews(news.id());
         var attachments = attachmentService.list(news.id());
+        List<ContentRow> rows =
+                withBlocks && news.contentMode() == ContentMode.RICH ? newsService.loadBlocks(news) : List.of();
         boolean viewedByMe = newsService.hasViewed(news.id(), viewerMemberId);
         return new NewsResponse(
                 news.id(),
@@ -365,7 +403,9 @@ public class NewsRoutes implements Routes {
                 news.publicBlog(),
                 viewCount,
                 viewedByMe,
-                attachments);
+                attachments,
+                news.contentMode(),
+                rows);
     }
 
     @OpenApi(
@@ -636,7 +676,9 @@ public class NewsRoutes implements Routes {
                                 ? memberNameResolver.resolveDisplay(n.author()).name()
                                 : "",
                         n.publishedAt(),
-                        attachmentsByNews.getOrDefault(n.id(), List.of())))
+                        attachmentsByNews.getOrDefault(n.id(), List.of()),
+                        n.contentMode(),
+                        List.of()))
                 .toList());
     }
 
@@ -728,7 +770,9 @@ public class NewsRoutes implements Routes {
                 news.contentHtml(),
                 authorName,
                 news.publishedAt(),
-                attachmentService.list(news.id())));
+                attachmentService.list(news.id()),
+                news.contentMode(),
+                newsService.loadBlocks(news)));
     }
 
     /**
@@ -765,7 +809,9 @@ public class NewsRoutes implements Routes {
             boolean publicBlog,
             int viewCount,
             boolean viewedByMe,
-            List<NewsAttachment> attachments) {}
+            List<NewsAttachment> attachments,
+            ContentMode contentMode,
+            List<ContentRow> rows) {}
 
     /**
      * Request body for creating or updating a comment.
@@ -788,7 +834,47 @@ public class NewsRoutes implements Routes {
             String contentHtml,
             String authorName,
             Instant publishedAt,
-            List<NewsAttachment> attachments) {}
+            List<NewsAttachment> attachments,
+            ContentMode contentMode,
+            List<ContentRow> rows) {}
+
+    /**
+     * Request body for saving the blocks of a rich entry.
+     */
+    public record SaveBlocksRequest(List<BlockRowRequest> rows) {
+        List<ContentBlockService.RowData> toRowData() {
+            if (rows == null) return List.of();
+            return rows.stream().map(BlockRowRequest::toRowData).toList();
+        }
+    }
+
+    public record BlockRowRequest(int sortOrder, List<BlockCellRequest> cells) {
+        ContentBlockService.RowData toRowData() {
+            return new ContentBlockService.RowData(
+                    sortOrder,
+                    cells == null
+                            ? List.of()
+                            : cells.stream().map(BlockCellRequest::toCellData).toList());
+        }
+    }
+
+    /**
+     * @param config the block's settings as an object. Which record they are follows from the
+     *               content type beside them, so they are bound once that is known rather than
+     *               while the request is read.
+     */
+    public record BlockCellRequest(
+            int sortOrder, Double widthPercent, String contentType, String content, JsonNode config) {
+        ContentBlockService.CellData toCellData() {
+            var type = CellContentType.valueOf(contentType);
+            return new ContentBlockService.CellData(
+                    sortOrder,
+                    widthPercent != null ? widthPercent : 100.0,
+                    type,
+                    content != null ? content : "",
+                    CellConfig.parse(type, config));
+        }
+    }
 
     /**
      * Request body for attaching a file to an entry, or for renaming what a reader sees.

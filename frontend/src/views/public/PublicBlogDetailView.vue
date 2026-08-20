@@ -18,6 +18,8 @@ import {news} from '@/api'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {formatDateLong} from '@/util/format'
 import AttachmentList from '@/views/stationview/news/newsshared/AttachmentList.vue'
+import NewsBody from '@/views/stationview/news/newsshared/NewsBody.vue'
+import {publicContentContext} from '@/util/contentContext'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -53,7 +55,12 @@ function goBack() {
         <span>{{ formatDateLong(entry.publishedAt) }}</span>
       </div>
       <NeutralContainer>
-        <div class="prose dark:prose-invert max-w-none" v-html="entry.contentHtml"/>
+        <NewsBody
+            :mode="entry.contentMode"
+            :rows="entry.rows ?? []"
+            :html="entry.contentHtml"
+            :context="publicContentContext(stationUid, entry.title)"
+        />
 
         <AttachmentList :attachments="entry.attachments ?? []" :station-uid="stationUid"/>
       </NeutralContainer>

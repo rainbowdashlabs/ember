@@ -9,9 +9,25 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ContentBlockEditor from '@/components/content/ContentBlockEditor.vue'
+import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
+import {ContentMode, type ContentModeName} from '@/api/news'
 
 const title = defineModel<string>('title', {required: true})
 const contentMarkdown = defineModel<string>('contentMarkdown', {required: true})
+const rows = defineModel<RowEditData[]>('rows', {required: true})
+
+defineProps<{
+  mode: ContentModeName
+  stationUid: string
+  /** False for an entry that has not been created yet, which has nothing to switch. */
+  canSwitch: boolean
+}>()
+
+const emit = defineEmits<{
+  (e: 'enable-blocks'): void
+}>()
 
 const {t} = useI18n()
 </script>
@@ -25,7 +41,20 @@ const {t} = useI18n()
 
     <div class="space-y-1">
       <FieldLabel>{{ t('news.content') }}</FieldLabel>
-      <MarkdownEditor v-model="contentMarkdown" :placeholder="t('news.contentPlaceholder')"/>
+
+      <template v-if="mode === ContentMode.RICH">
+        <ContentBlockEditor v-model:rows="rows" :station-uid="stationUid"/>
+      </template>
+
+      <template v-else>
+        <MarkdownEditor v-model="contentMarkdown" :placeholder="t('news.contentPlaceholder')"/>
+        <div v-if="canSwitch" class="flex flex-col sm:flex-row sm:items-center gap-2 pt-2">
+          <SecondaryButton :icon="['fas', 'table-columns']" @click="emit('enable-blocks')">
+            {{ t('news.enableBlocks') }}
+          </SecondaryButton>
+          <p class="text-xs text-(--text-muted)">{{ t('news.enableBlocksHint') }}</p>
+        </div>
+      </template>
     </div>
   </NeutralContainer>
 </template>

@@ -7,17 +7,10 @@ package dev.chojo.ember.feature.knowledgebase.service;
 
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileVersion;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
-import dev.chojo.ember.util.HtmlSanitizer;
+import dev.chojo.ember.util.Markdown;
 import dev.chojo.ember.util.TextDiff;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import org.commonmark.Extension;
-import org.commonmark.ext.autolink.AutolinkExtension;
-import org.commonmark.ext.gfm.strikethrough.StrikethroughExtension;
-import org.commonmark.ext.gfm.tables.TablesExtension;
-import org.commonmark.ext.heading.anchor.HeadingAnchorExtension;
-import org.commonmark.parser.Parser;
-import org.commonmark.renderer.html.HtmlRenderer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,8 +32,6 @@ public class KbContentService {
     private final KnowledgeBaseRepository repository;
     private final KbFileStorageService fileStorage;
     private final KbSearchService searchService;
-    private final Parser markdownParser;
-    private final HtmlRenderer htmlRenderer;
 
     @Inject
     public KbContentService(
@@ -48,14 +39,6 @@ public class KbContentService {
         this.repository = repository;
         this.fileStorage = fileStorage;
         this.searchService = searchService;
-        List<Extension> extensions = List.of(
-                TablesExtension.create(),
-                HeadingAnchorExtension.create(),
-                AutolinkExtension.create(),
-                StrikethroughExtension.create());
-        this.markdownParser = Parser.builder().extensions(extensions).build();
-        this.htmlRenderer =
-                HtmlRenderer.builder().extensions(extensions).sanitizeUrls(true).build();
     }
 
     /**
@@ -75,8 +58,7 @@ public class KbContentService {
      * @return the rendered HTML
      */
     public String renderMarkdown(String markdown) {
-        var document = markdownParser.parse(markdown);
-        return HtmlSanitizer.sanitize(htmlRenderer.render(document), HtmlSanitizer.Policy.RICH);
+        return Markdown.toHtml(markdown);
     }
 
     /**

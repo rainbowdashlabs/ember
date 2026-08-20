@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.news.service;
 
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -35,6 +36,8 @@ class NewsServiceTest extends RepositoryTestBase {
     static void setup() {
         service = new NewsService(
                 newsRepo,
+                new ContentBlockService(contentContainerRepo),
+                stationRepo,
                 restrictionService,
                 new DomainEventBus(Set.of()),
                 stationMemberRepo,

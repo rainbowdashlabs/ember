@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.news.entity;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.feature.content.entity.ContentMode;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 
 import java.time.Instant;
@@ -28,6 +29,11 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param author          identity of the author (station UID + member UID), or {@code null} for deleted authors
  * @param publishedAt     timestamp when the article was published, or {@code null} if unpublished
  * @param createdAt       timestamp when the article was created
+ * @param contentMode     whether the entry was written as text or built from blocks. For a rich
+ *                        entry the stored text is a projection of the blocks, rewritten on every
+ *                        save, which is what lets search, feeds, exports and federation keep
+ *                        reading the same column they always did
+ * @param containerId     the blocks a rich entry is built from, or {@code null} for a plain one
  */
 public record News(
         int id,
@@ -41,7 +47,9 @@ public record News(
         Instant createdAt,
         RestrictionMode restrictionMode,
         boolean restricted,
-        boolean publicBlog) {
+        boolean publicBlog,
+        ContentMode contentMode,
+        Integer containerId) {
     /**
      * Creates a row mapping for database result set conversion.
      */
@@ -65,7 +73,9 @@ public record News(
                     row.get("created_at", INSTANT_TIMESTAMP),
                     row.getEnum("restriction_mode", RestrictionMode.class),
                     row.getBoolean("restricted"),
-                    row.getBoolean("public_blog"));
+                    row.getBoolean("public_blog"),
+                    row.getEnum("content_mode", ContentMode.class),
+                    row.getObject("container_id") != null ? row.getInt("container_id") : null);
         };
     }
 }
