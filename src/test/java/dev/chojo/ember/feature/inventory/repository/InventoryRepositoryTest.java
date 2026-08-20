@@ -161,7 +161,7 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(24)
     void assignItem() {
-        assertTrue(inventoryRepo.assignItem(itemId, member.id()));
+        assertTrue(itemCustodyService.assignToMember(itemId, member.id(), "").isPresent());
         assertEquals(
                 member.id(), inventoryRepo.findItemById(itemId).orElseThrow().assignedTo());
 
@@ -169,7 +169,7 @@ class InventoryRepositoryTest extends RepositoryTestBase {
         assertEquals(1, inventoryRepo.countItemsByMember(member.id()));
 
         // Unassign
-        assertTrue(inventoryRepo.assignItem(itemId, null));
+        assertTrue(itemCustodyService.takeBack(itemId).isPresent());
         assertNull(inventoryRepo.findItemById(itemId).orElseThrow().assignedTo());
         assertEquals(0, inventoryRepo.countItemsByMember(member.id()));
     }
@@ -306,10 +306,10 @@ class InventoryRepositoryTest extends RepositoryTestBase {
     @Order(48)
     void markLostAndFound() {
         InventoryItem item = inventoryRepo.createItem(inventoryId, "LOST-001", "Lost Item", null, null);
-        assertTrue(inventoryRepo.markLost(item.id()));
+        assertTrue(itemCustodyService.markLost(item.id()).isPresent());
         assertNotNull(inventoryRepo.findItemById(item.id()).orElseThrow().lostAt());
 
-        assertTrue(inventoryRepo.markFound(item.id()));
+        assertTrue(itemCustodyService.markFound(item.id()).isPresent());
         assertNull(inventoryRepo.findItemById(item.id()).orElseThrow().lostAt());
 
         inventoryRepo.deleteItem(item.id());

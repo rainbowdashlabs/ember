@@ -37,7 +37,7 @@ class InventoryContainerServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new InventoryContainerService(containerRepo, containerKindRepo, inventoryRepo);
+        service = new InventoryContainerService(containerRepo, containerKindRepo, inventoryRepo, itemCustodyService);
     }
 
     @BeforeEach
@@ -184,7 +184,7 @@ class InventoryContainerServiceTest extends RepositoryTestBase {
             InventoryContainer box = service.create(station.id(), null, null, "Exclusive Box", null, "", null);
             InventoryItem item = inventoryRepo.createItem(inventory.id(), null, "Excl Item", null, null);
 
-            inventoryRepo.assignItem(item.id(), member.id());
+            itemCustodyService.assignToMember(item.id(), member.id(), "");
             assertEquals(
                     Integer.valueOf(member.id()),
                     inventoryRepo.findItemById(item.id()).orElseThrow().assignedTo());
@@ -195,7 +195,7 @@ class InventoryContainerServiceTest extends RepositoryTestBase {
             assertNull(placed.assignedTo());
             assertEquals(Integer.valueOf(box.id()), placed.containerId());
 
-            inventoryRepo.assignItem(item.id(), member.id());
+            itemCustodyService.assignToMember(item.id(), member.id(), "");
             InventoryItem assigned = inventoryRepo.findItemById(item.id()).orElseThrow();
             assertEquals(Integer.valueOf(member.id()), assigned.assignedTo());
             assertNull(assigned.containerId());

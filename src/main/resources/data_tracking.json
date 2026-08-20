@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:937fe26899cf02db0012630a70b7a72f7b231616f2395f3ac5b257448bb4dac7",
-  "generatedAt" : "2026-08-20T16:47:18Z",
+  "schemaHash" : "sha256:facaed16fd10300fc44e687e6819828a4bcfe60fd98f2aaca22d619c8d39bd6d",
+  "generatedAt" : "2026-08-20T18:15:28Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -7535,7 +7535,7 @@
     "inventory_item" : {
       "feature" : "inventory",
       "scope" : "STATION",
-      "tableHash" : "sha256:72272b2015f14a52987e31c511413ffb07048ebd5900162cebd6fffa7929a778",
+      "tableHash" : "sha256:8de0eca91791d40db8cd5f9ef48ced91876e23017c4d5a4afdd151f53701e150",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -7602,6 +7602,24 @@
         "nullable" : true,
         "verified" : true,
         "description" : "The owning body when it runs on this instance, null when it owns the item without using Ember. Only ever set for CLUSTER."
+      }, {
+        "name" : "custody",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Who has the item right now: WITH_OWNER in the owner's own store, AT_STATION held by a station that does not own it, WITH_MEMBER held by a member, WITH_PARTNER lent to a federation partner, IN_TRANSIT between two parties, LOST missing and still on the record of whoever had it."
+      }, {
+        "name" : "custody_station_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The station the custody runs through: the holder for AT_STATION, the station a member holds it through for WITH_MEMBER, the lender for WITH_PARTNER, and the holding station for LOST. Null for WITH_OWNER."
+      }, {
+        "name" : "custody_movement_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The movement holding the item while it is IN_TRANSIT. Null for every other custody."
       } ],
       "foreignKeys" : [ {
         "column" : "assigned_to",
@@ -7611,6 +7629,11 @@
       }, {
         "column" : "container_id",
         "refTable" : "inventory_container",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "custody_station_id",
+        "refTable" : "station",
         "refColumn" : "id",
         "onDelete" : "SET NULL"
       }, {

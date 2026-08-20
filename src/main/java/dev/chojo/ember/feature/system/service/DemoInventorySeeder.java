@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.service.ExchangeService;
 import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryFieldDefinitionService;
+import dev.chojo.ember.feature.inventory.service.ItemCustodyService;
 import dev.chojo.ember.feature.inventory.service.ProcurementService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import jakarta.inject.Inject;
@@ -74,6 +75,7 @@ public class DemoInventorySeeder implements DemoSeeder {
     private final ExchangeService exchangeService;
     private final ExchangeRepository exchangeRepository;
     private final ProcurementService procurementService;
+    private final ItemCustodyService custodyService;
 
     @Inject
     public DemoInventorySeeder(
@@ -84,7 +86,8 @@ public class DemoInventorySeeder implements DemoSeeder {
             InventoryFieldDefinitionService fieldDefinitionService,
             ExchangeService exchangeService,
             ExchangeRepository exchangeRepository,
-            ProcurementService procurementService) {
+            ProcurementService procurementService,
+            ItemCustodyService custodyService) {
         this.inventoryRepository = inventoryRepository;
         this.inventoryCheckRepository = inventoryCheckRepository;
         this.accountRepository = accountRepository;
@@ -93,6 +96,7 @@ public class DemoInventorySeeder implements DemoSeeder {
         this.exchangeService = exchangeService;
         this.exchangeRepository = exchangeRepository;
         this.procurementService = procurementService;
+        this.custodyService = custodyService;
     }
 
     @Override
@@ -315,7 +319,7 @@ public class DemoInventorySeeder implements DemoSeeder {
                     null,
                     ItemOwner.STATION,
                     null);
-            inventoryRepository.assignItem(helmItem.id(), member.id());
+            custodyService.assignToMember(helmItem.id(), member.id(), "");
 
             // Blouson (provided by the body above the station)
             var blousonItem = inventoryRepository.createItem(
@@ -326,7 +330,7 @@ public class DemoInventorySeeder implements DemoSeeder {
                     null,
                     ItemOwner.CLUSTER,
                     null);
-            inventoryRepository.assignItem(blousonItem.id(), member.id());
+            custodyService.assignToMember(blousonItem.id(), member.id(), "");
 
             // Parka (provided by the body above the station)
             var parkaItem = inventoryRepository.createItem(
@@ -337,7 +341,7 @@ public class DemoInventorySeeder implements DemoSeeder {
                     null,
                     ItemOwner.CLUSTER,
                     null);
-            inventoryRepository.assignItem(parkaItem.id(), member.id());
+            custodyService.assignToMember(parkaItem.id(), member.id(), "");
 
             // Latzhose (provided by the body above the station)
             var latzItem = inventoryRepository.createItem(
@@ -348,7 +352,7 @@ public class DemoInventorySeeder implements DemoSeeder {
                     null,
                     ItemOwner.CLUSTER,
                     null);
-            inventoryRepository.assignItem(latzItem.id(), member.id());
+            custodyService.assignToMember(latzItem.id(), member.id(), "");
 
             // Handschuhe (mixed inventory) - provided by the station itself
             var handschuhItem = inventoryRepository.createItem(
@@ -359,7 +363,7 @@ public class DemoInventorySeeder implements DemoSeeder {
                     null,
                     ItemOwner.STATION,
                     null);
-            inventoryRepository.assignItem(handschuhItem.id(), member.id());
+            custodyService.assignToMember(handschuhItem.id(), member.id(), "");
 
             // Stiefel (station-owned)
             var stiefelItem = inventoryRepository.createItem(
@@ -370,7 +374,7 @@ public class DemoInventorySeeder implements DemoSeeder {
                     null,
                     ItemOwner.STATION,
                     null);
-            inventoryRepository.assignItem(stiefelItem.id(), member.id());
+            custodyService.assignToMember(stiefelItem.id(), member.id(), "");
 
             // T-Shirt (station-owned, 2 per member)
             for (int t = 0; t < 2; t++) {
@@ -382,7 +386,7 @@ public class DemoInventorySeeder implements DemoSeeder {
                         null,
                         ItemOwner.STATION,
                         null);
-                inventoryRepository.assignItem(tshirtItem.id(), member.id());
+                custodyService.assignToMember(tshirtItem.id(), member.id(), "");
             }
 
             // Sporttasche (station-owned, ~70% get one, rest need procurement)
@@ -395,7 +399,7 @@ public class DemoInventorySeeder implements DemoSeeder {
                         null,
                         ItemOwner.STATION,
                         null);
-                inventoryRepository.assignItem(tasche.id(), member.id());
+                custodyService.assignToMember(tasche.id(), member.id(), "");
             }
         }
 
@@ -433,7 +437,7 @@ public class DemoInventorySeeder implements DemoSeeder {
                     null,
                     ItemOwner.CLUSTER,
                     null);
-            inventoryRepository.assignItem(ownedGlove.id(), kid.id());
+            custodyService.assignToMember(ownedGlove.id(), kid.id(), "");
         }
 
         // Generate item assignment history for internal items
@@ -591,7 +595,7 @@ public class DemoInventorySeeder implements DemoSeeder {
         for (var item : items) {
             if (placed >= count) break;
             if (item.containerId() != null) continue;
-            inventoryRepository.setItemContainer(item.id(), containerId);
+            custodyService.placeInContainer(item.id(), containerId);
             placed++;
         }
     }
@@ -688,7 +692,7 @@ public class DemoInventorySeeder implements DemoSeeder {
                 String note = result == CheckResult.LOST ? "Seit letzter Übung vermisst" : "";
                 inventoryCheckRepository.createCheckItem(check.id(), item.id(), item.inventoryId(), result, note);
                 if (result == CheckResult.LOST) {
-                    inventoryRepository.markLost(item.id());
+                    custodyService.markLost(item.id());
                 }
             }
             checkedCount++;

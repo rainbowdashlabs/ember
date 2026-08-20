@@ -40,7 +40,8 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        var containerService = new InventoryContainerService(containerRepo, containerKindRepo, inventoryRepo);
+        var containerService =
+                new InventoryContainerService(containerRepo, containerKindRepo, inventoryRepo, itemCustodyService);
         service = new InventoryCheckService(
                 inventoryCheckRepo,
                 inventoryRepo,
@@ -48,7 +49,8 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
                 memberGroupRepo,
                 accountRepo,
                 memberIdentityFactory,
-                containerService);
+                containerService,
+                itemCustodyService);
         station = stationRepo.create("CheckSvcStation");
         checkerAccount = accountRepo.create("checker-svc@test.com", "Check", "Er");
         targetAccount = accountRepo.create("target-svc@test.com", "Target", "Member");
@@ -64,7 +66,7 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
         inventoryId = inv.id();
         var item = inventoryRepo.createItem(inv.id(), "CS-001", "Check Item", null, null);
         itemId = item.id();
-        inventoryRepo.assignItem(item.id(), target.id());
+        itemCustodyService.assignToMember(item.id(), target.id(), "");
     }
 
     @AfterAll
@@ -185,7 +187,7 @@ class InventoryCheckServiceTest extends RepositoryTestBase {
         assertTrue(item.isPresent());
         assertNotNull(item.get().lostAt());
         // Restore
-        inventoryRepo.markFound(itemId);
+        itemCustodyService.markFound(itemId);
     }
 
     @Test

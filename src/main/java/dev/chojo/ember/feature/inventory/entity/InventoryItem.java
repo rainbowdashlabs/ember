@@ -24,6 +24,9 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param lostAt         when the item was marked as lost, or {@code null} if not lost
  * @param ownerKind      who owns the item: the station, or the one body above it
  * @param ownerClusterId the owning body when it runs on this instance, or {@code null} when it does not
+ * @param custody        who has the item right now
+ * @param custodyStationId the station the custody runs through, or {@code null} for {@link ItemCustody#WITH_OWNER}
+ * @param custodyMovementId the movement holding the item while it is in transit, or {@code null}
  * @param containerId    the container that physically holds this item, or {@code null} if unlocated
  */
 public record InventoryItem(
@@ -37,6 +40,9 @@ public record InventoryItem(
         Instant lostAt,
         ItemOwner ownerKind,
         Integer ownerClusterId,
+        ItemCustody custody,
+        Integer custodyStationId,
+        Integer custodyMovementId,
         Integer containerId) {
     /**
      * Creates a row mapping for database result set conversion.
@@ -53,6 +59,9 @@ public record InventoryItem(
                 row.get("lost_at", INSTANT_TIMESTAMP),
                 row.getEnum("owner_kind", ItemOwner.class),
                 row.getObject("owner_cluster_id", Integer.class),
+                row.getEnum("custody", ItemCustody.class),
+                row.getObject("custody_station_id", Integer.class),
+                row.getObject("custody_movement_id", Integer.class),
                 row.getObject("container_id", Integer.class));
     }
 

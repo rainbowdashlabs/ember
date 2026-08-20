@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.inventory.entity.InventoryRequirement;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventorySummary;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
@@ -35,7 +36,7 @@ public class InventoryRepository {
     private static final String INVENTORY_COLUMNS = "id, station_id, name, inventory_type, has_sizes";
     private static final String INVENTORY_SIZE_COLUMNS = "id, inventory_id, label, position, note";
     private static final String INVENTORY_ITEM_COLUMNS =
-            "id, inventory_id, internal_id, name, size_id, metadata, assigned_to, lost_at, owner_kind, owner_cluster_id, container_id";
+            "id, inventory_id, internal_id, name, size_id, metadata, assigned_to, lost_at, owner_kind, owner_cluster_id, custody, custody_station_id, custody_movement_id, container_id";
     private static final String INVENTORY_ITEM_HISTORY_COLUMNS =
             "id, item_id, member_id, member_name, given_out, returned";
     private static final String INVENTORY_REQUIREMENT_COLUMNS =
@@ -226,13 +227,38 @@ public class InventoryRepository {
         return SqlSupport.findById("inventory_item", INVENTORY_ITEM_COLUMNS, id, InventoryItem.map());
     }
 
-    public Optional<InventoryItem> findByInternalId(int stationId, String internalId) {
+    /**
+     * The station running the inventory an item is defined in. That is the station the item's
+     * custody runs through whenever anybody but its owner has it.
+     *
+     * @param itemId the item ID
+     * @return the station ID, or empty if the item is gone
+     */
+    public Optional<Integer> findStationIdByItem(int itemId) {
         return query("""
-                SELECT %s FROM inventory_item ii
+                SELECT i.station_id FROM inventory_item ii
                 JOIN inventory i ON i.id = ii.inventory_id
-                WHERE i.station_id = :station_id AND ii.internal_id = :internal_id
-                LIMIT 1;""", SqlSupport.alias("ii", INVENTORY_ITEM_COLUMNS))
-                .single(call().bind("station_id", stationId).bind("internal_id", internalId))
+                WHERE ii.id = :id;""")
+                .single(call().bind("id", itemId))
+                .map(row -> row.getInt("station_id"))
+                .first();
+    }
+
+    /**
+     * The scanner lookup: the item a station holds under a scanned code. It reads custody rather
+     * than the inventory, so a code on gear the station has already posted back finds nothing here.
+     */
+    public Optional<InventoryItem> findByInternalId(int stationId, String internalId) {
+        return query(
+                        """
+                SELECT %s FROM inventory_item ii
+                %s
+                WHERE %s AND ii.internal_id = :internal_id
+                LIMIT 1;""",
+                        SqlSupport.alias("ii", INVENTORY_ITEM_COLUMNS),
+                        ItemCustodySql.joinInventory("ii", "i"),
+                        ItemCustodySql.heldBy("ii", "i"))
+                .single(call().bind(ItemCustodySql.STATION_BIND, stationId).bind("internal_id", internalId))
                 .map(InventoryItem.map())
                 .first();
     }
@@ -241,8 +267,7 @@ public class InventoryRepository {
         return query("""
                 SELECT %s FROM inventory_item
                 WHERE inventory_id = :inventory_id
-                  AND assigned_to IS NULL
-                  AND lost_at IS NULL
+                  AND custody IN ('WITH_OWNER', 'AT_STATION')
                   AND id NOT IN (
                       SELECT li.assigned_item_id FROM federation_lending_request_item li
                       JOIN federation_lending_request lr ON lr.id = li.request_id
@@ -273,12 +298,19 @@ public class InventoryRepository {
                 .all();
     }
 
+    /**
+     * Every item a station holds, which is not the same as every item it owns.
+     */
     public List<InventoryItem> findItemsByStation(int stationId) {
-        return query("""
+        return query(
+                        """
                 SELECT %s FROM inventory_item ii
-                JOIN inventory i ON i.id = ii.inventory_id
-                WHERE i.station_id = :station_id;""", SqlSupport.alias("ii", INVENTORY_ITEM_COLUMNS))
-                .single(call().bind("station_id", stationId))
+                %s
+                WHERE %s;""",
+                        SqlSupport.alias("ii", INVENTORY_ITEM_COLUMNS),
+                        ItemCustodySql.joinInventory("ii", "i"),
+                        ItemCustodySql.heldBy("ii", "i"))
+                .single(call().bind(ItemCustodySql.STATION_BIND, stationId))
                 .map(InventoryItem.map())
                 .all();
     }
@@ -315,7 +347,10 @@ public class InventoryRepository {
      */
     public List<InventoryItem> findUnassignedItems(int inventoryId) {
         return query("""
-                SELECT %s FROM inventory_item WHERE inventory_id = :inventory_id AND assigned_to IS NULL AND lost_at IS NULL ORDER BY name;""", INVENTORY_ITEM_COLUMNS)
+                SELECT %s FROM inventory_item
+                WHERE inventory_id = :inventory_id
+                  AND custody IN ('WITH_OWNER', 'AT_STATION')
+                ORDER BY name;""", INVENTORY_ITEM_COLUMNS)
                 .single(call().bind("inventory_id", inventoryId))
                 .map(InventoryItem.map())
                 .all();
@@ -339,6 +374,9 @@ public class InventoryRepository {
     /**
      * Creates a new inventory item with a named owner.
      *
+     * <p>A new item starts in the store of whoever will hold it, which is not always the owner: gear
+     * the station records but does not own is gear the station has, so it starts at the station.
+     *
      * @param inventoryId    the inventory ID
      * @param internalId     the internal identifier
      * @param name           the item name
@@ -358,10 +396,16 @@ public class InventoryRepository {
             ItemOwner ownerKind,
             Integer ownerClusterId) {
         ItemOwner owner = ownerKind != null ? ownerKind : ItemOwner.STATION;
+        boolean heldByStation = owner == ItemOwner.CLUSTER;
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO inventory_item(inventory_id, internal_id, name, size_id, metadata, owner_kind, owner_cluster_id)
-                VALUES (:inventory_id, :internal_id, :name, :size_id, :metadata::JSONB, :owner_kind, :owner_cluster_id)
+                INSERT INTO inventory_item(inventory_id, internal_id, name, size_id, metadata, owner_kind,
+                                           owner_cluster_id, custody, custody_station_id)
+                SELECT :inventory_id, :internal_id, :name, :size_id, :metadata::JSONB, :owner_kind,
+                       :owner_cluster_id, :custody,
+                       CASE WHEN :held_by_station THEN i.station_id ELSE NULL END
+                FROM inventory i
+                WHERE i.id = :inventory_id
                 RETURNING %s;""",
                 call().bind("inventory_id", inventoryId)
                         .bind("internal_id", internalId)
@@ -369,7 +413,9 @@ public class InventoryRepository {
                         .bind("size_id", sizeId)
                         .bind("metadata", (metadata != null ? metadata : InventoryItemMetadata.empty()).toJson())
                         .bind("owner_kind", owner)
-                        .bind("owner_cluster_id", owner == ItemOwner.CLUSTER ? ownerClusterId : null),
+                        .bind("owner_cluster_id", owner == ItemOwner.CLUSTER ? ownerClusterId : null)
+                        .bind("custody", heldByStation ? ItemCustody.AT_STATION : ItemCustody.WITH_OWNER)
+                        .bind("held_by_station", heldByStation),
                 InventoryItem.map(),
                 INVENTORY_ITEM_COLUMNS);
     }
@@ -403,29 +449,47 @@ public class InventoryRepository {
     }
 
     /**
-     * Assigns an item to a member, or unassigns it by passing {@code null}.
-     * Assigning an item to a member also clears the item's container - an
-     * item handed to a member is no longer in storage.
+     * Writes an item's whole custody at once: who has it, the station the custody runs through, the
+     * member holding it and the movement carrying it. The four travel together because the database
+     * only accepts them as a consistent set, and the lost timestamp follows from the custody rather
+     * than being passed separately.
      *
-     * @param itemId   the item ID
-     * @param memberId the member ID to assign to, or {@code null} to unassign
-     * @return {@code true} if the assignment was updated
+     * <p>This is the only statement in the codebase that writes any of those columns. Everything
+     * that moves an item goes through {@code ItemCustodyService}, which is what keeps the four
+     * overlapping signals of the old model from growing back.
+     *
+     * @param itemId            the item ID
+     * @param custody           who has the item now
+     * @param custodyStationId  the station the custody runs through, or {@code null}
+     * @param assignedTo        the member holding it, or {@code null}
+     * @param custodyMovementId the movement carrying it, or {@code null}
+     * @return {@code true} if the item row was updated
      */
-    public boolean assignItem(int itemId, Integer memberId) {
+    public boolean updateCustody(
+            int itemId, ItemCustody custody, Integer custodyStationId, Integer assignedTo, Integer custodyMovementId) {
         return query("""
                 UPDATE inventory_item
-                SET assigned_to = :member_id,
-                    container_id = CASE WHEN :member_id::int IS NOT NULL THEN NULL ELSE container_id END
+                SET custody             = :custody,
+                    custody_station_id  = :custody_station_id,
+                    custody_movement_id = :custody_movement_id,
+                    assigned_to         = :assigned_to,
+                    lost_at             = CASE WHEN :mark_lost THEN coalesce(lost_at, now()) ELSE NULL END,
+                    container_id        = CASE WHEN :assigned_to::int IS NOT NULL THEN NULL ELSE container_id END
                 WHERE id = :id;""")
-                .single(call().bind("member_id", memberId).bind("id", itemId))
+                .single(call().bind("custody", custody)
+                        .bind("custody_station_id", custodyStationId)
+                        .bind("custody_movement_id", custodyMovementId)
+                        .bind("assigned_to", assignedTo)
+                        .bind("mark_lost", custody == ItemCustody.LOST)
+                        .bind("id", itemId))
                 .update()
                 .changed();
     }
 
     /**
-     * Sets or clears the container an item is physically placed in. Placing
-     * an item in a container also clears the assignment - an item back in
-     * storage is no longer with a member.
+     * Sets or clears the container an item is physically placed in. A container says where in the
+     * store an item is, not who has it, so this leaves the custody alone. An item a member holds
+     * has to be taken back first, which the custody service does before it calls this.
      *
      * @param itemId      the item ID
      * @param containerId the container ID, or {@code null} to clear the location
@@ -434,8 +498,7 @@ public class InventoryRepository {
     public boolean setItemContainer(int itemId, Integer containerId) {
         return query("""
                 UPDATE inventory_item
-                SET container_id = :container_id,
-                    assigned_to = CASE WHEN :container_id::int IS NOT NULL THEN NULL ELSE assigned_to END
+                SET container_id = :container_id
                 WHERE id = :id;""")
                 .single(call().bind("container_id", containerId).bind("id", itemId))
                 .update()
@@ -457,32 +520,6 @@ public class InventoryRepository {
                 call().bind("station_id", stationId)
                         .bind("internal_id", internalId)
                         .bind("exclude_id", excludeItemId));
-    }
-
-    /**
-     * Marks an inventory item as lost by setting the lost timestamp.
-     *
-     * @param id the item ID
-     * @return {@code true} if the item was marked as lost
-     */
-    public boolean markLost(int id) {
-        return query("UPDATE inventory_item SET lost_at = now() WHERE id = :id;")
-                .single(call().bind("id", id))
-                .update()
-                .changed();
-    }
-
-    /**
-     * Marks a previously lost inventory item as found by clearing the lost timestamp.
-     *
-     * @param id the item ID
-     * @return {@code true} if the item was marked as found
-     */
-    public boolean markFound(int id) {
-        return query("UPDATE inventory_item SET lost_at = NULL WHERE id = :id;")
-                .single(call().bind("id", id))
-                .update()
-                .changed();
     }
 
     /**

@@ -143,7 +143,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var eventServices = newEventServices(noOpBus);
         var newsService = new NewsService(
                 newsRepo, restrictionService, noOpBus, stationMemberRepo, memberLookupService, accountRepo);
-        var inventoryService = new InventoryService(inventoryRepo);
+        var inventoryService = new InventoryService(inventoryRepo, itemCustodyService);
         var exchangeService = new ExchangeService(exchangeRepo, inventoryRepo, inventoryService, noOpBus);
         var procurementService = new ProcurementService(procurementRepo, inventoryService, inventoryRepo, noOpBus);
         var eventTemplateService = new EventTemplateService(eventTemplateRepo);
@@ -245,7 +245,13 @@ class DemoServiceTest extends RepositoryTestBase {
                 federationFanout,
                 federationEntityResolver);
         var lendingService = new LendingService(
-                lendingRepo, federationHttpClient, federationService, stationRepo, inventoryRepo, noOpBus);
+                lendingRepo,
+                federationHttpClient,
+                federationService,
+                stationRepo,
+                inventoryRepo,
+                itemCustodyService,
+                noOpBus);
         var federatedBoardService = new FederatedBoardService(federatedBoardRepo);
 
         // Services consumed by DemoService for the post-seed notification showcase (read-only
@@ -286,7 +292,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 eventServices.restriction(),
                 new EventRegistrationFieldService(new EventRegistrationFieldRepository()));
         var attendanceSeeder = new DemoAttendanceSeeder(attendanceRepo);
-        var containerSvc = new InventoryContainerService(containerRepo, containerKindRepo, inventoryRepo);
+        var containerSvc =
+                new InventoryContainerService(containerRepo, containerKindRepo, inventoryRepo, itemCustodyService);
         var fieldDefSvc = new InventoryFieldDefinitionService(fieldDefinitionRepo);
         var inventorySeeder = new DemoInventorySeeder(
                 inventoryRepo,
@@ -296,7 +303,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 fieldDefSvc,
                 exchangeService,
                 exchangeRepo,
-                procurementService);
+                procurementService,
+                itemCustodyService);
         var formSeeder = new DemoFormSeeder(formRepo, restrictionService);
         var notificationSeeder = new DemoNotificationSeeder(
                 notificationRepo, inventoryRepo, boardService, boardTicketService, procedureService, lendingService);

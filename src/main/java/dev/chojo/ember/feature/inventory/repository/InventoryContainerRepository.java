@@ -31,7 +31,7 @@ public class InventoryContainerRepository {
     private static final String INVENTORY_CONTAINER_COLUMNS =
             "id, station_id, parent_id, internal_id, name, kind_id, description, created_at, created_by";
     private static final String INVENTORY_ITEM_COLUMNS =
-            "id, inventory_id, internal_id, name, size_id, metadata, assigned_to, lost_at, owner_kind, owner_cluster_id, container_id";
+            "id, inventory_id, internal_id, name, size_id, metadata, assigned_to, lost_at, owner_kind, owner_cluster_id, custody, custody_station_id, custody_movement_id, container_id";
     private static final String INVENTORY_CONTAINER_HISTORY_COLUMNS =
             "id, container_id, station_id, event_kind, event_ts, actor_id";
 

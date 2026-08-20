@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.federation.route.RemoteLendingRoutes;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
+import dev.chojo.ember.feature.inventory.service.ItemCustodyService;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -36,6 +37,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.IntConsumer;
 
 /**
  * Business logic for cross-station inventory lending. Internally peer references travel as
@@ -52,6 +54,7 @@ public class LendingService {
     private final FederationService federationService;
     private final StationRepository stationRepository;
     private final InventoryRepository inventoryRepository;
+    private final ItemCustodyService custodyService;
     private final DomainEventBus eventBus;
 
     @Inject
@@ -61,12 +64,14 @@ public class LendingService {
             FederationService federationService,
             StationRepository stationRepository,
             InventoryRepository inventoryRepository,
+            ItemCustodyService custodyService,
             DomainEventBus eventBus) {
         this.repository = repository;
         this.httpClient = httpClient;
         this.federationService = federationService;
         this.stationRepository = stationRepository;
         this.inventoryRepository = inventoryRepository;
+        this.custodyService = custodyService;
         this.eventBus = eventBus;
     }
 
@@ -145,6 +150,7 @@ public class LendingService {
     public boolean markLent(int requestId, int stationId) {
         boolean updated = repository.updateRequestStatus(requestId, LendingStatus.LENT);
         if (updated) {
+            forEachLentItem(requestId, custodyService::lendToPartner);
             repository.createMessage(
                     requestId, stationRepository.resolveUid(stationId), null, "Ausrüstung ausgeliehen", true);
             repository.findRequestById(requestId).ifPresent(r -> publishStatusChange(r, stationId, LendingStatus.LENT));
@@ -160,6 +166,7 @@ public class LendingService {
     public boolean markReturned(int requestId, int stationId) {
         boolean updated = repository.updateRequestStatus(requestId, LendingStatus.RETURNED);
         if (updated) {
+            forEachLentItem(requestId, custodyService::returnFromPartner);
             repository.createMessage(
                     requestId, stationRepository.resolveUid(stationId), null, "Ausrüstung zurückgegeben", true);
             repository
@@ -170,6 +177,20 @@ public class LendingService {
             log.warn("Mark-returned for lending request {} by station {} affected no row", requestId, stationId);
         }
         return updated;
+    }
+
+    /**
+     * Runs an action over every item actually assigned to a lending request, which is what changes
+     * hands when the request is marked lent or returned. Request lines that never got an item
+     * assigned carry nothing to move.
+     *
+     * @param requestId the lending request
+     * @param action    what to do with each assigned item
+     */
+    private void forEachLentItem(int requestId, IntConsumer action) {
+        for (var requestItem : repository.findItemsByRequest(requestId)) {
+            if (requestItem.assignedItemId() != null) action.accept(requestItem.assignedItemId());
+        }
     }
 
     public boolean closeRequest(int requestId, int stationId) {

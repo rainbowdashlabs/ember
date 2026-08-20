@@ -15,7 +15,7 @@ import BlockFormBody from './lendingblockscreateview/BlockFormBody.vue'
 import type {BlockEntry} from './lendingblockscreateview/types'
 import * as lending from '@/api/lending'
 import {inventory} from '@/api'
-import type {Inventory} from '@/api/inventory'
+import {isAvailable, type Inventory} from '@/api/inventory'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 
@@ -68,7 +68,8 @@ async function addEntry() {
 
   try {
     const items = await inventory.listItems(invId)
-    const available = items.filter(item => !item.assignedTo && !item.lostAt)
+    // Custody, not the assignment: gear in transit or already with a partner is not free either
+    const available = items.filter(item => isAvailable(item.custody))
     entry.items = available
   } catch {
     void 0

@@ -26,6 +26,26 @@ export const ItemOwner = {
 
 export type ItemOwnerName = (typeof ItemOwner)[keyof typeof ItemOwner]
 
+/**
+ * Who has an item right now, which is a different question from who owns it. A station can hold
+ * gear it does not own, and an owner can be holding gear nobody at the station has seen for a year.
+ */
+export const ItemCustody = {
+    WITH_OWNER: 'WITH_OWNER',
+    AT_STATION: 'AT_STATION',
+    WITH_MEMBER: 'WITH_MEMBER',
+    WITH_PARTNER: 'WITH_PARTNER',
+    IN_TRANSIT: 'IN_TRANSIT',
+    LOST: 'LOST',
+} as const
+
+export type ItemCustodyName = (typeof ItemCustody)[keyof typeof ItemCustody]
+
+/** Whether an item in this custody is free to hand to somebody. */
+export function isAvailable(custody?: ItemCustodyName | null): boolean {
+    return custody === ItemCustody.WITH_OWNER || custody === ItemCustody.AT_STATION
+}
+
 export interface Inventory {
     id: number
     stationId: string
@@ -74,6 +94,9 @@ export interface InventoryItem {
     lostAt?: string | null
     ownerKind?: ItemOwnerName | null
     ownerClusterId?: number | null
+    custody?: ItemCustodyName | null
+    custodyStationId?: number | null
+    custodyMovementId?: number | null
     containerId?: number | null
 }
 

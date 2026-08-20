@@ -31,6 +31,10 @@ function sizeLabel(sizeId?: number | null): string {
   return props.sizes.find(s => s.id === sizeId)?.label ?? String(sizeId)
 }
 
+/** Who has the item right now, which is a different question from who owns it. */
+const custodyLabel = computed(() =>
+    props.item.custody ? t(`itemDetail.custodyValues.${props.item.custody}`) : '-')
+
 /**
  * Names the owner, and for gear the station does not own says whether that owner is reachable
  * in Ember or only stands behind the station's own record of it.
@@ -51,6 +55,9 @@ const ownerLabel = computed(() => {
     </ItemFact>
     <ItemFact :label="t('itemDetail.owner')">
       <span>{{ ownerLabel }}</span>
+    </ItemFact>
+    <ItemFact :label="t('itemDetail.custody')">
+      <span>{{ custodyLabel }}</span>
     </ItemFact>
     <ItemFact :label="t('itemDetail.status')">
       <ErrorBadge v-if="props.item.lostAt">{{ t('profile.lostSince') }} {{ formatDate(props.item.lostAt) }}</ErrorBadge>

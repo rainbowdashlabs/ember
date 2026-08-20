@@ -36,7 +36,7 @@ class ExchangeServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        var inventoryService = new InventoryService(inventoryRepo);
+        var inventoryService = new InventoryService(inventoryRepo, itemCustodyService);
         service = new ExchangeService(exchangeRepo, inventoryRepo, inventoryService, new DomainEventBus(Set.of()));
         station = stationRepo.create("ExchStation");
         account = accountRepo.create("exch-svc@test.com", "Exch", "Tester");
@@ -49,7 +49,7 @@ class ExchangeServiceTest extends RepositoryTestBase {
                 sizes.stream().filter(s -> "M".equals(s.label())).findFirst().orElseThrow();
         var item = inventoryRepo.createItem(inv.id(), "B-001", "Blouson M", sizeM.id(), null);
         itemId = item.id();
-        inventoryRepo.assignItem(item.id(), member.id());
+        itemCustodyService.assignToMember(item.id(), member.id(), "");
     }
 
     @AfterAll
@@ -150,7 +150,7 @@ class ExchangeServiceTest extends RepositoryTestBase {
     void completingAnExchangeOfOwnerOwnedGearDoesNotMakeItTheStations() {
         var mixed = inventoryRepo.create(station.id(), "Handschuhe", InventoryType.MIXED, false);
         var ownerItem = inventoryRepo.createItem(mixed.id(), "HS-C", "Glove", null, null, ItemOwner.CLUSTER, null);
-        inventoryRepo.assignItem(ownerItem.id(), member.id());
+        itemCustodyService.assignToMember(ownerItem.id(), member.id(), "");
         var replacement = inventoryRepo.createItem(mixed.id(), "HS-C2", "Glove", null, null, ItemOwner.CLUSTER, null);
 
         var exchange = service.create(
@@ -172,7 +172,7 @@ class ExchangeServiceTest extends RepositoryTestBase {
     void completingAnExchangeOfStationOwnedGearReturnsItToTheFreePool() {
         var mixed = inventoryRepo.create(station.id(), "Handschuhe", InventoryType.MIXED, false);
         var ownItem = inventoryRepo.createItem(mixed.id(), "HS-S", "Glove", null, null, ItemOwner.STATION, null);
-        inventoryRepo.assignItem(ownItem.id(), member.id());
+        itemCustodyService.assignToMember(ownItem.id(), member.id(), "");
         var replacement = inventoryRepo.createItem(mixed.id(), "HS-S2", "Glove", null, null, ItemOwner.STATION, null);
 
         var exchange = service.create(

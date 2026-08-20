@@ -57,6 +57,7 @@ import dev.chojo.ember.feature.inventory.repository.InventoryContainerRepository
 import dev.chojo.ember.feature.inventory.repository.InventoryFieldDefinitionRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.repository.ProcurementRepository;
+import dev.chojo.ember.feature.inventory.service.ItemCustodyService;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
 import dev.chojo.ember.feature.lostandfound.repository.LostAndFoundRepository;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
@@ -135,6 +136,7 @@ public abstract class RepositoryTestBase {
     protected static StationMemberRepository stationMemberRepo;
     protected static AttendanceRepository attendanceRepo;
     protected static InventoryRepository inventoryRepo;
+    protected static ItemCustodyService itemCustodyService;
     protected static MemberGroupRepository memberGroupRepo;
     protected static ProfileFieldRepository profileFieldRepo;
     protected static RegistrationCodeRepository registrationCodeRepo;
@@ -254,6 +256,7 @@ public abstract class RepositoryTestBase {
         memberLookupService = new MemberLookupService(stationMemberRepo, stationRepo);
         attendanceRepo = new AttendanceRepository();
         inventoryRepo = new InventoryRepository();
+        itemCustodyService = new ItemCustodyService(inventoryRepo);
         memberGroupRepo = new MemberGroupRepository();
         profileFieldRepo = new ProfileFieldRepository();
         registrationCodeRepo = new RegistrationCodeRepository();

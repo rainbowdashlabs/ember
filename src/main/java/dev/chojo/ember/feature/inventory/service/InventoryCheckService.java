@@ -62,6 +62,7 @@ public class InventoryCheckService {
     private final AccountRepository accountRepository;
     private final MemberIdentityFactory memberIdentityFactory;
     private final InventoryContainerService containerService;
+    private final ItemCustodyService custodyService;
 
     @Inject
     public InventoryCheckService(
@@ -71,7 +72,8 @@ public class InventoryCheckService {
             MemberGroupRepository memberGroupRepository,
             AccountRepository accountRepository,
             MemberIdentityFactory memberIdentityFactory,
-            InventoryContainerService containerService) {
+            InventoryContainerService containerService,
+            ItemCustodyService custodyService) {
         this.checkRepository = checkRepository;
         this.inventoryRepository = inventoryRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -79,6 +81,7 @@ public class InventoryCheckService {
         this.accountRepository = accountRepository;
         this.memberIdentityFactory = memberIdentityFactory;
         this.containerService = containerService;
+        this.custodyService = custodyService;
     }
 
     /**
@@ -160,7 +163,7 @@ public class InventoryCheckService {
                     check.id(), result.itemId(), result.inventoryId(), result.result(), result.note());
 
             if (result.result() == CheckResult.LOST && result.itemId() != null) {
-                inventoryRepository.markLost(result.itemId());
+                custodyService.markLost(result.itemId());
             }
         }
 
@@ -233,7 +236,7 @@ public class InventoryCheckService {
             checkRepository.createCheckItem(
                     check.id(), result.itemId(), result.inventoryId(), result.result(), result.note());
             if (result.result() == CheckResult.LOST && result.itemId() != null) {
-                inventoryRepository.markLost(result.itemId());
+                custodyService.markLost(result.itemId());
             }
         }
         log.info(

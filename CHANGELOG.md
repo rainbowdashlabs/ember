@@ -16,9 +16,11 @@
 ### Changes
 
 - **An item says who owns it.** Every piece of gear is recorded as belonging either to the station itself or to the body above it, the municipality or the district association, in place of the internal and external labels it carried before. Members are no longer offered as owners, because gear a member bought was never tracked here.
+- **An item also says who has it.** Alongside its owner, a piece of gear now records where it actually is: in its owner's store, at the station, with a member, lent to a partner or missing. An item's page shows both, and the lists of what a station holds follow what it has rather than what it owns.
 
 ### Fixes
 
+- **Gear a partner had borrowed still looked free.** Equipment lent out to a federation partner could be handed to a member or offered in another lending request while it was away, because only the assignment was checked. It is now held back until the partner has given it back.
 - **Exchanged gear the station does not own.** In an inventory holding gear of both owners, completing an exchange put the returned item into the station's free stock even when the station had never owned it. The exchange now follows the owner recorded on the item.
 - **A profile field made for a group stays with that group.** It appears under its group and can be filled in there. Fields that ended up without a group are offered for assignment at the top of the group tab under Members → Configuration.
 - **Answers in the waiting list read the way they were given.** A date appears as a date and a yes as a yes, in every column a list has been set to show.
