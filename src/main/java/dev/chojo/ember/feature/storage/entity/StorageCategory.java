@@ -35,6 +35,8 @@ public enum StorageCategory {
             false,
             null),
     KB_FILES("kb-files", StorageScope.Kind.STATION, true, QuotaMode.ENFORCED, MimeLists.ANY, false, false, null),
+    MEMBER_DOCUMENTS(
+            "member-documents", StorageScope.Kind.STATION, true, QuotaMode.ENFORCED, MimeLists.ANY, false, false, null),
     BOARD_ATTACHMENTS(
             "attachments/board",
             StorageScope.Kind.STATION,

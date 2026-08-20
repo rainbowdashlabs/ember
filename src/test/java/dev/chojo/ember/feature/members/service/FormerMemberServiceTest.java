@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class FormerMemberServiceTest extends RepositoryTestBase {
@@ -37,7 +38,8 @@ class FormerMemberServiceTest extends RepositoryTestBase {
                 memberGroupRepo,
                 userTagRepo,
                 attendanceRepo,
-                profileFieldRepo);
+                profileFieldRepo,
+                mock(MemberDocumentService.class));
         station = stationRepo.create("FormerStation");
         account = accountRepo.create("former@test.com", "Former", "Member");
         member = stationMemberRepo.create(station.id(), account.id());

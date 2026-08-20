@@ -1,5 +1,20 @@
 # Changelog
 
+## v26.12.0
+
+### New Features
+
+- **Members have a document store.** Every profile carries a tab for the files that concern that member, and Members → Documents holds the whole store, a page at a time. A document can belong to several members at once, or to none of them, and it is bound to further members while it is open. Images, text files and PDFs are shown in the application rather than only offered for download, and the tile shows a picture of the document, for a PDF its first page.
+- **Documents can be searched by what they say.** The search reads the title and, where a file can be read at all, the text inside it, so a PDF is found by a word in it. Free-text labels sort the store further and are written as they are needed rather than set up in advance.
+- **A data export carries the documents too.** What somebody receives when they ask for their data now lists the documents held about them and holds the files themselves, the withheld ones included.
+- **A document can be kept beyond a membership.** What is marked to be kept survives its members being marked former, which is what a legally binding document needs; everything else goes with them. A document can also be kept from the members it belongs to, so it is seen only by those who may read other members.
+- **Profile fields can be arranged rather than only listed.** Each field takes a whole row, a half or a third, so the short ones stand beside each other, and a new field type is a plain heading that asks for nothing and appears in no export. Under Members → Configuration a preview shows the arrangement as it will be filled in.
+
+### Fixes
+
+- **Rights stay whole.** In some cases it could happen that a member held only part of what their role allows, so pages they are entitled to refused to open until the instance was restarted. A role now hands out all of its rights or none, whenever it is asked.
+- **A field template on the group tab lands in the chosen group.** Fields added from a template belonged to no group at all and had to be assigned by hand afterwards. A template now takes the group that is being configured.
+
 ## v26.11.12
 
 ### New Features

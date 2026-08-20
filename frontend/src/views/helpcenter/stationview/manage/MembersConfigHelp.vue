@@ -67,6 +67,12 @@ const tabs = [
       <p>{{ t('helpCenter.membersConfig.typeBoolean') }}</p>
       <p>{{ t('helpCenter.membersConfig.typeEnum') }}</p>
       <p>{{ t('helpCenter.membersConfig.typeAge') }}</p>
+      <p>{{ t('helpCenter.membersConfig.typeSection') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.membersConfig.layoutTitle')">
+      <p>{{ t('helpCenter.membersConfig.layoutText') }}</p>
+      <p>{{ t('helpCenter.membersConfig.layoutPreview') }}</p>
     </HelpSection>
 
     <HelpTip>{{ t('helpCenter.membersConfig.tip') }}</HelpTip>

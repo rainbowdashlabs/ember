@@ -6,6 +6,8 @@
 package dev.chojo.ember.util.sql;
 
 import java.util.Arrays;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -29,7 +31,30 @@ public final class FullTextSearch {
     private static final Set<String> ALLOWED_CONFIGS =
             Set.of("simple", "german", "english", "french", "spanish", "italian", "dutch", "portuguese", "russian");
 
+    private static final Map<String, String> LOCALE_TO_CONFIG = Map.of(
+            "de", "german",
+            "en", "english",
+            "fr", "french",
+            "es", "spanish",
+            "it", "italian",
+            "nl", "dutch",
+            "pt", "portuguese",
+            "ru", "russian");
+
     private FullTextSearch() {}
+
+    /**
+     * The configuration that stems the language a station writes in. Everything unknown falls back
+     * to {@link #DEFAULT_CONFIG}, which stems nothing and is therefore never wrong, only coarse.
+     *
+     * @param locale a locale such as {@code de-DE}, may be null
+     */
+    public static String forLocale(String locale) {
+        if (locale == null || locale.isBlank()) return DEFAULT_CONFIG;
+        int separator = locale.indexOf('-');
+        String language = separator > 0 ? locale.substring(0, separator) : locale;
+        return LOCALE_TO_CONFIG.getOrDefault(language.toLowerCase(Locale.ROOT), DEFAULT_CONFIG);
+    }
 
     /**
      * Maps a requested text search configuration onto the allow-list, falling back to

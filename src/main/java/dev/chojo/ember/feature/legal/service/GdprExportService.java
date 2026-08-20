@@ -7,8 +7,11 @@ package dev.chojo.ember.feature.legal.service;
 
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
+import dev.chojo.ember.feature.members.entity.MemberDocumentTag;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.repository.MemberDocumentRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.MemberDocumentService;
 import dev.chojo.ember.feature.members.service.MemberLookupService;
 import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.DataTrackingLoader;
@@ -27,6 +30,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -55,6 +59,8 @@ public class GdprExportService {
     private final StationMemberRepository stationMemberRepository;
     private final MemberLookupService memberLookupService;
     private final KbFileStorageService kbFileStorageService;
+    private final MemberDocumentRepository documentRepository;
+    private final MemberDocumentService documentService;
     private final GenericGdprExporter engine;
 
     @Inject
@@ -62,11 +68,15 @@ public class GdprExportService {
             AccountRepository accountRepository,
             StationMemberRepository stationMemberRepository,
             MemberLookupService memberLookupService,
-            KbFileStorageService kbFileStorageService) {
+            KbFileStorageService kbFileStorageService,
+            MemberDocumentRepository documentRepository,
+            MemberDocumentService documentService) {
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberLookupService = memberLookupService;
         this.kbFileStorageService = kbFileStorageService;
+        this.documentRepository = documentRepository;
+        this.documentService = documentService;
         DataTracking t;
         try {
             t = DataTrackingLoader.loadFromClasspath();
@@ -141,6 +151,7 @@ public class GdprExportService {
             var memberships = stationMemberRepository.findAllByAccountId(accountId);
             for (var member : memberships) {
                 addKbFiles(zip, member.id());
+                addMemberDocuments(zip, member.id());
             }
 
             zip.finish();
@@ -181,6 +192,10 @@ public class GdprExportService {
         data.put(
                 "memberUidTables",
                 memberUid == null ? Map.of() : engine.exportByIdentity(IdentityType.MEMBER_UID, memberUid));
+
+        // The documents kept for this member. They hang off a binding table rather than off a
+        // column of their own, which is the one thing the metadata-driven exporter cannot follow.
+        data.put("documents", exportDocuments(mid));
         return data;
     }
 
@@ -198,6 +213,45 @@ public class GdprExportService {
         } catch (Exception e) {
             log.warn("Typst PDF generation failed for GDPR export", e);
             return null;
+        }
+    }
+
+    /**
+     * What is kept about the documents of a member: everything except the bytes, which travel in
+     * the archive beside this. Hidden ones are part of it too: what is withheld in the interface
+     * is still data held about them.
+     */
+    private List<Map<String, Object>> exportDocuments(int memberId) {
+        return documentRepository.findByMember(memberId, true).stream()
+                .map(document -> {
+                    var entry = new LinkedHashMap<String, Object>();
+                    entry.put("id", document.id());
+                    entry.put("title", document.title());
+                    entry.put("fileName", document.fileName());
+                    entry.put("mimeType", document.mimeType());
+                    entry.put("sizeBytes", document.sizeBytes());
+                    entry.put("hidden", document.hidden());
+                    entry.put("keptOnArchive", document.keepOnArchive());
+                    entry.put("createdAt", document.createdAt().toString());
+                    entry.put(
+                            "tags",
+                            documentRepository.findTags(document.id()).stream()
+                                    .map(MemberDocumentTag::name)
+                                    .toList());
+                    return (Map<String, Object>) entry;
+                })
+                .toList();
+    }
+
+    /** The documents themselves, so the export holds the files and not only a list of them. */
+    private void addMemberDocuments(ZipOutputStream zip, int memberId) throws IOException {
+        for (var document : documentRepository.findByMember(memberId, true)) {
+            var data = documentService.read(document);
+            if (data.isEmpty()) continue;
+            String safeName = document.fileName().replaceAll("[^a-zA-Z0-9äöüÄÖÜß._\\- ]", "_");
+            zip.putNextEntry(new ZipEntry("files/documents/" + document.id() + "-" + safeName));
+            zip.write(data.get());
+            zip.closeEntry();
         }
     }
 

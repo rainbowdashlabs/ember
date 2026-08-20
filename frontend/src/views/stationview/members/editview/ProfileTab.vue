@@ -8,17 +8,14 @@ import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
-import ProfileFieldInput from '@/components/input/ProfileFieldInput.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import DataTable from '@/components/table/DataTable.vue'
-import Th from '@/components/table/Th.vue'
-import Td from '@/components/table/Td.vue'
-import TRow from '@/components/table/TRow.vue'
-import {parseFieldConfig, type ProfileField} from '@/api/profileFields'
+import type {ProfileField} from '@/api/profileFields'
+import ProfileFieldsLayout from '@/components/profilefields/ProfileFieldsLayout.vue'
+import {valueFields} from '@/components/profilefields/fieldLayout'
 import type {StationMember} from '@/api/types'
 import {profileFields, members, stationMembers} from '@/api'
 
@@ -65,7 +62,7 @@ async function save() {
       firstName: editFirstName.value,
       lastName: editLastName.value,
     })
-    const entries = props.fields.map(f => ({fieldId: f.id, value: JSON.stringify(getEditValue(f.id))}))
+    const entries = valueFields(props.fields).map(f => ({fieldId: f.id, value: JSON.stringify(getEditValue(f.id))}))
     await profileFields.setValues(props.memberId, {values: entries})
   } catch (e) {
     error.value = t('common.error')
@@ -107,23 +104,12 @@ async function save() {
     <!-- Profile fields -->
     <NeutralContainer v-if="fields.length > 0" class="space-y-4">
       <SubHeader class="text-sm">{{ t('memberEdit.fields') }}</SubHeader>
-      <DataTable plain>
-        <template #head>
-          <Th class="text-(--text-muted)">{{ t('memberEdit.fieldName') }}</Th>
-          <Th class="text-(--text-muted)">{{ t('memberEdit.fieldValue') }}</Th>
-        </template>
-        <TRow v-for="field in fields" :key="field.id">
-          <Td class="font-medium whitespace-nowrap">{{ field.name }}</Td>
-          <Td>
-            <ProfileFieldInput
-                :field-type="field.fieldType ?? 'TEXT'"
-                :model-value="getEditValue(field.id)"
-                :options="parseFieldConfig(field.config).options as string[]"
-                @update:model-value="setEditValue(field.id, $event)"
-            />
-          </Td>
-        </TRow>
-      </DataTable>
+      <ProfileFieldsLayout
+          :fields="fields"
+          :get-value="getEditValue"
+          can-edit-readonly
+          @update="setEditValue"
+      />
     </NeutralContainer>
 
     <!-- Save -->

@@ -28,6 +28,10 @@ import static org.slf4j.LoggerFactory.getLogger;
  * @param groupId        the group a field of GROUP scope belongs to, null for every other scope.
  *                       A field of that scope is only ever shown at its group, so without this it
  *                       belongs nowhere and appears nowhere.
+ * @param width          how much of a row the field takes: {@code full}, {@code half} or
+ *                       {@code third}. Null is the same as full. Fields narrower than a row stand
+ *                       beside each other, which is what turns a column of thirty boxes into
+ *                       something that can be read.
  */
 public record ProfileFieldConfig(
         boolean required,
@@ -39,11 +43,12 @@ public record ProfileFieldConfig(
         boolean computed,
         String sourceField,
         String ageMode,
-        Integer groupId) {
+        Integer groupId,
+        String width) {
     private static final Logger log = getLogger(ProfileFieldConfig.class);
     private static final ObjectMapper MAPPER = Json.CONFIG_MAPPER;
     private static final ProfileFieldConfig EMPTY =
-            new ProfileFieldConfig(false, false, false, false, null, null, false, null, null, null);
+            new ProfileFieldConfig(false, false, false, false, null, null, false, null, null, null, null);
 
     /**
      * The settings of a field that names none.

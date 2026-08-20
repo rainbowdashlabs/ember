@@ -17,10 +17,11 @@ import ProfileFieldModal from './membersconfig/FieldModal.vue'
 import GroupSelect from './membersconfig/GroupSelect.vue'
 import FieldsPanel from './membersconfig/FieldsPanel.vue'
 import UnassignedGroupFields from './membersconfig/UnassignedGroupFields.vue'
+import FieldsPreview from './membersconfig/FieldsPreview.vue'
 import type {FieldTemplate} from './membersconfig/fieldTemplates'
 import {
     DATE_FIELD_TYPES, FieldTypes, parseFieldConfig,
-    type ProfileField, type ProfileFieldRequest,
+    type ProfileField, type ProfileFieldConfig, type ProfileFieldRequest,
 } from '@/api/profileFields'
 import type {MemberGroup} from '@/api/types'
 import {memberGroups, profileFields} from '@/api'
@@ -177,6 +178,15 @@ async function onReorder(fromIndex: number, toIndex: number) {
   }
 }
 
+/**
+ * A field of group scope belongs to the group being configured. A template carries settings that
+ * hold for every scope and cannot know which group that is, so it is told here.
+ */
+function withSelectedGroup(config: ProfileFieldConfig): ProfileFieldConfig {
+  if (activeTab.value !== 'GROUP' || !selectedGroupId.value) return config
+  return {...config, groupId: Number(selectedGroupId.value)}
+}
+
 async function applyTemplate(template: FieldTemplate) {
   error.value = ''
   try {
@@ -185,7 +195,7 @@ async function applyTemplate(template: FieldTemplate) {
       await profileFields.createField({
         name: f.name,
         fieldType: f.fieldType,
-        config: f.config,
+        config: withSelectedGroup(f.config),
         position: startPosition + i,
         scope: activeTab.value,
       })
@@ -230,6 +240,8 @@ async function applyTemplate(template: FieldTemplate) {
             @toggle-keep-on-archive="toggleKeepOnArchive"
             @apply-template="applyTemplate"
         />
+
+        <FieldsPreview v-if="currentFields.length > 0" :fields="currentFields"/>
       </div>
 
       <ProfileFieldModal

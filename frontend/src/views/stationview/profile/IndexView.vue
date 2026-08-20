@@ -19,6 +19,10 @@ import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import AccountCard from './indexview/AccountCard.vue'
 import IncompleteFieldsAlert from './indexview/IncompleteFieldsAlert.vue'
 import ProfileFieldsForm from './indexview/ProfileFieldsForm.vue'
+import MemberDocumentsPanel from '@/components/documents/MemberDocumentsPanel.vue'
+import {valueFields} from '@/components/profilefields/fieldLayout'
+import {usePermissions} from '@/composables/usePermissions'
+import {StationPermission} from '@/api/types'
 
 function getUserScopes(userType?: string): string[] {
   const scopes: string[] = []
@@ -43,6 +47,11 @@ const fields = ref<ProfileField[]>([])
 const values = ref<Map<number, string>>(new Map())
 
 const memberId = computed(() => sessionInfo.value?.member?.id ?? null)
+
+/** Reading one's own documents needs nothing; adding to them is a right a station grants. */
+const {hasPermission} = usePermissions()
+
+const canUploadOwn = computed(() => hasPermission(StationPermission.MEMBER_SELF_UPLOAD))
 
 const userScopes = computed(() => getUserScopes(sessionInfo.value?.userType))
 
@@ -92,7 +101,7 @@ async function saveProfile() {
   if (!memberId.value) return
   error.value = ''
   try {
-    const entries = editableFields.value
+    const entries = valueFields(editableFields.value)
       .filter(f => !parseFieldConfig(f.config).readonly)
       .map(f => ({ fieldId: f.id, value: JSON.stringify(getValue(f.id)) }))
     await profileFields.setValues(memberId.value, { values: entries })
@@ -132,6 +141,8 @@ watch(memberId, (newId) => {
             :save-action="saveProfile"
             @update="setValue"
         />
+
+        <MemberDocumentsPanel :member-id="memberId" :can-upload="canUploadOwn"/>
       </template>
     </div>
   </ViewContent>

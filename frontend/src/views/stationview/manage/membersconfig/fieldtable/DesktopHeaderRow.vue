@@ -12,10 +12,11 @@ const {t} = useI18n()
 
 <template>
   <div
-      class="grid grid-cols-[2rem_1fr_6rem_2.5rem_2.5rem_2.5rem_2.5rem_2.5rem_5rem] gap-0 items-center border-b border-bg-light-accent dark:border-bg-dark-accent text-sm px-1 py-2">
+      class="grid grid-cols-[2rem_1fr_6rem_3rem_2.5rem_2.5rem_2.5rem_2.5rem_2.5rem_5rem] gap-0 items-center border-b border-bg-light-accent dark:border-bg-dark-accent text-sm px-1 py-2">
     <div></div>
     <div class="font-medium px-2">{{ t('membersConfig.colName') }}</div>
     <div class="font-medium px-2">{{ t('membersConfig.colType') }}</div>
+    <div class="font-medium px-2">{{ t('membersConfig.colWidth') }}</div>
     <DesktopHeaderIcons/>
     <div></div>
   </div>
