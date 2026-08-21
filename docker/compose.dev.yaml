@@ -66,6 +66,12 @@ services:
       DB_DATABASE: ember
       DB_SCHEMA: ember_schema
       DEMO_DEV: "true"
+      # Never the public demo, whatever the shared config file says. That mode blocks the very
+      # actions several stories walk through - a station application, a public waiting-list
+      # registration, lending across stations - and turns the login page into an account picker,
+      # so a developer who switched their own instance to it would watch this suite fail for
+      # reasons that have nothing to do with their change.
+      DEMO_ENABLED: "false"
       API_BASEURL: http://localhost:3010
     volumes:
       - ..:/home/gradle/project
