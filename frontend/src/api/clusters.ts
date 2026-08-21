@@ -104,3 +104,14 @@ export async function updateActive(data: ClusterRequest): Promise<Cluster> {
 export async function deleteCluster(uid: string): Promise<void> {
     await client.delete(`/clusters/${uid}`)
 }
+
+/**
+ * Makes an account the first person who may act for a cluster.
+ *
+ * The one cluster call an instance administrator makes from outside it. A cluster the instance has just
+ * created has nobody in it and every other cluster call asks for a right only a member can hold, so without
+ * this a new cluster would never get its first person.
+ */
+export async function appointAdministrator(uid: string, accountUid: string): Promise<void> {
+    await client.post(`/clusters/${uid}/administrators`, {accountUid})
+}

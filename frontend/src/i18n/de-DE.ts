@@ -5448,13 +5448,16 @@ export default {
     },
     adminClusters: {
         createTitle: 'Verband anlegen',
-        createHint: 'Ein neuer Verband bekommt automatisch eine eigene, verborgene Wache als Identität. Wer ihn verwaltet, wird anschließend im Verband selbst festgelegt.',
+        createHint: 'Ein neuer Verband bekommt automatisch eine eigene, verborgene Wache als Identität. Danach braucht er eine Leitung: erst wer dort eingetragen ist, kann den Verband überhaupt öffnen.',
         nameLabel: 'Name',
         namePlaceholder: 'z.B. Kreisverband Musterstadt',
         descriptionLabel: 'Beschreibung',
         descriptionPlaceholder: 'Wofür steht dieser Verband?',
         empty: 'Es gibt noch keine Verbände.',
         deleteMessage: 'Soll der Verband „{name}" wirklich entfernt werden? Das geht nur, solange ihm keine Wache mehr angehört.',
+        appoint: 'Leitung eintragen',
+        appointHint: 'Wer hier eingetragen wird, verwaltet den Verband von da an selbst. Alles Weitere entscheidet der Verband.',
+        appointPlaceholder: 'Name oder E-Mail-Adresse',
     },
     clusterSidebar: {
         cluster: 'Verband',

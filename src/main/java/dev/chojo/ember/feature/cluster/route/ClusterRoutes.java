@@ -9,8 +9,10 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
+import dev.chojo.ember.api.auth.ClusterUserType;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
 import io.javalin.http.BadRequestResponse;
@@ -20,6 +22,7 @@ import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -38,10 +41,12 @@ import java.util.UUID;
 @Singleton
 public class ClusterRoutes implements Routes {
     private final ClusterService clusterService;
+    private final AccountRepository accountRepository;
 
     @Inject
-    public ClusterRoutes(ClusterService clusterService) {
+    public ClusterRoutes(ClusterService clusterService, AccountRepository accountRepository) {
         this.clusterService = clusterService;
+        this.accountRepository = accountRepository;
     }
 
     @Override
@@ -52,6 +57,10 @@ public class ClusterRoutes implements Routes {
         routes.get(prefix + "/cluster", this::get, ClusterPermission.USER);
         routes.put(prefix + "/cluster", this::update, ClusterPermission.CLUSTER_GENERAL);
         routes.delete(prefix + "/clusters/{clusterUid}", this::delete, InstancePermission.ADMINISTRATOR);
+        routes.post(
+                prefix + "/clusters/{clusterUid}/administrators",
+                this::appointAdministrator,
+                InstancePermission.ADMINISTRATOR);
     }
 
     @OpenApi(
@@ -122,6 +131,7 @@ public class ClusterRoutes implements Routes {
 
     @OpenApi(
             path = "/api/v1/clusters/{clusterUid}",
+            pathParams = @OpenApiParam(name = "clusterUid", type = String.class, required = true),
             methods = HttpMethod.DELETE,
             summary = "Delete a cluster, which must have no stations left",
             tags = {"Cluster"},
@@ -130,6 +140,35 @@ public class ClusterRoutes implements Routes {
         Cluster cluster =
                 clusterService.findByUid(parseUid(ctx.pathParam("clusterUid"))).orElseThrow(NotFoundResponse::new);
         clusterService.delete(cluster.id());
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /**
+     * Hands a cluster over to somebody who will run it.
+     *
+     * <p>The one cluster call an instance administrator may make from outside, and the reason it exists: a
+     * cluster the instance has just created has nobody in it, and every other cluster call asks for a right
+     * that only a member can hold. Without this a new cluster could never get its first person and would sit
+     * there unusable. It appoints and nothing more, exactly as handing a station its owner does; who else
+     * acts for the cluster afterwards is the cluster's own business.
+     */
+    @OpenApi(
+            path = "/api/v1/clusters/{clusterUid}/administrators",
+            pathParams = @OpenApiParam(name = "clusterUid", type = String.class, required = true),
+            methods = HttpMethod.POST,
+            summary = "Appoint the first person who may act for a cluster",
+            tags = {"Cluster"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AppointRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
+    private void appointAdministrator(Context ctx) {
+        Cluster cluster =
+                clusterService.findByUid(parseUid(ctx.pathParam("clusterUid"))).orElseThrow(NotFoundResponse::new);
+        var request = ctx.bodyAsClass(AppointRequest.class);
+        if (request.accountUid() == null) throw new BadRequestResponse("Name the account to appoint");
+        var account = accountRepository
+                .findByUid(parseUid(request.accountUid()))
+                .orElseThrow(() -> new NotFoundResponse("No such account"));
+        clusterService.addMember(cluster.id(), account.id(), ClusterUserType.CLUSTER_ADMIN);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -171,6 +210,11 @@ public class ClusterRoutes implements Routes {
      *                     leave the setting as it is
      */
     public record ClusterRequest(String name, String description, Boolean autoFederate) {}
+
+    /**
+     * @param accountUid the account to make this cluster's first administrator
+     */
+    public record AppointRequest(String accountUid) {}
 
     /**
      * @param homeStationId the shell the cluster owns, on the wire as its station identity
