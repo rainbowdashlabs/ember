@@ -82,6 +82,8 @@ Docker
                         linter learns to read something outside frontend/ - the image copies
                         only that directory, so the repository root is not there
   docker-backend        Build the backend image
+  docker-storage        Start the dev storage stack detached: database on 5432, object storage,
+                        SFTP and SMB. Add `down` arguments through docker-storage-down
 
 Combined
   verify                be-verify then fe-build
@@ -191,6 +193,12 @@ case "$cmd" in
 
     docker-frontend) cd "$ROOT"; run docker build . -f docker/frontend.Dockerfile "$@" ;;
     docker-backend)  cd "$ROOT"; run docker build . -f docker/backend.Dockerfile "$@" ;;
+    docker-storage)
+        cd "$ROOT/docker"; run docker compose -f compose.dev.yaml --profile storage up -d "$@"
+        ;;
+    docker-storage-down)
+        cd "$ROOT/docker"; run docker compose -f compose.dev.yaml --profile storage down "$@"
+        ;;
 
     verify)
         "$ROOT/toolchain.sh" be-verify
