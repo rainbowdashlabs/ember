@@ -55,7 +55,9 @@ public enum NotificationType {
     CLUSTER_MODULE_DENIED(NotificationParams.ClusterModuleDenied.class, "notification.clusterModuleDenied"),
     CLUSTER_QUOTA_CHANGED(NotificationParams.ClusterQuotaChanged.class, "notification.clusterQuotaChanged"),
     CLUSTER_MEMBER_ROLE_CHANGED(
-            NotificationParams.ClusterMemberRoleChanged.class, "notification.clusterMemberRoleChanged");
+            NotificationParams.ClusterMemberRoleChanged.class, "notification.clusterMemberRoleChanged"),
+    CLUSTER_FIELD_VALUE_CHANGED(
+            NotificationParams.ClusterFieldValueChanged.class, "notification.clusterFieldValueChanged");
 
     private final Class<? extends NotificationParams> paramsType;
     private final String localeKey;

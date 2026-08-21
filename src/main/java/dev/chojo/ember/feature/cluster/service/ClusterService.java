@@ -56,6 +56,7 @@ public class ClusterService {
     private final ClusterItemReleaseService itemReleaseService;
     private final FederationService federationService;
     private final ClusterGovernanceService governanceService;
+    private final ClusterProfileFieldService fieldService;
     private final DomainEventBus eventBus;
 
     @Inject
@@ -65,12 +66,14 @@ public class ClusterService {
             ClusterItemReleaseService itemReleaseService,
             FederationService federationService,
             ClusterGovernanceService governanceService,
+            ClusterProfileFieldService fieldService,
             DomainEventBus eventBus) {
         this.clusterRepository = clusterRepository;
         this.stationRepository = stationRepository;
         this.itemReleaseService = itemReleaseService;
         this.federationService = federationService;
         this.governanceService = governanceService;
+        this.fieldService = fieldService;
         this.eventBus = eventBus;
     }
 
@@ -202,6 +205,9 @@ public class ClusterService {
 
         itemReleaseService.recallFromStation(clusterId, stationId);
         federationService.removeClusterFederation(stationId);
+        // The answers go, the history of who changed what stays: an audit trail is not the cluster's to
+        // take away when it lets a station go
+        fieldService.clearValuesOfStation(stationId);
         stationRepository.setCluster(stationId, null);
         log.info("Cluster {} released station {}", clusterId, stationId);
         eventBus.publish(new ClusterStationReleased(stationId, cluster.name()));

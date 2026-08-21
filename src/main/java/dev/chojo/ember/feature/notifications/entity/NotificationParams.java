@@ -74,6 +74,9 @@ public sealed interface NotificationParams {
      */
     record ClusterMemberRoleChanged(String clusterName) implements NotificationParams {}
 
+    /** The field names arrive already joined, because the reader wants a sentence and not a list. */
+    record ClusterFieldValueChanged(String clusterName, String fields) implements NotificationParams {}
+
     record MemberAddedToGroup(String groupName, String addedByName) implements NotificationParams {}
 
     record ProfileFieldChanged(String memberName, String fieldName) implements NotificationParams {}

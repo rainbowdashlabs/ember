@@ -59,6 +59,7 @@ const typeIcons: Record<string, string> = {
   CLUSTER_MODULE_DENIED: 'sitemap',
   CLUSTER_QUOTA_CHANGED: 'hard-drive',
   CLUSTER_MEMBER_ROLE_CHANGED: 'user-shield',
+  CLUSTER_FIELD_VALUE_CHANGED: 'id-card',
   REGISTRATION_DEADLINE_EXPIRED: 'clock',
   EVENT_CANCELLED: 'calendar-xmark',
   EVENT_REMINDER: 'bell',

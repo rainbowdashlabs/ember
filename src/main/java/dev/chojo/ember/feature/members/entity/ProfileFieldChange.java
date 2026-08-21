@@ -30,7 +30,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  */
 public record ProfileFieldChange(
         int id,
-        int fieldId,
+        Integer fieldId,
+        Integer clusterFieldId,
         int memberId,
         String oldValue,
         String newValue,
@@ -42,12 +43,24 @@ public record ProfileFieldChange(
         List<ProfileFieldChangeAcknowledgement> acknowledgements,
         String memberName) {
     /**
+     * Whether the field that changed was asked for by the station's cluster rather than by the station.
+     *
+     * <p>Exactly one of the two ids is set on every row, so this is the whole answer.
+     *
+     * @return {@code true} when a cluster's field changed
+     */
+    public boolean clusterDefined() {
+        return clusterFieldId != null;
+    }
+
+    /**
      * Creates a row mapping for database result set conversion.
      */
     public static RowMapping<ProfileFieldChange> map() {
         return row -> new ProfileFieldChange(
                 row.getInt("id"),
-                row.getInt("field_id"),
+                row.getObject("field_id", Integer.class),
+                row.getObject("cluster_field_id", Integer.class),
                 row.getInt("member_id"),
                 row.getString("old_value"),
                 row.getString("new_value"),

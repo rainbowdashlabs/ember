@@ -146,7 +146,8 @@
     "CLUSTER_STATION_RELEASED": "Released from {clusterName}",
     "CLUSTER_MODULE_DENIED": "{module} switched off by the cluster",
     "CLUSTER_QUOTA_CHANGED": "New storage allowance: {quota}",
-    "CLUSTER_MEMBER_ROLE_CHANGED": "Your rights at {clusterName}"
+    "CLUSTER_MEMBER_ROLE_CHANGED": "Your rights at {clusterName}",
+    "CLUSTER_FIELD_VALUE_CHANGED": "Profile changed by the cluster: {fields}"
   },
   "digest": {
     "subject.one": "{stationName}: 1 new notification",
@@ -190,7 +191,8 @@
     "CLUSTER_STATION_RELEASED": "Released from the cluster",
     "CLUSTER_MODULE_DENIED": "Module switched off",
     "CLUSTER_QUOTA_CHANGED": "Storage allowance changed",
-    "CLUSTER_MEMBER_ROLE_CHANGED": "Rights changed"
+    "CLUSTER_MEMBER_ROLE_CHANGED": "Rights changed",
+    "CLUSTER_FIELD_VALUE_CHANGED": "Profile changed by the cluster"
   },
   "message": {
     "notification.newNews": "{title} - by {author}",
@@ -233,6 +235,7 @@
     "notification.clusterStationReleased": "{clusterName} has released your station",
     "notification.clusterModuleDenied": "{clusterName} switched {module} off for your station. What you put in it is kept.",
     "notification.clusterQuotaChanged": "{clusterName} set your storage allowance to {quota}",
-    "notification.clusterMemberRoleChanged": "What you may do at {clusterName} has changed"
+    "notification.clusterMemberRoleChanged": "What you may do at {clusterName} has changed",
+    "notification.clusterFieldValueChanged": "{clusterName} changed {fields} in your profile"
   }
 }

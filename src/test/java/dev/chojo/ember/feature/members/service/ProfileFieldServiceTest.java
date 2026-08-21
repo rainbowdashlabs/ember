@@ -43,7 +43,8 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
                 profileFieldChangeRepo,
                 mock(NotificationService.class),
                 stationMemberRepo,
-                accountRepo);
+                accountRepo,
+                clusterProfileFieldRepo);
         station = stationRepo.create("ProfileField Station");
         account = accountRepo.create("pfield-svc@test.com", "Profile", "Tester");
         member = stationMemberRepo.create(station.id(), account.id());

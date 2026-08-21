@@ -25,10 +25,10 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 @Singleton
 public class ProfileFieldChangeRepository {
     private static final String ENRICHED_CHANGE_COLUMNS = """
-            c.id, c.field_id, c.member_id, c.old_value, c.new_value,
+            c.id, c.field_id, c.cluster_field_id, c.member_id, c.old_value, c.new_value,
             c.changed_by, c.changed_at, c.requires_acknowledgement,
             a.full_name AS changed_by_name,
-            pf.name AS field_name""";
+            coalesce(pf.name, cpf.name) AS field_name""";
     private static final String ENRICHED_ACKNOWLEDGEMENT_COLUMNS = """
             ack.id, ack.change_id, ack.acknowledged_by, ack.acknowledged_at, ack.comment,
             a.full_name AS acknowledged_by_name""";
@@ -42,7 +42,8 @@ public class ProfileFieldChangeRepository {
                 FROM profile_field_change c
                 JOIN station_member sm ON sm.id = c.changed_by
                 JOIN account a ON a.id = sm.account_id
-                JOIN profile_field pf ON pf.id = c.field_id
+                LEFT JOIN profile_field pf ON pf.id = c.field_id
+                LEFT JOIN cluster_profile_field cpf ON cpf.id = c.cluster_field_id
                 WHERE c.field_id = :field_id
                   AND c.member_id = :member_id
                   AND c.changed_by = :changed_by
@@ -72,6 +73,43 @@ public class ProfileFieldChangeRepository {
     /**
      * Create a new change record.
      */
+    /**
+     * Records a change to a field the cluster asked for rather than the station.
+     *
+     * <p>The same history, because a member's profile reads as one story: what changed, when and by whom,
+     * whoever asked the question. Which of the two columns is filled says whose field it was.
+     *
+     * @param clusterFieldId          the cluster's field
+     * @param memberId                the member whose answer changed
+     * @param oldValue                what it was
+     * @param newValue                what it now is
+     * @param changedBy               the station member who made the change
+     * @param requiresAcknowledgement whether somebody at the station has to confirm they saw it
+     */
+    public void createForClusterField(
+            int clusterFieldId,
+            int memberId,
+            String oldValue,
+            String newValue,
+            int changedBy,
+            boolean requiresAcknowledgement) {
+        query("""
+                INSERT
+                INTO
+                    profile_field_change(cluster_field_id, member_id, old_value, new_value, changed_by,
+                                         requires_acknowledgement)
+                VALUES
+                    (:field_id, :member_id, :old_value::JSONB, :new_value::JSONB, :changed_by,
+                     :requires_acknowledgement);""")
+                .single(call().bind("field_id", clusterFieldId)
+                        .bind("member_id", memberId)
+                        .bind("old_value", oldValue)
+                        .bind("new_value", newValue)
+                        .bind("changed_by", changedBy)
+                        .bind("requires_acknowledgement", requiresAcknowledgement))
+                .insert();
+    }
+
     public ProfileFieldChange create(
             int fieldId,
             int memberId,
@@ -83,8 +121,8 @@ public class ProfileFieldChangeRepository {
                 """
                 INSERT INTO profile_field_change(field_id, member_id, old_value, new_value, changed_by, requires_acknowledgement)
                 VALUES (:field_id, :member_id, :old_value::JSONB, :new_value::JSONB, :changed_by, :requires_acknowledgement)
-                RETURNING id, field_id, member_id, old_value, new_value, changed_by, changed_at, requires_acknowledgement,
-                          '' AS changed_by_name, '' AS field_name;""",
+                RETURNING id, field_id, cluster_field_id, member_id, old_value, new_value, changed_by, changed_at,
+                          requires_acknowledgement, '' AS changed_by_name, '' AS field_name;""",
                 call().bind("field_id", fieldId)
                         .bind("member_id", memberId)
                         .bind("old_value", oldValue)
@@ -103,7 +141,8 @@ public class ProfileFieldChangeRepository {
                 FROM profile_field_change c
                 JOIN station_member sm ON sm.id = c.changed_by
                 JOIN account a ON a.id = sm.account_id
-                JOIN profile_field pf ON pf.id = c.field_id
+                LEFT JOIN profile_field pf ON pf.id = c.field_id
+                LEFT JOIN cluster_profile_field cpf ON cpf.id = c.cluster_field_id
                 WHERE c.member_id = :member_id
                 ORDER BY c.changed_at DESC;""", ENRICHED_CHANGE_COLUMNS)
                 .single(call().bind("member_id", memberId))
@@ -226,7 +265,8 @@ public class ProfileFieldChangeRepository {
                 JOIN station_member sm ON sm.id = c.member_id
                 JOIN station_member sm2 ON sm2.id = c.changed_by
                 JOIN account a ON a.id = sm2.account_id
-                JOIN profile_field pf ON pf.id = c.field_id
+                LEFT JOIN profile_field pf ON pf.id = c.field_id
+                LEFT JOIN cluster_profile_field cpf ON cpf.id = c.cluster_field_id
                 WHERE sm.station_id = :station_id
                 ORDER BY c.changed_at DESC
                 LIMIT :limit OFFSET :offset;""", ENRICHED_CHANGE_COLUMNS)
@@ -260,7 +300,8 @@ public class ProfileFieldChangeRepository {
                 JOIN station_member sm ON sm.id = c.member_id
                 JOIN station_member sm2 ON sm2.id = c.changed_by
                 JOIN account a ON a.id = sm2.account_id
-                JOIN profile_field pf ON pf.id = c.field_id
+                LEFT JOIN profile_field pf ON pf.id = c.field_id
+                LEFT JOIN cluster_profile_field cpf ON cpf.id = c.cluster_field_id
                 WHERE c.member_id = ANY(:member_ids)
                 ORDER BY c.changed_at DESC
                 LIMIT :limit OFFSET :offset;""", ENRICHED_CHANGE_COLUMNS)

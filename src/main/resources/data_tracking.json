@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:cc4d6f918bada13c23226171c06cd550cd73f5dc7074620f9780f5dcf2b216d3",
-  "generatedAt" : "2026-08-21T01:32:51Z",
+  "schemaHash" : "sha256:b1e3f7d609e3383bfc2a36841ca00e0d6bf73252dd54b96be60b6c43f899f679",
+  "generatedAt" : "2026-08-21T03:03:03Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -3394,6 +3394,140 @@
         "reason" : "Cluster configuration, holds no personal data"
       },
       "description" : "The permissions a cluster member can hold."
+    },
+    "cluster_profile_field" : {
+      "feature" : "cluster",
+      "scope" : "INSTANCE",
+      "tableHash" : "sha256:71153aff9e343975ba0d6eb44ebc356e8dbf8810a52145a50470625df1ff3b08",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "cluster_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The cluster asking."
+      }, {
+        "name" : "name",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The label, unique within its cluster and scope."
+      }, {
+        "name" : "field_type",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "What kind of answer it takes, from the same set a station field uses."
+      }, {
+        "name" : "config",
+        "type" : "jsonb",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The same settings a station field carries: required, read-only, notify on change and the rest."
+      }, {
+        "name" : "position",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Where it sits among the cluster's own fields."
+      }, {
+        "name" : "scope",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Which kind of member it applies to. Group scope is refused: a group is a station's own and a cluster cannot see it."
+      }, {
+        "name" : "station_readonly",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "TRUE when the people at the station may read the answer but not write it."
+      }, {
+        "name" : "keep_on_archive",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "TRUE when the answer survives the member being marked as having left."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "cluster_id",
+        "refTable" : "cluster",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster-level, not station-scoped. A station carries no cluster with it when it moves instance"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Names no person: the question a cluster asks, not anybody's answer to it"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Names no person, so an account leaving has nothing to remove here"
+      },
+      "description" : "A question a cluster asks of the members at its stations, shaped like a station's own profile field."
+    },
+    "cluster_profile_field_value" : {
+      "feature" : "cluster",
+      "scope" : "INSTANCE",
+      "tableHash" : "sha256:50f7fe6b131198680486886641c11436ed227f80fb229fe92b27a9e3134530cd",
+      "columns" : [ {
+        "name" : "member_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The member who answered."
+      }, {
+        "name" : "field_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The question."
+      }, {
+        "name" : "value",
+        "type" : "jsonb",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The answer, in the same shape a station field's is."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "field_id",
+        "refTable" : "cluster_profile_field",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "member_id",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "The answers belong to the cluster and are cleared when a station leaves it, so they never travel with one"
+      },
+      "gdprExport" : {
+        "status" : "TRACKED",
+        "identityColumns" : [ {
+          "type" : "MEMBER_ID",
+          "column" : "member_id"
+        } ]
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED",
+        "strategies" : [ {
+          "column" : "member_id",
+          "strategy" : "CASCADE",
+          "reason" : "The answer is about that member and goes with them"
+        } ]
+      },
+      "description" : "What one member answered to one cluster question. Keyed on the station member, because that is who was asked."
     },
     "cluster_storage_config" : {
       "feature" : "cluster",
@@ -11584,7 +11718,7 @@
     "profile_field_change" : {
       "feature" : "members",
       "scope" : "STATION",
-      "tableHash" : "sha256:41d3ce55b18f23abdf7e88001e6b7419b81914ea696d11f0d92cbe6234e3a4d0",
+      "tableHash" : "sha256:cabfdefe294c8cc64f12c508993d032e2095ef4edc20a08a3f25138e224360a2",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -11594,9 +11728,9 @@
       }, {
         "name" : "field_id",
         "type" : "int4",
-        "nullable" : false,
+        "nullable" : true,
         "verified" : true,
-        "description" : "References the profile field that was changed."
+        "description" : "The station's own field that changed, or null when a cluster's field changed instead."
       }, {
         "name" : "member_id",
         "type" : "int4",
@@ -11633,10 +11767,21 @@
         "nullable" : false,
         "verified" : true,
         "description" : "Whether a manager must acknowledge this change."
+      }, {
+        "name" : "cluster_field_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The cluster field that changed, or null when the station's own field changed instead."
       } ],
       "foreignKeys" : [ {
         "column" : "changed_by",
         "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "cluster_field_id",
+        "refTable" : "cluster_profile_field",
         "refColumn" : "id",
         "onDelete" : "CASCADE"
       }, {

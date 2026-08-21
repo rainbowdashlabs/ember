@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.members.service;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.cluster.repository.ClusterProfileFieldRepository;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.PagedChanges;
 import dev.chojo.ember.feature.members.entity.ProfileField;
@@ -54,6 +55,7 @@ public class ProfileFieldService {
     private final NotificationService notificationService;
     private final StationMemberRepository stationMemberRepository;
     private final AccountRepository accountRepository;
+    private final ClusterProfileFieldRepository clusterFieldRepository;
 
     @Inject
     public ProfileFieldService(
@@ -61,12 +63,14 @@ public class ProfileFieldService {
             ProfileFieldChangeRepository changeRepository,
             NotificationService notificationService,
             StationMemberRepository stationMemberRepository,
-            AccountRepository accountRepository) {
+            AccountRepository accountRepository,
+            ClusterProfileFieldRepository clusterFieldRepository) {
         this.profileFieldRepository = profileFieldRepository;
         this.changeRepository = changeRepository;
         this.notificationService = notificationService;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
+        this.clusterFieldRepository = clusterFieldRepository;
     }
 
     // -- Field Definitions --
@@ -96,6 +100,67 @@ public class ProfileFieldService {
         if (scope == null) return List.of();
         return profileFieldRepository.findByStationAndScope(member.stationId(), scope);
     }
+
+    /**
+     * The fields a station's profile shows in one scope: its own, and the ones its cluster asks for.
+     *
+     * <p>Unioned rather than returned as two lists, so the profile lays out as one form. Each entry carries
+     * where it came from, because that decides two things the reader has to see: whether the station may
+     * write the answer, and who to blame for the question.
+     *
+     * @param stationId the station
+     * @param scope     which kind of member the fields apply to
+     * @return the station's own fields first, then the cluster's
+     */
+    public List<MergedField> findMergedFields(int stationId, ProfileFieldScope scope) {
+        List<MergedField> merged = new ArrayList<>();
+        for (ProfileField field : findByStationAndScope(stationId, scope)) {
+            merged.add(new MergedField(
+                    field.id(),
+                    field.name(),
+                    field.fieldType(),
+                    field.config(),
+                    field.position(),
+                    field.scope(),
+                    FieldOrigin.STATION,
+                    false));
+        }
+        for (var field : clusterFieldRepository.findForStation(stationId, scope)) {
+            merged.add(new MergedField(
+                    field.id(),
+                    field.name(),
+                    field.fieldType(),
+                    field.config(),
+                    field.position(),
+                    field.scope(),
+                    FieldOrigin.CLUSTER,
+                    field.stationReadonly()));
+        }
+        return merged;
+    }
+
+    /**
+     * Who asked the question, which is not the same as who answers it.
+     */
+    public enum FieldOrigin {
+        STATION,
+        CLUSTER
+    }
+
+    /**
+     * @param origin          who asked
+     * @param readonlyAtStation whether the people at the station may read the answer but not write it, which
+     *                          only a cluster field can be
+     */
+    public record MergedField(
+            int id,
+            String name,
+            ProfileFieldType fieldType,
+            ProfileFieldConfig config,
+            int position,
+            ProfileFieldScope scope,
+            FieldOrigin origin,
+            boolean readonlyAtStation) {}
 
     public Optional<ProfileField> findById(int id) {
         return profileFieldRepository.findById(id);
@@ -271,6 +336,7 @@ public class ProfileFieldService {
                 .map(c -> new ProfileFieldChange(
                         c.id(),
                         c.fieldId(),
+                        c.clusterFieldId(),
                         c.memberId(),
                         c.oldValue(),
                         c.newValue(),
@@ -336,6 +402,7 @@ public class ProfileFieldService {
                     return new ProfileFieldChange(
                             c.id(),
                             c.fieldId(),
+                            c.clusterFieldId(),
                             c.memberId(),
                             c.oldValue(),
                             c.newValue(),

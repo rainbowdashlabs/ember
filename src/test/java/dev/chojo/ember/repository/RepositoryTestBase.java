@@ -25,9 +25,11 @@ import dev.chojo.ember.feature.board.repository.BoardTicketRepository;
 import dev.chojo.ember.feature.board.repository.FederatedBoardRepository;
 import dev.chojo.ember.feature.checklist.repository.ChecklistRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterApplicationRepository;
+import dev.chojo.ember.feature.cluster.repository.ClusterProfileFieldRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.cluster.service.ClusterGovernanceService;
 import dev.chojo.ember.feature.cluster.service.ClusterMemberService;
+import dev.chojo.ember.feature.cluster.service.ClusterProfileFieldService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.comment.repository.EventCommentRepository;
 import dev.chojo.ember.feature.comment.repository.NoteRepository;
@@ -86,6 +88,7 @@ import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberLookupService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import dev.chojo.ember.feature.news.repository.NewsRepository;
@@ -154,6 +157,12 @@ public abstract class RepositoryTestBase {
     protected static ClusterRepository clusterRepo;
 
     protected static ClusterApplicationRepository clusterApplicationRepo;
+
+    protected static ClusterProfileFieldRepository clusterProfileFieldRepo;
+
+    protected static ClusterProfileFieldService clusterProfileFieldService;
+
+    protected static ProfileFieldService profileFieldService;
 
     /** Shared, because its dependency list grows with every step and no test cares about it. */
     protected static ClusterService clusterService;
@@ -290,6 +299,7 @@ public abstract class RepositoryTestBase {
         inventoryRepo = new InventoryRepository();
         clusterRepo = new ClusterRepository();
         clusterApplicationRepo = new ClusterApplicationRepository();
+        clusterProfileFieldRepo = new ClusterProfileFieldRepository();
         itemCustodyService = new ItemCustodyService(inventoryRepo);
         movementFlowRepo = new MovementFlowRepository();
         itemMovementRepo = new ItemMovementRepository();
@@ -298,19 +308,6 @@ public abstract class RepositoryTestBase {
                 itemMovementRepo, movementFlowService, inventoryRepo, itemCustodyService, new DomainEventBus(Set.of()));
         clusterItemReleaseService =
                 new ClusterItemReleaseService(inventoryRepo, itemCustodyService, itemMovementService);
-        clusterGovernanceService = new ClusterGovernanceService(
-                clusterRepo,
-                stationRepo,
-                new ClusterStorageConfigRepository(),
-                new StorageBackendResolver(new LocalStorageBackend()),
-                new DomainEventBus(Set.of()));
-        clusterService = new ClusterService(
-                clusterRepo,
-                stationRepo,
-                clusterItemReleaseService,
-                new FederationService(new FederationRepository(), stationRepo, new Api()),
-                clusterGovernanceService,
-                new DomainEventBus(Set.of()));
         clusterMemberService = new ClusterMemberService(clusterRepo, clusterService, new DomainEventBus(Set.of()));
         exchangeService = new ExchangeService(itemMovementService, inventoryRepo);
         memberGroupRepo = new MemberGroupRepository();
@@ -333,6 +330,34 @@ public abstract class RepositoryTestBase {
         lostAndFoundRepo = new LostAndFoundRepository();
         emailQueueRepo = new EmailQueueRepository();
         profileFieldChangeRepo = new ProfileFieldChangeRepository();
+        profileFieldService = new ProfileFieldService(
+                profileFieldRepo,
+                profileFieldChangeRepo,
+                org.mockito.Mockito.mock(dev.chojo.ember.feature.notifications.service.NotificationService.class),
+                stationMemberRepo,
+                accountRepo,
+                clusterProfileFieldRepo);
+        clusterProfileFieldService = new ClusterProfileFieldService(
+                clusterProfileFieldRepo,
+                clusterRepo,
+                stationRepo,
+                stationMemberRepo,
+                profileFieldChangeRepo,
+                new DomainEventBus(Set.of()));
+        clusterGovernanceService = new ClusterGovernanceService(
+                clusterRepo,
+                stationRepo,
+                new ClusterStorageConfigRepository(),
+                new StorageBackendResolver(new LocalStorageBackend()),
+                new DomainEventBus(Set.of()));
+        clusterService = new ClusterService(
+                clusterRepo,
+                stationRepo,
+                clusterItemReleaseService,
+                new FederationService(new FederationRepository(), stationRepo, new Api()),
+                clusterGovernanceService,
+                clusterProfileFieldService,
+                new DomainEventBus(Set.of()));
         userSettingsRepo = new UserSettingsRepository();
         userTagRepo = new UserTagRepository();
         newsRepo = new NewsRepository();

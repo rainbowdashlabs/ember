@@ -11,6 +11,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.event.events.ClusterApplicationResolved;
 import dev.chojo.ember.event.events.ClusterApplicationSubmitted;
 import dev.chojo.ember.event.events.ClusterApplicationWithdrawn;
+import dev.chojo.ember.event.events.ClusterFieldValueChanged;
 import dev.chojo.ember.event.events.ClusterMemberRoleChanged;
 import dev.chojo.ember.event.events.ClusterModuleDenied;
 import dev.chojo.ember.event.events.ClusterQuotaChanged;
@@ -191,5 +192,16 @@ class ClusterEventHandlerTest extends RepositoryTestBase {
                         eq(NotificationType.CLUSTER_MEMBER_ROLE_CHANGED),
                         any(NotificationData.class),
                         eq(null));
+    }
+
+    @Test
+    void aProfileFilledInByTheClusterReachesTheMemberItIsAbout() {
+        reset(notificationService);
+
+        new ClusterFieldValueChangedHandler(notificationService)
+                .handle(new ClusterFieldValueChanged(3, 21, "Kreisverband Profil", "Atemschutz"));
+
+        verify(notificationService)
+                .notifyIfAbsent(eq(21), eq(NotificationType.CLUSTER_FIELD_VALUE_CHANGED), any(NotificationData.class));
     }
 }

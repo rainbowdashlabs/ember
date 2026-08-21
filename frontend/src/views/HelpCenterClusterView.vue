@@ -71,6 +71,14 @@ watch(
         </SidebarLink>
       </SidebarGroup>
 
+      <SidebarGroup :icon="['fas', 'id-card']" :label="t('clusterSidebar.fields')"
+                    prefix="/helpcenter/cluster/fields">
+        <SidebarLink :icon="['fas', 'id-card']" name="help-cluster-fields"
+                     to="/helpcenter/cluster/fields" @navigate="close">
+          {{ t('clusterSidebar.fieldList') }}
+        </SidebarLink>
+      </SidebarGroup>
+
       <SidebarGroup :icon="['fas', 'gear']" :label="t('clusterSidebar.governance')"
                     prefix="/helpcenter/cluster/governance">
         <SidebarLink :icon="['fas', 'puzzle-piece']" name="help-cluster-modules"
