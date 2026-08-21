@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.cluster.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import dev.chojo.ember.feature.station.entity.ThemeFeel;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -45,6 +46,9 @@ public record Cluster(
         boolean feelLocked,
         boolean logoLocked,
         Long storagePoolBytes,
+        String defaultTheme,
+        String customThemeColors,
+        ThemeFeel defaultFeel,
         Instant createdAt) {
     /**
      * Creates a row mapping for database result set conversion.
@@ -62,6 +66,9 @@ public record Cluster(
                 row.getBoolean("feel_locked"),
                 row.getBoolean("logo_locked"),
                 row.getObject("storage_pool_bytes", Long.class),
+                row.getString("default_theme"),
+                row.getString("custom_theme_colors"),
+                row.getEnum("default_feel", ThemeFeel.class),
                 row.get("created_at", INSTANT_TIMESTAMP));
     }
 }

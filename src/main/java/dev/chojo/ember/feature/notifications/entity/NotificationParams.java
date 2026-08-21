@@ -62,6 +62,12 @@ public sealed interface NotificationParams {
 
     record ClusterStationReleased(String clusterName) implements NotificationParams {}
 
+    /** The module name travels as a string, because the reader sees a label rather than an enum. */
+    record ClusterModuleDenied(String clusterName, String module) implements NotificationParams {}
+
+    /** The quota is already formatted, because a byte count is not what somebody wants to read. */
+    record ClusterQuotaChanged(String clusterName, String quota) implements NotificationParams {}
+
     record MemberAddedToGroup(String groupName, String addedByName) implements NotificationParams {}
 
     record ProfileFieldChanged(String memberName, String fieldName) implements NotificationParams {}

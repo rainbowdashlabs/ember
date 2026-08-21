@@ -56,6 +56,8 @@ const typeIcons: Record<string, string> = {
   CLUSTER_APPLICATION_DENIED: 'sitemap',
   CLUSTER_APPLICATION_WITHDRAWN: 'sitemap',
   CLUSTER_STATION_RELEASED: 'sitemap',
+  CLUSTER_MODULE_DENIED: 'sitemap',
+  CLUSTER_QUOTA_CHANGED: 'hard-drive',
   REGISTRATION_DEADLINE_EXPIRED: 'clock',
   EVENT_CANCELLED: 'calendar-xmark',
   EVENT_REMINDER: 'bell',

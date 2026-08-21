@@ -71,6 +71,43 @@ onMounted(() => {
         </SidebarLink>
       </SidebarGroup>
 
+      <SidebarGroup
+          v-if="hasClusterPermission(ClusterPermission.CLUSTER_MODULES)
+              || hasClusterPermission(ClusterPermission.CLUSTER_LOOK_AND_FEEL)
+              || hasClusterPermission(ClusterPermission.CLUSTER_STORAGE)"
+          :icon="['fas', 'gear']"
+          :label="t('clusterSidebar.governance')"
+          prefix="/cluster/governance"
+      >
+        <SidebarLink
+            v-if="hasClusterPermission(ClusterPermission.CLUSTER_MODULES)"
+            :icon="['fas', 'puzzle-piece']"
+            name="cluster-modules"
+            to="/cluster/modules"
+            @navigate="close"
+        >
+          {{ t('clusterSidebar.modules') }}
+        </SidebarLink>
+        <SidebarLink
+            v-if="hasClusterPermission(ClusterPermission.CLUSTER_LOOK_AND_FEEL)"
+            :icon="['fas', 'palette']"
+            name="cluster-look-and-feel"
+            to="/cluster/look-and-feel"
+            @navigate="close"
+        >
+          {{ t('clusterSidebar.lookAndFeel') }}
+        </SidebarLink>
+        <SidebarLink
+            v-if="hasClusterPermission(ClusterPermission.CLUSTER_STORAGE)"
+            :icon="['fas', 'hard-drive']"
+            name="cluster-storage"
+            to="/cluster/storage"
+            @navigate="close"
+        >
+          {{ t('clusterSidebar.storage') }}
+        </SidebarLink>
+      </SidebarGroup>
+
       <div class="mt-auto flex flex-col gap-2 pt-4">
         <SmartStationButton/>
         <div class="flex items-center gap-2">

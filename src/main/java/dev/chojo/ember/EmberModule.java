@@ -37,6 +37,8 @@ import dev.chojo.ember.event.handlers.BulkMentionedInCommentHandler;
 import dev.chojo.ember.event.handlers.ClusterApplicationResolvedHandler;
 import dev.chojo.ember.event.handlers.ClusterApplicationSubmittedHandler;
 import dev.chojo.ember.event.handlers.ClusterApplicationWithdrawnHandler;
+import dev.chojo.ember.event.handlers.ClusterGovernanceHandler;
+import dev.chojo.ember.event.handlers.ClusterQuotaChangedHandler;
 import dev.chojo.ember.event.handlers.ClusterStationReleasedHandler;
 import dev.chojo.ember.event.handlers.CommentCreatedHandler;
 import dev.chojo.ember.event.handlers.CommentDeletedHandler;
@@ -431,6 +433,8 @@ public class EmberModule extends AbstractModule {
         eventBinder.addBinding().to(ClusterApplicationWithdrawnHandler.class);
         eventBinder.addBinding().to(ClusterApplicationResolvedHandler.class);
         eventBinder.addBinding().to(ClusterStationReleasedHandler.class);
+        eventBinder.addBinding().to(ClusterGovernanceHandler.class);
+        eventBinder.addBinding().to(ClusterQuotaChangedHandler.class);
         eventBinder.addBinding().to(FormPublishedHandler.class);
         eventBinder.addBinding().to(FormDeletedHandler.class);
         eventBinder.addBinding().to(ProcurementCreatedHandler.class);

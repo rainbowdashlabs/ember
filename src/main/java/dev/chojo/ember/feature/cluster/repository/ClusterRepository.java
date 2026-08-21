@@ -12,6 +12,8 @@ import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.ClusterUserType;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterMember;
+import dev.chojo.ember.feature.station.entity.StationModule;
+import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
@@ -33,7 +35,8 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 public class ClusterRepository {
     private static final String CLUSTER_COLUMNS = """
             id, uid, name, description, home_station_id, auto_federate, theme_locked, colors_locked, \
-            feel_locked, logo_locked, storage_pool_bytes, created_at""";
+            feel_locked, logo_locked, storage_pool_bytes, default_theme, custom_theme_colors, default_feel, \
+            created_at""";
     private static final String MEMBER_COLUMNS = "id, cluster_id, account_id, user_type";
 
     /**
@@ -120,6 +123,121 @@ public class ClusterRepository {
     public boolean setAutoFederate(int id, boolean autoFederate) {
         return query("UPDATE cluster SET auto_federate = :auto_federate WHERE id = :id;")
                 .single(call().bind("auto_federate", autoFederate).bind("id", id))
+                .update()
+                .changed();
+    }
+
+    /**
+     * The modules this cluster switches off for every station under it.
+     *
+     * @param clusterId the cluster
+     * @return the denied modules, skipping any name the code no longer knows
+     */
+    public Set<StationModule> findDeniedModules(int clusterId) {
+        Set<StationModule> denied = EnumSet.noneOf(StationModule.class);
+        for (String name : query("SELECT module FROM cluster_denied_module WHERE cluster_id = :cluster_id;")
+                .single(call().bind("cluster_id", clusterId))
+                .map(row -> row.getString("module"))
+                .all()) {
+            // A module dropped from the code leaves its rows behind, and a denial of something that no
+            // longer exists is not worth failing over
+            try {
+                denied.add(StationModule.valueOf(name));
+            } catch (IllegalArgumentException ignored) {
+                // deliberately skipped
+            }
+        }
+        return denied;
+    }
+
+    /**
+     * Replaces the denial list outright.
+     *
+     * @param clusterId the cluster
+     * @param modules   what it now denies
+     */
+    public void setDeniedModules(int clusterId, Set<StationModule> modules) {
+        query("DELETE FROM cluster_denied_module WHERE cluster_id = :cluster_id;")
+                .single(call().bind("cluster_id", clusterId))
+                .delete();
+        for (StationModule module : modules) {
+            query("""
+                    INSERT INTO cluster_denied_module(cluster_id, module)
+                    VALUES (:cluster_id, :module)
+                    ON CONFLICT DO NOTHING;""")
+                    .single(call().bind("cluster_id", clusterId).bind("module", module))
+                    .insert();
+        }
+    }
+
+    /**
+     * The clusters that deny a given module, which is how a station's own check finds out about it.
+     *
+     * @param stationId the station asking
+     * @param module    the module in question
+     * @return {@code true} when the station's cluster denies it
+     */
+    public boolean isModuleDeniedForStation(int stationId, StationModule module) {
+        return SqlSupport.exists("""
+                SELECT 1 FROM cluster_denied_module cdm
+                JOIN station s ON s.cluster_id = cdm.cluster_id
+                WHERE s.id = :station_id AND cdm.module = :module;""", call().bind("station_id", stationId).bind("module", module));
+    }
+
+    /**
+     * The look the cluster hands its stations, and which parts of it they may not change.
+     *
+     * @param clusterId         the cluster
+     * @param defaultTheme      the colour theme, or {@code null} for no opinion
+     * @param customThemeColors the colour set, or {@code null}
+     * @param defaultFeel       the interface feel, or {@code null} for no opinion
+     * @param themeLocked       whether the station may change the theme
+     * @param colorsLocked      whether the station may change the colours
+     * @param feelLocked        whether the station may change the feel
+     * @param logoLocked        whether the station may change its logo
+     * @return {@code true} if a row was updated
+     */
+    public boolean setLookAndFeel(
+            int clusterId,
+            String defaultTheme,
+            String customThemeColors,
+            ThemeFeel defaultFeel,
+            boolean themeLocked,
+            boolean colorsLocked,
+            boolean feelLocked,
+            boolean logoLocked) {
+        return query("""
+                UPDATE cluster
+                SET default_theme       = :default_theme,
+                    custom_theme_colors = :custom_theme_colors,
+                    default_feel        = :default_feel,
+                    theme_locked        = :theme_locked,
+                    colors_locked       = :colors_locked,
+                    feel_locked         = :feel_locked,
+                    logo_locked         = :logo_locked
+                WHERE id = :id;""")
+                .single(call().bind("default_theme", defaultTheme)
+                        .bind("custom_theme_colors", customThemeColors)
+                        .bind("default_feel", defaultFeel)
+                        .bind("theme_locked", themeLocked)
+                        .bind("colors_locked", colorsLocked)
+                        .bind("feel_locked", feelLocked)
+                        .bind("logo_locked", logoLocked)
+                        .bind("id", clusterId))
+                .update()
+                .changed();
+    }
+
+    /**
+     * The pool the instance grants the cluster, or {@code null} for no cap of its own.
+     *
+     * @param clusterId the cluster
+     * @param poolBytes how much it may hand out in total
+     * @return {@code true} if a row was updated
+     */
+    public boolean setStoragePool(int clusterId, Long poolBytes) {
+        return query("UPDATE cluster SET storage_pool_bytes = :pool WHERE id = :id;")
+                .single(call().bind("pool", poolBytes).bind("id", clusterId))
                 .update()
                 .changed();
     }

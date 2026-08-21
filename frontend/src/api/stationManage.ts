@@ -98,6 +98,10 @@ export async function sendTestMail(): Promise<void> {
 
 export interface ModulesResponse {
     disabledModules: string[]
+    /** Modules the station's cluster has switched off, which the station cannot turn back on. */
+    clusterDeniedModules?: string[]
+    /** The cluster doing the denying, so the screen can say who. */
+    clusterName?: string | null
 }
 
 export async function getDisabledModules(): Promise<ModulesResponse> {

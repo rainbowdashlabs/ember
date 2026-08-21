@@ -7,13 +7,17 @@ package dev.chojo.ember.event.handlers;
 
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.ClusterUserType;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.event.events.ClusterApplicationResolved;
 import dev.chojo.ember.event.events.ClusterApplicationSubmitted;
 import dev.chojo.ember.event.events.ClusterApplicationWithdrawn;
+import dev.chojo.ember.event.events.ClusterModuleDenied;
+import dev.chojo.ember.event.events.ClusterQuotaChanged;
 import dev.chojo.ember.event.events.ClusterStationReleased;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -27,6 +31,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 /**
@@ -138,5 +143,37 @@ class ClusterEventHandlerTest extends RepositoryTestBase {
                 .handle(new ClusterStationReleased(station.id(), "Kreisverband Egal"));
 
         verify(notificationService, never()).notifyIfAbsent(anyInt(), any(), any());
+    }
+
+    @Test
+    void aDeniedModuleReachesWhoeverManagesTheStationsModules() {
+        reset(notificationService);
+
+        new ClusterGovernanceHandler(notificationService)
+                .handle(new ClusterModuleDenied(7, "Kreisverband Streng", StationModule.QUIZ));
+
+        verify(notificationService)
+                .notifyMembersWithRole(
+                        eq(7),
+                        eq(StationPermission.STATION_MODULES.name()),
+                        eq(NotificationType.CLUSTER_MODULE_DENIED),
+                        any(NotificationData.class));
+    }
+
+    @Test
+    void aChangedQuotaReachesWhoeverRunsTheStation() {
+        reset(notificationService);
+        var handler = new ClusterQuotaChangedHandler(notificationService);
+
+        handler.handle(new ClusterQuotaChanged(7, "Kreisverband Platz", 5_000_000L));
+        // A quota handed back to the instance carries no figure, and still has to say something
+        handler.handle(new ClusterQuotaChanged(7, "Kreisverband Platz", null));
+
+        verify(notificationService, times(2))
+                .notifyMembersWithRole(
+                        eq(7),
+                        eq(StationPermission.STATION_MANAGER.name()),
+                        eq(NotificationType.CLUSTER_QUOTA_CHANGED),
+                        any(NotificationData.class));
     }
 }

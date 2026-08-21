@@ -11,6 +11,7 @@ import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
+import dev.chojo.ember.feature.storage.repository.ClusterStorageConfigRepository;
 import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -39,10 +40,15 @@ public class StorageBackendResolver {
 
     private final StorageBackendFactory factory;
     private final StationStorageConfigRepository overrideRepository;
+    private final ClusterStorageConfigRepository clusterOverrideRepository;
     private final Cache<Integer, Optional<StorageBackend>> overrideCache;
 
     @Inject
-    public StorageBackendResolver(StorageBackendFactory factory, StationStorageConfigRepository overrideRepository) {
+    public StorageBackendResolver(
+            StorageBackendFactory factory,
+            StationStorageConfigRepository overrideRepository,
+            ClusterStorageConfigRepository clusterOverrideRepository) {
+        this.clusterOverrideRepository = clusterOverrideRepository;
         this.factory = factory;
         this.overrideRepository = overrideRepository;
         this.overrideCache =
@@ -57,6 +63,7 @@ public class StorageBackendResolver {
     public StorageBackendResolver(LocalStorageBackend localBackend) {
         this.factory = new StorageBackendFactory(new Storage(), localBackend, null);
         this.overrideRepository = null;
+        this.clusterOverrideRepository = null;
         this.overrideCache =
                 Caffeine.newBuilder().maximumSize(MAX_CACHED_OVERRIDES).build();
     }
@@ -97,14 +104,38 @@ public class StorageBackendResolver {
     }
 
     /**
+     * Drops the cached override for several stations at once, which is what a change at their cluster needs.
+     *
+     * @param stationIds the stations whose resolved backend may have moved
+     */
+    public void invalidateStations(Iterable<Integer> stationIds) {
+        for (int stationId : stationIds) {
+            overrideCache.invalidate(stationId);
+        }
+    }
+
+    /**
      * Flushes the entire station-override cache.
      */
     public void invalidateAll() {
         overrideCache.invalidateAll();
     }
 
+    /**
+     * What a station's bytes go to: its own override, then its cluster's, then the instance default.
+     *
+     * <p>The cluster sits in the middle rather than above, because a station that has gone to the trouble of
+     * naming a backend meant it, cluster or no cluster. Cached alongside the station's own override under the
+     * same key, so a change at the cluster has to invalidate every member station: that is what
+     * {@code invalidateStations} is for.
+     */
     private Optional<StorageBackend> stationOverride(int stationId) {
-        return overrideCache.get(
-                stationId, id -> overrideRepository.findOne(id).map(row -> factory.buildForStation(row.config())));
+        return overrideCache.get(stationId, id -> {
+            Optional<StorageBackend> own =
+                    overrideRepository.findOne(id).map(row -> factory.buildForStation(row.config()));
+            if (own.isPresent()) return own;
+            if (clusterOverrideRepository == null) return Optional.empty();
+            return clusterOverrideRepository.findForStation(id).map(row -> factory.buildForStation(row.config()));
+        });
     }
 }

@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.board.repository.FederatedBoardRepository;
 import dev.chojo.ember.feature.checklist.repository.ChecklistRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterApplicationRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
+import dev.chojo.ember.feature.cluster.service.ClusterGovernanceService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.comment.repository.EventCommentRepository;
 import dev.chojo.ember.feature.comment.repository.NoteRepository;
@@ -99,6 +100,9 @@ import dev.chojo.ember.feature.restriction.repository.RestrictionRepository;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.feature.station.repository.StationApplicationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
+import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
+import dev.chojo.ember.feature.storage.repository.ClusterStorageConfigRepository;
 import dev.chojo.ember.feature.storage.repository.StorageBackendAuditRepository;
 import dev.chojo.ember.feature.storage.repository.StorageQuotaPresetRepository;
 import dev.chojo.ember.feature.storage.repository.StorageUsageRepository;
@@ -152,6 +156,8 @@ public abstract class RepositoryTestBase {
 
     /** Shared, because its dependency list grows with every step and no test cares about it. */
     protected static ClusterService clusterService;
+
+    protected static ClusterGovernanceService clusterGovernanceService;
 
     protected static ItemCustodyService itemCustodyService;
     protected static MovementFlowRepository movementFlowRepo;
@@ -289,11 +295,18 @@ public abstract class RepositoryTestBase {
                 itemMovementRepo, movementFlowService, inventoryRepo, itemCustodyService, new DomainEventBus(Set.of()));
         clusterItemReleaseService =
                 new ClusterItemReleaseService(inventoryRepo, itemCustodyService, itemMovementService);
+        clusterGovernanceService = new ClusterGovernanceService(
+                clusterRepo,
+                stationRepo,
+                new ClusterStorageConfigRepository(),
+                new StorageBackendResolver(new LocalStorageBackend()),
+                new DomainEventBus(Set.of()));
         clusterService = new ClusterService(
                 clusterRepo,
                 stationRepo,
                 clusterItemReleaseService,
                 new FederationService(new FederationRepository(), stationRepo, new Api()),
+                clusterGovernanceService,
                 new DomainEventBus(Set.of()));
         exchangeService = new ExchangeService(itemMovementService, inventoryRepo);
         memberGroupRepo = new MemberGroupRepository();

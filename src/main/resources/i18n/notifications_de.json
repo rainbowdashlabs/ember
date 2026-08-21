@@ -143,7 +143,9 @@
     "CLUSTER_APPLICATION_APPROVED": "Aufgenommen in {clusterName}",
     "CLUSTER_APPLICATION_DENIED": "Abgelehnt von {clusterName}",
     "CLUSTER_APPLICATION_WITHDRAWN": "Anfrage zurückgezogen: {stationName}",
-    "CLUSTER_STATION_RELEASED": "Aus {clusterName} entlassen"
+    "CLUSTER_STATION_RELEASED": "Aus {clusterName} entlassen",
+    "CLUSTER_MODULE_DENIED": "{module} vom Verband abgeschaltet",
+    "CLUSTER_QUOTA_CHANGED": "Neuer Speicherplatz: {quota}"
   },
   "digest": {
     "subject.one": "{stationName}: 1 neue Benachrichtigung",
@@ -184,7 +186,9 @@
     "CLUSTER_APPLICATION_APPROVED": "Beitritt bestätigt",
     "CLUSTER_APPLICATION_DENIED": "Beitritt abgelehnt",
     "CLUSTER_APPLICATION_WITHDRAWN": "Anfrage zurückgezogen",
-    "CLUSTER_STATION_RELEASED": "Aus dem Verband entlassen"
+    "CLUSTER_STATION_RELEASED": "Aus dem Verband entlassen",
+    "CLUSTER_MODULE_DENIED": "Modul abgeschaltet",
+    "CLUSTER_QUOTA_CHANGED": "Speicherplatz geändert"
   },
   "message": {
     "notification.newNews": "{title} - von {author}",
@@ -224,6 +228,8 @@
     "notification.clusterApplicationApproved": "Eure Wache gehört jetzt zu {clusterName}",
     "notification.clusterApplicationDenied": "{clusterName} hat die Anfrage abgelehnt: {reason}",
     "notification.clusterApplicationWithdrawn": "{stationName} hat die Beitrittsanfrage zurückgezogen",
-    "notification.clusterStationReleased": "{clusterName} hat eure Wache entlassen"
+    "notification.clusterStationReleased": "{clusterName} hat eure Wache entlassen",
+    "notification.clusterModuleDenied": "{clusterName} hat {module} für eure Wache abgeschaltet. Eure Daten dazu bleiben erhalten.",
+    "notification.clusterQuotaChanged": "{clusterName} hat euren Speicherplatz auf {quota} gesetzt"
   }
 }

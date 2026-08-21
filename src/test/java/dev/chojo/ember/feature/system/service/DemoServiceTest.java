@@ -208,7 +208,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 stationMemberRepo,
                 accountRepo,
                 federationService,
-                new StationMemberInviteService(stationMemberRepo, memberGroupRepo, accountRepo, authService));
+                new StationMemberInviteService(stationMemberRepo, memberGroupRepo, accountRepo, authService),
+                clusterRepo);
 
         var groupService =
                 new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo, new DomainEventBus(Set.of()));

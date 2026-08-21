@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.migration.MigrationException;
 import dev.chojo.ember.feature.storage.migration.MigrationLockRegistry;
+import dev.chojo.ember.feature.storage.repository.ClusterStorageConfigRepository;
 import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
@@ -83,7 +84,7 @@ class InstanceStorageMigrationServiceTest extends RepositoryTestBase {
         setField(StorageBackendSettings.LocalSettings.class, storage.backend().local(), "root", sourceRoot.toString());
 
         factory = new SwappableFactory(storage, sourceBackend, cipher);
-        var resolver = new StorageBackendResolver(factory, storageConfigRepo);
+        var resolver = new StorageBackendResolver(factory, storageConfigRepo, new ClusterStorageConfigRepository());
         storageService = new StorageService(resolver, sourceBackend);
 
         locks = new MigrationLockRegistry();

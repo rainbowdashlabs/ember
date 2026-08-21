@@ -55,6 +55,7 @@ public class ClusterService {
     private final StationRepository stationRepository;
     private final ClusterItemReleaseService itemReleaseService;
     private final FederationService federationService;
+    private final ClusterGovernanceService governanceService;
     private final DomainEventBus eventBus;
 
     @Inject
@@ -63,11 +64,13 @@ public class ClusterService {
             StationRepository stationRepository,
             ClusterItemReleaseService itemReleaseService,
             FederationService federationService,
+            ClusterGovernanceService governanceService,
             DomainEventBus eventBus) {
         this.clusterRepository = clusterRepository;
         this.stationRepository = stationRepository;
         this.itemReleaseService = itemReleaseService;
         this.federationService = federationService;
+        this.governanceService = governanceService;
         this.eventBus = eventBus;
     }
 
@@ -169,6 +172,7 @@ public class ClusterService {
         }
 
         stationRepository.setCluster(stationId, clusterId);
+        governanceService.applyLookTo(cluster, station);
         federationService.createClusterFederation(
                 cluster.homeStationId(),
                 stationId,

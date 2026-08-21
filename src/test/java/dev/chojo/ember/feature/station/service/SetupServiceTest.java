@@ -54,7 +54,8 @@ class SetupServiceTest extends RepositoryTestBase {
                 accountRepo,
                 mock(FederationService.class),
                 new StationMemberInviteService(
-                        stationMemberRepo, memberGroupRepo, accountRepo, mock(AuthService.class)));
+                        stationMemberRepo, memberGroupRepo, accountRepo, mock(AuthService.class)),
+                clusterRepo);
         setupService = new SetupService(
                 stationRepo,
                 stationMailProviderRepo,

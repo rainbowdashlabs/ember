@@ -10,6 +10,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.members.entity.Permission;
@@ -29,6 +30,7 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -47,6 +49,7 @@ public class StationService {
     private final AccountRepository accountRepository;
     private final FederationService federationService;
     private final StationMemberInviteService inviteService;
+    private final ClusterRepository clusterRepository;
 
     @Inject
     public StationService(
@@ -54,12 +57,14 @@ public class StationService {
             StationMemberRepository memberRepository,
             AccountRepository accountRepository,
             FederationService federationService,
-            StationMemberInviteService inviteService) {
+            StationMemberInviteService inviteService,
+            ClusterRepository clusterRepository) {
         this.stationRepository = stationRepository;
         this.memberRepository = memberRepository;
         this.accountRepository = accountRepository;
         this.federationService = federationService;
         this.inviteService = inviteService;
+        this.clusterRepository = clusterRepository;
     }
 
     /**
@@ -294,7 +299,25 @@ public class StationService {
      * Checks whether a module is enabled for a station.
      */
     public boolean isModuleEnabled(int stationId, StationModule module) {
+        // A cluster's denial outranks the station's own answer, whichever way that answer went
+        if (clusterRepository.isModuleDeniedForStation(stationId, module)) return false;
         return !stationRepository.findDisabledModules(stationId).contains(module);
+    }
+
+    /**
+     * The modules the station's cluster has switched off, which it cannot turn back on.
+     *
+     * <p>Separate from {@link #isModuleEnabled(int, StationModule)} because the station's own screen has to
+     * show them differently: locked with the cluster named, rather than simply off.
+     *
+     * @param stationId the station
+     * @return what its cluster denies, empty when it answers to no cluster
+     */
+    public Set<StationModule> findClusterDeniedModules(int stationId) {
+        return clusterRepository
+                .findByStation(stationId)
+                .map(cluster -> clusterRepository.findDeniedModules(cluster.id()))
+                .orElseGet(() -> EnumSet.noneOf(StationModule.class));
     }
 
     /**

@@ -54,6 +54,22 @@ watch(
           {{ t('clusterSidebar.applications') }}
         </SidebarLink>
       </SidebarGroup>
+
+      <SidebarGroup :icon="['fas', 'gear']" :label="t('clusterSidebar.governance')"
+                    prefix="/helpcenter/cluster/governance">
+        <SidebarLink :icon="['fas', 'puzzle-piece']" name="help-cluster-modules"
+                     to="/helpcenter/cluster/modules" @navigate="close">
+          {{ t('clusterSidebar.modules') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'palette']" name="help-cluster-look-and-feel"
+                     to="/helpcenter/cluster/look-and-feel" @navigate="close">
+          {{ t('clusterSidebar.lookAndFeel') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'hard-drive']" name="help-cluster-storage"
+                     to="/helpcenter/cluster/storage" @navigate="close">
+          {{ t('clusterSidebar.storage') }}
+        </SidebarLink>
+      </SidebarGroup>
     </template>
 
     <slot/>

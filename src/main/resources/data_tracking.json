@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:1c54223242d2b42a68356722a4aaf4f51c571cf51dd44dc9ba858818e928e71a",
-  "generatedAt" : "2026-08-21T00:56:22Z",
+  "schemaHash" : "sha256:cc4d6f918bada13c23226171c06cd550cd73f5dc7074620f9780f5dcf2b216d3",
+  "generatedAt" : "2026-08-21T01:32:51Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -2882,7 +2882,7 @@
     "cluster" : {
       "feature" : "cluster",
       "scope" : "INSTANCE",
-      "tableHash" : "sha256:c9d4ddd7e93c129cffbbbcd778b1033576d6a02c761c5146dfcd5d5f4cfc3796",
+      "tableHash" : "sha256:568d36e50a879c2a444511726a46d52c062f81d21997c6776f53e3a789a2fa30",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -2955,6 +2955,24 @@
         "nullable" : false,
         "verified" : true,
         "description" : "When the cluster was created."
+      }, {
+        "name" : "default_theme",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The colour theme the cluster hands its stations, or null when it does not care."
+      }, {
+        "name" : "custom_theme_colors",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The cluster's own colour set, in the same shape a station keeps its own."
+      }, {
+        "name" : "default_feel",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The interface feel the cluster hands its stations, or null when it does not care."
       } ],
       "foreignKeys" : [ {
         "column" : "home_station_id",
@@ -3077,6 +3095,43 @@
         } ]
       },
       "description" : "A station owner asking to join a cluster. One row per station and cluster, whatever became of it."
+    },
+    "cluster_denied_module" : {
+      "feature" : "cluster",
+      "scope" : "INSTANCE",
+      "tableHash" : "sha256:b7031c25d57684a9e4f51fe0e22757e03a126f905238e995b0641fd48f226424",
+      "columns" : [ {
+        "name" : "cluster_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The cluster doing the denying."
+      }, {
+        "name" : "module",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The module name, matching the values a station uses for its own switched-off modules."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "cluster_id",
+        "refTable" : "cluster",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster-level, not station-scoped. A station carries no cluster with it when it moves instance"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Names no person: a rule the cluster set about its stations"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Names no person, so an account leaving has nothing to remove here"
+      },
+      "description" : "Modules a cluster switches off for all of its stations. A station cannot turn a denied module back on."
     },
     "cluster_member" : {
       "feature" : "cluster",
@@ -3339,6 +3394,61 @@
         "reason" : "Cluster configuration, holds no personal data"
       },
       "description" : "The permissions a cluster member can hold."
+    },
+    "cluster_storage_config" : {
+      "feature" : "cluster",
+      "scope" : "INSTANCE",
+      "tableHash" : "sha256:ca91826428e87a1181a9a65049913c2c54d573b5d0fff6a53a940277a6be4329",
+      "columns" : [ {
+        "name" : "cluster_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The cluster this backend belongs to."
+      }, {
+        "name" : "backend_type",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Discriminator for the typed backend configuration carried in config."
+      }, {
+        "name" : "config",
+        "type" : "jsonb",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The typed backend configuration, encrypted where it carries credentials."
+      }, {
+        "name" : "created_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the override was first set."
+      }, {
+        "name" : "updated_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When it was last changed."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "cluster_id",
+        "refTable" : "cluster",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster-level, not station-scoped. A station carries no cluster with it when it moves instance"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Names no person: a rule the cluster set about its stations"
+      },
+      "gdprDeletion" : {
+        "status" : "IGNORED",
+        "reason" : "Names no person, so an account leaving has nothing to remove here"
+      },
+      "description" : "A cluster's own storage backend, used by its stations unless a station has an override of its own."
     },
     "cluster_user_type_permission" : {
       "feature" : "cluster",
