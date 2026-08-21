@@ -10,6 +10,7 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
+import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.contract.FederationRequest;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
@@ -19,9 +20,11 @@ import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
 import dev.chojo.ember.feature.federation.service.FederationFanout;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
+import dev.chojo.ember.feature.media.MediaTestSupport;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.news.entity.News;
 import dev.chojo.ember.feature.news.entity.NewsVisibilityRole;
+import dev.chojo.ember.feature.news.repository.NewsAttachmentRepository;
 import dev.chojo.ember.feature.news.repository.NewsFederationRepository;
 import dev.chojo.ember.feature.news.service.NewsFederationService.FederatedCommentAuthor;
 import dev.chojo.ember.feature.news.service.NewsFederationService.FederatedNewsData;
@@ -78,7 +81,14 @@ class NewsFederationServiceTest extends RepositoryTestBase {
         httpClient = mock(FederationHttpClient.class);
         var eventBus = new DomainEventBus(Set.of());
         newsService = new NewsService(
-                newsRepo, restrictionService, eventBus, stationMemberRepo, memberLookupService, accountRepo);
+                newsRepo,
+                new ContentBlockService(contentContainerRepo),
+                stationRepo,
+                restrictionService,
+                eventBus,
+                stationMemberRepo,
+                memberLookupService,
+                accountRepo);
 
         service = new NewsFederationService(
                 fedRepo,
@@ -87,6 +97,12 @@ class NewsFederationServiceTest extends RepositoryTestBase {
                 httpClient,
                 stationRepo,
                 newsService,
+                new NewsAttachmentService(
+                        new NewsAttachmentRepository(),
+                        MediaTestSupport.library(
+                                stationRepo, contentContainerRepo, mediaFileRepo, mediaMetaRepo, storageUsageRepo),
+                        stationRepo,
+                        new Api()),
                 eventFederationRepo,
                 memberNameResolver,
                 new FederationFanout(),

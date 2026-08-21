@@ -5,8 +5,10 @@
  */
 package dev.chojo.ember.feature.news.service;
 
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -35,6 +37,8 @@ class NewsServiceTest extends RepositoryTestBase {
     static void setup() {
         service = new NewsService(
                 newsRepo,
+                new ContentBlockService(contentContainerRepo),
+                stationRepo,
                 restrictionService,
                 new DomainEventBus(Set.of()),
                 stationMemberRepo,
@@ -265,5 +269,129 @@ class NewsServiceTest extends RepositoryTestBase {
     void delete() {
         assertTrue(service.delete(newsId));
         assertTrue(service.findById(newsId).isEmpty());
+    }
+
+    /**
+     * An entry the instance publishes to every station at once.
+     *
+     * <p>It belongs to no station and has no author, which is the whole of what makes it a system
+     * entry, and it turns up in a station's own list beside what that station wrote.
+     */
+    @Test
+    @Order(40)
+    void aSystemEntryBelongsToNoStationAndIsReadInOne() {
+        var entry = service.createSystem(
+                "Wartungsarbeiten",
+                "Am Freitag kurz nicht erreichbar.",
+                "<p>Kurz nicht erreichbar.</p>",
+                List.of(),
+                true,
+                false);
+        try {
+            assertTrue(entry.systemEntry());
+            assertNull(entry.author());
+            assertTrue(service.isVisibleForMember(entry.id(), member.id()));
+            assertTrue(
+                    service.findVisibleForMember(station.id(), member.id(), 0, 50).stream()
+                            .anyMatch(n -> n.id() == entry.id()),
+                    "the station reads it alongside its own");
+            assertTrue(
+                    service.findSystem(0, 50).stream().anyMatch(n -> n.id() == entry.id()),
+                    "the instance sees what it has published");
+        } finally {
+            service.delete(entry.id());
+        }
+    }
+
+    /**
+     * A system entry restricted to a user type the member does not have is not theirs to read, and
+     * the restriction holds when the entry is asked for by id rather than listed.
+     */
+    @Test
+    @Order(41)
+    void aSystemEntryRestrictedToAnotherUserTypeIsNotVisible() {
+        var entry = service.createSystem(
+                "Nur Betreuer",
+                "Für die Leitung.",
+                "<p>Für die Leitung.</p>",
+                List.of(StationUserType.MANAGER),
+                true,
+                false);
+        try {
+            assertFalse(
+                    service.isVisibleForMember(entry.id(), member.id()),
+                    "a member who is not of that type does not read it");
+        } finally {
+            service.delete(entry.id());
+        }
+    }
+
+    /**
+     * Under a system entry every station talks at once, and a station is shown its own part of the
+     * conversation while the instance reads the whole of it.
+     */
+    @Test
+    @Order(42)
+    void commentsUnderASystemEntryAreSeparatedByStation() {
+        var otherStation = stationRepo.create("Other System Station");
+        var otherAccount = accountRepo.create("other-system@test.com", "Other", "Commenter");
+        var otherMember = stationMemberRepo.create(otherStation.id(), otherAccount.id());
+        var entry = service.createSystem("Frage", "Was denn?", "<p>Was denn?</p>", List.of(), true, false);
+        try {
+            service.createComment(
+                    station.id(), entry.id(), null, stationMemberRepo.resolveIdentity(member.id()), "Hier", "Von uns");
+            service.createComment(
+                    otherStation.id(),
+                    entry.id(),
+                    null,
+                    stationMemberRepo.resolveIdentity(otherMember.id()),
+                    "Dort",
+                    "Von denen");
+
+            assertEquals(2, service.findComments(entry.id()).size(), "the instance reads every station's");
+            assertEquals(
+                    1,
+                    service.findCommentsForStation(entry.id(), stationRepo.resolveUid(station.id()))
+                            .size(),
+                    "a station reads only its own");
+        } finally {
+            service.delete(entry.id());
+            stationRepo.delete(otherStation.id());
+            accountRepo.delete(otherAccount.id());
+        }
+    }
+
+    /**
+     * Notifying is asked for rather than assumed, and when it is asked for every station is told:
+     * the entry is one row, but a notification is addressed to somebody.
+     */
+    @Test
+    @Order(43)
+    void askingForANotificationTellsEveryStation() {
+        var published = new java.util.ArrayList<Object>();
+        var notifyingService = new NewsService(
+                newsRepo,
+                new ContentBlockService(contentContainerRepo),
+                stationRepo,
+                restrictionService,
+                new DomainEventBus(Set.of()) {
+                    @Override
+                    public void publish(dev.chojo.ember.event.DomainEvent event) {
+                        published.add(event);
+                    }
+                },
+                stationMemberRepo,
+                memberLookupService,
+                accountRepo);
+        var quiet = notifyingService.createSystem("Leise", "Nichts.", "<p>Nichts.</p>", List.of(), true, false);
+        int afterQuiet = published.size();
+        var loud = notifyingService.createSystem("Laut", "Etwas.", "<p>Etwas.</p>", List.of(), true, true);
+        try {
+            assertEquals(0, afterQuiet, "a quiet entry tells nobody");
+            assertTrue(published.size() >= 1, "a loud one tells the stations");
+        } finally {
+            service.delete(quiet.id());
+            service.delete(loud.id());
+        }
     }
 }

@@ -18,6 +18,13 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.entity.MentionType;
+import dev.chojo.ember.feature.content.entity.CellConfig;
+import dev.chojo.ember.feature.content.entity.CellContentType;
+import dev.chojo.ember.feature.content.entity.ContentMode;
+import dev.chojo.ember.feature.content.entity.ContentRow;
+import dev.chojo.ember.feature.content.service.ContentBlockService;
+import dev.chojo.ember.feature.content.service.ContentProjection;
+import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberLookupService;
 import dev.chojo.ember.feature.news.entity.News;
@@ -29,6 +36,9 @@ import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionSet;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
+import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.util.Markdown;
+import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -52,6 +62,15 @@ public class NewsService {
             Pattern.compile("@\\[(GROUP|EVENT|REGISTERED|DECLINED):([^:]+):(\\d+)]");
 
     private final NewsRepository newsRepository;
+    private final ContentBlockService blocks;
+    /**
+     * What a system entry is shown as having been written by. The instance is not a member of any
+     * station, so there is no identity to resolve and no avatar to draw: the product's own name
+     * stands in, and the badge beside it says the rest.
+     */
+    public static final String SYSTEM_AUTHOR_NAME = "Ember";
+
+    private final StationRepository stationRepository;
     private final RestrictionService restrictionService;
     private final DomainEventBus eventBus;
     private final StationMemberRepository stationMemberRepository;
@@ -61,12 +80,16 @@ public class NewsService {
     @Inject
     public NewsService(
             NewsRepository newsRepository,
+            ContentBlockService blocks,
+            StationRepository stationRepository,
             RestrictionService restrictionService,
             DomainEventBus eventBus,
             StationMemberRepository stationMemberRepository,
             MemberLookupService memberLookupService,
             AccountRepository accountRepository) {
         this.newsRepository = newsRepository;
+        this.blocks = blocks;
+        this.stationRepository = stationRepository;
         this.restrictionService = restrictionService;
         this.eventBus = eventBus;
         this.stationMemberRepository = stationMemberRepository;
@@ -143,6 +166,86 @@ public class NewsService {
         eventBus.publish(new NewsCreated(stationId, news.id(), title, authorName, previewOf(contentMarkdown)));
         log.info("Created news {} on station {}", news.id(), stationId);
         return news;
+    }
+
+    /**
+     * Publishes an entry from the instance to every station at once.
+     *
+     * <p>It carries no author and no station: it is shown as coming from the instance itself. The
+     * restrictions it takes are user types alone, because groups, tags and single members are
+     * things one station has and the entry is read in all of them.
+     *
+     * <p>Notifying is asked for rather than assumed. Most of what an instance has to say is a
+     * notice people meet when they next look, and waking every member of every station for it would
+     * teach them to ignore the ones that matter.
+     *
+     * @param title           entry title
+     * @param contentMarkdown entry body in Markdown
+     * @param contentHtml     entry body as HTML
+     * @param userTypes       the user types that may read it, or empty for everyone
+     * @param publish         whether it is published straight away
+     * @param notify          whether members are notified of it
+     * @return the newly created entry
+     */
+    public News createSystem(
+            String title,
+            String contentMarkdown,
+            String contentHtml,
+            List<StationUserType> userTypes,
+            boolean publish,
+            boolean notify) {
+        var news = newsRepository.createSystem(title, contentMarkdown, contentHtml, publish);
+        setRestrictions(news.id(), new RestrictionSelection(userTypes, List.of(), List.of(), List.of(), null));
+        if (publish && notify) {
+            notifySystemEntry(news, title, contentMarkdown);
+        }
+        log.info("Created system news {}", news.id());
+        return news;
+    }
+
+    /**
+     * Tells every station about a system entry, one station at a time, because that is what a
+     * notification is addressed to. The entry itself is still the single row they all read.
+     */
+    private void notifySystemEntry(News news, String title, String contentMarkdown) {
+        for (var station : stationRepository.findAll()) {
+            eventBus.publish(
+                    new NewsCreated(station.id(), news.id(), title, SYSTEM_AUTHOR_NAME, previewOf(contentMarkdown)));
+        }
+    }
+
+    /**
+     * The entries the instance has published, newest first.
+     *
+     * @param offset pagination offset
+     * @param limit  maximum number of results
+     * @return the system entries
+     */
+    public List<News> findSystem(int offset, int limit) {
+        return newsRepository.findSystem(offset, limit);
+    }
+
+    /**
+     * Whether one member may read one entry, restrictions and all.
+     *
+     * @param newsId   the news article ID
+     * @param memberId the member reading it
+     * @return {@code true} if the entry is visible to that member
+     */
+    public boolean isVisibleForMember(int newsId, int memberId) {
+        return newsRepository.isVisibleForMember(newsId, memberId);
+    }
+
+    /**
+     * The comments on an entry that were written from one station. A station reads its own part of
+     * the conversation under a system entry; the instance reads all of it.
+     *
+     * @param newsId     the news article ID
+     * @param stationUid the station whose comments to return
+     * @return the comments written from that station
+     */
+    public List<NewsComment> findCommentsForStation(int newsId, UUID stationUid) {
+        return newsRepository.findCommentsByNewsForStation(newsId, stationUid);
     }
 
     /**
@@ -234,6 +337,79 @@ public class NewsService {
         return newsRepository.hasPublicBlogEntries(stationId);
     }
 
+    // --- Blocks ---
+
+    /**
+     * Turns a plain entry into one built from blocks, putting what the author already wrote into a
+     * single markdown block. Nothing is parsed and nothing is lost.
+     *
+     * <p>The switch is one way. An author who wants the plain editor back copies the text into a
+     * new entry, which keeps the stored text of a rich entry derived: there is no path where
+     * somebody edits the projection and expects the blocks to follow.
+     */
+    public Optional<News> switchToRich(int id) {
+        var news = newsRepository.findById(id).orElse(null);
+        if (news == null) return Optional.empty();
+        if (news.contentMode() == ContentMode.RICH) return Optional.of(news);
+
+        // A system entry belongs to no station, and neither do its blocks: it is read in every
+        // station, so a container hanging off one of them would be the wrong owner and, since no
+        // station carries the id a system entry reads as, no owner at all.
+        var container = blocks.create(news.systemEntry() ? null : news.stationId());
+        String existing = news.contentMarkdown() == null ? "" : news.contentMarkdown();
+        if (!existing.isBlank()) {
+            blocks.save(
+                    container.id(),
+                    List.of(new ContentBlockService.RowData(
+                            0,
+                            List.of(new ContentBlockService.CellData(
+                                    0, 100.0, CellContentType.MARKDOWN, existing, CellConfig.EMPTY)))),
+                    ContentBlockService.Scope.ARTICLE);
+        }
+        if (!newsRepository.setRichMode(id, container.id())) {
+            blocks.delete(container.id());
+            return Optional.empty();
+        }
+        log.info("News {} switched to rich mode with container {}", id, container.id());
+        return newsRepository.findById(id);
+    }
+
+    /**
+     * The blocks of a rich entry, in reading order.
+     */
+    public List<ContentRow> loadBlocks(News news) {
+        if (news.containerId() == null) return List.of();
+        return blocks.loadRows(news.containerId());
+    }
+
+    /**
+     * Saves the blocks of a rich entry and rewrites the stored text from them.
+     *
+     * <p>The projection runs on every save, including a save that only reorders blocks: a stale
+     * projection means a stale search summary, a stale notification preview and a stale feed.
+     */
+    public Optional<News> saveBlocks(int id, List<ContentBlockService.RowData> rows) {
+        var news = newsRepository.findById(id).orElse(null);
+        if (news == null) return Optional.empty();
+        if (news.contentMode() != ContentMode.RICH || news.containerId() == null) {
+            throw new BadRequestResponse("This entry is not built from blocks");
+        }
+
+        blocks.save(news.containerId(), rows, ContentBlockService.Scope.ARTICLE);
+
+        // The pictures of a system entry come out of the instance library, which is addressed by
+        // the literal scope rather than through a station: the entry is read in stations that hold
+        // no copy of the file.
+        String mediaScope = news.systemEntry()
+                ? MediaLibraryService.INSTANCE_SCOPE
+                : String.valueOf(stationRepository.resolveUid(news.stationId()));
+        String markdown = ContentProjection.toMarkdown(
+                blocks.loadRows(news.containerId()), hash -> "/api/v1/public/media/" + mediaScope + "/" + hash);
+        newsRepository.update(id, news.title(), markdown, Markdown.toHtml(markdown));
+        log.info("News {} blocks saved and projected ({} rows)", id, rows.size());
+        return newsRepository.findById(id);
+    }
+
     public boolean delete(int id) {
         var news = newsRepository.findById(id).orElse(null);
         if (news == null) {
@@ -241,6 +417,8 @@ public class NewsService {
             return false;
         }
         if (newsRepository.delete(id)) {
+            // The container is the owned side, so nothing cleans it up for us.
+            blocks.delete(news.containerId());
             eventBus.publish(new NewsDeleted(news.stationId(), id, news.title()));
             log.info("Deleted news {} on station {}", id, news.stationId());
             return true;

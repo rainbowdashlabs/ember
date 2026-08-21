@@ -5,19 +5,22 @@
  */
 package dev.chojo.ember.feature.knowledgebase.service;
 
+import dev.chojo.ember.feature.content.entity.CellConfig;
+import dev.chojo.ember.feature.content.entity.CellContentType;
+import dev.chojo.ember.feature.content.entity.ContentMode;
+import dev.chojo.ember.feature.content.entity.ContentRow;
+import dev.chojo.ember.feature.content.service.ContentBlockService;
+import dev.chojo.ember.feature.content.service.ContentProjection;
+import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
+import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileVersion;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
-import dev.chojo.ember.util.HtmlSanitizer;
+import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.util.Markdown;
 import dev.chojo.ember.util.TextDiff;
+import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import org.commonmark.Extension;
-import org.commonmark.ext.autolink.AutolinkExtension;
-import org.commonmark.ext.gfm.strikethrough.StrikethroughExtension;
-import org.commonmark.ext.gfm.tables.TablesExtension;
-import org.commonmark.ext.heading.anchor.HeadingAnchorExtension;
-import org.commonmark.parser.Parser;
-import org.commonmark.renderer.html.HtmlRenderer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,25 +40,23 @@ public class KbContentService {
     private static final Logger log = LoggerFactory.getLogger(KbContentService.class);
 
     private final KnowledgeBaseRepository repository;
+    private final ContentBlockService blocks;
+    private final StationRepository stationRepository;
     private final KbFileStorageService fileStorage;
     private final KbSearchService searchService;
-    private final Parser markdownParser;
-    private final HtmlRenderer htmlRenderer;
 
     @Inject
     public KbContentService(
-            KnowledgeBaseRepository repository, KbFileStorageService fileStorage, KbSearchService searchService) {
+            KnowledgeBaseRepository repository,
+            ContentBlockService blocks,
+            StationRepository stationRepository,
+            KbFileStorageService fileStorage,
+            KbSearchService searchService) {
         this.repository = repository;
+        this.blocks = blocks;
+        this.stationRepository = stationRepository;
         this.fileStorage = fileStorage;
         this.searchService = searchService;
-        List<Extension> extensions = List.of(
-                TablesExtension.create(),
-                HeadingAnchorExtension.create(),
-                AutolinkExtension.create(),
-                StrikethroughExtension.create());
-        this.markdownParser = Parser.builder().extensions(extensions).build();
-        this.htmlRenderer =
-                HtmlRenderer.builder().extensions(extensions).sanitizeUrls(true).build();
     }
 
     /**
@@ -75,8 +76,7 @@ public class KbContentService {
      * @return the rendered HTML
      */
     public String renderMarkdown(String markdown) {
-        var document = markdownParser.parse(markdown);
-        return HtmlSanitizer.sanitize(htmlRenderer.render(document), HtmlSanitizer.Policy.RICH);
+        return Markdown.toHtml(markdown);
     }
 
     /**
@@ -157,6 +157,82 @@ public class KbContentService {
         repository.createVersion(fileId, patch, false, nextVersion, updatedBy);
         searchService.reindex(fileId, newContent);
         log.info("KB file {} content updated to version {} by member {}", fileId, nextVersion, updatedBy);
+    }
+
+    // --- Blocks ---
+
+    /**
+     * Turns a plain markdown article into one built from blocks, putting what the author already
+     * wrote into a single markdown block.
+     *
+     * <p>The switch is one way, and the file type stays {@code MARKDOWN}: a rich article is still
+     * an article, and a new type would ripple through detection, icons, exportability and every
+     * switch on the type for no gain.
+     */
+    public Optional<KbFile> switchToRich(int fileId) {
+        var file = repository.findFileById(fileId).orElse(null);
+        if (file == null) return Optional.empty();
+        if (file.contentMode() == ContentMode.RICH) return Optional.of(file);
+        if (file.fileType() != KbFileType.MARKDOWN) {
+            throw new BadRequestResponse("Only a markdown article can be built from blocks");
+        }
+
+        var container = blocks.create(file.stationId());
+        String existing = repository.readTextContent(fileId).orElse("");
+        if (!existing.isBlank()) {
+            blocks.save(
+                    container.id(),
+                    List.of(new ContentBlockService.RowData(
+                            0,
+                            List.of(new ContentBlockService.CellData(
+                                    0, 100.0, CellContentType.MARKDOWN, existing, CellConfig.EMPTY)))),
+                    ContentBlockService.Scope.ARTICLE);
+        }
+        if (!repository.setRichMode(fileId, container.id())) {
+            blocks.delete(container.id());
+            return Optional.empty();
+        }
+        log.info("KB file {} switched to rich mode with container {}", fileId, container.id());
+        return repository.findFileById(fileId);
+    }
+
+    /**
+     * The blocks a rich article is built from, in reading order.
+     */
+    public List<ContentRow> loadBlocks(KbFile file) {
+        if (file.containerId() == null) return List.of();
+        return blocks.loadRows(file.containerId());
+    }
+
+    /**
+     * Saves the blocks of a rich article and stores the projection of them as the article's body.
+     *
+     * <p>It goes through the same store as a hand-written body, so the search index, the version
+     * history and the PDF export stay exactly where they are and need to learn nothing about
+     * blocks. That is the whole point of storing the projection.
+     */
+    public Optional<KbFile> saveBlocks(int fileId, List<ContentBlockService.RowData> rows, int updatedBy) {
+        var file = repository.findFileById(fileId).orElse(null);
+        if (file == null) return Optional.empty();
+        if (file.contentMode() != ContentMode.RICH || file.containerId() == null) {
+            throw new BadRequestResponse("This article is not built from blocks");
+        }
+
+        blocks.save(file.containerId(), rows, ContentBlockService.Scope.ARTICLE);
+
+        var stationUid = stationRepository.resolveUid(file.stationId());
+        String markdown = ContentProjection.toMarkdown(
+                blocks.loadRows(file.containerId()), hash -> "/api/v1/public/media/" + stationUid + "/" + hash);
+        updateMarkdownContent(fileId, markdown, updatedBy);
+        return repository.findFileById(fileId);
+    }
+
+    /**
+     * Deletes the blocks of an article. The container is the owned side, so whatever deletes the
+     * article has to say so.
+     */
+    public void deleteBlocks(KbFile file) {
+        blocks.delete(file.containerId());
     }
 
     /**

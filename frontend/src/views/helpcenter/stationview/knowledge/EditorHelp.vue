@@ -75,6 +75,11 @@ Normaler Absatztext darunter.`)
       <p>{{ t('helpCenter.kb.editor.whatIsText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.kb.editor.blocksTitle')">
+      <p>{{ t('helpCenter.kb.editor.blocksText') }}</p>
+      <p>{{ t('helpCenter.kb.editor.blocksKeepsText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.kb.editor.toolbarTitle')">
       <p>{{ t('helpCenter.kb.editor.toolbarText') }}</p>
       <DummyToolbar class="mt-3" />

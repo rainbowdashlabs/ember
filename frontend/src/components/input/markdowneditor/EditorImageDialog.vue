@@ -11,29 +11,17 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 
 defineProps<{
-  fileId?: number
   position: { top: number; left: number }
 }>()
 
-const emit = defineEmits<{
+defineEmits<{
   insertUrl: [url: string, alt: string]
-  uploadFile: [file: File, alt: string]
+  browse: [alt: string]
   cancel: []
 }>()
 
 const imageUrl = ref('')
 const imageAlt = ref('')
-const uploading = ref(false)
-const fileInput = ref<HTMLInputElement | null>(null)
-
-async function handleUpload(event: Event) {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  if (!file) return
-  uploading.value = true
-  emit('uploadFile', file, imageAlt.value || file.name)
-  input.value = ''
-}
 </script>
 
 <template>
@@ -59,14 +47,12 @@ async function handleUpload(event: Event) {
       <TextInput v-model="imageUrl" placeholder="https://..." class="!text-sm" />
     </div>
 
-    <input ref="fileInput" type="file" accept="image/png,image/jpeg,image/webp" class="hidden" @change="handleUpload" />
-
     <div class="flex items-center gap-2">
       <PrimaryButton compact v-if="imageUrl" @click="$emit('insertUrl', imageUrl, imageAlt)">
         <font-awesome-icon :icon="['fas', 'check']" class="mr-1" /> Einfügen
       </PrimaryButton>
-      <SecondaryButton compact v-if="fileId" :disabled="uploading" @click="fileInput?.click()">
-        <font-awesome-icon :icon="['fas', uploading ? 'spinner' : 'upload']" :spin="uploading" class="mr-1" /> Hochladen
+      <SecondaryButton compact @click="$emit('browse', imageAlt)">
+        <font-awesome-icon :icon="['fas', 'folder-open']" class="mr-1" /> Medien
       </SecondaryButton>
       <SecondaryButton compact @click="$emit('cancel')">Abbrechen</SecondaryButton>
     </div>

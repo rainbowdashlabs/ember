@@ -98,6 +98,32 @@ const {t} = useI18n()
       </div>
     </NeutralContainer>
 
+    <HelpSection :title="t('helpCenter.newsEdit.blocksTitle')">
+      <p>{{ t('helpCenter.newsEdit.blocksText') }}</p>
+      <p>{{ t('helpCenter.newsEdit.blocksOneWayText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.newsEdit.attachmentsTitle')">
+      <p>{{ t('helpCenter.newsEdit.attachmentsText') }}</p>
+      <p>{{ t('helpCenter.newsEdit.attachmentsTravelText') }}</p>
+    </HelpSection>
+
+    <!-- Dummy: Attachments -->
+    <NeutralContainer class="space-y-3">
+      <SubHeader>{{ t('news.attachments') }}</SubHeader>
+      <p class="text-xs text-(--text-muted)">{{ t('news.attachmentsHint') }}</p>
+      <div class="flex items-center gap-2 rounded-lg border border-bg-light-accent dark:border-bg-dark-accent p-2">
+        <font-awesome-icon :icon="['fas', 'paperclip']" class="w-3.5 h-3.5 text-(--text-muted)"/>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm truncate">Protokoll_Mai.pdf</p>
+          <p class="text-xs text-(--text-muted)">248 KB</p>
+        </div>
+        <div class="rounded-lg border border-bg-light-accent dark:border-bg-dark-accent px-3 py-1.5 text-xs text-(--text-muted)">
+          Protokoll der Sitzung
+        </div>
+      </div>
+    </NeutralContainer>
+
     <HelpSection :title="t('helpCenter.newsEdit.federationTitle')">
       <p>{{ t('helpCenter.newsEdit.federationText') }}</p>
     </HelpSection>

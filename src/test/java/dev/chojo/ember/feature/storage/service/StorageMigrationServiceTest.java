@@ -136,8 +136,8 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
 
     private String storeOnSource(Station station, String key, byte[] payload) {
         var scope = new StorageScope.Station(station.id(), station.uid());
-        storageService.store(scope, StorageCategory.PAGE_FILES, key, payload, "text/plain");
-        return scope.prefix() + "/" + StorageCategory.PAGE_FILES.prefix() + "/" + key;
+        storageService.store(scope, StorageCategory.MEDIA_FILES, key, payload, "text/plain");
+        return scope.prefix() + "/" + StorageCategory.MEDIA_FILES.prefix() + "/" + key;
     }
 
     /**
@@ -213,7 +213,7 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
         Station station = newStation("Station Migration Categories");
         var scope = new StorageScope.Station(station.id(), station.uid());
         storageService.store(
-                scope, StorageCategory.PAGE_FILES, "a.txt", "a".getBytes(StandardCharsets.UTF_8), "text/plain");
+                scope, StorageCategory.MEDIA_FILES, "a.txt", "a".getBytes(StandardCharsets.UTF_8), "text/plain");
         storageService.store(
                 scope, StorageCategory.KB_FILES, "b.txt", "b".getBytes(StandardCharsets.UTF_8), "text/plain");
         storageService.store(
@@ -227,7 +227,7 @@ class StorageMigrationServiceTest extends RepositoryTestBase {
         assertTrue(targetBackend
                 .listByPrefix(scope.prefix())
                 .containsAll(List.of(
-                        scope.prefix() + "/" + StorageCategory.PAGE_FILES.prefix() + "/a.txt",
+                        scope.prefix() + "/" + StorageCategory.MEDIA_FILES.prefix() + "/a.txt",
                         scope.prefix() + "/" + StorageCategory.KB_FILES.prefix() + "/b.txt",
                         scope.prefix() + "/" + StorageCategory.BOARD_ATTACHMENTS.prefix() + "/c.txt")));
     }

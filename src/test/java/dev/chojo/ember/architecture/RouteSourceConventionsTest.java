@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.architecture;
 
+import dev.chojo.ember.api.ApiServer;
 import dev.chojo.ember.feature.federation.contract.FederationContractCatalog;
 import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
 import org.junit.jupiter.api.Test;
@@ -17,6 +18,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -34,6 +36,12 @@ class RouteSourceConventionsTest {
 
     private static final Path MAIN_SOURCES = Path.of("src", "main", "java");
 
+    /** What the router puts in front of every path the route classes register. */
+    private static final String API_PREFIX = "/api/v1";
+
+    /** The one blocked read: exporting the data is the act, and doing it with a GET does not change that. */
+    private static final String GDPR_EXPORT = "/api/v1/session/gdpr-export";
+
     private static final Pattern INLINE_STATION_COMPARISON = Pattern.compile(
             "\\.stationId\\(\\)\\s*!=\\s*session\\.stationId\\(\\)|session\\.stationId\\(\\)\\s*!=\\s*[\\w.]+\\.stationId\\(\\)");
 
@@ -47,6 +55,13 @@ class RouteSourceConventionsTest {
     private static final Pattern REGISTRATION =
             Pattern.compile("routes\\.(get|post|put|patch|delete)\\(\\s*(\\w+)\\s*\\+\\s*\"([^\"]*)\"");
 
+    /**
+     * A handler: a private method taking nothing but the Javalin context. Every one of them exists
+     * to answer a route, so every one of them has to be wired to one.
+     */
+    private static final Pattern HANDLER_DECLARATION =
+            Pattern.compile("private\\s+void\\s+(\\w+)\\(\\s*Context\\s+\\w+\\s*\\)");
+
     private static final Pattern ROUTE_BINDING =
             Pattern.compile("routesBinder\\.addBinding\\(\\)\\.to\\((\\w+)\\.class\\)");
 
@@ -58,6 +73,34 @@ class RouteSourceConventionsTest {
         assertNoMatches(
                 INLINE_STATION_COMPARISON,
                 "uses an inline station-id comparison; use RouteSupport.requireOwnedOrNotFound (default) or requireOwned");
+    }
+
+    /**
+     * A handler nothing points at answers nothing.
+     *
+     * <p>Java says nothing about it: the method compiles, the class compiles, the tests that never
+     * call the endpoint pass, and the feature is simply absent at runtime. It is an easy mistake to
+     * make while moving registrations around, and an expensive one to find, because the first
+     * report is a 404 from something that plainly exists in the source.
+     */
+    @Test
+    void everyHandlerIsWiredToARoute() throws IOException {
+        List<String> orphans = new ArrayList<>();
+        try (Stream<Path> files = Files.walk(MAIN_SOURCES)) {
+            for (Path path : files.filter(p -> p.getFileName().toString().endsWith("Routes.java"))
+                    .toList()) {
+                String source = Files.readString(path);
+                Matcher declared = HANDLER_DECLARATION.matcher(source);
+                while (declared.find()) {
+                    String handler = declared.group(1);
+                    if (!source.contains("this::" + handler)) {
+                        orphans.add("%s: %s".formatted(path.getFileName(), handler));
+                    }
+                }
+            }
+        }
+        assertTrue(orphans.isEmpty(), () -> "handler(s) declared but never registered, so the endpoint answers 404:%n%s"
+                .formatted(String.join(System.lineSeparator(), orphans)));
     }
 
     @Test
@@ -149,6 +192,42 @@ class RouteSourceConventionsTest {
      * remaining one guards a collision that does not exist yet, which no consequence-based check can
      * see.
      */
+    /**
+     * The demo guard refuses a whole address, without looking at the method. Every address it
+     * refuses therefore has to be one where reading is not a thing anybody does, or the demo hides
+     * what it exists to show: the library came back empty, the avatar and the station logo did not
+     * load, and none of it looked like a guard, it looked like a broken page.
+     *
+     * <p>An address that answers a GET belongs in the write-only list beside it instead. The one
+     * exception is the data export, which is a GET that does the thing being refused, so it is
+     * named here rather than found.
+     */
+    @Test
+    void noDemoBlockedPathAnswersAGet() throws Exception {
+        Set<String> blocked = demoBlockedPaths();
+        List<String> reads = new ArrayList<>();
+        for (String routeClass : boundRouteClasses()) {
+            for (Registration registration : registrationsIn(sourceOf(routeClass))) {
+                if (!registration.verb().equals("get")) continue;
+                String path = API_PREFIX + registration.path();
+                if (blocked.contains(path) && !path.equals(GDPR_EXPORT)) {
+                    reads.add("%s: GET %s".formatted(routeClass, path));
+                }
+            }
+        }
+        assertTrue(
+                reads.isEmpty(),
+                () -> "blocked outright in demo mode although the address also answers a read; move it to"
+                        + " DEMO_BLOCKED_WRITE_PATHS:%n%s".formatted(String.join(System.lineSeparator(), reads)));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Set<String> demoBlockedPaths() throws Exception {
+        var field = ApiServer.class.getDeclaredField("DEMO_BLOCKED_PATHS");
+        field.setAccessible(true);
+        return (Set<String>) field.get(null);
+    }
+
     @Test
     void noLiteralPathIsShadowedByAnEarlierParameterPathInAnotherClass() throws IOException {
         List<Registration> registrations = new ArrayList<>();

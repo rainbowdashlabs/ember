@@ -87,6 +87,26 @@ class HtmlSanitizerTest {
         assertTrue(legacyApiPath.contains("src=\"/api/v1/kb/images/abc\""));
     }
 
+    /**
+     * Every picture the media browser inserts is addressed on one of the library's two routes, so a
+     * body that mentions one has to survive being rendered. Left out, the sanitiser drops the image
+     * silently and the author is never told the picture they inserted is gone.
+     */
+    @Test
+    void mediaLibraryPathsAreAllowed() {
+        String publicRoute = HtmlSanitizer.sanitize(
+                "<img src=\"/api/v1/public/media/abc-uid/deadbeef\"/>", HtmlSanitizer.Policy.RICH);
+        assertTrue(publicRoute.contains("src=\"/api/v1/public/media/abc-uid/deadbeef\""));
+
+        String authenticatedRoute =
+                HtmlSanitizer.sanitize("<img src=\"/api/v1/media/file/deadbeef\"/>", HtmlSanitizer.Policy.RICH);
+        assertTrue(authenticatedRoute.contains("src=\"/api/v1/media/file/deadbeef\""));
+
+        String withWidth = HtmlSanitizer.sanitize(
+                "<img src=\"/api/v1/public/media/abc-uid/deadbeef?w=1024\"/>", HtmlSanitizer.Policy.RICH);
+        assertTrue(withWidth.contains("?w=1024"));
+    }
+
     @Test
     void publicKbImagePathIsAllowed() {
         String out = HtmlSanitizer.sanitize(

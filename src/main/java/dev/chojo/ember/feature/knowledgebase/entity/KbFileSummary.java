@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.knowledgebase.entity;
 
+import dev.chojo.ember.feature.content.entity.ContentMode;
+
 import java.time.Instant;
 
 /**
@@ -58,6 +60,8 @@ public record KbFileSummary(
                 null,
                 null,
                 restricted,
+                null,
+                ContentMode.SIMPLE,
                 null);
     }
 }

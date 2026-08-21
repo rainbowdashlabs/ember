@@ -187,7 +187,7 @@ public class FederationPartnerTransferFixupService {
         int flipped = query("""
                         UPDATE federation_partner
                         SET remote_host = :url, webhook_url = :url
-                        WHERE partner_station_id = :partner_uid
+                        WHERE partner_station_id = :partner_uid::UUID
                           AND remote_host IS NULL;
                         """)
                 .single(call().bind("partner_uid", departedStationUid, StandardValueConverter.UUID_STRING)

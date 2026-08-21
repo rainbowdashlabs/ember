@@ -9,6 +9,11 @@ import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.content.entity.CellConfig;
+import dev.chojo.ember.feature.content.entity.CellContentType;
+import dev.chojo.ember.feature.content.entity.ContentMode;
+import dev.chojo.ember.feature.content.entity.ContentRow;
+import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.knowledgebase.entity.KbAccessLevel;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileSummary;
@@ -38,6 +43,7 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
+import tools.jackson.databind.JsonNode;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -156,6 +162,9 @@ public class KnowledgeBaseRoutes implements Routes {
         routes.get(prefix + "/kb/files/{id}/content", this::getFileContent, StationPermission.USER);
         routes.get(prefix + "/kb/files/{id}/html", this::getMarkdownHtml, StationPermission.USER);
         routes.put(prefix + "/kb/files/{id}/content", this::updateMarkdownContent, StationPermission.KNOWLEDGE_EDIT);
+        routes.get(prefix + "/kb/files/{id}/blocks", this::getBlocks, StationPermission.LOGIN);
+        routes.put(prefix + "/kb/files/{id}/blocks", this::saveBlocks, StationPermission.KNOWLEDGE_EDIT);
+        routes.post(prefix + "/kb/files/{id}/blocks/enable", this::enableBlocks, StationPermission.KNOWLEDGE_EDIT);
 
         routes.get(prefix + "/kb/files/{id}/pdf", this::getPdfExport, StationPermission.USER);
 
@@ -449,6 +458,41 @@ public class KnowledgeBaseRoutes implements Routes {
         ctx.status(204);
     }
 
+    /**
+     * The blocks a rich article is built from. Reading them needs only read access to the article,
+     * because they are the article: the stored text is a projection of them.
+     */
+    private void getBlocks(Context ctx) {
+        int id = pathInt(ctx, "id");
+        var file = requireOwnedFile(ctx, service, id);
+        requireLevel(ctx, accessService, null, id, KbAccessLevel.READ);
+        ctx.json(new BlocksResponse(file.contentMode(), contentService.loadBlocks(file)));
+    }
+
+    private void saveBlocks(Context ctx) {
+        int id = pathInt(ctx, "id");
+        var session = UserSession.from(ctx);
+        requireOwnedFile(ctx, service, id);
+        requireLevel(ctx, accessService, null, id, KbAccessLevel.WRITE);
+        var request = ctx.bodyAsClass(SaveBlocksRequest.class);
+        var saved = contentService
+                .saveBlocks(id, request.toRowData(), session.member().id())
+                .orElseThrow(NotFoundResponse::new);
+        ctx.json(new BlocksResponse(saved.contentMode(), contentService.loadBlocks(saved)));
+    }
+
+    /**
+     * Turns a plain article into one built from blocks. What the author already wrote becomes a
+     * single markdown block, which they then split up as they like.
+     */
+    private void enableBlocks(Context ctx) {
+        int id = pathInt(ctx, "id");
+        requireOwnedFile(ctx, service, id);
+        requireLevel(ctx, accessService, null, id, KbAccessLevel.WRITE);
+        var switched = contentService.switchToRich(id).orElseThrow(NotFoundResponse::new);
+        ctx.json(new BlocksResponse(switched.contentMode(), contentService.loadBlocks(switched)));
+    }
+
     private void getPdfExport(Context ctx) {
         int id = pathInt(ctx, "id");
         var file = requireOwnedFile(ctx, service, id);
@@ -737,6 +781,50 @@ public class KnowledgeBaseRoutes implements Routes {
     public record LinkResponse(String linkUrl) {}
 
     public record MarkdownHtmlResponse(String html, String markdown) {}
+
+    /**
+     * The blocks of an article, together with how it was written. A plain article answers with an
+     * empty list rather than a 404, so the reader can ask before it knows which kind it has.
+     */
+    public record BlocksResponse(ContentMode contentMode, List<ContentRow> rows) {}
+
+    /**
+     * Request body for saving the blocks of a rich article.
+     */
+    public record SaveBlocksRequest(List<BlockRowRequest> rows) {
+        List<ContentBlockService.RowData> toRowData() {
+            if (rows == null) return List.of();
+            return rows.stream().map(BlockRowRequest::toRowData).toList();
+        }
+    }
+
+    public record BlockRowRequest(int sortOrder, List<BlockCellRequest> cells) {
+        ContentBlockService.RowData toRowData() {
+            return new ContentBlockService.RowData(
+                    sortOrder,
+                    cells == null
+                            ? List.of()
+                            : cells.stream().map(BlockCellRequest::toCellData).toList());
+        }
+    }
+
+    /**
+     * @param config the block's settings as an object. Which record they are follows from the
+     *               content type beside them, so they are bound once that is known rather than
+     *               while the request is read.
+     */
+    public record BlockCellRequest(
+            int sortOrder, Double widthPercent, String contentType, String content, JsonNode config) {
+        ContentBlockService.CellData toCellData() {
+            var type = CellContentType.valueOf(contentType);
+            return new ContentBlockService.CellData(
+                    sortOrder,
+                    widthPercent != null ? widthPercent : 100.0,
+                    type,
+                    content != null ? content : "",
+                    CellConfig.parse(type, config));
+        }
+    }
 
     /**
      * A folder's contents together with what the caller may do with each entry, so a listing can

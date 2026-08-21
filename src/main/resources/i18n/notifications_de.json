@@ -89,7 +89,8 @@
   "storageCategory": {
     "KB_FILES": "Wiki",
     "BOARD_ATTACHMENTS": "Board-Anhänge",
-    "PAGE_IMAGES": "Seitenbilder",
+    "MEDIA_FILES": "Mediendateien",
+    "MEDIA_IMAGES": "Medienbilder",
     "AVATARS": "Profilbilder",
     "IMAGES": "Sonstige Bilder"
   },

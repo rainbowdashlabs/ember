@@ -42,13 +42,13 @@ class StorageServiceTest {
     void storeAndReadByteArray() {
         byte[] data = "payload".getBytes();
         var stored =
-                service.store(stationScope(), StorageCategory.PAGE_FILES, "hash1", data, "application/octet-stream");
+                service.store(stationScope(), StorageCategory.MEDIA_FILES, "hash1", data, "application/octet-stream");
         assertEquals("hash1", stored.key());
-        assertEquals(StorageCategory.PAGE_FILES, stored.category());
+        assertEquals(StorageCategory.MEDIA_FILES, stored.category());
         assertEquals(data.length, stored.contentLength());
         assertFalse(stored.metadata().sha256().isEmpty());
 
-        var read = service.readAllBytes(stationScope(), StorageCategory.PAGE_FILES, "hash1");
+        var read = service.readAllBytes(stationScope(), StorageCategory.MEDIA_FILES, "hash1");
         assertTrue(read.isPresent());
         assertArrayEquals(data, read.get());
     }
@@ -58,13 +58,13 @@ class StorageServiceTest {
         byte[] data = "streamed".getBytes();
         service.store(
                 stationScope(),
-                StorageCategory.PAGE_FILES,
+                StorageCategory.MEDIA_FILES,
                 "hash2",
                 Variant.ORIGINAL,
                 new ByteArrayInputStream(data),
                 data.length,
                 "application/octet-stream");
-        try (StoredStream stream = service.read(stationScope(), StorageCategory.PAGE_FILES, "hash2")
+        try (StoredStream stream = service.read(stationScope(), StorageCategory.MEDIA_FILES, "hash2")
                 .orElseThrow()) {
             assertArrayEquals(data, stream.body().readAllBytes());
             assertEquals(data.length, stream.contentLength());
@@ -73,69 +73,70 @@ class StorageServiceTest {
 
     @Test
     void readMissingReturnsEmpty() {
-        assertTrue(service.read(stationScope(), StorageCategory.PAGE_FILES, "missing")
+        assertTrue(service.read(stationScope(), StorageCategory.MEDIA_FILES, "missing")
                 .isEmpty());
-        assertTrue(service.readAllBytes(stationScope(), StorageCategory.PAGE_FILES, "missing")
+        assertTrue(service.readAllBytes(stationScope(), StorageCategory.MEDIA_FILES, "missing")
                 .isEmpty());
     }
 
     @Test
     void existsReflectsStoreState() {
-        service.store(stationScope(), StorageCategory.PAGE_FILES, "exists", new byte[] {1}, "application/octet-stream");
-        assertTrue(service.exists(stationScope(), StorageCategory.PAGE_FILES, "exists"));
-        service.delete(stationScope(), StorageCategory.PAGE_FILES, "exists");
-        assertFalse(service.exists(stationScope(), StorageCategory.PAGE_FILES, "exists"));
+        service.store(
+                stationScope(), StorageCategory.MEDIA_FILES, "exists", new byte[] {1}, "application/octet-stream");
+        assertTrue(service.exists(stationScope(), StorageCategory.MEDIA_FILES, "exists"));
+        service.delete(stationScope(), StorageCategory.MEDIA_FILES, "exists");
+        assertFalse(service.exists(stationScope(), StorageCategory.MEDIA_FILES, "exists"));
     }
 
     @Test
     void deletePrefixRemovesAllVariants() {
         service.store(
                 stationScope(),
-                StorageCategory.PAGE_FILES,
+                StorageCategory.MEDIA_FILES,
                 "bulk",
                 new Variant("orig.png"),
                 new byte[] {1},
                 "application/octet-stream");
         service.store(
                 stationScope(),
-                StorageCategory.PAGE_FILES,
+                StorageCategory.MEDIA_FILES,
                 "bulk",
                 new Variant("w128.webp"),
                 new byte[] {2},
                 "application/octet-stream");
 
-        service.deletePrefix(stationScope(), StorageCategory.PAGE_FILES, "bulk");
+        service.deletePrefix(stationScope(), StorageCategory.MEDIA_FILES, "bulk");
 
-        assertFalse(service.exists(stationScope(), StorageCategory.PAGE_FILES, "bulk", new Variant("orig.png")));
-        assertFalse(service.exists(stationScope(), StorageCategory.PAGE_FILES, "bulk", new Variant("w128.webp")));
+        assertFalse(service.exists(stationScope(), StorageCategory.MEDIA_FILES, "bulk", new Variant("orig.png")));
+        assertFalse(service.exists(stationScope(), StorageCategory.MEDIA_FILES, "bulk", new Variant("w128.webp")));
     }
 
     @Test
     void listKeysReturnsRelativePaths() {
         service.store(
                 stationScope(),
-                StorageCategory.PAGE_FILES,
+                StorageCategory.MEDIA_FILES,
                 "list",
                 new Variant("orig.png"),
                 new byte[] {1},
                 "application/octet-stream");
         service.store(
                 stationScope(),
-                StorageCategory.PAGE_FILES,
+                StorageCategory.MEDIA_FILES,
                 "list",
                 new Variant("w128.webp"),
                 new byte[] {2},
                 "application/octet-stream");
 
-        List<String> keys = service.listKeys(stationScope(), StorageCategory.PAGE_FILES, "list");
+        List<String> keys = service.listKeys(stationScope(), StorageCategory.MEDIA_FILES, "list");
         assertTrue(keys.contains("list/orig.png"));
         assertTrue(keys.contains("list/w128.webp"));
     }
 
     @Test
     void listKeysWithEmptyPrefixListsCategory() {
-        service.store(stationScope(), StorageCategory.PAGE_FILES, "k1", new byte[] {1}, "application/octet-stream");
-        List<String> keys = service.listKeys(stationScope(), StorageCategory.PAGE_FILES, "");
+        service.store(stationScope(), StorageCategory.MEDIA_FILES, "k1", new byte[] {1}, "application/octet-stream");
+        List<String> keys = service.listKeys(stationScope(), StorageCategory.MEDIA_FILES, "");
         assertFalse(keys.isEmpty());
     }
 
@@ -152,7 +153,7 @@ class StorageServiceTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> service.store(
-                        instanceScope(), StorageCategory.PAGE_FILES, "k", new byte[] {1}, "application/octet-stream"));
+                        instanceScope(), StorageCategory.MEDIA_FILES, "k", new byte[] {1}, "application/octet-stream"));
     }
 
     @Test
@@ -165,9 +166,9 @@ class StorageServiceTest {
     @Test
     void sumSizeIncludesStoredBytes() {
         service.store(
-                stationScope(), StorageCategory.PAGE_FILES, "s1", new byte[] {1, 2, 3}, "application/octet-stream");
-        service.store(stationScope(), StorageCategory.PAGE_FILES, "s2", new byte[] {4, 5}, "application/octet-stream");
-        long total = service.sumSize(stationScope(), StorageCategory.PAGE_FILES);
+                stationScope(), StorageCategory.MEDIA_FILES, "s1", new byte[] {1, 2, 3}, "application/octet-stream");
+        service.store(stationScope(), StorageCategory.MEDIA_FILES, "s2", new byte[] {4, 5}, "application/octet-stream");
+        long total = service.sumSize(stationScope(), StorageCategory.MEDIA_FILES);
         assertEquals(5, total);
     }
 
@@ -189,12 +190,12 @@ class StorageServiceTest {
         byte[] data = "vp".getBytes();
         service.store(
                 stationScope(),
-                StorageCategory.PAGE_FILES,
+                StorageCategory.MEDIA_FILES,
                 "vk",
                 new Variant("orig.png"),
                 data,
                 "application/octet-stream");
-        assertTrue(service.exists(stationScope(), StorageCategory.PAGE_FILES, "vk", new Variant("orig.png")));
+        assertTrue(service.exists(stationScope(), StorageCategory.MEDIA_FILES, "vk", new Variant("orig.png")));
     }
 
     @Test
@@ -202,7 +203,7 @@ class StorageServiceTest {
         byte[] data = new byte[] {7};
         var stored = service.store(
                 stationScope(),
-                StorageCategory.PAGE_FILES,
+                StorageCategory.MEDIA_FILES,
                 "single",
                 Variant.ORIGINAL,
                 new ByteArrayInputStream(data) {
@@ -222,12 +223,12 @@ class StorageServiceTest {
 
     @Test
     void sumSizeOnEmptyCategoryIsZero() {
-        assertEquals(0L, service.sumSize(stationScope(), StorageCategory.PAGE_FILES));
+        assertEquals(0L, service.sumSize(stationScope(), StorageCategory.MEDIA_FILES));
     }
 
     @Test
     void lastAccessedReturnsEmptyForMissingKey() {
-        assertTrue(service.lastAccessed(stationScope(), StorageCategory.PAGE_FILES, "nope")
+        assertTrue(service.lastAccessed(stationScope(), StorageCategory.MEDIA_FILES, "nope")
                 .isEmpty());
     }
 
@@ -248,23 +249,23 @@ class StorageServiceTest {
     void readWithVariantReturnsBytes() {
         service.store(
                 stationScope(),
-                StorageCategory.PAGE_FILES,
+                StorageCategory.MEDIA_FILES,
                 "rv",
                 new Variant("v"),
                 new byte[] {9},
                 "application/octet-stream");
-        var bytes = service.readAllBytes(stationScope(), StorageCategory.PAGE_FILES, "rv", new Variant("v"))
+        var bytes = service.readAllBytes(stationScope(), StorageCategory.MEDIA_FILES, "rv", new Variant("v"))
                 .orElseThrow();
         assertArrayEquals(new byte[] {9}, bytes);
     }
 
     @Test
     void fullKeyAssemblesExpectedPath() {
-        String full = service.fullKey(stationScope(), StorageCategory.PAGE_FILES, "abc", new Variant("orig.png"));
-        assertEquals("station/" + STATION_UID + "/page-files/abc/orig.png", full);
+        String full = service.fullKey(stationScope(), StorageCategory.MEDIA_FILES, "abc", new Variant("orig.png"));
+        assertEquals("station/" + STATION_UID + "/media/files/abc/orig.png", full);
 
-        String original = service.fullKey(stationScope(), StorageCategory.PAGE_FILES, "abc", Variant.ORIGINAL);
-        assertEquals("station/" + STATION_UID + "/page-files/abc", original);
+        String original = service.fullKey(stationScope(), StorageCategory.MEDIA_FILES, "abc", Variant.ORIGINAL);
+        assertEquals("station/" + STATION_UID + "/media/files/abc", original);
     }
 
     private StorageScope.Station stationScope() {

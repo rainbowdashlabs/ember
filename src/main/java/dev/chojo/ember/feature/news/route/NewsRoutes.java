@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.news.route;
 
 import com.rometools.rome.feed.synd.SyndContent;
 import com.rometools.rome.feed.synd.SyndContentImpl;
+import com.rometools.rome.feed.synd.SyndEnclosure;
+import com.rometools.rome.feed.synd.SyndEnclosureImpl;
 import com.rometools.rome.feed.synd.SyndEntry;
 import com.rometools.rome.feed.synd.SyndEntryImpl;
 import com.rometools.rome.feed.synd.SyndFeed;
@@ -20,14 +22,21 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
+import dev.chojo.ember.feature.content.entity.CellConfig;
+import dev.chojo.ember.feature.content.entity.CellContentType;
+import dev.chojo.ember.feature.content.entity.ContentMode;
+import dev.chojo.ember.feature.content.entity.ContentRow;
+import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.news.entity.News;
+import dev.chojo.ember.feature.news.entity.NewsAttachment;
 import dev.chojo.ember.feature.news.entity.NewsComment;
 import dev.chojo.ember.feature.news.entity.NewsViewer;
 import dev.chojo.ember.feature.news.entity.NewsVisibilityRole;
+import dev.chojo.ember.feature.news.service.NewsAttachmentService;
 import dev.chojo.ember.feature.news.service.NewsFederationService;
 import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -46,6 +55,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import tools.jackson.databind.JsonNode;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -66,6 +76,7 @@ import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 @Singleton
 public class NewsRoutes implements Routes {
     private final NewsService newsService;
+    private final NewsAttachmentService attachmentService;
     private final NewsFederationService newsFederationService;
     private final StationRepository stationRepository;
     private final MemberNameResolver memberNameResolver;
@@ -75,12 +86,14 @@ public class NewsRoutes implements Routes {
     @Inject
     public NewsRoutes(
             NewsService newsService,
+            NewsAttachmentService attachmentService,
             NewsFederationService newsFederationService,
             StationRepository stationRepository,
             MemberNameResolver memberNameResolver,
             MemberIdentityFactory memberIdentityFactory,
             EmailService emailService) {
         this.newsService = newsService;
+        this.attachmentService = attachmentService;
         this.newsFederationService = newsFederationService;
         this.stationRepository = stationRepository;
         this.memberNameResolver = memberNameResolver;
@@ -106,6 +119,17 @@ public class NewsRoutes implements Routes {
         routes.post(prefix + "/news/{id}/comments", this::createComment, StationPermission.LOGIN);
         routes.put(prefix + "/news/comments/{commentId}", this::updateComment, StationPermission.LOGIN);
         routes.delete(prefix + "/news/comments/{commentId}", this::deleteComment, StationPermission.LOGIN);
+
+        routes.put(prefix + "/news/{id}/blocks", this::saveBlocks, StationPermission.NEWS_EDIT);
+        routes.post(prefix + "/news/{id}/blocks/enable", this::enableBlocks, StationPermission.NEWS_EDIT);
+
+        routes.post(
+                prefix + "/news/attachments/{attachmentId}/label",
+                this::relabelAttachment,
+                StationPermission.NEWS_EDIT);
+        routes.delete(prefix + "/news/attachments/{attachmentId}", this::detachAttachment, StationPermission.NEWS_EDIT);
+        routes.post(prefix + "/news/{id}/attachments", this::attachFile, StationPermission.NEWS_EDIT);
+        routes.put(prefix + "/news/{id}/attachments/order", this::reorderAttachments, StationPermission.NEWS_EDIT);
 
         routes.post(prefix + "/news/{id}/view", this::recordView, StationPermission.LOGIN);
         routes.get(prefix + "/news/{id}/view-count", this::getViewCount, StationPermission.NEWS_EDIT);
@@ -140,7 +164,7 @@ public class NewsRoutes implements Routes {
         }
         int memberId = session.member().id();
         ctx.json(newsList.stream()
-                .map(n -> toResponse(n, session.hasPermission(StationPermission.NEWS_MANAGER), memberId))
+                .map(n -> toResponse(n, session.hasPermission(StationPermission.NEWS_MANAGER), memberId, false))
                 .toList());
     }
 
@@ -158,14 +182,30 @@ public class NewsRoutes implements Routes {
         int id = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
         int memberId = session.member().id();
-        newsService
-                .findById(id)
-                .ifPresentOrElse(
-                        news -> ctx.json(
-                                toResponse(news, session.hasPermission(StationPermission.NEWS_MANAGER), memberId)),
-                        () -> {
-                            throw new NotFoundResponse();
-                        });
+        var news = requireReadable(ctx, id);
+        ctx.json(toResponse(news, session.hasPermission(StationPermission.NEWS_MANAGER), memberId));
+    }
+
+    /**
+     * The entry behind an id, if the caller may read it, and a 404 otherwise.
+     *
+     * <p>Two things have to hold, and one question asks both. It has to be theirs to read at all:
+     * an entry belongs to one station, or to none at all when the instance published it to
+     * everyone, and a member of another station is no more entitled to it than a stranger. And it
+     * has to be addressed to them: an entry restricted to a user type is restricted however it is
+     * asked for, not only when it comes back from a listing. That is the same question the listings
+     * ask of every row they return, so it is asked in the same place rather than restated here.
+     *
+     * <p>Both refusals are a 404 rather than a 403, because saying "not for you" about an entry
+     * still tells the asker it exists.
+     */
+    private News requireReadable(Context ctx, int id) {
+        UserSession session = UserSession.from(ctx);
+        var news = newsService.findById(id).orElseThrow(NotFoundResponse::new);
+        if (!newsService.isVisibleForMember(id, session.member().id())) {
+            throw new NotFoundResponse();
+        }
+        return news;
     }
 
     @OpenApi(
@@ -181,9 +221,8 @@ public class NewsRoutes implements Routes {
         if (request.title() == null || request.title().isBlank()) {
             throw new BadRequestResponse("title is required");
         }
-        if (request.contentMarkdown() == null || request.contentMarkdown().isBlank()) {
-            throw new BadRequestResponse("contentMarkdown is required");
-        }
+        boolean rich = request.contentMode() == ContentMode.RICH;
+        requireBody(rich, request.contentMarkdown());
         var authorIdentity = memberIdentityFactory.fromMemberId(session.member().id());
         var news = newsService.create(
                 session.stationId(),
@@ -195,6 +234,9 @@ public class NewsRoutes implements Routes {
                 request.groupIds() != null ? request.groupIds() : List.of(),
                 request.tagIds() != null ? request.tagIds() : List.of(),
                 request.memberIds() != null ? request.memberIds() : List.of());
+        if (rich) {
+            newsService.switchToRich(news.id());
+        }
         if (request.publicBlog() != null) {
             newsService.updatePublicBlog(news.id(), request.publicBlog());
         }
@@ -262,6 +304,70 @@ public class NewsRoutes implements Routes {
         }
     }
 
+    private void saveBlocks(Context ctx) {
+        int id = pathInt(ctx, "id");
+        requireOwnedOrNotFound(ctx, id, newsService::findById, News::stationId);
+        var request = ctx.bodyAsClass(SaveBlocksRequest.class);
+        var session = UserSession.from(ctx);
+        var saved = newsService.saveBlocks(id, request.toRowData()).orElseThrow(NotFoundResponse::new);
+        ctx.json(toResponse(saved, true, session.member().id()));
+    }
+
+    /**
+     * Turns a plain entry into one built from blocks. What the author already wrote becomes a
+     * single markdown block, which they then split up as they like.
+     */
+    private void enableBlocks(Context ctx) {
+        int id = pathInt(ctx, "id");
+        var session = UserSession.from(ctx);
+        requireOwnedOrNotFound(ctx, id, newsService::findById, News::stationId);
+        var switched = newsService.switchToRich(id).orElseThrow(NotFoundResponse::new);
+        ctx.json(toResponse(switched, true, session.member().id()));
+    }
+
+    /**
+     * Resolves an attachment and asserts the entry it hangs off belongs to the caller's station,
+     * so an attachment id from one station cannot be relabelled or detached from another.
+     */
+    private NewsAttachment requireOwnedAttachment(Context ctx, int attachmentId) {
+        var attachment = attachmentService.find(attachmentId).orElseThrow(NotFoundResponse::new);
+        requireOwnedOrNotFound(ctx, attachment.newsId(), newsService::findById, News::stationId);
+        return attachment;
+    }
+
+    private void attachFile(Context ctx) {
+        int id = pathInt(ctx, "id");
+        var session = UserSession.from(ctx);
+        requireOwnedOrNotFound(ctx, id, newsService::findById, News::stationId);
+        var request = ctx.bodyAsClass(AttachmentRequest.class);
+        if (request.fileId() == null) throw new BadRequestResponse("fileId is required");
+        ctx.status(HttpStatus.CREATED)
+                .json(attachmentService.attach(id, session.stationId(), request.fileId(), request.label()));
+    }
+
+    private void relabelAttachment(Context ctx) {
+        int attachmentId = pathInt(ctx, "attachmentId");
+        requireOwnedAttachment(ctx, attachmentId);
+        var request = ctx.bodyAsClass(AttachmentRequest.class);
+        if (!attachmentService.relabel(attachmentId, request.label())) throw new NotFoundResponse();
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    private void reorderAttachments(Context ctx) {
+        int id = pathInt(ctx, "id");
+        requireOwnedOrNotFound(ctx, id, newsService::findById, News::stationId);
+        var request = ctx.bodyAsClass(AttachmentOrderRequest.class);
+        attachmentService.reorder(id, request.attachmentIds() != null ? request.attachmentIds() : List.of());
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    private void detachAttachment(Context ctx) {
+        int attachmentId = pathInt(ctx, "attachmentId");
+        requireOwnedAttachment(ctx, attachmentId);
+        if (!attachmentService.detach(attachmentId)) throw new NotFoundResponse();
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
     /**
      * Converts a {@link News} entity to an API response, resolving the author name, comment
      * count, and view stats for the requesting member.
@@ -272,8 +378,22 @@ public class NewsRoutes implements Routes {
      * @return the news response DTO
      */
     private NewsResponse toResponse(News news, boolean includeRestrictions, int viewerMemberId) {
+        return toResponse(news, includeRestrictions, viewerMemberId, true);
+    }
+
+    /**
+     * @param withBlocks whether to load the blocks of a rich entry. A listing leaves them out: a
+     *                   list row shows a summary, and loading every entry's blocks to build one
+     *                   would ask the database once per row for something nobody reads.
+     */
+    private NewsResponse toResponse(News news, boolean includeRestrictions, int viewerMemberId, boolean withBlocks) {
         var resolved = news.author() != null ? memberNameResolver.resolveDisplay(news.author()) : null;
         String authorName = resolved != null && resolved.name() != null ? resolved.name() : "";
+        // The instance is nobody's member, so there is no identity to resolve and no avatar to
+        // draw. Its own name stands in, and the badge beside it says where the entry came from.
+        if (news.systemEntry()) {
+            authorName = NewsService.SYSTEM_AUTHOR_NAME;
+        }
         List<StationUserType> userTypes = List.of();
         List<Integer> groupIds = List.of();
         List<Integer> tagIds = List.of();
@@ -287,6 +407,9 @@ public class NewsRoutes implements Routes {
         }
         int commentCount = newsService.countComments(news.id());
         int viewCount = newsService.countViews(news.id());
+        var attachments = attachmentService.list(news.id());
+        List<ContentRow> rows =
+                withBlocks && news.contentMode() == ContentMode.RICH ? newsService.loadBlocks(news) : List.of();
         boolean viewedByMe = newsService.hasViewed(news.id(), viewerMemberId);
         return new NewsResponse(
                 news.id(),
@@ -305,7 +428,11 @@ public class NewsRoutes implements Routes {
                 commentCount,
                 news.publicBlog(),
                 viewCount,
-                viewedByMe);
+                viewedByMe,
+                attachments,
+                news.contentMode(),
+                rows,
+                news.systemEntry());
     }
 
     @OpenApi(
@@ -339,7 +466,14 @@ public class NewsRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CommentResponse[].class)))
     private void listComments(Context ctx) {
         int newsId = pathInt(ctx, "id");
-        var comments = newsService.findComments(newsId);
+        UserSession session = UserSession.from(ctx);
+        var news = requireReadable(ctx, newsId);
+        // Under a system entry every station is talking at once, and what one station says is its
+        // own business: a station is shown its own part of the conversation. A station entry is
+        // read by that station alone, so there is nothing to separate.
+        var comments = news.systemEntry()
+                ? newsService.findCommentsForStation(newsId, session.stationUid())
+                : newsService.findComments(newsId);
         ctx.json(comments.stream().map(this::toCommentResponse).toList());
     }
 
@@ -354,6 +488,7 @@ public class NewsRoutes implements Routes {
     private void createComment(Context ctx) {
         int newsId = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
+        requireReadable(ctx, newsId);
         var request = ctx.bodyAsClass(CommentRequest.class);
         if (request.content() == null || request.content().isBlank()) {
             throw new BadRequestResponse("content is required");
@@ -442,7 +577,9 @@ public class NewsRoutes implements Routes {
     private void recordView(Context ctx) {
         int id = pathInt(ctx, "id");
         UserSession session = UserSession.from(ctx);
-        requireOwnedOrNotFound(ctx, id, newsService::findById, News::stationId);
+        // Whatever a member may read, they may be recorded as having read, which includes what the
+        // instance published to every station.
+        requireReadable(ctx, id);
         newsService.recordView(id, session.member().id());
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -482,7 +619,7 @@ public class NewsRoutes implements Routes {
             })
     private void getViewCount(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedOrNotFound(ctx, id, newsService::findById, News::stationId);
+        requireReadable(ctx, id);
         ctx.json(new NewsViewCountResponse(newsService.countViews(id)));
     }
 
@@ -564,6 +701,8 @@ public class NewsRoutes implements Routes {
         int offset = ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0);
         int limit = ctx.queryParamAsClass("limit", Integer.class).getOrDefault(20);
         var entries = newsService.findPublicBlogEntries(stationId, offset, limit);
+        var attachmentsByNews =
+                attachmentService.listFor(entries.stream().map(News::id).toList());
         ctx.json(entries.stream()
                 .map(n -> new PublicBlogEntry(
                         n.id(),
@@ -573,7 +712,10 @@ public class NewsRoutes implements Routes {
                         n.author() != null
                                 ? memberNameResolver.resolveDisplay(n.author()).name()
                                 : "",
-                        n.publishedAt()))
+                        n.publishedAt(),
+                        attachmentsByNews.getOrDefault(n.id(), List.of()),
+                        n.contentMode(),
+                        List.of()))
                 .toList());
     }
 
@@ -620,6 +762,17 @@ public class NewsRoutes implements Routes {
             content.setType("text/html");
             content.setValue(post.contentHtml());
             entry.setContents(List.of(content));
+            // One enclosure per attachment, which is what a feed reader expects to be handed a
+            // file. The body stays what the author wrote.
+            var enclosures = new ArrayList<SyndEnclosure>();
+            for (var attachment : attachmentService.list(post.id())) {
+                SyndEnclosure enclosure = new SyndEnclosureImpl();
+                enclosure.setUrl(attachmentService.absoluteUrl(stationId, attachment));
+                enclosure.setType(attachment.mimeType());
+                enclosure.setLength(attachment.fileSize());
+                enclosures.add(enclosure);
+            }
+            if (!enclosures.isEmpty()) entry.setEnclosures(enclosures);
             entries.add(entry);
         }
         feed.setEntries(entries);
@@ -648,12 +801,33 @@ public class NewsRoutes implements Routes {
                 ? memberNameResolver.resolveDisplay(news.author()).name()
                 : "";
         ctx.json(new PublicBlogEntry(
-                news.id(), news.publicUid(), news.title(), news.contentHtml(), authorName, news.publishedAt()));
+                news.id(),
+                news.publicUid(),
+                news.title(),
+                news.contentHtml(),
+                authorName,
+                news.publishedAt(),
+                attachmentService.list(news.id()),
+                news.contentMode(),
+                newsService.loadBlocks(news)));
     }
 
     /**
      * Request body for creating or updating a news article.
      */
+    /**
+     * Refuses an entry with nothing in it, unless it is built from blocks.
+     *
+     * <p>A block entry has no written markdown to give: what it reads as is derived from the
+     * blocks, and those are saved once the entry has an id to hang them off. Both the station's
+     * entries and the instance's are created this way, so the rule is written down once.
+     */
+    static void requireBody(boolean rich, String contentMarkdown) {
+        if (!rich && (contentMarkdown == null || contentMarkdown.isBlank())) {
+            throw new BadRequestResponse("contentMarkdown is required");
+        }
+    }
+
     public record NewsRequest(
             String title,
             String contentMarkdown,
@@ -662,7 +836,8 @@ public class NewsRoutes implements Routes {
             List<Integer> groupIds,
             List<Integer> tagIds,
             List<Integer> memberIds,
-            Boolean publicBlog) {}
+            Boolean publicBlog,
+            ContentMode contentMode) {}
 
     /**
      * API response representing a news article with resolved author information.
@@ -684,7 +859,11 @@ public class NewsRoutes implements Routes {
             int commentCount,
             boolean publicBlog,
             int viewCount,
-            boolean viewedByMe) {}
+            boolean viewedByMe,
+            List<NewsAttachment> attachments,
+            ContentMode contentMode,
+            List<ContentRow> rows,
+            boolean systemEntry) {}
 
     /**
      * Request body for creating or updating a comment.
@@ -701,7 +880,63 @@ public class NewsRoutes implements Routes {
             ShareScope scope, NewsVisibilityRole visibilityRole, List<Integer> partnerIds) {}
 
     public record PublicBlogEntry(
-            int id, UUID publicUid, String title, String contentHtml, String authorName, Instant publishedAt) {}
+            int id,
+            UUID publicUid,
+            String title,
+            String contentHtml,
+            String authorName,
+            Instant publishedAt,
+            List<NewsAttachment> attachments,
+            ContentMode contentMode,
+            List<ContentRow> rows) {}
+
+    /**
+     * Request body for saving the blocks of a rich entry.
+     */
+    public record SaveBlocksRequest(List<BlockRowRequest> rows) {
+        List<ContentBlockService.RowData> toRowData() {
+            if (rows == null) return List.of();
+            return rows.stream().map(BlockRowRequest::toRowData).toList();
+        }
+    }
+
+    public record BlockRowRequest(int sortOrder, List<BlockCellRequest> cells) {
+        ContentBlockService.RowData toRowData() {
+            return new ContentBlockService.RowData(
+                    sortOrder,
+                    cells == null
+                            ? List.of()
+                            : cells.stream().map(BlockCellRequest::toCellData).toList());
+        }
+    }
+
+    /**
+     * @param config the block's settings as an object. Which record they are follows from the
+     *               content type beside them, so they are bound once that is known rather than
+     *               while the request is read.
+     */
+    public record BlockCellRequest(
+            int sortOrder, Double widthPercent, String contentType, String content, JsonNode config) {
+        ContentBlockService.CellData toCellData() {
+            var type = CellContentType.valueOf(contentType);
+            return new ContentBlockService.CellData(
+                    sortOrder,
+                    widthPercent != null ? widthPercent : 100.0,
+                    type,
+                    content != null ? content : "",
+                    CellConfig.parse(type, config));
+        }
+    }
+
+    /**
+     * Request body for attaching a file to an entry, or for renaming what a reader sees.
+     */
+    public record AttachmentRequest(Integer fileId, String label) {}
+
+    /**
+     * Request body for writing the order the author put the attachments in.
+     */
+    public record AttachmentOrderRequest(List<Integer> attachmentIds) {}
 
     /**
      * Response shape for {@code GET /api/v1/news/{id}/views} (editors only).

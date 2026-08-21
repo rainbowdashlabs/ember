@@ -22,6 +22,9 @@ import KbRelatedFilesSection from '@/views/stationview/knowledge/kbfileview/KbRe
 import KbCommentSection from '@/components/comment/KbCommentSection.vue'
 import PresentationViewer from '@/views/stationview/knowledge/kbfileview/PresentationViewer.vue'
 import KbFileContent from '@/views/stationview/knowledge/kbfileview/KbFileContent.vue'
+import {ContentMode, type ContentModeName} from '@/api/news'
+import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
+import type {PageRow, SaveRowRequest, SaveCellRequest} from '@/api/pageManage'
 import KbEditFileModal from '@/views/stationview/knowledge/knowledgebaseview/KbEditFileModal.vue'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -49,13 +52,21 @@ const props = defineProps<{
 
 const {t} = useI18n()
 const router = useRouter()
-const {canEditKnowledge, loaded, isKbPublic} = useSession()
+const {canEditKnowledge, loaded, isKbPublic, sessionInfo} = useSession()
+
+/**
+ * Whose media the blocks of this article point at: the partner's for a federated file, our own
+ * otherwise.
+ */
+const blockStationUid = computed(() => props.stationUid ?? sessionInfo.value?.stationId ?? '')
 
 const file = ref<KbFile | null>(null)
 const lastEditedByName = ref<string | null>(null)
 const markdownData = ref<MarkdownHtmlResponse | null>(null)
 const editing = ref(false)
 const editContent = ref('')
+const contentMode = ref<ContentModeName>(ContentMode.SIMPLE)
+const blockRows = ref<RowEditData[]>([])
 const textContent = ref('')
 const {
     fileTags, allStationTags, relatedFiles,
@@ -163,6 +174,10 @@ const {loading, error, reload: loadData} = useAsyncLoader(async () => {
     if (file.value.fileType === KbFileType.MARKDOWN) {
         markdownData.value = await knowledgeBase.getMarkdownHtml(file.value.id)
         editContent.value = markdownData.value.markdown
+        contentMode.value = file.value.contentMode ?? ContentMode.SIMPLE
+        blockRows.value = contentMode.value === ContentMode.RICH
+            ? toEditRows((await knowledgeBase.getKbBlocks(file.value.id)).rows)
+            : []
     } else if (file.value.fileType === KbFileType.TEXT) {
         textContent.value = await knowledgeBase.getTextContent(file.value.id)
         editContent.value = textContent.value
@@ -210,9 +225,57 @@ function onContentInput() {
     hasUnsavedChanges.value = true
 }
 
+/**
+ * The saved shape of a block tree turned into the shape the editor works on.
+ */
+function toEditRows(saved: PageRow[]): RowEditData[] {
+    return [...saved]
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .map(r => ({
+            id: r.id,
+            sortOrder: r.sortOrder,
+            cells: [...r.cells]
+                .sort((a, b) => a.sortOrder - b.sortOrder)
+                .map(c => ({
+                    id: c.id,
+                    sortOrder: c.sortOrder,
+                    widthPercent: c.widthPercent,
+                    contentType: c.contentType,
+                    content: c.content,
+                    config: c.config as Record<string, unknown>,
+                })),
+        }))
+}
+
+async function enableBlocks() {
+    if (!file.value) return
+    const blocks = await knowledgeBase.enableKbBlocks(file.value.id)
+    contentMode.value = blocks.contentMode
+    blockRows.value = toEditRows(blocks.rows)
+    hasUnsavedChanges.value = false
+}
+
 async function saveContent() {
     if (!file.value) return
     try {
+        if (contentMode.value === ContentMode.RICH) {
+            const rows: SaveRowRequest[] = blockRows.value.map((r, ri) => ({
+                sortOrder: ri,
+                cells: r.cells.map((c, ci): SaveCellRequest => ({
+                    sortOrder: ci,
+                    widthPercent: c.widthPercent,
+                    contentType: c.contentType,
+                    content: c.content,
+                    config: c.config,
+                })),
+            }))
+            const blocks = await knowledgeBase.saveKbBlocks(file.value.id, rows)
+            blockRows.value = toEditRows(blocks.rows)
+            markdownData.value = await knowledgeBase.getMarkdownHtml(file.value.id)
+            hasUnsavedChanges.value = false
+            editing.value = false
+            return
+        }
         await knowledgeBase.updateMarkdownContent(file.value.id, editContent.value)
         if (file.value.fileType === KbFileType.MARKDOWN) {
             markdownData.value = await knowledgeBase.getMarkdownHtml(file.value.id)
@@ -361,8 +424,12 @@ watch(() => [props.fileId, props.stationUid], () => {
                 :rendered-html="renderedHtml"
                 :youtube-embed-url="youtubeEmbedUrl"
                 :can-edit="mayEdit"
+                :content-mode="contentMode"
+                :station-uid="blockStationUid"
                 v-model:edit-content="editContent"
+                v-model:block-rows="blockRows"
                 @content-input="onContentInput"
+                @enable-blocks="enableBlocks"
                 @reupload="handleReuploadFile"
             />
 

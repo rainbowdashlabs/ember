@@ -7,8 +7,8 @@ package dev.chojo.ember.feature.station.transfer;
 
 import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.media.service.ImageVariantService;
-import dev.chojo.ember.feature.page.service.PageFileStorageService;
-import dev.chojo.ember.feature.page.service.PageImageVariantService;
+import dev.chojo.ember.feature.media.service.MediaStorageService;
+import dev.chojo.ember.feature.media.service.MediaVariantService;
 import dev.chojo.ember.feature.station.transfer.StationImportContext.NewAccountRef;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
@@ -33,21 +33,21 @@ public class TransferFileImporter {
     private final StorageService storageService;
     private final AvatarService avatarService;
     private final ImageVariantService imageVariantService;
-    private final PageFileStorageService pageFileStorageService;
-    private final PageImageVariantService pageImageVariantService;
+    private final MediaStorageService mediaStorageService;
+    private final MediaVariantService mediaVariantService;
 
     @Inject
     public TransferFileImporter(
             StorageService storageService,
             AvatarService avatarService,
             ImageVariantService imageVariantService,
-            PageFileStorageService pageFileStorageService,
-            PageImageVariantService pageImageVariantService) {
+            MediaStorageService mediaStorageService,
+            MediaVariantService mediaVariantService) {
         this.storageService = storageService;
         this.avatarService = avatarService;
         this.imageVariantService = imageVariantService;
-        this.pageFileStorageService = pageFileStorageService;
-        this.pageImageVariantService = pageImageVariantService;
+        this.mediaStorageService = mediaStorageService;
+        this.mediaVariantService = mediaVariantService;
     }
 
     /**
@@ -186,12 +186,12 @@ public class TransferFileImporter {
             StorageScope.Station scope, StorageCategory category, String relativeKey, byte[] body, String contentType)
             throws IOException {
         switch (category) {
-            case PAGE_FILES -> {
+            case MEDIA_FILES -> {
                 String contentHash = parentOf(relativeKey);
-                pageFileStorageService.store(scope.stationId(), contentHash, body, contentType);
-                pageImageVariantService.generateVariants(scope.stationId(), contentHash, body, contentType);
+                mediaStorageService.store(scope.stationId(), contentHash, body, contentType);
+                mediaVariantService.generateVariants(scope.stationId(), contentHash, body, contentType);
             }
-            case PAGE_IMAGES, IMAGE_LOST_AND_FOUND, IMAGE_QUIZ_QUESTION, IMAGE_KB_ICON, IMAGE_KB_IMAGE -> {
+            case MEDIA_IMAGES, IMAGE_LOST_AND_FOUND, IMAGE_QUIZ_QUESTION, IMAGE_KB_ICON, IMAGE_KB_IMAGE -> {
                 String baseKey = parentOf(relativeKey);
                 imageVariantService.store(scope, category, baseKey, body, contentType);
             }

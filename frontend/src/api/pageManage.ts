@@ -5,7 +5,6 @@
  */
 import client from './client'
 import {createCrudResource} from './crud'
-import {uploadFile} from './upload'
 
 export const CellContentType = {
     EMPTY: 'EMPTY',
@@ -410,52 +409,12 @@ export interface StationPage {
     sortOrder: number
     metaDescription: string | null
     ogImageId: number | null
-    /** Content hash of the social preview image. Page files are served by hash, not by id. */
+    /** Content hash of the social preview image. Media is served by hash, not by id. */
     ogImageHash: string | null
     createdBy: number
     createdAt: string
     updatedAt: string
     rows: PageRow[]
-}
-
-export interface PageImage {
-    id: number
-    pageId: number | null
-    stationId: string
-    contentHash: string | null
-    fileName: string
-    mimeType: string
-    fileSize: number
-    uploadedAt: string
-    defaultAltText?: string | null
-    defaultDescription?: string | null
-    folderId?: number | null
-}
-
-/** Alias for clarity: page-files cover images and (eventually) PDFs, audio, etc. */
-export type PageFile = PageImage
-
-/** Listing entry returned by GET /pages/files - file + whether it's referenced anywhere + tag ids. */
-export interface PageFileListing {
-    file: PageFile
-    inUse: boolean
-    tagIds: number[]
-}
-
-export interface PageFileFolder {
-    id: number
-    stationId: string
-    parentId: number | null
-    name: string
-    sortOrder: number
-    createdAt: string
-}
-
-export interface PageFileTag {
-    id: number
-    stationId: string
-    name: string
-    color: string | null
 }
 
 export interface SaveCellRequest {
@@ -490,54 +449,11 @@ interface PageCreateRequest {
     parentId: number | null
 }
 
-interface FolderRequest {
-    name: string
-    parentId: number | null
-    sortOrder: number
-}
-
-interface TagRequest {
-    name: string
-    color: string | null
-}
-
-interface FileMetaRequest {
-    altText: string | null
-    description: string | null
-}
-
 const pages = createCrudResource<
     StationPage,
     PageCreateRequest,
     SavePageRequest
 >('/pages')
-
-const files = createCrudResource<
-    PageFileListing,
-    FileMetaRequest,
-    FileMetaRequest,
-    PageFileListing,
-    PageFileListing,
-    void
->('/pages/files')
-
-const folders = createCrudResource<
-    PageFileFolder,
-    FolderRequest,
-    FolderRequest,
-    PageFileFolder,
-    PageFileFolder,
-    void
->('/pages/folders')
-
-const tags = createCrudResource<
-    PageFileTag,
-    TagRequest,
-    TagRequest,
-    PageFileTag,
-    PageFileTag,
-    void
->('/pages/tags')
 
 export async function listPages(): Promise<PagesListResponse> {
     const res = await client.get<PagesListResponse>('/pages')
@@ -595,101 +511,4 @@ export async function setPublished(id: number, published: boolean): Promise<Stat
 
 export async function setLandingPage(pageId: number | null): Promise<void> {
     await client.put('/pages/landing', {pageId})
-}
-
-export async function uploadPageFile(pageId: number, file: File): Promise<PageFile> {
-    return uploadFile<PageFile>(`/pages/${pageId}/files`, {file})
-}
-
-export const uploadPageImage = uploadPageFile
-
-export async function deletePageFile(pageId: number, fileId: number): Promise<void> {
-    await client.delete(`/pages/${pageId}/files/${fileId}`)
-}
-
-/**
- * Deletes a station-scoped page file directly (no page context). Used by the
- * file browser at /station/pages/files for single and bulk delete.
- */
-export const deleteStationPageFile = files.remove
-
-/** Public URL for a page-file, addressed by its content hash. */
-export function pageFileUrl(stationUid: string, contentHash: string): string {
-    return `/api/v1/public/pages/${stationUid}/files/${contentHash}`
-}
-
-/**
- * Public URL for a page-image at a requested CSS-pixel width. The backend picks the
- * smallest pre-generated variant ≥ {@code width} and, when the client's {@code Accept}
- * header advertises WebP, prefers the WebP encoding.
- */
-export function pageImageUrlAt(stationUid: string, contentHash: string, width: number): string {
-    return `${pageFileUrl(stationUid, contentHash)}?w=${width}`
-}
-
-/**
- * Builds a 1x/2x {@code srcset} string for a page image at the supplied 1x CSS width.
- * Renderers should set this on every {@code <img>} so the browser can pick the right
- * resolution on Retina displays.
- */
-export function pageImageSrcset(stationUid: string, contentHash: string, width1x: number): string {
-    return `${pageImageUrlAt(stationUid, contentHash, width1x)} 1x, ${pageImageUrlAt(stationUid, contentHash, width1x * 2)} 2x`
-}
-
-export const pageImageUrl = pageFileUrl
-
-/** Lists every page-file with an `inUse` flag (true when still referenced from some cell). */
-export const listStationPageFiles = files.list
-
-export async function updatePageFileMeta(
-    fileId: number, altText: string | null, description: string | null): Promise<void> {
-    return files.update(fileId, {altText, description})
-}
-
-export async function prunePageFiles(): Promise<{removed: number}> {
-    const res = await client.post<{removed: number}>('/pages/files/prune')
-    return res.data
-}
-
-export async function moveFileToFolder(fileId: number, folderId: number | null): Promise<void> {
-    await client.put(`/pages/files/${fileId}/folder`, {folderId})
-}
-
-export const listPageFolders = folders.list
-
-export async function createPageFolder(
-    name: string, parentId: number | null = null, sortOrder = 0): Promise<PageFileFolder> {
-    return folders.create({name, parentId, sortOrder})
-}
-
-export async function updatePageFolder(
-    id: number, name: string, parentId: number | null, sortOrder: number): Promise<void> {
-    return folders.update(id, {name, parentId, sortOrder})
-}
-
-export const deletePageFolder = folders.remove
-
-export const listPageTags = tags.list
-
-export async function createPageTag(name: string, color: string | null = null): Promise<PageFileTag> {
-    return tags.create({name, color})
-}
-
-export async function updatePageTag(id: number, name: string, color: string | null): Promise<void> {
-    return tags.update(id, {name, color})
-}
-
-export const deletePageTag = tags.remove
-
-export async function assignPageTag(fileId: number, tagId: number): Promise<void> {
-    await client.post(`/pages/files/${fileId}/tags/${tagId}`)
-}
-
-export async function unassignPageTag(fileId: number, tagId: number): Promise<void> {
-    await client.delete(`/pages/files/${fileId}/tags/${tagId}`)
-}
-
-/** Uploads a file scoped to the current station (no specific owning page). */
-export async function uploadStationPageFile(file: File): Promise<PageFile> {
-    return uploadFile<PageFile>('/pages/files', {file})
 }

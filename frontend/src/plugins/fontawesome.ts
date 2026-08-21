@@ -11,7 +11,7 @@ import {FontAwesomeIcon} from '@fortawesome/vue-fontawesome'
 import {
     faAngleDown, faAngleUp, faAnglesDown, faAnglesUp, faArrowDownWideShort, faArrowRight,
     faArrowsRotate, faArrowUpWideShort, faEllipsis, faEquals, faAsterisk, faBan, faBars, faBell, faBold,
-    faBoxesStacked, faBoxOpen, faBuilding, faCalendarDays, faCalendarPlus, faChartLine, faCheck,
+    faBoxesStacked, faBoxOpen, faBuilding, faBullhorn, faCalendarDays, faCalendarPlus, faChartLine, faCheck,
     faCheckDouble, faChevronDown, faChevronLeft, faChevronRight, faChevronUp, faCircle,
     faCircleCheck, faCircleDot, faCircleInfo, faClipboardCheck, faClipboardList, faClipboardUser,
     faCode, faClockRotateLeft, faComment, faCopy, faDownload, faEye, faFileCode, faFileExport,
@@ -48,6 +48,7 @@ library.add(
     faEquals, faXmark, faXmarkCircle, faSpinner, faCircleInfo, faCircleCheck, faCircle,
     faCircleDot, faTriangleExclamation, faDownload, faUpload, faTrash, faPen, faLock,
     faRightFromBracket, faRightToBracket, faBars, faGauge, faChevronDown, faChevronRight,
+    faBullhorn,
     faHouse, faChartLine, faShield, faBuilding, faGears, faUsers, faUserPlus, faList,
     faLayerGroup, faBoxesStacked, faBoxOpen, faClipboardUser, faCalendarPlus, faClockRotateLeft,
     faClipboardCheck, faUsersGear, faPlus, faChevronLeft, faChevronUp, faGripVertical, faCopy,
