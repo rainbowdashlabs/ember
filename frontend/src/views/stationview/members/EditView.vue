@@ -14,11 +14,10 @@ import Alert from '@/components/feedback/Alert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MemberEditTabs from './editview/MemberEditTabs.vue'
 import type {MemberEditData} from './editview/types'
-import type {ProfileField} from '@/api/profileFields'
 import {StationPermission, StationUserType, type MemberGroup, type PermissionGrant, type StationMember, type UserTag} from '@/api/types'
 import {profileFields, stationMembers, memberGroups, userTags, inventory} from '@/api'
 import type {MyInventoryItem} from '@/api/inventory'
-import {decodeProfileValues} from '@/util/profileFields'
+import {decodeMergedValues, type MergedProfileField} from '@/util/profileFields'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
@@ -30,11 +29,11 @@ const router = useRouter()
 const memberId = computed(() => Number(route.params.id))
 
 const member = ref<StationMember | null>(null)
-const fields = ref<ProfileField[]>([])
+const fields = ref<MergedProfileField[]>([])
 const allRoles = ref<PermissionGrant[]>([])
 const allGroups = ref<MemberGroup[]>([])
 const allTags = ref<UserTag[]>([])
-const editValues = ref<Map<number, string>>(new Map())
+const editValues = ref<Map<string, string>>(new Map())
 const editRoleIds = ref<Set<number>>(new Set())
 const editGroupIds = ref<Set<number>>(new Set())
 const editTagIds = ref<Set<number>>(new Set())
@@ -104,7 +103,7 @@ const {loading, error} = useAsyncLoader(async () => {
     stationMembers.listAllPermissions(),
     stationMembers.getMember(memberId.value),
     stationMembers.getPermissions(memberId.value),
-    profileFields.getValues(memberId.value),
+    profileFields.getMergedValues(memberId.value),
     memberGroups.listGroups(),
     userTags.listTags(),
     memberGroups.getMemberGroups(memberId.value),
@@ -122,7 +121,7 @@ const {loading, error} = useAsyncLoader(async () => {
   editRoleIds.value = new Set(memberPermissions.map(r => r.id))
   await Promise.all([loadTypePermissions(editUserType.value), loadGroupPermissions(editGroupIds.value)])
 
-  editValues.value = decodeProfileValues(profileValues)
+  editValues.value = decodeMergedValues(profileValues)
 
   if (!hasPermission(StationPermission.INVENTORY_READ)) return
   try {

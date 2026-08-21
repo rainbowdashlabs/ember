@@ -1694,6 +1694,7 @@ export default {
         fields: 'Profilfelder',
         fieldName: 'Feld',
         fieldValue: 'Wert',
+        fieldFromCluster: 'Verband',
         groups: 'Gruppen',
         noGroups: 'Keine Gruppen vorhanden.',
         tags: 'Tags',

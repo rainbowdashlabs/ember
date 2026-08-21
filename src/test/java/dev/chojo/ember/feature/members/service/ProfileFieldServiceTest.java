@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
@@ -536,6 +537,67 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
                 ProfileFieldScope.GUARDIAN);
         assertEquals(ProfileFieldType.BIRTH_DATE, second.fieldType());
         service.delete(second.id());
+    }
+
+    /**
+     * The profile is one form of two origins. What the cluster keeps to itself is readable and not
+     * writable; what it leaves open the station answers, and the answer lands in the cluster's own table
+     * rather than the station's.
+     */
+    @Test
+    @Order(80)
+    void aProfileCarriesTheClustersQuestionsBesideTheStationsOwn() {
+        var home = stationRepo.create("Träger Profil");
+        var cluster = clusterRepo.create("Kreisverband Profil", null, home.id());
+        stationRepo.setCluster(station.id(), cluster.id());
+
+        var kept = clusterProfileFieldRepo.create(
+                cluster.id(),
+                "Führerscheinklasse",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.parse("{}"),
+                0,
+                ProfileFieldScope.MEMBER,
+                true,
+                false);
+        var open = clusterProfileFieldRepo.create(
+                cluster.id(),
+                "Funkrufname",
+                ProfileFieldType.TEXT,
+                ProfileFieldConfig.parse("{}"),
+                1,
+                ProfileFieldScope.MEMBER,
+                false,
+                false);
+
+        var fields = service.findApplicableFields(member.id());
+        assertTrue(
+                fields.stream().anyMatch(f -> f.origin() == FieldOrigin.STATION),
+                "the station's own questions are still there");
+        var keptField = fields.stream()
+                .filter(f -> f.origin() == FieldOrigin.CLUSTER && f.name().equals("Führerscheinklasse"))
+                .findFirst()
+                .orElseThrow();
+        assertTrue(keptField.readonlyAtStation(), "the cluster kept that one to itself");
+
+        service.setValues(
+                member.id(),
+                List.of(
+                        new FieldValueEntry(kept.id(), "\"C1\"", FieldOrigin.CLUSTER),
+                        new FieldValueEntry(open.id(), "\"Florian 1\"", FieldOrigin.CLUSTER)),
+                member.id());
+
+        var answers = service.findValues(member.id());
+        assertTrue(
+                answers.stream().anyMatch(v -> v.origin() == FieldOrigin.CLUSTER && v.fieldId() == open.id()),
+                "the station answered the question the cluster left open");
+        assertTrue(
+                answers.stream().noneMatch(v -> v.origin() == FieldOrigin.CLUSTER && v.fieldId() == kept.id()),
+                "and left alone the one it did not");
+
+        stationRepo.setCluster(station.id(), null);
+        clusterRepo.delete(cluster.id());
+        stationRepo.delete(home.id());
     }
 
     @Test

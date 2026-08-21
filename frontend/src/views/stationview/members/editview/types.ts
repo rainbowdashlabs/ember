@@ -3,6 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import type {MergedProfileField} from '@/util/profileFields'
 import type {ProfileField} from '@/api/profileFields'
 import type {MyInventoryItem} from '@/api/inventory'
 import type {MemberGroup, PermissionGrant, StationMember, UserTag} from '@/api/types'
@@ -12,8 +13,8 @@ import type {MemberGroup, PermissionGrant, StationMember, UserTag} from '@/api/t
  * down as a single bundle so the tab dispatcher stays free of pass-through props.
  */
 export interface MemberEditData {
-    fields: ProfileField[]
-    values: Map<number, string>
+    fields: MergedProfileField[]
+    values: Map<string, string>
     allRoles: PermissionGrant[]
     allGroups: MemberGroup[]
     allTags: UserTag[]

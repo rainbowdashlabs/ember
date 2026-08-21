@@ -5,10 +5,10 @@
  */
 package dev.chojo.ember.feature.cluster.service;
 
+import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
-import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.BadRequestResponse;
@@ -68,8 +68,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         // And they appear in the station's own profile beside its own fields, marked as somebody else's
         var merged = profileFieldService.findMergedFields(station.id(), ProfileFieldScope.MEMBER);
         assertTrue(merged.stream()
-                .anyMatch(f -> f.origin() == ProfileFieldService.FieldOrigin.CLUSTER
-                        && f.name().equals("Führerscheinklasse")));
+                .anyMatch(f -> f.origin() == FieldOrigin.CLUSTER && f.name().equals("Führerscheinklasse")));
 
         clusterService.releaseStation(clusterId, station.id());
         stationRepo.delete(station.id());

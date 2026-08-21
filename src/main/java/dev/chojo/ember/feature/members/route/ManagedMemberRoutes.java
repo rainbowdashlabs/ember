@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.service.InventoryCheckService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.legal.service.GdprExportService;
+import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
@@ -172,8 +173,13 @@ public class ManagedMemberRoutes implements Routes {
         var fields = applicableFields(member.stationId(), memberId);
         var values = profileFieldService.findValues(memberId);
         var fieldIds = fields.stream().map(ProfileField::id).collect(Collectors.toSet());
-        var filteredValues =
-                values.stream().filter(v -> fieldIds.contains(v.fieldId())).toList();
+        // A guardian answers for the station's own questions only. A cluster's questions are asked of the
+        // member, and the two id spaces are separate, so origin decides before the id does.
+        var filteredValues = values.stream()
+                .filter(v -> v.origin() == FieldOrigin.STATION)
+                .filter(v -> fieldIds.contains(v.fieldId()))
+                .map(v -> new ProfileFieldValue(memberId, v.fieldId(), v.value()))
+                .toList();
         ctx.json(new MemberProfile(fields, filteredValues));
     }
 

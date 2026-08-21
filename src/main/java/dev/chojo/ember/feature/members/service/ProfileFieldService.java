@@ -9,6 +9,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterProfileFieldRepository;
+import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.PagedChanges;
 import dev.chojo.ember.feature.members.entity.ProfileField;
@@ -93,12 +94,12 @@ public class ProfileFieldService {
         return profileFieldRepository.findByStationAndScope(stationId, scope);
     }
 
-    public List<ProfileField> findApplicableFields(int memberId) {
+    public List<MergedField> findApplicableFields(int memberId) {
         var member = stationMemberRepository.findById(memberId).orElse(null);
         if (member == null) return List.of();
         var scope = scopeForUserType(member.userType());
         if (scope == null) return List.of();
-        return profileFieldRepository.findByStationAndScope(member.stationId(), scope);
+        return findMergedFields(member.stationId(), scope);
     }
 
     /**
@@ -137,14 +138,6 @@ public class ProfileFieldService {
                     field.stationReadonly()));
         }
         return merged;
-    }
-
-    /**
-     * Who asked the question, which is not the same as who answers it.
-     */
-    public enum FieldOrigin {
-        STATION,
-        CLUSTER
     }
 
     /**
@@ -276,19 +269,45 @@ public class ProfileFieldService {
 
     // -- Field Values --
 
-    public List<ProfileFieldValue> findValues(int memberId) {
-        return profileFieldRepository.findValues(memberId);
+    public List<MergedValue> findValues(int memberId) {
+        List<MergedValue> values = new ArrayList<>();
+        for (var value : profileFieldRepository.findValues(memberId)) {
+            values.add(new MergedValue(value.fieldId(), value.value(), FieldOrigin.STATION));
+        }
+        for (var value : clusterFieldRepository.findValues(memberId)) {
+            values.add(new MergedValue(value.fieldId(), value.value(), FieldOrigin.CLUSTER));
+        }
+        return values;
     }
 
-    public List<ProfileFieldValue> setValues(int memberId, List<FieldValueEntry> entries, int changedBy) {
-        Map<Integer, String> oldValues = profileFieldRepository.findValues(memberId).stream()
+    /**
+     * An answer, and which table its question lives in.
+     *
+     * <p>The two id spaces are separate, so a bare field id says nothing on its own: the profile screen
+     * carries the origin back with every answer it saves, and this is the shape it reads them in.
+     *
+     * @param fieldId the field the answer belongs to, in its own table
+     * @param value   the answer
+     * @param origin  who asked
+     */
+    public record MergedValue(int fieldId, String value, FieldOrigin origin) {}
+
+    public List<MergedValue> setValues(int memberId, List<FieldValueEntry> entries, int changedBy) {
+        Map<Integer, String> oldStation = profileFieldRepository.findValues(memberId).stream()
                 .collect(Collectors.toMap(ProfileFieldValue::fieldId, v -> v.value() != null ? v.value() : "null"));
+        Map<Integer, String> oldCluster = clusterFieldRepository.findValues(memberId).stream()
+                .collect(Collectors.toMap(
+                        ClusterProfileFieldRepository.Value::fieldId, v -> v.value() != null ? v.value() : "null"));
 
         List<String> changedFieldNames = new ArrayList<>();
         for (var entry : entries) {
-            String oldValue = oldValues.getOrDefault(entry.fieldId(), "null");
             String newValue = entry.value() != null ? entry.value() : "null";
+            if (entry.origin() == FieldOrigin.CLUSTER) {
+                writeClusterAnswer(memberId, entry, oldCluster, newValue, changedBy, changedFieldNames);
+                continue;
+            }
 
+            String oldValue = oldStation.getOrDefault(entry.fieldId(), "null");
             profileFieldRepository.setValue(memberId, entry.fieldId(), entry.value());
 
             if (!Objects.equals(oldValue, newValue)) {
@@ -306,7 +325,45 @@ public class ProfileFieldService {
                     changedFieldNames);
         }
 
-        return profileFieldRepository.findValues(memberId);
+        return findValues(memberId);
+    }
+
+    /**
+     * Saves one answer to a question the cluster asked, when the cluster leaves it to the station.
+     *
+     * <p>A field the cluster keeps to itself is simply not written: the station's screen shows it without a
+     * control, so an entry naming one is a stale form rather than somebody trying something, and refusing
+     * the whole save would lose the answers beside it.
+     *
+     * <p>The change is recorded like any other, which is what puts it in front of the people at the station
+     * who acknowledge changes. What is not raised is the cluster's own notification: that one says the
+     * cluster changed something, and here the station did.
+     */
+    private void writeClusterAnswer(
+            int memberId,
+            FieldValueEntry entry,
+            Map<Integer, String> oldValues,
+            String newValue,
+            int changedBy,
+            List<String> changedFieldNames) {
+        var field = clusterFieldRepository
+                .findById(entry.fieldId())
+                .filter(candidate -> !candidate.stationReadonly())
+                .orElse(null);
+        if (field == null) return;
+
+        String oldValue = oldValues.getOrDefault(field.id(), "null");
+        if (Objects.equals(oldValue, newValue)) return;
+
+        clusterFieldRepository.setValue(memberId, field.id(), entry.value());
+        changeRepository.createForClusterField(
+                field.id(),
+                memberId,
+                oldValue,
+                newValue,
+                changedBy,
+                field.config().notifyOnChange());
+        changedFieldNames.add(field.name());
     }
 
     public boolean deleteValue(int memberId, int fieldId) {

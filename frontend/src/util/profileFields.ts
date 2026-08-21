@@ -53,3 +53,53 @@ export function decodeProfileValues(entries: ReadonlyArray<ProfileFieldValueEntr
     }
     return map
 }
+
+/** Who asked a profile question: the station itself, or the cluster above it. */
+export type FieldOrigin = 'STATION' | 'CLUSTER'
+
+/**
+ * A field as the member profile sees it, whoever asked it.
+ *
+ * The profile is the one screen that shows both, so it is the one place that has to tell them apart. A
+ * station numbers its own fields and a cluster numbers its own, in separate tables, so the id alone is
+ * not a name: {@link profileKey} is.
+ */
+export interface MergedProfileField {
+    id: number
+    name?: string
+    fieldType?: string
+    config?: Record<string, unknown>
+    position: number
+    scope?: string
+    origin: FieldOrigin
+    /** Whether the people at the station may read the answer but not write it. Only a cluster field can be. */
+    readonlyAtStation: boolean
+}
+
+/** The key an answer is held under on the profile, which is the pair and not the id. */
+export function profileKey(fieldId: number, origin: FieldOrigin): string {
+    return `${origin}:${fieldId}`
+}
+
+/**
+ * Decodes profile answers of both origins into a map keyed by {@link profileKey}.
+ *
+ * The plain {@link decodeProfileValues} keys by id alone, which is right for every list of fields that
+ * has one origin and wrong for the profile, where two questions can carry the same number.
+ */
+export function decodeMergedValues(
+    entries: ReadonlyArray<ProfileFieldValueEntry & {origin?: FieldOrigin}>,
+): Map<string, string> {
+    const map = new Map<string, string>()
+    for (const entry of entries) {
+        let val: unknown = entry.value ?? ''
+        try {
+            val = JSON.parse(val as string)
+        } catch {
+            void 0
+        }
+        map.set(profileKey(entry.fieldId, entry.origin ?? 'STATION'),
+            typeof val === 'string' ? val : String(val))
+    }
+    return map
+}

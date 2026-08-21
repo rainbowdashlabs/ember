@@ -18,7 +18,9 @@ import DataTable from '@/components/table/DataTable.vue'
 import Th from '@/components/table/Th.vue'
 import Td from '@/components/table/Td.vue'
 import TRow from '@/components/table/TRow.vue'
-import {parseFieldConfig, type ProfileField} from '@/api/profileFields'
+import {parseFieldConfig} from '@/api/profileFields'
+import {profileKey, type MergedProfileField} from '@/util/profileFields'
+import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import type {StationMember} from '@/api/types'
 import {profileFields, members, stationMembers} from '@/api'
 
@@ -27,8 +29,8 @@ const {t} = useI18n()
 const props = defineProps<{
   member: StationMember
   memberId: number
-  fields: ProfileField[]
-  initialValues: Map<number, string>
+  fields: MergedProfileField[]
+  initialValues: Map<string, string>
 }>()
 
 const editFirstName = ref(props.member.name?.split(' ')[0] ?? '')
@@ -49,12 +51,12 @@ async function onJoinDateChange(value: string | undefined) {
   }
 }
 
-function getEditValue(fieldId: number): string {
-  return editValues.value.get(fieldId) ?? ''
+function getEditValue(field: MergedProfileField): string {
+  return editValues.value.get(profileKey(field.id, field.origin)) ?? ''
 }
 
-function setEditValue(fieldId: number, val: string) {
-  editValues.value = new Map([...editValues.value, [fieldId, val]])
+function setEditValue(field: MergedProfileField, val: string) {
+  editValues.value = new Map([...editValues.value, [profileKey(field.id, field.origin), val]])
 }
 
 async function save() {
@@ -65,7 +67,11 @@ async function save() {
       firstName: editFirstName.value,
       lastName: editLastName.value,
     })
-    const entries = props.fields.map(f => ({fieldId: f.id, value: JSON.stringify(getEditValue(f.id))}))
+    // A field the cluster keeps to itself has no control on this screen, so sending it back would send
+    // whatever was read rather than anything anybody typed
+    const entries = props.fields
+        .filter(f => !f.readonlyAtStation)
+        .map(f => ({fieldId: f.id, value: JSON.stringify(getEditValue(f)), origin: f.origin}))
     await profileFields.setValues(props.memberId, {values: entries})
   } catch (e) {
     error.value = t('common.error')
@@ -112,14 +118,21 @@ async function save() {
           <Th class="text-(--text-muted)">{{ t('memberEdit.fieldName') }}</Th>
           <Th class="text-(--text-muted)">{{ t('memberEdit.fieldValue') }}</Th>
         </template>
-        <TRow v-for="field in fields" :key="field.id">
-          <Td class="font-medium whitespace-nowrap">{{ field.name }}</Td>
+        <TRow v-for="field in fields" :key="`${field.origin}-${field.id}`">
+          <Td class="font-medium whitespace-nowrap">
+            {{ field.name }}
+            <SecondaryBadge v-if="field.origin === 'CLUSTER'" class="ml-2">
+              {{ t('memberEdit.fieldFromCluster') }}
+            </SecondaryBadge>
+          </Td>
           <Td>
+            <span v-if="field.readonlyAtStation" class="text-(--text-muted)">{{ getEditValue(field) }}</span>
             <ProfileFieldInput
+                v-else
                 :field-type="field.fieldType ?? 'TEXT'"
-                :model-value="getEditValue(field.id)"
+                :model-value="getEditValue(field)"
                 :options="parseFieldConfig(field.config).options as string[]"
-                @update:model-value="setEditValue(field.id, $event)"
+                @update:model-value="setEditValue(field, $event)"
             />
           </Td>
         </TRow>

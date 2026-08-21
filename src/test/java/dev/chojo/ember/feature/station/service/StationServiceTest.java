@@ -368,6 +368,82 @@ class StationServiceTest extends RepositoryTestBase {
         stationRepo.delete(other.id());
     }
 
+    /**
+     * What a cluster locks, the station keeps whatever it sends. The settings it left alone stay the
+     * station's own, in the same save, which is what makes a lock different from a takeover.
+     */
+    @Test
+    @Order(60)
+    void aLockedLookIsKeptAndTheRestStaysTheStationsOwn() {
+        var home = stationRepo.create("Träger Farbe");
+        var cluster = clusterRepo.create("Kreisverband Farbe", null, home.id());
+        var member = stationRepo.create("Wache Farbe");
+        stationRepo.setCluster(member.id(), cluster.id());
+
+        stationRepo.updateThemeSettings(member.id(), "ember", true, "{\"light\":{}}", ThemeFeel.ROUNDED, true);
+        clusterRepo.setLookAndFeel(
+                cluster.id(), "ember", "{\"light\":{}}", ThemeFeel.ROUNDED, false, true, false, true);
+
+        var locks = service.lookAndFeelLocks(member.id());
+        assertTrue(locks.colors(), "the cluster locked the colours");
+        assertTrue(locks.logo());
+        assertFalse(locks.theme());
+        assertFalse(locks.feel());
+        assertEquals("Kreisverband Farbe", service.clusterNameOf(member.id()).orElseThrow());
+
+        service.updateThemeSettings(
+                member.id(), "aurora", false, "{\"light\":{\"primary\":\"#fff\"}}", ThemeFeel.CORNERS, false);
+
+        var after = stationRepo.findById(member.id()).orElseThrow();
+        // Compared without the spacing the database writes back, which is not what the cluster locked
+        assertEquals(
+                "{\"light\":{}}", after.customThemeColors().replace(" ", ""), "the locked colours are the cluster's");
+        assertEquals("aurora", after.defaultTheme(), "what it did not lock is still the station's");
+        assertEquals(ThemeFeel.CORNERS, after.defaultFeel());
+
+        stationRepo.setCluster(member.id(), null);
+        stationRepo.delete(member.id());
+        clusterRepo.delete(cluster.id());
+        stationRepo.delete(home.id());
+    }
+
+    /** A station in no cluster has nothing locked and nobody to name. */
+    @Test
+    @Order(61)
+    void aStationUnderNobodyLocksNothing() {
+        var lone = stationRepo.create("Wache Allein");
+        var locks = service.lookAndFeelLocks(lone.id());
+        assertFalse(locks.theme() || locks.colors() || locks.feel() || locks.logo());
+        assertTrue(service.clusterNameOf(lone.id()).isEmpty());
+        assertTrue(service.findEffectiveDisabledModules(lone.id()).isEmpty());
+        stationRepo.delete(lone.id());
+    }
+
+    /**
+     * A module the cluster denied is as gone as one the station switched off itself, which is what the
+     * shell has to go by.
+     */
+    @Test
+    @Order(62)
+    void anEffectiveDisabledModuleCountsBothSides() {
+        var home = stationRepo.create("Träger Module");
+        var cluster = clusterRepo.create("Kreisverband Module", null, home.id());
+        var member = stationRepo.create("Wache Module");
+        stationRepo.setCluster(member.id(), cluster.id());
+
+        stationRepo.setDisabledModules(member.id(), Set.of(StationModule.NEWS));
+        clusterRepo.setDeniedModules(cluster.id(), Set.of(StationModule.BOARDS));
+
+        assertEquals(Set.of(StationModule.NEWS), service.findDisabledModules(member.id()));
+        assertEquals(
+                Set.of(StationModule.NEWS, StationModule.BOARDS), service.findEffectiveDisabledModules(member.id()));
+
+        stationRepo.setCluster(member.id(), null);
+        stationRepo.delete(member.id());
+        clusterRepo.delete(cluster.id());
+        stationRepo.delete(home.id());
+    }
+
     @Test
     @Order(99)
     void delete() {

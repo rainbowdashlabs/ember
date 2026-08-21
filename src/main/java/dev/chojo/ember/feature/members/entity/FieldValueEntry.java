@@ -5,4 +5,10 @@
  */
 package dev.chojo.ember.feature.members.entity;
 
-public record FieldValueEntry(int fieldId, String value) {}
+public record FieldValueEntry(int fieldId, String value, FieldOrigin origin) {
+
+    /** An entry that names no origin is the station's own, which is what every caller but the profile is. */
+    public FieldValueEntry(int fieldId, String value) {
+        this(fieldId, value, FieldOrigin.STATION);
+    }
+}

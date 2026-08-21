@@ -123,7 +123,8 @@ class SessionInfoServiceTest {
         when(station.customThemeColors()).thenReturn("{}");
         when(station.uid()).thenReturn(STATION_UID);
         when(stationService.findById(7)).thenReturn(Optional.of(station));
-        when(stationService.findDisabledModules(7)).thenReturn(Set.of(StationModule.EVENTS));
+        // What the shell goes by is the station's own switches and its cluster's denials together
+        when(stationService.findEffectiveDisabledModules(7)).thenReturn(Set.of(StationModule.EVENTS));
         when(memberService.findManaged(5)).thenReturn(List.of(member(6, 7, 2, null), member(8, 7, null, "Kid")));
         when(groupService.findGroupsForMember(5)).thenReturn(List.of(new MemberGroup(3, 7, "Group", "#fff", 0)));
         when(userTagRepository.findTagsForMember(5)).thenReturn(List.of(new UserTag(4, 7, "Tag", "#000", true, 0)));
