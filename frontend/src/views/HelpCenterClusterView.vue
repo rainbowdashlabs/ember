@@ -71,6 +71,22 @@ watch(
         </SidebarLink>
       </SidebarGroup>
 
+      <SidebarGroup :icon="['fas', 'newspaper']" :label="t('clusterSidebar.content')"
+                    prefix="/helpcenter/cluster/content">
+        <SidebarLink :icon="['fas', 'book']" name="help-cluster-knowledge"
+                     to="/helpcenter/cluster/knowledge" @navigate="close">
+          {{ t('clusterSidebar.knowledge') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'newspaper']" name="help-cluster-news"
+                     to="/helpcenter/cluster/news" @navigate="close">
+          {{ t('clusterSidebar.news') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'calendar']" name="help-cluster-events"
+                     to="/helpcenter/cluster/events" @navigate="close">
+          {{ t('clusterSidebar.events') }}
+        </SidebarLink>
+      </SidebarGroup>
+
       <SidebarGroup :icon="['fas', 'boxes-stacked']" :label="t('clusterSidebar.inventory')"
                     prefix="/helpcenter/cluster/inventory">
         <SidebarLink :icon="['fas', 'boxes-stacked']" name="help-cluster-inventory"

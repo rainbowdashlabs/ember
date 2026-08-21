@@ -100,6 +100,23 @@ onMounted(() => {
       </SidebarGroup>
 
       <SidebarGroup
+          v-if="hasClusterPermission(ClusterPermission.USER)"
+          :icon="['fas', 'newspaper']"
+          :label="t('clusterSidebar.content')"
+          prefix="/cluster/content"
+      >
+        <SidebarLink :icon="['fas', 'book']" name="cluster-knowledge" to="/cluster/knowledge" @navigate="close">
+          {{ t('clusterSidebar.knowledge') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'newspaper']" name="cluster-news" to="/cluster/news" @navigate="close">
+          {{ t('clusterSidebar.news') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'calendar']" name="cluster-events" to="/cluster/events" @navigate="close">
+          {{ t('clusterSidebar.events') }}
+        </SidebarLink>
+      </SidebarGroup>
+
+      <SidebarGroup
           v-if="hasClusterPermission(ClusterPermission.CLUSTER_INVENTORY_READ)"
           :icon="['fas', 'boxes-stacked']"
           :label="t('clusterSidebar.inventory')"
