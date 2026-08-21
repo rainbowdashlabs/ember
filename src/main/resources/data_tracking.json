@@ -2881,7 +2881,7 @@
     },
     "cluster" : {
       "feature" : "cluster",
-      "scope" : "INSTANCE",
+      "scope" : "CLUSTER",
       "tableHash" : "sha256:01b629ff0dade3a0bcafed6cd71509607326045f473e4d1a62d2f56ecb536471",
       "columns" : [ {
         "name" : "id",
@@ -3002,7 +3002,7 @@
     },
     "cluster_application" : {
       "feature" : "cluster",
-      "scope" : "INSTANCE",
+      "scope" : "CLUSTER",
       "tableHash" : "sha256:4684dc65be54109329c3f9f0800eda5cebe74508a96fbbd43bf0f9d83f9ee8db",
       "columns" : [ {
         "name" : "id",
@@ -3104,7 +3104,7 @@
     },
     "cluster_denied_module" : {
       "feature" : "cluster",
-      "scope" : "INSTANCE",
+      "scope" : "CLUSTER",
       "tableHash" : "sha256:b7031c25d57684a9e4f51fe0e22757e03a126f905238e995b0641fd48f226424",
       "columns" : [ {
         "name" : "cluster_id",
@@ -3141,7 +3141,7 @@
     },
     "cluster_member" : {
       "feature" : "cluster",
-      "scope" : "INSTANCE",
+      "scope" : "CLUSTER",
       "tableHash" : "sha256:7643d8ad712a16609dd8805cf80eccc2887230d26377c49813a5b49d97961c7b",
       "columns" : [ {
         "name" : "id",
@@ -3202,7 +3202,7 @@
     },
     "cluster_member_group" : {
       "feature" : "cluster",
-      "scope" : "INSTANCE",
+      "scope" : "CLUSTER",
       "tableHash" : "sha256:8a7ef709ac6d3bebbb38be75560d870e3bb7e6ebaa29b891534f35f86463f198",
       "columns" : [ {
         "name" : "id",
@@ -3245,7 +3245,7 @@
     },
     "cluster_member_group_membership" : {
       "feature" : "cluster",
-      "scope" : "INSTANCE",
+      "scope" : "CLUSTER",
       "tableHash" : "sha256:a871d803fca0a37580edbd5e8d46b5d6d85346745c39f6c9a85087a303cdb6dd",
       "columns" : [ {
         "name" : "group_id",
@@ -3287,7 +3287,7 @@
     },
     "cluster_member_group_permission" : {
       "feature" : "cluster",
-      "scope" : "INSTANCE",
+      "scope" : "CLUSTER",
       "tableHash" : "sha256:e0faeca4e26b9a051ab21868ac46f0568fbf8750e7374efad189d26c7da54b1d",
       "columns" : [ {
         "name" : "group_id",
@@ -3329,7 +3329,7 @@
     },
     "cluster_member_permission" : {
       "feature" : "cluster",
-      "scope" : "INSTANCE",
+      "scope" : "CLUSTER",
       "tableHash" : "sha256:1e0aefe321d45eca0de0c697e88d5c7fe20e5f884605626c94d0b1f624934622",
       "columns" : [ {
         "name" : "member_id",
@@ -3371,7 +3371,7 @@
     },
     "cluster_permission" : {
       "feature" : "cluster",
-      "scope" : "INSTANCE",
+      "scope" : "CLUSTER",
       "tableHash" : "sha256:7eb85bac5bb9d0b8ce690aaa3b200ab737085a4f8472fc9b4e67e3d0c7f2213b",
       "columns" : [ {
         "name" : "id",
@@ -3403,7 +3403,7 @@
     },
     "cluster_profile_field" : {
       "feature" : "cluster",
-      "scope" : "INSTANCE",
+      "scope" : "CLUSTER",
       "tableHash" : "sha256:71153aff9e343975ba0d6eb44ebc356e8dbf8810a52145a50470625df1ff3b08",
       "columns" : [ {
         "name" : "id",
@@ -3482,7 +3482,7 @@
     },
     "cluster_profile_field_value" : {
       "feature" : "cluster",
-      "scope" : "INSTANCE",
+      "scope" : "CLUSTER",
       "tableHash" : "sha256:50f7fe6b131198680486886641c11436ed227f80fb229fe92b27a9e3134530cd",
       "columns" : [ {
         "name" : "member_id",
@@ -3537,7 +3537,7 @@
     },
     "cluster_storage_config" : {
       "feature" : "cluster",
-      "scope" : "INSTANCE",
+      "scope" : "CLUSTER",
       "tableHash" : "sha256:ca91826428e87a1181a9a65049913c2c54d573b5d0fff6a53a940277a6be4329",
       "columns" : [ {
         "name" : "cluster_id",
@@ -3592,7 +3592,7 @@
     },
     "cluster_user_type_permission" : {
       "feature" : "cluster",
-      "scope" : "INSTANCE",
+      "scope" : "CLUSTER",
       "tableHash" : "sha256:a68a52bb75f651a6671fc3edf897494ed0dab202f53f63154a0a1d964630f269",
       "columns" : [ {
         "name" : "cluster_id",
