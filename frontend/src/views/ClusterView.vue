@@ -13,6 +13,9 @@ import AccountMenuButton from '@/components/layout/AccountMenuButton.vue'
 import SmartStationButton from '@/components/layout/SmartStationButton.vue'
 import HelpCenterLink from '@/components/navigation/HelpCenterLink.vue'
 import ClusterSwitcher from '@/components/navigation/ClusterSwitcher.vue'
+import QuickSearchPalette from '@/components/quicksearch/QuickSearchPalette.vue'
+import QuickSearchTrigger from '@/components/quicksearch/QuickSearchTrigger.vue'
+import {useQuickSearchShortcut} from '@/composables/useQuickSearchShortcut'
 import {useSession} from '@/composables/useSession'
 import {useCluster} from '@/composables/useCluster'
 import {usePageHeader} from '@/composables/usePageHeader'
@@ -22,6 +25,7 @@ const {t} = useI18n()
 const {loaded, load, hasClusterPermission} = useSession()
 const {load: loadClusters, activeCluster} = useCluster()
 const {title: pageTitle, subtitle: pageSubtitle} = usePageHeader()
+const {open: openQuickSearch} = useQuickSearchShortcut('cluster')
 
 onMounted(() => {
   if (!loaded.value) {
@@ -34,8 +38,6 @@ onMounted(() => {
 <template>
   <SidebarLayout :station-name="activeCluster?.name" :subtitle="pageSubtitle" :title="pageTitle">
     <template #sidebar="{ close }">
-      <ClusterSwitcher/>
-
       <SidebarGroup :icon="['fas', 'sitemap']" :label="t('clusterSidebar.cluster')" prefix="/cluster">
         <SidebarLink :icon="['fas', 'house']" name="cluster-overview" to="/cluster" @navigate="close">
           {{ t('clusterSidebar.overview') }}
@@ -188,15 +190,20 @@ onMounted(() => {
         </SidebarLink>
       </SidebarGroup>
 
-      <div class="mt-auto flex flex-col gap-2 pt-4">
-        <SmartStationButton/>
-        <div class="flex items-center gap-2">
-          <AccountMenuButton/>
-          <HelpCenterLink/>
-        </div>
-      </div>
+    </template>
+
+    <template #header>
+      <QuickSearchTrigger scope="cluster" @open="openQuickSearch"/>
+      <HelpCenterLink/>
+      <SmartStationButton/>
+      <AccountMenuButton/>
+    </template>
+
+    <template #footer>
+      <ClusterSwitcher/>
     </template>
 
     <slot/>
+    <QuickSearchPalette/>
   </SidebarLayout>
 </template>

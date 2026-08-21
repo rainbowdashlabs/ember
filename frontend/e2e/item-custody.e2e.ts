@@ -92,6 +92,108 @@ test.describe('Item custody', () => {
     })
 
     /**
+     * ITM-8 - An item on its way is neither here nor there.
+     *
+     * Between two parties it belongs to neither store: it reads as in transit, names the movement carrying
+     * it, and is in nobody's free stock.
+     */
+    test('gear on its way is in neither store', async ({managerPage: page}) => {
+        const headers = await apiHeaders(page)
+        const inventory = await page.request.post('/api/v1/inventories',
+            {headers, data: {name: `Unterwegs ${Date.now()}`, inventoryType: 'MIXED', hasSizes: false}})
+        expect(inventory.ok()).toBeTruthy()
+        const inventoryId = (await inventory.json()).id
+
+        const made = await page.request.post(`/api/v1/inventories/${inventoryId}/items`, {
+            headers,
+            data: {internalId: `TRANSIT-${Date.now()}`, name: 'Prüfstück', sizeId: null, metadata: null,
+                ownerKind: 'CLUSTER', ownerClusterId: null},
+        })
+        expect(made.ok()).toBeTruthy()
+        const piece = await made.json()
+
+        // A chain that parks it in the post and waits there
+        const flow = await page.request.post('/api/v1/movement-flows',
+            {headers, data: {name: `Unterwegs ${Date.now()}`, purpose: 'RETURN'}})
+        const flowId = (await flow.json()).id
+        for (const step of [
+            {label: 'Wache schickt', actor: 'STATION', subject: 'OUTGOING',
+                custodyAfter: 'IN_TRANSIT', picksItem: false},
+            {label: 'Träger nimmt an', actor: 'OWNER', subject: 'OUTGOING',
+                custodyAfter: 'WITH_OWNER', picksItem: false},
+        ]) {
+            expect((await page.request.post(`/api/v1/movement-flows/${flowId}/steps`,
+                {headers, data: step})).ok()).toBeTruthy()
+        }
+        expect((await page.request.put('/api/v1/movement-flow-bindings',
+            {headers, data: {inventoryId, ownerKind: 'CLUSTER', purpose: 'RETURN', flowId}})).ok()).toBeTruthy()
+
+        const started = await page.request.post('/api/v1/movements',
+            {headers, data: {purpose: 'RETURN', outgoingItemId: piece.id, inventoryId, reason: 'Zurück'}})
+        expect(started.ok()).toBeTruthy()
+        const movementId = (await started.json()).movement.id
+
+        const moving = await item(page, headers, piece.id)
+        expect(moving.custody, 'it is in the post').toBe('IN_TRANSIT')
+        expect(moving.custodyMovementId, 'and says which movement is carrying it').toBe(movementId)
+
+        const free = await page.request
+            .get(`/api/v1/inventories/${inventoryId}/items`, {headers})
+            .then(r => r.json())
+            .then((items: {id: number; custody: string}[]) =>
+                items.filter(i => i.custody === 'AT_STATION' || i.custody === 'WITH_OWNER'))
+        expect(free.some((i: {id: number}) => i.id === piece.id),
+            'and stands in neither store').toBeFalsy()
+
+        return {inventoryId, piece}
+    })
+
+    /**
+     * ITM-9 - An item in transit cannot be handed to anybody.
+     *
+     * Nobody can hand over what is in the post, and reaching for it anyway is refused rather than quietly
+     * pulling it out of a movement somebody is walking.
+     */
+    test('gear in the post cannot be handed to anybody', async ({managerPage: page}) => {
+        const headers = await apiHeaders(page)
+        const inventory = await page.request.post('/api/v1/inventories',
+            {headers, data: {name: `Griffbereit ${Date.now()}`, inventoryType: 'MIXED', hasSizes: false}})
+        const inventoryId = (await inventory.json()).id
+
+        const made = await page.request.post(`/api/v1/inventories/${inventoryId}/items`, {
+            headers,
+            data: {internalId: `HOLD-${Date.now()}`, name: 'Prüfstück', sizeId: null, metadata: null,
+                ownerKind: 'CLUSTER', ownerClusterId: null},
+        })
+        const piece = await made.json()
+
+        const flow = await page.request.post('/api/v1/movement-flows',
+            {headers, data: {name: `Griffbereit ${Date.now()}`, purpose: 'RETURN'}})
+        const flowId = (await flow.json()).id
+        for (const step of [
+            {label: 'Wache schickt', actor: 'STATION', subject: 'OUTGOING',
+                custodyAfter: 'IN_TRANSIT', picksItem: false},
+            {label: 'Träger nimmt an', actor: 'OWNER', subject: 'OUTGOING',
+                custodyAfter: 'WITH_OWNER', picksItem: false},
+        ]) {
+            await page.request.post(`/api/v1/movement-flows/${flowId}/steps`, {headers, data: step})
+        }
+        await page.request.put('/api/v1/movement-flow-bindings',
+            {headers, data: {inventoryId, ownerKind: 'CLUSTER', purpose: 'RETURN', flowId}})
+        await page.request.post('/api/v1/movements',
+            {headers, data: {purpose: 'RETURN', outgoingItemId: piece.id, inventoryId, reason: 'Zurück'}})
+
+        expect((await item(page, headers, piece.id)).custody).toBe('IN_TRANSIT')
+
+        const member = await someMember(page, headers)
+        const refused = await page.request.put(`/api/v1/inventory-items/${piece.id}/assign`,
+            {headers, data: {memberId: member.id, memberName: null}})
+        expect(refused.ok(), 'nobody can hand over what is in the post').toBeFalsy()
+
+        expect((await item(page, headers, piece.id)).custody, 'and it stays on its way').toBe('IN_TRANSIT')
+    })
+
+    /**
      * ITM-10 - A lost item is in nobody's custody.
      *
      * It stays on the record of whoever had it, because gear a member cannot find is still gear that

@@ -6,7 +6,9 @@
 import {useRouter} from 'vue-router'
 import {auth} from '@/api'
 import {getItem} from '@/api/storage'
+import {useCluster} from '@/composables/useCluster'
 import {useSession} from '@/composables/useSession'
+import {useStations} from '@/composables/useStations'
 import {useTheme} from '@/composables/useTheme'
 
 /**
@@ -18,6 +20,11 @@ import {useTheme} from '@/composables/useTheme'
 export function useLogout() {
   const router = useRouter()
   const {clear} = useSession()
+  // The lists of what an account may act for outlive the session that fetched them: they are held once
+  // for the whole application, so without this the next person to sign in on this browser is offered the
+  // stations and associations of the one before them until the page is loaded afresh.
+  const {clear: clearStations} = useStations()
+  const {clear: clearClusters} = useCluster()
 
   async function logout() {
     const token = getItem('session_token')
@@ -29,6 +36,8 @@ export function useLogout() {
       }
     }
     clear()
+    clearStations()
+    clearClusters()
     useTheme().resetToInstanceDefaults()
     await router.push({name: 'login'})
   }

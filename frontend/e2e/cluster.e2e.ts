@@ -4,7 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {MADE_BY_A_STORY} from './fixtures/cluster'
-import {test, expect, enterCluster, clustersOf, theSeededCluster, apiHeaders, demoAccounts} from './fixtures/auth'
+import {
+    test, expect, enterCluster, clustersOf, theSeededCluster, apiHeaders, demoAccounts, pageAsThrowaway,
+} from './fixtures/auth'
 
 /**
  * Identity and context: who reaches the cluster area, what they see once they are in it, and where
@@ -54,11 +56,32 @@ test.describe('Cluster', () => {
      * The switcher and the panel button hang off the same question, so a member who belongs to no
      * cluster should find neither anywhere in the shell.
      */
-    test('an account in no cluster is offered none', async ({memberPage: page}) => {
+    test('an account in no cluster is offered none', async ({memberPage: page, browser, request}) => {
         await page.goto('/station/members/list')
         await expect(page.getByTestId('app-shell')).toBeVisible()
 
         await expect(page.getByRole('button', {name: 'Verband'})).toHaveCount(0)
+
+        // And running the station is no different from being at it. A membership in the association is
+        // only ever written by somebody who already acts for it, so nothing anybody holds at a station,
+        // up to and including administering it, puts them in the association above it.
+        const accounts = await demoAccounts(request)
+        const manager = accounts.find(account =>
+            !!account.email
+            && !!account.stationId
+            && (account.permissions.includes('STATION_ADMINISTRATOR')
+                || account.permissions.includes('STATION_MANAGER'))
+            && !(account.clusterPermissions ?? []).length)
+        expect(manager, 'somebody runs a station without also having a job at the association').toBeTruthy()
+        const running = await pageAsThrowaway(browser, request, [], manager!)
+        const headers = await apiHeaders(running)
+        const theirs = await running.request.get('/api/v1/clusters', {headers}).then(r => r.json())
+        expect(theirs, 'somebody who runs a member station is not thereby in the association').toEqual([])
+
+        await running.goto('/station/members/list')
+        await expect(running.getByTestId('app-shell')).toBeVisible()
+        await expect(running.getByRole('button', {name: 'Verband'})).toHaveCount(0)
+        await running.context().close()
     })
 
     /** CLS-5 - The cluster space is refused without membership. */

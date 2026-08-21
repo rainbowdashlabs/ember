@@ -359,6 +359,11 @@ public class MovementRoutes implements Routes {
         var logs = movementService.findLogs(movement.id());
         var actor = actorOf(session, movement);
         var steps = movementService.stepsOf(movement).stream()
+                // A movement that has closed is a record of what happened, so it shows the steps it walked
+                // and no others. The flow it read is free to grow afterwards, and a finished chain must not
+                // grow with it: a step nobody took would read as one somebody skipped.
+                .filter(step -> movement.state() == MovementState.OPEN
+                        || logs.stream().anyMatch(l -> l.stepId() != null && l.stepId() == step.id()))
                 .map(step -> {
                     var entry = logs.stream()
                             .filter(l -> l.stepId() != null && l.stepId() == step.id())
@@ -367,7 +372,9 @@ public class MovementRoutes implements Routes {
                     return new MovementStepResponse(
                             step.id(),
                             step.position(),
-                            step.label(),
+                            // The words it was walked under, where it has been walked. Renaming a step
+                            // changes what the next movement says and never what a finished one said.
+                            entry.map(l -> l.stepLabel()).orElseGet(step::label),
                             step.actor(),
                             step.subject(),
                             step.custodyAfter(),

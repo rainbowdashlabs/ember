@@ -3,6 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import {ClusterPermission} from '@/api/clusters'
 import {StationModules, StationPermission} from '@/api/types'
 import type {QuickSearchScope} from '@/composables/useQuickSearch'
 
@@ -25,6 +26,9 @@ export interface PaletteRouteEntry {
     permission?: string
     anyPermission?: string[]
     module?: string
+    /** What the caller must hold at the cluster, for entries of the cluster scope. */
+    clusterPermission?: string
+    clusterAnyPermission?: string[]
 }
 
 export const PALETTE_ROUTES: PaletteRouteEntry[] = [
@@ -136,4 +140,32 @@ export const PALETTE_ROUTES: PaletteRouteEntry[] = [
     {scope: 'admin', to: '/admin/monitoring/discovery', labelKey: 'sidebar.adminDiscovery', icon: 'compass'},
     {scope: 'admin', to: '/admin/monitoring/maps', labelKey: 'sidebar.maps', icon: 'map-location-dot'},
     {scope: 'admin', to: '/admin/dev/data-tracking', labelKey: 'sidebar.dataTracking', icon: 'database'},
+
+    // The association's own pages, gated on what it granted rather than on any station's rights
+    {scope: 'cluster', to: '/cluster', labelKey: 'clusterSidebar.overview', icon: 'house'},
+    {scope: 'cluster', to: '/cluster/settings', labelKey: 'clusterSidebar.settings', icon: 'gear',
+        clusterPermission: ClusterPermission.CLUSTER_GENERAL},
+    {scope: 'cluster', to: '/cluster/stations', labelKey: 'clusterSidebar.stationList', icon: 'building',
+        clusterPermission: ClusterPermission.CLUSTER_STATIONS},
+    {scope: 'cluster', to: '/cluster/applications', labelKey: 'clusterSidebar.applications',
+        icon: 'clipboard-list', clusterPermission: ClusterPermission.CLUSTER_STATIONS},
+    {scope: 'cluster', to: '/cluster/members', labelKey: 'clusterSidebar.memberList', icon: 'users',
+        clusterPermission: ClusterPermission.CLUSTER_MEMBER_READ},
+    {scope: 'cluster', to: '/cluster/members/manage', labelKey: 'clusterSidebar.memberManagement',
+        icon: 'users-gear', clusterPermission: ClusterPermission.CLUSTER_MEMBER_MANAGER},
+    {scope: 'cluster', to: '/cluster/knowledge', labelKey: 'clusterSidebar.knowledge', icon: 'book'},
+    {scope: 'cluster', to: '/cluster/news', labelKey: 'clusterSidebar.news', icon: 'newspaper'},
+    {scope: 'cluster', to: '/cluster/events', labelKey: 'clusterSidebar.events', icon: 'calendar'},
+    {scope: 'cluster', to: '/cluster/inventory', labelKey: 'clusterSidebar.stock', icon: 'boxes-stacked',
+        clusterPermission: ClusterPermission.CLUSTER_INVENTORY_READ},
+    {scope: 'cluster', to: '/cluster/inventory/movements', labelKey: 'clusterSidebar.movements',
+        icon: 'right-left', clusterPermission: ClusterPermission.CLUSTER_INVENTORY_READ},
+    {scope: 'cluster', to: '/cluster/fields', labelKey: 'clusterSidebar.fieldList', icon: 'id-card',
+        clusterPermission: ClusterPermission.CLUSTER_MEMBER_READ},
+    {scope: 'cluster', to: '/cluster/modules', labelKey: 'clusterSidebar.modules', icon: 'puzzle-piece',
+        clusterPermission: ClusterPermission.CLUSTER_MODULES},
+    {scope: 'cluster', to: '/cluster/look-and-feel', labelKey: 'clusterSidebar.lookAndFeel', icon: 'palette',
+        clusterPermission: ClusterPermission.CLUSTER_LOOK_AND_FEEL},
+    {scope: 'cluster', to: '/cluster/storage', labelKey: 'clusterSidebar.storage', icon: 'hard-drive',
+        clusterPermission: ClusterPermission.CLUSTER_STORAGE},
 ]

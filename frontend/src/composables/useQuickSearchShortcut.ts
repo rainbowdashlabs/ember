@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import { onBeforeUnmount, onMounted } from 'vue'
-import { useQuickSearch } from '@/composables/useQuickSearch'
+import { useQuickSearch, type QuickSearchScope } from '@/composables/useQuickSearch'
 
 /**
  * Binds Ctrl+K - Cmd+K on macOS - to the quick-search palette for as long as the calling shell is
@@ -16,7 +16,7 @@ import { useQuickSearch } from '@/composables/useQuickSearch'
  *
  * @param scope which palette to open - the station one or the admin one
  */
-export function useQuickSearchShortcut(scope: 'station' | 'admin') {
+export function useQuickSearchShortcut(scope: QuickSearchScope) {
   const {open, close, isOpen} = useQuickSearch()
 
   function onKeydown(event: KeyboardEvent) {

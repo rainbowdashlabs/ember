@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.cluster.service;
 
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.ClusterUserType;
+import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
@@ -207,6 +209,36 @@ class ClusterServiceTest extends RepositoryTestBase {
                 clusterService.resolvePermissions(member),
                 "taking a grant away leaves them a member and nothing more");
         clusterService.removeMember(member.id());
+    }
+
+    /**
+     * A membership at a station is not a membership here, however much the station answers to the cluster
+     * and however senior the person is at it. The cluster takes people on for a job in running it, and
+     * everybody else at every station under it belongs to their station and to nothing else.
+     */
+    @Test
+    void nobodyBecomesAClusterMemberByBeingAtAStationUnderIt() {
+        int clusterId = freshCluster();
+        var station = stationRepo.create("Wache unter dem Verband " + NAMES.incrementAndGet());
+        clusterService.joinStation(clusterId, station.id());
+
+        var account = freshAccount();
+        var member = stationMemberRepo.create(station.id(), account.id());
+        stationMemberRepo.setUserType(member.id(), StationUserType.MANAGER);
+        stationMemberRepo
+                .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
+                .ifPresent(role -> stationMemberRepo.grantPermission(member.id(), role.id()));
+        stationRepo.setOwner(station.id(), member.id());
+
+        assertTrue(
+                clusterService.findClustersForAccount(account.id()).isEmpty(),
+                "running a station under the cluster is not being in the cluster");
+        assertTrue(
+                clusterService.findMember(clusterId, account.id()).isEmpty(),
+                "and no membership was written on their behalf");
+
+        clusterService.releaseStation(clusterId, station.id());
+        stationRepo.delete(station.id());
     }
 
     @Test

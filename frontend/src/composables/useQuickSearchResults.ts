@@ -44,7 +44,7 @@ export interface PaletteSection {
  */
 export function useQuickSearchResults(query: Ref<string>, scope: Ref<string>) {
   const { t } = useI18n()
-  const { hasPermission, isModuleEnabled } = useSession()
+  const { hasPermission, hasClusterPermission, isModuleEnabled } = useSession()
 
   const members = ref<MemberCompletion[]>([])
   const kbResults = ref<KbSearchResult[]>([])
@@ -57,6 +57,12 @@ export function useQuickSearchResults(query: Ref<string>, scope: Ref<string>) {
   function entryAllowed(entry: PaletteRouteEntry): boolean {
     if (entry.scope !== scope.value) return false
     if (entry.module && !isModuleEnabled(entry.module)) return false
+    if (entry.scope === 'cluster') {
+      // An association's pages answer to what it granted, which has nothing to do with any station
+      if (entry.clusterPermission && !hasClusterPermission(entry.clusterPermission)) return false
+      if (entry.clusterAnyPermission && !entry.clusterAnyPermission.some(p => hasClusterPermission(p))) return false
+      return true
+    }
     if (entry.permission && !hasPermission(entry.permission)) return false
     if (entry.anyPermission && !entry.anyPermission.some(p => hasPermission(p))) return false
     return true
