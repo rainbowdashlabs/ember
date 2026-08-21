@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.board.service.BoardTicketService;
 import dev.chojo.ember.feature.board.service.FederatedBoardService;
 import dev.chojo.ember.feature.checklist.repository.ChecklistRepository;
 import dev.chojo.ember.feature.checklist.service.ChecklistService;
+import dev.chojo.ember.feature.cluster.service.ClusterApplicationService;
 import dev.chojo.ember.feature.cluster.service.ClusterContentService;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
@@ -311,12 +312,15 @@ class DemoServiceTest extends RepositoryTestBase {
                 procurementService,
                 itemCustodyService);
         var clusterSeeder = new DemoClusterSeeder(
+                accountRepo,
+                passwordHasher,
                 clusterService,
                 clusterMemberService,
                 clusterInventoryService,
                 clusterProfileFieldService,
                 new ClusterContentService(clusterRepo, stationRepo, stationMemberRepo, kbService, federationRepo),
-                clusterApplicationRepo,
+                new ClusterApplicationService(
+                        clusterApplicationRepo, clusterRepo, stationRepo, clusterService, noOpBus),
                 stationRepo,
                 inventoryRepo,
                 fieldDefSvc,
@@ -500,7 +504,9 @@ class DemoServiceTest extends RepositoryTestBase {
                 .orElseThrow(() -> new AssertionError("The demo cluster should exist"));
 
         assertTrue(cluster.usesInventory(), "The demo cluster should keep gear of its own");
-        assertEquals(2, clusterRepo.findStationIds(cluster.id()).size(), "Two stations should be in the cluster");
+        // The station the demo is about, the neighbouring one, and the one the cluster made itself. The
+        // federation partner and the mirror are the two that stay outside.
+        assertEquals(3, clusterRepo.findStationIds(cluster.id()).size(), "Three stations should be in the cluster");
         assertFalse(
                 clusterApplicationRepo.findByCluster(cluster.id()).isEmpty(),
                 "A station should be waiting to join the cluster");

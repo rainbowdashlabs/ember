@@ -8,9 +8,11 @@ package dev.chojo.ember.feature.system.service;
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.ClusterUserType;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.auth.PasswordHasher;
+import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterMember;
-import dev.chojo.ember.feature.cluster.repository.ClusterApplicationRepository;
+import dev.chojo.ember.feature.cluster.service.ClusterApplicationService;
 import dev.chojo.ember.feature.cluster.service.ClusterContentService;
 import dev.chojo.ember.feature.cluster.service.ClusterInventoryService;
 import dev.chojo.ember.feature.cluster.service.ClusterMemberService;
@@ -76,12 +78,14 @@ import java.util.stream.Stream;
 public class DemoClusterSeeder implements DemoSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoClusterSeeder.class);
 
+    private final AccountRepository accountRepository;
+    private final PasswordHasher passwordHasher;
     private final ClusterService clusterService;
     private final ClusterMemberService memberService;
     private final ClusterInventoryService clusterInventoryService;
     private final ClusterProfileFieldService fieldService;
     private final ClusterContentService contentService;
-    private final ClusterApplicationRepository applicationRepository;
+    private final ClusterApplicationService applicationService;
     private final StationRepository stationRepository;
     private final InventoryRepository inventoryRepository;
     private final InventoryFieldDefinitionService fieldDefinitionService;
@@ -95,12 +99,14 @@ public class DemoClusterSeeder implements DemoSeeder {
 
     @Inject
     public DemoClusterSeeder(
+            AccountRepository accountRepository,
+            PasswordHasher passwordHasher,
             ClusterService clusterService,
             ClusterMemberService memberService,
             ClusterInventoryService clusterInventoryService,
             ClusterProfileFieldService fieldService,
             ClusterContentService contentService,
-            ClusterApplicationRepository applicationRepository,
+            ClusterApplicationService applicationService,
             StationRepository stationRepository,
             InventoryRepository inventoryRepository,
             InventoryFieldDefinitionService fieldDefinitionService,
@@ -111,12 +117,14 @@ public class DemoClusterSeeder implements DemoSeeder {
             EventCrudService eventService,
             EventRegistrationRepository registrationRepository,
             NotificationRepository notificationRepository) {
+        this.accountRepository = accountRepository;
+        this.passwordHasher = passwordHasher;
         this.clusterService = clusterService;
         this.memberService = memberService;
         this.clusterInventoryService = clusterInventoryService;
         this.fieldService = fieldService;
         this.contentService = contentService;
-        this.applicationRepository = applicationRepository;
+        this.applicationService = applicationService;
         this.stationRepository = stationRepository;
         this.inventoryRepository = inventoryRepository;
         this.fieldDefinitionService = fieldDefinitionService;
@@ -147,6 +155,10 @@ public class DemoClusterSeeder implements DemoSeeder {
 
         // The station the rest of the demo is about now answers to somebody
         clusterService.joinStation(cluster.id(), context.station().id());
+
+        // And so does the neighbouring one, so that the screens which reach across a cluster have two
+        // stations to reach across rather than one
+        joinNeighbour(cluster, context);
 
         // A station the cluster made itself, which belonged to it from its first moment
         clusterService.createStation(cluster.id(), "Löschzug Nord");
@@ -185,16 +197,37 @@ public class DemoClusterSeeder implements DemoSeeder {
     }
 
     /**
-     * The waiting request. The partner station's own member asks, because an application is something a
-     * station does rather than something that happens to it.
+     * The waiting request, asked for by the station's own owner through the same call the screen makes.
+     *
+     * <p>Written this way rather than as a row because an application is something a station does: only its
+     * owner may ask, and the cluster is told that somebody has. A row put in behind that would leave the
+     * demo with a request nobody could take back.
      */
     private void seedApplication(Cluster cluster, DemoSeederContext context) {
         var federation = context.federation();
         if (federation == null) {
-            log.warn("Demo: No partner station left to apply to the cluster");
+            log.warn("Demo: No partner station left to ask the cluster for a place");
             return;
         }
-        applicationRepository.open(cluster.id(), federation.partnerStationId(), federation.partnerMemberId());
+        applicationService.apply(cluster.id(), federation.partnerStationId(), federation.partnerMemberId());
+    }
+
+    /**
+     * Moves the neighbouring station in.
+     *
+     * <p>Named rather than picked off a list, because which station this is matters: it is the one with
+     * members and gear of its own, which is what makes searching across the cluster and releasing a station
+     * show anything. The federation partner and the mirror stay outside, the first so the applications
+     * screen has something waiting and the second because a mirror is a copy of a station that lives
+     * somewhere else.
+     */
+    private void joinNeighbour(Cluster cluster, DemoSeederContext context) {
+        var federation = context.federation();
+        if (federation == null) {
+            log.warn("Demo: No neighbouring station to move into the cluster");
+            return;
+        }
+        clusterService.joinStation(cluster.id(), federation.thirdStationId());
     }
 
     /**
@@ -211,6 +244,8 @@ public class DemoClusterSeeder implements DemoSeeder {
         var group = memberService.createGroup(cluster.id(), "Gerätewarte");
         memberService.setGroupPermissions(cluster.id(), group.id(), Set.of(ClusterPermission.CLUSTER_INVENTORY_EDIT));
 
+        seedClusterOnlyPerson(cluster);
+
         List<StationMember> others = otherPeople(context);
         if (!others.isEmpty()) {
             var memberManager =
@@ -224,6 +259,20 @@ public class DemoClusterSeeder implements DemoSeeder {
             memberService.setGroupMembers(cluster.id(), group.id(), Set.of(gearManager.id()));
         }
         return admin;
+    }
+
+    /**
+     * Somebody whose whole reason to be here is the cluster.
+     *
+     * <p>Every other cluster role in the demo is held by a person who is also at a station, which hides the
+     * case the login has to answer: an account belonging to no station at all lands in its cluster rather
+     * than on a station picker with nothing in it.
+     */
+    private void seedClusterOnlyPerson(Cluster cluster) {
+        var account = accountRepository.create("verband@demo.ember", "Verbands", "Leitung", true);
+        accountRepository.setUid(account.id(), DemoUids.account("verband@demo.ember"));
+        accountRepository.createCredential(account.id(), passwordHasher.hash("demo"));
+        clusterService.addMember(cluster.id(), account.id(), ClusterUserType.CLUSTER_ADMIN);
     }
 
     /**

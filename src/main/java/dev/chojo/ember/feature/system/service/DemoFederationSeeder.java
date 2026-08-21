@@ -198,6 +198,9 @@ public class DemoFederationSeeder implements DemoSeeder {
         stationMemberRepository.setUserType(partnerMember.id(), StationUserType.MANAGER);
         stationMemberRepository.grantPermission(partnerMember.id(), managerRole.id());
         stationMemberRepository.grantPermission(partnerMember.id(), loginRole.id());
+        // Somebody has to own a station before it can ask a cluster for a place, and running it is not the
+        // same thing as owning it
+        stationRepository.setOwner(partnerStation.id(), partnerMember.id());
         log.info("Demo: Created partner manager account partner@demo.ember");
 
         // Create team members on the partner station
@@ -653,6 +656,7 @@ public class DemoFederationSeeder implements DemoSeeder {
         stationMemberRepository.setUserType(thirdMember.id(), StationUserType.MANAGER);
         stationMemberRepository.grantPermission(thirdMember.id(), managerRole.id());
         stationMemberRepository.grantPermission(thirdMember.id(), loginRole.id());
+        stationRepository.setOwner(thirdStation.id(), thirdMember.id());
 
         kbService.createMarkdownFile(
                 thirdStation.id(),
@@ -680,8 +684,16 @@ public class DemoFederationSeeder implements DemoSeeder {
 
         log.info("Demo: Created third station with manager nachbar@demo.ember (not federated)");
 
-        return new SeedResult(partnerStation.id(), partnerMember.id());
+        return new SeedResult(partnerStation.id(), partnerMember.id(), thirdStation.id(), thirdMember.id());
     }
 
-    public record SeedResult(int partnerStationId, int partnerMemberId) {}
+    /**
+     * What the rest of the demo needs to reach the stations this seeder made.
+     *
+     * @param partnerStationId the station federated with the primary one
+     * @param partnerMemberId  its member, who also owns it
+     * @param thirdStationId   the neighbouring station, federated with nobody
+     * @param thirdMemberId    its member, who also owns it
+     */
+    public record SeedResult(int partnerStationId, int partnerMemberId, int thirdStationId, int thirdMemberId) {}
 }
