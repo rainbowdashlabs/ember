@@ -1,0 +1,217 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+import type {Page} from '@playwright/test'
+import {
+    test, expect, apiHeaders, enterCluster, clusterGearManagerPage, clusterStationManager, pageAsThrowaway,
+} from './fixtures/auth'
+
+/**
+ * The cluster's own gear: where each piece is, who may change it, and which steps of a movement only the
+ * cluster can answer.
+ *
+ * The seeder leaves two movements standing on a step the cluster owns, one return and one exchange, which
+ * is what the stories about answering walk. Serial, because both ends of the same movement are read and
+ * pressed in turn and two workers doing that at once would each be answering what the other just moved on
+ * from.
+ */
+test.describe.configure({mode: 'serial'})
+
+/** The movements waiting on the cluster, read as the cluster. */
+async function queue(page: Page, clusterUid: string) {
+    const headers = {...await apiHeaders(page), 'X-Cluster-Id': clusterUid}
+    const response = await page.request.get('/api/v1/cluster/inventory/queue', {headers})
+    expect(response.ok()).toBeTruthy()
+    return {headers, entries: await response.json()}
+}
+
+/** One movement as somebody sees it, steps and all. */
+async function movement(page: Page, id: number, headers: Record<string, string>) {
+    const response = await page.request.get(`/api/v1/movements/${id}`, {headers})
+    expect(response.ok(), `movement ${id} should be readable`).toBeTruthy()
+    return response.json()
+}
+
+test.describe('Cluster inventory', () => {
+    /**
+     * CLS-35 - The cluster keeps its gear and knows where every piece is.
+     *
+     * Owning it and holding it are different questions, and the cluster's list answers both: the piece,
+     * the station it is at, and whoever has it there.
+     */
+    test('the cluster sees every piece it owns and where each one is', async ({browser, request}) => {
+        const page = await clusterGearManagerPage(browser, request)
+        const cluster = await enterCluster(page)
+        const headers = {...await apiHeaders(page), 'X-Cluster-Id': cluster.uid}
+
+        const items = await page.request
+            .get('/api/v1/cluster/inventory/items', {headers})
+            .then(r => r.json())
+        expect(items.length, 'the demo cluster owns gear').toBeGreaterThan(0)
+
+        const custodies = new Set(items.map((i: {custody: string}) => i.custody))
+        expect(custodies.has('AT_STATION') && custodies.has('WITH_MEMBER'),
+            'gear resting at a station and gear somebody is wearing are told apart').toBeTruthy()
+        expect(items.some((i: {stationName: string}) => !!i.stationName),
+            'and each piece says which station it is at').toBeTruthy()
+
+        await page.goto('/cluster/inventory')
+        await expect(page.getByTestId('app-shell')).toBeVisible()
+        await page.context().close()
+    })
+
+    /**
+     * CLS-39 - A step belonging to the cluster is not actionable at the station.
+     *
+     * The station sees the step and who is being waited on, and has no button. Standing in is for an
+     * owner that cannot answer at all, which is not this one.
+     */
+    test('a step belonging to the cluster carries no button at the station',
+        async ({browser, request}) => {
+            const cluster = await clusterGearManagerPage(browser, request)
+            const clusterUid = (await enterCluster(cluster)).uid
+            const {entries} = await queue(cluster, clusterUid)
+            expect(entries.length, 'the seeder leaves the cluster something to answer').toBeGreaterThan(0)
+            const waiting = entries[0]
+
+            const station = await pageAsThrowaway(browser, request, [], await clusterStationManager(request))
+            const stationHeaders = await apiHeaders(station)
+            const seen = await movement(station, waiting.movementId, stationHeaders)
+
+            const current = seen.steps.find((s: {current: boolean}) => s.current)
+            expect(current.actor, 'the step is the owner\'s').toBe('OWNER')
+            expect(current.actionable, 'and the station has no button for it').toBeFalsy()
+
+            await station.goto('/station/inventory/exchanges')
+            await expect(station.getByTestId('app-shell')).toBeVisible()
+            await station.context().close()
+            await cluster.context().close()
+        })
+
+    /**
+     * CLS-37 - A station hands an item back to the cluster.
+     *
+     * The station cannot mark the arrival itself; the cluster confirms it, and the record says the owner
+     * confirmed rather than that somebody stood in for it.
+     */
+    test('the cluster confirms the arrival the station cannot', async ({browser, request}) => {
+        const page = await clusterGearManagerPage(browser, request)
+        const cluster = await enterCluster(page)
+        const {headers, entries} = await queue(page, cluster.uid)
+
+        const waiting = entries.find((e: {purpose: string}) => e.purpose === 'RETURN')
+        expect(waiting, 'a return is waiting on the cluster').toBeTruthy()
+
+        const before = await movement(page, waiting.movementId, headers)
+        const step = before.steps.find((s: {current: boolean}) => s.current)
+        expect(step.actionable, 'the cluster may answer its own step').toBeTruthy()
+
+        const answered = await page.request.post(`/api/v1/movements/${waiting.movementId}/acknowledge`,
+            {headers, data: {stepId: step.id, note: 'Angekommen'}})
+        expect(answered.ok()).toBeTruthy()
+
+        const after = await movement(page, waiting.movementId, headers)
+        expect(after.movement.state).toBe('DONE')
+        const owned = after.steps.find((s: {id: number}) => s.id === step.id)
+        expect(owned.ackKind, 'the owner answered for itself rather than being stood in for').toBe('CONFIRMED')
+
+        await page.goto('/cluster/inventory/movements')
+        await expect(page.getByTestId('app-shell')).toBeVisible()
+        await page.context().close()
+    })
+
+    /**
+     * CLS-38 - An exchange walks the whole chain.
+     *
+     * Each side only its own steps: the station gets no further than the step it owns, and what moves the
+     * chain past the cluster's step is the cluster pressing it.
+     */
+    test('an exchange walks past the cluster only when the cluster answers', async ({browser, request}) => {
+        const page = await clusterGearManagerPage(browser, request)
+        const cluster = await enterCluster(page)
+        const {headers, entries} = await queue(page, cluster.uid)
+
+        const waiting = entries.find((e: {purpose: string}) => e.purpose === 'EXCHANGE')
+        expect(waiting, 'an exchange is waiting on the cluster').toBeTruthy()
+
+        const before = await movement(page, waiting.movementId, headers)
+        const step = before.steps.find((s: {current: boolean}) => s.current)
+        const behind = before.steps.filter((s: {position: number}) => s.position < step.position)
+        expect(behind.length, 'the station has already walked its own steps').toBeGreaterThan(0)
+        expect(behind.every((s: {ackKind: string}) => !!s.ackKind), 'and each is stamped').toBeTruthy()
+
+        const answered = await page.request.post(`/api/v1/movements/${waiting.movementId}/acknowledge`,
+            {headers, data: {stepId: step.id, note: 'Ersatz unterwegs'}})
+        expect(answered.ok()).toBeTruthy()
+
+        const after = await movement(page, waiting.movementId, headers)
+        const moved = after.movement.state === 'DONE'
+            || after.steps.find((s: {current: boolean}) => s.current)?.position > step.position
+        expect(moved, 'the chain moved on once the cluster answered').toBeTruthy()
+        await page.context().close()
+    })
+
+    /**
+     * CLS-42 - A cluster-owned item cannot be changed or passed on at the station.
+     *
+     * What it is stays with whoever owns it. Where it is remains the station's to say, which is the other
+     * half of the same idea and is what the custody stories walk.
+     */
+    test('a cluster-owned item is not the station\'s to rename or lend', async ({browser, request}) => {
+        const page = await clusterGearManagerPage(browser, request)
+        const cluster = await enterCluster(page)
+        const headers = {...await apiHeaders(page), 'X-Cluster-Id': cluster.uid}
+        const items = await page.request
+            .get('/api/v1/cluster/inventory/items', {headers})
+            .then(r => r.json())
+        const at = items.find((i: {custody: string}) => i.custody === 'AT_STATION')
+        expect(at, 'the cluster has gear resting at a station').toBeTruthy()
+
+        const station = await pageAsThrowaway(browser, request, [], await clusterStationManager(request))
+        const stationHeaders = await apiHeaders(station)
+
+        const renamed = await station.request.put(`/api/v1/inventory-items/${at.id}`,
+            {headers: stationHeaders, data: {name: 'Umbenannt', internalId: at.internalId}})
+        expect(renamed.ok(), 'the station may not rename what it does not own').toBeFalsy()
+
+        const removed = await station.request.delete(`/api/v1/inventory-items/${at.id}`,
+            {headers: stationHeaders})
+        expect(removed.ok(), 'nor delete it').toBeFalsy()
+
+        await station.context().close()
+        await page.context().close()
+    })
+
+    /**
+     * CLS-43 - Cluster requirements are counted at the station.
+     *
+     * A piece the cluster owns and the member holds counts towards what that member is supposed to have,
+     * because who owns it was never the question a requirement asks.
+     */
+    test('gear the cluster owns counts towards what a member should hold', async ({browser, request}) => {
+        const page = await clusterGearManagerPage(browser, request)
+        const cluster = await enterCluster(page)
+        const headers = {...await apiHeaders(page), 'X-Cluster-Id': cluster.uid}
+        const items = await page.request
+            .get('/api/v1/cluster/inventory/items', {headers})
+            .then(r => r.json())
+        const held = items.find((i: {custody: string; holderName: string}) =>
+            i.custody === 'WITH_MEMBER' && !!i.holderName)
+        expect(held, 'a member is wearing something the cluster owns').toBeTruthy()
+
+        const station = await pageAsThrowaway(browser, request, [], await clusterStationManager(request))
+        const stationHeaders = await apiHeaders(station)
+        const mine = await station.request
+            .get(`/api/v1/inventory-items/${held.id}`, {headers: stationHeaders})
+            .then(r => r.json())
+        expect(mine.assignedTo, 'the station sees who has it').toBeTruthy()
+        expect(mine.ownerKind, 'and that the cluster owns it').toBe('CLUSTER')
+
+        await station.goto('/station/inventory/requirements')
+        await expect(station.getByTestId('app-shell')).toBeVisible()
+        await station.context().close()
+        await page.context().close()
+    })
+})

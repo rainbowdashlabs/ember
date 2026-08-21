@@ -357,8 +357,6 @@ public abstract class RepositoryTestBase {
                 accountRepo,
                 clusterProfileFieldRepo);
         inventoryService = new InventoryService(inventoryRepo, itemCustodyService, clusterRepo);
-        clusterInventoryService = new ClusterInventoryService(
-                clusterRepo, inventoryRepo, itemMovementRepo, movementFlowService, stationRepo, stationMemberRepo);
         clusterProfileFieldService = new ClusterProfileFieldService(
                 clusterProfileFieldRepo,
                 clusterRepo,
@@ -430,6 +428,16 @@ public abstract class RepositoryTestBase {
         memberNameResolver =
                 new MemberNameResolver(memberSvc, accountRepo, eventFedRepo, fedRepo, stationRepo, groupSvc, tagSvc);
         memberIdentityFactory = new MemberIdentityFactory(stationRepo, memberLookupService, memberNameResolver);
+        // Built here rather than with the other services: it reads a holder's name, which needs the
+        // resolver that is only ready at this point.
+        clusterInventoryService = new ClusterInventoryService(
+                clusterRepo,
+                inventoryRepo,
+                itemMovementRepo,
+                movementFlowService,
+                stationRepo,
+                stationMemberRepo,
+                memberNameResolver);
     }
 
     /**

@@ -97,6 +97,19 @@ public class ItemMovementService {
         public Actor(int memberId, boolean stationRights) {
             this(memberId, stationRights, false);
         }
+
+        /**
+         * The member to write into the record, which may be nobody.
+         *
+         * <p>Somebody acting for a cluster need not be at any station, and the log names a station's
+         * member. The entry still says what was acknowledged, when, and whether it was confirmed or
+         * asserted; what it cannot say is which of the station's people did it, because none of them did.
+         *
+         * @return the member id, or {@code null} when the actor belongs to no station
+         */
+        public Integer memberIdOrNull() {
+            return memberId > 0 ? memberId : null;
+        }
     }
 
     /**
@@ -290,7 +303,7 @@ public class ItemMovementService {
                     subjectItemId, step.custodyAfter(), movement.memberId(), movementId, movement.stationId());
         }
 
-        movementRepository.createLog(movementId, step.id(), step.label(), ackKind, actor.memberId(), note);
+        movementRepository.createLog(movementId, step.id(), step.label(), ackKind, actor.memberIdOrNull(), note);
 
         MovementFlowStep next = nextStepAfter(movement.flowId(), step.position());
         if (next == null) {
@@ -480,13 +493,28 @@ public class ItemMovementService {
         return step.actor() == StepActor.OWNER && !actor.ownerRights() ? AckKind.ASSERTED : AckKind.CONFIRMED;
     }
 
-    private boolean mayAct(ItemMovement movement, MovementFlowStep step, Actor actor) {
+    /**
+     * Whether this caller may press this step.
+     *
+     * <p>The one place that decides it, so the button the screen draws and the answer the service gives
+     * cannot disagree.
+     *
+     * <p>An owner's step is the owner's. The station covers it only where the owner cannot answer at all,
+     * which is when the gear belongs to a body that does not run here: then the station stands in and the
+     * record says it asserted rather than confirmed. When the owner is a cluster on this instance it can
+     * answer for itself, and the station waiting is the whole point of the step.
+     *
+     * @param movement the movement
+     * @param step     the step in question
+     * @param actor    who is asking
+     * @return whether they may press it
+     */
+    public boolean mayAct(ItemMovement movement, MovementFlowStep step, Actor actor) {
         return switch (step.actor()) {
             case MEMBER ->
                 movement.memberId() != null && (movement.memberId() == actor.memberId() || actor.stationRights());
             case STATION -> actor.stationRights();
-            // The owner answers for itself where it can, and the station covers it where it cannot
-            case OWNER -> actor.ownerRights() || actor.stationRights();
+            case OWNER -> actor.ownerRights() || (actor.stationRights() && owningCluster(movement) == null);
         };
     }
 

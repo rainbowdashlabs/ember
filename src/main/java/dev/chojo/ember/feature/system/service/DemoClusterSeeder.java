@@ -242,7 +242,10 @@ public class DemoClusterSeeder implements DemoSeeder {
                 clusterService.addMember(cluster.id(), context.adminAccount().id(), ClusterUserType.CLUSTER_ADMIN);
 
         var group = memberService.createGroup(cluster.id(), "Gerätewarte");
-        memberService.setGroupPermissions(cluster.id(), group.id(), Set.of(ClusterPermission.CLUSTER_INVENTORY_EDIT));
+        // The whole of looking after gear, not a corner of it: somebody who may correct a size but not
+        // answer the step a station is waiting on is not the gear manager the screens talk about.
+        memberService.setGroupPermissions(
+                cluster.id(), group.id(), Set.of(ClusterPermission.CLUSTER_INVENTORY_MANAGER));
 
         seedClusterOnlyPerson(cluster);
 

@@ -375,6 +375,18 @@ export async function clusterStationManager(request: APIRequestContext): Promise
     throw new Error('No station inside a cluster has a manager of its own to act as')
 }
 
+/**
+ * A page signed in as the person who looks after the cluster's gear, acting for the cluster.
+ *
+ * Its own context because the account is also somebody at a station, and planting a cluster into the
+ * shared session would follow the station stories around. The station header travels too: the same person
+ * works a station queue and the cluster's, and which one they mean is the header's job to say.
+ */
+export async function clusterGearManagerPage(browser: Browser, request: APIRequestContext): Promise<Page> {
+    const account = await clusterAccountOnlyWith(request, 'CLUSTER_INVENTORY_EXCHANGE')
+    return clusterPage(browser, request, account)
+}
+
 interface Fixtures {
     managerPage: Page
     memberPage: Page

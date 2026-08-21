@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.repository.ItemMovementRepository;
 import dev.chojo.ember.feature.inventory.service.MovementFlowService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import io.javalin.http.NotFoundResponse;
 import jakarta.inject.Inject;
@@ -44,6 +45,7 @@ public class ClusterInventoryService {
     private final MovementFlowService flowService;
     private final StationRepository stationRepository;
     private final StationMemberRepository memberRepository;
+    private final MemberNameResolver nameResolver;
 
     @Inject
     public ClusterInventoryService(
@@ -52,13 +54,15 @@ public class ClusterInventoryService {
             ItemMovementRepository movementRepository,
             MovementFlowService flowService,
             StationRepository stationRepository,
-            StationMemberRepository memberRepository) {
+            StationMemberRepository memberRepository,
+            MemberNameResolver nameResolver) {
         this.clusterRepository = clusterRepository;
         this.inventoryRepository = inventoryRepository;
         this.movementRepository = movementRepository;
         this.flowService = flowService;
         this.stationRepository = stationRepository;
         this.memberRepository = memberRepository;
+        this.nameResolver = nameResolver;
     }
 
     /**
@@ -165,9 +169,17 @@ public class ClusterInventoryService {
      * @param memberId the member holding it, or {@code null}
      * @return their name, or {@code null} when nobody holds it
      */
+    /**
+     * Who is wearing it.
+     *
+     * <p>Through the resolver rather than off the membership row: the name cached there is the one kept
+     * for somebody who has left, and a member still at their station carries no name of their own, only an
+     * account that does.
+     */
     private String holderName(Integer memberId) {
         if (memberId == null) return null;
-        return memberRepository.findById(memberId).map(m -> m.displayName()).orElse(null);
+        String name = nameResolver.resolveLocal(memberId);
+        return name != null && !name.isBlank() ? name : null;
     }
 
     private void requireCluster(int clusterId) {

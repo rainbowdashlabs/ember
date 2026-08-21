@@ -82,10 +82,22 @@ public class MovementRoutes implements Routes {
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/movements", this::list, StationPermission.USER);
         routes.post(prefix + "/movements", this::create, StationPermission.USER);
-        routes.get(prefix + "/movements/{id}", this::get, StationPermission.USER);
-        routes.post(prefix + "/movements/{id}/acknowledge", this::acknowledge, StationPermission.USER);
+        routes.get(
+                prefix + "/movements/{id}",
+                this::get,
+                StationPermission.USER,
+                ClusterPermission.CLUSTER_INVENTORY_EXCHANGE);
+        routes.post(
+                prefix + "/movements/{id}/acknowledge",
+                this::acknowledge,
+                StationPermission.USER,
+                ClusterPermission.CLUSTER_INVENTORY_EXCHANGE);
         routes.post(prefix + "/movements/{id}/force", this::force, StationPermission.INVENTORY_MANAGER);
-        routes.post(prefix + "/movements/{id}/decline", this::decline, StationPermission.USER);
+        routes.post(
+                prefix + "/movements/{id}/decline",
+                this::decline,
+                StationPermission.USER,
+                ClusterPermission.CLUSTER_INVENTORY_EXCHANGE);
         routes.post(prefix + "/movements/{id}/cancel", this::cancel, StationPermission.USER);
         routes.delete(prefix + "/movements/{id}", this::delete, StationPermission.INVENTORY_EXCHANGE);
     }
@@ -257,8 +269,10 @@ public class MovementRoutes implements Routes {
      * Holding the permission at some other cluster says nothing about this one.
      */
     private ItemMovementService.Actor actorOf(UserSession session, ItemMovement movement) {
+        // Somebody acting for a cluster need not be at any station, so there may be no membership to
+        // name. Member ids start at one, so zero is nobody rather than somebody.
         return new ItemMovementService.Actor(
-                session.member().id(),
+                session.member() != null ? session.member().id() : 0,
                 session.hasPermission(StationPermission.INVENTORY_EXCHANGE),
                 hasOwnerRights(session, movement));
     }
@@ -293,11 +307,18 @@ public class MovementRoutes implements Routes {
     }
 
     /**
-     * Loads a movement and refuses it to somebody who has no business seeing it. Answering 404 for
-     * both absent and none-of-yours keeps the two indistinguishable from outside.
+     * The movement, if this caller has any business with it. Answering 404 for both absent and
+     * none-of-yours keeps the two indistinguishable from outside.
+     *
+     * <p>Three kinds of caller do. Somebody who works a station's queue sees that station's movements.
+     * The member a movement is about sees their own, and so does whoever answers for them. And somebody
+     * acting for the cluster that owns the gear sees it wherever it is: the step the movement is standing
+     * on may be theirs to answer, and a step nobody can open is a step nobody can answer.
      */
     private ItemMovement requireVisible(int movementId, UserSession session) {
         ItemMovement movement = movementService.findById(movementId).orElseThrow(NotFoundResponse::new);
+        if (hasOwnerRights(session, movement)) return movement;
+
         RouteSupport.requireSameStation(session, movement.stationId());
         if (session.hasPermission(StationPermission.INVENTORY_EXCHANGE)) return movement;
         if (movement.memberId() != null
@@ -356,22 +377,10 @@ public class MovementRoutes implements Routes {
                             entry.map(l -> memberName(l.changedBy())).orElse(null),
                             entry.map(l -> l.changedAt()).orElse(null),
                             entry.map(l -> l.note()).orElse(null),
-                            isCurrent && mayAct(step.actor(), movement, actor));
+                            isCurrent && movementService.mayAct(movement, step, actor));
                 })
                 .toList();
         return new MovementDetail(toResponse(movement), steps);
-    }
-
-    /**
-     * Whether this caller could press the step, which is the same question the service asks and is
-     * repeated here only so the frontend knows whether to draw a button.
-     */
-    private boolean mayAct(StepActor stepActor, ItemMovement movement, ItemMovementService.Actor actor) {
-        return switch (stepActor) {
-            case MEMBER ->
-                movement.memberId() != null && (movement.memberId() == actor.memberId() || actor.stationRights());
-            case STATION, OWNER -> actor.stationRights() || actor.ownerRights();
-        };
     }
 
     private String memberName(Integer memberId) {

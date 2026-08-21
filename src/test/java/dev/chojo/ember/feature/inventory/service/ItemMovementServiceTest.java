@@ -281,6 +281,9 @@ class ItemMovementServiceTest extends RepositoryTestBase {
                         clusterId)
                 .id();
 
+        // Started by somebody answering for the cluster, because the first step is the cluster's: gear
+        // it has not sent yet is not something the station can say has been sent
+        var cluster = new ItemMovementService.Actor(team.memberId(), true, true);
         ItemMovement movement = itemMovementService.create(
                 station.id(),
                 MovementPurpose.ISSUE,
@@ -291,7 +294,7 @@ class ItemMovementServiceTest extends RepositoryTestBase {
                 null,
                 null,
                 "Nachschub",
-                team,
+                cluster,
                 null);
 
         assertEquals(ItemCustody.IN_TRANSIT, custodyOf(gear), "it is on its way, at neither end");
@@ -300,6 +303,63 @@ class ItemMovementServiceTest extends RepositoryTestBase {
 
         assertEquals(MovementState.DONE, movement.state());
         assertEquals(ItemCustody.AT_STATION, custodyOf(gear), "and it has arrived");
+    }
+
+    /**
+     * A cluster on this instance answers for itself, so the station waiting is the point of the step
+     * rather than an obstacle to work around. The station standing in is for an owner that cannot answer
+     * at all, which is the case just above this one.
+     */
+    @Test
+    void aStationCannotAnswerForAClusterThatCanAnswerForItself() {
+        var flow = movementFlowService.createFlow(station.id(), "Trägerbein mit Träger", MovementPurpose.RETURN);
+        movementFlowService.addStep(
+                flow.id(), "Wache schickt", StepActor.STATION, StepSubject.OUTGOING, ItemCustody.IN_TRANSIT, false);
+        movementFlowService.addStep(
+                flow.id(), "Träger nimmt an", StepActor.OWNER, StepSubject.OUTGOING, ItemCustody.WITH_OWNER, false);
+        movementFlowService.bind(station.id(), null, ItemOwner.CLUSTER, MovementPurpose.RETURN, flow.id());
+
+        var home = stationRepo.create("Träger Antwort " + CODES.incrementAndGet());
+        int clusterId =
+                clusterRepo.create("Kreisverband Antwort", null, home.id()).id();
+        int gear = inventoryRepo
+                .createItem(
+                        mixedInventoryId,
+                        "M-" + CODES.incrementAndGet(),
+                        "Jacke",
+                        null,
+                        null,
+                        ItemOwner.CLUSTER,
+                        clusterId)
+                .id();
+
+        ItemMovement movement = itemMovementService.create(
+                station.id(),
+                MovementPurpose.RETURN,
+                null,
+                null,
+                gear,
+                mixedInventoryId,
+                null,
+                null,
+                "Zurück",
+                team,
+                null);
+
+        int ownerStep = movement.currentStepId();
+        assertThrows(
+                ForbiddenResponse.class,
+                () -> itemMovementService.acknowledge(movement.id(), ownerStep, team, "", null),
+                "the station cannot say the cluster has taken it");
+
+        var forTheCluster = new ItemMovementService.Actor(team.memberId(), false, true);
+        ItemMovement done = itemMovementService.acknowledge(movement.id(), ownerStep, forTheCluster, "", null);
+
+        assertEquals(MovementState.DONE, done.state());
+        assertEquals(
+                AckKind.CONFIRMED,
+                itemMovementService.findLogs(done.id()).getLast().ackKind(),
+                "the owner answered for itself");
     }
 
     @Test
