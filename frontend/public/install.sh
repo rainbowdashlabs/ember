@@ -149,7 +149,28 @@ command -v docker > /dev/null 2>&1 || die "Docker is not installed. https://docs
 docker compose version > /dev/null 2>&1 || die "The docker compose plugin is missing. https://docs.docker.com/compose/install/"
 docker info > /dev/null 2>&1 || die "Docker is not running, or this user is not allowed to talk to it."
 
-say "Docker $(docker version --format '{{.Server.Version}}' 2>/dev/null || echo '?') is ready."
+# Docker does not refuse a pull onto a machine that cannot run the image: it warns and carries on,
+# and the complaint arrives much later as "exec format error" from every container as it restarts.
+# The daemon is asked rather than the kernel, because it is the daemon that runs the containers and
+# it is not always on this machine.
+HOST_ARCH=$(docker version --format '{{.Server.Arch}}' 2> /dev/null || true)
+[ -z "$HOST_ARCH" ] && HOST_ARCH=$(uname -m)
+
+case "$HOST_ARCH" in
+    x86_64 | amd64 | aarch64 | arm64) ;;
+    arm | armel | armhf | armv6l | armv7l)
+        die "This is a 32-bit ARM system ($HOST_ARCH), and Ember is built for 64-bit only.
+    A Raspberry Pi 3 or newer is 64-bit hardware, and often just running a 32-bit system on it.
+    Installing the 64-bit Raspberry Pi OS is all this needs." ;;
+    386 | i386 | i486 | i586 | i686)
+        die "This is a 32-bit x86 system ($HOST_ARCH), and Ember is built for 64-bit only." ;;
+    *)
+        warn "Unfamiliar architecture '$HOST_ARCH'. Ember is built for 64-bit x86 and 64-bit ARM,
+    and on anything else the containers start and stop again immediately."
+        ask_yes_no "Carry on anyway?" "n" || die "Stopped. Nothing was changed." ;;
+esac
+
+say "Docker $(docker version --format '{{.Server.Version}}' 2>/dev/null || echo '?') is ready on $HOST_ARCH."
 say "Installing into: ${BOLD}$PWD${OFF}"
 
 COMPOSE_FILE="${EMBER_COMPOSE_FILE:-compose.yaml}"

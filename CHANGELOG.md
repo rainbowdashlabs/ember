@@ -16,6 +16,7 @@
 - **A question under a system notice reaches the instance.** Anyone may comment on a notice from the instance. A station sees the comments written in its own station, and the administrator sees all of them with the station each came from, so a question asked under a notice can be answered.
 - **Every text editor can insert a picture.** Where an editor only accepted a pasted address before, it now opens the media library to browse, search, upload and insert. News, board tickets, event descriptions, the knowledge base and the page editor all gain it at once.
 - **Clearing out unused files leaves what members brought in.** A file nothing points at is still offered for removal, but one somebody uploaded themselves is kept: a picture can outlive the first place it was used.
+- **Ember runs on 64-bit ARM machines.** It is now built for ARM as well as for x86, so a Raspberry Pi 4 or newer serves an instance with nothing extra to set up. The machine has to be running a 64-bit system, which on a Raspberry Pi means the 64-bit Raspberry Pi OS rather than the 32-bit one.
 
 ### Changes
 
@@ -31,6 +32,7 @@
 - **The fairness ranking stayed empty for an event in no category.** Deciding who gets a place shows how often each member was registered, accepted and turned away, and for an event that belongs to no category that list could not be fetched at all. It now covers everything the station has done, which is the only sensible comparison when the event names no category to compare within.
 - **Partnerships did not follow a station that moved.** When a station was transferred to another instance, the partnerships other stations kept with it were meant to point at its new home, and the step that does that failed outright. They now follow the station, so a partnership keeps working without anyone touching it.
 - **A demo instance showed no station logo and an empty file library.** The rule that stops uploads on a demo was also refusing to hand back what was already stored there. Reading works again, while uploading stays disabled.
+- **The installer set up an instance the machine could not run.** On a machine Ember is not built for it wrote everything out and started containers that stopped again at once, over and over, with only a format error to go on. It now checks the machine before it writes anything and says plainly what is wrong.
 
 ## v26.12.0
 
