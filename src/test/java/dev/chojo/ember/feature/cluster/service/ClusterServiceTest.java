@@ -186,7 +186,13 @@ class ClusterServiceTest extends RepositoryTestBase {
     void aPlainMemberHoldsNothingUntilSomethingIsGranted() {
         int clusterId = freshCluster();
         var member = clusterService.addMember(clusterId, freshAccount().id(), ClusterUserType.CLUSTER_USER);
-        assertTrue(clusterService.resolvePermissions(member).isEmpty());
+
+        // Being a member is itself worth something: it opens the cluster's own pages and nothing else,
+        // the way belonging to a station opens that station's. Everything past that is granted.
+        assertEquals(
+                Set.of(ClusterPermission.LOGIN, ClusterPermission.USER),
+                clusterService.resolvePermissions(member),
+                "a member who has been granted nothing may still see the cluster they belong to");
 
         clusterService.grant(member.id(), ClusterPermission.CLUSTER_INVENTORY_MANAGER);
 
@@ -196,7 +202,10 @@ class ClusterServiceTest extends RepositoryTestBase {
         assertFalse(permissions.contains(ClusterPermission.CLUSTER_STATIONS), "and nothing it does not");
 
         assertTrue(clusterService.revoke(member.id(), ClusterPermission.CLUSTER_INVENTORY_MANAGER));
-        assertTrue(clusterService.resolvePermissions(member).isEmpty());
+        assertEquals(
+                Set.of(ClusterPermission.LOGIN, ClusterPermission.USER),
+                clusterService.resolvePermissions(member),
+                "taking a grant away leaves them a member and nothing more");
         clusterService.removeMember(member.id());
     }
 
@@ -311,7 +320,10 @@ class ClusterServiceTest extends RepositoryTestBase {
         clusterService.grant(member.id(), ClusterPermission.CLUSTER_FIELD_EDIT);
 
         var permissions = clusterService.resolvePermissions(member);
-        assertEquals(Set.of(ClusterPermission.CLUSTER_FIELD_EDIT), permissions);
+        assertEquals(
+                Set.of(ClusterPermission.LOGIN, ClusterPermission.USER, ClusterPermission.CLUSTER_FIELD_EDIT),
+                permissions,
+                "what the code knows, plus what belonging carries; the row it cannot read is passed over");
     }
 
     private int insertUnknownPermission() {

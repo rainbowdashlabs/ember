@@ -252,7 +252,9 @@ public class InventoryRoutes implements Routes {
                 item.custody(),
                 entry.movementId(),
                 entry.movementStep(),
-                entry.movementIncoming());
+                entry.movementIncoming(),
+                item.ownerKind(),
+                item.ownerClusterId());
     }
 
     @OpenApi(
@@ -893,7 +895,10 @@ public class InventoryRoutes implements Routes {
             ItemCustody custody,
             Integer movementId,
             String movementStep,
-            boolean movementIncoming) {}
+            boolean movementIncoming,
+            /** Who owns it, which a member is entitled to know about what they are looking after. */
+            ItemOwner ownerKind,
+            Integer ownerClusterId) {}
 
     public record MyRequirement(int inventoryId, String inventoryName, int requiredQuantity) {}
 

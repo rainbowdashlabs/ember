@@ -160,6 +160,9 @@ export interface MyInventoryItem {
     movementStep?: string | null
     /** Whether it is the item coming to the member rather than the one leaving them. */
     movementIncoming?: boolean
+    /** Who owns it, which a member is entitled to know about what they are looking after. */
+    ownerKind?: ItemOwnerName | null
+    ownerClusterId?: string | null
 }
 
 export interface MyRequirement {

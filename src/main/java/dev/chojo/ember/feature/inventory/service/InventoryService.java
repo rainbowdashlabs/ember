@@ -294,6 +294,7 @@ public class InventoryService {
             InventoryItemMetadata metadata,
             ItemOwner ownerKind,
             Integer ownerClusterId) {
+        requireOwnerFits(inventoryId, ownerKind);
         requireOwningCluster(inventoryId, ownerClusterId);
         InventoryItem item = inventoryRepository.createItem(
                 inventoryId, internalId, name, sizeId, metadata, ownerKind, ownerClusterId);
@@ -307,6 +308,36 @@ public class InventoryService {
                 ownerClusterId,
                 inventoryId);
         return item;
+    }
+
+    /**
+     * Refuses an owner the inventory was not made to hold.
+     *
+     * <p>This is the one job the inventory's type still has. It used to stand in for the owner of every
+     * item in it, which is where the mixed-inventory bug came from; now the item says who owns it and the
+     * type only says which owners may be written down here. An inventory of the station's own things holds
+     * nothing borrowed, one of borrowed things holds nothing of the station's own, and a mixed one is the
+     * only place both may stand.
+     *
+     * @param inventoryId the inventory the item is going into
+     * @param ownerKind   who would own it
+     * @throws BadRequestResponse when this inventory is not for gear of that owner
+     */
+    private void requireOwnerFits(int inventoryId, ItemOwner ownerKind) {
+        var type = inventoryRepository
+                .findById(inventoryId)
+                .map(Inventory::inventoryType)
+                .orElseThrow(() -> new BadRequestResponse("That inventory does not exist"));
+        boolean fits =
+                switch (type) {
+                    case MIXED -> true;
+                    case INTERNAL -> ownerKind == ItemOwner.STATION;
+                    case EXTERNAL -> ownerKind == ItemOwner.CLUSTER;
+                };
+        if (!fits) {
+            throw new BadRequestResponse("This inventory does not hold gear owned by the "
+                    + ownerKind.name().toLowerCase());
+        }
     }
 
     /**
@@ -422,11 +453,14 @@ public class InventoryService {
      *
      * @param itemId the item somebody wants to change
      * @param verb   what they wanted to do, for the message
-     * @throws ForbiddenResponse when the item belongs to a cluster
+     * @throws ForbiddenResponse when the item belongs to a cluster that runs on this instance
      */
     private void requireOwned(int itemId, String verb) {
         inventoryRepository.findItemById(itemId).ifPresent(item -> {
-            if (item.ownerKind() == ItemOwner.CLUSTER) {
+            // Only where the owner is actually here to do it themselves. Gear kept for a body that does not
+            // use Ember belongs to nobody who could ever correct a name, so refusing the station would leave
+            // the record wrong for good with no way to put it right.
+            if (item.ownerKind() == ItemOwner.CLUSTER && item.ownerClusterId() != null) {
                 throw new ForbiddenResponse(
                         "This gear belongs to the body above the station and can only be %s by them".formatted(verb));
             }

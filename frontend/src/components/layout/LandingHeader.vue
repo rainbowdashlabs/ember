@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted} from 'vue'
+import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import {getItem} from '@/api/storage'
@@ -28,8 +28,23 @@ const logo = emberLogo()
 
 const {isDemo} = await usePublicConfig()
 
+/**
+ * Whether this browser is carrying a session, which only the browser can answer.
+ *
+ * The server renders this header without any storage to read, so it knows neither that somebody is signed
+ * in nor that nobody is. Rendering the login call to action on that ignorance put it in front of people
+ * who were already signed in, and it stayed there until the session call came back. Undecided is its own
+ * state and shows neither.
+ */
+const carriesSession = ref<boolean | null>(null)
+
+const signedIn = computed(() => loaded.value && !!sessionInfo.value?.account)
+const anonymous = computed(() =>
+    carriesSession.value === false || (carriesSession.value === true && loaded.value && !sessionInfo.value?.account))
+
 onMounted(() => {
   const token = getItem('session_token')
+  carriesSession.value = !!token
   if (token) {
     if (!loaded.value) load()
     if (!stationsLoaded.value) loadStations()
@@ -45,14 +60,14 @@ onMounted(() => {
       <PrideText :active="prideActive" :variant="prideVariant">Ember</PrideText>
     </router-link>
 
-    <div v-if="loaded && sessionInfo?.account" class="flex items-center gap-3">
+    <div v-if="signedIn" class="flex items-center gap-3">
       <AdminPanelButton variant="primary"/>
       <ClusterPanelButton variant="primary"/>
       <SmartStationButton variant="primary"/>
       <AccountMenuButton/>
     </div>
 
-    <router-link v-else to="/login">
+    <router-link v-else-if="anonymous" to="/login">
       <PrimaryButton>
         {{ isDemo ? t('landing.tryNow') : t('header.login') }}
       </PrimaryButton>

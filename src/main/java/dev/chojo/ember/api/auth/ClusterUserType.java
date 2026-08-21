@@ -13,9 +13,14 @@ package dev.chojo.ember.api.auth;
  */
 public enum ClusterUserType {
     /**
-     * Somebody the cluster has taken on, carrying nothing until it is granted.
+     * Somebody the cluster has taken on, carrying nothing beyond being here until it is granted.
+     *
+     * <p>Being a member is itself what {@code LOGIN} and the {@code USER} it expands to mean, exactly as a
+     * station member holds its {@code LOGIN} for belonging. Without it somebody granted one narrow right
+     * was offered the cluster everywhere in the shell and refused its every page, which reads as a broken
+     * application rather than as a permission doing its job.
      */
-    CLUSTER_USER,
+    CLUSTER_USER(ClusterPermission.LOGIN),
     /**
      * Somebody who runs the cluster.
      */
