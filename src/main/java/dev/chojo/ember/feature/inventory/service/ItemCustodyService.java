@@ -205,15 +205,17 @@ public class ItemCustodyService {
      * where that sentence becomes a row. Which custody is legal for a step is settled when the step
      * is written, so anything arriving here is a custody a flow may ask for.
      *
-     * @param itemId     the item the step is about
-     * @param custody    the custody the step names
-     * @param memberId   the movement's member, needed only when the step hands the item to them
-     * @param movementId the movement, needed only when the step puts the item in the post
+     * @param itemId        the item the step is about
+     * @param custody       the custody the step names
+     * @param memberId      the movement's member, needed only when the step hands the item to them
+     * @param movementId    the movement, needed only when the step puts the item in the post
+     * @param stepStationId the station running the movement, which is where the item is once a step leaves
+     *                      it at a station
      * @return the updated item, or empty if the item was not found
      * @throws BadRequestResponse if the step hands an item to a member the movement does not name
      */
     public Optional<InventoryItem> applyStepCustody(
-            int itemId, ItemCustody custody, Integer memberId, Integer movementId) {
+            int itemId, ItemCustody custody, Integer memberId, Integer movementId, Integer stepStationId) {
         var found = inventoryRepository.findItemById(itemId);
         if (found.isEmpty()) {
             log.warn("Step custody skipped: item {} not found", itemId);
@@ -226,20 +228,17 @@ public class ItemCustodyService {
         }
 
         closeCurrentSpell(item);
-        Integer stationId = custody == ItemCustody.AT_STATION ? stationOf(item) : null;
+        // The station running the movement, not the one whose inventory the row sits in. For a station's own
+        // gear those are the same; for a cluster's they are not, and it is the movement that says where the
+        // item has actually got to.
+        Integer stationId =
+                custody == ItemCustody.AT_STATION ? (stepStationId != null ? stepStationId : stationOf(item)) : null;
         Integer movement = custody == ItemCustody.IN_TRANSIT ? movementId : null;
         inventoryRepository.updateCustody(itemId, custody, stationId, null, movement);
         log.info("Item {} moved to {} by a movement step (was {})", itemId, custody, item.custody());
         return inventoryRepository.findItemById(itemId);
     }
 
-    /**
-     * The custody an item falls back to when nobody in particular has it: with the owner when the
-     * station owns it, and at the station when the body above it does.
-     *
-     * @param item the item
-     * @return the resting custody
-     */
     /**
      * Puts an item back in its owner's own store, whoever was holding it and wherever it sat.
      *
@@ -264,6 +263,27 @@ public class ItemCustodyService {
         return inventoryRepository.findItemById(itemId);
     }
 
+    /**
+     * The same, for a caller with no movement behind it, which falls back to the item's own station.
+     *
+     * @param itemId     the item
+     * @param custody    where it lands
+     * @param memberId   the member receiving it, when the step hands it to one
+     * @param movementId the movement, when it is going into the post
+     * @return the updated item, or empty if the item was not found
+     */
+    public Optional<InventoryItem> applyStepCustody(
+            int itemId, ItemCustody custody, Integer memberId, Integer movementId) {
+        return applyStepCustody(itemId, custody, memberId, movementId, null);
+    }
+
+    /**
+     * The custody an item falls back to when nobody in particular has it: with the owner when the
+     * station owns it, and at the station when the body above it does.
+     *
+     * @param item the item
+     * @return the resting custody
+     */
     public static ItemCustody restingCustody(InventoryItem item) {
         return item.ownedByStation() ? ItemCustody.WITH_OWNER : ItemCustody.AT_STATION;
     }

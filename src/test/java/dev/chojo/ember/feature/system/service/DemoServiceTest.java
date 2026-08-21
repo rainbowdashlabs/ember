@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import dev.chojo.ember.api.auth.ClusterUserType;
 import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Database;
@@ -21,6 +22,7 @@ import dev.chojo.ember.feature.board.service.BoardTicketService;
 import dev.chojo.ember.feature.board.service.FederatedBoardService;
 import dev.chojo.ember.feature.checklist.repository.ChecklistRepository;
 import dev.chojo.ember.feature.checklist.service.ChecklistService;
+import dev.chojo.ember.feature.cluster.service.ClusterContentService;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
@@ -39,6 +41,7 @@ import dev.chojo.ember.feature.federation.service.FederationSigningService;
 import dev.chojo.ember.feature.federation.service.LendingService;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import dev.chojo.ember.feature.feed.service.FeedTokenService;
+import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.service.ExchangeService;
 import dev.chojo.ember.feature.inventory.service.InventoryContainerService;
 import dev.chojo.ember.feature.inventory.service.InventoryFieldDefinitionService;
@@ -97,9 +100,11 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -306,7 +311,22 @@ class DemoServiceTest extends RepositoryTestBase {
                 procurementService,
                 itemCustodyService);
         var clusterSeeder = new DemoClusterSeeder(
-                clusterService, clusterMemberService, clusterInventoryService, clusterApplicationRepo, stationRepo);
+                clusterService,
+                clusterMemberService,
+                clusterInventoryService,
+                clusterProfileFieldService,
+                new ClusterContentService(clusterRepo, stationRepo, stationMemberRepo, kbService, federationRepo),
+                clusterApplicationRepo,
+                stationRepo,
+                inventoryRepo,
+                fieldDefSvc,
+                itemCustodyService,
+                itemMovementService,
+                movementFlowService,
+                newsService,
+                eventServices.crud(),
+                eventRegistrationRepo,
+                notificationRepo);
         var formSeeder = new DemoFormSeeder(formRepo, restrictionService);
         var notificationSeeder = new DemoNotificationSeeder(
                 notificationRepo, inventoryRepo, boardService, boardTicketService, procedureService, lendingService);
@@ -465,5 +485,46 @@ class DemoServiceTest extends RepositoryTestBase {
         assertTrue(
                 stations.stream().anyMatch(s -> "JF Partnerwache".equals(s.name())),
                 "Partner station 'JF Partnerwache' should exist");
+    }
+
+    /**
+     * The cluster seeder skips a lot of itself when the pieces it builds on are missing, which is right at
+     * run time and useless in a test: a silent skip and a working seeder look identical from outside. These
+     * assertions name the things that only exist if it ran the whole way through.
+     */
+    @Test
+    void verifyClusterSeeded() {
+        var cluster = clusterRepo.findAll().stream()
+                .filter(c -> "Kreisverband Musterstadt".equals(c.name()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("The demo cluster should exist"));
+
+        assertTrue(cluster.usesInventory(), "The demo cluster should keep gear of its own");
+        assertEquals(2, clusterRepo.findStationIds(cluster.id()).size(), "Two stations should be in the cluster");
+        assertFalse(
+                clusterApplicationRepo.findByCluster(cluster.id()).isEmpty(),
+                "A station should be waiting to join the cluster");
+        assertEquals(
+                2,
+                clusterProfileFieldRepo.findByCluster(cluster.id()).size(),
+                "The cluster should ask two questions of its members");
+
+        var gear = inventoryRepo.findItemsOwnedByCluster(cluster.id());
+        assertEquals(6, gear.size(), "The cluster should own six pieces of gear");
+        for (ItemCustody custody : List.of(
+                ItemCustody.WITH_OWNER, ItemCustody.AT_STATION, ItemCustody.WITH_MEMBER, ItemCustody.IN_TRANSIT)) {
+            assertTrue(
+                    gear.stream().anyMatch(item -> item.custody() == custody),
+                    "The cluster's gear should show a piece that is " + custody);
+        }
+
+        var admin = clusterRepo.findMembers(cluster.id()).stream()
+                .filter(m -> m.userType() == ClusterUserType.CLUSTER_ADMIN)
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("The cluster should have an administrator"));
+        assertEquals(
+                3,
+                notificationRepo.findAllForClusterMember(admin.id()).size(),
+                "The administrator should have been told about the cluster's own business");
     }
 }

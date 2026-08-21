@@ -253,7 +253,8 @@ public class ItemMovementService {
         }
 
         if (subjectItemId != null) {
-            custodyService.applyStepCustody(subjectItemId, step.custodyAfter(), movement.memberId(), movementId);
+            custodyService.applyStepCustody(
+                    subjectItemId, step.custodyAfter(), movement.memberId(), movementId, movement.stationId());
         }
 
         movementRepository.createLog(movementId, step.id(), step.label(), ackKind, actor.memberId(), note);

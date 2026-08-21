@@ -24,6 +24,7 @@ class ItemCustodyServiceTest extends RepositoryTestBase {
     private static Account account;
     private static StationMember member;
     private static int mixedInventoryId;
+    private static Station holdingStation;
 
     @BeforeAll
     static void setup() {
@@ -33,10 +34,12 @@ class ItemCustodyServiceTest extends RepositoryTestBase {
         mixedInventoryId = inventoryRepo
                 .create(station.id(), "Handschuhe", InventoryType.MIXED, false)
                 .id();
+        holdingStation = stationRepo.create("CustodyHoldingStation");
     }
 
     @AfterAll
     static void cleanup() {
+        stationRepo.delete(holdingStation.id());
         stationRepo.delete(station.id());
         accountRepo.delete(account.id());
     }
@@ -252,5 +255,31 @@ class ItemCustodyServiceTest extends RepositoryTestBase {
         assertTrue(inventoryRepo.findItemsByStation(otherStation.id()).isEmpty());
         assertTrue(inventoryRepo.findByInternalId(otherStation.id(), "C-12").isEmpty());
         stationRepo.delete(otherStation.id());
+    }
+
+    @Test
+    void aStepLeavesGearAtTheStationRunningTheMovement() {
+        int item = ownerOwned("CUSTODY-STEP-1");
+
+        itemCustodyService.applyStepCustody(item, ItemCustody.AT_STATION, null, null, holdingStation.id());
+
+        var stored = inventoryRepo.findItemById(item).orElseThrow();
+        assertEquals(ItemCustody.AT_STATION, stored.custody());
+        assertEquals(
+                holdingStation.id(),
+                stored.custodyStationId(),
+                "Gear the owner keeps elsewhere is at the station that ran the step, not the one holding the list");
+    }
+
+    @Test
+    void aStepWithNoStationOfItsOwnFallsBackToTheItemsOwn() {
+        int item = ownerOwned("CUSTODY-STEP-2");
+
+        itemCustodyService.applyStepCustody(item, ItemCustody.AT_STATION, null, null);
+
+        assertEquals(
+                station.id(),
+                inventoryRepo.findItemById(item).orElseThrow().custodyStationId(),
+                "Without a movement to say otherwise the item is where its inventory is");
     }
 }

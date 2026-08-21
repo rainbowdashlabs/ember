@@ -319,7 +319,6 @@ public abstract class RepositoryTestBase {
                 new DomainEventBus(Set.of()));
         clusterItemReleaseService =
                 new ClusterItemReleaseService(inventoryRepo, itemCustodyService, itemMovementService);
-        clusterMemberService = new ClusterMemberService(clusterRepo, clusterService, new DomainEventBus(Set.of()));
         exchangeService = new ExchangeService(itemMovementService, inventoryRepo);
         memberGroupRepo = new MemberGroupRepository();
         profileFieldRepo = new ProfileFieldRepository();
@@ -372,6 +371,7 @@ public abstract class RepositoryTestBase {
                 clusterGovernanceService,
                 clusterProfileFieldService,
                 new DomainEventBus(Set.of()));
+        clusterMemberService = new ClusterMemberService(clusterRepo, clusterService, new DomainEventBus(Set.of()));
         userSettingsRepo = new UserSettingsRepository();
         userTagRepo = new UserTagRepository();
         newsRepo = new NewsRepository();
