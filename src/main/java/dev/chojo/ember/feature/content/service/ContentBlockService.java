@@ -42,7 +42,11 @@ public class ContentBlockService {
         return repository.findById(containerId);
     }
 
-    public ContentContainer create(int stationId) {
+    /**
+     * A fresh container for the station, or for the instance itself when {@code stationId} is
+     * {@code null}: content read in every station belongs to none of them.
+     */
+    public ContentContainer create(Integer stationId) {
         var container = repository.create(stationId);
         log.info("Content container {} created in station {}", container.id(), stationId);
         return container;
@@ -52,7 +56,7 @@ public class ContentBlockService {
      * The container that already exists, or a fresh one. Used wherever a feature turns something
      * into blocks for the first time.
      */
-    public ContentContainer ensure(int stationId, Integer containerId) {
+    public ContentContainer ensure(Integer stationId, Integer containerId) {
         if (containerId != null) {
             var existing = repository.findById(containerId);
             if (existing.isPresent()) return existing.get();

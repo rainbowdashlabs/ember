@@ -214,6 +214,45 @@ class NewsBlockServiceTest extends RepositoryTestBase {
         }
     }
 
+    /**
+     * A system entry is read in every station, so the blocks it is built from belong to none of
+     * them and neither do the pictures in them. Hanging the container off the station the entry
+     * reads as would have been an owner no station is.
+     */
+    @Test
+    void aSystemEntryIsBuiltFromBlocksThatBelongToNoStation() {
+        var entry = service.createSystem(
+                "Wartungsarbeiten",
+                "Am Freitag kurz nicht erreichbar.",
+                "<p>Kurz nicht erreichbar.</p>",
+                List.of(),
+                true,
+                false);
+        try {
+            var switched = service.switchToRich(entry.id()).orElseThrow();
+            assertNull(
+                    contentContainerRepo
+                            .findById(switched.containerId())
+                            .orElseThrow()
+                            .stationId(),
+                    "an entry every station reads cannot hang off one of them");
+
+            var saved = service.saveBlocks(
+                            entry.id(),
+                            List.of(row(
+                                    CellContentType.IMAGE,
+                                    "abc",
+                                    new CellConfig.ImageConfig(
+                                            null, "Plan", null, null, null, null, null, null, null, null, null))))
+                    .orElseThrow();
+            assertTrue(
+                    saved.contentMarkdown().contains("![Plan](/api/v1/public/media/instance/abc)"),
+                    "the picture comes out of the instance library, which every station is served");
+        } finally {
+            service.delete(entry.id());
+        }
+    }
+
     @Test
     void deletingAnEntryTakesItsBlocksWithIt() {
         int id = createEntry("Text");

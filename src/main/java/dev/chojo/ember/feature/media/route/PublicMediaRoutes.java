@@ -56,7 +56,7 @@ public class PublicMediaRoutes implements Routes {
         // The instance's own library, served to everyone: a system notice is read in every
         // station, so the picture in it cannot be addressed through one of them. The literal path
         // is registered first, or "instance" would be read as a station's identifier.
-        routes.get(prefix + "/public/media/instance/{hash}", this::serveInstanceFile);
+        routes.get(prefix + "/public/media/" + MediaLibraryService.INSTANCE_SCOPE + "/{hash}", this::serveInstanceFile);
         routes.get(prefix + "/public/media/{stationUid}/{hash}", this::serveFile);
         routes.get(prefix + "/public/pages/{stationUid}/files/{hash}", this::serveFile);
     }

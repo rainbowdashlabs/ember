@@ -31,7 +31,7 @@ public class ContentContainerRepository {
 
     private static final String CONTAINER_COLUMNS = "id, station_id, created_at";
 
-    public ContentContainer create(int stationId) {
+    public ContentContainer create(Integer stationId) {
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO content_container(station_id)

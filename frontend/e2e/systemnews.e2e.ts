@@ -76,6 +76,39 @@ test.describe('System news', () => {
     })
 
     /**
+     * A notice long enough to want columns is written in the page editor, exactly as a station
+     * writes an entry. The blocks of a notice belong to no station, because it is read in all of
+     * them, and that is the part that has to hold: the notice is written in the administration and
+     * read in a station that never saw the editor.
+     */
+    test('a notice written in the page editor is read in a station', async ({adminPage, managerPage}) => {
+        const notice = unique('Umbau')
+        const written = 'Der Umbau dauert bis Mai.'
+
+        await adminPage.goto('/admin/news')
+        await adminPage.getByRole('button', {name: 'Systemmeldung schreiben'}).click()
+        await adminPage.getByPlaceholder('Titel der Systemmeldung').fill(notice)
+        await adminPage.locator('[contenteditable="true"]').first().click()
+        await adminPage.keyboard.type(written)
+
+        // What was already written goes into the first block, so it is still there afterwards.
+        await adminPage.getByRole('button', {name: 'Mit dem Seiten-Editor schreiben'}).click()
+        await expect(adminPage.getByText(written).first()).toBeVisible()
+
+        await adminPage.getByRole('button', {name: 'Veröffentlichen'}).click()
+        await expect(adminPage.getByText(notice).first()).toBeVisible()
+
+        // The switch is one way, so an entry that is already built from blocks does not offer it.
+        await adminPage.getByTestId('system-news').filter({hasText: notice})
+            .getByRole('button', {name: 'Bearbeiten'}).click()
+        await expect(adminPage.getByRole('button', {name: 'Mit dem Seiten-Editor schreiben'})).toHaveCount(0)
+
+        await managerPage.goto('/station/news')
+        await managerPage.getByText(notice).first().click()
+        await expect(managerPage.getByText(written).first()).toBeVisible()
+    })
+
+    /**
      * Withdrawing is the other half of publishing everywhere: it has to disappear everywhere, and
      * the station never had a copy of its own to keep.
      */

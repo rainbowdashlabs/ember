@@ -43,6 +43,14 @@ import java.util.Set;
  */
 @Singleton
 public class MediaLibraryService {
+    /**
+     * What stands in for a station identifier in a file address when the file belongs to the
+     * instance rather than to a station. The delivery route takes it literally, so a picture from
+     * the instance library is addressed the way a station's is and nothing reading the address
+     * needs to know the difference.
+     */
+    public static final String INSTANCE_SCOPE = "instance";
+
     private static final Logger log = LoggerFactory.getLogger(MediaLibraryService.class);
 
     private final MediaFileRepository fileRepository;

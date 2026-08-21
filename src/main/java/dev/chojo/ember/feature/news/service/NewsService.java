@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.content.entity.ContentMode;
 import dev.chojo.ember.feature.content.entity.ContentRow;
 import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.content.service.ContentProjection;
+import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberLookupService;
 import dev.chojo.ember.feature.news.entity.News;
@@ -351,7 +352,10 @@ public class NewsService {
         if (news == null) return Optional.empty();
         if (news.contentMode() == ContentMode.RICH) return Optional.of(news);
 
-        var container = blocks.create(news.stationId());
+        // A system entry belongs to no station, and neither do its blocks: it is read in every
+        // station, so a container hanging off one of them would be the wrong owner and, since no
+        // station carries the id a system entry reads as, no owner at all.
+        var container = blocks.create(news.systemEntry() ? null : news.stationId());
         String existing = news.contentMarkdown() == null ? "" : news.contentMarkdown();
         if (!existing.isBlank()) {
             blocks.save(
@@ -393,9 +397,14 @@ public class NewsService {
 
         blocks.save(news.containerId(), rows, ContentBlockService.Scope.ARTICLE);
 
-        var stationUid = stationRepository.resolveUid(news.stationId());
+        // The pictures of a system entry come out of the instance library, which is addressed by
+        // the literal scope rather than through a station: the entry is read in stations that hold
+        // no copy of the file.
+        String mediaScope = news.systemEntry()
+                ? MediaLibraryService.INSTANCE_SCOPE
+                : String.valueOf(stationRepository.resolveUid(news.stationId()));
         String markdown = ContentProjection.toMarkdown(
-                blocks.loadRows(news.containerId()), hash -> "/api/v1/public/media/" + stationUid + "/" + hash);
+                blocks.loadRows(news.containerId()), hash -> "/api/v1/public/media/" + mediaScope + "/" + hash);
         newsRepository.update(id, news.title(), markdown, Markdown.toHtml(markdown));
         log.info("News {} blocks saved and projected ({} rows)", id, rows.size());
         return newsRepository.findById(id);

@@ -25,6 +25,7 @@ import AttachmentList from './newsshared/AttachmentList.vue'
 import NewsBody from './newsshared/NewsBody.vue'
 import NewsEntryHeader from './newsshared/NewsEntryHeader.vue'
 import {internalContentContext} from '@/util/contentContext'
+import {INSTANCE_MEDIA_SCOPE} from '@/api/media'
 import type {NewsEntry} from '@/api/news'
 import {news} from '@/api'
 import {useSession} from '@/composables/useSession'
@@ -39,6 +40,13 @@ const {canManageNews, sessionInfo} = useSession()
 const stationUid = computed(() => sessionInfo.value?.stationId ?? '')
 
 const entry = ref<NewsEntry | null>(null)
+
+/**
+ * Where the pictures of this entry are fetched from. A system entry is read in every station, so
+ * its pictures come out of the instance library rather than out of the station reading it, which
+ * holds no copy of them.
+ */
+const mediaScope = computed(() => (entry.value?.systemEntry ? INSTANCE_MEDIA_SCOPE : stationUid.value))
 const highlightCommentId = ref<number | null>(null)
 interface ViewBadgeRef {
   refresh: () => Promise<void>
@@ -117,7 +125,7 @@ watch(loading, (isLoading) => {
             :mode="entry.contentMode"
             :rows="entry.rows ?? []"
             :html="entry.contentHtml"
-            :context="internalContentContext(stationUid, entry.title)"
+            :context="internalContentContext(mediaScope, entry.title)"
         />
 
         <AttachmentList :attachments="entry.attachments ?? []" :station-uid="stationUid"/>

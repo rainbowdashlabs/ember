@@ -1,6 +1,6 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:7a13d65c8e051267fa9bc5a975528488669eb985c03b134062a38e5cd0fb7713",
+  "schemaHash" : "sha256:fe23ae5da5ed5b0fb0336c24c4ea9ba717bf73e502e3198d301d550e829279ab",
   "generatedAt" : "2026-08-20T23:14:30Z",
   "tables" : {
     "account" : {
@@ -2882,7 +2882,7 @@
     "content_container" : {
       "feature" : "content",
       "scope" : "STATION",
-      "tableHash" : "sha256:fc3e79a8c6735f967583cd6f45b809190fd996ba0dc51aa407f8b75317e37c6a",
+      "tableHash" : "sha256:8c9a52252f3d25195458228870858ef3207f1861382a27f000c25a0d321a46f2",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -2891,8 +2891,9 @@
       }, {
         "name" : "station_id",
         "type" : "int4",
-        "nullable" : false,
-        "verified" : true
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The station whose content this belongs to. Null for content the instance owns, which is a system news entry built from blocks: it is read in every station, so it can belong to none of them."
       }, {
         "name" : "created_at",
         "type" : "timestamptz",

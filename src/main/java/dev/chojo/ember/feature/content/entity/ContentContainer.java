@@ -19,13 +19,19 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * the whole point of it. Blocks used to hang off a page, which is why the page editor could only
  * ever build a page.
  *
+ * <p>The station is {@code null} for content the instance owns. A system news entry is read in
+ * every station, so its blocks belong to none of them, the same way the pictures inside it come
+ * out of the instance library rather than one station's.
+ *
  * <p>The container is the owned side of the relation, so deleting the content that owns it has to
  * delete it explicitly. The reference points the wrong way for the database to do that.
  */
-public record ContentContainer(int id, int stationId, Instant createdAt) {
+public record ContentContainer(int id, Integer stationId, Instant createdAt) {
 
     public static RowMapping<ContentContainer> map() {
         return row -> new ContentContainer(
-                row.getInt("id"), row.getInt("station_id"), row.get("created_at", INSTANT_TIMESTAMP));
+                row.getInt("id"),
+                row.getObject("station_id") != null ? row.getInt("station_id") : null,
+                row.get("created_at", INSTANT_TIMESTAMP));
     }
 }

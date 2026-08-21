@@ -114,7 +114,7 @@ COMMENT ON COLUMN ember_schema.news_attachment.sort_order
 CREATE TABLE IF NOT EXISTS ember_schema.content_container
 (
     id         SERIAL PRIMARY KEY,
-    station_id INTEGER     NOT NULL REFERENCES ember_schema.station (id) ON DELETE CASCADE,
+    station_id INTEGER REFERENCES ember_schema.station (id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -122,6 +122,8 @@ CREATE INDEX IF NOT EXISTS content_container_station_idx ON ember_schema.content
 
 COMMENT ON TABLE ember_schema.content_container
     IS 'The rows and cells of one piece of authored content. A page, a news entry or a knowledge-base article owns one; the container itself knows nothing about which.';
+COMMENT ON COLUMN ember_schema.content_container.station_id
+    IS 'The station whose content this belongs to. Null for content the instance owns, which is a system news entry built from blocks: it is read in every station, so it can belong to none of them.';
 
 ALTER TABLE ember_schema.station_page
     ADD COLUMN container_id INTEGER REFERENCES ember_schema.content_container (id) ON DELETE SET NULL;
