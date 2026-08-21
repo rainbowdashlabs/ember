@@ -28,6 +28,7 @@
 
 ### Fixes
 
+- **Partnerships did not follow a station that moved.** When a station was transferred to another instance, the partnerships other stations kept with it were meant to point at its new home, and the step that does that failed outright. They now follow the station, so a partnership keeps working without anyone touching it.
 - **A demo instance showed no station logo and an empty file library.** The rule that stops uploads on a demo was also refusing to hand back what was already stored there. Reading works again, while uploading stays disabled.
 
 ## v26.12.0
