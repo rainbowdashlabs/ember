@@ -10,19 +10,9 @@ on:
       - 'feature/**'
 
 jobs:
-  docker-build:
+  wait:
     runs-on: ubuntu-latest
-    name: Deploy Docker Images (${{ matrix.name }})
-    strategy:
-      matrix:
-        include:
-          - name: backend
-            file: docker/backend.Dockerfile
-            image: ghcr.io/rainbowdashlabs/ember-backend
-          - name: frontend
-            file: docker/frontend.Dockerfile
-            image: ghcr.io/rainbowdashlabs/ember-frontend
-
+    name: Wait for verification
     steps:
       - name: Wait for checks to succeed
         uses: lewagon/wait-on-check-action@master
@@ -30,68 +20,183 @@ jobs:
           ref: ${{ github.ref }}
           check-regexp: "Verify.*"
           ignore-checks: "Verify Docker Build"
-          running-workflow-name: 'Deploy Docker Images (${{ matrix.name }})'
+          running-workflow-name: 'Wait for verification'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           allowed-conclusions: success,skipped
           checks-discovery-timeout: 300
+
+  # Native runners rather than emulation: the backend installs LibreOffice and runs a Gradle build,
+  # and under QEMU that takes the better part of an hour.
+  build:
+    needs: wait
+    runs-on: ${{ matrix.runner }}
+    name: Build ${{ matrix.name }} (${{ matrix.arch }})
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: backend
+            file: docker/backend.Dockerfile
+            image: ghcr.io/rainbowdashlabs/ember-backend
+            arch: amd64
+            platform: linux/amd64
+            runner: ubuntu-latest
+          - name: backend
+            file: docker/backend.Dockerfile
+            image: ghcr.io/rainbowdashlabs/ember-backend
+            arch: arm64
+            platform: linux/arm64
+            runner: ubuntu-24.04-arm
+          - name: frontend
+            file: docker/frontend.Dockerfile
+            image: ghcr.io/rainbowdashlabs/ember-frontend
+            arch: amd64
+            platform: linux/amd64
+            runner: ubuntu-latest
+          - name: frontend
+            file: docker/frontend.Dockerfile
+            image: ghcr.io/rainbowdashlabs/ember-frontend
+            arch: arm64
+            platform: linux/arm64
+            runner: ubuntu-24.04-arm
+
+    steps:
       - uses: actions/checkout@v7
       - uses: gradle/actions/wrapper-validation@v6
         if: matrix.name == 'backend'
-      - name: Build Image
-        run: >
-          docker build .
-          --build-arg GITHUB_ACTIONS=true
-          --build-arg GITHUB_REF_TYPE=${{ github.ref_type }}
-          --build-arg GITHUB_REF_NAME=${{ github.ref_name }}
-          --build-arg GITHUB_SHA=${{ github.sha }}
-          -f ${{ matrix.file }}
-          -t ${{ matrix.image }}:${{ github.sha }}
+
+      - uses: docker/setup-buildx-action@v3
+
       - name: Login to Registry
-        run: echo ${{ secrets.GITHUB_TOKEN }} | docker login -u $ --password-stdin ghcr.io
-      - name: Push image
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.file }}
+          platforms: ${{ matrix.platform }}
+          build-args: |
+            GITHUB_ACTIONS=true
+            GITHUB_REF_TYPE=${{ github.ref_type }}
+            GITHUB_REF_NAME=${{ github.ref_name }}
+            GITHUB_SHA=${{ github.sha }}
+          outputs: type=image,name=${{ matrix.image }},push-by-digest=true,name-canonical=true,push=true
+
+      - name: Hand the digest on
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          mkdir -p /tmp/digests
+          touch "/tmp/digests/${DIGEST#sha256:}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ matrix.name }}-${{ matrix.arch }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  # The build jobs push untagged images. Every tag is created here in one call, so a tag is never
+  # briefly single-architecture.
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    name: Publish ${{ matrix.name }}
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: backend
+            image: ghcr.io/rainbowdashlabs/ember-backend
+          - name: frontend
+            image: ghcr.io/rainbowdashlabs/ember-frontend
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digests-${{ matrix.name }}-*
+          merge-multiple: true
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Login to Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Work out which tags this is
+        id: tags
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          EVENT_NAME: ${{ github.event_name }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          tags="$COMMIT_SHA"
+
+          if [ "$REF_NAME" = "main" ] && [ "$EVENT_NAME" = "push" ]; then
+            tags="$tags dev"
+          fi
+
+          case "$REF_NAME" in
+            feature/*)
+              branch_tag=$(printf '%s' "${REF_NAME#feature/}" | sed 's|[^a-zA-Z0-9._-]|-|g')
+              tags="$tags snapshot $branch_tag"
+              ;;
+          esac
+
+          if [ "$EVENT_NAME" = "release" ]; then
+            version="${REF_NAME#v}"
+            major="${version%%.*}"
+            minor="${version#*.}"
+            minor="${minor%%.*}"
+            tags="$tags latest v$major v$major.$minor v$version"
+          fi
+
+          echo "Tagging with: $tags"
+          echo "tags=$tags" >> "$GITHUB_OUTPUT"
+
+      - name: Create the manifest list
         uses: nick-fields/retry@v4
+        env:
+          IMAGE: ${{ matrix.image }}
+          TAGS: ${{ steps.tags.outputs.tags }}
         with:
           timeout_minutes: 10
           max_attempts: 3
-          command: docker push ${{ matrix.image }}:${{ github.sha }}
-      - name: Tag & Push dev image
-        if: github.ref_name == 'main' && github.event_name == 'push'
-        uses: nick-fields/retry@v4
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
+          shell: bash
           command: |
-            docker image tag ${{ matrix.image }}:${{ github.sha }} ${{ matrix.image }}:dev
-            docker push ${{ matrix.image }}:dev
-      - name: Tag & Push feature branch image
-        if: startsWith(github.ref_name, 'feature/')
-        uses: nick-fields/retry@v4
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: |
-            BRANCH_TAG=$(echo "${{ github.ref_name }}" | sed 's|feature/||' | sed 's|[^a-zA-Z0-9._-]|-|g')
-            docker image tag "${{ matrix.image }}:${{ github.sha }}" "${{ matrix.image }}:snapshot"
-            docker image tag "${{ matrix.image }}:${{ github.sha }}" "${{ matrix.image }}:$BRANCH_TAG"
-            docker push "${{ matrix.image }}:snapshot"
-            docker push "${{ matrix.image }}:$BRANCH_TAG"
-      - name: Tag & Push release images
-        if: github.event_name == 'release'
-        uses: nick-fields/retry@v4
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: |
-            VERSION="${{ github.ref_name }}"
-            VERSION="${VERSION#v}"
-            MAJOR="${VERSION%%.*}"
-            MINOR="${VERSION#*.}"
-            MINOR="${MINOR%%.*}"
-            docker image tag "${{ matrix.image }}:${{ github.sha }}" "${{ matrix.image }}:latest"
-            docker image tag "${{ matrix.image }}:${{ github.sha }}" "${{ matrix.image }}:v$MAJOR"
-            docker image tag "${{ matrix.image }}:${{ github.sha }}" "${{ matrix.image }}:v$MAJOR.$MINOR"
-            docker image tag "${{ matrix.image }}:${{ github.sha }}" "${{ matrix.image }}:v$VERSION"
-            docker push "${{ matrix.image }}:latest"
-            docker push "${{ matrix.image }}:v$MAJOR"
-            docker push "${{ matrix.image }}:v$MAJOR.$MINOR"
-            docker push "${{ matrix.image }}:v$VERSION"
+            arguments=()
+            for tag in $TAGS; do
+              arguments+=(-t "$IMAGE:$tag")
+            done
+            for digest in /tmp/digests/*; do
+              arguments+=("$IMAGE@sha256:$(basename "$digest")")
+            done
+            docker buildx imagetools create "${arguments[@]}"
+
+      - name: Check both architectures are there
+        env:
+          IMAGE: ${{ matrix.image }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          published=$(docker buildx imagetools inspect "$IMAGE:$COMMIT_SHA")
+          echo "$published"
+          for platform in linux/amd64 linux/arm64; do
+            echo "$published" | grep -q "Platform:.*$platform" \
+              || { echo "::error::$IMAGE:$COMMIT_SHA carries no $platform image."; exit 1; }
+          done
