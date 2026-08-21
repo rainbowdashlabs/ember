@@ -255,19 +255,15 @@ export async function enterCluster(page: Page): Promise<{uid: string; name: stri
  * worth telling a story about.
  */
 export async function theSeededCluster(page: Page): Promise<{uid: string; name: string}> {
-    const headers = await apiHeaders(page)
     const clusters = await clustersOf(page)
     if (!clusters.length) throw new Error('This account may act for no cluster')
 
-    for (const cluster of clusters) {
-        if (cluster.name.startsWith(MADE_BY_A_STORY)) continue
-        const response = await page.request.get('/api/v1/cluster/stations', {
-            headers: {...headers, 'X-Cluster-Id': cluster.uid},
-        })
-        if (!response.ok()) continue
-        if ((await response.json()).length > 0) return cluster
-    }
-    throw new Error('No cluster this account may act for has a station under it')
+    // By name rather than by asking each one what it governs: reading a cluster's stations needs a right
+    // the narrower cluster roles do not hold, and telling them apart is not something a story should need
+    // a permission for.
+    const seeded = clusters.find(cluster => !cluster.name.startsWith(MADE_BY_A_STORY))
+    if (!seeded) throw new Error('Every cluster this account may act for was made by a story')
+    return seeded
 }
 
 /**

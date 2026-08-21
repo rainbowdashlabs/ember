@@ -9,6 +9,7 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
@@ -252,17 +253,25 @@ public class ProfileFieldRoutes implements Routes {
         var request = ctx.bodyAsClass(SetValuesRequest.class);
         boolean canEditReadonly = session.hasPermission(StationPermission.MEMBER_EDIT);
 
+        // A cluster's question is not one of this station's, so it cannot be checked against the station's
+        // own list: whether the station may answer it is the cluster's to say, and the service asks that.
         List<FieldValueEntry> entries = request.values() != null
                 ? request.values().stream()
                         .filter(v -> {
+                            if (v.origin() == FieldOrigin.CLUSTER) return true;
                             var field = requireOwnedField(ctx, v.fieldId());
                             return canEditReadonly || !field.config().readonly();
                         })
-                        .map(v -> new FieldValueEntry(v.fieldId(), v.value()))
+                        .map(v -> new FieldValueEntry(v.fieldId(), v.value(), originOf(v)))
                         .toList()
                 : List.of();
         ctx.json(profileFieldService.setValues(
                 memberId, entries, session.member().id()));
+    }
+
+    /** An entry that names no origin is the station's own, which is what every older caller sends. */
+    private static FieldOrigin originOf(FieldValueEntry entry) {
+        return entry.origin() != null ? entry.origin() : FieldOrigin.STATION;
     }
 
     /** A request naming no settings gets the empty ones rather than none at all. */
