@@ -12,6 +12,7 @@ import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.ClusterUserType;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterMember;
+import dev.chojo.ember.feature.cluster.entity.ClusterMemberGroup;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.util.sql.SqlSupport;
@@ -125,6 +126,146 @@ public class ClusterRepository {
                 .single(call().bind("auto_federate", autoFederate).bind("id", id))
                 .update()
                 .changed();
+    }
+
+    // -- Member groups --
+
+    private static final String GROUP_COLUMNS = "id, cluster_id, name";
+
+    public List<ClusterMemberGroup> findGroups(int clusterId) {
+        return query("SELECT %s FROM cluster_member_group WHERE cluster_id = :cluster_id ORDER BY name;", GROUP_COLUMNS)
+                .single(call().bind("cluster_id", clusterId))
+                .map(ClusterMemberGroup.map())
+                .all();
+    }
+
+    public Optional<ClusterMemberGroup> findGroupById(int groupId) {
+        return SqlSupport.findById("cluster_member_group", GROUP_COLUMNS, groupId, ClusterMemberGroup.map());
+    }
+
+    public ClusterMemberGroup createGroup(int clusterId, String name) {
+        return SqlSupport.insertReturning(
+                """
+                INSERT INTO cluster_member_group(cluster_id, name)
+                VALUES (:cluster_id, :name)
+                RETURNING %s;""", call().bind("cluster_id", clusterId).bind("name", name), ClusterMemberGroup.map(), GROUP_COLUMNS);
+    }
+
+    public boolean renameGroup(int groupId, String name) {
+        return query("UPDATE cluster_member_group SET name = :name WHERE id = :id;")
+                .single(call().bind("name", name).bind("id", groupId))
+                .update()
+                .changed();
+    }
+
+    public boolean deleteGroup(int groupId) {
+        return SqlSupport.deleteById("cluster_member_group", groupId);
+    }
+
+    /** The members of a group, as ids, which is what a screen listing them needs. */
+    public List<Integer> findGroupMemberIds(int groupId) {
+        return query("SELECT member_id FROM cluster_member_group_membership WHERE group_id = :group_id;")
+                .single(call().bind("group_id", groupId))
+                .map(row -> row.getInt("member_id"))
+                .all();
+    }
+
+    /** The groups one member is in. */
+    public List<ClusterMemberGroup> findGroupsOfMember(int memberId) {
+        return query("""
+                SELECT %s FROM cluster_member_group g
+                JOIN cluster_member_group_membership gm ON gm.group_id = g.id
+                WHERE gm.member_id = :member_id
+                ORDER BY g.name;""", SqlSupport.alias("g", GROUP_COLUMNS))
+                .single(call().bind("member_id", memberId))
+                .map(ClusterMemberGroup.map())
+                .all();
+    }
+
+    public void addToGroup(int groupId, int memberId) {
+        query("""
+                INSERT INTO cluster_member_group_membership(group_id, member_id)
+                VALUES (:group_id, :member_id)
+                ON CONFLICT DO NOTHING;""")
+                .single(call().bind("group_id", groupId).bind("member_id", memberId))
+                .insert();
+    }
+
+    public boolean removeFromGroup(int groupId, int memberId) {
+        return query("""
+                DELETE FROM cluster_member_group_membership
+                WHERE group_id = :group_id AND member_id = :member_id;""")
+                .single(call().bind("group_id", groupId).bind("member_id", memberId))
+                .delete()
+                .changed();
+    }
+
+    /** What a group carries, expanded nowhere: the raw grants, as the screen shows them. */
+    public Set<ClusterPermission> findGroupPermissions(int groupId) {
+        Set<ClusterPermission> held = EnumSet.noneOf(ClusterPermission.class);
+        for (String name : query("""
+                SELECT p.name FROM cluster_member_group_permission gp
+                JOIN cluster_permission p ON p.id = gp.permission_id
+                WHERE gp.group_id = :group_id;""")
+                .single(call().bind("group_id", groupId))
+                .map(row -> row.getString("name"))
+                .all()) {
+            try {
+                held.add(ClusterPermission.valueOf(name));
+            } catch (IllegalArgumentException ignored) {
+                // A permission the code no longer knows is not worth failing over
+            }
+        }
+        return held;
+    }
+
+    public void grantToGroup(int groupId, int permissionId) {
+        query("""
+                INSERT INTO cluster_member_group_permission(group_id, permission_id)
+                VALUES (:group_id, :permission_id)
+                ON CONFLICT DO NOTHING;""")
+                .single(call().bind("group_id", groupId).bind("permission_id", permissionId))
+                .insert();
+    }
+
+    public boolean revokeFromGroup(int groupId, int permissionId) {
+        return query("""
+                DELETE FROM cluster_member_group_permission
+                WHERE group_id = :group_id AND permission_id = :permission_id;""")
+                .single(call().bind("group_id", groupId).bind("permission_id", permissionId))
+                .delete()
+                .changed();
+    }
+
+    /** The grants made to one member by name, as opposed to what their type or groups carry. */
+    public Set<ClusterPermission> findDirectPermissions(int memberId) {
+        Set<ClusterPermission> held = EnumSet.noneOf(ClusterPermission.class);
+        for (String name : query("""
+                SELECT p.name FROM cluster_member_permission mp
+                JOIN cluster_permission p ON p.id = mp.permission_id
+                WHERE mp.member_id = :member_id;""")
+                .single(call().bind("member_id", memberId))
+                .map(row -> row.getString("name"))
+                .all()) {
+            try {
+                held.add(ClusterPermission.valueOf(name));
+            } catch (IllegalArgumentException ignored) {
+                // as above
+            }
+        }
+        return held;
+    }
+
+    /** Changes what a member's user type is, which changes what they hold by default. */
+    public boolean setMemberUserType(int memberId, ClusterUserType userType) {
+        return query("UPDATE cluster_member SET user_type = :user_type WHERE id = :id;")
+                .single(call().bind("user_type", userType).bind("id", memberId))
+                .update()
+                .changed();
+    }
+
+    public Optional<ClusterMember> findMemberById(int memberId) {
+        return SqlSupport.findById("cluster_member", MEMBER_COLUMNS, memberId, ClusterMember.map());
     }
 
     /**

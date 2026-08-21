@@ -55,6 +55,22 @@ watch(
         </SidebarLink>
       </SidebarGroup>
 
+      <SidebarGroup :icon="['fas', 'users']" :label="t('clusterSidebar.members')"
+                    prefix="/helpcenter/cluster/members">
+        <SidebarLink :icon="['fas', 'users']" name="help-cluster-members"
+                     to="/helpcenter/cluster/members" @navigate="close">
+          {{ t('clusterSidebar.memberList') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'user-group']" name="help-cluster-member-groups"
+                     to="/helpcenter/cluster/members/groups" @navigate="close">
+          {{ t('clusterSidebar.memberGroups') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'users-gear']" name="help-cluster-member-management"
+                     to="/helpcenter/cluster/members/manage" @navigate="close">
+          {{ t('clusterSidebar.memberManagement') }}
+        </SidebarLink>
+      </SidebarGroup>
+
       <SidebarGroup :icon="['fas', 'gear']" :label="t('clusterSidebar.governance')"
                     prefix="/helpcenter/cluster/governance">
         <SidebarLink :icon="['fas', 'puzzle-piece']" name="help-cluster-modules"

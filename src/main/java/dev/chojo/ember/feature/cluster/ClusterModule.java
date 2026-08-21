@@ -9,6 +9,8 @@ import com.google.inject.AbstractModule;
 import com.google.inject.multibindings.Multibinder;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.cluster.route.ClusterGovernanceRoutes;
+import dev.chojo.ember.feature.cluster.route.ClusterMemberManagementRoutes;
+import dev.chojo.ember.feature.cluster.route.ClusterMemberRoutes;
 import dev.chojo.ember.feature.cluster.route.ClusterNotificationRoutes;
 import dev.chojo.ember.feature.cluster.route.ClusterRoutes;
 import dev.chojo.ember.feature.cluster.route.ClusterStationRoutes;
@@ -29,6 +31,8 @@ public class ClusterModule extends AbstractModule {
         routesBinder.addBinding().to(ClusterRoutes.class);
         routesBinder.addBinding().to(ClusterStationRoutes.class);
         routesBinder.addBinding().to(ClusterGovernanceRoutes.class);
+        routesBinder.addBinding().to(ClusterMemberRoutes.class);
+        routesBinder.addBinding().to(ClusterMemberManagementRoutes.class);
         routesBinder.addBinding().to(ClusterNotificationRoutes.class);
         routesBinder.addBinding().to(StationClusterRoutes.class);
     }

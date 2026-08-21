@@ -27,6 +27,7 @@ import dev.chojo.ember.feature.checklist.repository.ChecklistRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterApplicationRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.cluster.service.ClusterGovernanceService;
+import dev.chojo.ember.feature.cluster.service.ClusterMemberService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.comment.repository.EventCommentRepository;
 import dev.chojo.ember.feature.comment.repository.NoteRepository;
@@ -158,6 +159,8 @@ public abstract class RepositoryTestBase {
     protected static ClusterService clusterService;
 
     protected static ClusterGovernanceService clusterGovernanceService;
+
+    protected static ClusterMemberService clusterMemberService;
 
     protected static ItemCustodyService itemCustodyService;
     protected static MovementFlowRepository movementFlowRepo;
@@ -308,6 +311,7 @@ public abstract class RepositoryTestBase {
                 new FederationService(new FederationRepository(), stationRepo, new Api()),
                 clusterGovernanceService,
                 new DomainEventBus(Set.of()));
+        clusterMemberService = new ClusterMemberService(clusterRepo, clusterService, new DomainEventBus(Set.of()));
         exchangeService = new ExchangeService(itemMovementService, inventoryRepo);
         memberGroupRepo = new MemberGroupRepository();
         profileFieldRepo = new ProfileFieldRepository();

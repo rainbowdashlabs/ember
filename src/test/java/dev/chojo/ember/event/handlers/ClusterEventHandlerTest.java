@@ -11,6 +11,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.event.events.ClusterApplicationResolved;
 import dev.chojo.ember.event.events.ClusterApplicationSubmitted;
 import dev.chojo.ember.event.events.ClusterApplicationWithdrawn;
+import dev.chojo.ember.event.events.ClusterMemberRoleChanged;
 import dev.chojo.ember.event.events.ClusterModuleDenied;
 import dev.chojo.ember.event.events.ClusterQuotaChanged;
 import dev.chojo.ember.event.events.ClusterStationReleased;
@@ -175,5 +176,20 @@ class ClusterEventHandlerTest extends RepositoryTestBase {
                         eq(StationPermission.STATION_MANAGER.name()),
                         eq(NotificationType.CLUSTER_QUOTA_CHANGED),
                         any(NotificationData.class));
+    }
+
+    @Test
+    void aChangedStandingReachesTheOnePersonItConcerns() {
+        reset(notificationService);
+
+        new ClusterMemberRoleChangedHandler(notificationService)
+                .handle(new ClusterMemberRoleChanged(11, "Kreisverband Rolle"));
+
+        verify(notificationService)
+                .notifyClusterMembersIfAbsent(
+                        eq(List.of(11)),
+                        eq(NotificationType.CLUSTER_MEMBER_ROLE_CHANGED),
+                        any(NotificationData.class),
+                        eq(null));
     }
 }

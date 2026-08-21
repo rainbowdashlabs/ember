@@ -5,9 +5,11 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.ClusterUserType;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.repository.ClusterApplicationRepository;
+import dev.chojo.ember.feature.cluster.service.ClusterMemberService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -15,6 +17,8 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Set;
 
 /**
  * Seeds the body above the demo station: a district association with its home station, the demo
@@ -32,15 +36,18 @@ public class DemoClusterSeeder implements DemoSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoClusterSeeder.class);
 
     private final ClusterService clusterService;
+    private final ClusterMemberService memberService;
     private final ClusterApplicationRepository applicationRepository;
     private final StationRepository stationRepository;
 
     @Inject
     public DemoClusterSeeder(
             ClusterService clusterService,
+            ClusterMemberService memberService,
             ClusterApplicationRepository applicationRepository,
             StationRepository stationRepository) {
         this.clusterService = clusterService;
+        this.memberService = memberService;
         this.applicationRepository = applicationRepository;
         this.stationRepository = stationRepository;
     }
@@ -68,6 +75,10 @@ public class DemoClusterSeeder implements DemoSeeder {
 
         // The demo administrator wears both hats, which is the case worth being able to click through
         clusterService.addMember(cluster.id(), context.adminAccount().id(), ClusterUserType.CLUSTER_ADMIN);
+
+        // A group with something in it, so the third way to hold a permission is visible rather than theoretical
+        var group = memberService.createGroup(cluster.id(), "Gerätewarte");
+        memberService.setGroupPermissions(cluster.id(), group.id(), Set.of(ClusterPermission.CLUSTER_INVENTORY_EDIT));
 
         log.info(
                 "Demo: Created cluster {} with home station {} over station {}",

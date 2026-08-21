@@ -68,6 +68,12 @@ public sealed interface NotificationParams {
     /** The quota is already formatted, because a byte count is not what somebody wants to read. */
     record ClusterQuotaChanged(String clusterName, String quota) implements NotificationParams {}
 
+    /**
+     * Says only that something moved. Naming the permission would mean listing a set that may have changed in
+     * four ways at once, and the screen it links to shows the answer anyway.
+     */
+    record ClusterMemberRoleChanged(String clusterName) implements NotificationParams {}
+
     record MemberAddedToGroup(String groupName, String addedByName) implements NotificationParams {}
 
     record ProfileFieldChanged(String memberName, String fieldName) implements NotificationParams {}

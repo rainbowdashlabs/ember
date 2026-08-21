@@ -72,6 +72,34 @@ onMounted(() => {
       </SidebarGroup>
 
       <SidebarGroup
+          v-if="hasClusterPermission(ClusterPermission.CLUSTER_MEMBER_READ)"
+          :icon="['fas', 'users']"
+          :label="t('clusterSidebar.members')"
+          prefix="/cluster/members"
+      >
+        <SidebarLink :icon="['fas', 'users']" name="cluster-members" to="/cluster/members" @navigate="close">
+          {{ t('clusterSidebar.memberList') }}
+        </SidebarLink>
+        <SidebarLink
+            :icon="['fas', 'user-group']"
+            name="cluster-member-groups"
+            to="/cluster/members/groups"
+            @navigate="close"
+        >
+          {{ t('clusterSidebar.memberGroups') }}
+        </SidebarLink>
+        <SidebarLink
+            v-if="hasClusterPermission(ClusterPermission.CLUSTER_MEMBER_MANAGER)"
+            :icon="['fas', 'users-gear']"
+            name="cluster-member-management"
+            to="/cluster/members/manage"
+            @navigate="close"
+        >
+          {{ t('clusterSidebar.memberManagement') }}
+        </SidebarLink>
+      </SidebarGroup>
+
+      <SidebarGroup
           v-if="hasClusterPermission(ClusterPermission.CLUSTER_MODULES)
               || hasClusterPermission(ClusterPermission.CLUSTER_LOOK_AND_FEEL)
               || hasClusterPermission(ClusterPermission.CLUSTER_STORAGE)"

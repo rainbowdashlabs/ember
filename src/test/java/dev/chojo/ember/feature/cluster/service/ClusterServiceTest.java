@@ -337,4 +337,22 @@ class ClusterServiceTest extends RepositoryTestBase {
         clusterService.removeMember(a.id());
         clusterService.removeMember(b.id());
     }
+
+    @Test
+    void switchingAutoFederationOnFillsInTheMissingPairs() {
+        var cluster = clusterService.create("Kreisverband Vernetzung " + NAMES.incrementAndGet(), null);
+        var first = clusterService.createStation(cluster.id(), "Wache Netz A " + NAMES.incrementAndGet());
+        var second = clusterService.createStation(cluster.id(), "Wache Netz B " + NAMES.incrementAndGet());
+
+        clusterService.setAutoFederate(cluster.id(), false);
+        assertFalse(clusterService.findById(cluster.id()).orElseThrow().autoFederate());
+
+        clusterService.setAutoFederate(cluster.id(), true);
+        assertTrue(clusterService.findById(cluster.id()).orElseThrow().autoFederate());
+
+        clusterService.releaseStation(cluster.id(), first.id());
+        clusterService.releaseStation(cluster.id(), second.id());
+        stationRepo.delete(first.id());
+        stationRepo.delete(second.id());
+    }
 }

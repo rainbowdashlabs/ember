@@ -1,0 +1,17 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+<script setup lang="ts">
+import ClusterMemberGroupsView from '~/views/clusterview/ClusterMemberGroupsView.vue'
+
+definePageMeta({
+  layout: 'cluster',
+  name: 'cluster-member-groups',
+})
+</script>
+
+<template>
+  <ClusterMemberGroupsView />
+</template>

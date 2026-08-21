@@ -145,7 +145,8 @@
     "CLUSTER_APPLICATION_WITHDRAWN": "Anfrage zurückgezogen: {stationName}",
     "CLUSTER_STATION_RELEASED": "Aus {clusterName} entlassen",
     "CLUSTER_MODULE_DENIED": "{module} vom Verband abgeschaltet",
-    "CLUSTER_QUOTA_CHANGED": "Neuer Speicherplatz: {quota}"
+    "CLUSTER_QUOTA_CHANGED": "Neuer Speicherplatz: {quota}",
+    "CLUSTER_MEMBER_ROLE_CHANGED": "Deine Rechte im Verband {clusterName}"
   },
   "digest": {
     "subject.one": "{stationName}: 1 neue Benachrichtigung",
@@ -188,7 +189,8 @@
     "CLUSTER_APPLICATION_WITHDRAWN": "Anfrage zurückgezogen",
     "CLUSTER_STATION_RELEASED": "Aus dem Verband entlassen",
     "CLUSTER_MODULE_DENIED": "Modul abgeschaltet",
-    "CLUSTER_QUOTA_CHANGED": "Speicherplatz geändert"
+    "CLUSTER_QUOTA_CHANGED": "Speicherplatz geändert",
+    "CLUSTER_MEMBER_ROLE_CHANGED": "Rechte geändert"
   },
   "message": {
     "notification.newNews": "{title} - von {author}",
@@ -230,6 +232,7 @@
     "notification.clusterApplicationWithdrawn": "{stationName} hat die Beitrittsanfrage zurückgezogen",
     "notification.clusterStationReleased": "{clusterName} hat eure Wache entlassen",
     "notification.clusterModuleDenied": "{clusterName} hat {module} für eure Wache abgeschaltet. Eure Daten dazu bleiben erhalten.",
-    "notification.clusterQuotaChanged": "{clusterName} hat euren Speicherplatz auf {quota} gesetzt"
+    "notification.clusterQuotaChanged": "{clusterName} hat euren Speicherplatz auf {quota} gesetzt",
+    "notification.clusterMemberRoleChanged": "Deine Rechte im Verband {clusterName} haben sich geändert"
   }
 }
