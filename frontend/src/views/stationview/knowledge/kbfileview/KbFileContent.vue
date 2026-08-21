@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Alert from '@/components/feedback/Alert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
@@ -14,6 +15,13 @@ import AuthImage from '@/components/display/AuthImage.vue'
 import AuthIframe from '@/components/display/AuthIframe.vue'
 import KbMarkdownView from './KbMarkdownView.vue'
 import KbPresentationContent from './KbPresentationContent.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ContentBlockEditor from '@/components/content/ContentBlockEditor.vue'
+import ContentBlocks from '@/components/content/ContentBlocks.vue'
+import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
+import {internalContentContext} from '@/util/contentContext'
+import {ContentMode, type ContentModeName} from '@/api/news'
+import type {PageRow} from '@/api/pageManage'
 import {KbFileType, type KbFile} from '@/api/knowledgeBase'
 import {downloadAuthed} from '@/util/downloadAuthed'
 
@@ -25,14 +33,20 @@ const props = defineProps<{
   renderedHtml: string
   youtubeEmbedUrl: string
   canEdit: boolean
+  contentMode: ContentModeName
+  stationUid: string
 }>()
 
 const editContent = defineModel<string>('editContent', {required: true})
+const blockRows = defineModel<RowEditData[]>('blockRows', {required: true})
 
 const emit = defineEmits<{
   contentInput: []
+  enableBlocks: []
   reupload: [file: File]
 }>()
+
+const blockContext = computed(() => internalContentContext(props.stationUid, props.file.name))
 
 const {t} = useI18n()
 
@@ -44,16 +58,36 @@ async function downloadOther() {
 <template>
   <!-- MARKDOWN -->
   <template v-if="file.fileType === KbFileType.MARKDOWN">
-    <MarkdownEditor
-        v-if="editing"
-        v-model="editContent"
-        :file-id="file.id"
-        @update:model-value="emit('contentInput')"
-    />
-    <NeutralContainer v-else>
-      <KbMarkdownView v-if="renderedHtml" :html="renderedHtml"/>
-      <p v-else class="text-[var(--text-muted)]">{{ t('kb.noContent') }}</p>
-    </NeutralContainer>
+    <template v-if="contentMode === ContentMode.RICH">
+      <ContentBlockEditor
+          v-if="editing"
+          v-model:rows="blockRows"
+          :station-uid="stationUid"
+          @change="emit('contentInput')"
+      />
+      <NeutralContainer v-else>
+        <ContentBlocks v-if="blockRows.length" :rows="(blockRows as unknown as PageRow[])" :context="blockContext"/>
+        <p v-else class="text-[var(--text-muted)]">{{ t('kb.noContent') }}</p>
+      </NeutralContainer>
+    </template>
+
+    <template v-else>
+      <MarkdownEditor
+          v-if="editing"
+          v-model="editContent"
+          @update:model-value="emit('contentInput')"
+      />
+      <NeutralContainer v-else>
+        <KbMarkdownView v-if="renderedHtml" :html="renderedHtml"/>
+        <p v-else class="text-[var(--text-muted)]">{{ t('kb.noContent') }}</p>
+      </NeutralContainer>
+      <div v-if="editing" class="flex flex-col sm:flex-row sm:items-center gap-2 pt-2">
+        <SecondaryButton :icon="['fas', 'table-columns']" @click="emit('enableBlocks')">
+          {{ t('kb.enableBlocks') }}
+        </SecondaryButton>
+        <p class="text-xs text-(--text-muted)">{{ t('kb.enableBlocksHint') }}</p>
+      </div>
+    </template>
   </template>
 
   <!-- TEXT -->

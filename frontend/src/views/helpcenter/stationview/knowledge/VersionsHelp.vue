@@ -84,6 +84,10 @@ const {t} = useI18n()
       </div>
     </NeutralContainer>
 
+    <HelpSection :title="t('helpCenter.kbVersions.blocksTitle')">
+      <p>{{ t('helpCenter.kbVersions.blocksText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.kbVersions.restoreTitle')">
       <p>{{ t('helpCenter.kbVersions.restoreText') }}</p>
       <p>{{ t('helpCenter.kbVersions.revertConfirmText') }}</p>

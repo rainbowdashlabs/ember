@@ -15,6 +15,8 @@ export const FieldTypes = {
     AGE: 'AGE',
     /** A date field holding the date of birth. A station may declare at most one. */
     BIRTH_DATE: 'BIRTH_DATE',
+    /** A heading between fields rather than a field. It holds no answer and is asked of nobody. */
+    SECTION: 'SECTION',
 } as const
 
 /** Field types that hold a date and can therefore serve as the source of a calculated age. */

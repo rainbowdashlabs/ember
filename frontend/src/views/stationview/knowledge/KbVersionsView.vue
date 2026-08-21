@@ -23,6 +23,7 @@ import {formatDateTime} from '@/util/format'
 import PageHeader from '@/components/typography/PageHeader.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import type {KbFile, KbFileVersion} from '@/api/knowledgeBase'
+import {ContentMode} from '@/api/news'
 
 const {t} = useI18n()
 const router = useRouter()
@@ -36,6 +37,16 @@ const selectedVersion = ref<KbFileVersion | null>(null)
 const loadingVersion = ref(false)
 
 const fileId = computed(() => Number(route.params.id))
+
+/**
+ * Restoring an old version is offered only for an article written as text.
+ *
+ * <p>History stores patches against the stored body, which for an article built from blocks is a
+ * projection of them. The history therefore reads and diffs correctly, but restoring one would put
+ * the projection back as the body while the blocks stayed where they are: the article would say one
+ * thing and be built from another. Reading an old version is still offered, because that part works.
+ */
+const canRevert = computed(() => file.value?.contentMode !== ContentMode.RICH)
 
 const {loading, error, reload: loadData} = useAsyncLoader(async () => {
     file.value = (await knowledgeBase.getFile(fileId.value)).file
@@ -110,12 +121,14 @@ watch(loaded, (isLoaded) => {
                         <SecondaryButton @click="viewVersion(version)">
                             <font-awesome-icon :icon="['fas', 'eye']"/>
                         </SecondaryButton>
-                        <PrimaryButton @click="requestRevert(version)">
+                        <PrimaryButton v-if="canRevert" @click="requestRevert(version)">
                             {{ t('kb.revert') }}
                         </PrimaryButton>
                     </div>
                 </NeutralContainer>
             </div>
+
+            <Alert v-if="!canRevert" variant="info" class="mt-3">{{ t('kb.revertUnavailableForBlocks') }}</Alert>
 
             <!-- Version content view -->
             <div v-if="selectedVersion" class="mt-6">

@@ -351,7 +351,11 @@ public class KnowledgeBaseService {
      * @return {@code true} when the file existed
      */
     public boolean deleteFile(int id) {
-        repository.findFileById(id).ifPresent(file -> fileStorage.delete(file.stationId(), id));
+        repository.findFileById(id).ifPresent(file -> {
+            fileStorage.delete(file.stationId(), id);
+            // The container is the owned side, so nothing else would clean it up.
+            contentService.deleteBlocks(file);
+        });
         boolean deleted = repository.deleteFile(id);
         if (deleted) {
             log.info("KB file {} deleted", id);

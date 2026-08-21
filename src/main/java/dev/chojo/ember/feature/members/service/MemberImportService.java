@@ -91,6 +91,16 @@ public class MemberImportService {
     //   "field:<fieldId>" (profile field by id)
 
     /**
+     * The fields of a station that hold an answer, which are the only ones a column can be mapped
+     * onto. A heading between fields is not something a spreadsheet has a column for.
+     */
+    private List<ProfileField> valueFields(int stationId) {
+        return profileFieldRepository.findByStation(stationId).stream()
+                .filter(field -> field.fieldType().holdsValue())
+                .toList();
+    }
+
+    /**
      * Generates a preview of what the import would create without persisting anything.
      *
      * @param stationId the target station
@@ -101,7 +111,7 @@ public class MemberImportService {
      */
     public PreviewResult preview(int stationId, String csv, String separator, List<ColumnMapping> mappings) {
         var parsed = parseCsv(csv, separator);
-        var profileFields = profileFieldRepository.findByStation(stationId);
+        var profileFields = valueFields(stationId);
         var warnings = new ArrayList<String>();
         var members = new ArrayList<MemberPreview>();
 
@@ -130,7 +140,7 @@ public class MemberImportService {
      */
     public ImportResult importMembers(int stationId, String csv, String separator, List<ColumnMapping> mappings) {
         var parsed = parseCsv(csv, separator);
-        var profileFields = profileFieldRepository.findByStation(stationId);
+        var profileFields = valueFields(stationId);
         var groups = new ArrayList<>(memberGroupRepository.findByStation(stationId));
         var loginRole = stationMemberRepository
                 .findPermissionByName(StationPermission.LOGIN)
@@ -266,7 +276,7 @@ public class MemberImportService {
     public TeamImportResult importTeamMembers(
             int stationId, String csv, String separator, List<ColumnMapping> mappings) {
         var parsed = parseCsv(csv, separator);
-        var profileFields = profileFieldRepository.findByStation(stationId);
+        var profileFields = valueFields(stationId);
         var groups = new ArrayList<>(memberGroupRepository.findByStation(stationId));
         var loginRole = stationMemberRepository
                 .findPermissionByName(StationPermission.LOGIN)

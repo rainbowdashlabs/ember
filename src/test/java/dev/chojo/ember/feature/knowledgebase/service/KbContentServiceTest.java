@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.knowledgebase.service;
 
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -31,7 +32,11 @@ class KbContentServiceTest extends RepositoryTestBase {
     static void setup() {
         fileStorage = mock(KbFileStorageService.class);
         service = new KbContentService(
-                knowledgeBaseRepo, fileStorage, new KbSearchService(knowledgeBaseRepo, stationRepo));
+                knowledgeBaseRepo,
+                new ContentBlockService(contentContainerRepo),
+                stationRepo,
+                fileStorage,
+                new KbSearchService(knowledgeBaseRepo, stationRepo));
         station = stationRepo.create("KbContentStation");
         account = accountRepo.create("kb-content@test.com", "Kb", "ContentTester");
         member = stationMemberRepo.create(station.id(), account.id());

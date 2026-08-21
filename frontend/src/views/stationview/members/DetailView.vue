@@ -94,6 +94,7 @@ const tabs = computed(() => {
     { key: 'profile', label: t('memberDetail.tabProfile') },
     { key: 'permissions', label: t('memberDetail.tabPermissions') },
     { key: 'guardians', label: t('memberDetail.tabGuardians') },
+    { key: 'documents', label: t('memberDetail.tabDocuments') },
   ]
   if (canEdit.value) {
     t_.push({ key: 'absences', label: t('memberDetail.tabAbsences') })
@@ -160,6 +161,7 @@ const loadedTabsProps = computed(() => ({
   showManagerSection: showManagerSection.value,
   managers: managers.value,
   availableManagers: availableManagers.value,
+  allMembers: allMembers.value,
   managerValues: managerValues.value,
   managerUserTypesAsRoleMap: managerUserTypesAsRoleMap.value,
   fields: fields.value,

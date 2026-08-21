@@ -1325,6 +1325,15 @@ volumes:
             typeBoolean: 'Ja/Nein - Schalter.',
             typeEnum: 'Auswahl - Auswahl aus vorgegebenen Werten.',
             typeAge: 'Alter - Wird automatisch aus einem Datumsfeld berechnet.',
+            typeSection: 'Überschrift - Kein Feld, sondern eine Zwischenüberschrift. Sie wird nach '
+                + 'nichts gefragt und steht in keinem Export.',
+            layoutTitle: 'Felder anordnen',
+            layoutText: 'Jedes Feld hat eine Breite: ganze, halbe oder Drittel-Zeile. Schmale Felder '
+                + 'stehen nebeneinander, solange eine Zeile sie fasst, sonst rutschen sie in die '
+                + 'nächste. Auf schmalen Bildschirmen steht ohnehin jedes Feld für sich. Zusammen '
+                + 'mit Überschriften wird aus einer langen Liste eine gegliederte Maske.',
+            layoutPreview: 'Unter der Feldliste siehst du eine Vorschau, wie die Felder beim '
+                + 'Ausfüllen aussehen. Die Reihenfolge änderst du weiterhin über die Liste.',
             templatesTitle: 'Feld-Vorlagen',
             templatesText: 'Wenn du noch keine Felder angelegt hast, kannst du aus 11 vordefinierten Vorlagen wählen. Jede Vorlage erstellt ein oder mehrere Felder mit sinnvollen Voreinstellungen - zum Beispiel Adresse, Geburtsdatum, Notfallkontakt oder Jugendflamme.',
             tip: 'Überlege dir vorher gut, welche Felder du brauchst. Du kannst die Reihenfolge per Drag & Drop ändern.',
@@ -1393,6 +1402,41 @@ volumes:
             convertTitle: 'Gruppe zu Tag umwandeln',
             convertText: 'Wenn du eine Gruppe nicht mehr als Gruppe brauchst, kannst du sie in einen Tag umwandeln. Die Mitglieder bleiben erhalten, aber die Berechtigungen gehen verloren.',
             tip: 'Gruppen werden auch für Anwesenheitsvorlagen, Sichtbarkeitseinschränkungen bei Neuigkeiten und Terminen sowie für gruppenspezifische Profilfelder verwendet.',
+        },
+        memberDocuments: {
+            title: 'Dokumente',
+            subtitle: 'Die Ablage der Wache und die Dokumente einzelner Mitglieder',
+            whatIs: 'Wofür die Ablage da ist',
+            whatIsText: 'Hier liegen Dateien, die zu Mitgliedern gehören: Einverständnisse, '
+                + 'Nachweise, Verträge. Ein Dokument kann zu mehreren Mitgliedern gehören, und es '
+                + 'kann auch ganz ohne Zuordnung in der Ablage liegen.',
+            whatIsText2: 'Jedes Mitglied hat im Profil einen eigenen Reiter mit seinen Dokumenten. '
+                + 'Unter Mitglieder → Dokumente siehst du die gesamte Ablage, seitenweise, mit '
+                + 'Suche und Filter auf ein Mitglied.',
+            rightsTitle: 'Wer was darf',
+            rightsRead: 'Die eigenen Dokumente darf jeder lesen, dafür braucht es kein Recht.',
+            rightsSelf: 'Zum Hochladen im eigenen Profil braucht es das Recht „Eigene Dokumente hochladen".',
+            rightsOthers: 'Wer Mitglieder bearbeiten darf, kann für andere hochladen, Dokumente '
+                + 'zuordnen, verschlagworten und löschen.',
+            rightsHidden: 'Ein verborgenes Dokument sieht nur, wer fremde Profile lesen darf. Das '
+                + 'Mitglied selbst sieht es nicht.',
+            previewTitle: 'Vorschau',
+            previewText: 'Bilder, Textdateien und PDFs zeigt Ember direkt an. Von Bildern und PDFs '
+                + 'entsteht außerdem ein Vorschaubild für die Kachel, bei PDFs aus der ersten '
+                + 'Seite. Alles andere lädst du herunter.',
+            searchTitle: 'Suchen und sortieren',
+            searchText: 'Die Suche geht über den Titel und, wo lesbar, über den Inhalt: bei PDFs '
+                + 'und Textdateien wird der Text mit durchsucht.',
+            tagsText: 'Schlagworte sind freier Text. Was es noch nicht gibt, entsteht beim '
+                + 'Speichern, du musst nichts vorher anlegen.',
+            keepTitle: 'Bei Archivierung behalten',
+            keepText: 'Wird ein Mitglied als ehemalig markiert, verschwinden seine Dokumente. Was '
+                + 'du als „bei Archivierung behalten" gekennzeichnet hast, bleibt. Das ist für '
+                + 'rechtlich bindende Dokumente gedacht, die den Austritt überdauern müssen.',
+            exportText: 'Fordert jemand seine Daten an, sind die Dokumente enthalten, die über ihn '
+                + 'gehalten werden, samt Dateien und einschließlich der verborgenen.',
+            tip: 'Ein Dokument, das mehrere betrifft, lädst du einmal hoch und ordnest es beim '
+                + 'Öffnen den weiteren Mitgliedern zu. So bleibt es eine Datei statt drei.',
         },
         membersTags: {
             title: 'Tags',
@@ -2953,6 +2997,9 @@ volumes:
                 rawText: 'Mit dem Code-Button ganz rechts in der Werkzeugleiste kannst du den Roh-Markdown anzeigen und bearbeiten. So siehst du genau, was gespeichert wird.',
                 tip: 'Tipp: Du kannst die meisten Formatierungen auch mit Tastenkürzel machen - z.B. Strg+B für fett, Strg+I für kursiv.',
                 demoTitle: 'Beispiel: So sieht formatierter Text aus',
+                blocksTitle: 'Mit dem Seiten-Editor schreiben',
+                blocksText: 'Für längere Artikel kannst du einen Markdown-Artikel auf den Seiten-Editor umstellen: Zeilen und Spalten, Bilder neben dem Text, Hinweiskästen, Galerien, Code-Blöcke. Dein bisheriger Text wandert in einen einzelnen Textblock und geht nicht verloren.',
+                blocksKeepsText: 'Suche, PDF-Export und Versionsverlauf funktionieren weiter: gespeichert wird bei jedem Speichern der aus den Blöcken erzeugte Text. Alte Stände kannst du deshalb ansehen, aber nicht wiederherstellen, und der Weg zurück zum einfachen Textfeld ist nicht vorgesehen.',
             },
         },
         adminOverview: {
@@ -3522,6 +3569,23 @@ volumes:
             deleteText: 'Wenn du eine Wache löschst, werden alle zugehörigen Daten (Mitglieder, Termine, Inventar usw.) unwiderruflich gelöscht.',
             tip: 'Sei vorsichtig beim Löschen - es gibt kein Zurück.',
         },
+        adminSystemNews: {
+            title: 'Systemmeldungen',
+            subtitle: 'Etwas allen Wachen auf einmal sagen',
+            whatIs: 'Was eine Systemmeldung ist',
+            whatIsText: 'Eine Systemmeldung wird einmal geschrieben und in jeder Wache gelesen. Sie steht dort in der normalen Neuigkeitenliste, zwischen dem, was die Wache selbst geschrieben hat. Es gibt sie nur einmal: eine Korrektur gilt überall, ein Zurückziehen entfernt sie überall.',
+            authorText: 'Als Absender steht Ember daneben, mit einem Abzeichen „System“. Die Instanz ist in keiner Wache Mitglied, deshalb gibt es kein Profil und kein Bild dazu.',
+            audienceTitle: 'Für wen sie sichtbar ist',
+            audienceText: 'Ohne Auswahl liest sie jeder. Mit Auswahl liest sie nur, wer einen der gewählten Mitgliedstypen hat. Gruppen, Tags und einzelne Mitglieder gibt es nur innerhalb einer Wache, die Meldung steht aber in allen, deshalb werden sie hier nicht angeboten.',
+            notifyTitle: 'Benachrichtigen',
+            notifyText: 'Ohne Häkchen finden die Mitglieder die Meldung beim nächsten Blick in die Neuigkeiten. Mit Häkchen bekommt jedes Mitglied jeder Wache eine Benachrichtigung, so wie bei einer Neuigkeit der eigenen Wache.',
+            notifyTip: 'Sparsam einsetzen. Wer für jede Wartungsankündigung geweckt wird, übersieht irgendwann die Meldung, auf die es ankommt.',
+            commentsTitle: 'Kommentare',
+            commentsText: 'Unter einer Systemmeldung kann jeder kommentieren. Eine Wache sieht dabei nur die Kommentare aus der eigenen Wache. Hier in der Verwaltung sind alle zu sehen, mit der Wache, aus der sie kommen: eine Frage unter einer Meldung ist an die Instanz gerichtet, und sie lässt sich nur beantworten, wenn man sie liest.',
+            correctTitle: 'Korrigieren und zurückziehen',
+            correctText: 'Eine Meldung lässt sich nachträglich ändern. Eine Korrektur benachrichtigt nicht noch einmal.',
+            retractText: 'Beim Zurückziehen verschwindet die Meldung aus allen Wachen, zusammen mit den Kommentaren darunter.',
+        },
         adminApplications: {
             title: 'Wachanträge',
             subtitle: 'Anträge auf Erstellung neuer Wachen prüfen.',
@@ -3651,6 +3715,12 @@ volumes:
             tagRestrictionsText: 'Neben Gruppen kannst du auch nach Tags einschränken. So erreichst du genau die richtigen Mitglieder.',
             federationTitle: 'Föderation',
             federationText: 'Wenn deine Wache Föderationspartner hat, kannst du Neuigkeiten auch an Partnerwachen teilen. Wähle aus, ob alle oder nur bestimmte Partner die Neuigkeit sehen.',
+            attachmentsTitle: 'Anhänge',
+            attachmentsText: 'Eine Neuigkeit kann Dateien mitgeben - das Protokoll, das Anmeldeformular, den Flyer. Du wählst sie aus den Medien der Wache, gibst ihnen bei Bedarf einen Anzeigenamen und bringst sie in die Reihenfolge, in der sie unter dem Text stehen sollen.',
+            attachmentsTravelText: 'Anhänge gehören zur Neuigkeit, nicht zum Text: sie stehen unter dem Beitrag, reisen im Blog-Feed mit und erscheinen auch bei Partnerwachen. Wer den Link kennt, kann die Datei laden - für wirklich vertrauliche Unterlagen ist ein Anhang deshalb nicht gedacht.',
+            blocksTitle: 'Mit dem Seiten-Editor schreiben',
+            blocksText: 'Für längere Beiträge kannst du eine Neuigkeit auf den Seiten-Editor umstellen: Zeilen und Spalten, Bilder neben dem Text, Hinweiskästen, Galerien, Code-Blöcke. Dein bisheriger Text wandert dabei in einen einzelnen Textblock und geht nicht verloren.',
+            blocksOneWayText: 'Der Weg zurück ist nicht vorgesehen. Der gespeicherte Text einer Block-Neuigkeit wird bei jedem Speichern aus den Blöcken erzeugt - davon leben Suche, Vorschau, Feed und Partnerwachen. Wer wieder einfach schreiben will, legt eine neue Neuigkeit an.',
             tip: 'Mitglieder mit aktivierten E-Mail-Benachrichtigungen werden automatisch informiert.',
         },
         eventEdit: {
@@ -3988,6 +4058,8 @@ volumes:
             restoreTitle: 'Frühere Version wiederherstellen',
             restoreText: 'Mit dem Wiederherstellen-Button kannst du eine ältere Version wieder aktivieren. Die aktuelle Version bleibt dabei erhalten.',
             revertConfirmText: 'Vor dem Wiederherstellen wirst du in einem Dialog gefragt, ob du sicher bist.',
+            blocksTitle: 'Artikel aus Blöcken',
+            blocksText: 'Bei einem Artikel, der mit dem Seiten-Editor geschrieben wurde, kannst du alte Stände ansehen, aber nicht wiederherstellen. Gespeichert wird der aus den Blöcken erzeugte Text - nach dem Zurücksetzen würde der Artikel etwas anderes sagen, als seine Blöcke ergeben.',
             current: 'aktuell',
             tip: 'Der Versionsverlauf ist nur für Markdown-Dateien verfügbar, nicht für PDFs oder Bilder.',
         },
@@ -4054,19 +4126,21 @@ volumes:
             title: 'Seite bearbeiten',
             subtitle: 'Im Editor gestaltest du Inhalt und Layout deiner öffentlichen Seite.',
         },
-        pageFiles: {
-            title: 'Seiten-Dateien',
-            subtitle: 'Bilder und andere Dateien für deine öffentlichen Seiten zentral verwalten.',
-            whatIs: 'Was ist die Dateiverwaltung?',
-            whatIsText: 'Hier verwaltest du alle Dateien, die du in öffentlichen Seiten verwendest - vor allem Bilder. Du kannst sie in Ordner einsortieren und mit farbigen Tags markieren.',
+        media: {
+            title: 'Medien',
+            subtitle: 'Bilder und Dateien der Wache zentral verwalten.',
+            whatIs: 'Was ist die Medienverwaltung?',
+            whatIsText: 'Hier liegen alle Dateien der Wache an einer Stelle - Bilder, PDFs und andere Anhänge. Du erreichst sie aus jedem Editor heraus: aus den öffentlichen Seiten, aus Neuigkeiten, aus dem Wiki und aus jedem Textfeld, das Bilder erlaubt. Du kannst sie in Ordner einsortieren und mit farbigen Tags markieren.',
             uploadTitle: 'Dateien hochladen',
-            uploadText: 'Klicke auf „Datei hochladen" und wähle eine oder mehrere Dateien aus. Wenn ein Ordner ausgewählt ist, landet die Datei direkt darin.',
+            uploadText: 'Klicke auf „Datei hochladen" und wähle eine oder mehrere Dateien aus. Wenn ein Ordner ausgewählt ist, landet die Datei direkt darin. Lädst du eine Datei hoch, die es schon gibt, wird sie kein zweites Mal gespeichert - du bekommst die vorhandene zurück.',
+            ownTitle: 'Eigene Uploads',
+            ownText: 'Wer keine Rechte an Seiten, Neuigkeiten oder Wiki hat, darf trotzdem Bilder hochladen und einfügen, sieht in der Auswahl aber nur die eigenen Uploads. Angezeigt werden die Bilder danach für alle, die den Inhalt lesen dürfen.',
             foldersTitle: 'Ordner',
             foldersText: 'Erstelle Ordner, um Dateien thematisch zu gruppieren. Ordner können auch verschachtelt werden.',
             tagsTitle: 'Tags',
             tagsText: 'Tags sind farbige Marker. Eine Datei kann mehrere Tags haben. Über die Tag-Leiste filterst du die Anzeige.',
             pruneTitle: 'Unbenutzte aufräumen',
-            pruneText: 'Dateien, die in keiner Seite verwendet werden, sind rot markiert. Mit „Aufräumen" werden alle unbenutzten Dateien dauerhaft gelöscht.',
+            pruneText: 'Dateien, auf die nichts mehr verweist, sind rot markiert. Mit „Aufräumen" werden sie dauerhaft gelöscht. Dateien, die jemand selbst hochgeladen hat, bleiben dabei erhalten.',
             tip: 'Achte beim Hochladen auf passende Dateigrößen - große Bilder verlangsamen das Laden deiner öffentlichen Seiten.',
         },
         pageForms: {

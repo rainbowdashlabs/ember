@@ -9,6 +9,7 @@ import {useRouter} from 'vue-router'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
+import SystemBadge from '@/components/badge/SystemBadge.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
@@ -20,7 +21,7 @@ import {formatDateTime} from '@/util/format'
 interface BadgeHandle {refresh: () => Promise<void>}
 
 const props = defineProps<{
-  kind: 'local' | 'federated'
+  kind: 'local' | 'federated' | 'system'
   id: number
   title: string
   author?: MemberIdentity | null
@@ -53,6 +54,7 @@ function viewBadgeRef(el: unknown) {
           <font-awesome-icon v-if="restricted" :icon="['fas', 'lock']" class="ml-1 h-3 w-3 text-[var(--text-muted)]"/>
           <SuccessBadge v-if="publicBlog" class="ml-1">{{ t('news.publicBlogBadge') }}</SuccessBadge>
           <StationBadge v-if="kind === 'federated'" :station-name="stationName!" class="ml-1"/>
+          <SystemBadge v-else-if="kind === 'system'" class="ml-1"/>
         </SubHeader>
         <p class="text-xs text-(--text-muted)">
           <template v-if="author?.name || authorName">{{ author?.name ?? authorName }} &middot; </template>

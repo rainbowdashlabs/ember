@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.checklist.service.ChecklistService;
 import dev.chojo.ember.feature.cluster.service.ClusterApplicationService;
 import dev.chojo.ember.feature.cluster.service.ClusterContentService;
 import dev.chojo.ember.feature.comment.service.CommentService;
+import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
@@ -61,18 +62,22 @@ import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationServ
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.knowledgebase.service.TextCompressionPolicy;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
+import dev.chojo.ember.feature.media.MediaTestSupport;
 import dev.chojo.ember.feature.media.service.ImageVariantService;
+import dev.chojo.ember.feature.media.service.MediaLibraryService;
+import dev.chojo.ember.feature.media.service.MediaReferenceRegistry;
+import dev.chojo.ember.feature.media.service.MediaStorageService;
+import dev.chojo.ember.feature.media.service.MediaVariantService;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.members.service.UserTagService;
+import dev.chojo.ember.feature.news.repository.NewsAttachmentRepository;
 import dev.chojo.ember.feature.news.repository.NewsFederationRepository;
+import dev.chojo.ember.feature.news.service.NewsAttachmentService;
 import dev.chojo.ember.feature.news.service.NewsFederationService;
 import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
-import dev.chojo.ember.feature.page.repository.PageFileMetaRepository;
-import dev.chojo.ember.feature.page.service.PageFileStorageService;
-import dev.chojo.ember.feature.page.service.PageImageVariantService;
 import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
@@ -148,7 +153,14 @@ class DemoServiceTest extends RepositoryTestBase {
 
         var eventServices = newEventServices(noOpBus);
         var newsService = new NewsService(
-                newsRepo, restrictionService, noOpBus, stationMemberRepo, memberLookupService, accountRepo);
+                newsRepo,
+                new ContentBlockService(contentContainerRepo),
+                stationRepo,
+                restrictionService,
+                noOpBus,
+                stationMemberRepo,
+                memberLookupService,
+                accountRepo);
         var inventoryService = new InventoryService(inventoryRepo, itemCustodyService, clusterRepo);
         var exchangeService = new ExchangeService(itemMovementService, inventoryRepo);
         var procurementService = new ProcurementService(procurementRepo, inventoryService, inventoryRepo, noOpBus);
@@ -164,7 +176,12 @@ class DemoServiceTest extends RepositoryTestBase {
         var kbCompression = new TextCompressionPolicy(kbStorageConfig);
         var kbFileStorage = new KbFileStorageService(kbStorageSvc, stationRepo, kbBackend, kbCompression);
         var kbSearchService = new KbSearchService(knowledgeBaseRepo, stationRepo);
-        var kbContentService = new KbContentService(knowledgeBaseRepo, kbFileStorage, kbSearchService);
+        var kbContentService = new KbContentService(
+                knowledgeBaseRepo,
+                new ContentBlockService(contentContainerRepo),
+                stationRepo,
+                kbFileStorage,
+                kbSearchService);
         var kbCommentService =
                 new KbCommentService(knowledgeBaseRepo, kbCommentRepo, memberIdentityFactory, memberSvc, noOpBus);
         var kbService = new KnowledgeBaseService(
@@ -247,6 +264,12 @@ class DemoServiceTest extends RepositoryTestBase {
                 federationHttpClient,
                 stationRepo,
                 newsService,
+                new NewsAttachmentService(
+                        new NewsAttachmentRepository(),
+                        MediaTestSupport.library(
+                                stationRepo, contentContainerRepo, mediaFileRepo, mediaMetaRepo, storageUsageRepo),
+                        stationRepo,
+                        new Api()),
                 eventFederationRepo,
                 memberNameResolver,
                 federationFanout,
@@ -374,17 +397,23 @@ class DemoServiceTest extends RepositoryTestBase {
         var demoBackend = new LocalStorageBackend();
         var demoResolver = new StorageBackendResolver(demoBackend);
         var demoStorageSvc = new StorageService(demoResolver, demoBackend);
-        var demoStorage = new PageFileStorageService(demoStorageSvc, stationRepo, demoBackend);
+        var demoStorage = new MediaStorageService(demoStorageSvc, stationRepo, demoBackend);
+        var demoMediaLibrary = new MediaLibraryService(
+                mediaFileRepo,
+                mediaMetaRepo,
+                demoStorage,
+                new MediaVariantService(demoStorage, demoStorageConfig),
+                new MediaReferenceRegistry(contentContainerRepo),
+                new StorageQuotaService(
+                        storageUsageRepo, new StationStorageConfigRepository(), demoStorageConfig, noOpBus));
         var pageSeeder = new DemoPageSeeder(
                 new PageService(
                         pageRepo,
-                        new PageFileMetaRepository(),
-                        demoStorage,
-                        new PageImageVariantService(demoStorage, demoStorageConfig),
-                        new StorageQuotaService(
-                                storageUsageRepo, new StationStorageConfigRepository(), demoStorageConfig, noOpBus),
+                        new ContentBlockService(contentContainerRepo),
+                        demoMediaLibrary,
                         stationMemberRepo,
                         avatarService),
+                demoMediaLibrary,
                 formRepo,
                 quizCatalogRepo);
         var newsSeeder = new DemoNewsSeeder(newsService, stationMemberRepo);

@@ -8,6 +8,7 @@ package dev.chojo.ember.api.auth;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import io.javalin.security.RouteRole;
 
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Set;
 
@@ -191,9 +192,15 @@ public enum StationPermission implements RouteRole {
     MEMBER_MANAGE_TAGS,
 
     /**
+     * Allows putting documents on one's own profile. Reading them needs no permission at all: they
+     * are the member's own. Putting them on somebody else's profile is {@link #MEMBER_EDIT}.
+     */
+    MEMBER_SELF_UPLOAD,
+
+    /**
      * Allows editing and create members.
      */
-    MEMBER_EDIT(MEMBER_READ),
+    MEMBER_EDIT(MEMBER_READ, MEMBER_SELF_UPLOAD),
 
     /**
      * Allows configuring the member fields config.
@@ -479,7 +486,7 @@ public enum StationPermission implements RouteRole {
             WAITLIST_MANAGER);
 
     private final StationPermission[] children;
-    private Set<StationPermission> allChildren;
+    private volatile Set<StationPermission> allChildren;
 
     StationPermission(StationPermission... children) {
         this.children = children;
@@ -502,16 +509,24 @@ public enum StationPermission implements RouteRole {
 
     /**
      * Returns all permissions transitively included by this permission (direct and indirect children).
+     *
+     * <p>Gathered into a set of its own and only then kept. Filling the kept one in place handed
+     * every other thread a half-built answer, and a permission set is copied out of this the moment
+     * it is asked for: a session resolved during that window carried a manager's rights without
+     * most of what a manager may do, and looked for all the world like rights taken away.
      */
     public Set<StationPermission> allChildren() {
-        if (allChildren == null) {
-            allChildren = EnumSet.noneOf(StationPermission.class);
-            for (StationPermission child : children) {
-                allChildren.add(child);
-                allChildren.addAll(child.allChildren());
-            }
+        Set<StationPermission> known = allChildren;
+        if (known != null) return known;
+
+        Set<StationPermission> gathered = EnumSet.noneOf(StationPermission.class);
+        for (StationPermission child : children) {
+            gathered.add(child);
+            gathered.addAll(child.allChildren());
         }
-        return allChildren;
+        known = Collections.unmodifiableSet(gathered);
+        allChildren = known;
+        return known;
     }
 
     /**

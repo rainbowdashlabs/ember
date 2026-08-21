@@ -36,14 +36,22 @@ import java.util.regex.Pattern;
  * even there only allow {@code color} / {@code background-color}), restrict
  * {@code <a href>} to {@code http} / {@code https} / {@code mailto}, and
  * limit {@code <img src>} / {@code <iframe src>} to a tiny allow-list of
- * known-safe sources (relative KB / page paths for images, YouTube embed
- * URLs for iframes).
+ * known-safe sources (relative knowledge-base, media and page paths for
+ * images, YouTube embed URLs for iframes).
  */
 public final class HtmlSanitizer {
 
     private static final Pattern KB_IMAGE_PATH = Pattern.compile("^/(api/v1/)?(public/)?kb/images/.+");
     private static final Pattern KB_PUBLIC_IMAGE = Pattern.compile("^/api/v1/public/kb/[^/]+/images/.+");
     private static final Pattern PAGE_FILE_PATH = Pattern.compile("^/(api/v1/)?(public/)?pages/files/.+");
+
+    /**
+     * The station media library, on both of its routes: the public one a page is read through and
+     * the session-checked one an internal article uses. Every image the media browser inserts is
+     * addressed this way, so a body that mentions one has to survive the sanitiser.
+     */
+    private static final Pattern MEDIA_PATH = Pattern.compile("^/(api/v1/)?(public/)?media/.+");
+
     private static final Pattern YOUTUBE_EMBED =
             Pattern.compile("^https://www\\.youtube(-nocookie)?\\.com/embed/[A-Za-z0-9_-]{11}(\\?[^\"<>]*)?$");
     private static final Pattern HEX_OR_NAMED_COLOR = Pattern.compile("^(#[0-9a-fA-F]{3,8}|[a-zA-Z]{1,40})$");
@@ -207,6 +215,7 @@ public final class HtmlSanitizer {
             if (value == null || value.isBlank()) return false;
             if (KB_IMAGE_PATH.matcher(value).matches()) return true;
             if (KB_PUBLIC_IMAGE.matcher(value).matches()) return true;
+            if (MEDIA_PATH.matcher(value).matches()) return true;
             return PAGE_FILE_PATH.matcher(value).matches();
         }
     }

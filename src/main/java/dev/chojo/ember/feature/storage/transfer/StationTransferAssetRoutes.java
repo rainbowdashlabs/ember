@@ -281,8 +281,8 @@ public class StationTransferAssetRoutes implements Routes {
      */
     private static String originalBaseName(StorageCategory category) {
         return switch (category) {
-            case PAGE_FILES -> "orig";
-            case PAGE_IMAGES, IMAGE_LOST_AND_FOUND, IMAGE_QUIZ_QUESTION, IMAGE_KB_ICON, IMAGE_KB_IMAGE -> "original";
+            case MEDIA_FILES -> "orig";
+            case MEDIA_IMAGES, IMAGE_LOST_AND_FOUND, IMAGE_QUIZ_QUESTION, IMAGE_KB_ICON, IMAGE_KB_IMAGE -> "original";
             default -> null;
         };
     }

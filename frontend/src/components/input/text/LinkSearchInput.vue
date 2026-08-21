@@ -9,9 +9,9 @@ import {useI18n} from 'vue-i18n'
 import TextInput from './TextInput.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import IconButton from '@/components/button/IconButton.vue'
-import PageFileBrowseButton from '@/views/stationview/pages/pageeditorview/PageFileBrowseButton.vue'
+import MediaBrowseButton from '@/components/media/MediaBrowseButton.vue'
 import {listPublicPages, type PublicPageSummary} from '@/api/publicPages'
-import {listStationPageFiles, type PageFile, type PageFileListing} from '@/api/pageManage'
+import {listMediaFiles, type StationFile, type StationFileListing} from '@/api/media'
 
 type LinkKind = 'page' | 'kb' | 'calendar' | 'url'
 
@@ -41,7 +41,7 @@ const {t} = useI18n()
 const open = ref(false)
 const rootRef = ref<HTMLElement | null>(null)
 const pagesCache = ref<PublicPageSummary[] | null>(null)
-const filesCache = ref<PageFile[] | null>(null)
+const filesCache = ref<StationFile[] | null>(null)
 const loaded = ref(false)
 
 async function ensureLoaded() {
@@ -52,8 +52,8 @@ async function ensureLoaded() {
             // Skip the file-listing round-trip on URL-only fields. The page list is still needed
             // for both the suggestion dropdown and the internal-page chip rendering.
             props.noFiles
-                ? Promise.resolve([] as PageFileListing[])
-                : listStationPageFiles().catch(() => [] as PageFileListing[]),
+                ? Promise.resolve([] as StationFileListing[])
+                : listMediaFiles().catch(() => [] as StationFileListing[]),
         ])
         pagesCache.value = pages
         filesCache.value = files.map(l => l.file)
@@ -75,7 +75,7 @@ function formatBytes(bytes: number): string {
 }
 
 /** If the current model points at a page-file we know about, surface its file name. */
-const pickedFile = computed<PageFile | null>(() => {
+const pickedFile = computed<StationFile | null>(() => {
     const url = model.value ?? ''
     if (!url) return null
     const m = url.match(/\/files\/([0-9a-f]{64})$/)
@@ -212,11 +212,11 @@ watch(() => model.value, v => { if (!loaded.value && needsResolve(v)) ensureLoad
                     :placeholder="placeholder ?? t('stationPages.editor.linkSearchPlaceholder')"
                 />
             </div>
-            <PageFileBrowseButton
+            <MediaBrowseButton
                 v-if="stationUid && !noFiles"
                 :station-uid="stationUid"
                 :mime-prefix="mimePrefix"
-                @pick="(p: {file: PageFile; url: string}) => {
+                @pick="(p: {file: StationFile; url: string}) => {
                     model = p.url
                     open = false
                     if (filesCache && !filesCache.find(f => f.id === p.file.id)) filesCache.push(p.file)

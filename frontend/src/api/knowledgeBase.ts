@@ -4,6 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import {ContentMode, type ContentModeName} from './news'
+import type {PageRow, SaveRowRequest} from './pageManage'
 import {createCrudResource, createScopedCrudResource} from './crud'
 import {uploadFile as uploadMultipart} from './upload'
 import type {MemberIdentity} from './types'
@@ -20,6 +22,11 @@ export interface KbFolder {
     createdAt: string
     updatedAt: string
     restricted?: boolean
+}
+
+export interface KbBlocks {
+    contentMode: ContentModeName
+    rows: PageRow[]
 }
 
 export interface KbFile {
@@ -42,6 +49,9 @@ export interface KbFile {
     sourceStationId: string | null
     restricted?: boolean
     conversionStatus: string | null
+    /** How a markdown article was written. A rich one is built from blocks. */
+    contentMode: ContentModeName
+    containerId: number | null
 }
 
 export interface KbFileVersion {
@@ -441,6 +451,32 @@ export interface ImageUploadResponse {
     imageId: string
 }
 
+// -- Blocks --
+
+/**
+ * The blocks a rich article is built from. A plain article answers with an empty list, so a reader
+ * can ask before it knows which kind it has.
+ */
+export async function getKbBlocks(fileId: number): Promise<KbBlocks> {
+    const res = await client.get<KbBlocks>(`/kb/files/${fileId}/blocks`)
+    return res.data
+}
+
+/**
+ * Turns a plain article into one built from blocks. What was written becomes a single markdown
+ * block, and the switch does not go back: the stored body is a projection of the blocks from here
+ * on, which is what search, the export and the version history read.
+ */
+export async function enableKbBlocks(fileId: number): Promise<KbBlocks> {
+    const res = await client.post<KbBlocks>(`/kb/files/${fileId}/blocks/enable`)
+    return res.data
+}
+
+export async function saveKbBlocks(fileId: number, rows: SaveRowRequest[]): Promise<KbBlocks> {
+    const res = await client.put<KbBlocks>(`/kb/files/${fileId}/blocks`, {rows})
+    return res.data
+}
+
 export async function uploadKbImage(fileId: number, image: File): Promise<ImageUploadResponse> {
     return uploadMultipart<ImageUploadResponse>(`/kb/files/${fileId}/images`, {image})
 }
@@ -585,6 +621,9 @@ export async function getFederatedFile(stationUid: string, fileId: number): Prom
         sourceFileId: null,
         sourceStationId: null,
         restricted: false,
+        // A partner cannot send blocks, so an article received from one is always plain text.
+        contentMode: ContentMode.SIMPLE,
+        containerId: null,
     }
 }
 

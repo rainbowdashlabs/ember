@@ -5,13 +5,16 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import dev.chojo.ember.feature.content.entity.CellConfig;
+import dev.chojo.ember.feature.content.entity.CellContentType;
+import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
 import dev.chojo.ember.feature.form.repository.FormRepository;
-import dev.chojo.ember.feature.page.entity.CellConfig;
-import dev.chojo.ember.feature.page.entity.CellContentType;
+import dev.chojo.ember.feature.media.entity.StationFile;
+import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
@@ -20,9 +23,16 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+
+import javax.imageio.ImageIO;
 
 /**
  * Seeds demo public pages with a landing page, about section, and join page.
@@ -30,20 +40,88 @@ import java.util.UUID;
 @Singleton
 public class DemoPageSeeder implements DemoSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoPageSeeder.class);
+    /**
+     * What the demo station has in its media library. Plain colours rather than photographs: they
+     * are here so the library is not empty and the picture cells below have something to show, and
+     * a demo that shipped stock photography would raise a question about where it came from.
+     */
+    private static final List<SeedImage> SEED_IMAGES = List.of(
+            new SeedImage("uebungsdienst.png", new Color(0xFF6421)),
+            new SeedImage("fahrzeug.png", new Color(0xC71100)),
+            new SeedImage("zeltlager.png", new Color(0x3694FF)),
+            new SeedImage("gruppenbild.png", new Color(0x00C507)));
+
     private final PageService pageService;
+    private final MediaLibraryService mediaLibrary;
     private final FormRepository formRepository;
     private final QuizCatalogRepository quizCatalogRepository;
 
     @Inject
     public DemoPageSeeder(
-            PageService pageService, FormRepository formRepository, QuizCatalogRepository quizCatalogRepository) {
+            PageService pageService,
+            MediaLibraryService mediaLibrary,
+            FormRepository formRepository,
+            QuizCatalogRepository quizCatalogRepository) {
         this.pageService = pageService;
+        this.mediaLibrary = mediaLibrary;
         this.formRepository = formRepository;
         this.quizCatalogRepository = quizCatalogRepository;
     }
 
-    private static PageService.RowData row(int sortOrder, CellContentType type, String content, CellConfig config) {
-        return new PageService.RowData(sortOrder, List.of(new PageService.CellData(0, 100, type, content, config)));
+    /**
+     * A flat square in one colour, encoded as a PNG. Each colour makes its own bytes, and the
+     * library stores by the hash of those, so four colours are four files rather than one.
+     */
+    private static byte[] flatPng(Color color) throws IOException {
+        var image = new BufferedImage(320, 320, BufferedImage.TYPE_INT_RGB);
+        Graphics2D graphics = image.createGraphics();
+        try {
+            graphics.setColor(color);
+            graphics.fillRect(0, 0, image.getWidth(), image.getHeight());
+        } finally {
+            graphics.dispose();
+        }
+        var out = new ByteArrayOutputStream();
+        ImageIO.write(image, "png", out);
+        return out.toByteArray();
+    }
+
+    private record SeedImage(String fileName, Color color) {}
+
+    /**
+     * Puts a handful of files into the station media library, so the library a station reaches from
+     * every editor is not empty in the demo and the picture cells of the showcase page have
+     * something to show.
+     */
+    private List<StationFile> seedMediaLibrary(int stationId, int memberId) {
+        var stored = new ArrayList<StationFile>();
+        for (var image : SEED_IMAGES) {
+            try {
+                stored.add(mediaLibrary.upload(
+                        stationId, null, memberId, image.fileName(), "image/png", flatPng(image.color())));
+            } catch (Exception e) {
+                log.warn("Demo: could not seed media file {}", image.fileName(), e);
+            }
+        }
+        log.info("Demo: Created {} media files", stored.size());
+        return stored;
+    }
+
+    /**
+     * The content hash of a seeded image, or the empty string when seeding it did not work out.
+     * A cell with no image is what the demo showed before, so a missing file costs the picture and
+     * nothing else.
+     */
+    private static String hashOf(List<StationFile> media, int index) {
+        if (index >= media.size()) return "";
+        String hash = media.get(index).contentHash();
+        return hash == null ? "" : hash;
+    }
+
+    private static ContentBlockService.RowData row(
+            int sortOrder, CellContentType type, String content, CellConfig config) {
+        return new ContentBlockService.RowData(
+                sortOrder, List.of(new ContentBlockService.CellData(0, 100, type, content, config)));
     }
 
     /**
@@ -61,6 +139,8 @@ public class DemoPageSeeder implements DemoSeeder {
     }
 
     public void seed(int stationId, int memberId) {
+        var media = seedMediaLibrary(stationId, memberId);
+
         // Landing page: Willkommen
         var welcome = pageService.create(stationId, "Willkommen", null, memberId);
         pageService.savePage(
@@ -71,9 +151,9 @@ public class DemoPageSeeder implements DemoSeeder {
                 "Willkommen bei der Jugendfeuerwehr Musterstadt",
                 null,
                 List.of(
-                        new PageService.RowData(
+                        new ContentBlockService.RowData(
                                 0,
-                                List.of(new PageService.CellData(
+                                List.of(new ContentBlockService.CellData(
                                         0, 100, CellContentType.MARKDOWN, """
                                         # Willkommen bei der Jugendfeuerwehr Musterstadt
 
@@ -87,16 +167,16 @@ public class DemoPageSeeder implements DemoSeeder {
                                         - Zeltlager und Ausflüge
                                         - Erste-Hilfe-Kurse
                                         - Kameradschaft und Teamarbeit""", CellConfig.EMPTY))),
-                        new PageService.RowData(
+                        new ContentBlockService.RowData(
                                 1,
                                 List.of(
-                                        new PageService.CellData(
+                                        new ContentBlockService.CellData(
                                                 0,
                                                 50,
                                                 CellContentType.MARKDOWN,
                                                 "## Übungszeiten\n\n**Freitags** von 17:30 bis 19:00 Uhr\n\nGerätehaus Musterstadt\nFeuerwehrstraße 1\n12345 Musterstadt",
                                                 CellConfig.EMPTY),
-                                        new PageService.CellData(
+                                        new ContentBlockService.CellData(
                                                 1,
                                                 50,
                                                 CellContentType.MARKDOWN,
@@ -114,9 +194,10 @@ public class DemoPageSeeder implements DemoSeeder {
                 null,
                 "Erfahre mehr über unsere Jugendfeuerwehr",
                 null,
-                List.of(new PageService.RowData(
+                List.of(new ContentBlockService.RowData(
                         0,
-                        List.of(new PageService.CellData(0, 100, CellContentType.MARKDOWN, """
+                        List.of(new ContentBlockService.CellData(
+                                0, 100, CellContentType.MARKDOWN, """
                                 # Über uns
 
                                 Die Jugendfeuerwehr Musterstadt wurde 1985 gegründet und ist seitdem fester Bestandteil der Freiwilligen Feuerwehr Musterstadt. \
@@ -137,9 +218,10 @@ public class DemoPageSeeder implements DemoSeeder {
                 about.id(),
                 null,
                 null,
-                List.of(new PageService.RowData(
+                List.of(new ContentBlockService.RowData(
                         0,
-                        List.of(new PageService.CellData(0, 100, CellContentType.MARKDOWN, """
+                        List.of(new ContentBlockService.CellData(
+                                0, 100, CellContentType.MARKDOWN, """
                                 # Unser Team
 
                                 ## Jugendfeuerwehrwart
@@ -163,9 +245,10 @@ public class DemoPageSeeder implements DemoSeeder {
                 about.id(),
                 null,
                 null,
-                List.of(new PageService.RowData(
+                List.of(new ContentBlockService.RowData(
                         0,
-                        List.of(new PageService.CellData(0, 100, CellContentType.MARKDOWN, """
+                        List.of(new ContentBlockService.CellData(
+                                0, 100, CellContentType.MARKDOWN, """
                                 # Ausrüstung
 
                                 Jedes Mitglied erhält bei Eintritt:
@@ -188,9 +271,9 @@ public class DemoPageSeeder implements DemoSeeder {
                 "So kannst du bei uns mitmachen",
                 null,
                 List.of(
-                        new PageService.RowData(
+                        new ContentBlockService.RowData(
                                 0,
-                                List.of(new PageService.CellData(
+                                List.of(new ContentBlockService.CellData(
                                         0, 100, CellContentType.MARKDOWN, """
                                         # Mitmachen
 
@@ -204,10 +287,10 @@ public class DemoPageSeeder implements DemoSeeder {
                                         4. Anmeldeformular ausfüllen - fertig!
 
                                         **Wichtig:** Du brauchst keine Vorkenntnisse. Wir bringen dir alles bei!""", CellConfig.EMPTY))),
-                        new PageService.RowData(
+                        new ContentBlockService.RowData(
                                 1,
                                 List.of(
-                                        new PageService.CellData(
+                                        new ContentBlockService.CellData(
                                                 0, 60, CellContentType.MARKDOWN, """
                                                 ## Was du mitbringen solltest
 
@@ -216,7 +299,7 @@ public class DemoPageSeeder implements DemoSeeder {
                                                 - Feste Schuhe für die ersten Übungen
 
                                                 Alles andere stellen wir!""", CellConfig.EMPTY),
-                                        new PageService.CellData(
+                                        new ContentBlockService.CellData(
                                                 1, 40, CellContentType.MARKDOWN, """
                                                 ## Häufige Fragen
 
@@ -230,18 +313,18 @@ public class DemoPageSeeder implements DemoSeeder {
                                                 Ab 10 Jahren.""", CellConfig.EMPTY)))));
         pageService.setPublished(join.id(), true);
 
-        seedShowroom(stationId, memberId);
+        seedShowroom(stationId, memberId, media);
     }
 
     /**
      * Adds a "Komponenten-Schaukasten" page that demonstrates every CellContentType variant.
      * Useful for QA and for content editors who want to see what each component looks like.
      */
-    private void seedShowroom(int stationId, int memberId) {
+    private void seedShowroom(int stationId, int memberId, List<StationFile> media) {
         UUID pollUid = seedDemoPoll(stationId, memberId);
         UUID contactUid = seedDemoContactForm(stationId, memberId);
         var page = pageService.create(stationId, "Komponenten-Schaukasten", null, memberId);
-        var rows = new ArrayList<PageService.RowData>();
+        var rows = new ArrayList<ContentBlockService.RowData>();
         int sort = 0;
 
         rows.add(row(sort++, CellContentType.MARKDOWN, """
@@ -289,7 +372,7 @@ public class DemoPageSeeder implements DemoSeeder {
         rows.add(row(
                 sort++,
                 CellContentType.IMAGE,
-                "",
+                hashOf(media, 0),
                 new CellConfig.ImageConfig(
                         CellConfig.ImageFit.CONTAIN,
                         "Beispielbild",
@@ -316,7 +399,13 @@ public class DemoPageSeeder implements DemoSeeder {
                 sort++,
                 CellContentType.IMAGE_GALLERY,
                 "",
-                new CellConfig.ImageGalleryConfig(List.of(), 3, null, null)));
+                new CellConfig.ImageGalleryConfig(
+                        media.stream()
+                                .map(file -> new CellConfig.GalleryItem(file.contentHash(), file.fileName(), null))
+                                .toList(),
+                        3,
+                        null,
+                        null)));
         rows.add(
                 row(sort++, CellContentType.PDF, "", new CellConfig.PdfConfig("https://example.com/satzung.pdf", 500)));
         rows.add(row(

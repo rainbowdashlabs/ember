@@ -13,7 +13,8 @@ import Alert from '@/components/feedback/Alert.vue'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import {getPublicPage, publicPageImageUrl} from '@/api/publicPages'
 import {CellContentType, type StationPage} from '@/api/pageManage'
-import PublicPageRow from './publicpageview/PublicPageRow.vue'
+import ContentRow from '@/components/content/ContentRow.vue'
+import {publicContentContext} from '@/util/contentContext'
 import {useCanonical} from '~/composables/useCanonical'
 
 const {t} = useI18n()
@@ -86,12 +87,11 @@ useHead(computed(() => {
   <Alert v-else-if="error" variant="error" class="m-4">{{ error }}</Alert>
   <ViewContent v-else-if="page" :title="page.title">
     <div class="space-y-0 max-w-5xl mx-auto">
-      <PublicPageRow
+      <ContentRow
           v-for="row in page.rows"
           :key="row.id"
           :row="row"
-          :station-uid="stationUid"
-          :page-title="page.title"
+          :context="publicContentContext(stationUid, page.title)"
       />
     </div>
   </ViewContent>

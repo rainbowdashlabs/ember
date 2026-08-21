@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {nextTick, ref, watch} from 'vue'
+import {computed, nextTick, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -21,6 +21,11 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import NewsCommentSection from '@/components/comment/NewsCommentSection.vue'
 import NewsViewBadge from './newsshared/NewsViewBadge.vue'
+import AttachmentList from './newsshared/AttachmentList.vue'
+import NewsBody from './newsshared/NewsBody.vue'
+import NewsEntryHeader from './newsshared/NewsEntryHeader.vue'
+import {internalContentContext} from '@/util/contentContext'
+import {INSTANCE_MEDIA_SCOPE} from '@/api/media'
 import type {NewsEntry} from '@/api/news'
 import {news} from '@/api'
 import {useSession} from '@/composables/useSession'
@@ -31,9 +36,17 @@ import ProseContent from '@/components/display/ProseContent.vue'
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
-const {canManageNews} = useSession()
+const {canManageNews, sessionInfo} = useSession()
+const stationUid = computed(() => sessionInfo.value?.stationId ?? '')
 
 const entry = ref<NewsEntry | null>(null)
+
+/**
+ * Where the pictures of this entry are fetched from. A system entry is read in every station, so
+ * its pictures come out of the instance library rather than out of the station reading it, which
+ * holds no copy of them.
+ */
+const mediaScope = computed(() => (entry.value?.systemEntry ? INSTANCE_MEDIA_SCOPE : stationUid.value))
 const highlightCommentId = ref<number | null>(null)
 interface ViewBadgeRef {
   refresh: () => Promise<void>
@@ -100,28 +113,22 @@ watch(loading, (isLoading) => {
       <Alert v-if="error" variant="error">{{ error }}</Alert>
 
       <NeutralContainer v-if="entry" class="space-y-3">
-        <div class="flex items-start justify-between gap-3">
-          <div class="flex items-center gap-2">
-            <UserAvatar :identity="entry.author" :name="entry.author?.name ?? entry.authorName" size="md"/>
-            <div>
-              <SubHeader class="flex items-center gap-1">
-                {{ entry.title }}
-                <font-awesome-icon v-if="entry.restricted" :icon="['fas', 'lock']"
-                                   class="ml-1 h-3 w-3 text-[var(--text-muted)]"/>
-              </SubHeader>
-              <p class="text-xs text-(--text-muted)">
-                {{ entry.author?.name ?? entry.authorName }} &middot; {{ formatDateTime(entry.publishedAt) }}
-              </p>
-            </div>
-          </div>
-          <div v-if="canManageNews()" class="flex items-center gap-1 shrink-0">
+        <NewsEntryHeader :entry="entry" :can-manage="canManageNews()">
+          <template #actions>
             <NewsViewBadge ref="viewBadge" :news-id="entry.id" :initial-count="entry.viewCount ?? 0" :news-title="entry.title"/>
             <EditButton @click="router.push({name: 'news-edit', params: {id: entry.id}})"/>
             <DeleteButton @click="requestDelete(entry)"/>
-          </div>
-        </div>
+          </template>
+        </NewsEntryHeader>
 
-        <ProseContent v-html="entry.contentHtml"/>
+        <NewsBody
+            :mode="entry.contentMode"
+            :rows="entry.rows ?? []"
+            :html="entry.contentHtml"
+            :context="internalContentContext(mediaScope, entry.title)"
+        />
+
+        <AttachmentList :attachments="entry.attachments ?? []" :station-uid="stationUid"/>
 
         <div class="pt-3 border-t border-bg-light-accent dark:border-bg-dark-accent">
           <NewsCommentSection :news-id="entry.id" :highlight-comment-id="highlightCommentId"/>

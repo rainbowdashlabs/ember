@@ -9,7 +9,7 @@ import type {NewsEntry} from '@/api/news'
 import type {MemberIdentity} from '@/api/types'
 
 export interface UnifiedNewsItem {
-  kind: 'local' | 'federated'
+  kind: 'local' | 'federated' | 'system'
   id: number
   title: string
   contentHtml?: string

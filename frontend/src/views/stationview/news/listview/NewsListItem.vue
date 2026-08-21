@@ -12,7 +12,7 @@ import type {MemberIdentity} from '@/api/types'
 import ProseContent from '@/components/display/ProseContent.vue'
 
 defineProps<{
-  kind: 'local' | 'federated'
+  kind: 'local' | 'federated' | 'system'
   id: number
   title: string
   contentHtml?: string

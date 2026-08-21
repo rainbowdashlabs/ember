@@ -32,7 +32,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class NewsRepository {
 
     private static final String NEWS_COLUMNS =
-            "id, public_uid, station_id, title, content_markdown, content_html, author_station_uid, author_member_uid, published_at, created_at, restriction_mode, public_blog";
+            "id, public_uid, station_id, title, content_markdown, content_html, author_station_uid, author_member_uid, published_at, created_at, restriction_mode, public_blog, content_mode, container_id";
     private static final String NEWS_ALIASED = SqlSupport.alias("n", NEWS_COLUMNS);
     private static final String NEWS_RESTRICTED = RestrictionSql.restrictedFlag(RestrictionType.NEWS, "n.id");
     private static final String NEWS_UNRESTRICTED = RestrictionSql.unrestricted(RestrictionType.NEWS, "n.id");
@@ -94,6 +94,77 @@ public class NewsRepository {
     }
 
     /**
+     * Whether one member may read one entry.
+     *
+     * <p>Two things have to hold: the entry is theirs to read at all, being their station's own or
+     * the instance's to everyone, and it is addressed to them rather than to a user type they are
+     * not. The listings ask both of every row they return; a request that names an entry outright
+     * has to ask them too, or they hold only for people who did not think to guess an id.
+     *
+     * @param newsId   the news article ID
+     * @param memberId the member reading it
+     * @return {@code true} if the entry is visible to that member
+     */
+    public boolean isVisibleForMember(int newsId, int memberId) {
+        return SqlSupport.count(
+                        """
+                        SELECT count(*) AS cnt FROM news n
+                        JOIN station_member sm ON sm.id = :member_id
+                        WHERE n.id = :news_id
+                          AND (n.station_id IS NULL OR n.station_id = sm.station_id)
+                          AND %s;""", call().bind("news_id", newsId).bind("member_id", memberId), NEWS_VISIBLE_FOR_MEMBER)
+                > 0;
+    }
+
+    /**
+     * Creates an entry the instance publishes to every station at once.
+     *
+     * <p>It belongs to no station and has no author: it is read everywhere and shown as coming from
+     * the instance itself, which is why neither column is filled rather than filled with something
+     * standing in for them.
+     *
+     * @param title           entry title
+     * @param contentMarkdown entry body in Markdown
+     * @param contentHtml     entry body as HTML
+     * @param publish         whether the entry is published straight away
+     * @return the newly created entry
+     */
+    public News createSystem(String title, String contentMarkdown, String contentHtml, boolean publish) {
+        return SqlSupport.insertReturning(
+                """
+                INSERT INTO news AS n(station_id, title, content_markdown, content_html, published_at)
+                VALUES (NULL, :title, :content_markdown, :content_html, :published_at)
+                RETURNING %s, %s;""",
+                call().bind("title", title)
+                        .bind("content_markdown", contentMarkdown)
+                        .bind("content_html", contentHtml)
+                        .bind("published_at", publish ? Instant.now() : null, INSTANT_TIMESTAMP),
+                News.map(),
+                NEWS_COLUMNS,
+                NEWS_RESTRICTED);
+    }
+
+    /**
+     * Every system entry, newest first, which is what the instance sees when it looks at what it has
+     * said. Unpublished ones are included: their author is the only one who can see them at all.
+     *
+     * @param offset pagination offset
+     * @param limit  maximum number of results
+     * @return the system entries
+     */
+    public List<News> findSystem(int offset, int limit) {
+        return query("""
+                SELECT %s, %s
+                FROM news n
+                WHERE n.station_id IS NULL
+                ORDER BY coalesce(n.published_at, n.created_at) DESC
+                LIMIT :limit OFFSET :offset;""", NEWS_ALIASED, NEWS_RESTRICTED)
+                .single(call().bind("limit", limit).bind("offset", offset))
+                .map(News.map())
+                .all();
+    }
+
+    /**
      * Retrieves news articles for a station, ordered by publication date descending.
      *
      * @param stationId the station ID
@@ -105,7 +176,7 @@ public class NewsRepository {
         return query("""
                 SELECT %s, %s
                 FROM news n
-                WHERE n.station_id = :station_id
+                WHERE (n.station_id = :station_id OR n.station_id IS NULL)
                 ORDER BY n.published_at DESC
                 LIMIT :limit OFFSET :offset;""", NEWS_ALIASED, NEWS_RESTRICTED)
                 .single(call().bind("station_id", stationId)
@@ -129,7 +200,7 @@ public class NewsRepository {
         return query("""
                 SELECT %s, %s
                 FROM news n
-                WHERE n.station_id = :station_id
+                WHERE (n.station_id = :station_id OR n.station_id IS NULL)
                   AND n.published_at IS NOT NULL
                   AND %s
                 ORDER BY n.published_at DESC
@@ -151,6 +222,20 @@ public class NewsRepository {
      * @param contentHtml     new HTML content
      * @return {@code true} if a row was updated
      */
+    /**
+     * Turns a plain entry into one built from blocks. The existing text travels into the container
+     * as a single markdown block, so nothing is parsed and nothing is lost; the switch is one way,
+     * because the stored text of a rich entry is derived from its blocks from here on.
+     */
+    public boolean setRichMode(int id, int containerId) {
+        return query("""
+                UPDATE news SET content_mode = 'RICH', container_id = :container_id
+                WHERE id = :id AND content_mode = 'SIMPLE';""")
+                .single(call().bind("id", id).bind("container_id", containerId))
+                .update()
+                .changed();
+    }
+
     public boolean update(int id, String title, String contentMarkdown, String contentHtml) {
         return query("""
                 UPDATE news SET title = :title, content_markdown = :content_markdown, content_html = :content_html
@@ -292,6 +377,28 @@ public class NewsRepository {
     }
 
     /**
+     * The comments on an entry written from one station.
+     *
+     * <p>A system entry is read in every station, and what one station says under it is its own
+     * business: a station is shown the part of the conversation it wrote. The instance reads the
+     * whole of it through {@link #findCommentsByNews(int)}.
+     *
+     * @param newsId     the news article ID
+     * @param stationUid the station whose comments to return
+     * @return the comments written from that station, oldest first
+     */
+    public List<NewsComment> findCommentsByNewsForStation(int newsId, UUID stationUid) {
+        return query("""
+                        SELECT %s FROM news_comment
+                        WHERE news_id = :news_id AND author_station_uid = :station_uid::UUID
+                        ORDER BY created_at ASC;""", NEWS_COMMENT_COLUMNS)
+                .single(call().bind("news_id", newsId)
+                        .bind("station_uid", stationUid, StandardValueConverter.UUID_STRING))
+                .map(NewsComment.map())
+                .all();
+    }
+
+    /**
      * Counts the total number of comments on a news article.
      *
      * @param newsId the news article ID
@@ -394,7 +501,7 @@ public class NewsRepository {
         return SqlSupport.count(
                 """
                 SELECT count(*) AS cnt FROM news n
-                WHERE n.station_id = :station_id
+                WHERE (n.station_id = :station_id OR n.station_id IS NULL)
                   AND n.published_at IS NOT NULL
                   AND NOT exists (SELECT 1 FROM news_acknowledgement na WHERE na.news_id = n.id AND na.member_id = :member_id)
                   AND %s;""", call().bind("station_id", stationId).bind("member_id", memberId), NEWS_VISIBLE_FOR_MEMBER);

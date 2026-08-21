@@ -5,7 +5,8 @@
  */
 <script setup lang="ts">
 import PageRow from '@/views/stationview/pages/pageslistview/PageRow.vue'
-import PublicPageRow from '@/views/public/publicpageview/PublicPageRow.vue'
+import ContentRow from '@/components/content/ContentRow.vue'
+import {publicContentContext} from '@/util/contentContext'
 import type {PitchPages} from './pitchTypes'
 
 /**
@@ -26,7 +27,7 @@ defineProps<{
   </template>
 
   <div v-else class="space-y-0">
-    <PublicPageRow v-for="row in pages.rows" :key="row.id"
-                   :row="row" station-uid="wache" page-title="Startseite"/>
+    <ContentRow v-for="row in pages.rows" :key="row.id"
+                :row="row" :context="publicContentContext('wache', 'Startseite')"/>
   </div>
 </template>

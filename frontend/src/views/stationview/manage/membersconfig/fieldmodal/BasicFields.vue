@@ -10,6 +10,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import {FieldTypes} from '@/api/profileFields'
+import {FIELD_TYPE_ORDER, fieldTypeLabel} from '../fieldTypes'
 
 const props = defineProps<{
   scope: string
@@ -22,21 +23,13 @@ const fieldType = defineModel<string>('fieldType', {required: true})
 
 const {t} = useI18n()
 
-const fieldTypeOptions = [
-  {value: FieldTypes.TEXT, label: 'Text'},
-  {value: FieldTypes.NUMBER, label: 'Zahl'},
-  {value: FieldTypes.DATE, label: 'Datum'},
-  {value: FieldTypes.BIRTH_DATE, label: 'Geburtsdatum'},
-  {value: FieldTypes.BOOLEAN, label: 'Ja/Nein'},
-  {value: FieldTypes.ENUM, label: 'Auswahl'},
-  {value: FieldTypes.AGE, label: 'Alter (berechnet)'},
-]
-
-const availableOptions = computed(() => fieldTypeOptions.filter((option) => {
-  if (option.value === FieldTypes.AGE) return props.scope === 'MEMBER'
-  if (option.value === FieldTypes.BIRTH_DATE) return props.birthDateAvailable
-  return true
-}))
+const availableOptions = computed(() => FIELD_TYPE_ORDER
+    .filter((type) => {
+      if (type === FieldTypes.AGE) return props.scope === 'MEMBER'
+      if (type === FieldTypes.BIRTH_DATE) return props.birthDateAvailable
+      return true
+    })
+    .map(type => ({value: type, label: fieldTypeLabel(t, type)})))
 </script>
 
 <template>

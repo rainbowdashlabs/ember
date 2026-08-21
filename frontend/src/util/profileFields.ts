@@ -66,6 +66,8 @@ export type FieldOrigin = 'STATION' | 'CLUSTER'
  */
 export interface MergedProfileField {
     id: number
+    /** Absent on a cluster's question, which belongs to no one station. */
+    stationId?: string
     name?: string
     fieldType?: string
     config?: Record<string, unknown>

@@ -24,7 +24,7 @@ import javax.imageio.ImageIO;
  *
  * <p>When {@code cwebp} is unavailable on the host (e.g. operator did not install
  * {@code libwebp}), {@link #isAvailable()} returns {@code false} and callers should skip WebP
- * variant generation - see {@code PageImageVariantService}.
+ * variant generation - see {@code MediaVariantService}.
  */
 public final class WebpEncoder {
     private static final Logger log = LoggerFactory.getLogger(WebpEncoder.class);

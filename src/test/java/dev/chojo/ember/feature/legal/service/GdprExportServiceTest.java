@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileFieldType;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.service.MemberDocumentService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -40,7 +41,12 @@ class GdprExportServiceTest extends RepositoryTestBase {
     @Order(1)
     void setup() {
         gdprService = new GdprExportService(
-                accountRepo, stationMemberRepo, memberLookupService, mock(KbFileStorageService.class));
+                accountRepo,
+                stationMemberRepo,
+                memberLookupService,
+                mock(KbFileStorageService.class),
+                memberDocumentRepo,
+                mock(MemberDocumentService.class));
 
         // Create account
         account = accountRepo.create("gdpr-test@example.com", "Max", "Mustermann", true);
@@ -240,5 +246,44 @@ class GdprExportServiceTest extends RepositoryTestBase {
         for (var key : List.of("memberId", "stationId", "former", "memberTables", "memberUidTables")) {
             assertTrue(data.containsKey(key), "Missing envelope key: " + key);
         }
+    }
+
+    /**
+     * A document hangs off a binding table rather than off a column naming its member, so the
+     * metadata-driven part of the export cannot reach it. What somebody asks for when they ask for
+     * their data includes the documents held about them, the withheld ones included.
+     */
+    @Test
+    @Order(41)
+    void exportMemberDataCarriesTheDocumentsHeldAboutThem() {
+        memberDocumentRepo.create(
+                stationId,
+                "Einverstaendnis",
+                "einverstaendnis.pdf",
+                "application/pdf",
+                12,
+                false,
+                true,
+                member.id(),
+                List.of(member.id()));
+        memberDocumentRepo.create(
+                stationId,
+                "Vermerk",
+                "vermerk.pdf",
+                "application/pdf",
+                12,
+                true,
+                false,
+                member.id(),
+                List.of(member.id()));
+
+        var data = gdprService.exportMemberData(member.id());
+
+        @SuppressWarnings("unchecked")
+        var documents = (List<Map<String, Object>>) data.get("documents");
+        assertNotNull(documents, "the export names the documents");
+        var titles = documents.stream().map(document -> document.get("title")).toList();
+        assertTrue(titles.contains("Einverstaendnis"));
+        assertTrue(titles.contains("Vermerk"), "a document withheld in the interface is still data held about them");
     }
 }

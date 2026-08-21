@@ -42,7 +42,7 @@ public class StorageReconciliationService {
     private static final Logger log = LoggerFactory.getLogger(StorageReconciliationService.class);
 
     private static final List<StorageCategory> STATION_CATEGORIES = List.of(
-            StorageCategory.PAGE_FILES,
+            StorageCategory.MEDIA_FILES,
             StorageCategory.KB_FILES,
             StorageCategory.BOARD_ATTACHMENTS,
             StorageCategory.IMAGE_LOST_AND_FOUND,
@@ -157,16 +157,16 @@ public class StorageReconciliationService {
 
     /**
      * Returns the set of identity-prefix strings that match a live database row for the given
-     * station + category. Identity is the leading path segment on disk: for {@code PAGE_FILES}
+     * station + category. Identity is the leading path segment on disk: for {@code MEDIA_FILES}
      * it is the content hash, for {@code IMAGE_KB_ICON} the {@code folder-<id>} key, and for
      * the other IMAGE_* / KB_FILES tables the bare entity id. Returns {@link Optional#empty()}
      * for categories that are not safely cleanable from this central place.
      */
     private Optional<Set<String>> aliveIdentitiesFor(int stationId, StorageCategory category) {
         return switch (category) {
-            case PAGE_FILES ->
+            case MEDIA_FILES ->
                 Optional.of(queryIdentitySet(
-                        "SELECT DISTINCT content_hash FROM page_file WHERE station_id = :station_id;",
+                        "SELECT DISTINCT content_hash FROM station_file WHERE station_id = :station_id;",
                         stationId,
                         "content_hash"));
             case KB_FILES ->

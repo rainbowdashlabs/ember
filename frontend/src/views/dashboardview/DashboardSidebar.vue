@@ -60,6 +60,17 @@ const groupBindings = computed(() => ({
 function close() {
   emit('navigate')
 }
+
+/**
+ * The media library is shared by everything that authors content, so any one of the three
+ * content permissions opens it. Members without one still reach it through an editor, where
+ * they see what they uploaded themselves.
+ */
+function canBrowseMedia() {
+  return hasPermission(StationPermission.PAGE_EDIT)
+      || hasPermission(StationPermission.NEWS_EDIT)
+      || hasPermission(StationPermission.KNOWLEDGE_EDIT)
+}
 </script>
 
 <template>
@@ -117,6 +128,8 @@ function close() {
     <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" v-if="hasPermission(StationPermission.CHECKLIST_READ)" :icon="['fas', 'list-check']" :label="t('sidebar.checklists')" prefix="/station/checklist" to="/station/checklist" name="checklist-list" @navigate="close"/>
 
     <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" v-if="isModuleEnabled(StationModules.KNOWLEDGE_BASE)" :icon="['fas', 'book-open']" :label="t('sidebar.knowledgeBase')" prefix="/station/knowledge" to="/station/knowledge" name="kb-browse" @navigate="close"/>
+
+    <SidebarGroup :open-group="isDesktop ? undefined : openGroup" @update:open-group="v => emit('update:openGroup', v)" v-if="canBrowseMedia()" :icon="['fas', 'folder-open']" :label="t('sidebar.media')" prefix="/station/media" to="/station/media" name="station-media" @navigate="close"/>
 
     <PagesSidebarGroup v-if="hasPermission(StationPermission.PAGE_EDIT)" v-bind="groupBindings"/>
 

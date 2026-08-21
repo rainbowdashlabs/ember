@@ -92,7 +92,7 @@ class StorageUsageRepositoryTest extends RepositoryTestBase {
     void categoryBytes() {
         assertEquals(5000, storageUsageRepo.categoryBytes(station.id(), StorageCategory.KB_FILES));
         assertEquals(2000, storageUsageRepo.categoryBytes(station.id(), StorageCategory.BOARD_ATTACHMENTS));
-        assertEquals(0, storageUsageRepo.categoryBytes(station.id(), StorageCategory.PAGE_IMAGES));
+        assertEquals(0, storageUsageRepo.categoryBytes(station.id(), StorageCategory.MEDIA_IMAGES));
     }
 
     @Test

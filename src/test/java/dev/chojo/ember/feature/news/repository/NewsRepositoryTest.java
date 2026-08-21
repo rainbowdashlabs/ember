@@ -283,4 +283,48 @@ class NewsRepositoryTest extends RepositoryTestBase {
         assertTrue(newsRepo.delete(newsId));
         assertTrue(newsRepo.findById(newsId).isEmpty());
     }
+
+    /**
+     * A member of one station reading another station's entry.
+     *
+     * <p>The listings never offered it, but a request that named the entry outright was answered in
+     * full, author and all, for anyone logged in anywhere. The check the routes now make is this
+     * one, so it is asserted where it is decided rather than only through the route.
+     */
+    @Test
+    @Order(20)
+    void anEntryIsNotVisibleToAMemberOfAnotherStation() {
+        var otherStation = stationRepo.create("Other News Station");
+        var otherAccount = accountRepo.create("other-news@test.com", "Other", "Reader");
+        var otherMember = stationMemberRepo.create(otherStation.id(), otherAccount.id());
+        try {
+            assertTrue(newsRepo.isVisibleForMember(newsId, member.id()), "the station's own member reads it");
+            assertFalse(
+                    newsRepo.isVisibleForMember(newsId, otherMember.id()),
+                    "a member of another station does not read it");
+        } finally {
+            stationRepo.delete(otherStation.id());
+            accountRepo.delete(otherAccount.id());
+        }
+    }
+
+    /**
+     * An entry the instance published belongs to no station, and every station reads it.
+     */
+    @Test
+    @Order(21)
+    void aSystemEntryIsVisibleToEveryStation() {
+        var systemNews =
+                newsRepo.createSystem("Wartung", "Kurz nicht erreichbar.", "<p>Kurz nicht erreichbar.</p>", true);
+        try {
+            assertTrue(systemNews.systemEntry(), "it belongs to no station");
+            assertTrue(newsRepo.isVisibleForMember(systemNews.id(), member.id()));
+            assertTrue(
+                    newsRepo.findVisibleForMember(station.id(), member.id(), 0, 50).stream()
+                            .anyMatch(n -> n.id() == systemNews.id()),
+                    "a station's news list holds it alongside its own");
+        } finally {
+            newsRepo.delete(systemNews.id());
+        }
+    }
 }

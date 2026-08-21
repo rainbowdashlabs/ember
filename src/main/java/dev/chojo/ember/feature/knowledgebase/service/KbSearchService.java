@@ -9,12 +9,11 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbSearchResult;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.util.sql.FullTextSearch;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 
 /**
  * Full-text search over a station's knowledge base and the index that backs it. Every write that
@@ -27,16 +26,6 @@ import java.util.Map;
  */
 @Singleton
 public class KbSearchService {
-    private static final Map<String, String> LOCALE_TO_TS_CONFIG = Map.of(
-            "de", "german",
-            "en", "english",
-            "fr", "french",
-            "es", "spanish",
-            "it", "italian",
-            "nl", "dutch",
-            "pt", "portuguese",
-            "ru", "russian");
-    private static final String DEFAULT_TS_CONFIG = "simple";
 
     private final KnowledgeBaseRepository repository;
     private final StationRepository stationRepository;
@@ -117,12 +106,7 @@ public class KbSearchService {
     public String textSearchConfig(int stationId) {
         return stationRepository
                 .findById(stationId)
-                .map(station -> {
-                    String locale = station.locale();
-                    if (locale == null || locale.isBlank()) return DEFAULT_TS_CONFIG;
-                    String language = locale.contains("-") ? locale.substring(0, locale.indexOf('-')) : locale;
-                    return LOCALE_TO_TS_CONFIG.getOrDefault(language.toLowerCase(Locale.ROOT), DEFAULT_TS_CONFIG);
-                })
-                .orElse(DEFAULT_TS_CONFIG);
+                .map(station -> FullTextSearch.forLocale(station.locale()))
+                .orElse(FullTextSearch.DEFAULT_CONFIG);
     }
 }

@@ -54,6 +54,7 @@ public class NewsFederationService {
     private final FederationHttpClient httpClient;
     private final StationRepository stationRepository;
     private final NewsService newsService;
+    private final NewsAttachmentService attachmentService;
     private final EventFederationRepository eventFederationRepository;
     private final MemberNameResolver memberNameResolver;
     private final FederationFanout fanout;
@@ -67,6 +68,7 @@ public class NewsFederationService {
             FederationHttpClient httpClient,
             StationRepository stationRepository,
             NewsService newsService,
+            NewsAttachmentService attachmentService,
             EventFederationRepository eventFederationRepository,
             MemberNameResolver memberNameResolver,
             FederationFanout fanout,
@@ -77,6 +79,7 @@ public class NewsFederationService {
         this.httpClient = httpClient;
         this.stationRepository = stationRepository;
         this.newsService = newsService;
+        this.attachmentService = attachmentService;
         this.eventFederationRepository = eventFederationRepository;
         this.memberNameResolver = memberNameResolver;
         this.fanout = fanout;
@@ -461,8 +464,10 @@ public class NewsFederationService {
         return new FederatedNewsData(
                 n.id(),
                 n.title(),
-                n.contentMarkdown() != null ? n.contentMarkdown() : "",
-                n.contentHtml() != null ? n.contentHtml() : "",
+                attachmentService.withAttachmentLinks(
+                        n.contentMarkdown() != null ? n.contentMarkdown() : "", n.id(), n.stationId()),
+                attachmentService.withAttachmentLinksHtml(
+                        n.contentHtml() != null ? n.contentHtml() : "", n.id(), n.stationId()),
                 authorName,
                 n.publishedAt() != null ? n.publishedAt().toString() : "",
                 newsService.countComments(n.id()),

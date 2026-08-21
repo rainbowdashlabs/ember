@@ -10,6 +10,8 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import CompactToggle from '@/components/input/toggle/CompactToggle.vue'
 import {type ProfileField, parseFieldConfig} from '@/api/profileFields'
+import {isSection, widthOf} from '@/components/profilefields/fieldLayout'
+import {widthLabel} from '../fieldTypes'
 
 const {t} = useI18n()
 
@@ -38,6 +40,7 @@ function onReadonlyChange(v: boolean) {
         <font-awesome-icon :icon="['fas', 'grip-vertical']" class="text-(--text-muted) h-3.5 w-3.5"/>
         <span class="font-medium text-sm">{{ field.name }}</span>
         <span class="text-xs text-(--text-muted)">{{ typeLabel }}</span>
+        <span v-if="!isSection(field)" class="text-xs text-(--text-muted)">{{ widthLabel(t, widthOf(field)) }}</span>
       </div>
       <div class="flex items-center gap-1">
         <EditButton @click="emit('edit', field)"/>

@@ -10,6 +10,8 @@ import DesktopFieldRow from './fieldtable/DesktopFieldRow.vue'
 import MobileFieldCard from './fieldtable/MobileFieldCard.vue'
 import {type ProfileField} from '@/api/profileFields'
 import {useBreakpoint} from '@/composables/useBreakpoint'
+import {useI18n} from 'vue-i18n'
+import {fieldTypeLabel} from './fieldTypes'
 
 const {isMobile} = useBreakpoint()
 
@@ -25,18 +27,10 @@ const emit = defineEmits<{
   toggleKeepOnArchive: [field: ProfileField, value: boolean]
 }>()
 
-const fieldTypeOptions = [
-  {value: 'TEXT', label: 'Text'},
-  {value: 'NUMBER', label: 'Zahl'},
-  {value: 'DATE', label: 'Datum'},
-  {value: 'BIRTH_DATE', label: 'Geburtsdatum'},
-  {value: 'BOOLEAN', label: 'Ja/Nein'},
-  {value: 'ENUM', label: 'Auswahl'},
-  {value: 'AGE', label: 'Alter (berechnet)'},
-]
+const {t} = useI18n()
 
-function fieldTypeLabel(value: string): string {
-  return fieldTypeOptions.find(o => o.value === value)?.label ?? value
+function typeLabel(value: string): string {
+  return fieldTypeLabel(t, value)
 }
 </script>
 
@@ -46,7 +40,7 @@ function fieldTypeLabel(value: string): string {
       <template #default="{ item: field }">
         <MobileFieldCard
             :field="field"
-            :type-label="fieldTypeLabel(field.fieldType ?? '')"
+            :type-label="typeLabel(field.fieldType ?? '')"
             @delete="emit('delete', field)"
             @edit="emit('edit', field)"
             @toggle-config="(f, k, v) => emit('toggleConfig', f, k, v)"
@@ -61,7 +55,7 @@ function fieldTypeLabel(value: string): string {
       <template #default="{ item: field }">
         <DesktopFieldRow
             :field="field"
-            :type-label="fieldTypeLabel(field.fieldType ?? '')"
+            :type-label="typeLabel(field.fieldType ?? '')"
             @delete="emit('delete', field)"
             @edit="emit('edit', field)"
             @toggle-config="(f, k, v) => emit('toggleConfig', f, k, v)"

@@ -9,11 +9,15 @@ import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AvatarService;
+import dev.chojo.ember.feature.content.entity.CellConfig;
+import dev.chojo.ember.feature.content.entity.CellContentType;
+import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.media.service.ImageVariantService;
+import dev.chojo.ember.feature.media.service.MediaLibraryService;
+import dev.chojo.ember.feature.media.service.MediaReferenceRegistry;
+import dev.chojo.ember.feature.media.service.MediaStorageService;
+import dev.chojo.ember.feature.media.service.MediaVariantService;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.page.entity.CellConfig;
-import dev.chojo.ember.feature.page.entity.CellContentType;
-import dev.chojo.ember.feature.page.repository.PageFileMetaRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
@@ -40,32 +44,35 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class PageServiceTest extends RepositoryTestBase {
     private static PageService service;
+    private static MediaLibraryService media;
+    private static ContentBlockService blocks;
     private static Station station;
     private static Account account;
     private static StationMember member;
     private static int pageId;
     private static int childPageId;
-    private static int imageId;
 
     @BeforeAll
     static void setup() {
         var backend = new LocalStorageBackend();
         var resolver = new StorageBackendResolver(backend);
         var storageService = new StorageService(resolver, backend);
-        var storage = new PageFileStorageService(storageService, stationRepo, backend);
         var storageConfig = new Storage();
-        service = new PageService(
-                pageRepo,
-                new PageFileMetaRepository(),
+        var storage = new MediaStorageService(storageService, stationRepo, backend);
+        media = new MediaLibraryService(
+                mediaFileRepo,
+                mediaMetaRepo,
                 storage,
-                new PageImageVariantService(storage, storageConfig),
+                new MediaVariantService(storage, storageConfig),
+                new MediaReferenceRegistry(contentContainerRepo),
                 new StorageQuotaService(
                         storageUsageRepo,
                         new StationStorageConfigRepository(),
                         storageConfig,
-                        new DomainEventBus(Set.of())),
-                stationMemberRepo,
-                new AvatarService(new ImageVariantService(storageService)));
+                        new DomainEventBus(Set.of())));
+        blocks = new ContentBlockService(contentContainerRepo);
+        service = new PageService(
+                pageRepo, blocks, media, stationMemberRepo, new AvatarService(new ImageVariantService(storageService)));
         station = stationRepo.create("PageServiceStation");
         account = accountRepo.create("page-svc@test.com", "Page", "Author");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -125,11 +132,12 @@ class PageServiceTest extends RepositoryTestBase {
     @Test
     @Order(6)
     void savePageWithContent() {
-        var rows = List.of(new PageService.RowData(
+        var rows = List.of(new ContentBlockService.RowData(
                 0,
                 List.of(
-                        new PageService.CellData(0, 60.0, CellContentType.MARKDOWN, "<h1>Hello</h1>", CellConfig.EMPTY),
-                        new PageService.CellData(
+                        new ContentBlockService.CellData(
+                                0, 60.0, CellContentType.MARKDOWN, "<h1>Hello</h1>", CellConfig.EMPTY),
+                        new ContentBlockService.CellData(
                                 1,
                                 40.0,
                                 CellContentType.IMAGE,
@@ -276,81 +284,23 @@ class PageServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    @Order(20)
-    void uploadPageFile() throws Exception {
-        byte[] data = new byte[1024];
-        var image = service.uploadPageFile(pageId, "test.png", "image/png", data);
-        assertNotNull(image);
-        assertEquals("test.png", image.fileName());
-        imageId = image.id();
-    }
-
-    @Test
-    @Order(21)
-    void readFileById() {
-        assertTrue(service.findFile(imageId).isPresent());
-        assertEquals(imageId, service.findFile(imageId).orElseThrow().id());
-        assertTrue(service.findFile(-1).isEmpty());
-        var fileData = service.readFileById(imageId);
-        assertTrue(fileData.isPresent());
-        assertEquals("image/png", fileData.orElseThrow().contentType());
-    }
-
-    @Test
     @Order(22)
-    void imageSizeLimit() {
-        byte[] tooLarge = new byte[6 * 1024 * 1024];
-        assertThrows(
-                StorageQuotaService.StorageQuotaExceededException.class,
-                () -> service.uploadPageFile(pageId, "big.png", "image/png", tooLarge));
-    }
-
-    @Test
-    @Order(22)
-    void renderedPageCarriesOgImageHash() {
+    void renderedPageCarriesOgImageHash() throws Exception {
         assertNull(service.getPageRendered(pageId).orElseThrow().ogImageHash());
 
+        var image = media.upload(station.id(), pageId, member.id(), "og.png", "image/png", new byte[64]);
         var page = service.getPage(pageId).orElseThrow();
-        assertTrue(service.savePage(pageId, page.title(), page.slug(), page.parentId(), null, imageId, List.of()));
+        assertTrue(service.savePage(pageId, page.title(), page.slug(), page.parentId(), null, image.id(), List.of()));
 
         var rendered = service.getPageRendered(pageId).orElseThrow();
-        assertEquals(imageId, rendered.ogImageId());
+        assertEquals(image.id(), rendered.ogImageId());
         assertEquals(
-                service.findFile(imageId).orElseThrow().contentHash(),
+                image.contentHash(),
                 rendered.ogImageHash(),
                 "clients build the image URL from the hash, so an id alone is not enough");
 
         assertTrue(service.savePage(pageId, page.title(), page.slug(), page.parentId(), null, null, List.of()));
-    }
-
-    @Test
-    @Order(23)
-    void deleteFile() {
-        assertTrue(service.deleteFile(imageId));
-        assertTrue(service.readFileById(imageId).isEmpty());
-    }
-
-    @Test
-    @Order(24)
-    void orphanedImageSurvivesSaveAndIsPrunedOnRequest() throws Exception {
-        byte[] data = new byte[512];
-        var image = service.uploadPageFile(pageId, "orphan.png", "image/png", data);
-        int orphanId = image.id();
-
-        var rows = List.of(new PageService.RowData(
-                0,
-                List.of(new PageService.CellData(
-                        0, 100.0, CellContentType.MARKDOWN, "<p>No images</p>", CellConfig.EMPTY))));
-        service.savePage(pageId, "Welcome", "welcome-page", null, null, null, rows);
-
-        // Save no longer auto-cleans. The file must still be there.
-        assertTrue(service.readFileById(orphanId).isPresent());
-        assertTrue(service.findUnusedFileIds(station.id()).contains(orphanId));
-
-        // Manual prune removes the orphan.
-        int removed = service.pruneUnusedFiles(station.id());
-        assertTrue(removed >= 1);
-        assertTrue(service.readFileById(orphanId).isEmpty());
+        media.deleteFile(image.id());
     }
 
     @Test
@@ -363,18 +313,6 @@ class PageServiceTest extends RepositoryTestBase {
     @Order(26)
     void deletePageNotFound() {
         assertFalse(service.deletePage(99999));
-    }
-
-    @Test
-    @Order(27)
-    void deleteImageNotFound() {
-        assertFalse(service.deleteFile(99999));
-    }
-
-    @Test
-    @Order(28)
-    void readImageNotFound() {
-        assertTrue(service.readFileById(99999).isEmpty());
     }
 
     @Test
@@ -445,85 +383,15 @@ class PageServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    @Order(42)
-    void listFilesWithUsageAndPickerAndDedup() throws Exception {
-        byte[] data = new byte[16];
-        var f1 = service.uploadPageFile(pageId, "list.png", "image/png", data);
-        var dup = service.uploadPageFile(pageId, "dup.png", "image/png", data);
-        assertEquals(f1.id(), dup.id());
-
-        var listing = service.listFilesWithUsage(station.id());
-        assertFalse(listing.isEmpty());
-        var first = listing.getFirst();
-        assertNotNull(first.file());
-        assertNotNull(first.tagIds());
-
-        assertTrue(service.deleteFile(f1.id()));
-    }
-
-    @Test
-    @Order(43)
-    void uploadStationFileAndReadByHash() throws Exception {
-        byte[] data = "station-bytes".getBytes();
-        var img = service.uploadStationFile(station.id(), "sw.png", "image/png", data);
-        assertNotNull(img);
-
-        var byHash = service.readFile(station.id(), img.contentHash());
-        assertTrue(byHash.isPresent());
-
-        assertTrue(service.readFile(station.id(), null).isEmpty());
-        assertTrue(service.readFile(station.id(), "  ").isEmpty());
-        assertTrue(service.readFile(station.id(), "no-such-hash").isEmpty());
-
-        assertTrue(service.deleteFile(img.id()));
-    }
-
-    @Test
-    @Order(44)
-    void folderAndTagOperations() throws Exception {
-        var folder = service.createFolder(station.id(), null, "Documents", 0);
-        assertNotNull(folder);
-        assertTrue(service.listFolders(station.id()).stream().anyMatch(f -> f.id() == folder.id()));
-        assertTrue(service.updateFolder(station.id(), folder.id(), null, "Docs", 1));
-        assertFalse(service.updateFolder(99999, folder.id(), null, "Nope", 0));
-        assertFalse(service.deleteFolder(99999, folder.id()));
-
-        var tag = service.createTag(station.id(), "Hero", "#ff0000");
-        assertNotNull(tag);
-        assertTrue(service.listTags(station.id()).stream().anyMatch(t -> t.id() == tag.id()));
-        assertTrue(service.updateTag(station.id(), tag.id(), "Heroes", "#00ff00"));
-        assertFalse(service.updateTag(99999, tag.id(), "X", "Y"));
-
-        byte[] data = new byte[8];
-        var file = service.uploadPageFile(pageId, "tagged.png", "image/png", data);
-
-        assertTrue(service.assignTag(station.id(), file.id(), tag.id()));
-        assertFalse(service.assignTag(99999, file.id(), tag.id()));
-        assertFalse(service.assignTag(station.id(), 99999, tag.id()));
-        assertFalse(service.assignTag(station.id(), file.id(), 99999));
-
-        assertTrue(service.moveFileToFolder(station.id(), file.id(), folder.id()));
-        assertFalse(service.moveFileToFolder(99999, file.id(), folder.id()));
-
-        assertTrue(service.unassignTag(station.id(), file.id(), tag.id()));
-        assertFalse(service.unassignTag(99999, file.id(), tag.id()));
-
-        assertTrue(service.deleteFile(file.id()));
-        assertTrue(service.deleteTag(station.id(), tag.id()));
-        assertFalse(service.deleteTag(99999, tag.id()));
-        assertTrue(service.deleteFolder(station.id(), folder.id()));
-    }
-
-    @Test
     @Order(47)
     void getPageRenderedMemberListSpotlightCell() {
         var mapper = JsonMapper.builder().build();
         JsonNode src = mapper.readTree("{\"kind\":\"manual\",\"memberUids\":[]}");
         var memberListConfig = new CellConfig.MemberListConfig(
                 "Officers", src, CellConfig.MemberListSortBy.NAME, true, true, Map.of(), List.of(), List.of());
-        var rows = List.of(new PageService.RowData(
+        var rows = List.of(new ContentBlockService.RowData(
                 0,
-                List.of(new PageService.CellData(
+                List.of(new ContentBlockService.CellData(
                         0, 100.0, CellContentType.MEMBER_LIST_SPOTLIGHT, "", memberListConfig))));
         service.savePage(pageId, "Welcome", "welcome-page", null, null, null, rows);
         var rendered = service.getPageRendered(pageId).orElseThrow();
@@ -535,28 +403,14 @@ class PageServiceTest extends RepositoryTestBase {
     @Test
     @Order(45)
     void getPageRenderedMarkdownCell() {
-        var rows = List.of(new PageService.RowData(
+        var rows = List.of(new ContentBlockService.RowData(
                 0,
-                List.of(new PageService.CellData(
+                List.of(new ContentBlockService.CellData(
                         0, 100.0, CellContentType.MARKDOWN, "# Hello\n\nThis is **markdown**.", CellConfig.EMPTY))));
         service.savePage(pageId, "Welcome", "welcome-page", null, null, null, rows);
         var rendered = service.getPageRendered(pageId).orElseThrow();
         String renderedHtml = rendered.rows().getFirst().cells().getFirst().content();
         assertTrue(renderedHtml.contains("<h1") || renderedHtml.contains("<strong"));
-    }
-
-    @Test
-    @Order(46)
-    void updateFileMetaAccessChecks() throws Exception {
-        byte[] data = new byte[4];
-        var img = service.uploadPageFile(pageId, "meta.png", "image/png", data);
-        try {
-            assertTrue(service.updateFileMeta(station.id(), img.id(), "alt", "desc"));
-            assertFalse(service.updateFileMeta(99999, img.id(), "alt", "desc"));
-            assertFalse(service.updateFileMeta(station.id(), 99999, "alt", "desc"));
-        } finally {
-            service.deleteFile(img.id());
-        }
     }
 
     @Test

@@ -59,6 +59,9 @@ onMounted(() => {
                      to="/admin/stations/applications" @navigate="close">
           {{ t('sidebar.applications') }}
         </SidebarLink>
+        <SidebarLink :icon="['fas', 'bullhorn']" name="admin-news" to="/admin/news" @navigate="close">
+          {{ t('sidebar.systemNews') }}
+        </SidebarLink>
       </SidebarGroup>
 
       <SidebarGroup :icon="['fas', 'sitemap']" :label="t('sidebar.clusters')" prefix="/admin/clusters">

@@ -9,7 +9,6 @@ import type { Editor } from '@tiptap/vue-3'
 
 const props = defineProps<{
   editor: Editor | undefined
-  fileId?: number
 }>()
 
 const emit = defineEmits<{
@@ -89,7 +88,7 @@ const toolbarButtons: ToolbarButton[][] = [
     { icon: ['fas', 'link'], action: () => emit('openLink'), active: () => isActive('link'), label: 'Link' },
     { icon: ['fas', 'table-columns'], action: () => cmd()?.insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(), active: () => isActive('table'), label: 'Table' },
     { icon: ['fas', 'play'], action: () => emit('openVideo'), active: () => false, label: 'Video' },
-    ...(props.fileId ? [{ icon: ['fas', 'image'] as string[], action: () => emit('openImage'), active: () => false, label: 'Image' }] : []),
+    { icon: ['fas', 'image'], action: () => emit('openImage'), active: () => false, label: 'Image' },
   ],
 ]
 </script>

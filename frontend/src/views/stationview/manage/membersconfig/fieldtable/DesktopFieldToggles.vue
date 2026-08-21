@@ -6,6 +6,7 @@
 <script lang="ts" setup>
 import CompactToggle from '@/components/input/toggle/CompactToggle.vue'
 import {type ProfileField, parseFieldConfig} from '@/api/profileFields'
+import {isSection} from '@/components/profilefields/fieldLayout'
 
 const props = defineProps<{
   field: ProfileField
@@ -23,6 +24,10 @@ function onReadonlyChange(v: boolean) {
 </script>
 
 <template>
+  <template v-if="isSection(field)">
+    <div v-for="column in 5" :key="column"/>
+  </template>
+  <template v-else>
   <div class="flex justify-center">
     <CompactToggle :model-value="!!parseFieldConfig(field.config).required" :disabled="!!parseFieldConfig(field.config).readonly"
                  @update:model-value="v => emit('toggleConfig', field, 'required', v)"/>
@@ -43,4 +48,5 @@ function onReadonlyChange(v: boolean) {
     <CompactToggle :model-value="!!field.keepOnArchive"
                  @update:model-value="v => emit('toggleKeepOnArchive', field, v)"/>
   </div>
+  </template>
 </template>

@@ -15,6 +15,10 @@ ENV CHOKIDAR_USEPOLLING=true
 ENV WATCHPACK_POLLING=true
 ENV NODE_OPTIONS=--max-old-space-size=8192
 
-# install runs against the bind-mounted source the first time the container
-# starts; afterwards the named-volume node_modules survives across restarts.
-CMD ["sh", "-c", "[ -d node_modules ] && [ -n \"$(ls -A node_modules 2>/dev/null)\" ] || npm ci; exec npm run dev"]
+# install runs against the bind-mounted source the first time the container starts; afterwards the
+# named-volume node_modules survives across restarts. The stamp is what makes that safe: a volume
+# filled weeks ago holds whatever package.json wanted then, so a dependency added since is simply
+# missing and Nuxt fails at startup asking whether it is installed. Recording the lock file it was
+# installed from, and installing again when that no longer matches, keeps the volume honest without
+# paying for an install on every start.
+CMD ["sh", "-c", "stamp=node_modules/.lock-stamp; want=$(md5sum package-lock.json | cut -d' ' -f1); [ \"$(cat $stamp 2>/dev/null)\" = \"$want\" ] || { npm ci && printf %s \"$want\" > $stamp; }; exec npm run dev"]

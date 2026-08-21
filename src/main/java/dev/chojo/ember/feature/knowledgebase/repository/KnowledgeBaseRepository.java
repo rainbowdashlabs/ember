@@ -53,7 +53,7 @@ public class KnowledgeBaseRepository {
     private static final String FOLDER_COLUMNS = SqlSupport.alias("fo", FOLDER_COLUMNS_BARE);
     private static final String FOLDER_RESTRICTED = RestrictionSql.restrictedFlag(RestrictionType.KB_FOLDER, "fo.id");
     private static final String FILE_COLUMNS_BARE =
-            "id, station_id, folder_id, name, description, file_type, mime_type, file_size, icon_url, youtube_url, link_url, position, created_by, created_at, updated_at, source_file_id, source_station_id, restriction_mode, conversion_status";
+            "id, station_id, folder_id, name, description, file_type, mime_type, file_size, icon_url, youtube_url, link_url, position, created_by, created_at, updated_at, source_file_id, source_station_id, restriction_mode, conversion_status, content_mode, container_id";
     private static final String FILE_COLUMNS = SqlSupport.alias("f", FILE_COLUMNS_BARE);
     private static final String FILE_RESTRICTED = RestrictionSql.restrictedFlag(RestrictionType.KB_FILE, "f.id");
     private static final String FILE_VERSION_COLUMNS = "id, file_id, patch, is_full, version, created_by, created_at";
@@ -253,6 +253,19 @@ public class KnowledgeBaseRepository {
 
     public boolean deleteFile(int id) {
         return SqlSupport.deleteById("kb_file", id);
+    }
+
+    /**
+     * Turns a plain article into one built from blocks. The existing text travels into the
+     * container as a single markdown block, so nothing is parsed and nothing is lost.
+     */
+    public boolean setRichMode(int fileId, int containerId) {
+        return query("""
+                UPDATE kb_file SET content_mode = 'RICH', container_id = :container_id
+                WHERE id = :id AND content_mode = 'SIMPLE' AND file_type = 'MARKDOWN';""")
+                .single(call().bind("id", fileId).bind("container_id", containerId))
+                .update()
+                .changed();
     }
 
     public void storeTextContent(int fileId, String textContent) {

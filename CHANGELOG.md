@@ -1,5 +1,52 @@
 # Changelog
 
+## v26.13.0
+
+### New Features
+
+- **The station has a media library.** Everything the station has uploaded lives in one place at `/station/media`, with folders, tags and a search, and every editor reaches into it. Anyone who may log in can upload and insert what they uploaded themselves, so a picture belongs in a board ticket as readily as on a public page.
+- **News entries can hand a file over.** An entry carries attachments picked from the library, named and ordered as the author likes, and they appear as downloads under the text rather than inside it. They travel with the blog feed and to partner stations, so a reader elsewhere is handed the same file.
+- **A news entry can be written with the page editor.** An entry can be switched from the plain text field to rows and columns, with images beside the text, callouts, galleries and code blocks. The switch is one way: the text already written moves into a single block and nothing is lost, but an author who wants the plain field back writes a new entry.
+- **The instance can say something to every station at once.** Under Stations → System news an administrator writes a notice that appears in every station's own news list, from Ember rather than from anyone in the station, with a System badge beside it. It can be limited to certain member types, it notifies only when asked to, and correcting or withdrawing it does so everywhere at once.
+- **The instance keeps a library of its own.** Pictures and files used in a system notice belong to the instance rather than to one station, so a station clearing out its unused files cannot leave a notice with a broken picture. They are uploaded and picked while writing the notice, and served to every station that reads it.
+- **A knowledge-base article can be written the same way.** A markdown article switches to the page editor as a news entry does, which is what a training document with a diagram beside its explanation needs. Search, the PDF export and the version history keep working; old versions can be read but not restored, because what is stored is derived from the blocks.
+
+### Improvements
+
+- **A question under a system notice reaches the instance.** Anyone may comment on a notice from the instance. A station sees the comments written in its own station, and the administrator sees all of them with the station each came from, so a question asked under a notice can be answered.
+- **Every text editor can insert a picture.** Where an editor only accepted a pasted address before, it now opens the media library to browse, search, upload and insert. News, board tickets, event descriptions, the knowledge base and the page editor all gain it at once.
+- **Clearing out unused files leaves what members brought in.** A file nothing points at is still offered for removal, but one somebody uploaded themselves is kept: a picture can outlive the first place it was used.
+
+### Changes
+
+- **Files move out from under Pages.** What was Pages → Files is now Media in the sidebar, at `/station/media`. It is the same library with the same contents; it simply belongs to the station rather than to its website.
+- **Station media moves to a new place on disk.** On the first start after the upgrade each station's media is moved into its new folder, one station at a time, and that station is read-only while its own move runs. An interrupted move picks up where it stopped on the next start, so nothing has to be repeated by hand.
+
+### Security
+
+- **A news entry could be read from another station.** The lists never offered it, but asking for an entry by its address answered in full, to anyone logged in anywhere, and the comments under it with it. An entry is now readable only by the station it belongs to, and only by the people it is addressed to.
+
+### Fixes
+
+- **The fairness ranking stayed empty for an event in no category.** Deciding who gets a place shows how often each member was registered, accepted and turned away, and for an event that belongs to no category that list could not be fetched at all. It now covers everything the station has done, which is the only sensible comparison when the event names no category to compare within.
+- **Partnerships did not follow a station that moved.** When a station was transferred to another instance, the partnerships other stations kept with it were meant to point at its new home, and the step that does that failed outright. They now follow the station, so a partnership keeps working without anyone touching it.
+- **A demo instance showed no station logo and an empty file library.** The rule that stops uploads on a demo was also refusing to hand back what was already stored there. Reading works again, while uploading stays disabled.
+
+## v26.12.0
+
+### New Features
+
+- **Members have a document store.** Every profile carries a tab for the files that concern that member, and Members → Documents holds the whole store, a page at a time. A document can belong to several members at once, or to none of them, and it is bound to further members while it is open. Images, text files and PDFs are shown in the application rather than only offered for download, and the tile shows a picture of the document, for a PDF its first page.
+- **Documents can be searched by what they say.** The search reads the title and, where a file can be read at all, the text inside it, so a PDF is found by a word in it. Free-text labels sort the store further and are written as they are needed rather than set up in advance.
+- **A data export carries the documents too.** What somebody receives when they ask for their data now lists the documents held about them and holds the files themselves, the withheld ones included.
+- **A document can be kept beyond a membership.** What is marked to be kept survives its members being marked former, which is what a legally binding document needs; everything else goes with them. A document can also be kept from the members it belongs to, so it is seen only by those who may read other members.
+- **Profile fields can be arranged rather than only listed.** Each field takes a whole row, a half or a third, so the short ones stand beside each other, and a new field type is a plain heading that asks for nothing and appears in no export. Under Members → Configuration a preview shows the arrangement as it will be filled in.
+
+### Fixes
+
+- **Rights stay whole.** In some cases it could happen that a member held only part of what their role allows, so pages they are entitled to refused to open until the instance was restarted. A role now hands out all of its rights or none, whenever it is asked.
+- **A field template on the group tab lands in the chosen group.** Fields added from a template belonged to no group at all and had to be assigned by hand afterwards. A template now takes the group that is being configured.
+
 ## v26.11.12
 
 ### New Features

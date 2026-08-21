@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.knowledgebase.service;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFile;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
@@ -50,7 +51,12 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         when(linkMetadataService.fetchUrlMetadata(anyString())).thenReturn(new UrlMetadata(null, null));
         var storageConfig = new Storage();
         var searchService = new KbSearchService(knowledgeBaseRepo, stationRepo);
-        var contentService = new KbContentService(knowledgeBaseRepo, fileStorage, searchService);
+        var contentService = new KbContentService(
+                knowledgeBaseRepo,
+                new ContentBlockService(contentContainerRepo),
+                stationRepo,
+                fileStorage,
+                searchService);
         accessService = new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo);
         service = new KnowledgeBaseService(
                 knowledgeBaseRepo,

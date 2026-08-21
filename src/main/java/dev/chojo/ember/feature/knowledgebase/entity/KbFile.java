@@ -6,12 +6,22 @@
 package dev.chojo.ember.feature.knowledgebase.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import dev.chojo.ember.feature.content.entity.ContentMode;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 
 import java.time.Instant;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
+/**
+ * A file in the knowledge base.
+ *
+ * <p>{@code contentMode} says how a markdown article was written. A rich one is built from blocks
+ * and its stored text is a projection of them, which is what lets search, the PDF export and the
+ * version history keep reading the same body they always did. The file type stays
+ * {@code MARKDOWN} either way: a rich article is still an article, and a new type would ripple
+ * through detection, icons, exportability and every switch on the type for nothing.
+ */
 public record KbFile(
         int id,
         int stationId,
@@ -32,7 +42,9 @@ public record KbFile(
         Integer sourceStationId,
         RestrictionMode restrictionMode,
         boolean restricted,
-        ConversionStatus conversionStatus) {
+        ConversionStatus conversionStatus,
+        ContentMode contentMode,
+        Integer containerId) {
 
     public static RowMapping<KbFile> map() {
         return row -> new KbFile(
@@ -55,6 +67,8 @@ public record KbFile(
                 row.getObject("source_station_id", Integer.class),
                 row.getEnum("restriction_mode", RestrictionMode.class),
                 row.getBoolean("restricted"),
-                row.getEnum("conversion_status", ConversionStatus.class));
+                row.getEnum("conversion_status", ConversionStatus.class),
+                row.getEnum("content_mode", ContentMode.class),
+                row.getObject("container_id", Integer.class));
     }
 }

@@ -12,23 +12,18 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import PageEditorHeader from './pageeditorview/PageEditorHeader.vue'
 import MetadataPanel from './pageeditorview/MetadataPanel.vue'
-import PageEditorAddRowDivider from './pageeditorview/PageEditorAddRowDivider.vue'
-import RowsList from './pageeditorview/RowsList.vue'
-import AddRowDialog from './pageeditorview/AddRowDialog.vue'
-import type {RowEditData} from './pageeditorview/EditorRow.vue'
-import type {CellEditData} from './pageeditorview/EditorCell.vue'
+import ContentBlockEditor from '@/components/content/ContentBlockEditor.vue'
+import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
 import {
     getPage,
     savePage,
     listPages,
-    CellContentType,
     type StationPage,
     type SavePageRequest,
     type SaveRowRequest,
     type SaveCellRequest,
 } from '@/api/pageManage'
 import {useSession} from '@/composables/useSession'
-import {usePageClipboard} from '@/composables/usePageClipboard'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {showToast} from '@/util/toast'
 
@@ -36,7 +31,6 @@ const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
 const {sessionInfo} = useSession()
-const {pasteRow, hasClipboard, clipboardType} = usePageClipboard()
 
 const page = ref<StationPage | null>(null)
 const allPages = ref<StationPage[]>([])
@@ -96,77 +90,6 @@ function markDirty() {
 }
 
 watch([title, slug, parentId, metaDescription], () => markDirty())
-
-function updateRow(index: number, row: RowEditData) {
-    rows.value[index] = row
-    markDirty()
-}
-
-function deleteRow(index: number) {
-    rows.value.splice(index, 1)
-    markDirty()
-}
-
-function moveRow(index: number, direction: number) {
-    const target = index + direction
-    if (target < 0 || target >= rows.value.length) return
-    const items = [...rows.value]
-    const [moved] = items.splice(index, 1)
-    if (!moved) return
-    items.splice(target, 0, moved)
-    rows.value = items
-    markDirty()
-}
-
-// Add-row dialog: pick column count first, then create the row with that many empty cells.
-const addRowAt = ref<number | null>(null)
-const showAddRowDialog = ref(false)
-
-function openAddRowDialog(atIndex?: number) {
-    addRowAt.value = atIndex ?? null
-    showAddRowDialog.value = true
-}
-
-function addRow(columns: number) {
-    const widthPercent = 100 / columns
-    const newRow: RowEditData = {
-        id: 0,
-        sortOrder: rows.value.length,
-        cells: Array.from({length: columns}, (_, i) => ({
-            id: 0,
-            sortOrder: i,
-            widthPercent,
-            contentType: CellContentType.EMPTY,
-            content: '',
-            config: {},
-        })),
-    }
-    if (addRowAt.value != null) {
-        rows.value.splice(addRowAt.value, 0, newRow)
-    } else {
-        rows.value.push(newRow)
-    }
-    showAddRowDialog.value = false
-    addRowAt.value = null
-    markDirty()
-}
-
-function onPasteRow(atIndex?: number) {
-    const data = pasteRow() as RowEditData | null
-    if (!data) return
-    const newRow: RowEditData = {
-        ...data,
-        id: 0,
-        sortOrder: rows.value.length,
-        cells: data.cells.map(c => ({...c, id: 0})),
-    }
-    if (atIndex != null) {
-        rows.value.splice(atIndex, 0, newRow)
-    } else {
-        rows.value.push(newRow)
-    }
-    markDirty()
-}
 
 function togglePreview() {
     preview.value = !preview.value
@@ -232,31 +155,13 @@ async function save() {
                     :parent-options="parentOptions"
                 />
 
-                <PageEditorAddRowDivider
-                    v-if="!preview"
-                    :has-clipboard="hasClipboard"
-                    :clipboard-type="clipboardType"
-                    @add="openAddRowDialog(0)"
-                    @paste="onPasteRow(0)"
-                />
-
-                <RowsList
-                    :rows="rows"
-                    :page-id="pageId"
+                <ContentBlockEditor
+                    v-model:rows="rows"
                     :station-uid="stationUid"
                     :preview="preview"
-                    :has-clipboard="hasClipboard"
-                    :clipboard-type="clipboardType"
-                    @update:row="updateRow"
-                    @delete="deleteRow"
-                    @move-up="(i: number) => moveRow(i, -1)"
-                    @move-down="(i: number) => moveRow(i, 1)"
-                    @add-at="(i: number) => openAddRowDialog(i)"
-                    @paste-at="(i: number) => onPasteRow(i)"
+                    @change="markDirty"
                 />
             </template>
         </div>
-
-        <AddRowDialog v-model="showAddRowDialog" @select="addRow"/>
     </ViewContent>
 </template>

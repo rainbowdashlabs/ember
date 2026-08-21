@@ -94,7 +94,7 @@ export const PALETTE_ROUTES: PaletteRouteEntry[] = [
     {scope: 'station', to: '/station/knowledge', labelKey: 'sidebar.knowledgeBase', icon: 'book-open', module: StationModules.KNOWLEDGE_BASE},
 
     {scope: 'station', to: '/station/pages', labelKey: 'sidebar.pages', icon: 'file-lines', permission: StationPermission.PAGE_EDIT},
-    {scope: 'station', to: '/station/pages/files', labelKey: 'sidebar.pagesFiles', icon: 'folder-open', permission: StationPermission.PAGE_EDIT},
+    {scope: 'station', to: '/station/media', labelKey: 'sidebar.media', icon: 'folder-open', permission: StationPermission.PAGE_EDIT},
     {scope: 'station', to: '/station/pages/forms', labelKey: 'sidebar.pagesForms', icon: 'clipboard-list', permission: StationPermission.PAGE_EDIT},
     {scope: 'station', to: '/station/pages/polls', labelKey: 'sidebar.pagesPolls', icon: 'square-poll-vertical', permission: StationPermission.PAGE_EDIT},
 

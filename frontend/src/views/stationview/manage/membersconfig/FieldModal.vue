@@ -15,10 +15,12 @@ import FieldDefaultValueSection from '@/components/input/FieldDefaultValueSectio
 import BehaviorToggles from './fieldmodal/BehaviorToggles.vue'
 import PositionField from './fieldmodal/PositionField.vue'
 import ModalActions from './fieldmodal/ModalActions.vue'
+import WidthField from './fieldmodal/WidthField.vue'
 import {
     DATE_FIELD_TYPES, FieldTypes, parseFieldConfig,
     type ProfileField, type ProfileFieldConfig, type ProfileFieldRequest,
 } from '@/api/profileFields'
+import {FieldWidths, widthOf} from '@/components/profilefields/fieldLayout'
 
 const {t} = useI18n()
 
@@ -41,6 +43,9 @@ function isDateType(type: string | undefined): boolean {
 const birthDateAvailable = computed(() =>
     !props.birthDateField || props.birthDateField.id === props.field?.id)
 
+/** A heading holds no answer, so everything that describes an answer is beside the point for it. */
+const holdsValue = computed(() => fieldType.value !== FieldTypes.SECTION)
+
 const emit = defineEmits<{
   save: [data: ProfileFieldRequest & { scope: string }]
 }>()
@@ -61,6 +66,7 @@ const fieldDefaultToday = ref(false)
 const fieldDefaultNumber = ref<number>(0)
 const fieldPosition = ref(0)
 const fieldKeepOnArchive = ref(false)
+const fieldWidth = ref<string>(FieldWidths.FULL)
 const saving = ref(false)
 
 watch(modelValue, (open) => {
@@ -89,6 +95,7 @@ watch(modelValue, (open) => {
     }
     fieldPosition.value = f.position
     fieldKeepOnArchive.value = f.keepOnArchive ?? false
+    fieldWidth.value = widthOf(f)
   } else {
     fieldName.value = ''
     fieldType.value = FieldTypes.TEXT
@@ -104,6 +111,7 @@ watch(modelValue, (open) => {
     fieldDefaultBool.value = false
     fieldDefaultToday.value = false
     fieldKeepOnArchive.value = false
+    fieldWidth.value = FieldWidths.FULL
     fieldDefaultNumber.value = 0
     fieldPosition.value = 0
   }
@@ -133,6 +141,7 @@ function buildConfig(): ProfileFieldConfig {
       cfg.defaultValue = fieldDefaultValue.value.trim()
     }
   }
+  if (fieldWidth.value !== FieldWidths.FULL) cfg.width = fieldWidth.value
   if (props.scope === 'GROUP' && props.groupId) {
     cfg.groupId = Number(props.groupId)
   }
@@ -159,28 +168,31 @@ function submit() {
       <SubHeader>{{ field ? t('membersConfig.editField') : t('membersConfig.addField') }}</SubHeader>
       <BasicFields v-model:name="fieldName" v-model:field-type="fieldType" :scope="scope"
                    :birth-date-available="birthDateAvailable"/>
-      <EnumOptionsField v-if="fieldType === 'ENUM'" v-model="fieldEnumOptions"/>
-      <AgeFields v-if="fieldType === 'AGE'" v-model:source="fieldAgeSource" v-model:mode="fieldAgeMode"
-                 :date-fields="dateFields"/>
-      <FieldDefaultValueSection
-        v-model:has-default="fieldHasDefault"
-        v-model:default-value="fieldDefaultValue"
-        v-model:default-bool="fieldDefaultBool"
-        v-model:default-today="fieldDefaultToday"
-        v-model:default-number="fieldDefaultNumber"
-        :toggle-label="t('membersConfig.fieldDefault')"
-        :placeholder="t('membersConfig.fieldDefaultPlaceholder')"
-        :date-hint="t('membersConfig.fieldDefaultDateHint')"
-        :field-type="fieldType"
-        :enum-options="fieldEnumOptions"
-      />
-      <BehaviorToggles
-        v-model:required="fieldRequired"
-        v-model:readonly="fieldReadonly"
-        v-model:notify-on-change="fieldNotifyOnChange"
-        v-model:overview="fieldOverview"
-        v-model:keep-on-archive="fieldKeepOnArchive"
-      />
+      <template v-if="holdsValue">
+        <EnumOptionsField v-if="fieldType === 'ENUM'" v-model="fieldEnumOptions"/>
+        <AgeFields v-if="fieldType === 'AGE'" v-model:source="fieldAgeSource" v-model:mode="fieldAgeMode"
+                   :date-fields="dateFields"/>
+        <FieldDefaultValueSection
+          v-model:has-default="fieldHasDefault"
+          v-model:default-value="fieldDefaultValue"
+          v-model:default-bool="fieldDefaultBool"
+          v-model:default-today="fieldDefaultToday"
+          v-model:default-number="fieldDefaultNumber"
+          :toggle-label="t('membersConfig.fieldDefault')"
+          :placeholder="t('membersConfig.fieldDefaultPlaceholder')"
+          :date-hint="t('membersConfig.fieldDefaultDateHint')"
+          :field-type="fieldType"
+          :enum-options="fieldEnumOptions"
+        />
+        <BehaviorToggles
+          v-model:required="fieldRequired"
+          v-model:readonly="fieldReadonly"
+          v-model:notify-on-change="fieldNotifyOnChange"
+          v-model:overview="fieldOverview"
+          v-model:keep-on-archive="fieldKeepOnArchive"
+        />
+        <WidthField v-model="fieldWidth"/>
+      </template>
       <PositionField v-model="fieldPosition"/>
       <ModalActions :saving="saving" :disabled="!fieldName" @cancel="modelValue = false" @submit="submit"/>
     </div>

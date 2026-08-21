@@ -35,6 +35,7 @@ public class FormerMemberService {
     private final UserTagRepository tagRepository;
     private final AttendanceRepository attendanceRepository;
     private final ProfileFieldRepository profileFieldRepository;
+    private final MemberDocumentService documentService;
 
     @Inject
     public FormerMemberService(
@@ -45,7 +46,8 @@ public class FormerMemberService {
             MemberGroupRepository groupRepository,
             UserTagRepository tagRepository,
             AttendanceRepository attendanceRepository,
-            ProfileFieldRepository profileFieldRepository) {
+            ProfileFieldRepository profileFieldRepository,
+            MemberDocumentService documentService) {
         this.memberRepository = memberRepository;
         this.accountRepository = accountRepository;
         this.inventoryRepository = inventoryRepository;
@@ -54,6 +56,7 @@ public class FormerMemberService {
         this.tagRepository = tagRepository;
         this.attendanceRepository = attendanceRepository;
         this.profileFieldRepository = profileFieldRepository;
+        this.documentService = documentService;
     }
 
     /**
@@ -132,6 +135,8 @@ public class FormerMemberService {
 
         // Delete non-archived profile field values
         profileFieldRepository.deleteNonArchivedValues(memberId);
+
+        documentService.releaseMember(memberId);
 
         // Save display name from account and decouple
         var member = memberRepository.findById(memberId).orElseThrow();

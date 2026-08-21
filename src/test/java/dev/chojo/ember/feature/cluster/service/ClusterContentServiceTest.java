@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.cluster.service;
 
 import dev.chojo.ember.conf.file.elements.Storage;
+import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
 import dev.chojo.ember.feature.knowledgebase.service.KbContentService;
@@ -43,7 +44,12 @@ class ClusterContentServiceTest extends RepositoryTestBase {
         var storage = new Storage();
         var fileStorage = mock(KbFileStorageService.class);
         var searchService = new KbSearchService(knowledgeBaseRepo, stationRepo);
-        var contentService = new KbContentService(knowledgeBaseRepo, fileStorage, searchService);
+        var contentService = new KbContentService(
+                knowledgeBaseRepo,
+                new ContentBlockService(contentContainerRepo),
+                stationRepo,
+                fileStorage,
+                searchService);
         var kbService = new KnowledgeBaseService(
                 knowledgeBaseRepo,
                 fileStorage,
