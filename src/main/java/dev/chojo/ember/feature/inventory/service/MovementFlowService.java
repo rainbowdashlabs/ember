@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.feature.cluster.entity.Cluster;
+import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.MovementFlow;
@@ -138,11 +140,16 @@ public class MovementFlowService {
 
     private final MovementFlowRepository flowRepository;
     private final ItemMovementRepository movementRepository;
+    private final ClusterRepository clusterRepository;
 
     @Inject
-    public MovementFlowService(MovementFlowRepository flowRepository, ItemMovementRepository movementRepository) {
+    public MovementFlowService(
+            MovementFlowRepository flowRepository,
+            ItemMovementRepository movementRepository,
+            ClusterRepository clusterRepository) {
         this.flowRepository = flowRepository;
         this.movementRepository = movementRepository;
+        this.clusterRepository = clusterRepository;
     }
 
     /**
@@ -207,22 +214,70 @@ public class MovementFlowService {
      * its stations behave exactly as if there were no body above them at all, and fall through to
      * the station flows below, which carry no owner steps for precisely that reason.
      *
-     * <p>Neither half can be true yet: nothing on this instance can own gear, so every movement
-     * falls through today. When that changes, this is the only method that has to learn about it.
-     *
      * @param stationId   the station running the movement
      * @param inventoryId the inventory the movement is about
      * @param ownerKind   who owns the item
+     * @param ownerId     the owning cluster when {@code ownerKind} is CLUSTER, otherwise {@code null}
      * @param purpose     what the movement is for
      * @return the flow to walk
      * @throws BadRequestResponse when the station has no flow bound for that pair
      */
-    public int resolveFlow(int stationId, Integer inventoryId, ItemOwner ownerKind, MovementPurpose purpose) {
+    public int resolveFlow(
+            int stationId, Integer inventoryId, ItemOwner ownerKind, Integer ownerId, MovementPurpose purpose) {
         ensurePresets(stationId);
+        if (ownerKind == ItemOwner.CLUSTER && ownerId != null) {
+            Integer clusterFlow = clusterOwnedFlow(ownerId, purpose);
+            if (clusterFlow != null) return clusterFlow;
+        }
         return flowRepository
                 .findBoundFlow(stationId, inventoryId, ownerKind, purpose)
                 .orElseThrow(() -> new BadRequestResponse(
                         "No flow is bound for %s gear and %s at this station".formatted(ownerKind, purpose)));
+    }
+
+    /**
+     * The owner's own flow, when the owner is in a position to walk one.
+     *
+     * <p>Both halves of the condition are checked here and nowhere else. A cluster that is not on this
+     * instance has no row to find; a cluster that is here but does not keep its gear here has nobody to
+     * press its buttons, and a chain stopping on a step nobody will ever answer is worse than no chain of
+     * the owner's at all.
+     *
+     * @param clusterId the owning cluster
+     * @param purpose   what the movement is for
+     * @return the cluster's flow, or {@code null} to fall through to the station's own
+     */
+    private Integer clusterOwnedFlow(int clusterId, MovementPurpose purpose) {
+        return clusterRepository
+                .findById(clusterId)
+                .filter(Cluster::usesInventory)
+                .flatMap(cluster -> flowRepository.findClusterBoundFlow(cluster.id(), purpose))
+                .orElse(null);
+    }
+
+    /**
+     * The flows a cluster keeps for its own gear.
+     *
+     * @param clusterId the cluster
+     * @return its flows
+     */
+    public List<MovementFlow> findClusterFlows(int clusterId) {
+        return flowRepository.findClusterFlows(clusterId);
+    }
+
+    /**
+     * Creates a flow the cluster owns.
+     *
+     * @param clusterId the cluster
+     * @param name      what it is called
+     * @param purpose   what it is for
+     * @return the flow
+     */
+    public MovementFlow createClusterFlow(int clusterId, String name, MovementPurpose purpose) {
+        if (name == null || name.isBlank()) throw new BadRequestResponse("A flow needs a name");
+        MovementFlow flow = flowRepository.createClusterFlow(clusterId, name.trim(), purpose);
+        log.info("Created movement flow {} ('{}', {}) for cluster {}", flow.id(), name, purpose, clusterId);
+        return flow;
     }
 
     public MovementFlow createFlow(int stationId, String name, MovementPurpose purpose) {

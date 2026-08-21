@@ -71,6 +71,18 @@ watch(
         </SidebarLink>
       </SidebarGroup>
 
+      <SidebarGroup :icon="['fas', 'boxes-stacked']" :label="t('clusterSidebar.inventory')"
+                    prefix="/helpcenter/cluster/inventory">
+        <SidebarLink :icon="['fas', 'boxes-stacked']" name="help-cluster-inventory"
+                     to="/helpcenter/cluster/inventory" @navigate="close">
+          {{ t('clusterSidebar.stock') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'right-left']" name="help-cluster-movements"
+                     to="/helpcenter/cluster/inventory/movements" @navigate="close">
+          {{ t('clusterSidebar.movements') }}
+        </SidebarLink>
+      </SidebarGroup>
+
       <SidebarGroup :icon="['fas', 'id-card']" :label="t('clusterSidebar.fields')"
                     prefix="/helpcenter/cluster/fields">
         <SidebarLink :icon="['fas', 'id-card']" name="help-cluster-fields"

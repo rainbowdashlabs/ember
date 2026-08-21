@@ -13,6 +13,7 @@
 - **An association decides what its stations may use, how they look and how much room they have.** A module it switches off is locked at every station, with the association named as the reason and nothing already put in it deleted. Colours, theme, shape and logo are handed down as a starting point or locked outright, one by one, and storage is shared out of a pool the instance grants.
 - **An association has its own members, and one of them can look after every station at once.** Who acts for the association is set there, by role, by grants of their own or through a group, all three separate from anything they hold at a station. Somebody trusted with it can also search and edit the people at every station under the association, except their own membership and any station's owner.
 - **An association can ask its own questions in every member's profile.** The fields it adds appear in the same form as the station's own, marked as the association's, and are read-only at the station unless the association says otherwise. Changes land in the one change history a profile already had, and the answers are cleared when a station leaves while the history stays.
+- **An association keeps its own gear and answers for it.** It sees every piece it owns and where each one is, and the steps of an exchange or a return that only it can confirm wait in a list of its own. An association that does not keep its gear here says so, and then its stations work exactly as they did before.
 - **A waiting list can work with ages.** A date field set to the type date of birth gives the list an age to go by: it can refuse a registration below a minimum age, and it marks everyone still under the age for joining so they are told apart from those merely waiting their turn. Those entries can be hidden while the list is worked through. An existing date field becomes the date of birth without losing the answers already given.
 
 ### Improvements
@@ -24,6 +25,7 @@
 
 ### Changes
 
+- **A station cannot rename, delete or lend on gear it does not own.** Handing it to a member, shelving it, checking it and reporting it missing all still work, because those say where the gear is. What it is, and who else may borrow it, stays with the owner.
 - **A station in an association cannot be moved to another instance.** Transferring it would leave the association holding a station that is no longer there. Leave the association first, and the transfer works as before.
 - **An item says who owns it.** Every piece of gear is recorded as belonging either to the station itself or to the body above it, the municipality or the district association, in place of the internal and external labels it carried before. Members are no longer offered as owners, because gear a member bought was never tracked here.
 - **An item also says who has it.** Alongside its owner, a piece of gear now records where it actually is: in its owner's store, at the station, with a member, lent to a partner or missing. An item's page shows both, and the lists of what a station holds follow what it has rather than what it owns.

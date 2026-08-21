@@ -100,6 +100,30 @@ onMounted(() => {
       </SidebarGroup>
 
       <SidebarGroup
+          v-if="hasClusterPermission(ClusterPermission.CLUSTER_INVENTORY_READ)"
+          :icon="['fas', 'boxes-stacked']"
+          :label="t('clusterSidebar.inventory')"
+          prefix="/cluster/inventory"
+      >
+        <SidebarLink
+            :icon="['fas', 'boxes-stacked']"
+            name="cluster-inventory"
+            to="/cluster/inventory"
+            @navigate="close"
+        >
+          {{ t('clusterSidebar.stock') }}
+        </SidebarLink>
+        <SidebarLink
+            :icon="['fas', 'right-left']"
+            name="cluster-movements"
+            to="/cluster/inventory/movements"
+            @navigate="close"
+        >
+          {{ t('clusterSidebar.movements') }}
+        </SidebarLink>
+      </SidebarGroup>
+
+      <SidebarGroup
           v-if="hasClusterPermission(ClusterPermission.CLUSTER_MEMBER_READ)"
           :icon="['fas', 'id-card']"
           :label="t('clusterSidebar.fields')"

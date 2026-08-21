@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.MemberInventoryEntry;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
+import io.javalin.http.ForbiddenResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -311,6 +312,7 @@ public class InventoryService {
      */
     public Optional<InventoryItem> updateItem(
             int id, String internalId, String name, Integer sizeId, InventoryItemMetadata metadata) {
+        requireOwned(id, "described");
         if (inventoryRepository.updateItem(id, internalId, name, sizeId, metadata)) {
             log.info("Updated item {} (name='{}', internalId='{}', sizeId={})", id, name, internalId, sizeId);
             return inventoryRepository.findItemById(id);
@@ -362,10 +364,32 @@ public class InventoryService {
      * @return {@code true} if deleted
      */
     public boolean deleteItem(int id) {
+        requireOwned(id, "deleted");
         boolean deleted = inventoryRepository.deleteItem(id);
         if (deleted) log.info("Deleted item {}", id);
         else log.warn("Delete skipped: item {} not found", id);
         return deleted;
+    }
+
+    /**
+     * Refuses to let a station change gear it does not own.
+     *
+     * <p>Holding something is not owning it. A station may hand a cluster's jacket to a member, put it on a
+     * shelf, check it and report it missing, because all of those are facts about where it is. What it may
+     * not do is rename it, resize it or delete it, because those are the owner's account of what the thing
+     * is, and the same row is what the owner reads.
+     *
+     * @param itemId the item somebody wants to change
+     * @param verb   what they wanted to do, for the message
+     * @throws ForbiddenResponse when the item belongs to a cluster
+     */
+    private void requireOwned(int itemId, String verb) {
+        inventoryRepository.findItemById(itemId).ifPresent(item -> {
+            if (item.ownerKind() == ItemOwner.CLUSTER) {
+                throw new ForbiddenResponse(
+                        "This gear belongs to the body above the station and can only be %s by them".formatted(verb));
+            }
+        });
     }
 
     // -- History --

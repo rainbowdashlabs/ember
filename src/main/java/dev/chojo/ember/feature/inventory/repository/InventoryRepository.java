@@ -341,6 +341,26 @@ public class InventoryRepository {
                 .all();
     }
 
+    /**
+     * Everything a cluster owns, wherever it currently is.
+     *
+     * <p>The mirror of {@code findItemsByStation}: that one asks what a station holds, this one asks what a
+     * cluster owns. Ownership and custody are separate, so the two lists overlap without either containing
+     * the other.
+     *
+     * @param clusterId the owning cluster
+     * @return its items, in store and out at stations alike
+     */
+    public List<InventoryItem> findItemsOwnedByCluster(int clusterId) {
+        return query("""
+                SELECT %s FROM inventory_item
+                WHERE owner_kind = 'CLUSTER' AND owner_cluster_id = :cluster_id
+                ORDER BY name, internal_id;""", INVENTORY_ITEM_COLUMNS)
+                .single(call().bind("cluster_id", clusterId))
+                .map(InventoryItem.map())
+                .all();
+    }
+
     public List<InventorySize> findSizesByStation(int stationId) {
         return query("""
                 SELECT %s FROM inventory_size s

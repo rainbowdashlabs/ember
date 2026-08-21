@@ -873,6 +873,14 @@ export default {
             title: 'Profilfelder',
             subtitle: 'Was der Verband über die Mitglieder seiner Wachen wissen möchte',
         },
+        'cluster-inventory': {
+            title: 'Material',
+            subtitle: 'Was dem Verband gehört und wo es gerade ist',
+        },
+        'cluster-movements': {
+            title: 'Offene Schritte',
+            subtitle: 'Vorgänge, die auf eine Antwort des Verbands warten',
+        },
         'admin-settings': {
             title: 'Allgemein',
             subtitle: 'Allgemeine Plattform-Einstellungen',
@@ -5449,6 +5457,32 @@ export default {
         memberManagement: 'Mitglieder der Wachen',
         fields: 'Profilfelder',
         fieldList: 'Profilfelder',
+        inventory: 'Material',
+        stock: 'Bestand',
+        movements: 'Offene Schritte',
+    },
+    clusterInventory: {
+        usesTitle: 'Material im Verband führen',
+        usesHint: 'Ist das aus, verhalten sich alle Wachen so, als gäbe es keinen Verband über ihnen, wenn es um Material geht: sie tauschen und geben zurück in ihren eigenen Abläufen, ohne Schritte, die auf euch warten.',
+        empty: 'Dem Verband gehört noch kein Material.',
+        custody: {
+            WITH_OWNER: 'Im Lager des Verbands',
+            AT_STATION: 'Bei der Wache',
+            WITH_MEMBER: 'Bei einem Mitglied',
+            WITH_PARTNER: 'Verliehen',
+            IN_TRANSIT: 'Unterwegs',
+            LOST: 'Verloren',
+        },
+    },
+    clusterMovements: {
+        hint: 'Hier stehen die Vorgänge, die auf einen Schritt warten, den nur der Verband bestätigen kann.',
+        empty: 'Es wartet nichts auf euch.',
+        unnamedStep: 'Schritt',
+        purpose: {
+            EXCHANGE: 'Tausch',
+            RETURN: 'Rückgabe',
+            ISSUE: 'Ausgabe',
+        },
     },
     clusterFields: {
         hint: 'Diese Felder erscheinen im Profil jedes Mitglieds an allen Wachen des Verbands, neben den Feldern der Wache selbst.',

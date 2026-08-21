@@ -62,6 +62,8 @@ export interface Cluster {
     feelLocked: boolean
     logoLocked: boolean
     storagePoolBytes?: number | null
+    /** Whether the cluster keeps its gear here, which is what lets its own steps appear in a movement. */
+    usesInventory?: boolean
 }
 
 export interface ClusterRequest {

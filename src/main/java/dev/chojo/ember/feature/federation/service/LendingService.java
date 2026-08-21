@@ -18,12 +18,14 @@ import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.federation.route.RemoteLendingRoutes;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
+import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.service.ItemCustodyService;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationLocationService;
+import io.javalin.http.ForbiddenResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -113,7 +115,26 @@ public class LendingService {
     }
 
     public boolean assignItem(int requestItemId, int assignedItemId) {
+        requireLendable(assignedItemId);
         return repository.assignItem(requestItemId, assignedItemId);
+    }
+
+    /**
+     * Refuses to lend on gear the station does not own.
+     *
+     * <p>Lending is the owner's decision, and a station holding a cluster's jacket is not its owner. Passing
+     * it to a third party would put it somewhere the cluster never agreed to and, worse, somewhere the
+     * cluster cannot see: the partner's records are not ours to read.
+     *
+     * @param itemId the item somebody wants to lend out
+     * @throws ForbiddenResponse when the item belongs to a cluster
+     */
+    private void requireLendable(int itemId) {
+        inventoryRepository.findItemById(itemId).ifPresent(item -> {
+            if (item.ownerKind() == ItemOwner.CLUSTER) {
+                throw new ForbiddenResponse("This gear belongs to the body above the station and cannot be lent on");
+            }
+        });
     }
 
     public boolean approveRequest(int requestId, int stationId) {

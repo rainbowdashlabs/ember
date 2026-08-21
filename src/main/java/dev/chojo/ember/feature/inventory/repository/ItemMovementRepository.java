@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.inventory.entity.ItemMovement;
 import dev.chojo.ember.feature.inventory.entity.ItemMovementLog;
 import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.entity.MovementState;
+import dev.chojo.ember.feature.inventory.entity.StepActor;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
@@ -40,6 +41,31 @@ public class ItemMovementRepository {
         return query("""
                 SELECT %s FROM item_movement WHERE station_id = :station_id ORDER BY created_at DESC;""", MOVEMENT_COLUMNS)
                 .single(call().bind("station_id", stationId))
+                .map(ItemMovement.map())
+                .all();
+    }
+
+    /**
+     * The movements standing on a step the cluster has to answer.
+     *
+     * <p>Its queue. A cluster does not browse its stations' movements; it wants the ones waiting on it, which
+     * is the current step naming the owner as the party whose turn it is.
+     *
+     * @param clusterId the cluster
+     * @return the open movements waiting for it, oldest first, because the oldest has waited longest
+     */
+    public List<ItemMovement> findWaitingForCluster(int clusterId) {
+        return query("""
+                SELECT %s FROM item_movement m
+                JOIN movement_flow_step step ON step.id = m.current_step_id
+                JOIN station s ON s.id = m.station_id
+                WHERE m.state = :open
+                  AND step.actor = :owner
+                  AND s.cluster_id = :cluster_id
+                ORDER BY m.created_at;""", SqlSupport.alias("m", MOVEMENT_COLUMNS))
+                .single(call().bind("cluster_id", clusterId)
+                        .bind("open", MovementState.OPEN)
+                        .bind("owner", StepActor.OWNER))
                 .map(ItemMovement.map())
                 .all();
     }

@@ -9,6 +9,8 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.MovementAdvanced;
 import dev.chojo.ember.event.events.MovementDeclined;
 import dev.chojo.ember.event.events.MovementStarted;
+import dev.chojo.ember.feature.cluster.entity.Cluster;
+import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.inventory.entity.AckKind;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
@@ -51,6 +53,7 @@ public class ItemMovementService {
     private final MovementFlowService flowService;
     private final InventoryRepository inventoryRepository;
     private final ItemCustodyService custodyService;
+    private final ClusterRepository clusterRepository;
     private final DomainEventBus eventBus;
 
     @Inject
@@ -59,11 +62,13 @@ public class ItemMovementService {
             MovementFlowService flowService,
             InventoryRepository inventoryRepository,
             ItemCustodyService custodyService,
+            ClusterRepository clusterRepository,
             DomainEventBus eventBus) {
         this.movementRepository = movementRepository;
         this.flowService = flowService;
         this.inventoryRepository = inventoryRepository;
         this.custodyService = custodyService;
+        this.clusterRepository = clusterRepository;
         this.eventBus = eventBus;
     }
 
@@ -123,7 +128,8 @@ public class ItemMovementService {
             Actor actor,
             Integer pickedItemId) {
         ItemOwner ownerKind = resolveOwner(outgoingItemId, inventoryId);
-        int flowId = flowService.resolveFlow(stationId, inventoryId, ownerKind, purpose);
+        int flowId = flowService.resolveFlow(
+                stationId, inventoryId, ownerKind, resolveOwnerId(outgoingItemId, stationId), purpose);
         List<MovementFlowStep> steps = flowService.findActiveSteps(flowId);
         if (steps.isEmpty()) throw new BadRequestResponse("That flow has no steps to walk");
 
@@ -463,6 +469,25 @@ public class ItemMovementService {
                 .findById(inventoryId)
                 .map(inv -> inv.inventoryType() == InventoryType.INTERNAL ? ItemOwner.STATION : ItemOwner.CLUSTER)
                 .orElse(ItemOwner.STATION);
+    }
+
+    /**
+     * Which cluster owns the gear, when a cluster does.
+     *
+     * <p>Read off the item when there is one, because that is where ownership actually lives. An issue that
+     * has not named its item yet falls back to the cluster the station answers to, which is the only cluster
+     * whose gear could be arriving.
+     *
+     * @param itemId    the item, when the movement has one
+     * @param stationId the station running the movement
+     * @return the owning cluster, or {@code null} when no cluster owns it
+     */
+    private Integer resolveOwnerId(Integer itemId, int stationId) {
+        if (itemId != null) {
+            Optional<InventoryItem> item = inventoryRepository.findItemById(itemId);
+            if (item.isPresent()) return item.get().ownerClusterId();
+        }
+        return clusterRepository.findByStation(stationId).map(Cluster::id).orElse(null);
     }
 
     /**

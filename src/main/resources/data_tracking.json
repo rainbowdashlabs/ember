@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:b1e3f7d609e3383bfc2a36841ca00e0d6bf73252dd54b96be60b6c43f899f679",
-  "generatedAt" : "2026-08-21T03:03:03Z",
+  "schemaHash" : "sha256:85cf04aa68ad92a1d8384ddcf7d3ad70947845e9c2c1eb013b918b64ccbfbcaf",
+  "generatedAt" : "2026-08-21T03:42:37Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -2882,7 +2882,7 @@
     "cluster" : {
       "feature" : "cluster",
       "scope" : "INSTANCE",
-      "tableHash" : "sha256:568d36e50a879c2a444511726a46d52c062f81d21997c6776f53e3a789a2fa30",
+      "tableHash" : "sha256:01b629ff0dade3a0bcafed6cd71509607326045f473e4d1a62d2f56ecb536471",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -2973,6 +2973,12 @@
         "nullable" : true,
         "verified" : true,
         "description" : "The interface feel the cluster hands its stations, or null when it does not care."
+      }, {
+        "name" : "uses_inventory",
+        "type" : "bool",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "TRUE when the cluster keeps its gear here, which is what lets its own steps appear in a movement."
       } ],
       "foreignKeys" : [ {
         "column" : "home_station_id",

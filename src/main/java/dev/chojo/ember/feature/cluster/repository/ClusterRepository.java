@@ -37,7 +37,7 @@ public class ClusterRepository {
     private static final String CLUSTER_COLUMNS = """
             id, uid, name, description, home_station_id, auto_federate, theme_locked, colors_locked, \
             feel_locked, logo_locked, storage_pool_bytes, default_theme, custom_theme_colors, default_feel, \
-            created_at""";
+            uses_inventory, created_at""";
     private static final String MEMBER_COLUMNS = "id, cluster_id, account_id, user_type";
 
     /**
@@ -379,6 +379,24 @@ public class ClusterRepository {
     public boolean setStoragePool(int clusterId, Long poolBytes) {
         return query("UPDATE cluster SET storage_pool_bytes = :pool WHERE id = :id;")
                 .single(call().bind("pool", poolBytes).bind("id", clusterId))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Says whether the cluster keeps its gear here.
+     *
+     * <p>Switching it off does not touch anything already recorded. What it changes is what happens next: a
+     * movement created afterwards falls through to the station's own flow, because there is nobody at the
+     * cluster to acknowledge a step.
+     *
+     * @param id            the cluster
+     * @param usesInventory whether it keeps its gear here
+     * @return {@code true} if a row was updated
+     */
+    public boolean setUsesInventory(int id, boolean usesInventory) {
+        return query("UPDATE cluster SET uses_inventory = :uses_inventory WHERE id = :id;")
+                .single(call().bind("uses_inventory", usesInventory).bind("id", id))
                 .update()
                 .changed();
     }

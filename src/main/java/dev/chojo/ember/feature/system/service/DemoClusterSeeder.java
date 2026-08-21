@@ -9,8 +9,10 @@ import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.ClusterUserType;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.repository.ClusterApplicationRepository;
+import dev.chojo.ember.feature.cluster.service.ClusterInventoryService;
 import dev.chojo.ember.feature.cluster.service.ClusterMemberService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
+import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
@@ -37,6 +39,7 @@ public class DemoClusterSeeder implements DemoSeeder {
 
     private final ClusterService clusterService;
     private final ClusterMemberService memberService;
+    private final ClusterInventoryService inventoryService;
     private final ClusterApplicationRepository applicationRepository;
     private final StationRepository stationRepository;
 
@@ -44,10 +47,12 @@ public class DemoClusterSeeder implements DemoSeeder {
     public DemoClusterSeeder(
             ClusterService clusterService,
             ClusterMemberService memberService,
+            ClusterInventoryService inventoryService,
             ClusterApplicationRepository applicationRepository,
             StationRepository stationRepository) {
         this.clusterService = clusterService;
         this.memberService = memberService;
+        this.inventoryService = inventoryService;
         this.applicationRepository = applicationRepository;
         this.stationRepository = stationRepository;
     }
@@ -79,6 +84,12 @@ public class DemoClusterSeeder implements DemoSeeder {
         // A group with something in it, so the third way to hold a permission is visible rather than theoretical
         var group = memberService.createGroup(cluster.id(), "Gerätewarte");
         memberService.setGroupPermissions(cluster.id(), group.id(), Set.of(ClusterPermission.CLUSTER_INVENTORY_EDIT));
+
+        // The cluster keeps its gear here, with a chain of its own, so its steps actually appear in a
+        // movement rather than the stations behaving as if nothing were above them
+        inventoryService.setUsesInventory(cluster.id(), true);
+        inventoryService.createFlow(cluster.id(), "Tausch über den Kreisverband", MovementPurpose.EXCHANGE);
+        inventoryService.createFlow(cluster.id(), "Rückgabe an den Kreisverband", MovementPurpose.RETURN);
 
         log.info(
                 "Demo: Created cluster {} with home station {} over station {}",

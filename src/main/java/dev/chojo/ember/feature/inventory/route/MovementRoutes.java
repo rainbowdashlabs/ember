@@ -10,10 +10,12 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.inventory.entity.AckKind;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
+import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemMovement;
 import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
@@ -158,7 +160,7 @@ public class MovementRoutes implements Routes {
                 request.oldSizeId(),
                 request.newSizeId(),
                 request.reason() != null ? request.reason() : "",
-                actorOf(session),
+                actorOf(session, null),
                 request.pickedItemId());
         ctx.status(HttpStatus.CREATED).json(toDetail(movement, session));
     }
@@ -176,7 +178,7 @@ public class MovementRoutes implements Routes {
         ItemMovement movement = requireVisible(pathInt(ctx, "id"), session);
         var request = ctx.bodyAsClass(AcknowledgeStepRequest.class);
         var updated = movementService.acknowledge(
-                movement.id(), request.stepId(), actorOf(session), request.note(), request.pickedItemId());
+                movement.id(), request.stepId(), actorOf(session, movement), request.note(), request.pickedItemId());
         ctx.json(toDetail(updated, session));
     }
 
@@ -193,7 +195,7 @@ public class MovementRoutes implements Routes {
         ItemMovement movement = requireVisible(pathInt(ctx, "id"), session);
         var request = ctx.bodyAsClass(AcknowledgeStepRequest.class);
         var updated = movementService.force(
-                movement.id(), request.stepId(), actorOf(session), request.note(), request.pickedItemId());
+                movement.id(), request.stepId(), actorOf(session, movement), request.note(), request.pickedItemId());
         ctx.json(toDetail(updated, session));
     }
 
@@ -209,7 +211,8 @@ public class MovementRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         ItemMovement movement = requireVisible(pathInt(ctx, "id"), session);
         var request = ctx.bodyAsClass(CloseMovementRequest.class);
-        ctx.json(toDetail(movementService.decline(movement.id(), actorOf(session), request.reason()), session));
+        ctx.json(toDetail(
+                movementService.decline(movement.id(), actorOf(session, movement), request.reason()), session));
     }
 
     @OpenApi(
@@ -224,7 +227,8 @@ public class MovementRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         ItemMovement movement = requireVisible(pathInt(ctx, "id"), session);
         var request = ctx.bodyAsClass(CloseMovementRequest.class);
-        ctx.json(toDetail(movementService.cancel(movement.id(), actorOf(session), request.reason()), session));
+        ctx.json(
+                toDetail(movementService.cancel(movement.id(), actorOf(session, movement), request.reason()), session));
     }
 
     @OpenApi(
@@ -242,12 +246,44 @@ public class MovementRoutes implements Routes {
     }
 
     /**
-     * Nobody signs in on the owner's side yet, so an actor never carries owner rights. When a body
-     * above the station can answer for itself, this is where that arrives.
+     * What the caller may act as, which is not one thing but two.
+     *
+     * <p>Somebody can be at the station, at the cluster that owns the gear, or both at once, and a step
+     * belonging to the owner reads differently depending on which of those answered it. A cluster manager
+     * pressing it has confirmed something they can see; the station pressing the same button has asserted
+     * something on the owner's behalf, and the record keeps those apart.
+     *
+     * <p>The cluster half is only true when the caller is acting for the cluster that owns this gear.
+     * Holding the permission at some other cluster says nothing about this one.
      */
-    private ItemMovementService.Actor actorOf(UserSession session) {
+    private ItemMovementService.Actor actorOf(UserSession session, ItemMovement movement) {
         return new ItemMovementService.Actor(
-                session.member().id(), session.hasPermission(StationPermission.INVENTORY_EXCHANGE));
+                session.member().id(),
+                session.hasPermission(StationPermission.INVENTORY_EXCHANGE),
+                hasOwnerRights(session, movement));
+    }
+
+    /**
+     * Whether the caller may answer for the body that owns the gear this movement is about.
+     *
+     * @param session  who is asking
+     * @param movement the movement, or {@code null} when one is being started
+     * @return {@code true} when they act for the owning cluster and hold its exchange permission
+     */
+    private boolean hasOwnerRights(UserSession session, ItemMovement movement) {
+        if (session.clusterId() == null) return false;
+        if (!session.hasClusterPermission(ClusterPermission.CLUSTER_INVENTORY_EXCHANGE)) return false;
+        if (movement == null) return true;
+
+        Integer owner = movement.outgoingItemId() == null
+                ? null
+                : inventoryRepository
+                        .findItemById(movement.outgoingItemId())
+                        .map(InventoryItem::ownerClusterId)
+                        .orElse(null);
+        // A movement that has not named its item yet is about the cluster the station answers to
+        if (owner == null) return true;
+        return owner.equals(session.clusterId());
     }
 
     private boolean mayActForMember(UserSession session, int memberId) {
@@ -299,7 +335,7 @@ public class MovementRoutes implements Routes {
      */
     private MovementDetail toDetail(ItemMovement movement, UserSession session) {
         var logs = movementService.findLogs(movement.id());
-        var actor = actorOf(session);
+        var actor = actorOf(session, movement);
         var steps = movementService.stepsOf(movement).stream()
                 .map(step -> {
                     var entry = logs.stream()

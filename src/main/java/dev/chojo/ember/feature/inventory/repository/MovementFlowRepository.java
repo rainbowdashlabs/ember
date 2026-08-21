@@ -207,6 +207,62 @@ public class MovementFlowRepository {
                 .first();
     }
 
+    /**
+     * A cluster's own binding for a purpose, which outranks the station's when the cluster owns the gear.
+     *
+     * <p>No inventory in the key. A station binds per inventory because it may keep several with different
+     * habits; a cluster's gear is one pool, so one answer per purpose is the whole of it.
+     *
+     * @param clusterId the owning cluster
+     * @param purpose   what the movement is for
+     * @return the flow to walk, or empty when the cluster has bound none
+     */
+    public Optional<Integer> findClusterBoundFlow(int clusterId, MovementPurpose purpose) {
+        return query("""
+                SELECT id FROM movement_flow
+                WHERE cluster_id = :cluster_id AND purpose = :purpose AND NOT archived
+                ORDER BY id
+                LIMIT 1;""")
+                .single(call().bind("cluster_id", clusterId).bind("purpose", purpose))
+                .map(row -> row.getInt("id"))
+                .first();
+    }
+
+    /**
+     * The flows a cluster keeps, whatever their purpose.
+     *
+     * @param clusterId the cluster
+     * @return its flows, newest last
+     */
+    public List<MovementFlow> findClusterFlows(int clusterId) {
+        return query("""
+                SELECT %s FROM movement_flow
+                WHERE cluster_id = :cluster_id AND NOT archived
+                ORDER BY purpose, id;""", FLOW_COLUMNS)
+                .single(call().bind("cluster_id", clusterId))
+                .map(MovementFlow.map())
+                .all();
+    }
+
+    /**
+     * Creates a flow the cluster owns rather than a station.
+     *
+     * @param clusterId the cluster
+     * @param name      what it is called
+     * @param purpose   what it is for
+     * @return the flow
+     */
+    public MovementFlow createClusterFlow(int clusterId, String name, MovementPurpose purpose) {
+        return SqlSupport.insertReturning(
+                """
+                INSERT INTO movement_flow(cluster_id, name, purpose)
+                VALUES (:cluster_id, :name, :purpose)
+                RETURNING %s;""",
+                call().bind("cluster_id", clusterId).bind("name", name).bind("purpose", purpose),
+                MovementFlow.map(),
+                FLOW_COLUMNS);
+    }
+
     public List<MovementFlowBinding> findBindings(int stationId) {
         return query("""
                 SELECT %s FROM movement_flow_binding

@@ -49,6 +49,7 @@ public record Cluster(
         String defaultTheme,
         String customThemeColors,
         ThemeFeel defaultFeel,
+        boolean usesInventory,
         Instant createdAt) {
     /**
      * Creates a row mapping for database result set conversion.
@@ -69,6 +70,7 @@ public record Cluster(
                 row.getString("default_theme"),
                 row.getString("custom_theme_colors"),
                 row.getEnum("default_feel", ThemeFeel.class),
+                row.getBoolean("uses_inventory"),
                 row.get("created_at", INSTANT_TIMESTAMP));
     }
 }

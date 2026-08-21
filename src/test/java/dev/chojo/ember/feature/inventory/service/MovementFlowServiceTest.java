@@ -217,21 +217,22 @@ class MovementFlowServiceTest extends RepositoryTestBase {
                 ItemCustody.WITH_MEMBER,
                 true);
 
-        int stationWide =
-                movementFlowService.resolveFlow(station.id(), inventoryId, ItemOwner.STATION, MovementPurpose.EXCHANGE);
+        int stationWide = movementFlowService.resolveFlow(
+                station.id(), inventoryId, ItemOwner.STATION, null, MovementPurpose.EXCHANGE);
         movementFlowService.bind(station.id(), inventoryId, ItemOwner.STATION, MovementPurpose.EXCHANGE, special.id());
 
         assertEquals(
                 special.id(),
                 movementFlowService.resolveFlow(
-                        station.id(), inventoryId, ItemOwner.STATION, MovementPurpose.EXCHANGE));
+                        station.id(), inventoryId, ItemOwner.STATION, null, MovementPurpose.EXCHANGE));
         assertEquals(
                 stationWide,
-                movementFlowService.resolveFlow(station.id(), null, ItemOwner.STATION, MovementPurpose.EXCHANGE),
+                movementFlowService.resolveFlow(station.id(), null, ItemOwner.STATION, null, MovementPurpose.EXCHANGE),
                 "the station-wide binding is untouched by one made for a single inventory");
         assertNotEquals(
                 special.id(),
-                movementFlowService.resolveFlow(station.id(), inventoryId, ItemOwner.CLUSTER, MovementPurpose.EXCHANGE),
+                movementFlowService.resolveFlow(
+                        station.id(), inventoryId, ItemOwner.CLUSTER, null, MovementPurpose.EXCHANGE),
                 "and it changes only the owner it was bound for");
 
         // Put it back so the other tests find the presets where they left them
@@ -264,7 +265,8 @@ class MovementFlowServiceTest extends RepositoryTestBase {
         // Gear the station owns has no return leg: there is nobody above it to hand anything back to
         assertThrows(
                 BadRequestResponse.class,
-                () -> movementFlowService.resolveFlow(bare.id(), null, ItemOwner.STATION, MovementPurpose.RETURN));
+                () -> movementFlowService.resolveFlow(
+                        bare.id(), null, ItemOwner.STATION, null, MovementPurpose.RETURN));
         stationRepo.delete(bare.id());
     }
 
