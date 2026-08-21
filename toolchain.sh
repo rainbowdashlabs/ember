@@ -103,15 +103,6 @@ Docker
 
 Combined
   verify                be-verify then fe-build
-
-Shell
-  completion install [shell]
-                        Install tab completion where the shell already looks, so nothing has to be
-                        added to an rc file. Run it once; open a new shell and it is there
-  completion uninstall [shell]
-                        Remove what install wrote
-  completion [zsh|bash] Print the function instead of installing it, to eval or to inspect
-                        Shell defaults to the one named in $SHELL
 EOF
 }
 
@@ -130,219 +121,11 @@ is_group() {
     return 1
 }
 
-# --- Completion ----------------------------------------------------------------------------------
-#
-# The candidates are worked out here rather than in the emitted shell function, so both shells get
-# the same answers and neither has to know anything about this repository.
-
-# Every command the case below dispatches, read back out of this file. A new command is completable
-# the moment it is written, and one that is removed stops being offered, without a list to update.
-# The flag spellings of help are dropped: they work, but nobody needs them offered.
-list_commands() {
-    sed -n 's/^    \([a-z][a-z0-9|_-]*\)).*/\1/p' "$ROOT/toolchain.sh" | tr '|' '\n' | grep -v '^-'
-}
-
-# What can be typed first: the groups, then whatever belongs to no group.
-list_top_level() {
-    printf '%s\n' "${COMMAND_GROUPS[@]}"
-    list_commands | grep -vE "^($(IFS='|'; echo "${COMMAND_GROUPS[*]}"))-"
-}
-
-# What can follow a group, with the group's own prefix taken off.
+# What is in a group, read back out of the case arms below so the listing cannot drift from what
+# actually runs.
 list_group() {
-    list_commands | sed -n "s/^$1-//p"
-}
-
-# Prints the part of each matching path that names it, e.g. lint-style.mjs -> style. A glob that
-# matches nothing yields the pattern itself, which -e filters out.
-list_names() {
-    local strip_prefix="$1" strip_suffix="$2" path name
-    shift 2
-    for path in "$@"; do
-        [ -e "$path" ] || continue
-        name="${path##*/}"
-        name="${name#"$strip_prefix"}"
-        printf '%s\n' "${name%"$strip_suffix"}"
-    done
-}
-
-list_e2e_projects() {
-    sed -n "s/.*name: *'\([a-z0-9-]*\)'.*/\1/p" "$FRONTEND/playwright.config.ts" 2> /dev/null
-}
-
-list_compose_services() {
-    awk '/^services:/ {inside = 1; next}
-         /^[a-z]/ {inside = 0}
-         inside && /^  [a-z0-9_-]+:/ {gsub(/[ :]/, ""); print}' \
-        "$ROOT/docker/compose.dev.yaml" 2> /dev/null
-}
-
-list_test_classes() {
-    find "$ROOT/src/test/java" -name '*Test.java' -printf '%f\n' 2> /dev/null | sed 's/\.java$//'
-}
-
-# Candidates for argument $2 (1 for the first) of command $1, where $1 is always the hyphenated
-# name. Silence means "no idea", which the shells turn into their own default of completing
-# filenames.
-complete_args() {
-    local cmd="$1" position="$2"
-    case "$cmd" in
-        fe-lint)
-            [ "$position" = 1 ] && list_names "lint-" ".mjs" "$FRONTEND"/scripts/lint-*.mjs
-            ;;
-        fe-e2e1)
-            [ "$position" = 1 ] && list_names "" ".e2e.ts" "$FRONTEND"/e2e/*.e2e.ts
-            ;;
-        fe-e2e|fe-e2e-built)
-            [ "$position" = 1 ] && list_e2e_projects
-            ;;
-        be-test1)
-            case "$position" in
-                1) list_test_classes ;;
-                2) printf '%s\n' testServices testRepositories testOther testTracking ;;
-            esac
-            ;;
-        docker-app-restart|docker-app-logs)
-            list_compose_services
-            ;;
-        completion)
-            case "$position" in
-                1) printf '%s\n' install uninstall zsh bash ;;
-                2) printf '%s\n' zsh bash ;;
-            esac
-            ;;
-    esac
-    return 0
-}
-
-# Candidates for the word after the ones already typed, which the shells hand over verbatim. Both
-# spellings arrive here, so `docker app <TAB>` and `docker-app <TAB>` complete alike.
-complete_words() {
-    if [ $# -eq 0 ]; then
-        list_top_level
-    elif is_group "$1"; then
-        if [ $# -eq 1 ]; then
-            list_group "$1"
-        else
-            # The group and its subcommand are two words for one name, so the first argument
-            # after them is still argument one.
-            complete_args "$1-$2" "$(($# - 1))"
-        fi
-    else
-        complete_args "$1" "$#"
-    fi
-}
-
-# Where each shell looks by itself, so that installing means dropping a file rather than asking
-# anyone to edit an rc file. On a nix or home-manager machine the rc file is a read-only symlink
-# into the store, and an appended line there would be lost at the next rebuild anyway.
-#
-# For zsh: the first directory that is both on fpath and writable. oh-my-zsh keeps one under its
-# cache for exactly this, and a plain zsh usually has ~/.local/share/zsh/site-functions.
-zsh_completion_dir() {
-    local dir
-    while read -r dir; do
-        [ -n "$dir" ] && [ -d "$dir" ] && [ -w "$dir" ] && { printf '%s\n' "$dir"; return 0; }
-    done < <(zsh -ic 'print -l $fpath' 2> /dev/null)
-    return 1
-}
-
-bash_completion_dir() {
-    printf '%s\n' "${XDG_DATA_HOME:-$HOME/.local/share}/bash-completion/completions"
-}
-
-# The file zsh autoloads. The #compdef line is what registers it, which is why nothing has to run
-# at shell start. All three spellings are named because zsh looks the command up as it was typed.
-print_zsh_function() {
-    local self="$ROOT/toolchain.sh"
-    cat <<EOF
-#compdef toolchain.sh ./toolchain.sh $self
-# Written by \`toolchain.sh completion install\`. Run that again after moving the checkout.
-
-local script=$self
-[[ -x \$script ]] || return 1
-
-local -a candidates
-candidates=(\${(f)"\$(\$script __complete \${words[2,CURRENT-1]})"})
-(( \${#candidates} )) && compadd -- \$candidates
-EOF
-}
-
-install_completion() {
-    local shell="${1:-$(basename "${SHELL:-bash}")}" dir target
-    case "$shell" in
-        zsh)
-            dir=$(zsh_completion_dir) || {
-                echo "No writable directory on zsh's fpath." >&2
-                echo "Add one to fpath, then run this again:" >&2
-                echo "  fpath+=(\$HOME/.local/share/zsh/site-functions)" >&2
-                return 1
-            }
-            target="$dir/_toolchain"
-            print_zsh_function > "$target"
-            # compinit reads a cached dump and would not notice a new file until it expires.
-            rm -f "$HOME"/.zcompdump*
-            echo "Installed $target"
-            echo "Open a new shell and the completion is there."
-            ;;
-        bash)
-            dir=$(bash_completion_dir)
-            mkdir -p "$dir"
-            # bash-completion loads a file named after the command, on first use of that command.
-            target="$dir/toolchain.sh"
-            print_completion bash > "$target"
-            echo "Installed $target"
-            echo "Open a new shell and the completion is there (needs the bash-completion package)."
-            ;;
-        *) echo "No completion for '$shell'. Supported: zsh, bash" >&2; return 2 ;;
-    esac
-}
-
-uninstall_completion() {
-    local shell="${1:-$(basename "${SHELL:-bash}")}" dir target
-    case "$shell" in
-        zsh)
-            dir=$(zsh_completion_dir) || return 0
-            target="$dir/_toolchain"
-            ;;
-        bash) target="$(bash_completion_dir)/toolchain.sh" ;;
-        *) echo "No completion for '$shell'. Supported: zsh, bash" >&2; return 2 ;;
-    esac
-    if [ -f "$target" ]; then
-        rm -f "$target"
-        [ "$shell" = zsh ] && rm -f "$HOME"/.zcompdump*
-        echo "Removed $target"
-    else
-        echo "Nothing installed at $target"
-    fi
-}
-
-# The emitted functions call back into this script, so they stay this short and never go stale.
-print_completion() {
-    local shell="${1:-$(basename "${SHELL:-bash}")}" self="$ROOT/toolchain.sh"
-    case "$shell" in
-        zsh)
-            cat <<EOF
-_toolchain() {
-    local -a candidates
-    candidates=(\${(f)"\$('$self' __complete \${words[2,CURRENT-1]})"})
-    (( \${#candidates} )) && compadd -- \$candidates
-}
-compdef _toolchain toolchain.sh ./toolchain.sh '$self'
-EOF
-            ;;
-        bash)
-            cat <<EOF
-_toolchain() {
-    local candidates
-    candidates="\$('$self' __complete "\${COMP_WORDS[@]:1:COMP_CWORD-1}")"
-    mapfile -t COMPREPLY < <(compgen -W "\$candidates" -- "\${COMP_WORDS[COMP_CWORD]}")
-}
-complete -F _toolchain toolchain.sh ./toolchain.sh '$self'
-EOF
-            ;;
-        *) echo "No completion for '$shell'. Supported: zsh, bash" >&2; return 2 ;;
-    esac
+    sed -n 's/^    \([a-z][a-z0-9|_-]*\)).*/\1/p' "$ROOT/toolchain.sh" |
+        tr '|' '\n' | sed -n "s/^$1-//p"
 }
 
 # `docker app` becomes `docker-app` before anything else looks at it, so the arms below only ever
@@ -487,16 +270,6 @@ case "$cmd" in
         "$ROOT/toolchain.sh" be-verify
         "$ROOT/toolchain.sh" fe-build
         ;;
-
-    completion)
-        case "${1:-}" in
-            install)   shift; install_completion "$@" ;;
-            uninstall) shift; uninstall_completion "$@" ;;
-            *)         print_completion "$@" ;;
-        esac
-        ;;
-    # Not in the command list: the shells call it, nobody types it.
-    __complete)   complete_words "$@" ;;
 
     help|-h|--help) usage ;;
     *) echo "Unknown command: $cmd" >&2; echo >&2; usage >&2; exit 2 ;;
