@@ -1,14 +1,19 @@
--- The station media library, and blocks that belong to a container rather than to a page.
+-- The media library, what the instance owns of it, and blocks that belong to a container rather
+-- than to a page.
 --
--- Two halves of one change, so they land together.
+-- Three halves of one change, so they land together.
 --
 -- The first: the file library the page editor built is not a page feature that other features may
 -- borrow, it is a media library for the whole station, and it is renamed here to say so. A table
 -- rename in PostgreSQL carries indexes, constraints and sequences along, so the objects are renamed
 -- with it to keep the schema readable for anyone looking at it through pg_catalog. The patch also
--- records who brought a file in, and lets a news entry hand a file over.
+-- records who brought a file in, gives the instance a library of its own, and lets a news entry
+-- hand a file over.
 --
--- The second: rows and cells hung off a page, which is why the page editor could only ever build a
+-- The second: an entry that belongs to no station, which is what the instance says to every station
+-- at once.
+--
+-- The third: rows and cells hung off a page, which is why the page editor could only ever build a
 -- page. A container owns them instead, and a page, a news entry and a knowledge-base article each
 -- own one. Nothing about the editor changes; what changes is what may be edited with it.
 
@@ -44,7 +49,6 @@ ALTER TABLE ember_schema.station_file_tag_assignment
 ALTER TABLE ember_schema.station_file_tag_assignment
     RENAME CONSTRAINT page_file_tag_assignment_tag_id_fkey TO station_file_tag_assignment_tag_id_fkey;
 
-ALTER INDEX IF EXISTS ember_schema.page_file_station_hash_idx RENAME TO station_file_station_hash_idx;
 ALTER INDEX IF EXISTS ember_schema.page_file_station_idx RENAME TO station_file_station_idx;
 ALTER INDEX IF EXISTS ember_schema.page_file_page_idx RENAME TO station_file_page_idx;
 ALTER INDEX IF EXISTS ember_schema.page_file_uploaded_at_idx RENAME TO station_file_uploaded_at_idx;
@@ -64,12 +68,37 @@ COMMENT ON TABLE ember_schema.station_file_tag
 COMMENT ON TABLE ember_schema.station_file_tag_assignment
     IS 'Many-to-many join between media files and tags.';
 
+-- A library that belongs to the instance rather than to a station.
+--
+-- A system entry is read in every station, so the pictures in it cannot belong to one of them: a
+-- station pruning its unused files would break a notice everywhere else. The instance keeps its own
+-- files, with no station, and serves them to everyone.
+ALTER TABLE ember_schema.station_file
+    ALTER COLUMN station_id DROP NOT NULL;
+
+COMMENT ON COLUMN ember_schema.station_file.station_id IS
+    'The station whose library holds the file. Null for a file the instance holds, which every station can be served.';
+
+-- The library stores one copy of identical bytes, which it enforces with a unique index on the
+-- station and the hash together. PostgreSQL counts two nulls as different values by default, so a
+-- plain index would let the instance store the same picture as many times as it was uploaded.
+-- NULLS NOT DISTINCT makes the absence of a station a value like any other, and the instance
+-- deduplicates exactly as a station does.
+DROP INDEX IF EXISTS ember_schema.page_file_station_hash_idx;
+
+CREATE UNIQUE INDEX station_file_station_hash_idx
+    ON ember_schema.station_file (station_id, content_hash) NULLS NOT DISTINCT
+    WHERE content_hash IS NOT NULL;
+
 -- Who brought a file in.
 --
 -- Uploads are deduplicated per station by the hash of their bytes, so the second member to upload
 -- the same picture is handed the row the first one created. A single uploader column would then
 -- hand them somebody else's file and they would not see what they just uploaded. Ownership is a
 -- set for that reason: a dedup hit adds a row here rather than creating a file.
+--
+-- It is recorded per station member, so an instance file has no uploader to record: it is brought
+-- in by an administrator, who is not a member of anything.
 CREATE TABLE IF NOT EXISTS ember_schema.station_file_uploader
 (
     file_id     INTEGER     NOT NULL REFERENCES ember_schema.station_file (id) ON DELETE CASCADE,
@@ -110,6 +139,29 @@ COMMENT ON COLUMN ember_schema.news_attachment.label
     IS 'What a reader sees instead of the file name, for the cases where the file name is not what should be read.';
 COMMENT ON COLUMN ember_schema.news_attachment.sort_order
     IS 'The order the author put the attachments in, which is the order they are handed out and travel in.';
+
+-- A news entry that belongs to no station.
+--
+-- Everything the instance has to say to everyone was, until now, something each station had to be
+-- told separately. A system entry is written once and read in every station: one row, so correcting
+-- it corrects it everywhere and withdrawing it withdraws it everywhere, and so the comments under
+-- it are one conversation the instance can see whole while each station sees its own part of it.
+--
+-- Dropping the station is all that takes. The entry keeps its own restrictions, its own blocks and
+-- its own comments exactly as a station entry does, and the comments already record which station
+-- their author wrote from, which is what lets a station be shown its own and nobody else's.
+--
+-- An entry with no station is not on any station's public blog and does not travel to partner
+-- stations, because both of those are read through the station it belongs to and it belongs to
+-- none.
+ALTER TABLE ember_schema.news
+    ALTER COLUMN station_id DROP NOT NULL;
+
+COMMENT ON COLUMN ember_schema.news.station_id IS
+    'The station that published the entry. Null for a system entry, which the instance publishes to every station at once.';
+
+-- Reading a station's news reads its own and the system entries together, so the two are one index.
+CREATE INDEX idx_news_station_published ON ember_schema.news (station_id, published_at DESC);
 
 CREATE TABLE IF NOT EXISTS ember_schema.content_container
 (
