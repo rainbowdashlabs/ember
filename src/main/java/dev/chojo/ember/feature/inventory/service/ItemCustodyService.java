@@ -5,8 +5,11 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.ClusterItemLost;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
+import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import io.javalin.http.BadRequestResponse;
 import jakarta.inject.Inject;
@@ -29,10 +32,12 @@ import java.util.Optional;
 public class ItemCustodyService {
     private static final Logger log = LoggerFactory.getLogger(ItemCustodyService.class);
     private final InventoryRepository inventoryRepository;
+    private final DomainEventBus eventBus;
 
     @Inject
-    public ItemCustodyService(InventoryRepository inventoryRepository) {
+    public ItemCustodyService(InventoryRepository inventoryRepository, DomainEventBus eventBus) {
         this.inventoryRepository = inventoryRepository;
+        this.eventBus = eventBus;
     }
 
     /**
@@ -137,6 +142,10 @@ public class ItemCustodyService {
         Integer holder = item.custodyStationId() != null ? item.custodyStationId() : stationOf(item);
         inventoryRepository.updateCustody(itemId, ItemCustody.LOST, holder, item.assignedTo(), null);
         log.info("Item {} marked lost (was {})", itemId, item.custody());
+        // Gear whose owner does not run here has nobody to tell, and gear the station owns is its own affair
+        if (item.ownerKind() == ItemOwner.CLUSTER && item.ownerClusterId() != null && holder != null) {
+            eventBus.publish(new ClusterItemLost(item.ownerClusterId(), item.name(), holder));
+        }
         return inventoryRepository.findItemById(itemId);
     }
 

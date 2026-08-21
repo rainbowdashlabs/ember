@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.inventory.entity.StepActor;
  * @param reason        why it was started
  * @param actorMemberId who started it, so they are not told about their own doing
  * @param nextActor     the party whose turn it is now, or {@code null} if it finished on the spot
+ * @param ownerClusterId the cluster that owns the gear, or {@code null} when no cluster on this instance does
  */
 public record MovementStarted(
         int stationId,
@@ -30,5 +31,6 @@ public record MovementStarted(
         String inventoryName,
         String reason,
         int actorMemberId,
-        StepActor nextActor)
+        StepActor nextActor,
+        Integer ownerClusterId)
         implements DomainEvent {}

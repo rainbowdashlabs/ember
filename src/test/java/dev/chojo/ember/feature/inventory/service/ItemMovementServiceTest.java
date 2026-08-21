@@ -255,6 +255,53 @@ class ItemMovementServiceTest extends RepositoryTestBase {
                 "naming the body above does not make the station's click its answer");
     }
 
+    /**
+     * An issue that already names what is being sent is what a cluster starting one looks like, and the
+     * station is told what is coming by name rather than by a step it has to go and read.
+     */
+    @Test
+    void anIssueOfClusterGearNamesWhatIsOnItsWay() {
+        var flow = movementFlowService.createFlow(station.id(), "Träger schickt", MovementPurpose.ISSUE);
+        movementFlowService.addStep(
+                flow.id(), "Träger verschickt", StepActor.OWNER, StepSubject.OUTGOING, ItemCustody.IN_TRANSIT, false);
+        movementFlowService.addStep(
+                flow.id(), "Wache nimmt an", StepActor.STATION, StepSubject.OUTGOING, ItemCustody.AT_STATION, false);
+        movementFlowService.bind(station.id(), null, ItemOwner.CLUSTER, MovementPurpose.ISSUE, flow.id());
+
+        var home = stationRepo.create("Träger " + CODES.incrementAndGet());
+        int clusterId = clusterRepo.create("Kreisverband", null, home.id()).id();
+        int gear = inventoryRepo
+                .createItem(
+                        mixedInventoryId,
+                        "M-" + CODES.incrementAndGet(),
+                        "Jacke",
+                        null,
+                        null,
+                        ItemOwner.CLUSTER,
+                        clusterId)
+                .id();
+
+        ItemMovement movement = itemMovementService.create(
+                station.id(),
+                MovementPurpose.ISSUE,
+                null,
+                null,
+                gear,
+                mixedInventoryId,
+                null,
+                null,
+                "Nachschub",
+                team,
+                null);
+
+        assertEquals(ItemCustody.IN_TRANSIT, custodyOf(gear), "it is on its way, at neither end");
+
+        movement = itemMovementService.acknowledge(movement.id(), movement.currentStepId(), team, "", null);
+
+        assertEquals(MovementState.DONE, movement.state());
+        assertEquals(ItemCustody.AT_STATION, custodyOf(gear), "and it has arrived");
+    }
+
     @Test
     void anOwnerAnsweringForItselfIsRecordedAsConfirming() {
         // Nobody carries owner rights today. The day the body above the station has people who can

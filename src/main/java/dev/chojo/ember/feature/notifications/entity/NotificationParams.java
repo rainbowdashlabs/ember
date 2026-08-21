@@ -68,6 +68,12 @@ public sealed interface NotificationParams {
     /** The quota is already formatted, because a byte count is not what somebody wants to read. */
     record ClusterQuotaChanged(String clusterName, String quota) implements NotificationParams {}
 
+    /** What is coming and who sent it. The station has nothing to answer yet, so no step is named. */
+    record ClusterItemIssued(String clusterName, String itemName) implements NotificationParams {}
+
+    /** The station is named because the cluster's gear is spread over several of them. */
+    record ClusterItemLost(String itemName, String stationName) implements NotificationParams {}
+
     /**
      * Says only that something moved. Naming the permission would mean listing a set that may have changed in
      * four ways at once, and the screen it links to shows the answer anyway.

@@ -235,6 +235,8 @@
     "notification.clusterStationReleased": "{clusterName} has released your station",
     "notification.clusterModuleDenied": "{clusterName} switched {module} off for your station. What you put in it is kept.",
     "notification.clusterQuotaChanged": "{clusterName} set your storage allowance to {quota}",
+    "notification.clusterItemIssued": "{clusterName} is sending you {itemName}",
+    "notification.clusterItemLost": "{itemName} is reported missing at {stationName}",
     "notification.clusterMemberRoleChanged": "What you may do at {clusterName} has changed",
     "notification.clusterFieldValueChanged": "{clusterName} changed {fields} in your profile"
   }

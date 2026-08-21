@@ -235,6 +235,8 @@
     "notification.clusterStationReleased": "{clusterName} hat eure Wache entlassen",
     "notification.clusterModuleDenied": "{clusterName} hat {module} für eure Wache abgeschaltet. Eure Daten dazu bleiben erhalten.",
     "notification.clusterQuotaChanged": "{clusterName} hat euren Speicherplatz auf {quota} gesetzt",
+    "notification.clusterItemIssued": "{clusterName} schickt euch {itemName}",
+    "notification.clusterItemLost": "{itemName} wird bei {stationName} vermisst",
     "notification.clusterMemberRoleChanged": "Deine Rechte im Verband {clusterName} haben sich geändert",
     "notification.clusterFieldValueChanged": "{clusterName} hat in deinem Profil {fields} geändert"
   }

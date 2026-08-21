@@ -5,10 +5,13 @@
  */
 package dev.chojo.ember.event;
 
+import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.events.BoardTicketChanged;
 import dev.chojo.ember.event.events.BulkMentionedInComment;
+import dev.chojo.ember.event.events.ClusterItemIssued;
+import dev.chojo.ember.event.events.ClusterItemLost;
 import dev.chojo.ember.event.events.CommentCreated;
 import dev.chojo.ember.event.events.CommentDeleted;
 import dev.chojo.ember.event.events.EventCreated;
@@ -34,6 +37,8 @@ import dev.chojo.ember.event.events.StorageWarningEvent;
 import dev.chojo.ember.event.events.WaitlistPublicRegistration;
 import dev.chojo.ember.event.handlers.BoardTicketChangedHandler;
 import dev.chojo.ember.event.handlers.BulkMentionedInCommentHandler;
+import dev.chojo.ember.event.handlers.ClusterItemIssuedHandler;
+import dev.chojo.ember.event.handlers.ClusterItemLostHandler;
 import dev.chojo.ember.event.handlers.CommentCreatedHandler;
 import dev.chojo.ember.event.handlers.CommentDeletedHandler;
 import dev.chojo.ember.event.handlers.EventCreatedHandler;
@@ -57,6 +62,8 @@ import dev.chojo.ember.event.handlers.ProcurementFulfilledHandler;
 import dev.chojo.ember.event.handlers.RegistrationDeadlineExpiredHandler;
 import dev.chojo.ember.event.handlers.StorageWarningHandler;
 import dev.chojo.ember.event.handlers.WaitlistPublicRegistrationHandler;
+import dev.chojo.ember.feature.cluster.entity.StationKind;
+import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.entity.MentionType;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
@@ -66,6 +73,7 @@ import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.inventory.entity.StepActor;
+import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -75,6 +83,10 @@ import dev.chojo.ember.feature.notifications.service.NotificationService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
+import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
+import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.ThemeFeel;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -91,6 +103,7 @@ import static org.mockito.Mockito.*;
 class DomainEventHandlerTest {
     private NotificationService notificationService;
     private StationMemberRepository memberRepository;
+    private ClusterService clusterService;
     private MemberGroupRepository memberGroupRepository;
     private EventRepository eventRepository;
     private EventRegistrationRepository registrationRepository;
@@ -103,6 +116,7 @@ class DomainEventHandlerTest {
     void setUp() {
         notificationService = mock(NotificationService.class);
         memberRepository = mock(StationMemberRepository.class);
+        clusterService = mock(ClusterService.class);
         memberGroupRepository = mock(MemberGroupRepository.class);
         eventRepository = mock(EventRepository.class);
         registrationRepository = mock(EventRegistrationRepository.class);
@@ -758,14 +772,14 @@ class DomainEventHandlerTest {
 
     @Test
     void movementStartedTellsWhoeverTheChainWaitsOn() {
-        var handler = new MovementStartedHandler(notificationService, memberRepository);
+        var handler = new MovementStartedHandler(notificationService, memberRepository, () -> clusterService);
         assertEquals(MovementStarted.class, handler.eventType());
 
         when(memberRepository.findMembersWithPermission(STATION_ID, StationPermission.INVENTORY_MANAGER))
                 .thenReturn(List.of(member(30), member(31)));
 
         handler.handle(new MovementStarted(
-                STATION_ID, 1, MEMBER_ID, "Max", 99, "Helm", "Kaputt", MEMBER_ID, StepActor.STATION));
+                STATION_ID, 1, MEMBER_ID, "Max", 99, "Helm", "Kaputt", MEMBER_ID, StepActor.STATION, null));
 
         verify(notificationService)
                 .notifyMembersIfAbsent(
@@ -779,14 +793,14 @@ class DomainEventHandlerTest {
 
     @Test
     void movementAdvancedTellsTheStationWhenItsStepIsNext() {
-        var handler = new MovementAdvancedHandler(notificationService, memberRepository);
+        var handler = new MovementAdvancedHandler(notificationService, memberRepository, () -> clusterService);
         assertEquals(MovementAdvanced.class, handler.eventType());
 
         when(memberRepository.findMembersWithPermission(STATION_ID, StationPermission.INVENTORY_MANAGER))
                 .thenReturn(List.of(member(30)));
 
         handler.handle(new MovementAdvanced(
-                STATION_ID, 1, MEMBER_ID, 99, "Helm", "Tausch angekündigt", MEMBER_ID, StepActor.STATION));
+                STATION_ID, 1, MEMBER_ID, 99, "Helm", "Tausch angekündigt", MEMBER_ID, StepActor.STATION, null));
 
         verify(notificationService)
                 .notifyMembersIfAbsent(
@@ -798,10 +812,10 @@ class DomainEventHandlerTest {
 
     @Test
     void movementAdvancedTellsTheMemberWhenTheirStepIsNext() {
-        var handler = new MovementAdvancedHandler(notificationService, memberRepository);
+        var handler = new MovementAdvancedHandler(notificationService, memberRepository, () -> clusterService);
 
-        handler.handle(
-                new MovementAdvanced(STATION_ID, 1, MEMBER_ID, 99, "Helm", "Ersatz erhalten", 30, StepActor.MEMBER));
+        handler.handle(new MovementAdvanced(
+                STATION_ID, 1, MEMBER_ID, 99, "Helm", "Ersatz erhalten", 30, StepActor.MEMBER, null));
 
         verify(notificationService)
                 .notifyMembersIfAbsent(
@@ -814,9 +828,9 @@ class DomainEventHandlerTest {
 
     @Test
     void aChainThatHasEndedTellsTheMemberItConcerned() {
-        var handler = new MovementAdvancedHandler(notificationService, memberRepository);
+        var handler = new MovementAdvancedHandler(notificationService, memberRepository, () -> clusterService);
 
-        handler.handle(new MovementAdvanced(STATION_ID, 1, MEMBER_ID, 99, "Helm", "Ersatz ausgegeben", 30, null));
+        handler.handle(new MovementAdvanced(STATION_ID, 1, MEMBER_ID, 99, "Helm", "Ersatz ausgegeben", 30, null, null));
 
         verify(notificationService)
                 .notifyMembersIfAbsent(
@@ -832,13 +846,13 @@ class DomainEventHandlerTest {
      */
     @Test
     void anOwnerStepIsAnnouncedToTheStationStandingInForIt() {
-        var handler = new MovementAdvancedHandler(notificationService, memberRepository);
+        var handler = new MovementAdvancedHandler(notificationService, memberRepository, () -> clusterService);
 
         when(memberRepository.findMembersWithPermission(STATION_ID, StationPermission.INVENTORY_MANAGER))
                 .thenReturn(List.of(member(30)));
 
         handler.handle(new MovementAdvanced(
-                STATION_ID, 1, MEMBER_ID, 99, "Helm", "An den Träger geschickt", MEMBER_ID, StepActor.OWNER));
+                STATION_ID, 1, MEMBER_ID, 99, "Helm", "An den Träger geschickt", MEMBER_ID, StepActor.OWNER, null));
 
         verify(notificationService)
                 .notifyMembersIfAbsent(
@@ -846,6 +860,145 @@ class DomainEventHandlerTest {
                         eq(NotificationType.EXCHANGE_STATUS_CHANGE),
                         any(NotificationData.class),
                         eq(MEMBER_ID));
+    }
+
+    /**
+     * An owner that is a cluster on this instance can be told, and is the only party that can answer
+     * the step. The station hears nothing: it has nothing to do but wait.
+     */
+    @Test
+    void anOwnerStepOnClusterGearIsAnnouncedToTheCluster() {
+        var handler = new MovementAdvancedHandler(notificationService, memberRepository, () -> clusterService);
+
+        when(clusterService.findMemberIdsWith(7, ClusterPermission.CLUSTER_INVENTORY_MANAGER))
+                .thenReturn(List.of(40, 41));
+
+        handler.handle(new MovementAdvanced(
+                STATION_ID, 1, MEMBER_ID, 99, "Helm", "An den Träger geschickt", MEMBER_ID, StepActor.OWNER, 7));
+
+        verify(notificationService)
+                .notifyClusterMembersIfAbsent(
+                        eq(List.of(40, 41)),
+                        eq(NotificationType.EXCHANGE_STATUS_CHANGE),
+                        argThat(data -> "cluster-movements".equals(data.link().route())),
+                        isNull());
+        verify(notificationService).notifyMembersIfAbsent(eq(List.of()), any(), any(NotificationData.class), anyInt());
+        verify(memberRepository, never()).findMembersWithPermission(anyInt(), any());
+    }
+
+    /**
+     * A chain that ends with nobody at either end tells nobody. It is the one case where the right
+     * answer is silence rather than a fallback recipient.
+     */
+    @Test
+    void aChainThatEndsWithNoMemberTellsNobody() {
+        var handler = new MovementAdvancedHandler(notificationService, memberRepository, () -> clusterService);
+
+        handler.handle(new MovementAdvanced(STATION_ID, 1, null, 99, "Helm", "Eingelagert", 30, null, null));
+
+        verify(notificationService).notifyMembersIfAbsent(eq(List.of()), any(), any(NotificationData.class), anyInt());
+        verify(notificationService)
+                .notifyClusterMembersIfAbsent(eq(List.of()), any(), any(NotificationData.class), isNull());
+    }
+
+    /** A station with a name, which is the only thing the lost-gear message reads off it. */
+    private static Station station(String name) {
+        return new Station(
+                STATION_ID,
+                UUID.randomUUID(),
+                name,
+                "Europe/Berlin",
+                "de-DE",
+                null,
+                "ember",
+                true,
+                null,
+                ThemeFeel.ROUNDED,
+                true,
+                PublicKbMode.OFF,
+                null,
+                DiscoveryVisibility.NONE,
+                null,
+                false,
+                false,
+                null,
+                false,
+                null,
+                false,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                StationKind.REGULAR,
+                null);
+    }
+
+    // -- ClusterItemIssuedHandler --
+
+    /**
+     * Being told that something is coming is a different sentence from being asked to acknowledge a step,
+     * so it reaches the station as its own message and lands on the movement carrying it.
+     */
+    @Test
+    void clusterItemIssuedTellsTheStationWhatIsOnItsWay() {
+        var handler = new ClusterItemIssuedHandler(notificationService, memberRepository);
+        assertEquals(ClusterItemIssued.class, handler.eventType());
+
+        when(memberRepository.findMembersWithPermission(STATION_ID, StationPermission.INVENTORY_MANAGER))
+                .thenReturn(List.of(member(30), member(31)));
+
+        handler.handle(new ClusterItemIssued(STATION_ID, 5, "Kreisverband Musterstadt", "Jacke"));
+
+        verify(notificationService)
+                .notifyMembersIfAbsent(
+                        eq(List.of(30, 31)),
+                        eq(NotificationType.CLUSTER_ITEM_ISSUED),
+                        argThat(data ->
+                                "inventory-movement-detail".equals(data.link().route())),
+                        eq(0));
+    }
+
+    // -- ClusterItemLostHandler --
+
+    @Test
+    void clusterItemLostTellsTheClusterAndNamesTheStation() {
+        var stationRepository = mock(StationRepository.class);
+        var handler = new ClusterItemLostHandler(notificationService, stationRepository, () -> clusterService);
+        assertEquals(ClusterItemLost.class, handler.eventType());
+
+        when(stationRepository.findById(STATION_ID)).thenReturn(Optional.of(station("JF Nachbarstadt")));
+        when(clusterService.findMemberIdsWith(7, ClusterPermission.CLUSTER_INVENTORY_MANAGER))
+                .thenReturn(List.of(40));
+
+        handler.handle(new ClusterItemLost(7, "Helm", STATION_ID));
+
+        verify(notificationService)
+                .notifyClusterMembersIfAbsent(
+                        eq(List.of(40)),
+                        eq(NotificationType.CLUSTER_ITEM_LOST),
+                        argThat(data -> "cluster-inventory".equals(data.link().route())),
+                        isNull());
+    }
+
+    /** A station that has gone since the report still leaves a message worth reading. */
+    @Test
+    void clusterItemLostSurvivesAStationThatIsNoLongerThere() {
+        var stationRepository = mock(StationRepository.class);
+        var handler = new ClusterItemLostHandler(notificationService, stationRepository, () -> clusterService);
+
+        when(stationRepository.findById(STATION_ID)).thenReturn(Optional.empty());
+        when(clusterService.findMemberIdsWith(7, ClusterPermission.CLUSTER_INVENTORY_MANAGER))
+                .thenReturn(List.of(40));
+
+        handler.handle(new ClusterItemLost(7, "Helm", STATION_ID));
+
+        verify(notificationService)
+                .notifyClusterMembersIfAbsent(
+                        eq(List.of(40)), eq(NotificationType.CLUSTER_ITEM_LOST), any(NotificationData.class), isNull());
     }
 
     // -- MovementDeclinedHandler --

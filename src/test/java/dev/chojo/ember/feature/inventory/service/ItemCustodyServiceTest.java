@@ -5,6 +5,9 @@
  */
 package dev.chojo.ember.feature.inventory.service;
 
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.DomainEventHandler;
+import dev.chojo.ember.event.events.ClusterItemLost;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
@@ -16,6 +19,9 @@ import io.javalin.http.BadRequestResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -112,6 +118,45 @@ class ItemCustodyServiceTest extends RepositoryTestBase {
         var history = inventoryRepo.findHistory(itemId);
         assertFalse(history.isEmpty());
         assertNull(history.getFirst().returned());
+    }
+
+    /**
+     * Gear the station does not own going missing is somebody else's news, so the owner is told. Gear whose
+     * owner does not run here has nobody to tell, and saying nothing is the right answer rather than a gap.
+     */
+    @Test
+    void losingClusterGearTellsTheClusterAndLosingTheStationsOwnTellsNobody() {
+        var heard = new ArrayList<ClusterItemLost>();
+        var listener = new DomainEventHandler<ClusterItemLost>() {
+            @Override
+            public Class<ClusterItemLost> eventType() {
+                return ClusterItemLost.class;
+            }
+
+            @Override
+            public void handle(ClusterItemLost event) {
+                heard.add(event);
+            }
+        };
+        var custody = new ItemCustodyService(inventoryRepo, new DomainEventBus(Set.of(listener)));
+
+        var home = stationRepo.create("Träger Verlust");
+        int clusterId = clusterRepo.create("Kreisverband", null, home.id()).id();
+        int clusterGear = inventoryRepo
+                .createItem(mixedInventoryId, "C-LOST-1", "Jacke", null, null, ItemOwner.CLUSTER, clusterId)
+                .id();
+
+        custody.markLost(clusterGear);
+
+        assertEquals(1, heard.size(), "the owner hears that its gear is missing");
+        assertEquals(clusterId, heard.getFirst().clusterId());
+        assertEquals("Jacke", heard.getFirst().itemName());
+        assertEquals(station.id(), heard.getFirst().stationId());
+
+        custody.markLost(stationOwned("C-LOST-2"));
+        custody.markLost(ownerOwned("C-LOST-3"));
+
+        assertEquals(1, heard.size(), "the station's own gear and gear from off the instance tell nobody");
     }
 
     @Test

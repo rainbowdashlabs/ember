@@ -306,7 +306,7 @@ public abstract class RepositoryTestBase {
         clusterRepo = new ClusterRepository();
         clusterApplicationRepo = new ClusterApplicationRepository();
         clusterProfileFieldRepo = new ClusterProfileFieldRepository();
-        itemCustodyService = new ItemCustodyService(inventoryRepo);
+        itemCustodyService = new ItemCustodyService(inventoryRepo, new DomainEventBus(Set.of()));
         movementFlowRepo = new MovementFlowRepository();
         itemMovementRepo = new ItemMovementRepository();
         movementFlowService = new MovementFlowService(movementFlowRepo, itemMovementRepo, clusterRepo);

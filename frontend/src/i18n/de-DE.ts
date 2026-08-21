@@ -4790,6 +4790,8 @@ export default {
         clusterStationReleased: '{clusterName} hat eure Wache entlassen',
         clusterModuleDenied: '{clusterName} hat {module} für eure Wache abgeschaltet. Eure Daten dazu bleiben erhalten.',
         clusterQuotaChanged: '{clusterName} hat euren Speicherplatz auf {quota} gesetzt',
+        clusterItemIssued: '{clusterName} schickt euch {itemName}',
+        clusterItemLost: '{itemName} wird bei {stationName} vermisst',
         clusterMemberRoleChanged: 'Deine Rechte im Verband {clusterName} haben sich geändert',
         clusterFieldValueChanged: '{clusterName} hat in deinem Profil {fields} geändert',
         typeLabel: {
@@ -4830,6 +4832,8 @@ export default {
             CLUSTER_STATION_RELEASED: 'Aus dem Verband entlassen',
             CLUSTER_MODULE_DENIED: 'Modul abgeschaltet',
             CLUSTER_QUOTA_CHANGED: 'Speicherplatz geändert',
+            CLUSTER_ITEM_ISSUED: 'Material unterwegs',
+            CLUSTER_ITEM_LOST: 'Material vermisst',
             CLUSTER_MEMBER_ROLE_CHANGED: 'Rechte geändert',
             CLUSTER_FIELD_VALUE_CHANGED: 'Profil vom Verband geändert',
         },

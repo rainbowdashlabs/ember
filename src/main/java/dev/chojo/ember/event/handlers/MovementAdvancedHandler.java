@@ -7,12 +7,14 @@ package dev.chojo.ember.event.handlers;
 
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.MovementAdvanced;
+import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import jakarta.inject.Inject;
+import jakarta.inject.Provider;
 import jakarta.inject.Singleton;
 
 import java.util.Map;
@@ -28,12 +30,16 @@ import java.util.Map;
 public class MovementAdvancedHandler implements DomainEventHandler<MovementAdvanced> {
     private final NotificationService notificationService;
     private final StationMemberRepository stationMemberRepository;
+    private final Provider<ClusterService> clusterService;
 
     @Inject
     public MovementAdvancedHandler(
-            NotificationService notificationService, StationMemberRepository stationMemberRepository) {
+            NotificationService notificationService,
+            StationMemberRepository stationMemberRepository,
+            Provider<ClusterService> clusterService) {
         this.notificationService = notificationService;
         this.stationMemberRepository = stationMemberRepository;
+        this.clusterService = clusterService;
     }
 
     @Override
@@ -43,13 +49,27 @@ public class MovementAdvancedHandler implements DomainEventHandler<MovementAdvan
 
     @Override
     public void handle(MovementAdvanced event) {
-        var data = NotificationData.of(
-                new NotificationParams.ExchangeStatusChange(
-                        event.stepLabel(), event.inventoryName(), event.nextActor()),
-                new NotificationData.NotificationLink("inventory-movement-detail", Map.of("id", event.movementId())));
+        var params = new NotificationParams.ExchangeStatusChange(
+                event.stepLabel(), event.inventoryName(), event.nextActor());
         var recipients = MovementNotificationRouting.recipients(
-                stationMemberRepository, event.stationId(), event.memberId(), event.nextActor());
+                stationMemberRepository,
+                clusterService.get(),
+                event.stationId(),
+                event.memberId(),
+                event.nextActor(),
+                event.ownerClusterId());
         notificationService.notifyMembersIfAbsent(
-                recipients, NotificationType.EXCHANGE_STATUS_CHANGE, data, event.actorMemberId());
+                recipients.stationMembers(),
+                NotificationType.EXCHANGE_STATUS_CHANGE,
+                NotificationData.of(
+                        params,
+                        new NotificationData.NotificationLink(
+                                "inventory-movement-detail", Map.of("id", event.movementId()))),
+                event.actorMemberId());
+        notificationService.notifyClusterMembersIfAbsent(
+                recipients.clusterMembers(),
+                NotificationType.EXCHANGE_STATUS_CHANGE,
+                NotificationData.of(params, new NotificationData.NotificationLink("cluster-movements")),
+                null);
     }
 }

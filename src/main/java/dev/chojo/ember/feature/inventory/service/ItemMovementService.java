@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.ClusterItemIssued;
 import dev.chojo.ember.event.events.MovementAdvanced;
 import dev.chojo.ember.event.events.MovementDeclined;
 import dev.chojo.ember.event.events.MovementStarted;
@@ -128,8 +129,8 @@ public class ItemMovementService {
             Actor actor,
             Integer pickedItemId) {
         ItemOwner ownerKind = resolveOwner(outgoingItemId, inventoryId);
-        int flowId = flowService.resolveFlow(
-                stationId, inventoryId, ownerKind, resolveOwnerId(outgoingItemId, stationId), purpose);
+        Integer ownerClusterId = resolveOwnerId(outgoingItemId, stationId);
+        int flowId = flowService.resolveFlow(stationId, inventoryId, ownerKind, ownerClusterId, purpose);
         List<MovementFlowStep> steps = flowService.findActiveSteps(flowId);
         if (steps.isEmpty()) throw new BadRequestResponse("That flow has no steps to walk");
 
@@ -165,8 +166,40 @@ public class ItemMovementService {
                 inventoryName(inventoryId),
                 started.reason(),
                 actor.memberId(),
-                actorOfCurrentStep(started)));
+                actorOfCurrentStep(started),
+                ownerKind == ItemOwner.CLUSTER ? ownerClusterId : null));
+        announceIssue(purpose, ownerKind, ownerClusterId, stationId, started);
         return started;
+    }
+
+    /**
+     * Tells a station that gear is coming, when the cluster above it is what started the movement.
+     *
+     * <p>Only an issue is announced this way. A return or an exchange is something the station is part of
+     * already, and would be told twice.
+     *
+     * @param purpose        what the movement is for
+     * @param ownerKind      who owns the gear
+     * @param ownerClusterId the owning cluster, when one on this instance owns it
+     * @param stationId      the station receiving it
+     * @param movement       the movement carrying it
+     */
+    private void announceIssue(
+            MovementPurpose purpose,
+            ItemOwner ownerKind,
+            Integer ownerClusterId,
+            int stationId,
+            ItemMovement movement) {
+        if (purpose != MovementPurpose.ISSUE || ownerKind != ItemOwner.CLUSTER || ownerClusterId == null) return;
+        String clusterName =
+                clusterRepository.findById(ownerClusterId).map(Cluster::name).orElse("");
+        String itemName = movement.outgoingItemId() == null
+                ? ""
+                : inventoryRepository
+                        .findItemById(movement.outgoingItemId())
+                        .map(InventoryItem::name)
+                        .orElse("");
+        eventBus.publish(new ClusterItemIssued(stationId, movement.id(), clusterName, itemName));
     }
 
     public Optional<ItemMovement> findById(int id) {
@@ -282,7 +315,8 @@ public class ItemMovementService {
                 inventoryName(walked.inventoryId()),
                 step.label(),
                 actor.memberId(),
-                actorOfCurrentStep(walked)));
+                actorOfCurrentStep(walked),
+                owningCluster(walked)));
         return walked;
     }
 
@@ -470,6 +504,25 @@ public class ItemMovementService {
                 .findById(inventoryId)
                 .map(inv -> inv.inventoryType() == InventoryType.INTERNAL ? ItemOwner.STATION : ItemOwner.CLUSTER)
                 .orElse(ItemOwner.STATION);
+    }
+
+    /**
+     * The cluster a movement's gear belongs to, when a cluster on this instance owns it.
+     *
+     * <p>Read off the item rather than off the movement, because ownership lives on the item. A movement
+     * whose gear belongs to a body that does not run here answers {@code null}, which is what makes the
+     * station stand in for that body rather than the cluster screens waiting for somebody who is not there.
+     *
+     * @param movement the movement
+     * @return the owning cluster, or {@code null} when no cluster here owns the gear
+     */
+    private Integer owningCluster(ItemMovement movement) {
+        if (movement.outgoingItemId() == null) return null;
+        return inventoryRepository
+                .findItemById(movement.outgoingItemId())
+                .filter(item -> item.ownerKind() == ItemOwner.CLUSTER)
+                .map(InventoryItem::ownerClusterId)
+                .orElse(null);
     }
 
     /**

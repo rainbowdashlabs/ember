@@ -53,6 +53,8 @@ public enum NotificationType {
             NotificationParams.ClusterApplicationWithdrawn.class, "notification.clusterApplicationWithdrawn"),
     CLUSTER_STATION_RELEASED(NotificationParams.ClusterStationReleased.class, "notification.clusterStationReleased"),
     CLUSTER_MODULE_DENIED(NotificationParams.ClusterModuleDenied.class, "notification.clusterModuleDenied"),
+    CLUSTER_ITEM_ISSUED(NotificationParams.ClusterItemIssued.class, "notification.clusterItemIssued"),
+    CLUSTER_ITEM_LOST(NotificationParams.ClusterItemLost.class, "notification.clusterItemLost"),
     CLUSTER_QUOTA_CHANGED(NotificationParams.ClusterQuotaChanged.class, "notification.clusterQuotaChanged"),
     CLUSTER_MEMBER_ROLE_CHANGED(
             NotificationParams.ClusterMemberRoleChanged.class, "notification.clusterMemberRoleChanged"),

@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.inventory.entity.StepActor;
  * @param stepLabel     the words of the step just acknowledged, as the flow gives them
  * @param actorMemberId who acknowledged it, so they are not told about their own doing
  * @param nextActor     the party whose turn it is now, or {@code null} once the chain has ended
+ * @param ownerClusterId the cluster that owns the gear, or {@code null} when no cluster on this instance does
  */
 public record MovementAdvanced(
         int stationId,
@@ -28,5 +29,6 @@ public record MovementAdvanced(
         String inventoryName,
         String stepLabel,
         int actorMemberId,
-        StepActor nextActor)
+        StepActor nextActor,
+        Integer ownerClusterId)
         implements DomainEvent {}

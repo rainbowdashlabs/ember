@@ -58,6 +58,8 @@ const typeIcons: Record<string, string> = {
   CLUSTER_STATION_RELEASED: 'sitemap',
   CLUSTER_MODULE_DENIED: 'sitemap',
   CLUSTER_QUOTA_CHANGED: 'hard-drive',
+  CLUSTER_ITEM_ISSUED: 'truck',
+  CLUSTER_ITEM_LOST: 'triangle-exclamation',
   CLUSTER_MEMBER_ROLE_CHANGED: 'user-shield',
   CLUSTER_FIELD_VALUE_CHANGED: 'id-card',
   REGISTRATION_DEADLINE_EXPIRED: 'clock',
