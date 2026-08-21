@@ -342,6 +342,32 @@ public class InventoryRepository {
     }
 
     /**
+     * Names the cluster on every piece of gear at a station that was already recorded as the body above it
+     * owning, and had nobody to name.
+     *
+     * <p>One statement, and nothing else moves: the items keep their inventory, their custody, whoever has
+     * them and the chains they were walking. All that changes is that the body they already belonged to can
+     * now be pointed at, which is the difference between an owner nobody can ask and one who can answer.
+     *
+     * @param clusterId the cluster the station has joined
+     * @param stationId the station joining it
+     * @return how many pieces of gear found their owner
+     */
+    public int adoptClusterItemsAt(int clusterId, int stationId) {
+        return query("""
+                UPDATE inventory_item ii
+                SET owner_cluster_id = :cluster_id
+                FROM inventory i
+                WHERE i.id = ii.inventory_id
+                  AND i.station_id = :station_id
+                  AND ii.owner_kind = 'CLUSTER'
+                  AND ii.owner_cluster_id IS NULL;""")
+                .single(call().bind("cluster_id", clusterId).bind("station_id", stationId))
+                .update()
+                .rows();
+    }
+
+    /**
      * Everything a cluster owns, wherever it currently is.
      *
      * <p>The mirror of {@code findItemsByStation}: that one asks what a station holds, this one asks what a

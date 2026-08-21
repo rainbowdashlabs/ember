@@ -16,7 +16,11 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 
 /**
- * What happens to a cluster's gear when one of its stations leaves.
+ * What happens to a cluster's gear when a station joins it or leaves it.
+ *
+ * <p>Joining is the smaller half. A station that already recorded gear as belonging to the body above it was
+ * naming a body nobody could ask; now there is one, and every such piece is pointed at it. Nothing else about
+ * those items changes, because nothing else about them was wrong.
  *
  * <p>The rows are not deleted. A station losing its cluster is not the same as the gear ceasing to exist, and
  * deleting it would take the cluster's own record of what it owns with it. Instead everything the cluster owns
@@ -28,8 +32,8 @@ import java.util.List;
  * custody side of the inventory and the cluster has no business knowing either.
  */
 @Singleton
-public class ClusterItemReleaseService {
-    private static final Logger log = LoggerFactory.getLogger(ClusterItemReleaseService.class);
+public class ClusterItemHandoverService {
+    private static final Logger log = LoggerFactory.getLogger(ClusterItemHandoverService.class);
 
     private static final String REASON = "The station left the cluster";
 
@@ -38,13 +42,31 @@ public class ClusterItemReleaseService {
     private final ItemMovementService movementService;
 
     @Inject
-    public ClusterItemReleaseService(
+    public ClusterItemHandoverService(
             InventoryRepository inventoryRepository,
             ItemCustodyService custodyService,
             ItemMovementService movementService) {
         this.inventoryRepository = inventoryRepository;
         this.custodyService = custodyService;
         this.movementService = movementService;
+    }
+
+    /**
+     * Points a station's owner-owned gear at the cluster it has just joined.
+     *
+     * <p>Only gear with no owner named already: a station holding another cluster's items keeps holding them,
+     * and the cluster it just joined has no claim on them.
+     *
+     * @param clusterId the cluster the station has joined
+     * @param stationId the station joining it
+     * @return how many pieces of gear found their owner
+     */
+    public int adoptAtStation(int clusterId, int stationId) {
+        int adopted = inventoryRepository.adoptClusterItemsAt(clusterId, stationId);
+        if (adopted > 0) {
+            log.info("Cluster {} took ownership of {} item(s) at station {}", clusterId, adopted, stationId);
+        }
+        return adopted;
     }
 
     /**

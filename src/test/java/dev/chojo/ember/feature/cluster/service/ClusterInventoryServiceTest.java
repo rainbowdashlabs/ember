@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.inventory.entity.StepSubject;
 import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ForbiddenResponse;
 import org.junit.jupiter.api.Test;
 
@@ -22,6 +23,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -170,6 +173,56 @@ class ClusterInventoryServiceTest extends RepositoryTestBase {
 
         // And another cluster sees nothing of it
         assertTrue(clusterInventoryService.findQueue(freshCluster().id()).isEmpty());
+    }
+
+    @Test
+    void gearAStationAlreadyKeptForTheBodyAboveItFindsItsOwnerOnJoining() {
+        int n = NAMES.incrementAndGet();
+        var standalone = stationRepo.create("Wache ohne Verband " + n);
+        var inventory = inventoryRepo.create(standalone.id(), "Einsatzkleidung " + n, InventoryType.EXTERNAL, false);
+        // Recorded as the body above the station owning it, with no body anybody could ask
+        int adopted = inventoryRepo
+                .createItem(inventory.id(), "ADOPT-" + n, "Helm", null, null, ItemOwner.CLUSTER, null)
+                .id();
+        int itsOwn = inventoryRepo
+                .createItem(inventory.id(), "OWN-" + n, "Funkgerät", null, null, ItemOwner.STATION, null)
+                .id();
+
+        var cluster = freshCluster();
+        clusterService.joinStation(cluster.id(), standalone.id());
+
+        assertEquals(
+                cluster.id(),
+                inventoryRepo.findItemById(adopted).orElseThrow().ownerClusterId(),
+                "The body the gear already belonged to can now be pointed at");
+        assertNull(
+                inventoryRepo.findItemById(itsOwn).orElseThrow().ownerClusterId(),
+                "The station's own gear is nobody else's");
+        assertEquals(
+                ItemOwner.STATION,
+                inventoryRepo.findItemById(itsOwn).orElseThrow().ownerKind(),
+                "Joining a cluster does not hand it anything");
+    }
+
+    @Test
+    void gearCannotBeRecordedAsBelongingToSomebodyElsesAssociation() {
+        var cluster = freshCluster();
+        var station = stationOf(cluster);
+        var stranger = freshCluster();
+        int n = NAMES.incrementAndGet();
+        var inventory = inventoryRepo.create(station.id(), "Einsatzkleidung " + n, InventoryType.EXTERNAL, false);
+
+        assertThrows(
+                BadRequestResponse.class,
+                () -> inventoryService.createItem(
+                        inventory.id(), "STRANGE-" + n, "Helm", null, null, ItemOwner.CLUSTER, stranger.id()),
+                "A station answers to one body, so naming another one is a mistake rather than a choice");
+
+        // Its own is fine, and so is an owner that does not run here at all
+        assertNotNull(inventoryService.createItem(
+                inventory.id(), "MINE-" + n, "Helm", null, null, ItemOwner.CLUSTER, cluster.id()));
+        assertNotNull(
+                inventoryService.createItem(inventory.id(), "OFF-" + n, "Helm", null, null, ItemOwner.CLUSTER, null));
     }
 
     /** A member at the station, so a movement has somebody to have been started by. */

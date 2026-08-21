@@ -20,6 +20,7 @@
 
 ### Improvements
 
+- **Gear kept for the body above a station finds its owner when the station joins one.** Equipment already recorded as belonging to the municipality or the association keeps its place, its size and whoever has it, and the association it now names sees it in the list of what it owns. Nothing is moved or recreated, and an exchange already under way carries on.
 - **The demo instance has an association over it.** The demo station now answers to one, alongside a station the association made itself, and it comes with people holding each of the association's roles, gear resting in every state a piece can be in, two questions in its members' profiles, and news, an article and an appointment of its own. A neighbouring station's request to join is still waiting, so the screen that answers them has something on it.
 - **An exchange opens as the chain it is walking.** The history button now leads to the whole run rather than a list of status changes: every step with the party it belongs to, the ones behind it stamped with who acknowledged them and how, and on the current one either the single button you may press or the sentence naming who is being waited on.
 - **A movement tells whoever's turn it is, not always the station.** When a step is acknowledged, the message goes to the party the next step belongs to and to nobody else, so its arrival is itself the signal that something is waiting. A refused movement tells both ends, with the reason where the member asked.

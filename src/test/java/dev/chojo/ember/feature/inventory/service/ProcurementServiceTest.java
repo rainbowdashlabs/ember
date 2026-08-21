@@ -33,7 +33,7 @@ class ProcurementServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        var inventoryService = new InventoryService(inventoryRepo, itemCustodyService);
+        var inventoryService = new InventoryService(inventoryRepo, itemCustodyService, clusterRepo);
         service =
                 new ProcurementService(procurementRepo, inventoryService, inventoryRepo, new DomainEventBus(Set.of()));
         station = stationRepo.create("ProcStation");

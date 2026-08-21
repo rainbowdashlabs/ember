@@ -148,7 +148,7 @@ class DemoServiceTest extends RepositoryTestBase {
         var eventServices = newEventServices(noOpBus);
         var newsService = new NewsService(
                 newsRepo, restrictionService, noOpBus, stationMemberRepo, memberLookupService, accountRepo);
-        var inventoryService = new InventoryService(inventoryRepo, itemCustodyService);
+        var inventoryService = new InventoryService(inventoryRepo, itemCustodyService, clusterRepo);
         var exchangeService = new ExchangeService(itemMovementService, inventoryRepo);
         var procurementService = new ProcurementService(procurementRepo, inventoryService, inventoryRepo, noOpBus);
         var eventTemplateService = new EventTemplateService(eventTemplateRepo);
@@ -510,7 +510,15 @@ class DemoServiceTest extends RepositoryTestBase {
                 "The cluster should ask two questions of its members");
 
         var gear = inventoryRepo.findItemsOwnedByCluster(cluster.id());
-        assertEquals(6, gear.size(), "The cluster should own six pieces of gear");
+        for (String code : List.of("KV-0001", "KV-0002", "KV-0003", "KV-0004", "KV-0005", "KV-0006")) {
+            assertTrue(
+                    gear.stream().anyMatch(item -> code.equals(item.internalId())),
+                    "The cluster should own the piece of gear " + code);
+        }
+        assertTrue(
+                gear.size() > 6,
+                "The gear the demo station already kept for the body above it should have found its owner "
+                        + "when the station joined");
         for (ItemCustody custody : List.of(
                 ItemCustody.WITH_OWNER, ItemCustody.AT_STATION, ItemCustody.WITH_MEMBER, ItemCustody.IN_TRANSIT)) {
             assertTrue(

@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemHistory;
@@ -17,6 +18,7 @@ import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.MemberInventoryEntry;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
+import io.javalin.http.BadRequestResponse;
 import io.javalin.http.ForbiddenResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -34,12 +36,17 @@ import java.util.Optional;
 public class InventoryService {
     private static final Logger log = LoggerFactory.getLogger(InventoryService.class);
     private final InventoryRepository inventoryRepository;
+    private final ClusterRepository clusterRepository;
     private final ItemCustodyService custodyService;
 
     @Inject
-    public InventoryService(InventoryRepository inventoryRepository, ItemCustodyService custodyService) {
+    public InventoryService(
+            InventoryRepository inventoryRepository,
+            ItemCustodyService custodyService,
+            ClusterRepository clusterRepository) {
         this.inventoryRepository = inventoryRepository;
         this.custodyService = custodyService;
+        this.clusterRepository = clusterRepository;
     }
 
     // -- Inventories --
@@ -277,6 +284,7 @@ public class InventoryService {
      * @param ownerKind      who owns the item
      * @param ownerClusterId the owning body when it runs on this instance, or {@code null} when it does not
      * @return the created item
+     * @throws BadRequestResponse when the named body is not the one this station answers to
      */
     public InventoryItem createItem(
             int inventoryId,
@@ -286,6 +294,7 @@ public class InventoryService {
             InventoryItemMetadata metadata,
             ItemOwner ownerKind,
             Integer ownerClusterId) {
+        requireOwningCluster(inventoryId, ownerClusterId);
         InventoryItem item = inventoryRepository.createItem(
                 inventoryId, internalId, name, sizeId, metadata, ownerKind, ownerClusterId);
         log.info(
@@ -298,6 +307,38 @@ public class InventoryService {
                 ownerClusterId,
                 inventoryId);
         return item;
+    }
+
+    /**
+     * Refuses gear recorded as belonging to a body this station has nothing to do with.
+     *
+     * <p>There is never more than one body above a station, so naming a second one is not a choice being made
+     * but a mistake or an attempt: gear pointed at somebody else's association would appear in that
+     * association's list of what it owns, and it would be able to recall it. A station keeping gear for an
+     * owner that does not run here names no body at all, which is what a null means and stays allowed.
+     *
+     * <p>A cluster's own station passes too, because that is where a cluster's store sits and it answers to
+     * itself rather than joining anything.
+     */
+    private void requireOwningCluster(int inventoryId, Integer ownerClusterId) {
+        if (ownerClusterId == null) return;
+        int stationId = inventoryRepository
+                .findById(inventoryId)
+                .map(Inventory::stationId)
+                .orElseThrow(() -> new BadRequestResponse("That inventory does not exist"));
+
+        boolean answersToIt = clusterRepository
+                .findByStation(stationId)
+                .map(cluster -> cluster.id() == ownerClusterId)
+                .orElse(false);
+        boolean isItsOwnStore = clusterRepository
+                .findById(ownerClusterId)
+                .map(cluster -> cluster.homeStationId() == stationId)
+                .orElse(false);
+        if (!answersToIt && !isItsOwnStore) {
+            throw new BadRequestResponse(
+                    "Gear can only be recorded as belonging to the association this station answers to");
+        }
     }
 
     /**

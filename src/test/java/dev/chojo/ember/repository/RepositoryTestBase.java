@@ -68,7 +68,7 @@ import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.repository.ItemMovementRepository;
 import dev.chojo.ember.feature.inventory.repository.MovementFlowRepository;
 import dev.chojo.ember.feature.inventory.repository.ProcurementRepository;
-import dev.chojo.ember.feature.inventory.service.ClusterItemReleaseService;
+import dev.chojo.ember.feature.inventory.service.ClusterItemHandoverService;
 import dev.chojo.ember.feature.inventory.service.ExchangeService;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.inventory.service.ItemCustodyService;
@@ -183,7 +183,7 @@ public abstract class RepositoryTestBase {
     protected static MovementFlowService movementFlowService;
     protected static ItemMovementService itemMovementService;
 
-    protected static ClusterItemReleaseService clusterItemReleaseService;
+    protected static ClusterItemHandoverService clusterItemHandoverService;
     protected static ExchangeService exchangeService;
     protected static MemberGroupRepository memberGroupRepo;
     protected static ProfileFieldRepository profileFieldRepo;
@@ -317,8 +317,8 @@ public abstract class RepositoryTestBase {
                 itemCustodyService,
                 clusterRepo,
                 new DomainEventBus(Set.of()));
-        clusterItemReleaseService =
-                new ClusterItemReleaseService(inventoryRepo, itemCustodyService, itemMovementService);
+        clusterItemHandoverService =
+                new ClusterItemHandoverService(inventoryRepo, itemCustodyService, itemMovementService);
         exchangeService = new ExchangeService(itemMovementService, inventoryRepo);
         memberGroupRepo = new MemberGroupRepository();
         profileFieldRepo = new ProfileFieldRepository();
@@ -347,7 +347,7 @@ public abstract class RepositoryTestBase {
                 stationMemberRepo,
                 accountRepo,
                 clusterProfileFieldRepo);
-        inventoryService = new InventoryService(inventoryRepo, itemCustodyService);
+        inventoryService = new InventoryService(inventoryRepo, itemCustodyService, clusterRepo);
         clusterInventoryService = new ClusterInventoryService(
                 clusterRepo, inventoryRepo, itemMovementRepo, movementFlowService, stationRepo, stationMemberRepo);
         clusterProfileFieldService = new ClusterProfileFieldService(
@@ -366,7 +366,7 @@ public abstract class RepositoryTestBase {
         clusterService = new ClusterService(
                 clusterRepo,
                 stationRepo,
-                clusterItemReleaseService,
+                clusterItemHandoverService,
                 new FederationService(new FederationRepository(), stationRepo, new Api()),
                 clusterGovernanceService,
                 clusterProfileFieldService,

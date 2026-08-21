@@ -15,7 +15,7 @@ import dev.chojo.ember.feature.cluster.entity.ClusterMember;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.federation.service.FederationService;
-import dev.chojo.ember.feature.inventory.service.ClusterItemReleaseService;
+import dev.chojo.ember.feature.inventory.service.ClusterItemHandoverService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -53,7 +53,7 @@ public class ClusterService {
 
     private final ClusterRepository clusterRepository;
     private final StationRepository stationRepository;
-    private final ClusterItemReleaseService itemReleaseService;
+    private final ClusterItemHandoverService itemHandoverService;
     private final FederationService federationService;
     private final ClusterGovernanceService governanceService;
     private final ClusterProfileFieldService fieldService;
@@ -63,14 +63,14 @@ public class ClusterService {
     public ClusterService(
             ClusterRepository clusterRepository,
             StationRepository stationRepository,
-            ClusterItemReleaseService itemReleaseService,
+            ClusterItemHandoverService itemHandoverService,
             FederationService federationService,
             ClusterGovernanceService governanceService,
             ClusterProfileFieldService fieldService,
             DomainEventBus eventBus) {
         this.clusterRepository = clusterRepository;
         this.stationRepository = stationRepository;
-        this.itemReleaseService = itemReleaseService;
+        this.itemHandoverService = itemHandoverService;
         this.federationService = federationService;
         this.governanceService = governanceService;
         this.fieldService = fieldService;
@@ -175,6 +175,7 @@ public class ClusterService {
         }
 
         stationRepository.setCluster(stationId, clusterId);
+        itemHandoverService.adoptAtStation(clusterId, stationId);
         governanceService.applyLookTo(cluster, station);
         federationService.createClusterFederation(
                 cluster.homeStationId(),
@@ -203,7 +204,7 @@ public class ClusterService {
             throw new BadRequestResponse("That station does not belong to this cluster");
         }
 
-        itemReleaseService.recallFromStation(clusterId, stationId);
+        itemHandoverService.recallFromStation(clusterId, stationId);
         federationService.removeClusterFederation(stationId);
         // The answers go, the history of who changed what stays: an audit trail is not the cluster's to
         // take away when it lets a station go
