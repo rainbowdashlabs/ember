@@ -119,13 +119,6 @@ public class ClusterRepository {
     /**
      * Puts a station under a cluster, or lets it go when the cluster is {@code null}.
      */
-    public boolean setStationCluster(int stationId, Integer clusterId) {
-        return query("UPDATE station SET cluster_id = :cluster_id WHERE id = :id;")
-                .single(call().bind("cluster_id", clusterId).bind("id", stationId))
-                .update()
-                .changed();
-    }
-
     public List<Integer> findStationIds(int clusterId) {
         return query("""
                 SELECT id FROM station

@@ -1,7 +1,7 @@
 {
   "version" : 1,
-  "schemaHash" : "sha256:6a247672483a38c1e795365d62bd58c0714213a74b6e04ad6c66e46526014978",
-  "generatedAt" : "2026-08-20T21:55:06Z",
+  "schemaHash" : "sha256:4385fe8f780a49cbc50bf1120332989df68e8dc4f5bc33dd279811fdb044a21a",
+  "generatedAt" : "2026-08-21T00:19:03Z",
   "tables" : {
     "account" : {
       "feature" : "account",
@@ -2975,6 +2975,108 @@
         "reason" : "Cluster configuration, holds no personal data"
       },
       "description" : "A body that owns several stations: a district association, an umbrella organisation, a municipality."
+    },
+    "cluster_application" : {
+      "feature" : "cluster",
+      "scope" : "INSTANCE",
+      "tableHash" : "sha256:4684dc65be54109329c3f9f0800eda5cebe74508a96fbbd43bf0f9d83f9ee8db",
+      "columns" : [ {
+        "name" : "id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "Auto-generated primary key."
+      }, {
+        "name" : "cluster_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The cluster being asked."
+      }, {
+        "name" : "station_id",
+        "type" : "int4",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "The station asking to join."
+      }, {
+        "name" : "requested_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The station member who asked, always the station owner at the time. Survives them leaving."
+      }, {
+        "name" : "requested_at",
+        "type" : "timestamptz",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "When the application was opened."
+      }, {
+        "name" : "status",
+        "type" : "text",
+        "nullable" : false,
+        "verified" : true,
+        "description" : "PENDING while it waits, APPROVED, DENIED, or WITHDRAWN when the station took it back."
+      }, {
+        "name" : "deny_reason",
+        "type" : "text",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "What the cluster said when it refused, shown to the station owner."
+      }, {
+        "name" : "resolved_at",
+        "type" : "timestamptz",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "When it stopped being pending."
+      }, {
+        "name" : "resolved_by",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The cluster member who decided. Survives them leaving the cluster."
+      } ],
+      "foreignKeys" : [ {
+        "column" : "cluster_id",
+        "refTable" : "cluster",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
+        "column" : "requested_by",
+        "refTable" : "station_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "resolved_by",
+        "refTable" : "cluster_member",
+        "refColumn" : "id",
+        "onDelete" : "SET NULL"
+      }, {
+        "column" : "station_id",
+        "refTable" : "station",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      } ],
+      "stationTransfer" : {
+        "status" : "IGNORED",
+        "reason" : "Cluster-level, not station-scoped. A station carries no cluster with it when it moves instance"
+      },
+      "gdprExport" : {
+        "status" : "IGNORED",
+        "reason" : "Names a station member only as the audit trail of who asked, which the station's own export already covers"
+      },
+      "gdprDeletion" : {
+        "status" : "TRACKED",
+        "strategies" : [ {
+          "column" : "requested_by",
+          "strategy" : "NULL",
+          "reason" : "The record that a station applied outlives the person who filed it"
+        }, {
+          "column" : "resolved_by",
+          "strategy" : "NULL",
+          "reason" : "The record of a decision outlives the person who made it"
+        } ]
+      },
+      "description" : "A station owner asking to join a cluster. One row per station and cluster, whatever became of it."
     },
     "cluster_member" : {
       "feature" : "cluster",
@@ -10282,7 +10384,7 @@
     "notification" : {
       "feature" : "notifications",
       "scope" : "STATION",
-      "tableHash" : "sha256:1cca9550332e14270d362d86464d33f4ed684bd6a79b997f4aa4a2a340ae7170",
+      "tableHash" : "sha256:21a2cb9786c917884cc15b7795b14389cb7a740741ab4339916d83d9e1c63c0e",
       "columns" : [ {
         "name" : "id",
         "type" : "int4",
@@ -10292,9 +10394,9 @@
       }, {
         "name" : "member_id",
         "type" : "int4",
-        "nullable" : false,
+        "nullable" : true,
         "verified" : true,
-        "description" : "References the station member this notification is for."
+        "description" : "The station member this is for, or null when it is addressed to a cluster member instead."
       }, {
         "name" : "type",
         "type" : "text",
@@ -10325,8 +10427,19 @@
         "nullable" : true,
         "verified" : true,
         "description" : "When the notification was sent via email. NULL if not emailed."
+      }, {
+        "name" : "cluster_member_id",
+        "type" : "int4",
+        "nullable" : true,
+        "verified" : true,
+        "description" : "The cluster member this is for, or null when it is addressed to a station member instead."
       } ],
       "foreignKeys" : [ {
+        "column" : "cluster_member_id",
+        "refTable" : "cluster_member",
+        "refColumn" : "id",
+        "onDelete" : "CASCADE"
+      }, {
         "column" : "member_id",
         "refTable" : "station_member",
         "refColumn" : "id",

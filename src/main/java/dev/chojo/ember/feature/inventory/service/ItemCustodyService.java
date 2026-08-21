@@ -240,6 +240,30 @@ public class ItemCustodyService {
      * @param item the item
      * @return the resting custody
      */
+    /**
+     * Puts an item back in its owner's own store, whoever was holding it and wherever it sat.
+     *
+     * <p>Not the same as taking it back, which returns gear to the store of the station that holds it. This
+     * one is for when the holding stops entirely: the station that had it is no longer connected to the
+     * owner, so there is no store of its at which the item could rest.
+     *
+     * @param itemId the item
+     * @return the updated item, or empty if the item was not found
+     */
+    public Optional<InventoryItem> returnToOwner(int itemId) {
+        var found = inventoryRepository.findItemById(itemId);
+        if (found.isEmpty()) {
+            log.warn("Return to owner skipped: item {} not found", itemId);
+            return Optional.empty();
+        }
+        var item = found.get();
+        closeCurrentSpell(item);
+        inventoryRepository.updateCustody(itemId, ItemCustody.WITH_OWNER, null, null, null);
+        inventoryRepository.setItemContainer(itemId, null);
+        log.info("Item {} returned to its owner (was {})", itemId, item.custody());
+        return inventoryRepository.findItemById(itemId);
+    }
+
     public static ItemCustody restingCustody(InventoryItem item) {
         return item.ownedByStation() ? ItemCustody.WITH_OWNER : ItemCustody.AT_STATION;
     }

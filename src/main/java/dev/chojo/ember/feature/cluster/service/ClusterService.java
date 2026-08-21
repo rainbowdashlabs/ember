@@ -7,9 +7,14 @@ package dev.chojo.ember.feature.cluster.service;
 
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.ClusterUserType;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.ClusterApplicationResolved;
+import dev.chojo.ember.event.events.ClusterStationReleased;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterMember;
+import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
+import dev.chojo.ember.feature.inventory.service.ClusterItemReleaseService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -47,11 +52,19 @@ public class ClusterService {
 
     private final ClusterRepository clusterRepository;
     private final StationRepository stationRepository;
+    private final ClusterItemReleaseService itemReleaseService;
+    private final DomainEventBus eventBus;
 
     @Inject
-    public ClusterService(ClusterRepository clusterRepository, StationRepository stationRepository) {
+    public ClusterService(
+            ClusterRepository clusterRepository,
+            StationRepository stationRepository,
+            ClusterItemReleaseService itemReleaseService,
+            DomainEventBus eventBus) {
         this.clusterRepository = clusterRepository;
         this.stationRepository = stationRepository;
+        this.itemReleaseService = itemReleaseService;
+        this.eventBus = eventBus;
     }
 
     /**
@@ -109,6 +122,85 @@ public class ClusterService {
             log.info("Deleted cluster {} and its home station {}", clusterId, cluster.homeStationId());
         }
         return deleted;
+    }
+
+    /**
+     * Creates a station that belongs to the cluster from its first moment.
+     *
+     * <p>The other way in is an application from a station that already exists, which its owner has to open.
+     * A cluster never reaches out and takes one.
+     *
+     * @param clusterId the cluster
+     * @param name      what the station is called
+     * @return the station
+     */
+    public Station createStation(int clusterId, String name) {
+        if (name == null || name.isBlank()) throw new BadRequestResponse("A station needs a name");
+        requireCluster(clusterId);
+
+        Station station = stationRepository.create(name.trim());
+        joinStation(clusterId, station.id());
+        log.info("Cluster {} created station {}", clusterId, station.id());
+        return station;
+    }
+
+    /**
+     * Puts a station under a cluster.
+     *
+     * <p>Everything a cluster hands its members follows from this one row: the federation pairs that carry
+     * its content, the modules it denies, the look it sets and the gear it lends. Each of those is wired in
+     * as it arrives, and each of them is undone again by {@link #releaseStation(int, int)}.
+     *
+     * @param clusterId the cluster
+     * @param stationId the station joining it
+     */
+    public void joinStation(int clusterId, int stationId) {
+        Cluster cluster = requireCluster(clusterId);
+        Station station = requireStation(stationId);
+        if (station.stationKind() == StationKind.CLUSTER_HOME) {
+            throw new BadRequestResponse("A cluster's own station cannot join another cluster");
+        }
+        if (station.clusterId() != null && station.clusterId() != clusterId) {
+            throw new BadRequestResponse("This station already belongs to another cluster");
+        }
+
+        stationRepository.setCluster(stationId, clusterId);
+        log.info("Station {} joined cluster {}", stationId, clusterId);
+        eventBus.publish(new ClusterApplicationResolved(stationId, cluster.name(), true, null));
+    }
+
+    /**
+     * Lets a station go.
+     *
+     * <p>What the station brought stays with it and what the cluster lent it goes back, which is why gear the
+     * cluster owns is put back in its own store rather than deleted: the station losing its cluster is not
+     * the same as the gear ceasing to exist.
+     *
+     * @param clusterId the cluster letting go
+     * @param stationId the station being released
+     * @throws BadRequestResponse when that station does not answer to this cluster
+     */
+    public void releaseStation(int clusterId, int stationId) {
+        Cluster cluster = requireCluster(clusterId);
+        Station station = requireStation(stationId);
+        if (station.clusterId() == null || station.clusterId() != clusterId) {
+            throw new BadRequestResponse("That station does not belong to this cluster");
+        }
+
+        itemReleaseService.recallFromStation(clusterId, stationId);
+        stationRepository.setCluster(stationId, null);
+        log.info("Cluster {} released station {}", clusterId, stationId);
+        eventBus.publish(new ClusterStationReleased(stationId, cluster.name()));
+    }
+
+    /**
+     * The member stations of a cluster, without the shell it owns.
+     *
+     * @param clusterId the cluster
+     * @return its stations
+     */
+    public List<Station> findStations(int clusterId) {
+        return stationRepository.findByCluster(clusterId);
     }
 
     public Optional<Cluster> findById(int id) {
@@ -184,6 +276,24 @@ public class ClusterService {
     }
 
     /**
+     * The members of a cluster who hold a given permission, expanded.
+     *
+     * <p>What somebody at the cluster is told about follows from what they are allowed to act on, so this is
+     * how a notification finds its recipients. Resolved per member rather than in one query, because the
+     * expansion of a user type's defaults lives in the enum and not in the database.
+     *
+     * @param clusterId  the cluster
+     * @param permission what they must hold
+     * @return the cluster member ids
+     */
+    public List<Integer> findMemberIdsWith(int clusterId, ClusterPermission permission) {
+        return findMembers(clusterId).stream()
+                .filter(member -> resolvePermissions(member).contains(permission))
+                .map(ClusterMember::id)
+                .toList();
+    }
+
+    /**
      * Grants a permission to a member directly.
      */
     public void grant(int memberId, ClusterPermission permission) {
@@ -198,6 +308,14 @@ public class ClusterService {
                 .findPermissionId(permission)
                 .map(id -> clusterRepository.revokePermission(memberId, id))
                 .orElse(false);
+    }
+
+    private Cluster requireCluster(int clusterId) {
+        return clusterRepository.findById(clusterId).orElseThrow(() -> new BadRequestResponse("No such cluster"));
+    }
+
+    private Station requireStation(int stationId) {
+        return stationRepository.findById(stationId).orElseThrow(() -> new BadRequestResponse("No such station"));
     }
 
     private Set<StationModule> modulesToDisable() {

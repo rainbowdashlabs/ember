@@ -178,6 +178,39 @@ public class StationRepository {
     }
 
     /**
+     * Puts a station under a cluster, or takes it back out when the cluster is {@code null}.
+     *
+     * <p>The row is the whole record of membership: there is no join table, because a station answers to at
+     * most one cluster and the alternative would be a table whose only job is to enforce that.
+     *
+     * @param id        the station
+     * @param clusterId the cluster it now answers to, or {@code null} to release it
+     * @return {@code true} if a row was updated
+     */
+    public boolean setCluster(int id, Integer clusterId) {
+        return query("UPDATE station SET cluster_id = :cluster_id WHERE id = :id;")
+                .single(call().bind("cluster_id", clusterId).bind("id", id))
+                .update()
+                .changed();
+    }
+
+    /**
+     * The member stations of a cluster, without its home station.
+     *
+     * @param clusterId the cluster
+     * @return the stations that answer to it
+     */
+    public List<Station> findByCluster(int clusterId) {
+        return query("""
+                SELECT %s FROM station
+                WHERE cluster_id = :cluster_id AND station_kind = :kind
+                ORDER BY name;""", STATION_COLUMNS)
+                .single(call().bind("cluster_id", clusterId).bind("kind", StationKind.REGULAR))
+                .map(Station.map())
+                .all();
+    }
+
+    /**
      * The stations somebody can actually join, which is what every user-facing listing wants. {@code findAll}
      * keeps its wider meaning for the storage jobs, whose files are real either way.
      *

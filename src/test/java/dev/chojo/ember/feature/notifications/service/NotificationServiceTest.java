@@ -611,7 +611,7 @@ class NotificationServiceTest extends RepositoryTestBase {
         var data = NotificationData.of(
                 new NotificationParams.NewEvent("Sprechstunde", "Etwas Beschreibung"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var notif = new Notification(1, member1.id(), NotificationType.NEW_EVENT, data, Instant.now(), null);
+        var notif = new Notification(1, member1.id(), null, NotificationType.NEW_EVENT, data, Instant.now(), null);
         String msg = service.resolveMessage("de", notif);
         assertTrue(msg.contains("Sprechstunde"));
 
@@ -619,8 +619,8 @@ class NotificationServiceTest extends RepositoryTestBase {
         var storageData = NotificationData.of(
                 new NotificationParams.StorageWarning(95, "9.5 GB", "10 GB"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var storageNotif =
-                new Notification(2, member1.id(), NotificationType.STORAGE_WARNING, storageData, Instant.now(), null);
+        var storageNotif = new Notification(
+                2, member1.id(), null, NotificationType.STORAGE_WARNING, storageData, Instant.now(), null);
         String storageMsg = service.resolveMessage("de", storageNotif);
         assertTrue(storageMsg.contains("95"));
     }
@@ -631,14 +631,14 @@ class NotificationServiceTest extends RepositoryTestBase {
         var data = NotificationData.of(
                 new NotificationParams.NewNews("Titel", "Autor", "Preview"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var notif = new Notification(3, member1.id(), NotificationType.NEW_NEWS, data, Instant.now(), null);
+        var notif = new Notification(3, member1.id(), null, NotificationType.NEW_NEWS, data, Instant.now(), null);
         assertEquals("Preview", service.resolveDetail(notif));
 
         var none = NotificationData.of(
                 new NotificationParams.MemberAddedToGroup("Alpha", null),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var noneNotif =
-                new Notification(4, member1.id(), NotificationType.MEMBER_ADDED_TO_GROUP, none, Instant.now(), null);
+        var noneNotif = new Notification(
+                4, member1.id(), null, NotificationType.MEMBER_ADDED_TO_GROUP, none, Instant.now(), null);
         assertNull(service.resolveDetail(noneNotif));
     }
 
@@ -649,7 +649,7 @@ class NotificationServiceTest extends RepositoryTestBase {
         var ne = NotificationData.of(
                 new NotificationParams.NewEvent("Probe", "Wir üben für das Konzert"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var neNotif = new Notification(10, member1.id(), NotificationType.NEW_EVENT, ne, Instant.now(), null);
+        var neNotif = new Notification(10, member1.id(), null, NotificationType.NEW_EVENT, ne, Instant.now(), null);
         String neBody = service.resolveFeedBody("de", neNotif);
         assertTrue(neBody.contains("Probe"));
         assertTrue(neBody.contains("Wir üben"));
@@ -658,8 +658,8 @@ class NotificationServiceTest extends RepositoryTestBase {
         var batchData = NotificationData.of(
                 new NotificationParams.NewEventsBatch(3, "A, B, C", null),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var batchNotif =
-                new Notification(11, member1.id(), NotificationType.NEW_EVENTS_BATCH, batchData, Instant.now(), null);
+        var batchNotif = new Notification(
+                11, member1.id(), null, NotificationType.NEW_EVENTS_BATCH, batchData, Instant.now(), null);
         String batchBody = service.resolveFeedBody("de", batchNotif);
         assertTrue(batchBody.contains("3"));
         assertTrue(batchBody.contains("A, B, C"));
@@ -669,8 +669,8 @@ class NotificationServiceTest extends RepositoryTestBase {
         var btu = NotificationData.of(
                 new NotificationParams.BoardTicketUpdate("Vorstand", "VORSTAND-12", "Status changed"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var btuNotif =
-                new Notification(12, member1.id(), NotificationType.BOARD_TICKET_UPDATE, btu, Instant.now(), null);
+        var btuNotif = new Notification(
+                12, member1.id(), null, NotificationType.BOARD_TICKET_UPDATE, btu, Instant.now(), null);
         String btuBody = service.resolveFeedBody("en", btuNotif);
         assertTrue(btuBody.contains("VORSTAND-12"));
         assertTrue(btuBody.contains("Vorstand"));
@@ -679,7 +679,8 @@ class NotificationServiceTest extends RepositoryTestBase {
         var sw = NotificationData.of(
                 new NotificationParams.StorageWarning(91, "9.1 GB", "10 GB"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var swNotif = new Notification(13, member1.id(), NotificationType.STORAGE_WARNING, sw, Instant.now(), null);
+        var swNotif =
+                new Notification(13, member1.id(), null, NotificationType.STORAGE_WARNING, sw, Instant.now(), null);
         String swBody = service.resolveFeedBody("en", swNotif);
         assertTrue(swBody.contains("91"));
         assertTrue(swBody.contains("9.1 GB"));
@@ -690,7 +691,7 @@ class NotificationServiceTest extends RepositoryTestBase {
                 new NotificationParams.RegistrationDeadlineExpired("Probe", 5),
                 new NotificationData.NotificationLink("dashboard-overview"));
         var rdeNotif = new Notification(
-                14, member1.id(), NotificationType.REGISTRATION_DEADLINE_EXPIRED, rde, Instant.now(), null);
+                14, member1.id(), null, NotificationType.REGISTRATION_DEADLINE_EXPIRED, rde, Instant.now(), null);
         String rdeBody = service.resolveFeedBody("en", rdeNotif);
         assertTrue(rdeBody.contains("5"));
     }
@@ -731,34 +732,34 @@ class NotificationServiceTest extends RepositoryTestBase {
         var nc = NotificationData.of(
                 new NotificationParams.NewsComment("Titel", "Autor", "Preview"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var ncNotif = new Notification(20, member1.id(), NotificationType.NEWS_COMMENT, nc, Instant.now(), null);
+        var ncNotif = new Notification(20, member1.id(), null, NotificationType.NEWS_COMMENT, nc, Instant.now(), null);
         assertEquals("Preview", service.resolveDetail(ncNotif));
 
         var esc = NotificationData.of(
                 new NotificationParams.ExchangeStatusChange("Ersatz ausgegeben", "Inv", null),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var escNotif =
-                new Notification(21, member1.id(), NotificationType.EXCHANGE_STATUS_CHANGE, esc, Instant.now(), null);
+        var escNotif = new Notification(
+                21, member1.id(), null, NotificationType.EXCHANGE_STATUS_CHANGE, esc, Instant.now(), null);
         assertEquals("Ersatz ausgegeben", service.resolveDetail(escNotif));
 
         var enr = NotificationData.of(
                 new NotificationParams.ExchangeNewRequest("Name", "Inv", "Why"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var enrNotif =
-                new Notification(22, member1.id(), NotificationType.EXCHANGE_NEW_REQUEST, enr, Instant.now(), null);
+        var enrNotif = new Notification(
+                22, member1.id(), null, NotificationType.EXCHANGE_NEW_REQUEST, enr, Instant.now(), null);
         assertEquals("Why", service.resolveDetail(enrNotif));
 
         var ers = NotificationData.of(
                 new NotificationParams.EventRegistrationStatus("Probe", RegistrationStatus.ACCEPTED, "Konzert"),
                 new NotificationData.NotificationLink("dashboard-overview"));
         var ersNotif = new Notification(
-                23, member1.id(), NotificationType.EVENT_REGISTRATION_STATUS, ers, Instant.now(), null);
+                23, member1.id(), null, NotificationType.EVENT_REGISTRATION_STATUS, ers, Instant.now(), null);
         assertEquals("Konzert", service.resolveDetail(ersNotif));
 
         var ne = NotificationData.of(
                 new NotificationParams.NewEvent("Probe", "Konzert"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var neNotif = new Notification(24, member1.id(), NotificationType.NEW_EVENT, ne, Instant.now(), null);
+        var neNotif = new Notification(24, member1.id(), null, NotificationType.NEW_EVENT, ne, Instant.now(), null);
         assertEquals("Konzert", service.resolveDetail(neNotif));
     }
 
@@ -769,14 +770,14 @@ class NotificationServiceTest extends RepositoryTestBase {
         var news = NotificationData.of(
                 new NotificationParams.NewNews("Titel", "Autor", "Preview"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var newsNotif = new Notification(30, member1.id(), NotificationType.NEW_NEWS, news, Instant.now(), null);
+        var newsNotif = new Notification(30, member1.id(), null, NotificationType.NEW_NEWS, news, Instant.now(), null);
         assertTrue(service.resolveFeedBody("de", newsNotif).contains("Preview"));
 
         // NEWS_COMMENT - appends preview
         var nc = NotificationData.of(
                 new NotificationParams.NewsComment("Titel", "Autor", "Kommentartext"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var ncNotif = new Notification(31, member1.id(), NotificationType.NEWS_COMMENT, nc, Instant.now(), null);
+        var ncNotif = new Notification(31, member1.id(), null, NotificationType.NEWS_COMMENT, nc, Instant.now(), null);
         assertTrue(service.resolveFeedBody("de", ncNotif).contains("Kommentartext"));
 
         // EVENT_REGISTRATION_STATUS - appends event description
@@ -784,14 +785,15 @@ class NotificationServiceTest extends RepositoryTestBase {
                 new NotificationParams.EventRegistrationStatus("Probe", RegistrationStatus.ACCEPTED, "Konzertprobe"),
                 new NotificationData.NotificationLink("dashboard-overview"));
         var ersNotif = new Notification(
-                32, member1.id(), NotificationType.EVENT_REGISTRATION_STATUS, ers, Instant.now(), null);
+                32, member1.id(), null, NotificationType.EVENT_REGISTRATION_STATUS, ers, Instant.now(), null);
         assertTrue(service.resolveFeedBody("en", ersNotif).contains("Konzertprobe"));
 
         // EVENT_CANCELLED - labelled reason
         var ec = NotificationData.of(
                 new NotificationParams.EventCancelled("Probe", "Wetter"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var ecNotif = new Notification(33, member1.id(), NotificationType.EVENT_CANCELLED, ec, Instant.now(), null);
+        var ecNotif =
+                new Notification(33, member1.id(), null, NotificationType.EVENT_CANCELLED, ec, Instant.now(), null);
         var ecBody = service.resolveFeedBody("en", ecNotif);
         assertTrue(ecBody.contains("Wetter"));
 
@@ -799,7 +801,8 @@ class NotificationServiceTest extends RepositoryTestBase {
         var er = NotificationData.of(
                 new NotificationParams.EventReminder("Probe", 3, LocalDate.parse("2026-08-01")),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var erNotif = new Notification(34, member1.id(), NotificationType.EVENT_REMINDER, er, Instant.now(), null);
+        var erNotif =
+                new Notification(34, member1.id(), null, NotificationType.EVENT_REMINDER, er, Instant.now(), null);
         var erBody = service.resolveFeedBody("en", erNotif);
         assertTrue(erBody.contains("2026-08-01"));
         assertTrue(erBody.contains("3"));
@@ -808,39 +811,40 @@ class NotificationServiceTest extends RepositoryTestBase {
         var enr = NotificationData.of(
                 new NotificationParams.ExchangeNewRequest("Name", "Inv", "Need it"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var enrNotif =
-                new Notification(35, member1.id(), NotificationType.EXCHANGE_NEW_REQUEST, enr, Instant.now(), null);
+        var enrNotif = new Notification(
+                35, member1.id(), null, NotificationType.EXCHANGE_NEW_REQUEST, enr, Instant.now(), null);
         assertTrue(service.resolveFeedBody("en", enrNotif).contains("Need it"));
 
         // EXCHANGE_STATUS_CHANGE - the step's own words, since a station names its chain itself
         var esc = NotificationData.of(
                 new NotificationParams.ExchangeStatusChange("Ersatz ausgegeben", "Inv", null),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var escNotif =
-                new Notification(36, member1.id(), NotificationType.EXCHANGE_STATUS_CHANGE, esc, Instant.now(), null);
+        var escNotif = new Notification(
+                36, member1.id(), null, NotificationType.EXCHANGE_STATUS_CHANGE, esc, Instant.now(), null);
         assertTrue(service.resolveFeedBody("en", escNotif).contains("Ersatz ausgegeben"));
 
         // LOST_AND_FOUND_NEW - appends description
         var lf = NotificationData.of(
                 new NotificationParams.LostAndFoundNew("Blue jacket"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var lfNotif = new Notification(37, member1.id(), NotificationType.LOST_AND_FOUND_NEW, lf, Instant.now(), null);
+        var lfNotif =
+                new Notification(37, member1.id(), null, NotificationType.LOST_AND_FOUND_NEW, lf, Instant.now(), null);
         assertTrue(service.resolveFeedBody("en", lfNotif).contains("Blue jacket"));
 
         // LENDING_NEW_REQUEST - labelled itemSummary
         var lnr = NotificationData.of(
                 new NotificationParams.LendingNewRequest("Station", "Drum kit"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var lnrNotif =
-                new Notification(38, member1.id(), NotificationType.LENDING_NEW_REQUEST, lnr, Instant.now(), null);
+        var lnrNotif = new Notification(
+                38, member1.id(), null, NotificationType.LENDING_NEW_REQUEST, lnr, Instant.now(), null);
         assertTrue(service.resolveFeedBody("en", lnrNotif).contains("Drum kit"));
 
         // PROCEDURE_ITEM_CHECKED - labelled item + by
         var pic = NotificationData.of(
                 new NotificationParams.ProcedureItemCheckedParams("Proc", "Item A", "Alice"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var picNotif =
-                new Notification(39, member1.id(), NotificationType.PROCEDURE_ITEM_CHECKED, pic, Instant.now(), null);
+        var picNotif = new Notification(
+                39, member1.id(), null, NotificationType.PROCEDURE_ITEM_CHECKED, pic, Instant.now(), null);
         var picBody = service.resolveFeedBody("en", picNotif);
         assertTrue(picBody.contains("Item A"));
         assertTrue(picBody.contains("Alice"));
@@ -849,7 +853,7 @@ class NotificationServiceTest extends RepositoryTestBase {
         var nf = NotificationData.of(
                 new NotificationParams.NewForm("Application"),
                 new NotificationData.NotificationLink("dashboard-overview"));
-        var nfNotif = new Notification(40, member1.id(), NotificationType.NEW_FORM, nf, Instant.now(), null);
+        var nfNotif = new Notification(40, member1.id(), null, NotificationType.NEW_FORM, nf, Instant.now(), null);
         // resolveDetail returns null for NEW_FORM, so body is just the headline
         var nfBody = service.resolveFeedBody("en", nfNotif);
         assertFalse(nfBody.isBlank());
@@ -886,7 +890,7 @@ class NotificationServiceTest extends RepositoryTestBase {
 
     private Notification notificationWith(NotificationType type, NotificationParams params, int id) {
         var data = NotificationData.of(params, new NotificationData.NotificationLink("dashboard-overview"));
-        return new Notification(id, member1.id(), type, data, Instant.now(), null);
+        return new Notification(id, member1.id(), null, type, data, Instant.now(), null);
     }
 
     @Test
@@ -961,6 +965,7 @@ class NotificationServiceTest extends RepositoryTestBase {
         var malformed = new Notification(
                 300,
                 member1.id(),
+                null,
                 NotificationType.NEW_NEWS,
                 new NotificationData(new NotificationParams.NewNews(null, null, null), null),
                 Instant.now(),

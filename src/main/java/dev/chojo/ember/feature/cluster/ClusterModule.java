@@ -8,7 +8,10 @@ package dev.chojo.ember.feature.cluster;
 import com.google.inject.AbstractModule;
 import com.google.inject.multibindings.Multibinder;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.feature.cluster.route.ClusterNotificationRoutes;
 import dev.chojo.ember.feature.cluster.route.ClusterRoutes;
+import dev.chojo.ember.feature.cluster.route.ClusterStationRoutes;
+import dev.chojo.ember.feature.cluster.route.StationClusterRoutes;
 
 /**
  * The cluster's own wiring, kept beside the station's rather than folded into it.
@@ -23,5 +26,8 @@ public class ClusterModule extends AbstractModule {
     protected void configure() {
         Multibinder<Routes> routesBinder = Multibinder.newSetBinder(binder(), Routes.class);
         routesBinder.addBinding().to(ClusterRoutes.class);
+        routesBinder.addBinding().to(ClusterStationRoutes.class);
+        routesBinder.addBinding().to(ClusterNotificationRoutes.class);
+        routesBinder.addBinding().to(StationClusterRoutes.class);
     }
 }

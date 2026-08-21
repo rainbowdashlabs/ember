@@ -7,8 +7,12 @@ package dev.chojo.ember.feature.cluster.service;
 
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.ClusterUserType;
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
+import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemCustody;
+import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.BadRequestResponse;
@@ -29,7 +33,7 @@ class ClusterServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new ClusterService(clusterRepo, stationRepo);
+        service = new ClusterService(clusterRepo, stationRepo, clusterItemReleaseService, new DomainEventBus(Set.of()));
     }
 
     private int freshCluster() {
@@ -97,15 +101,77 @@ class ClusterServiceTest extends RepositoryTestBase {
         int clusterId = freshCluster();
         var station = stationRepo.create("Wache unter dem Träger");
 
-        clusterRepo.setStationCluster(station.id(), clusterId);
+        stationRepo.setCluster(station.id(), clusterId);
 
         assertEquals(
                 clusterId, service.findByStation(station.id()).orElseThrow().id());
         assertTrue(service.findStationIds(clusterId).contains(station.id()));
 
         // Released, it answers to nobody again
-        clusterRepo.setStationCluster(station.id(), null);
+        stationRepo.setCluster(station.id(), null);
         assertTrue(service.findByStation(station.id()).isEmpty());
+        stationRepo.delete(station.id());
+    }
+
+    @Test
+    void aStationTheClusterMakesBelongsToItFromTheStart() {
+        int clusterId = freshCluster();
+
+        var station = service.createStation(clusterId, "Löschzug Neu");
+
+        assertEquals(clusterId, stationRepo.findById(station.id()).orElseThrow().clusterId());
+        assertTrue(service.findStations(clusterId).stream().anyMatch(s -> s.id() == station.id()));
+
+        service.releaseStation(clusterId, station.id());
+        stationRepo.delete(station.id());
+    }
+
+    @Test
+    void aHomeStationCannotBeTakenIntoAnotherCluster() {
+        var first = service.create("Kreisverband Eins", null);
+        int otherClusterId = freshCluster();
+
+        assertThrows(BadRequestResponse.class, () -> service.joinStation(otherClusterId, first.homeStationId()));
+    }
+
+    @Test
+    void aStationCannotBeTakenFromTheClusterItAlreadyAnswersTo() {
+        int clusterId = freshCluster();
+        int otherClusterId = freshCluster();
+        var station = service.createStation(clusterId, "Umkämpfte Wache");
+
+        assertThrows(BadRequestResponse.class, () -> service.joinStation(otherClusterId, station.id()));
+
+        service.releaseStation(clusterId, station.id());
+        stationRepo.delete(station.id());
+    }
+
+    @Test
+    void releasingAStationThatWasNeverInTheClusterIsRefused() {
+        int clusterId = freshCluster();
+        var station = stationRepo.create("Freie Wache");
+
+        assertThrows(BadRequestResponse.class, () -> service.releaseStation(clusterId, station.id()));
+        stationRepo.delete(station.id());
+    }
+
+    @Test
+    void aReleasedStationGetsItsFreedomAndTheClusterItsGearBack() {
+        int clusterId = freshCluster();
+        var station = service.createStation(clusterId, "Wache mit geliehenem Gerät");
+        var inventory = inventoryRepo.create(station.id(), "Einsatzkleidung", InventoryType.EXTERNAL, false);
+        var account = freshAccount();
+        var member = stationMemberRepo.create(station.id(), account.id());
+        var item = inventoryRepo.createItem(inventory.id(), "HK-1", "Helm", null, null, ItemOwner.CLUSTER, clusterId);
+        itemCustodyService.assignToMember(item.id(), member.id(), "Wer auch immer");
+
+        service.releaseStation(clusterId, station.id());
+
+        var recalled = inventoryRepo.findItemById(item.id()).orElseThrow();
+        assertEquals(ItemCustody.WITH_OWNER, recalled.custody(), "the cluster has its gear back");
+        assertNull(recalled.assignedTo(), "and nobody at the released station still holds it");
+        assertNull(stationRepo.findById(station.id()).orElseThrow().clusterId());
+
         stationRepo.delete(station.id());
     }
 
@@ -177,13 +243,13 @@ class ClusterServiceTest extends RepositoryTestBase {
     void aClusterWithStationsIsNotDeletedOutFromUnderThem() {
         var cluster = service.create("Kreisverband Voll", null);
         var station = stationRepo.create("Wache im Verband");
-        clusterRepo.setStationCluster(station.id(), cluster.id());
+        stationRepo.setCluster(station.id(), cluster.id());
 
         var refused = assertThrows(BadRequestResponse.class, () -> service.delete(cluster.id()));
         assertTrue(refused.getMessage().contains("Release them first"));
         assertTrue(service.findById(cluster.id()).isPresent());
 
-        clusterRepo.setStationCluster(station.id(), null);
+        stationRepo.setCluster(station.id(), null);
         stationRepo.delete(station.id());
         service.delete(cluster.id());
     }

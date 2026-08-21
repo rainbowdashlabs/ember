@@ -305,7 +305,10 @@ class DemoServiceTest extends RepositoryTestBase {
                 exchangeService,
                 procurementService,
                 itemCustodyService);
-        var clusterSeeder = new DemoClusterSeeder(new ClusterService(clusterRepo, stationRepo), clusterRepo);
+        var clusterSeeder = new DemoClusterSeeder(
+                new ClusterService(clusterRepo, stationRepo, clusterItemReleaseService, new DomainEventBus(Set.of())),
+                clusterApplicationRepo,
+                stationRepo);
         var formSeeder = new DemoFormSeeder(formRepo, restrictionService);
         var notificationSeeder = new DemoNotificationSeeder(
                 notificationRepo, inventoryRepo, boardService, boardTicketService, procedureService, lendingService);

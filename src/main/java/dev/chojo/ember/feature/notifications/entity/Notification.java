@@ -14,15 +14,26 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 /**
  * Represents an in-app notification sent to a member.
  *
- * @param id             unique identifier of the notification
- * @param memberId       the member this notification is for
- * @param type           the notification category
- * @param data           localized message data and optional navigation link
- * @param createdAt      timestamp when the notification was created
- * @param acknowledgedAt timestamp when the member acknowledged the notification, or {@code null}
+ * <p>Exactly one of the two recipients is set. A station member is the usual one; a cluster member is the
+ * other, because the people who run a cluster hold no membership in any of its stations and a notification
+ * addressed to them has nowhere else to go.
+ *
+ * @param id              unique identifier of the notification
+ * @param memberId        the station member this notification is for, or {@code null}
+ * @param clusterMemberId the cluster member this notification is for, or {@code null}
+ * @param type            the notification category
+ * @param data            localized message data and optional navigation link
+ * @param createdAt       timestamp when the notification was created
+ * @param acknowledgedAt  timestamp when the member acknowledged the notification, or {@code null}
  */
 public record Notification(
-        int id, int memberId, NotificationType type, NotificationData data, Instant createdAt, Instant acknowledgedAt) {
+        int id,
+        Integer memberId,
+        Integer clusterMemberId,
+        NotificationType type,
+        NotificationData data,
+        Instant createdAt,
+        Instant acknowledgedAt) {
     /**
      * Creates a row mapping for database result set conversion.
      */
@@ -31,7 +42,8 @@ public record Notification(
             var type = row.getEnum("type", NotificationType.class);
             return new Notification(
                     row.getInt("id"),
-                    row.getInt("member_id"),
+                    row.getObject("member_id", Integer.class),
+                    row.getObject("cluster_member_id", Integer.class),
                     type,
                     NotificationData.fromJson(row.getString("data"), type),
                     row.get("created_at", INSTANT_TIMESTAMP),

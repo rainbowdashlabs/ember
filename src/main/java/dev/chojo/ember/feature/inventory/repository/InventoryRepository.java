@@ -316,6 +316,31 @@ public class InventoryRepository {
                 .all();
     }
 
+    /**
+     * The gear a cluster owns that a given station currently holds.
+     *
+     * <p>The question a release asks. Ownership and custody are separate, so this is neither "everything in
+     * that station's inventories" nor "everything the cluster owns": it is the overlap, which is exactly what
+     * has to come home when the station stops answering to the cluster.
+     *
+     * @param clusterId the owning cluster
+     * @param stationId the station holding it
+     * @return the items to recall
+     */
+    public List<InventoryItem> findClusterItemsHeldBy(int clusterId, int stationId) {
+        return query(
+                        """
+                SELECT %s FROM inventory_item ii
+                %s
+                WHERE ii.owner_kind = 'CLUSTER' AND ii.owner_cluster_id = :cluster_id AND %s;""",
+                        SqlSupport.alias("ii", INVENTORY_ITEM_COLUMNS),
+                        ItemCustodySql.joinInventory("ii", "i"),
+                        ItemCustodySql.heldBy("ii", "i"))
+                .single(call().bind("cluster_id", clusterId).bind(ItemCustodySql.STATION_BIND, stationId))
+                .map(InventoryItem.map())
+                .all();
+    }
+
     public List<InventorySize> findSizesByStation(int stationId) {
         return query("""
                 SELECT %s FROM inventory_size s

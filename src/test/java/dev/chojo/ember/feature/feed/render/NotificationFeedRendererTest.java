@@ -586,6 +586,6 @@ class NotificationFeedRendererTest {
     private static Notification notification(
             int id, NotificationType type, NotificationParams params, NotificationData.NotificationLink link) {
         var data = link == null ? NotificationData.of(params) : NotificationData.of(params, link);
-        return new Notification(id, 1, type, data, Instant.now(), null);
+        return new Notification(id, 1, null, type, data, Instant.now(), null);
     }
 }

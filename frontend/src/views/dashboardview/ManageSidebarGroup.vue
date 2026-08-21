@@ -49,6 +49,9 @@ function close() {
     <SidebarLink v-if="hasPermission(StationPermission.STATION_MODULES)" :icon="['fas', 'puzzle-piece']" name="station-modules" to="/station/manage/modules" @navigate="close">
       {{ t('sidebar.stationModules') }}
     </SidebarLink>
+    <SidebarLink v-if="hasPermission(StationPermission.STATION_GENERAL)" :icon="['fas', 'sitemap']" name="station-manage-cluster" to="/station/manage/cluster" @navigate="close">
+      {{ t('sidebar.stationCluster') }}
+    </SidebarLink>
     <SidebarLink v-if="hasPermission(StationPermission.STATION_IMPORT_EXPORT)" :icon="['fas', 'file-import']" name="station-import" to="/station/manage/import" @navigate="close">
       {{ t('sidebar.stationImport') }}
     </SidebarLink>

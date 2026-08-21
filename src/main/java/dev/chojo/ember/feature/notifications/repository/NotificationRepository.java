@@ -25,7 +25,8 @@ import static dev.chojo.ember.util.sql.SqlSupport.insertReturning;
  */
 @Singleton
 public class NotificationRepository {
-    private static final String NOTIFICATION_COLUMNS = "id, member_id, type, data, created_at, acknowledged_at";
+    private static final String NOTIFICATION_COLUMNS =
+            "id, member_id, cluster_member_id, type, data, created_at, acknowledged_at";
 
     /**
      * Creates a new notification for a member.
@@ -190,7 +191,7 @@ public class NotificationRepository {
     public List<Notification> findUnemailed() {
         return query("""
                 SELECT %s FROM notification
-                WHERE emailed_at IS NULL
+                WHERE emailed_at IS NULL AND member_id IS NOT NULL
                 ORDER BY member_id, created_at;""", NOTIFICATION_COLUMNS).single().map(Notification.map()).all();
     }
 
@@ -207,6 +208,131 @@ public class NotificationRepository {
                     .single(call().bind("now", now, INSTANT_TIMESTAMP).bind("id", id))
                     .update();
         }
+    }
+
+    // -- Cluster members --
+    //
+    // A parallel set rather than a column parameter on the ones above: the two recipients are different
+    // things, and a method that took whichever id you happened to have would let a station member's id
+    // silently read a cluster member's feed.
+
+    /**
+     * Creates a notification for a cluster member.
+     *
+     * @param clusterMemberId the target cluster member
+     * @param type            the notification category
+     * @param data            localized message data
+     * @return the persisted notification
+     */
+    public Notification createForClusterMember(int clusterMemberId, NotificationType type, NotificationData data) {
+        return insertReturning(
+                """
+                INSERT INTO notification(cluster_member_id, type, data)
+                VALUES(:cluster_member_id, :type, :data::JSONB)
+                RETURNING %s;""".formatted(NOTIFICATION_COLUMNS),
+                call().bind("cluster_member_id", clusterMemberId)
+                        .bind("type", type)
+                        .bind("data", data.toJson()),
+                Notification.map(),
+                NOTIFICATION_COLUMNS);
+    }
+
+    /**
+     * Whether the same thing is already waiting unread for this cluster member.
+     *
+     * @param clusterMemberId the cluster member
+     * @param type            the notification type
+     * @param data            the data that must match exactly
+     * @return {@code true} when one is already there
+     */
+    public boolean existsForClusterMember(int clusterMemberId, NotificationType type, NotificationData data) {
+        return SqlSupport.exists(
+                """
+                SELECT 1 FROM notification
+                WHERE cluster_member_id = :cluster_member_id
+                  AND type = :type
+                  AND data = :data::JSONB
+                  AND acknowledged_at IS NULL;""",
+                call().bind("cluster_member_id", clusterMemberId)
+                        .bind("type", type)
+                        .bind("data", data.toJson()));
+    }
+
+    /**
+     * The unread notifications of a cluster member, newest first.
+     *
+     * @param clusterMemberId the cluster member
+     * @return what is waiting for them
+     */
+    public List<Notification> findUnacknowledgedForClusterMember(int clusterMemberId) {
+        return query("""
+                SELECT %s FROM notification
+                WHERE cluster_member_id = :cluster_member_id AND acknowledged_at IS NULL
+                ORDER BY created_at DESC;""", NOTIFICATION_COLUMNS)
+                .single(call().bind("cluster_member_id", clusterMemberId))
+                .map(Notification.map())
+                .all();
+    }
+
+    /**
+     * The last fifty notifications of a cluster member, read or not.
+     *
+     * @param clusterMemberId the cluster member
+     * @return their feed
+     */
+    public List<Notification> findAllForClusterMember(int clusterMemberId) {
+        return query("""
+                SELECT %s FROM notification
+                WHERE cluster_member_id = :cluster_member_id
+                ORDER BY created_at DESC LIMIT 50;""", NOTIFICATION_COLUMNS)
+                .single(call().bind("cluster_member_id", clusterMemberId))
+                .map(Notification.map())
+                .all();
+    }
+
+    /**
+     * How much a cluster member has not read yet.
+     *
+     * @param clusterMemberId the cluster member
+     * @return the count
+     */
+    public int countUnacknowledgedForClusterMember(int clusterMemberId) {
+        return count("""
+                SELECT count(*) AS cnt FROM notification
+                WHERE cluster_member_id = :cluster_member_id AND acknowledged_at IS NULL;""", call().bind("cluster_member_id", clusterMemberId));
+    }
+
+    /**
+     * Marks one of a cluster member's notifications read.
+     *
+     * @param id              the notification
+     * @param clusterMemberId the cluster member, so nobody acknowledges somebody else's
+     * @return {@code true} when it was theirs and unread
+     */
+    public boolean acknowledgeForClusterMember(int id, int clusterMemberId) {
+        return query("""
+                UPDATE notification SET acknowledged_at = :now
+                WHERE id = :id AND cluster_member_id = :cluster_member_id AND acknowledged_at IS NULL;""")
+                .single(call().bind("id", id)
+                        .bind("cluster_member_id", clusterMemberId)
+                        .bind("now", Instant.now(), INSTANT_TIMESTAMP))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Marks everything a cluster member has waiting as read.
+     *
+     * @param clusterMemberId the cluster member
+     * @return how many were marked
+     */
+    public int acknowledgeAllForClusterMember(int clusterMemberId) {
+        return query("""
+                UPDATE notification SET acknowledged_at = :now
+                WHERE cluster_member_id = :cluster_member_id AND acknowledged_at IS NULL;""")
+                .single(call().bind("cluster_member_id", clusterMemberId).bind("now", Instant.now(), INSTANT_TIMESTAMP))
+                .update()
+                .rows();
     }
 
     /**

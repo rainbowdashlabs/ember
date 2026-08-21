@@ -138,7 +138,12 @@
     "PROCEDURE_REOPENED": "Wieder geöffnet: {procedureName}",
     "PROCEDURE_ITEM_CHECKED": "Abgehakt: {itemTitle} - in {procedureName}",
     "WAITLIST_PUBLIC_REGISTRATION": "Öffentliche Anmeldung - {listName}: {childName}",
-    "STORAGE_WARNING": "Speicher bei {usedPercent}% - {usedFormatted} / {quotaFormatted}"
+    "STORAGE_WARNING": "Speicher bei {usedPercent}% - {usedFormatted} / {quotaFormatted}",
+    "CLUSTER_APPLICATION_SUBMITTED": "Beitrittsanfrage: {stationName}",
+    "CLUSTER_APPLICATION_APPROVED": "Aufgenommen in {clusterName}",
+    "CLUSTER_APPLICATION_DENIED": "Abgelehnt von {clusterName}",
+    "CLUSTER_APPLICATION_WITHDRAWN": "Anfrage zurückgezogen: {stationName}",
+    "CLUSTER_STATION_RELEASED": "Aus {clusterName} entlassen"
   },
   "digest": {
     "subject.one": "{stationName}: 1 neue Benachrichtigung",
@@ -173,7 +178,13 @@
     "PROCEDURE_ITEM_CHECKED": "Prozedur-Punkt abgehakt",
     "WAITLIST_NEW_ENTRY": "Neue Wartelisten-Anmeldung",
     "WAITLIST_PUBLIC_REGISTRATION": "Öffentliche Anmeldung",
-    "STORAGE_WARNING": "Speicherwarnung"
+    "STORAGE_WARNING": "Speicherwarnung",
+    "MOVEMENT_DECLINED": "Bewegung abgelehnt",
+    "CLUSTER_APPLICATION_SUBMITTED": "Neue Beitrittsanfrage",
+    "CLUSTER_APPLICATION_APPROVED": "Beitritt bestätigt",
+    "CLUSTER_APPLICATION_DENIED": "Beitritt abgelehnt",
+    "CLUSTER_APPLICATION_WITHDRAWN": "Anfrage zurückgezogen",
+    "CLUSTER_STATION_RELEASED": "Aus dem Verband entlassen"
   },
   "message": {
     "notification.newNews": "{title} - von {author}",
@@ -207,6 +218,12 @@
     "notification.procedureItemChecked": "{checkedByName} hat \"{itemTitle}\" in {procedureName} abgehakt",
     "notification.waitlistNewEntry": "{childName} wurde auf die Warteliste {listName} gesetzt",
     "notification.waitlistPublicRegistration": "Öffentliche Anmeldung: {childName} auf Warteliste {listName}",
-    "notification.storageWarning": "Speicher bei {usedPercent}% ({usedFormatted} von {quotaFormatted})"
+    "notification.storageWarning": "Speicher bei {usedPercent}% ({usedFormatted} von {quotaFormatted})",
+    "notification.movementDeclined": "{inventoryName}: abgelehnt - {reason}",
+    "notification.clusterApplicationSubmitted": "{stationName} möchte dem Verband beitreten",
+    "notification.clusterApplicationApproved": "Eure Wache gehört jetzt zu {clusterName}",
+    "notification.clusterApplicationDenied": "{clusterName} hat die Anfrage abgelehnt: {reason}",
+    "notification.clusterApplicationWithdrawn": "{stationName} hat die Beitrittsanfrage zurückgezogen",
+    "notification.clusterStationReleased": "{clusterName} hat eure Wache entlassen"
   }
 }

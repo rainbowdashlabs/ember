@@ -6,8 +6,11 @@
 package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.api.auth.ClusterUserType;
-import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
+import dev.chojo.ember.feature.cluster.entity.Cluster;
+import dev.chojo.ember.feature.cluster.repository.ClusterApplicationRepository;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
+import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -20,18 +23,26 @@ import org.slf4j.LoggerFactory;
  * <p>It runs in the modules band because it needs the station and its administrator and nothing else. The
  * cluster's own inventory and the movements between it and its stations arrive with the phase that builds
  * them; what this gives that phase is somewhere to hang them.
+ *
+ * <p>Both ways into a cluster are shown, because they behave differently and the difference is the point: a
+ * station the cluster made itself, and a standing station whose request is still waiting to be answered.
  */
 @Singleton
 public class DemoClusterSeeder implements DemoSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoClusterSeeder.class);
 
     private final ClusterService clusterService;
-    private final ClusterRepository clusterRepository;
+    private final ClusterApplicationRepository applicationRepository;
+    private final StationRepository stationRepository;
 
     @Inject
-    public DemoClusterSeeder(ClusterService clusterService, ClusterRepository clusterRepository) {
+    public DemoClusterSeeder(
+            ClusterService clusterService,
+            ClusterApplicationRepository applicationRepository,
+            StationRepository stationRepository) {
         this.clusterService = clusterService;
-        this.clusterRepository = clusterRepository;
+        this.applicationRepository = applicationRepository;
+        this.stationRepository = stationRepository;
     }
 
     @Override
@@ -41,11 +52,19 @@ public class DemoClusterSeeder implements DemoSeeder {
 
     @Override
     public void seed(DemoSeederContext context) {
-        var cluster = clusterService.create(
+        Cluster cluster = clusterService.create(
                 "Kreisverband Musterstadt", "Der Träger, dem die Wache und ihre Nachbarn angehören");
 
         // The station the rest of the demo is about now answers to somebody
-        clusterRepository.setStationCluster(context.station().id(), cluster.id());
+        clusterService.joinStation(cluster.id(), context.station().id());
+
+        // A station the cluster made itself, which belonged to it from its first moment
+        clusterService.createStation(cluster.id(), "Löschzug Nord");
+
+        // And one standing outside that has asked to come in, so the applications screen has something to
+        // decide. It has no owner of its own, which is why the row is written rather than applied for.
+        Station neighbour = stationRepository.create("Feuerwehr Nachbardorf");
+        applicationRepository.open(cluster.id(), neighbour.id(), null);
 
         // The demo administrator wears both hats, which is the case worth being able to click through
         clusterService.addMember(cluster.id(), context.adminAccount().id(), ClusterUserType.CLUSTER_ADMIN);

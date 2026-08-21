@@ -5,7 +5,10 @@
  */
 package dev.chojo.ember.feature.notifications.repository;
 
+import dev.chojo.ember.api.auth.ClusterUserType;
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
@@ -168,5 +171,63 @@ class NotificationRepositoryTest extends RepositoryTestBase {
             stationMemberRepo.delete(freshMember.id());
             accountRepo.delete(freshAcc.id());
         }
+    }
+
+    /**
+     * The cluster side of the feed. A cluster member is not a station member, so everything about their
+     * notifications is a separate path, and the point worth checking is that the two never see each other.
+     */
+    @Test
+    @Order(22)
+    void aClusterMemberHasATotallySeparateFeed() {
+        var clusterService = new ClusterService(
+                clusterRepo, stationRepo, clusterItemReleaseService, new DomainEventBus(java.util.Set.of()));
+        var cluster = clusterService.create("Kreisverband Post", null);
+        var clusterAccount = accountRepo.create("cluster-notif@test.com", "Clus", "Post");
+        var clusterMember = clusterService.addMember(cluster.id(), clusterAccount.id(), ClusterUserType.CLUSTER_ADMIN);
+
+        var data = NotificationData.of(
+                new NotificationParams.ClusterApplicationSubmitted("Wache Nord"),
+                new NotificationData.NotificationLink("cluster-applications"));
+
+        var created = notificationRepo.createForClusterMember(
+                clusterMember.id(), NotificationType.CLUSTER_APPLICATION_SUBMITTED, data);
+        assertNull(created.memberId(), "a cluster notification names no station member");
+        assertEquals(clusterMember.id(), created.clusterMemberId());
+
+        assertTrue(notificationRepo.existsForClusterMember(
+                clusterMember.id(), NotificationType.CLUSTER_APPLICATION_SUBMITTED, data));
+        assertEquals(1, notificationRepo.countUnacknowledgedForClusterMember(clusterMember.id()));
+        assertEquals(
+                1,
+                notificationRepo
+                        .findUnacknowledgedForClusterMember(clusterMember.id())
+                        .size());
+        assertEquals(
+                1, notificationRepo.findAllForClusterMember(clusterMember.id()).size());
+
+        // The station member's own feed is untouched by any of it
+        assertFalse(notificationRepo.findAll(member.id()).stream().anyMatch(n -> n.id() == created.id()));
+
+        assertTrue(notificationRepo.acknowledgeForClusterMember(created.id(), clusterMember.id()));
+        assertFalse(
+                notificationRepo.acknowledgeForClusterMember(created.id(), clusterMember.id()),
+                "acknowledging twice changes nothing");
+        assertEquals(0, notificationRepo.countUnacknowledgedForClusterMember(clusterMember.id()));
+
+        notificationRepo.createForClusterMember(
+                clusterMember.id(),
+                NotificationType.CLUSTER_APPLICATION_WITHDRAWN,
+                NotificationData.of(
+                        new NotificationParams.ClusterApplicationWithdrawn("Wache Nord"),
+                        new NotificationData.NotificationLink("cluster-applications")));
+        assertEquals(1, notificationRepo.acknowledgeAllForClusterMember(clusterMember.id()));
+
+        // And it is never picked up for a digest, because a cluster member has no station mailbox
+        assertFalse(notificationRepo.findUnemailed().stream().anyMatch(n -> n.id() == created.id()));
+
+        clusterService.removeMember(clusterMember.id());
+        accountRepo.delete(clusterAccount.id());
+        clusterService.delete(cluster.id());
     }
 }

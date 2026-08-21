@@ -42,7 +42,16 @@ public enum NotificationType {
     PROCEDURE_ITEM_CHECKED(NotificationParams.ProcedureItemCheckedParams.class, "notification.procedureItemChecked"),
     WAITLIST_PUBLIC_REGISTRATION(
             NotificationParams.WaitlistPublicRegistration.class, "notification.waitlistPublicRegistration"),
-    STORAGE_WARNING(NotificationParams.StorageWarning.class, "notification.storageWarning");
+    STORAGE_WARNING(NotificationParams.StorageWarning.class, "notification.storageWarning"),
+    CLUSTER_APPLICATION_SUBMITTED(
+            NotificationParams.ClusterApplicationSubmitted.class, "notification.clusterApplicationSubmitted"),
+    CLUSTER_APPLICATION_APPROVED(
+            NotificationParams.ClusterApplicationApproved.class, "notification.clusterApplicationApproved"),
+    CLUSTER_APPLICATION_DENIED(
+            NotificationParams.ClusterApplicationDenied.class, "notification.clusterApplicationDenied"),
+    CLUSTER_APPLICATION_WITHDRAWN(
+            NotificationParams.ClusterApplicationWithdrawn.class, "notification.clusterApplicationWithdrawn"),
+    CLUSTER_STATION_RELEASED(NotificationParams.ClusterStationReleased.class, "notification.clusterStationReleased");
 
     private final Class<? extends NotificationParams> paramsType;
     private final String localeKey;

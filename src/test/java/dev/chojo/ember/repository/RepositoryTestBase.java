@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.board.repository.BoardRepository;
 import dev.chojo.ember.feature.board.repository.BoardTicketRepository;
 import dev.chojo.ember.feature.board.repository.FederatedBoardRepository;
 import dev.chojo.ember.feature.checklist.repository.ChecklistRepository;
+import dev.chojo.ember.feature.cluster.repository.ClusterApplicationRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.comment.repository.EventCommentRepository;
 import dev.chojo.ember.feature.comment.repository.NoteRepository;
@@ -59,6 +60,7 @@ import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.repository.ItemMovementRepository;
 import dev.chojo.ember.feature.inventory.repository.MovementFlowRepository;
 import dev.chojo.ember.feature.inventory.repository.ProcurementRepository;
+import dev.chojo.ember.feature.inventory.service.ClusterItemReleaseService;
 import dev.chojo.ember.feature.inventory.service.ExchangeService;
 import dev.chojo.ember.feature.inventory.service.ItemCustodyService;
 import dev.chojo.ember.feature.inventory.service.ItemMovementService;
@@ -142,11 +144,15 @@ public abstract class RepositoryTestBase {
     protected static AttendanceRepository attendanceRepo;
     protected static InventoryRepository inventoryRepo;
     protected static ClusterRepository clusterRepo;
+
+    protected static ClusterApplicationRepository clusterApplicationRepo;
     protected static ItemCustodyService itemCustodyService;
     protected static MovementFlowRepository movementFlowRepo;
     protected static ItemMovementRepository itemMovementRepo;
     protected static MovementFlowService movementFlowService;
     protected static ItemMovementService itemMovementService;
+
+    protected static ClusterItemReleaseService clusterItemReleaseService;
     protected static ExchangeService exchangeService;
     protected static MemberGroupRepository memberGroupRepo;
     protected static ProfileFieldRepository profileFieldRepo;
@@ -267,12 +273,15 @@ public abstract class RepositoryTestBase {
         attendanceRepo = new AttendanceRepository();
         inventoryRepo = new InventoryRepository();
         clusterRepo = new ClusterRepository();
+        clusterApplicationRepo = new ClusterApplicationRepository();
         itemCustodyService = new ItemCustodyService(inventoryRepo);
         movementFlowRepo = new MovementFlowRepository();
         itemMovementRepo = new ItemMovementRepository();
         movementFlowService = new MovementFlowService(movementFlowRepo, itemMovementRepo);
         itemMovementService = new ItemMovementService(
                 itemMovementRepo, movementFlowService, inventoryRepo, itemCustodyService, new DomainEventBus(Set.of()));
+        clusterItemReleaseService =
+                new ClusterItemReleaseService(inventoryRepo, itemCustodyService, itemMovementService);
         exchangeService = new ExchangeService(itemMovementService, inventoryRepo);
         memberGroupRepo = new MemberGroupRepository();
         profileFieldRepo = new ProfileFieldRepository();

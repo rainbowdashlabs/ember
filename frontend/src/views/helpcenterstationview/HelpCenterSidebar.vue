@@ -188,6 +188,10 @@ function escapeHtml(text: string): string {
                    to="/helpcenter/station/manage/theme" @navigate="close">
         {{ t('helpCenter.themeManage.sidebarLabel') }}
       </SidebarLink>
+      <SidebarLink :icon="['fas', 'sitemap']" name="help-station-manage-cluster"
+                   to="/helpcenter/station/manage/cluster" @navigate="close">
+        {{ t('sidebar.stationCluster') }}
+      </SidebarLink>
       <SidebarExpandableLink :icon="['fas', 'arrow-right-arrow-left']" name="help-station-federation"
                              to="/helpcenter/station/federate" @navigate="close">
         <template #label>{{ t('helpCenter.federation.sidebarLabel') }}</template>

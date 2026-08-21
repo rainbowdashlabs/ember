@@ -312,6 +312,21 @@ public class ItemMovementService {
     }
 
     /**
+     * Calls off a movement because the ground it stood on is gone.
+     *
+     * <p>Unlike {@link #cancel(int, Actor, String)} there is nobody whose turn it is to check: a station that
+     * has left its cluster cannot finish a chain the cluster was one end of, and leaving the movement open
+     * would leave the item in transit to a party that is no longer there.
+     *
+     * @param movementId the movement
+     * @param reason     what to record, for whoever reads it later
+     * @return the closed movement
+     */
+    public ItemMovement abandon(int movementId, String reason) {
+        return close(requireOpen(movementId), MovementState.CANCELLED, reason);
+    }
+
+    /**
      * Deletes a movement outright, which is what the old exchange list called cancelling.
      */
     public boolean delete(int movementId) {

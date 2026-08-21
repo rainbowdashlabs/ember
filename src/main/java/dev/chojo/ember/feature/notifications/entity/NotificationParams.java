@@ -48,6 +48,20 @@ public sealed interface NotificationParams {
 
     record MovementDeclined(String inventoryName, String reason) implements NotificationParams {}
 
+    /**
+     * A station has asked to join a cluster. Named by station, because the cluster reading it knows which
+     * cluster it is.
+     */
+    record ClusterApplicationSubmitted(String stationName) implements NotificationParams {}
+
+    record ClusterApplicationApproved(String clusterName) implements NotificationParams {}
+
+    record ClusterApplicationDenied(String clusterName, String reason) implements NotificationParams {}
+
+    record ClusterApplicationWithdrawn(String stationName) implements NotificationParams {}
+
+    record ClusterStationReleased(String clusterName) implements NotificationParams {}
+
     record MemberAddedToGroup(String groupName, String addedByName) implements NotificationParams {}
 
     record ProfileFieldChanged(String memberName, String fieldName) implements NotificationParams {}

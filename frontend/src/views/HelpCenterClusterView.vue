@@ -42,6 +42,18 @@ watch(
           {{ t('clusterSidebar.settings') }}
         </SidebarLink>
       </SidebarGroup>
+
+      <SidebarGroup :icon="['fas', 'building']" :label="t('clusterSidebar.stations')"
+                    prefix="/helpcenter/cluster/stations">
+        <SidebarLink :icon="['fas', 'building']" name="help-cluster-stations" to="/helpcenter/cluster/stations"
+                     @navigate="close">
+          {{ t('clusterSidebar.stationList') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'clipboard-list']" name="help-cluster-applications"
+                     to="/helpcenter/cluster/applications" @navigate="close">
+          {{ t('clusterSidebar.applications') }}
+        </SidebarLink>
+      </SidebarGroup>
     </template>
 
     <slot/>

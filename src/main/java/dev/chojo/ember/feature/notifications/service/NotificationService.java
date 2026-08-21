@@ -337,6 +337,85 @@ public class NotificationService {
         }
     }
 
+    // -- Cluster members --
+    //
+    // The per-type settings screen is a station member's, so a cluster member has no rows in it and these
+    // do not consult it. What a cluster member hears about is decided by what they may see, which is their
+    // cluster permissions, and that is checked where the notification is raised.
+
+    /**
+     * Sends a notification to cluster members, skipping any that already have the same one waiting.
+     *
+     * @param clusterMemberIds       the cluster members to tell
+     * @param type                   the notification category
+     * @param data                   localized message data
+     * @param excludeClusterMemberId the cluster member who caused it, so they are not told about their own
+     *                               doing, or {@code null} when nobody should be skipped
+     */
+    public void notifyClusterMembersIfAbsent(
+            Collection<Integer> clusterMemberIds,
+            NotificationType type,
+            NotificationData data,
+            Integer excludeClusterMemberId) {
+        requireLink(type, data);
+        for (int clusterMemberId : clusterMemberIds) {
+            if (excludeClusterMemberId != null && clusterMemberId == excludeClusterMemberId) continue;
+            if (!notificationRepository.existsForClusterMember(clusterMemberId, type, data)) {
+                notificationRepository.createForClusterMember(clusterMemberId, type, data);
+            }
+        }
+    }
+
+    /**
+     * The unread notifications of a cluster member.
+     *
+     * @param clusterMemberId the cluster member
+     * @return what is waiting for them
+     */
+    public List<Notification> findUnacknowledgedForClusterMember(int clusterMemberId) {
+        return notificationRepository.findUnacknowledgedForClusterMember(clusterMemberId);
+    }
+
+    /**
+     * The recent notifications of a cluster member, read or not.
+     *
+     * @param clusterMemberId the cluster member
+     * @return their feed
+     */
+    public List<Notification> findAllForClusterMember(int clusterMemberId) {
+        return notificationRepository.findAllForClusterMember(clusterMemberId);
+    }
+
+    /**
+     * How much a cluster member has not read.
+     *
+     * @param clusterMemberId the cluster member
+     * @return the count
+     */
+    public int countUnacknowledgedForClusterMember(int clusterMemberId) {
+        return notificationRepository.countUnacknowledgedForClusterMember(clusterMemberId);
+    }
+
+    /**
+     * Marks one of a cluster member's notifications read.
+     *
+     * @param id              the notification
+     * @param clusterMemberId the cluster member it must belong to
+     */
+    public void acknowledgeForClusterMember(int id, int clusterMemberId) {
+        notificationRepository.acknowledgeForClusterMember(id, clusterMemberId);
+    }
+
+    /**
+     * Marks everything a cluster member has waiting as read.
+     *
+     * @param clusterMemberId the cluster member
+     * @return how many were marked
+     */
+    public int acknowledgeAllForClusterMember(int clusterMemberId) {
+        return notificationRepository.acknowledgeAllForClusterMember(clusterMemberId);
+    }
+
     /**
      * Retrieves all unacknowledged notifications for a member.
      *

@@ -51,6 +51,26 @@ onMounted(() => {
         </SidebarLink>
       </SidebarGroup>
 
+      <SidebarGroup
+          v-if="hasClusterPermission(ClusterPermission.USER)"
+          :icon="['fas', 'building']"
+          :label="t('clusterSidebar.stations')"
+          prefix="/cluster/stations"
+      >
+        <SidebarLink :icon="['fas', 'building']" name="cluster-stations" to="/cluster/stations" @navigate="close">
+          {{ t('clusterSidebar.stationList') }}
+        </SidebarLink>
+        <SidebarLink
+            v-if="hasClusterPermission(ClusterPermission.CLUSTER_STATIONS)"
+            :icon="['fas', 'clipboard-list']"
+            name="cluster-applications"
+            to="/cluster/applications"
+            @navigate="close"
+        >
+          {{ t('clusterSidebar.applications') }}
+        </SidebarLink>
+      </SidebarGroup>
+
       <div class="mt-auto flex flex-col gap-2 pt-4">
         <SmartStationButton/>
         <div class="flex items-center gap-2">
