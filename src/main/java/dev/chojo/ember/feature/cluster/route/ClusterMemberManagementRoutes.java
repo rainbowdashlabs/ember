@@ -23,6 +23,7 @@ import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -118,6 +119,7 @@ public class ClusterMemberManagementRoutes implements Routes {
 
     @OpenApi(
             path = "/api/v1/cluster/members/manage/{memberId}/user-type",
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
             methods = HttpMethod.PUT,
             summary = "Change what somebody is at their station",
             tags = {"Cluster"},
@@ -139,6 +141,7 @@ public class ClusterMemberManagementRoutes implements Routes {
 
     @OpenApi(
             path = "/api/v1/cluster/members/manage/{memberId}/permissions",
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
             methods = HttpMethod.PUT,
             summary = "Set what somebody may do at their station",
             tags = {"Cluster"},
@@ -166,6 +169,7 @@ public class ClusterMemberManagementRoutes implements Routes {
 
     @OpenApi(
             path = "/api/v1/cluster/members/manage/{memberId}",
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
             methods = HttpMethod.DELETE,
             summary = "Mark somebody as having left their station",
             tags = {"Cluster"},

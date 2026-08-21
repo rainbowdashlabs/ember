@@ -1320,6 +1320,10 @@ public class AdminSettingsRoutes implements Routes {
 
     @OpenApi(
             path = "/api/v1/admin/legal/{type}/{locale}/import",
+            pathParams = {
+                @OpenApiParam(name = "type", type = String.class, required = true),
+                @OpenApiParam(name = "locale", type = String.class, required = true)
+            },
             methods = HttpMethod.POST,
             summary = "Turn an externally written document into sections",
             description = "Splits a document into sections, takes the numbering out of its headings and rewrites the "

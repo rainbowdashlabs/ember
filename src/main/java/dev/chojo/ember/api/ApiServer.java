@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.api;
 
+import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -17,6 +18,7 @@ import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
+import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.insights.service.BotClassifier;
 import dev.chojo.ember.feature.insights.service.PageHitRecorder;
 import dev.chojo.ember.feature.insights.service.RefererDomainExtractor;
@@ -58,6 +60,7 @@ import io.javalin.openapi.plugin.swagger.SwaggerConfiguration;
 import io.javalin.openapi.plugin.swagger.SwaggerPlugin;
 import io.javalin.security.RouteRole;
 import jakarta.inject.Inject;
+import jakarta.inject.Provider;
 import jakarta.inject.Singleton;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpServletResponseWrapper;
@@ -140,6 +143,7 @@ public class ApiServer {
     private final StationMemberRepository stationMemberRepository;
     private final StationRepository stationRepository;
     private final ClusterRepository clusterRepository;
+    private final Provider<ClusterService> clusterService;
     private final ProfileFieldService profileFieldService;
     private final MemberGroupRepository memberGroupRepository;
     private final UserTagRepository userTagRepository;
@@ -166,6 +170,7 @@ public class ApiServer {
             StationMemberRepository stationMemberRepository,
             StationRepository stationRepository,
             ClusterRepository clusterRepository,
+            Provider<ClusterService> clusterService,
             ProfileFieldService profileFieldService,
             MemberGroupRepository memberGroupRepository,
             UserTagRepository userTagRepository,
@@ -189,6 +194,7 @@ public class ApiServer {
         this.stationMemberRepository = stationMemberRepository;
         this.stationRepository = stationRepository;
         this.clusterRepository = clusterRepository;
+        this.clusterService = clusterService;
         this.profileFieldService = profileFieldService;
         this.memberGroupRepository = memberGroupRepository;
         this.userTagRepository = userTagRepository;
@@ -608,7 +614,8 @@ public class ApiServer {
                             groupNames,
                             tagNames,
                             complete,
-                            account.instanceUserType() == InstanceUserType.ADMINISTRATOR));
+                            account.instanceUserType() == InstanceUserType.ADMINISTRATOR,
+                            clusterPermissionsOf(account.id())));
                 });
             }
             if (!accounts.isEmpty()) {
@@ -616,9 +623,15 @@ public class ApiServer {
             }
         }
 
+        // A row on a cluster's own station is a byline on what the cluster writes, not somebody being at a
+        // station: the demo administrator would otherwise vanish from this list the moment they write for a
+        // cluster, and the picker is where they are chosen.
+        var regularStationIds = allStations.stream().map(Station::id).collect(Collectors.toSet());
         var noStationAccounts = new ArrayList<DemoAccount>();
         for (var account : accountRepository.findAll()) {
-            if (!stationMemberRepository.findAllByAccountId(account.id()).isEmpty()) {
+            boolean atAStation = stationMemberRepository.findAllByAccountId(account.id()).stream()
+                    .anyMatch(member -> regularStationIds.contains(member.stationId()));
+            if (atAStation) {
                 continue;
             }
             boolean administrator = account.instanceUserType() == InstanceUserType.ADMINISTRATOR;
@@ -632,7 +645,8 @@ public class ApiServer {
                     List.of(),
                     List.of(),
                     true,
-                    administrator));
+                    administrator,
+                    clusterPermissionsOf(account.id())));
         }
 
         ctx.json(new DemoAccountsResponse(noStationAccounts, stationGroups));
@@ -756,14 +770,20 @@ public class ApiServer {
                 permissionGranted = true;
             } else if (required instanceof InstancePermission ip && session.hasInstancePermission(ip)) {
                 permissionGranted = true;
+            } else if (required instanceof ClusterPermission cp && session.hasClusterPermission(cp)) {
+                permissionGranted = true;
             }
         }
 
         if (permissionRequired && !permissionGranted) {
+            // What a route asks for decides which of the three sets the answer should name: telling
+            // somebody their station permissions when the route wanted a cluster one explains nothing.
+            Set<? extends RouteRole> held = routeRoles.stream().anyMatch(r -> r instanceof ClusterPermission)
+                    ? session.clusterPermissions()
+                    : session.permissions();
             ctx.header("X-Required-Permissions", routeRoles.toString());
-            ctx.header("X-User-Permissions", session.permissions().toString());
-            throw new ForbiddenResponse(
-                    "Insufficient permissions. Required: " + routeRoles + ", Current: " + session.permissions());
+            ctx.header("X-User-Permissions", held.toString());
+            throw new ForbiddenResponse("Insufficient permissions. Required: " + routeRoles + ", Current: " + held);
         }
 
         if (stepUpCategory != null && !isStepUpFresh(session)) {
@@ -1110,6 +1130,30 @@ public class ApiServer {
      *                              permissions say nothing about that, so a caller looking for
      *                              someone who may reach the admin area has no other way to tell.
      */
+
+    /**
+     * Everything an account may do for any cluster it belongs to, flattened.
+     *
+     * <p>Flattened because the stories that read this pick an actor by what they are allowed to do, and the
+     * demo has one cluster: telling them which cluster each right came from would be a distinction with
+     * nothing behind it. An account in no cluster answers with nothing, which is the same answer the picker
+     * gives.
+     *
+     * @param accountId the account
+     * @return the names of the permissions it holds, sorted, each once
+     */
+    private List<String> clusterPermissionsOf(int accountId) {
+        var service = clusterService.get();
+        return clusterRepository.findAll().stream()
+                .flatMap(cluster -> service.findMembers(cluster.id()).stream())
+                .filter(member -> member.accountId() == accountId)
+                .flatMap(member -> service.resolvePermissions(member).stream())
+                .map(Enum::name)
+                .distinct()
+                .sorted()
+                .toList();
+    }
+
     public record DemoAccount(
             String email,
             String firstName,
@@ -1119,7 +1163,8 @@ public class ApiServer {
             List<String> groups,
             List<String> tags,
             boolean profileComplete,
-            boolean instanceAdministrator) {}
+            boolean instanceAdministrator,
+            List<String> clusterPermissions) {}
 
     public record PublicConfigResponse(String demoUrl, boolean demo, String version) {}
 

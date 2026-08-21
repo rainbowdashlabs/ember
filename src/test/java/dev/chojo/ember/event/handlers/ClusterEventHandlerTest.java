@@ -66,7 +66,7 @@ class ClusterEventHandlerTest extends RepositoryTestBase {
         int clusterId = clusterWithAdmin();
         List<Integer> expected = clusterService.findMemberIdsWith(clusterId, ClusterPermission.CLUSTER_STATIONS);
 
-        new ClusterApplicationSubmittedHandler(notificationService, clusterService)
+        new ClusterApplicationSubmittedHandler(notificationService, () -> clusterService)
                 .handle(new ClusterApplicationSubmitted(clusterId, 1, "Wache Nord"));
 
         verify(notificationService)
@@ -83,7 +83,7 @@ class ClusterEventHandlerTest extends RepositoryTestBase {
         int clusterId = clusterWithAdmin();
         List<Integer> expected = clusterService.findMemberIdsWith(clusterId, ClusterPermission.CLUSTER_STATIONS);
 
-        new ClusterApplicationWithdrawnHandler(notificationService, clusterService)
+        new ClusterApplicationWithdrawnHandler(notificationService, () -> clusterService)
                 .handle(new ClusterApplicationWithdrawn(1, clusterId, "Wache Nord"));
 
         verify(notificationService)

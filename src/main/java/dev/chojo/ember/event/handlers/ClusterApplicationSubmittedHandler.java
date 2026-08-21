@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationService;
 import jakarta.inject.Inject;
+import jakarta.inject.Provider;
 import jakarta.inject.Singleton;
 
 /**
@@ -22,10 +23,16 @@ import jakarta.inject.Singleton;
 @Singleton
 public class ClusterApplicationSubmittedHandler implements DomainEventHandler<ClusterApplicationSubmitted> {
     private final NotificationService notificationService;
-    private final ClusterService clusterService;
+    private final Provider<ClusterService> clusterService;
 
+    /**
+     * A handler is built while the bus is being built, so it may not ask for anything that needs the bus in
+     * turn. The cluster service does, several steps down, which is why it arrives as a provider rather than as
+     * itself: asked for when the notification is written rather than when the handler is made.
+     */
     @Inject
-    public ClusterApplicationSubmittedHandler(NotificationService notificationService, ClusterService clusterService) {
+    public ClusterApplicationSubmittedHandler(
+            NotificationService notificationService, Provider<ClusterService> clusterService) {
         this.notificationService = notificationService;
         this.clusterService = clusterService;
     }
@@ -41,7 +48,7 @@ public class ClusterApplicationSubmittedHandler implements DomainEventHandler<Cl
                 new NotificationParams.ClusterApplicationSubmitted(event.stationName()),
                 new NotificationData.NotificationLink("cluster-applications"));
         notificationService.notifyClusterMembersIfAbsent(
-                clusterService.findMemberIdsWith(event.clusterId(), ClusterPermission.CLUSTER_STATIONS),
+                clusterService.get().findMemberIdsWith(event.clusterId(), ClusterPermission.CLUSTER_STATIONS),
                 NotificationType.CLUSTER_APPLICATION_SUBMITTED,
                 data,
                 null);

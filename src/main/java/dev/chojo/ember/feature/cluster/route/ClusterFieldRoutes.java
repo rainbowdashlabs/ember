@@ -23,6 +23,7 @@ import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -107,6 +108,7 @@ public class ClusterFieldRoutes implements Routes {
 
     @OpenApi(
             path = "/api/v1/cluster/fields/{fieldId}",
+            pathParams = @OpenApiParam(name = "fieldId", type = Integer.class, required = true),
             methods = HttpMethod.PUT,
             summary = "Change a question",
             tags = {"Cluster"},
@@ -130,6 +132,7 @@ public class ClusterFieldRoutes implements Routes {
 
     @OpenApi(
             path = "/api/v1/cluster/fields/{fieldId}",
+            pathParams = @OpenApiParam(name = "fieldId", type = Integer.class, required = true),
             methods = HttpMethod.DELETE,
             summary = "Remove a question",
             tags = {"Cluster"},
@@ -142,6 +145,7 @@ public class ClusterFieldRoutes implements Routes {
 
     @OpenApi(
             path = "/api/v1/cluster/fields/member/{memberId}",
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
             methods = HttpMethod.GET,
             summary = "What one member answered",
             tags = {"Cluster"},
@@ -153,6 +157,7 @@ public class ClusterFieldRoutes implements Routes {
 
     @OpenApi(
             path = "/api/v1/cluster/fields/member/{memberId}",
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
             methods = HttpMethod.PUT,
             summary = "Fill in answers for one member",
             tags = {"Cluster"},

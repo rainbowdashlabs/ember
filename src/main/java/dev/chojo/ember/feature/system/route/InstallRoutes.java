@@ -13,6 +13,7 @@ import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
@@ -65,6 +66,7 @@ public class InstallRoutes implements Routes {
      */
     @OpenApi(
             path = "/api/v1/public/install/{code}",
+            pathParams = @OpenApiParam(name = "code", type = String.class, required = true),
             methods = HttpMethod.GET,
             summary = "The installer answers behind a code, as shell assignments",
             tags = {"Install"},

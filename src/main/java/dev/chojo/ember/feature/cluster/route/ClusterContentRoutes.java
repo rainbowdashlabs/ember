@@ -23,6 +23,7 @@ import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -150,6 +151,7 @@ public class ClusterContentRoutes implements Routes {
 
     @OpenApi(
             path = "/api/v1/cluster/knowledge/files/{fileId}",
+            pathParams = @OpenApiParam(name = "fileId", type = Integer.class, required = true),
             methods = HttpMethod.DELETE,
             summary = "Remove a knowledge article",
             tags = {"Cluster"},
@@ -206,6 +208,7 @@ public class ClusterContentRoutes implements Routes {
 
     @OpenApi(
             path = "/api/v1/cluster/news/{newsId}",
+            pathParams = @OpenApiParam(name = "newsId", type = Integer.class, required = true),
             methods = HttpMethod.DELETE,
             summary = "Remove a news article",
             tags = {"Cluster"},
@@ -271,6 +274,7 @@ public class ClusterContentRoutes implements Routes {
 
     @OpenApi(
             path = "/api/v1/cluster/events/{eventId}",
+            pathParams = @OpenApiParam(name = "eventId", type = Integer.class, required = true),
             methods = HttpMethod.DELETE,
             summary = "Remove an appointment",
             tags = {"Cluster"},

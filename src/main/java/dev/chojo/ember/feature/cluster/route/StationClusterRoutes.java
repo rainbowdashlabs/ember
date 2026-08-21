@@ -21,6 +21,7 @@ import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -118,6 +119,7 @@ public class StationClusterRoutes implements Routes {
 
     @OpenApi(
             path = "/api/v1/station/cluster/applications/{id}",
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             methods = HttpMethod.DELETE,
             summary = "Take back a request to join",
             tags = {"Cluster"},

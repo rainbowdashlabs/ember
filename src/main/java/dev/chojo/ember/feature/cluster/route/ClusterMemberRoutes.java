@@ -22,6 +22,7 @@ import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -118,6 +119,7 @@ public class ClusterMemberRoutes implements Routes {
 
     @OpenApi(
             path = "/api/v1/cluster/members/{memberId}",
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
             methods = HttpMethod.GET,
             summary = "What one cluster member holds, and where each part comes from",
             tags = {"Cluster"},
@@ -139,6 +141,7 @@ public class ClusterMemberRoutes implements Routes {
 
     @OpenApi(
             path = "/api/v1/cluster/members/{memberId}",
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
             methods = HttpMethod.DELETE,
             summary = "Release an account from the cluster",
             tags = {"Cluster"},
@@ -154,6 +157,7 @@ public class ClusterMemberRoutes implements Routes {
 
     @OpenApi(
             path = "/api/v1/cluster/members/{memberId}/user-type",
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
             methods = HttpMethod.PUT,
             summary = "Change what a cluster member is",
             tags = {"Cluster"},
@@ -168,6 +172,7 @@ public class ClusterMemberRoutes implements Routes {
 
     @OpenApi(
             path = "/api/v1/cluster/members/{memberId}/permissions",
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
             methods = HttpMethod.PUT,
             summary = "Set what a cluster member holds in their own right",
             tags = {"Cluster"},
@@ -210,6 +215,7 @@ public class ClusterMemberRoutes implements Routes {
 
     @OpenApi(
             path = "/api/v1/cluster/member-groups/{groupId}",
+            pathParams = @OpenApiParam(name = "groupId", type = Integer.class, required = true),
             methods = HttpMethod.GET,
             summary = "What a group carries and who is in it",
             tags = {"Cluster"},
@@ -226,6 +232,7 @@ public class ClusterMemberRoutes implements Routes {
 
     @OpenApi(
             path = "/api/v1/cluster/member-groups/{groupId}",
+            pathParams = @OpenApiParam(name = "groupId", type = Integer.class, required = true),
             methods = HttpMethod.PUT,
             summary = "Rename a group, set what it carries and who is in it",
             tags = {"Cluster"},
@@ -248,6 +255,7 @@ public class ClusterMemberRoutes implements Routes {
 
     @OpenApi(
             path = "/api/v1/cluster/member-groups/{groupId}",
+            pathParams = @OpenApiParam(name = "groupId", type = Integer.class, required = true),
             methods = HttpMethod.DELETE,
             summary = "Delete a member group",
             tags = {"Cluster"},

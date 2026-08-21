@@ -68,12 +68,16 @@ public class StationService {
     }
 
     /**
-     * Retrieves all stations.
+     * The stations of the instance.
      *
-     * @return a list of all stations
+     * <p>A cluster's own station is not one of them. It exists so a cluster has somewhere to keep its
+     * things and it is not a station anybody runs: offering it here would offer somebody the chance to
+     * rename or delete the identity a cluster is built on.
+     *
+     * @return the stations somebody actually runs
      */
     public List<Station> findAll() {
-        return stationRepository.findAll();
+        return stationRepository.findAllRegular();
     }
 
     /**

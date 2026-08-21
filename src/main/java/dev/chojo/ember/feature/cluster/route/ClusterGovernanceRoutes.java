@@ -22,6 +22,7 @@ import io.javalin.http.NotFoundResponse;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -159,6 +160,7 @@ public class ClusterGovernanceRoutes implements Routes {
 
     @OpenApi(
             path = "/api/v1/cluster/storage/stations/{stationUid}",
+            pathParams = @OpenApiParam(name = "stationUid", type = String.class, required = true),
             methods = HttpMethod.PUT,
             summary = "Hand a station a share of the cluster's pool",
             tags = {"Cluster"},
@@ -181,6 +183,7 @@ public class ClusterGovernanceRoutes implements Routes {
 
     @OpenApi(
             path = "/api/v1/clusters/{clusterUid}/storage-pool",
+            pathParams = @OpenApiParam(name = "clusterUid", type = String.class, required = true),
             methods = HttpMethod.PUT,
             summary = "Grant a cluster the pool it may hand out",
             tags = {"Cluster"},

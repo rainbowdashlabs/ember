@@ -22,6 +22,8 @@ const state = vi.hoisted(() => ({
     admin: false,
     sessionLoaded: false,
     sessionLoads: 0,
+    clusters: [] as {uid: string}[],
+    clustersLoaded: false,
 }))
 
 mockNuxtImport('navigateTo', () => (target: unknown) => {
@@ -45,6 +47,16 @@ vi.mock('~/composables/useSession', () => ({
             state.sessionLoaded = true
         },
         isAdmin: () => state.admin,
+    }),
+}))
+
+vi.mock('~/composables/useCluster', () => ({
+    useCluster: () => ({
+        loaded: {value: state.clustersLoaded},
+        load: async () => {
+            state.clustersLoaded = true
+        },
+        hasClusters: {value: state.clusters.length > 0},
     }),
 }))
 
@@ -90,6 +102,8 @@ describe('auth route guard', () => {
         state.admin = false
         state.sessionLoaded = false
         state.sessionLoads = 0
+        state.clusters = []
+        state.clustersLoaded = false
         localStorage.clear()
     })
 
@@ -185,5 +199,26 @@ describe('auth route guard', () => {
         await run(route('/admin/monitoring/traffic'))
 
         expect(state.sessionLoads, 'loaded once, then reused').toBe(1)
+    })
+
+    /**
+     * The cluster area is for people who have one. Somebody who does not is sent back rather than
+     * shown a shell explaining that they are working for nobody, which reads as a page they belong on.
+     */
+    it('turns an account with no cluster away from the cluster area', async () => {
+        state.store.set('station_id', STATION)
+
+        await run(route('/cluster/stations'))
+
+        expect(state.navigations).toEqual(['/station/dashboard/overview'])
+    })
+
+    it('lets somebody who may act for a cluster in', async () => {
+        state.store.set('station_id', STATION)
+        state.clusters = [{uid: 'c1'}]
+
+        await run(route('/cluster'))
+
+        expect(state.navigations).toEqual([])
     })
 })
