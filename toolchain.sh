@@ -12,6 +12,7 @@
 # which is how WebP variant generation ends up skipped in one run and exercised in the next.
 #
 # Usage: ./toolchain.sh <command> [args...]
+#        ./toolchain.sh <group> <command> [args...]
 #        ./toolchain.sh help
 
 set -euo pipefail
@@ -33,6 +34,10 @@ run() {
 usage() {
     cat <<'EOF'
 Usage: ./toolchain.sh <command> [args...]
+       ./toolchain.sh <group> <command> [args...]
+
+The first hyphen of a name also reads as a space, so `docker app` and `docker-app` are the same
+command. `./toolchain.sh docker` lists what is in a group.
 
 Frontend
   fe-build              Full verification: formatting, unit tests, all linters, vue-tsc, build
@@ -98,10 +103,168 @@ Docker
 
 Combined
   verify                be-verify then fe-build
+
+Shell
+  completion [zsh|bash] Print a completion function to eval from your shell's rc file:
+                          eval "$(./toolchain.sh completion zsh)"
+                        Defaults to the shell named in $SHELL
 EOF
 }
 
 fe() { cd "$FRONTEND"; }
+
+# The command names are hyphenated, and the first hyphen also reads as a group: `docker app` is
+# accepted for `docker-app`, and both reach the same arm below. Naming the group alone lists what
+# is in it.
+COMMAND_GROUPS=(fe be docker)
+
+is_group() {
+    local candidate
+    for candidate in "${COMMAND_GROUPS[@]}"; do
+        [ "$1" = "$candidate" ] && return 0
+    done
+    return 1
+}
+
+# --- Completion ----------------------------------------------------------------------------------
+#
+# The candidates are worked out here rather than in the emitted shell function, so both shells get
+# the same answers and neither has to know anything about this repository.
+
+# Every command the case below dispatches, read back out of this file. A new command is completable
+# the moment it is written, and one that is removed stops being offered, without a list to update.
+# The flag spellings of help are dropped: they work, but nobody needs them offered.
+list_commands() {
+    sed -n 's/^    \([a-z][a-z0-9|_-]*\)).*/\1/p' "$ROOT/toolchain.sh" | tr '|' '\n' | grep -v '^-'
+}
+
+# What can be typed first: the groups, then whatever belongs to no group.
+list_top_level() {
+    printf '%s\n' "${COMMAND_GROUPS[@]}"
+    list_commands | grep -vE "^($(IFS='|'; echo "${COMMAND_GROUPS[*]}"))-"
+}
+
+# What can follow a group, with the group's own prefix taken off.
+list_group() {
+    list_commands | sed -n "s/^$1-//p"
+}
+
+# Prints the part of each matching path that names it, e.g. lint-style.mjs -> style. A glob that
+# matches nothing yields the pattern itself, which -e filters out.
+list_names() {
+    local strip_prefix="$1" strip_suffix="$2" path name
+    shift 2
+    for path in "$@"; do
+        [ -e "$path" ] || continue
+        name="${path##*/}"
+        name="${name#"$strip_prefix"}"
+        printf '%s\n' "${name%"$strip_suffix"}"
+    done
+}
+
+list_e2e_projects() {
+    sed -n "s/.*name: *'\([a-z0-9-]*\)'.*/\1/p" "$FRONTEND/playwright.config.ts" 2> /dev/null
+}
+
+list_compose_services() {
+    awk '/^services:/ {inside = 1; next}
+         /^[a-z]/ {inside = 0}
+         inside && /^  [a-z0-9_-]+:/ {gsub(/[ :]/, ""); print}' \
+        "$ROOT/docker/compose.dev.yaml" 2> /dev/null
+}
+
+list_test_classes() {
+    find "$ROOT/src/test/java" -name '*Test.java' -printf '%f\n' 2> /dev/null | sed 's/\.java$//'
+}
+
+# Candidates for argument $2 (1 for the first) of command $1, where $1 is always the hyphenated
+# name. Silence means "no idea", which the shells turn into their own default of completing
+# filenames.
+complete_args() {
+    local cmd="$1" position="$2"
+    case "$cmd" in
+        fe-lint)
+            [ "$position" = 1 ] && list_names "lint-" ".mjs" "$FRONTEND"/scripts/lint-*.mjs
+            ;;
+        fe-e2e1)
+            [ "$position" = 1 ] && list_names "" ".e2e.ts" "$FRONTEND"/e2e/*.e2e.ts
+            ;;
+        fe-e2e|fe-e2e-built)
+            [ "$position" = 1 ] && list_e2e_projects
+            ;;
+        be-test1)
+            case "$position" in
+                1) list_test_classes ;;
+                2) printf '%s\n' testServices testRepositories testOther testTracking ;;
+            esac
+            ;;
+        docker-app-restart|docker-app-logs)
+            list_compose_services
+            ;;
+        completion)
+            [ "$position" = 1 ] && printf '%s\n' zsh bash
+            ;;
+    esac
+    return 0
+}
+
+# Candidates for the word after the ones already typed, which the shells hand over verbatim. Both
+# spellings arrive here, so `docker app <TAB>` and `docker-app <TAB>` complete alike.
+complete_words() {
+    if [ $# -eq 0 ]; then
+        list_top_level
+    elif is_group "$1"; then
+        if [ $# -eq 1 ]; then
+            list_group "$1"
+        else
+            # The group and its subcommand are two words for one name, so the first argument
+            # after them is still argument one.
+            complete_args "$1-$2" "$(($# - 1))"
+        fi
+    else
+        complete_args "$1" "$#"
+    fi
+}
+
+# The emitted functions call back into this script, so they stay this short and never go stale.
+print_completion() {
+    local shell="${1:-$(basename "${SHELL:-bash}")}" self="$ROOT/toolchain.sh"
+    case "$shell" in
+        zsh)
+            cat <<EOF
+_toolchain() {
+    local -a candidates
+    candidates=(\${(f)"\$('$self' __complete \${words[2,CURRENT-1]})"})
+    (( \${#candidates} )) && compadd -- \$candidates
+}
+compdef _toolchain toolchain.sh ./toolchain.sh '$self'
+EOF
+            ;;
+        bash)
+            cat <<EOF
+_toolchain() {
+    local candidates
+    candidates="\$('$self' __complete "\${COMP_WORDS[@]:1:COMP_CWORD-1}")"
+    mapfile -t COMPREPLY < <(compgen -W "\$candidates" -- "\${COMP_WORDS[COMP_CWORD]}")
+}
+complete -F _toolchain toolchain.sh ./toolchain.sh '$self'
+EOF
+            ;;
+        *) echo "No completion for '$shell'. Supported: zsh, bash" >&2; return 2 ;;
+    esac
+}
+
+# `docker app` becomes `docker-app` before anything else looks at it, so the arms below only ever
+# see one spelling. A group on its own lists what is in it rather than failing as unknown.
+if is_group "${1:-}"; then
+    if [ $# -ge 2 ]; then
+        set -- "$1-$2" "${@:3}"
+    else
+        echo "Commands in '$1':" >&2
+        list_group "$1" | sed "s|^|  $1 |" >&2
+        exit 2
+    fi
+fi
 
 cmd="${1:-help}"
 shift || true
@@ -233,6 +396,10 @@ case "$cmd" in
         "$ROOT/toolchain.sh" be-verify
         "$ROOT/toolchain.sh" fe-build
         ;;
+
+    completion)    print_completion "$@" ;;
+    # Not in the command list: the shells call it, nobody types it.
+    __complete)   complete_words "$@" ;;
 
     help|-h|--help) usage ;;
     *) echo "Unknown command: $cmd" >&2; echo >&2; usage >&2; exit 2 ;;
