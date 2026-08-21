@@ -84,6 +84,17 @@ Docker
   docker-backend        Build the backend image
   docker-storage        Start the dev storage stack detached: database on 5432, object storage,
                         SFTP and SMB. Add `down` arguments through docker-storage-down
+  docker-app            Start the whole application from the dev images, detached: the storage
+                        stack, the backend on 8888 and the frontend on 3000, both built and run
+                        inside their containers from this checkout. The images are rebuilt first,
+                        or compose starts the one it built last time. The frontend takes port 3000,
+                        so fe-dev cannot run beside it
+  docker-app-down       Stop the application again. The data survives; add -v to throw it away
+  docker-app-restart    Build and start the containers again, which is how a change is picked up:
+                        the backend compiles on start. Name one to restart only that, e.g.
+                        `docker-app-restart ember`
+  docker-app-logs       Follow what the containers print, which is where the first start is
+                        watched: `up -d` returns long before the backend has finished building
 
 Combined
   verify                be-verify then fe-build
@@ -198,6 +209,24 @@ case "$cmd" in
         ;;
     docker-storage-down)
         cd "$ROOT/docker"; run docker compose -f compose.dev.yaml --profile storage down "$@"
+        ;;
+    docker-app)
+        # Build first, or compose starts whatever image was built the last time and the app runs
+        # on code nobody is looking at any more.
+        cd "$ROOT/docker"; run docker compose -f compose.dev.yaml --profile full up -d --build "$@"
+        ;;
+    docker-app-down)
+        cd "$ROOT/docker"; run docker compose -f compose.dev.yaml --profile full down "$@"
+        ;;
+    docker-app-restart)
+        # An up rather than a restart, because `docker compose restart` takes no --build: it starts
+        # the containers again as they are, which is the one thing a restart after a change must
+        # not do. Recreating them costs nothing, since the caches live in named volumes.
+        cd "$ROOT/docker"
+        run docker compose -f compose.dev.yaml --profile full up -d --build --force-recreate "$@"
+        ;;
+    docker-app-logs)
+        cd "$ROOT/docker"; run docker compose -f compose.dev.yaml --profile full logs -f "$@"
         ;;
 
     verify)
