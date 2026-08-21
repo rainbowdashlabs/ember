@@ -105,9 +105,13 @@ Combined
   verify                be-verify then fe-build
 
 Shell
-  completion [zsh|bash] Print a completion function to eval from your shell's rc file:
-                          eval "$(./toolchain.sh completion zsh)"
-                        Defaults to the shell named in $SHELL
+  completion install [shell]
+                        Install tab completion where the shell already looks, so nothing has to be
+                        added to an rc file. Run it once; open a new shell and it is there
+  completion uninstall [shell]
+                        Remove what install wrote
+  completion [zsh|bash] Print the function instead of installing it, to eval or to inspect
+                        Shell defaults to the one named in $SHELL
 EOF
 }
 
@@ -202,7 +206,10 @@ complete_args() {
             list_compose_services
             ;;
         completion)
-            [ "$position" = 1 ] && printf '%s\n' zsh bash
+            case "$position" in
+                1) printf '%s\n' install uninstall zsh bash ;;
+                2) printf '%s\n' zsh bash ;;
+            esac
             ;;
     esac
     return 0
@@ -223,6 +230,90 @@ complete_words() {
         fi
     else
         complete_args "$1" "$#"
+    fi
+}
+
+# Where each shell looks by itself, so that installing means dropping a file rather than asking
+# anyone to edit an rc file. On a nix or home-manager machine the rc file is a read-only symlink
+# into the store, and an appended line there would be lost at the next rebuild anyway.
+#
+# For zsh: the first directory that is both on fpath and writable. oh-my-zsh keeps one under its
+# cache for exactly this, and a plain zsh usually has ~/.local/share/zsh/site-functions.
+zsh_completion_dir() {
+    local dir
+    while read -r dir; do
+        [ -n "$dir" ] && [ -d "$dir" ] && [ -w "$dir" ] && { printf '%s\n' "$dir"; return 0; }
+    done < <(zsh -ic 'print -l $fpath' 2> /dev/null)
+    return 1
+}
+
+bash_completion_dir() {
+    printf '%s\n' "${XDG_DATA_HOME:-$HOME/.local/share}/bash-completion/completions"
+}
+
+# The file zsh autoloads. The #compdef line is what registers it, which is why nothing has to run
+# at shell start. All three spellings are named because zsh looks the command up as it was typed.
+print_zsh_function() {
+    local self="$ROOT/toolchain.sh"
+    cat <<EOF
+#compdef toolchain.sh ./toolchain.sh $self
+# Written by \`toolchain.sh completion install\`. Run that again after moving the checkout.
+
+local script=$self
+[[ -x \$script ]] || return 1
+
+local -a candidates
+candidates=(\${(f)"\$(\$script __complete \${words[2,CURRENT-1]})"})
+(( \${#candidates} )) && compadd -- \$candidates
+EOF
+}
+
+install_completion() {
+    local shell="${1:-$(basename "${SHELL:-bash}")}" dir target
+    case "$shell" in
+        zsh)
+            dir=$(zsh_completion_dir) || {
+                echo "No writable directory on zsh's fpath." >&2
+                echo "Add one to fpath, then run this again:" >&2
+                echo "  fpath+=(\$HOME/.local/share/zsh/site-functions)" >&2
+                return 1
+            }
+            target="$dir/_toolchain"
+            print_zsh_function > "$target"
+            # compinit reads a cached dump and would not notice a new file until it expires.
+            rm -f "$HOME"/.zcompdump*
+            echo "Installed $target"
+            echo "Open a new shell and the completion is there."
+            ;;
+        bash)
+            dir=$(bash_completion_dir)
+            mkdir -p "$dir"
+            # bash-completion loads a file named after the command, on first use of that command.
+            target="$dir/toolchain.sh"
+            print_completion bash > "$target"
+            echo "Installed $target"
+            echo "Open a new shell and the completion is there (needs the bash-completion package)."
+            ;;
+        *) echo "No completion for '$shell'. Supported: zsh, bash" >&2; return 2 ;;
+    esac
+}
+
+uninstall_completion() {
+    local shell="${1:-$(basename "${SHELL:-bash}")}" dir target
+    case "$shell" in
+        zsh)
+            dir=$(zsh_completion_dir) || return 0
+            target="$dir/_toolchain"
+            ;;
+        bash) target="$(bash_completion_dir)/toolchain.sh" ;;
+        *) echo "No completion for '$shell'. Supported: zsh, bash" >&2; return 2 ;;
+    esac
+    if [ -f "$target" ]; then
+        rm -f "$target"
+        [ "$shell" = zsh ] && rm -f "$HOME"/.zcompdump*
+        echo "Removed $target"
+    else
+        echo "Nothing installed at $target"
     fi
 }
 
@@ -397,7 +488,13 @@ case "$cmd" in
         "$ROOT/toolchain.sh" fe-build
         ;;
 
-    completion)    print_completion "$@" ;;
+    completion)
+        case "${1:-}" in
+            install)   shift; install_completion "$@" ;;
+            uninstall) shift; uninstall_completion "$@" ;;
+            *)         print_completion "$@" ;;
+        esac
+        ;;
     # Not in the command list: the shells call it, nobody types it.
     __complete)   complete_words "$@" ;;
 
