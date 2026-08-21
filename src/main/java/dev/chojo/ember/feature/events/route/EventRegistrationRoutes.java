@@ -293,7 +293,9 @@ public class EventRegistrationRoutes implements Routes {
         int eventId = pathInt(ctx, "eventId");
         var event = requireOwnedEvent(crudService, eventId, session);
         String catParam = ctx.queryParam("categoryId");
-        Integer categoryId = catParam != null ? Integer.parseInt(catParam) : event.categoryId();
+        // Both sides of the choice stay boxed. An int on one of them promotes the other, which
+        // unboxes the category of an event that has none and answers 500 for asking.
+        Integer categoryId = catParam != null ? Integer.valueOf(catParam) : event.categoryId();
         String monthsParam = ctx.queryParam("months");
         int months = monthsParam != null ? Integer.parseInt(monthsParam) : 12;
 
