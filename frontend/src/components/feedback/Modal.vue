@@ -47,6 +47,9 @@ const sizeClass = computed(() => {
         />
         <!-- Content -->
         <div
+            data-testid="modal"
+            role="dialog"
+            aria-modal="true"
             :class="[
               'relative z-10 w-full mx-4 rounded-theme border border-bg-light-accent bg-bg-light p-6 shadow-xl dark:border-bg-dark-accent dark:bg-bg-dark',
               sizeClass,
