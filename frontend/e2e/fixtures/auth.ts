@@ -3,6 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import {MADE_BY_A_STORY} from './cluster'
 import {test as base, type APIRequestContext, type Browser, type Page} from '@playwright/test'
 
 /**
@@ -240,10 +241,33 @@ export async function clustersOf(page: Page): Promise<{uid: string; name: string
  * the switcher plants it directly rather than clicking through it every time.
  */
 export async function enterCluster(page: Page): Promise<{uid: string; name: string}> {
-    const [cluster] = await clustersOf(page)
-    if (!cluster) throw new Error('This account may act for no cluster')
+    const cluster = await theSeededCluster(page)
     await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), cluster.uid)
     return cluster
+}
+
+/**
+ * The cluster the demo is about, told apart from the ones the stories make.
+ *
+ * Several stories create a cluster of their own to govern, and the administrator is appointed to every one
+ * of them, so "the first cluster this account may act for" stops meaning anything the moment two stories
+ * run at once. The seeded one is the only one with stations under it, which is also what makes it the one
+ * worth telling a story about.
+ */
+export async function theSeededCluster(page: Page): Promise<{uid: string; name: string}> {
+    const headers = await apiHeaders(page)
+    const clusters = await clustersOf(page)
+    if (!clusters.length) throw new Error('This account may act for no cluster')
+
+    for (const cluster of clusters) {
+        if (cluster.name.startsWith(MADE_BY_A_STORY)) continue
+        const response = await page.request.get('/api/v1/cluster/stations', {
+            headers: {...headers, 'X-Cluster-Id': cluster.uid},
+        })
+        if (!response.ok()) continue
+        if ((await response.json()).length > 0) return cluster
+    }
+    throw new Error('No cluster this account may act for has a station under it')
 }
 
 /**
@@ -346,7 +370,10 @@ export async function clusterStationManager(request: APIRequestContext): Promise
             })
             if (!cluster.ok()) continue
             const body = await cluster.json()
-            if (body.clusterUid) return {...account, stationId: group.stationId}
+            // Not a station some other story built for itself: those come and go while this one reads
+            if (body.clusterUid && !String(body.clusterName ?? '').startsWith(MADE_BY_A_STORY)) {
+                return {...account, stationId: group.stationId}
+            }
         }
     }
     throw new Error('No station inside a cluster has a manager of its own to act as')

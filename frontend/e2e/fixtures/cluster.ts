@@ -17,6 +17,15 @@ import {apiHeaders} from './auth'
  * its first person is exactly what the instance is for, and every step below is a call somebody makes in
  * the product rather than a fixture reaching behind it.
  */
+/**
+ * What every cluster a story builds is called first.
+ *
+ * Stories run four at a time and several of them make a cluster, so "the cluster this account may act
+ * for" stops meaning anything unless the made-up ones can be told from the seeded one by looking. This
+ * is how they are told apart, and it is a prefix rather than a suffix so it reads at a glance.
+ */
+export const MADE_BY_A_STORY = 'E2E-'
+
 export interface OwnCluster {
     uid: string
     name: string
@@ -43,7 +52,7 @@ export async function ownCluster(
     request: APIRequestContext,
     label: string,
 ): Promise<OwnCluster> {
-    const stamp = `${label} ${Date.now()}`
+    const stamp = `${MADE_BY_A_STORY}${label} ${Date.now()}`
     const headers = await apiHeaders(page)
 
     const created = await page.request.post('/api/v1/clusters', {headers, data: {name: stamp, description: null}})

@@ -41,6 +41,7 @@ const { t } = useI18n()
       <InfoButton
         class="text-xs px-2 py-1.5 sm:py-1 w-full sm:w-auto"
         :class="{ 'opacity-100': isNotInPossession, 'opacity-60': !isNotInPossession }"
+        :aria-pressed="isNotInPossession"
         @click="emit('toggleNotInPossession', req.inventoryId, slotIndex)"
       >
         <font-awesome-icon :icon="['fas', 'ban']" class="mr-1" />

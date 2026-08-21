@@ -219,12 +219,18 @@ test.describe('Inventory', () => {
         // a separate row each, and the check does not close until those are answered too.
         await page.getByRole('button', {name: 'Alle bestätigen'}).click()
 
+        // Each slot answered once, by index. The button is a toggle that keeps its wording either way,
+        // so pressing "the first one" as many times as there are slots turns one of them on and off
+        // again and leaves the rest unanswered.
         const missing = page.getByRole('button', {name: 'Nicht im Besitz'})
-        for (let index = await missing.count(); index > 0; index -= 1) {
-            await missing.first().click()
+        const slots = await missing.count()
+        for (let index = 0; index < slots; index += 1) {
+            await missing.nth(index).click()
         }
 
-        await page.getByRole('button', {name: 'Prüfung abschließen'}).click()
+        const finish = page.getByRole('button', {name: 'Prüfung abschließen'})
+        await expect(finish).toBeEnabled()
+        await finish.click()
 
         // Closing a check moves straight on to the next person, so the result is read where it is
         // kept rather than wherever the walk happens to end.

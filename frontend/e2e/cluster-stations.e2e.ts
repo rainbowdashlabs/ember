@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect, enterCluster, clustersOf, apiHeaders} from './fixtures/auth'
+import {MADE_BY_A_STORY} from './fixtures/cluster'
+import {test, expect, enterCluster, theSeededCluster, apiHeaders} from './fixtures/auth'
 
 /**
  * How stations come into a cluster and how they leave it again.
@@ -22,7 +23,7 @@ test.describe('Cluster stations', () => {
      * station's own page names the cluster it belongs to.
      */
     test('the cluster creates a station and it is already a member', async ({adminPage: page}) => {
-        const name = `Löschzug E2E ${Date.now()}`
+        const name = `${MADE_BY_A_STORY}Löschzug ${Date.now()}`
 
         await page.goto('/cross-station')
         await enterCluster(page)
@@ -64,7 +65,7 @@ test.describe('Cluster stations', () => {
         await page.goto('/station/manage/cluster')
         await expect(page.getByTestId('app-shell')).toBeVisible()
 
-        const [cluster] = await clustersOf(page).catch(() => [null])
+        const cluster = await theSeededCluster(page).catch(() => null)
         await expect(page.getByText('Diese Wache gehört zu diesem Verband.', {exact: false})).toBeVisible()
         await expect(page.getByRole('button', {name: 'Verlassen'})).toHaveCount(0)
         await expect(page.getByRole('button', {name: 'Austreten'})).toHaveCount(0)
@@ -109,7 +110,7 @@ test.describe('Cluster stations', () => {
      */
     test('a cluster with stations cannot be deleted', async ({adminPage: page}) => {
         const headers = await apiHeaders(page)
-        const [cluster] = await clustersOf(page)
+        const cluster = await theSeededCluster(page)
 
         const refused = await page.request.delete(`/api/v1/clusters/${cluster.uid}`, {headers})
         expect(refused.ok()).toBeFalsy()
@@ -133,7 +134,7 @@ test.describe('Cluster stations', () => {
         const cluster = await enterCluster(page)
         const withCluster = {...headers, 'X-Cluster-Id': cluster.uid}
 
-        const name = `Löschzug Abgang ${test.info().workerIndex}-${Date.now()}`
+        const name = `${MADE_BY_A_STORY}Löschzug Abgang ${test.info().workerIndex}-${Date.now()}`
         const made = await page.request.post('/api/v1/cluster/stations', {headers: withCluster, data: {name}})
         expect(made.ok()).toBeTruthy()
         const station = await made.json()

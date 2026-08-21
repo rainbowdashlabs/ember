@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect, enterCluster, clustersOf, apiHeaders, demoAccounts} from './fixtures/auth'
+import {MADE_BY_A_STORY} from './fixtures/cluster'
+import {test, expect, enterCluster, clustersOf, theSeededCluster, apiHeaders, demoAccounts} from './fixtures/auth'
 
 /**
  * Identity and context: who reaches the cluster area, what they see once they are in it, and where
@@ -17,7 +18,7 @@ test.describe('Cluster', () => {
      * station being nobody's: it must not turn up where the instance lists the stations it runs.
      */
     test('an instance administrator creates a cluster', async ({adminPage: page}) => {
-        const name = `Kreisverband E2E ${test.info().workerIndex}-${Date.now()}`
+        const name = `${MADE_BY_A_STORY}Kreisverband ${test.info().workerIndex}-${Date.now()}`
 
         await page.goto('/admin/clusters')
         await expect(page.getByTestId('app-shell')).toBeVisible()
@@ -35,12 +36,15 @@ test.describe('Cluster', () => {
     /** CLS-2 - A cluster member reaches the cluster space. */
     test('a cluster member reaches the cluster space', async ({adminPage: page}) => {
         await page.goto('/cross-station')
+        // Which cluster the shell is acting for is named first, because the demo administrator is
+        // appointed to every cluster the other stories build and the button would otherwise open
+        // whichever of them was made last
+        const cluster = await enterCluster(page)
         await expect(page.getByRole('button', {name: 'Verband'}).first()).toBeVisible()
 
         await page.getByRole('button', {name: 'Verband'}).first().click()
         await page.waitForURL(/\/cluster$/)
 
-        const [cluster] = await clustersOf(page)
         await expect(page.getByText(cluster.name).first()).toBeVisible()
     })
 
@@ -71,7 +75,7 @@ test.describe('Cluster', () => {
      * browses or finds. The story asks the three places a station is otherwise offered.
      */
     test('the home station is invisible everywhere a station is listed', async ({adminPage: page}) => {
-        const [cluster] = await clustersOf(page)
+        const cluster = await theSeededCluster(page)
 
         // The directory does carry the cluster's name, as the heading its stations are gathered
         // under. What it must not carry is the cluster's own station as an entry of its own.
@@ -94,7 +98,7 @@ test.describe('Cluster', () => {
      * appoints themselves, which is the only way anybody ever gets into a new one.
      */
     test('an account in two clusters switches between them', async ({adminPage: page}) => {
-        const name = `Bezirksverband E2E ${test.info().workerIndex}-${Date.now()}`
+        const name = `${MADE_BY_A_STORY}Bezirksverband ${test.info().workerIndex}-${Date.now()}`
         const headers = await apiHeaders(page)
 
         const created = await page.request.post('/api/v1/clusters', {headers, data: {name, description: null}})
@@ -118,7 +122,7 @@ test.describe('Cluster', () => {
         await expect(page.getByTestId('app-shell')).toBeVisible()
         await expect(page.getByText('Jugendfeuerwehr Musterstadt')).toHaveCount(0)
 
-        const first = mine.find(cluster => cluster.name !== name)!
+        const first = await theSeededCluster(page)
         await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), first.uid)
         await page.goto('/cluster/stations')
         await expect(page.getByText('Jugendfeuerwehr Musterstadt')).toBeVisible()
