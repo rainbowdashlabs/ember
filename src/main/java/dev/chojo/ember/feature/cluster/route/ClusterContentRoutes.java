@@ -14,7 +14,11 @@ import dev.chojo.ember.feature.cluster.service.ClusterContentService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
+import dev.chojo.ember.feature.events.service.EventFederationService;
+import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.news.entity.News;
+import dev.chojo.ember.feature.news.entity.NewsVisibilityRole;
+import dev.chojo.ember.feature.news.service.NewsFederationService;
 import dev.chojo.ember.feature.news.service.NewsService;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
@@ -48,18 +52,24 @@ public class ClusterContentRoutes implements Routes {
     private final ClusterService clusterService;
     private final ClusterContentService contentService;
     private final NewsService newsService;
+    private final NewsFederationService newsFederationService;
     private final EventCrudService eventService;
+    private final EventFederationService eventFederationService;
 
     @Inject
     public ClusterContentRoutes(
             ClusterService clusterService,
             ClusterContentService contentService,
             NewsService newsService,
-            EventCrudService eventService) {
+            NewsFederationService newsFederationService,
+            EventCrudService eventService,
+            EventFederationService eventFederationService) {
         this.clusterService = clusterService;
         this.contentService = contentService;
         this.newsService = newsService;
+        this.newsFederationService = newsFederationService;
         this.eventService = eventService;
+        this.eventFederationService = eventFederationService;
     }
 
     @Override
@@ -203,6 +213,10 @@ public class ClusterContentRoutes implements Routes {
                 List.of(),
                 List.of(),
                 List.of());
+        // Written once and read by the stations over the connection they already have. Without the share
+        // the entry sits on the cluster's own station and reaches nobody, which is not what writing for a
+        // cluster means.
+        newsFederationService.setShare(news.id(), ShareScope.ALL_PARTNERS, NewsVisibilityRole.MEMBER, List.of());
         ctx.status(HttpStatus.CREATED).json(toResponse(news));
     }
 
@@ -269,6 +283,9 @@ public class ClusterContentRoutes implements Routes {
                 null,
                 null,
                 null);
+        // Shared for the same reason the news is: an appointment nobody under the cluster can see is an
+        // appointment the cluster did not make
+        eventFederationService.setShare(event.id(), ShareScope.ALL_PARTNERS, List.of());
         ctx.status(HttpStatus.CREATED).json(toResponse(event));
     }
 

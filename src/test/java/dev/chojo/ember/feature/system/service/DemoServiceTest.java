@@ -472,7 +472,8 @@ class DemoServiceTest extends RepositoryTestBase {
                         lendingSeeder,
                         notificationSeeder,
                         setupSeeder,
-                        twoFactorSeeder));
+                        twoFactorSeeder),
+                stationRepo);
     }
 
     @Test

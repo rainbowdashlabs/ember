@@ -82,6 +82,19 @@ public class StationRepository {
     /**
      * Invalidates the UID cache for a station (on create/delete).
      */
+    /**
+     * Forgets every station identity this repository has cached.
+     *
+     * <p>For the one moment the whole table goes away underneath it: the demo wipe re-creates the schema
+     * and seeds it again, and the row that comes back with id 5 is a different station from the one that
+     * had it before. A cached identity outliving the wipe is not stale in the ordinary sense, it is wrong,
+     * and it is written into whatever is built during seeding.
+     */
+    public void invalidateIdentityCaches() {
+        uidCache.invalidateAll();
+        idCache.invalidateAll();
+    }
+
     public void invalidateUidCache(int stationId) {
         var uid = uidCache.getIfPresent(stationId);
         uidCache.invalidate(stationId);

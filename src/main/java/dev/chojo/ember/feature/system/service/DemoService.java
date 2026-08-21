@@ -11,6 +11,7 @@ import de.chojo.sadu.updater.SqlUpdater;
 import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.conf.file.elements.Database;
 import dev.chojo.ember.conf.file.elements.Demo;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -63,6 +64,7 @@ public class DemoService {
     private final DataSource dataSource;
     private final PasswordHasher passwordHasher;
     private final Set<DemoSeeder> seeders;
+    private final StationRepository stationRepository;
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private volatile Instant lastActivity = Instant.now();
     private volatile boolean needsReset = false;
@@ -73,12 +75,14 @@ public class DemoService {
             Database databaseConfig,
             DataSource dataSource,
             PasswordHasher passwordHasher,
-            Set<DemoSeeder> seeders) {
+            Set<DemoSeeder> seeders,
+            StationRepository stationRepository) {
         this.demoConfig = demoConfig;
         this.databaseConfig = databaseConfig;
         this.dataSource = dataSource;
         this.passwordHasher = passwordHasher;
         this.seeders = seeders;
+        this.stationRepository = stationRepository;
     }
 
     private static Path resolveSchemaHashFile() {
@@ -127,6 +131,8 @@ public class DemoService {
         log.info("Demo: Wiping and re-seeding database...");
         try {
             wipeDatabase();
+            // The station identities cached in memory belong to the stations that were just thrown away
+            stationRepository.invalidateIdentityCaches();
             seedData();
             log.info("Demo: Database seeded successfully");
         } catch (Exception e) {

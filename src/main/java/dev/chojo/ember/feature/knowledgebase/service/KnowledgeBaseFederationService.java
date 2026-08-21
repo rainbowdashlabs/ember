@@ -42,8 +42,10 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -498,22 +500,31 @@ public class KnowledgeBaseFederationService {
 
     private List<SharedKbItem> browseSharedKbDirect(int remoteStationId, FederationPartner partner) {
         var result = new ArrayList<SharedKbItem>();
+        // An article can be reached by two shares at once: its own, and the one on the folder holding it.
+        // Sharing a folder and then an article inside it is a reasonable thing to do, and the reader should
+        // still see the article once.
+        var seen = new HashSet<Integer>();
         for (var share : federationRepository.findKbShares(remoteStationId)) {
             if (share.fileId() != null) {
-                knowledgeBaseService.findFile(share.fileId()).ifPresent(file -> {
-                    result.add(new SharedKbItem(KbFileSummary.of(file), remoteStationId, partner.id()));
-                    federationRepository.upsertMetadataCache(
-                            partner.id(), ContentType.KB, file.id(), file.name(), file.description());
-                });
+                knowledgeBaseService
+                        .findFile(share.fileId())
+                        .ifPresent(file -> take(file, remoteStationId, partner, seen, result));
             } else if (share.folderId() != null) {
                 for (var file : knowledgeBaseService.findFiles(remoteStationId, share.folderId())) {
-                    result.add(new SharedKbItem(KbFileSummary.of(file), remoteStationId, partner.id()));
-                    federationRepository.upsertMetadataCache(
-                            partner.id(), ContentType.KB, file.id(), file.name(), file.description());
+                    take(file, remoteStationId, partner, seen, result);
                 }
             }
         }
         return result;
+    }
+
+    /** Adds one shared article to the answer, unless another share has already offered it. */
+    private void take(
+            KbFile file, int remoteStationId, FederationPartner partner, Set<Integer> seen, List<SharedKbItem> result) {
+        if (!seen.add(file.id())) return;
+        result.add(new SharedKbItem(KbFileSummary.of(file), remoteStationId, partner.id()));
+        federationRepository.upsertMetadataCache(
+                partner.id(), ContentType.KB, file.id(), file.name(), file.description());
     }
 
     private List<SharedKbItem> browseSharedKbViaHttp(
